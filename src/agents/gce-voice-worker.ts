@@ -112,6 +112,7 @@ import {
   initLiveKitConnection,
   connectToLiveKit,
   closeConnection,
+  prepareForShutdown,
   stopPingKeepalive,
   stopPendingJobsCleanup,
 } from './gce/index.js';
@@ -195,13 +196,19 @@ const shutdown = async (signal: string): Promise<void> => {
   stopPingKeepalive();
   stopPendingJobsCleanup();
 
-  // 3. Close WebSocket
+  // 3. CRITICAL: Prepare for shutdown BEFORE closing connection
+  // This prevents the reconnect race condition that causes native mutex crash
+  prepareForShutdown();
+
+  // 4. Close WebSocket (safe now that reconnect is disabled)
   closeConnection();
 
-  // 4. Wait for active jobs to complete (max 30s)
+  // 5. Wait for active jobs to complete (max 30s)
   const shutdownStart = Date.now();
   while (getJobMetrics().activeJobs > 0 && Date.now() - shutdownStart < 30000) {
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1000);
+    });
     log('Waiting for active jobs...', { activeJobs: getJobMetrics().activeJobs });
   }
 
@@ -212,10 +219,12 @@ const shutdown = async (signal: string): Promise<void> => {
     failedJobs: metrics.failedJobs,
   });
 
-  // 5. Give native modules time to cleanup
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  // 6. Give native modules time to cleanup
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 100);
+  });
 
-  // 6. Exit cleanly
+  // 7. Exit cleanly
   process.exit(0);
 };
 

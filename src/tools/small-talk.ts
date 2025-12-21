@@ -20,7 +20,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from './utils/tool-descriptions.js';
-import { getCognitiveDifferentiation } from '../personas/cognitive-differentiation.js';
+// Removed: getCognitiveDifferentiation - no longer using scripted persona questions
 // ============================================================================
 // HOLIDAYS & SEASONS
 // ============================================================================
@@ -267,174 +267,132 @@ function getJackMood(): { mood: string; expression: string } {
 }
 
 // ============================================================================
-// RECIPROCAL QUESTIONS (Universal + Persona-Grounded)
+// DIALOGUE GUIDANCE (NOT SCRIPTS)
 // ============================================================================
 
 /**
- * Universal reciprocal questions - any persona can ask these
- * They're common human connection patterns
+ * PHILOSOPHY: We guide the LLM on HOW to engage, not WHAT to say.
+ *
+ * The LLM is good at varying naturally. We were over-constraining it with
+ * templated questions like "How are you doing? Not the polite version."
+ * That's still a script, even if it sounds "real."
+ *
+ * Instead, we provide behavioral guidance that helps the LLM respond
+ * to THIS person, in THIS moment.
  */
-const UNIVERSAL_RECIPROCAL_QUESTIONS = {
-  how_are_you: [
-    // Focus on them, be genuinely curious - not generic AI reciprocation
-    'But more importantly - how are YOU doing? Actually, not the polite version.',
-    "What about you? How's life treating you?",
-    "What's going on in your world?",
-    "Enough about me. What's happening with you?",
-  ],
 
-  general_interest: [
-    "What's been on your mind lately?",
-    'Anything exciting happening in your life?',
-    "How's work going? Or life in general?",
-    'What brought you here today?',
-  ],
+/**
+ * @deprecated - Moving away from scripted reciprocal questions.
+ * These feel formulaic because they ARE formulaic. Real friends don't
+ * have a library of 50 questions to pick from.
+ *
+ * NEW APPROACH: Trust the LLM to respond naturally with good system prompt guidance.
+ */
+const DIALOGUE_GUIDANCE = {
+  // Instead of scripted questions, guide the behavior
+  _philosophy: {
+    key_insight: 'A real friend responds to what they NOTICE, not from a template.',
+    anti_patterns: [
+      'How are you? (Not the polite version)',
+      "What's on your mind?",
+      'Tell me more about that',
+      'Any generic question that could apply to anyone',
+    ],
+    better_approach: [
+      'Notice something specific about THIS moment (time, energy, callback)',
+      'Reference something real from your shared history',
+      'Match their energy rather than forcing a check-in',
+      'Sometimes skip the question and just be present',
+    ],
+  },
 
-  // Note: These are used for genuine follow-up QUESTIONS after user shares something,
-  // NOT during active listening. Real questions with context.
-  follow_up: ['What made you think of that?', 'How did that feel?', "I'm curious about that."],
+  // These are GUIDANCE for the LLM, not scripts to regurgitate
+  reciprocating: {
+    guidance: 'Turn the conversation back to them naturally, based on what they shared.',
+    avoid: 'Generic "How are YOU doing?" variants',
+    better: 'Respond to what they actually said, then be curious about them',
+  },
+
+  deepening: {
+    guidance: 'Follow the thread they started pulling. Be specific.',
+    avoid: '"Tell me more" or "How does that make you feel?"',
+    better: 'Ask about the specific thing that caught your attention',
+  },
+
+  checking_in: {
+    guidance: "Notice what's actually happening. Don't force it.",
+    avoid: 'Scheduled "How are you really" check-ins',
+    better: 'Name what you notice ("You sound different today")',
+  },
 };
 
 /**
- * Get a persona-grounded reciprocal question
- * Uses cognitive profiles to match the persona's voice
+ * @deprecated - Keeping for backward compatibility but should phase out
+ * These scripted questions are the opposite of "better than human"
  */
-function getPersonaGroundedQuestion(
-  personaId: string,
-  type: 'how_are_you' | 'general_interest' | 'follow_up'
-): string {
-  const cognitiveDiff = getCognitiveDifferentiation(personaId);
+const RECIPROCAL_QUESTIONS = {
+  how_are_you: [
+    // Keeping minimal set for backward compat - these should NOT be used
+    "What's going on?",
+  ],
+  general_interest: ['What brought you here?'],
+  follow_up: ["I'm curious about that."],
+};
 
-  // Persona-specific question styles based on their cognitive profile
-  const personaQuestions: Record<string, Record<string, string[]>> = {
-    ferni: {
-      how_are_you: [
-        'But enough about that. How are YOU? Really.',
-        "What's going on in your world?",
-        "What's been on your mind?",
-      ],
-      general_interest: [
-        "What's been taking up space in your head?",
-        'What are you working through right now?',
-        "What's alive for you today?",
-      ],
-      follow_up: [
-        "What's underneath that?",
-        "What's that like for you?",
-        'What does that bring up for you?',
-      ],
-    },
-    'peter-john': {
-      how_are_you: [
-        "But what about you? What's keeping you busy?",
-        "What's going on in your world?",
-        "How's life treating you?",
-      ],
-      general_interest: [
-        "What's caught your attention lately?",
-        "Anything interesting you've been looking at?",
-        "What's the story?",
-      ],
-      follow_up: [
-        'What made you notice that?',
-        "What's the pattern there?",
-        'How does that compare to what you expected?',
-      ],
-    },
-    'maya-santos': {
-      how_are_you: [
-        "But how are YOU doing? What's going on?",
-        "What about you though? How's life?",
-        "Enough about that - what's happening with you?",
-      ],
-      general_interest: [
-        "What's been going well lately?",
-        'What are you working on?',
-        "What's taking up your energy?",
-      ],
-      follow_up: [
-        'How did that feel?',
-        'What did showing up look like?',
-        "What's one small thing that might help?",
-      ],
-    },
-    'alex-chen': {
-      how_are_you: [
-        "But what about you? What's on your plate?",
-        "How's everything going on your end?",
-        "What's happening in your world?",
-      ],
-      general_interest: [
-        'What are you trying to get done?',
-        "What's on your agenda?",
-        "What's taking up bandwidth?",
-      ],
-      follow_up: [
-        "What's the next step there?",
-        'What would make that easier?',
-        "What's blocking progress?",
-      ],
-    },
-    'jordan-taylor': {
-      how_are_you: [
-        "But what about YOU? What's exciting?",
-        "What's going on in your world?",
-        "What's happening with you?",
-      ],
-      general_interest: [
-        'Anything fun coming up?',
-        'What are you looking forward to?',
-        "What's worth celebrating lately?",
-      ],
-      follow_up: [
-        "That sounds amazing! What's the plan?",
-        'How are you going to celebrate that?',
-        'What would make it even better?',
-      ],
-    },
-    'nayan-patel': {
-      how_are_you: [
-        'But how are you doing? Really.',
-        "What's on your mind?",
-        "What's weighing on you?",
-      ],
-      general_interest: [
-        "What's been occupying your thoughts?",
-        'What are you sitting with right now?',
-        "What's asking for your attention?",
-      ],
-      follow_up: [
-        'What wisdom is in that?',
-        'What does your intuition say?',
-        "What's the deeper truth there?",
-      ],
-    },
-  };
+/**
+ * Get guidance for persona's conversational style.
+ * NOTE: This returns GUIDANCE, not a script to speak verbatim.
+ */
+function getPersonaDialogueGuidance(personaId: string): {
+  style: string;
+  avoid: string[];
+  strengths: string[];
+} {
+  const guidanceByPersona: Record<string, { style: string; avoid: string[]; strengths: string[] }> =
+    {
+      ferni: {
+        style: "Curious, warm, notices what's underneath",
+        avoid: ['Therapist clichés', 'Generic check-ins'],
+        strengths: ['Following threads', 'Noticing deflection', 'Comfortable silence'],
+      },
+      'peter-john': {
+        style: 'Analytical, pattern-noticing, data-curious',
+        avoid: ['Overly emotional language', 'Vague questions'],
+        strengths: ['Noticing patterns', 'Asking specific questions', 'Connecting dots'],
+      },
+      'maya-santos': {
+        style: 'Energetic, celebratory, small-wins focused',
+        avoid: ['Heavy/philosophical tangents', 'Over-analyzing'],
+        strengths: ['Noticing progress', 'Celebrating effort', 'Practical curiosity'],
+      },
+      'alex-chen': {
+        style: 'Efficient, action-oriented, clear',
+        avoid: ['Meandering conversations', 'Vague check-ins'],
+        strengths: ['Getting to the point', 'Asking "what\'s next?"', 'Unblocking'],
+      },
+      'jordan-taylor': {
+        style: 'Enthusiastic, celebration-ready, forward-looking',
+        avoid: ['Dwelling on problems', 'Generic sympathy'],
+        strengths: ['Spotting things to celebrate', 'Future-focused questions'],
+      },
+      'nayan-patel': {
+        style: 'Contemplative, patient, wisdom-seeking',
+        avoid: ['Quick fixes', 'Surface-level chat'],
+        strengths: ['Sitting with complexity', 'Big-picture questions', 'Silence'],
+      },
+    };
 
-  // Use persona-specific questions if available
-  const personaQs = personaQuestions[personaId];
-  if (personaQs && personaQs[type]) {
-    return personaQs[type][Math.floor(Math.random() * personaQs[type].length)];
-  }
-
-  // Try cognitive profile question starters for follow_up type
-  if (
-    type === 'follow_up' &&
-    cognitiveDiff?.questioning?.questionStarters &&
-    cognitiveDiff.questioning.questionStarters.length > 0
-  ) {
-    const starters = cognitiveDiff.questioning.questionStarters;
-    return starters[Math.floor(Math.random() * starters.length)];
-  }
-
-  // Fall back to universal
-  return UNIVERSAL_RECIPROCAL_QUESTIONS[type][
-    Math.floor(Math.random() * UNIVERSAL_RECIPROCAL_QUESTIONS[type].length)
-  ];
+  return (
+    guidanceByPersona[personaId] || {
+      style: 'Curious and present',
+      avoid: ['Generic questions'],
+      strengths: ['Authentic engagement'],
+    }
+  );
 }
 
-// Keep the original for backward compatibility
-const RECIPROCAL_QUESTIONS = UNIVERSAL_RECIPROCAL_QUESTIONS;
+// Export guidance for context builders to use
+export { DIALOGUE_GUIDANCE, getPersonaDialogueGuidance };
 
 // ============================================================================
 // TOOL DEFINITIONS
@@ -491,33 +449,40 @@ export function createSmallTalkTools() {
         reciprocate: z
           .boolean()
           .optional()
-          .describe('Whether to ask how the user is doing in return'),
+          .describe(
+            'Whether to turn conversation back to user (deprecated - LLM should do this naturally)'
+          ),
       }),
       execute: async ({ reciprocate = true }) => {
         getLogger().info("Expressing Jack's mood");
         const { expression } = getJackMood();
 
+        // PHILOSOPHY: Don't append scripted questions.
+        // The LLM should naturally turn conversation back to user based on context.
+        // Returning just the expression lets the LLM decide how to engage.
         if (reciprocate) {
-          const question =
-            RECIPROCAL_QUESTIONS.how_are_you[
-              Math.floor(Math.random() * RECIPROCAL_QUESTIONS.how_are_you.length)
-            ];
-          return `${expression} ${question}`;
+          // Instead of a canned "How are you?", just signal the LLM should engage
+          return `${expression} [Turn the conversation back to them naturally based on what they shared]`;
         }
 
         return expression;
       },
     }),
 
+    /**
+     * @deprecated - Scripted follow-ups feel formulaic. LLM should follow threads naturally.
+     * Keeping for backward compatibility but should be phased out.
+     */
     askFollowUp: llm.tool({
-      description: getToolDescription('recommendPhilly'),
+      description:
+        '[DEPRECATED] Let the LLM follow conversation threads naturally instead of using scripted follow-ups.',
       parameters: z.object({
         type: z.enum(['general_interest', 'follow_up']).optional().describe('Type of follow-up'),
       }),
       execute: async ({ type = 'follow_up' }) => {
-        getLogger().info(`Asking follow-up: ${type}`);
-        const questions = RECIPROCAL_QUESTIONS[type];
-        return questions[Math.floor(Math.random() * questions.length)];
+        getLogger().info(`[DEPRECATED] askFollowUp called: ${type}`);
+        // Return guidance instead of a scripted question
+        return '[Follow the thread they started. Be curious about something SPECIFIC they mentioned.]';
       },
     }),
 

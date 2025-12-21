@@ -69,7 +69,9 @@ describe('Session Isolation - Resilience Components', () => {
       });
 
       // Wait a bit for operations to start
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // Session 2 should still be able to execute immediately
       const quickOp = () => Promise.resolve('quick');
@@ -100,7 +102,9 @@ describe('Session Isolation - Resilience Components', () => {
       const op2 = bulkhead.execute({ sessionId: session, priority: 'normal', operation: slowOp });
 
       // Wait for ops to start
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // This should queue
       const op3Start = Date.now();
@@ -130,7 +134,9 @@ describe('Session Isolation - Resilience Components', () => {
       bulkhead.execute({ sessionId: session, priority: 'normal', operation: slowOp });
 
       // Wait for ops to start
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // Fill the queue (maxQueuePerSession = 3)
       bulkhead.execute({ sessionId: session, priority: 'normal', operation: slowOp });
@@ -167,7 +173,9 @@ describe('Session Isolation - Resilience Components', () => {
       }
 
       // Wait for ops to start
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // freeSession should work fine
       const results: Array<TTSBulkheadResult<string>> = [];
@@ -268,14 +276,18 @@ describe('Session Isolation - Resilience Components', () => {
 
       const createOp = (name: string) => async () => {
         order.push(name);
-        await new Promise<void>((r) => setTimeout(r, 10));
+        await new Promise<void>((r) => {
+          setTimeout(r, 10);
+        });
       };
 
       // Fill both slots
       bulkhead.execute({ sessionId: session, priority: 'normal', operation: slowOp });
       bulkhead.execute({ sessionId: session, priority: 'normal', operation: slowOp });
 
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // Queue in order: low, normal, high - high should execute first
       const lowPromise = bulkhead.execute({
@@ -340,7 +352,9 @@ describe('Session Isolation - Resilience Components', () => {
               sessionId,
               priority: 'normal',
               operation: async () => {
-                await new Promise((r) => setTimeout(r, Math.random() * 50));
+                await new Promise((r) => {
+                  setTimeout(r, Math.random() * 50);
+                });
                 return `session-${s}-op-${o}`;
               },
             });
@@ -462,7 +476,9 @@ describe('Session Isolation - Resilience Components', () => {
             sessionId,
             priority: 'normal',
             operation: async () => {
-              await new Promise((r) => setTimeout(r, 10));
+              await new Promise((r) => {
+                setTimeout(r, 10);
+              });
               return sessionId;
             },
           })
@@ -519,7 +535,9 @@ describe('Session Isolation - Resilience Components', () => {
       });
 
       // Wait for ops to start
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => {
+        setTimeout(r, 10);
+      });
 
       // 4th operation from new session should be rejected
       const op4Result = await bulkhead.execute({

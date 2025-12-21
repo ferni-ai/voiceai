@@ -11,11 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  DailyChallenge,
-  DailyChallengeType,
-  UserDailyChallengeProgress,
-} from './types.js';
+import type { DailyChallenge, DailyChallengeType, UserDailyChallengeProgress } from './types.js';
 
 const log = createLogger({ module: 'DailyChallenges' });
 
@@ -84,7 +80,7 @@ const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
     type: 'theme-day',
     title: 'Pop Perfection',
     description: 'The catchiest hits of all time',
-    instructions: 'Pop anthems across the decades. Let\'s see those skills!',
+    instructions: "Pop anthems across the decades. Let's see those skills!",
     gameType: 'name-that-tune',
     xpReward: 45,
     streakBonus: true,
@@ -163,7 +159,7 @@ const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
   {
     type: 'social-challenge',
     title: 'Challenge a Friend',
-    description: 'Beat a friend\'s score to earn bonus XP!',
+    description: "Beat a friend's score to earn bonus XP!",
     instructions: 'Complete the daily challenge, then send it to a friend. Winner gets bonus XP!',
     gameType: 'name-that-tune',
     xpReward: 75,
@@ -374,7 +370,10 @@ export function completeDailyChallenge(
 
   userChallenges.set(challengeId, progress);
 
-  log.info({ userId, challengeId, score, xpEarned, status: progress.status }, 'Completed daily challenge');
+  log.info(
+    { userId, challengeId, score, xpEarned, status: progress.status },
+    'Completed daily challenge'
+  );
 
   return progress;
 }
@@ -481,4 +480,3 @@ export default {
   calculateUserStreak,
   getUserChallengeStats,
 };
-

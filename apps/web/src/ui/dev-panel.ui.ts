@@ -226,6 +226,15 @@ export function initDevPanel(): void {
     }, 100);
   }
 
+  // Listen for voice session connection to sync dev mode
+  // This ensures the backend knows about dev mode even if it was enabled before connection
+  document.addEventListener('ferni:voice-connected', () => {
+    if (DEV_MODE_ENABLED && tierOverride === 'partner') {
+      log.info('Voice connected - syncing dev mode to backend');
+      void syncDevModeToBackend(true, tierOverride);
+    }
+  });
+
   log.info('Dev panel initialized (Cmd/Ctrl+Shift+D to open)');
 }
 
@@ -3014,6 +3023,11 @@ function setTierOverride(tier: 'free' | 'friend' | 'partner'): void {
   // Also update token server
   void updateServerSubscription(tier);
 
+  // Sync to backend voice agent for unlock bypass
+  // When tier is 'partner', enable bypass; otherwise just sync tier
+  const bypassUnlocks = tier === 'partner';
+  void syncDevModeToBackend(bypassUnlocks, tier);
+
   log.info({ tier }, 'Tier override set');
   refreshPanel();
 }
@@ -3228,7 +3242,49 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 function quickUnlockAll(): void {
   setTierOverride('partner');
   setStageOverride('deep-partnership');
+  // Sync dev mode bypass to backend voice agent
+  void syncDevModeToBackend(true, 'partner');
   log.info('All team members unlocked');
+}
+
+/**
+ * Sync dev mode state to the backend voice agent via data channel.
+ *
+ * When enabled, this allows the voice agent to bypass team unlock checks,
+ * enabling testing of all persona handoffs without needing environment variables.
+ *
+ * @param bypassUnlocks - Whether to bypass team unlock checks
+ * @param simulatedTier - Optional tier to simulate
+ */
+async function syncDevModeToBackend(
+  bypassUnlocks: boolean,
+  simulatedTier?: 'free' | 'friend' | 'partner'
+): Promise<void> {
+  try {
+    // Get the LiveKit room from app state
+    const state = appState.getState();
+    const room = state.room;
+
+    if (!room?.localParticipant) {
+      log.debug('No active voice session - dev mode will sync when connected');
+      return;
+    }
+
+    const message = JSON.stringify({
+      type: 'dev_mode_sync',
+      enabled: DEV_MODE_ENABLED,
+      bypassUnlocks,
+      simulatedTier,
+      timestamp: Date.now(),
+    });
+
+    await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
+
+    log.info({ bypassUnlocks, simulatedTier }, 'Dev mode synced to backend voice agent');
+    showToast('Dev mode synced to voice agent', 'info');
+  } catch (error) {
+    log.warn({ error }, 'Failed to sync dev mode to backend - voice agent may not bypass unlocks');
+  }
 }
 
 function resetToFree(): void {
@@ -3239,6 +3295,8 @@ function resetToFree(): void {
   relationshipStageService.reset();
   void teamUnlockService.update();
   void updateServerSubscription('free');
+  // Sync dev mode reset to backend
+  void syncDevModeToBackend(false, 'free');
   log.info('Reset to free tier');
   refreshPanel();
 }
@@ -7341,4 +7399,11 @@ export const devPanel = {
   toggle: togglePanel,
   isDevMode,
   getOverrides: getDevOverrides,
+  /** Sync dev mode state to backend voice agent (called on voice connection) */
+  syncToBackend: () => {
+    if (DEV_MODE_ENABLED && tierOverride === 'partner') {
+      return syncDevModeToBackend(true, tierOverride);
+    }
+    return Promise.resolve();
+  },
 };

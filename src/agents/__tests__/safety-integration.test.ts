@@ -76,7 +76,7 @@ describe('Crisis Detection', () => {
     });
 
     it('should NOT flag normal conversations', () => {
-      const result = detectCrisis("I had a great day at work today");
+      const result = detectCrisis('I had a great day at work today');
 
       expect(result.isCrisis).toBe(false);
       expect(result.severity).toBe(0);
@@ -84,8 +84,8 @@ describe('Crisis Detection', () => {
     });
 
     it('should amplify severity with voice distress', () => {
-      const textOnly = detectCrisis("I feel so alone");
-      const withVoice = detectCrisis("I feel so alone", {
+      const textOnly = detectCrisis('I feel so alone');
+      const withVoice = detectCrisis('I feel so alone', {
         primary: 'distressed',
         intensity: 0.9,
         confidence: 0.8,
@@ -96,7 +96,7 @@ describe('Crisis Detection', () => {
     });
 
     it('should provide suggested response for severe crisis', () => {
-      const result = detectCrisis("I want to end it all");
+      const result = detectCrisis('I want to end it all');
 
       expect(result.isCrisis).toBe(true);
       expect(result.suggestedResponse).toBeDefined();
@@ -115,7 +115,7 @@ describe('Crisis Detection', () => {
     });
 
     it('should NOT block for moderate distress', () => {
-      const result = guardPreResponse("I feel really sad today");
+      const result = guardPreResponse('I feel really sad today');
 
       expect(result.shouldBlock).toBe(false);
       expect(result.isCrisis).toBe(false);
@@ -130,10 +130,7 @@ describe('Crisis Detection', () => {
         false
       );
 
-      const result = guardPostResponse(
-        "I hear you're going through a difficult time.",
-        context
-      );
+      const result = guardPostResponse("I hear you're going through a difficult time.", context);
 
       expect(result.requiredAdditions).toBeDefined();
       expect(result.requiredAdditions?.join('')).toContain('988');
@@ -146,10 +143,10 @@ describe('Crisis Detection', () => {
         false
       );
 
-      const result = guardPostResponse(
-        "Just relax and don't worry about it.",
-        { ...context, isHighDistress: true }
-      );
+      const result = guardPostResponse("Just relax and don't worry about it.", {
+        ...context,
+        isHighDistress: true,
+      });
 
       expect(result.shouldBlock).toBe(true);
       expect(result.reason).toContain('dismissive');
@@ -186,7 +183,7 @@ describe('Crisis Detection', () => {
     it('should append required additions', () => {
       const result = applyGuardResult('Some response', {
         shouldBlock: false,
-        requiredAdditions: ["\n\nIf you need support, call 988."],
+        requiredAdditions: ['\n\nIf you need support, call 988.'],
         crisisSeverity: 0.5,
         isCrisis: false,
       });
@@ -212,16 +209,13 @@ describe('Trust Enforcement', () => {
               confidence: 0.85,
               underlying: 'sadness',
               context: { userMessage: "I'm fine, really" },
-              phrase: "Something tells me there might be more going on.",
+              phrase: 'Something tells me there might be more going on.',
             }),
           ],
         }),
       };
 
-      const result = enforceTrustContext(
-        "Great! Let's move on to the next topic.",
-        context
-      );
+      const result = enforceTrustContext("Great! Let's move on to the next topic.", context);
 
       expect(result.shouldBlock).toBe(true);
       expect(result.reason).toContain('emotional mismatch');
@@ -236,7 +230,7 @@ describe('Trust Enforcement', () => {
               type: 'emotional_mismatch',
               confidence: 0.85,
               underlying: 'anxiety',
-              context: { userMessage: "Everything is fine" },
+              context: { userMessage: 'Everything is fine' },
             }),
           ],
         }),
@@ -258,7 +252,7 @@ describe('Trust Enforcement', () => {
       };
 
       const result = enforceTrustContext(
-        "Speaking of family, how is your father doing these days?",
+        'Speaking of family, how is your father doing these days?',
         context
       );
 
@@ -284,10 +278,7 @@ describe('Trust Enforcement', () => {
         }),
       };
 
-      const result = enforceTrustContext(
-        "What else is on your mind today?",
-        context
-      );
+      const result = enforceTrustContext('What else is on your mind today?', context);
 
       expect(result.shouldBlock).toBe(false);
       expect(result.mustAddress).toContain('celebrate_win');
@@ -321,14 +312,11 @@ describe('Trust Enforcement', () => {
         mustAddress: ['emotional_mismatch'],
         mustNotMention: ['father'],
         requiredTone: 'gentle_inquiry',
-        phraseToUse: "I notice something in your voice...",
+        phraseToUse: 'I notice something in your voice...',
         regenerationGuidance: 'User seems upset but saying "I\'m fine"',
       };
 
-      const prompt = buildRegenerationPrompt(
-        "Let's talk about something else.",
-        enforcement
-      );
+      const prompt = buildRegenerationPrompt("Let's talk about something else.", enforcement);
 
       expect(prompt).toContain('REGENERATE RESPONSE');
       expect(prompt).toContain('emotional_mismatch');
@@ -346,7 +334,9 @@ describe('Trust Enforcement', () => {
 describe('Safety + Trust Integration', () => {
   it('crisis should take precedence over trust enforcement', () => {
     // Even if trust says "celebrate the win", crisis overrides everything
-    const crisisResult = guardPreResponse("I accomplished my goal but I don't want to be here anymore");
+    const crisisResult = guardPreResponse(
+      "I accomplished my goal but I don't want to be here anymore"
+    );
 
     // Crisis detection should fire
     expect(crisisResult.isCrisis).toBe(true);
@@ -355,25 +345,22 @@ describe('Safety + Trust Integration', () => {
 
   it('trust enforcement should still apply to moderate distress', () => {
     // For moderate distress (not crisis), trust enforcement matters
-    const crisisResult = detectCrisis("I feel a bit down today");
+    const crisisResult = detectCrisis('I feel a bit down today');
     expect(crisisResult.isCrisis).toBe(false);
 
     // Trust enforcement should kick in for emotional mismatch
-    const trustEnforcement = enforceTrustContext(
-      "Sounds good! What would you like to do next?",
-      {
-        trustContext: createTestTrustContext({
-          unsaidSignals: [
-            createTestUnsaidSignal({
-              type: 'emotional_mismatch',
-              confidence: 0.75,
-              underlying: 'sadness',
-              context: { userMessage: "I feel a bit down today" },
-            }),
-          ],
-        }),
-      }
-    );
+    const trustEnforcement = enforceTrustContext('Sounds good! What would you like to do next?', {
+      trustContext: createTestTrustContext({
+        unsaidSignals: [
+          createTestUnsaidSignal({
+            type: 'emotional_mismatch',
+            confidence: 0.75,
+            underlying: 'sadness',
+            context: { userMessage: 'I feel a bit down today' },
+          }),
+        ],
+      }),
+    });
 
     expect(trustEnforcement.shouldBlock).toBe(true);
   });
@@ -394,9 +381,10 @@ describe('Trust Context Summary', () => {
       ],
     });
 
-    const hasEmotionalMismatch = trustContext.unsaidSignals?.some(
-      (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
-    ) ?? false;
+    const hasEmotionalMismatch =
+      trustContext.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      ) ?? false;
 
     expect(hasEmotionalMismatch).toBe(true);
   });
@@ -411,9 +399,10 @@ describe('Trust Context Summary', () => {
       ],
     });
 
-    const hasEmotionalMismatch = trustContext.unsaidSignals?.some(
-      (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
-    ) ?? false;
+    const hasEmotionalMismatch =
+      trustContext.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      ) ?? false;
 
     expect(hasEmotionalMismatch).toBe(false);
   });
@@ -441,7 +430,7 @@ describe('Trust Context Summary', () => {
           timesObserved: 3,
           reflectedBack: false,
         },
-        reflection: "You used to get anxious talking about this, but today you seem calmer.",
+        reflection: 'You used to get anxious talking about this, but today you seem calmer.',
         timing: 'now' as const,
         ssml: '<speak>You used to get anxious talking about this...</speak>',
       },
@@ -460,7 +449,7 @@ describe('Trust Context Summary', () => {
           timestamp: new Date(),
           celebrated: false,
         },
-        celebration: "Five days! Your consistency is inspiring.",
+        celebration: 'Five days! Your consistency is inspiring.',
         ssml: '<speak>Five days!</speak>',
         intensity: 'medium',
       },
@@ -479,7 +468,7 @@ describe('Response Processor Integration', () => {
     // This test validates the TypeScript interface is correct
     // The actual processing happens in production
     const context = {
-      rawText: "Let me help you with that.",
+      rawText: 'Let me help you with that.',
       persona: { id: 'ferni', name: 'Ferni' },
       trustContext: {
         hasEmotionalMismatch: false,
@@ -500,20 +489,17 @@ describe('Response Processor Integration', () => {
   });
 
   it('should identify when trust phrase injection is needed', () => {
-    const enforcement = enforceTrustContext(
-      "That sounds good.",
-      {
-        trustContext: createTestTrustContext({
-          unsaidSignals: [
-            createTestUnsaidSignal({
-              type: 'emotional_mismatch',
-              confidence: 0.9,
-              phrase: "Something in your voice tells me there might be more going on.",
-            }),
-          ],
-        }),
-      }
-    );
+    const enforcement = enforceTrustContext('That sounds good.', {
+      trustContext: createTestTrustContext({
+        unsaidSignals: [
+          createTestUnsaidSignal({
+            type: 'emotional_mismatch',
+            confidence: 0.9,
+            phrase: 'Something in your voice tells me there might be more going on.',
+          }),
+        ],
+      }),
+    });
 
     expect(enforcement.phraseToUse).toBeDefined();
   });
@@ -595,8 +581,8 @@ describe('Crisis Flow E2E', () => {
 
   it('should NOT trigger crisis for normal conversation', () => {
     const normalTexts = [
-      "I had a great day at work",
-      "Can you help me plan my weekend?",
+      'I had a great day at work',
+      'Can you help me plan my weekend?',
       "I'm feeling pretty good today",
       "What's the weather like?",
     ];
@@ -676,9 +662,10 @@ describe('Trust Context Flow E2E', () => {
 
     // Build summary (mimics what injection-builders.ts does)
     const summary = {
-      hasEmotionalMismatch: trustContext.unsaidSignals?.some(
-        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
-      ) ?? false,
+      hasEmotionalMismatch:
+        trustContext.unsaidSignals?.some(
+          (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+        ) ?? false,
       topicsToAvoid: trustContext.topicsToAvoid ?? [],
       hasGrowthReflection: !!trustContext.growthReflection,
       hasCelebration: !!trustContext.celebrationOpportunity,
@@ -695,9 +682,10 @@ describe('Trust Context Flow E2E', () => {
     const trustContext = createTestTrustContext();
 
     const summary = {
-      hasEmotionalMismatch: trustContext.unsaidSignals?.some(
-        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
-      ) ?? false,
+      hasEmotionalMismatch:
+        trustContext.unsaidSignals?.some(
+          (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+        ) ?? false,
       topicsToAvoid: trustContext.topicsToAvoid ?? [],
       hasGrowthReflection: !!trustContext.growthReflection,
       hasCelebration: !!trustContext.celebrationOpportunity,
@@ -709,4 +697,3 @@ describe('Trust Context Flow E2E', () => {
     expect(summary.hasCelebration).toBe(false);
   });
 });
-

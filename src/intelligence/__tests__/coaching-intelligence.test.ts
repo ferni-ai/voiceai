@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  detectPatterns,
-  generateMirror,
-  getAnticipatoryQuestion,
-} from '../coaching-questions.js';
+import { detectPatterns, generateMirror, getAnticipatoryQuestion } from '../coaching-questions.js';
 import { type QuestionContext } from '../dynamic-questions.js';
 import {
   detectPatternsInTranscript,
@@ -65,7 +61,8 @@ describe('Coaching Questions', () => {
 
   describe('generateMirror', () => {
     it('should detect "should" repetition', () => {
-      const transcript = 'I should really exercise more. I know I should eat better. I should call my mom.';
+      const transcript =
+        'I should really exercise more. I know I should eat better. I should call my mom.';
       const mirror = generateMirror(transcript);
 
       expect(mirror).not.toBeNull();
@@ -76,7 +73,8 @@ describe('Coaching Questions', () => {
     });
 
     it('should detect "but" redirections', () => {
-      const transcript = "I want to do it, but I don't have time. I'd love to, but it's complicated.";
+      const transcript =
+        "I want to do it, but I don't have time. I'd love to, but it's complicated.";
       const mirror = generateMirror(transcript);
 
       expect(mirror).not.toBeNull();
@@ -257,8 +255,8 @@ describe('Coaching Patterns', () => {
       // Question may mention "humor" or "laugh" or "joke"
       expect(
         question.toLowerCase().includes('humor') ||
-        question.toLowerCase().includes('laugh') ||
-        question.toLowerCase().includes('joke')
+          question.toLowerCase().includes('laugh') ||
+          question.toLowerCase().includes('joke')
       ).toBe(true);
     });
   });
@@ -391,4 +389,3 @@ describe('Voice Signals', () => {
     });
   });
 });
-

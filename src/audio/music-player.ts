@@ -561,7 +561,10 @@ export class CallMusicPlayer {
 
   /**
    * Schedule a "Wait for it..." moment during playback
-   * Only triggers 30% of the time to keep it special
+   * Only triggers 10% of the time to keep it rare and special
+   * 
+   * HUMANIZATION: Reduced from 30% to 10% - constant DJ commentary
+   * interrupts the music experience. Less is more.
    */
   private scheduleMidSongMoment(track: MusicTrack): void {
     // Clear any existing timer
@@ -570,8 +573,9 @@ export class CallMusicPlayer {
       this.midSongMomentTimer = null;
     }
 
-    // Only do this for non-ambient music and 30% of the time
-    if (this.state.isAmbientMode || Math.random() > 0.3) {
+    // Only do this for non-ambient music and 10% of the time (reduced from 30%)
+    // Most people want to enjoy music, not hear constant DJ chatter
+    if (this.state.isAmbientMode || Math.random() > 0.1) {
       return;
     }
 

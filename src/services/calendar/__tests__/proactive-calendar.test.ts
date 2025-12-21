@@ -184,7 +184,11 @@ describe('Proactive Calendar Intelligence', () => {
     it('should detect conflicts with existing events', async () => {
       vi.mocked(calendarService.getEventsForDay).mockResolvedValue([upcomingMeeting]);
       vi.mocked(calendarService.findFreeTimeSlots).mockResolvedValue([
-        { start: new Date('2025-03-17T12:00:00'), end: new Date('2025-03-17T13:00:00'), durationMinutes: 60 },
+        {
+          start: new Date('2025-03-17T12:00:00'),
+          end: new Date('2025-03-17T13:00:00'),
+          durationMinutes: 60,
+        },
       ]);
 
       const proposedStart = new Date('2025-03-17T10:30:00');
@@ -200,8 +204,16 @@ describe('Proactive Calendar Intelligence', () => {
     it('should suggest alternatives when conflicts detected', async () => {
       vi.mocked(calendarService.getEventsForDay).mockResolvedValue([upcomingMeeting]);
       vi.mocked(calendarService.findFreeTimeSlots).mockResolvedValue([
-        { start: new Date('2025-03-17T12:00:00'), end: new Date('2025-03-17T13:00:00'), durationMinutes: 60 },
-        { start: new Date('2025-03-17T14:00:00'), end: new Date('2025-03-17T15:00:00'), durationMinutes: 60 },
+        {
+          start: new Date('2025-03-17T12:00:00'),
+          end: new Date('2025-03-17T13:00:00'),
+          durationMinutes: 60,
+        },
+        {
+          start: new Date('2025-03-17T14:00:00'),
+          end: new Date('2025-03-17T15:00:00'),
+          durationMinutes: 60,
+        },
       ]);
 
       const proposedStart = new Date('2025-03-17T10:30:00');
@@ -251,7 +263,9 @@ describe('Proactive Calendar Intelligence', () => {
         busiestDayOfWeek: 'Monday',
         peakMeetingHours: { start: 10, end: 14 },
         backToBackFrequency: 0.5,
-      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T> ? T : never);
+      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T>
+        ? T
+        : never);
 
       const suggestions = await suggestRecurringEvents(testUserId);
 
@@ -266,11 +280,15 @@ describe('Proactive Calendar Intelligence', () => {
         busiestDayOfWeek: 'Tuesday',
         peakMeetingHours: { start: 9, end: 12 },
         backToBackFrequency: 0.2,
-      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T> ? T : never);
+      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T>
+        ? T
+        : never);
 
       const suggestions = await suggestRecurringEvents(testUserId);
 
-      const planningsSuggestion = suggestions.find((s) => s.title.toLowerCase().includes('planning'));
+      const planningsSuggestion = suggestions.find((s) =>
+        s.title.toLowerCase().includes('planning')
+      );
       expect(planningsSuggestion).toBeDefined();
     });
 
@@ -280,7 +298,9 @@ describe('Proactive Calendar Intelligence', () => {
         busiestDayOfWeek: 'Wednesday',
         peakMeetingHours: { start: 10, end: 14 },
         backToBackFrequency: 0.5,
-      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T> ? T : never);
+      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T>
+        ? T
+        : never);
 
       const suggestions = await suggestRecurringEvents(testUserId);
 
@@ -294,7 +314,9 @@ describe('Proactive Calendar Intelligence', () => {
         busiestDayOfWeek: null,
         peakMeetingHours: { start: 0, end: 0 },
         backToBackFrequency: 0,
-      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T> ? T : never);
+      } as ReturnType<typeof calendarIntelligence.analyzeCalendarPatterns> extends Promise<infer T>
+        ? T
+        : never);
 
       const suggestions = await suggestRecurringEvents(testUserId);
 
@@ -305,8 +327,16 @@ describe('Proactive Calendar Intelligence', () => {
   describe('findBestTimeFor', () => {
     it('should return scored time slots', async () => {
       vi.mocked(calendarService.findFreeTimeSlots).mockResolvedValue([
-        { start: new Date('2025-03-17T10:00:00'), end: new Date('2025-03-17T11:00:00'), durationMinutes: 60 },
-        { start: new Date('2025-03-17T14:00:00'), end: new Date('2025-03-17T15:00:00'), durationMinutes: 60 },
+        {
+          start: new Date('2025-03-17T10:00:00'),
+          end: new Date('2025-03-17T11:00:00'),
+          durationMinutes: 60,
+        },
+        {
+          start: new Date('2025-03-17T14:00:00'),
+          end: new Date('2025-03-17T15:00:00'),
+          durationMinutes: 60,
+        },
       ]);
 
       const results = await findBestTimeFor(testUserId, 60);
@@ -322,8 +352,16 @@ describe('Proactive Calendar Intelligence', () => {
 
     it('should prefer morning when requested', async () => {
       vi.mocked(calendarService.findFreeTimeSlots).mockResolvedValue([
-        { start: new Date('2025-03-17T10:00:00'), end: new Date('2025-03-17T11:00:00'), durationMinutes: 60 },
-        { start: new Date('2025-03-17T15:00:00'), end: new Date('2025-03-17T16:00:00'), durationMinutes: 60 },
+        {
+          start: new Date('2025-03-17T10:00:00'),
+          end: new Date('2025-03-17T11:00:00'),
+          durationMinutes: 60,
+        },
+        {
+          start: new Date('2025-03-17T15:00:00'),
+          end: new Date('2025-03-17T16:00:00'),
+          durationMinutes: 60,
+        },
       ]);
 
       const results = await findBestTimeFor(testUserId, 60, { preferMorning: true });
@@ -334,8 +372,16 @@ describe('Proactive Calendar Intelligence', () => {
 
     it('should prefer afternoon when requested', async () => {
       vi.mocked(calendarService.findFreeTimeSlots).mockResolvedValue([
-        { start: new Date('2025-03-17T10:00:00'), end: new Date('2025-03-17T11:00:00'), durationMinutes: 60 },
-        { start: new Date('2025-03-17T14:00:00'), end: new Date('2025-03-17T15:00:00'), durationMinutes: 60 },
+        {
+          start: new Date('2025-03-17T10:00:00'),
+          end: new Date('2025-03-17T11:00:00'),
+          durationMinutes: 60,
+        },
+        {
+          start: new Date('2025-03-17T14:00:00'),
+          end: new Date('2025-03-17T15:00:00'),
+          durationMinutes: 60,
+        },
       ]);
 
       const results = await findBestTimeFor(testUserId, 60, { preferAfternoon: true });

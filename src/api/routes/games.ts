@@ -5,6 +5,8 @@
  * These power the "Musical You" dashboard and agent conversational insights.
  *
  * Endpoints:
+ * - GET /api/games - Get list of available games
+ * - GET /api/games/stats - Get user's game stats
  * - GET /api/games/insights - Get music insights (dashboard data)
  * - GET /api/games/suggestion - Get a game suggestion
  * - GET /api/games/conversational - Get a conversational insight for agent
@@ -21,6 +23,148 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON } from '../helpers.js';
 
 const log = createLogger({ module: 'GamesAPI' });
+
+// ============================================================================
+// AVAILABLE GAMES CATALOG
+// ============================================================================
+
+interface GameCatalogEntry {
+  id: string;
+  name: string;
+  description: string;
+  category: 'music' | 'text' | 'library';
+  difficulty: 'easy' | 'medium' | 'hard';
+  duration: string;
+  requiresSpotify?: boolean;
+  isNew?: boolean;
+}
+
+const MUSIC_GAMES: GameCatalogEntry[] = [
+  {
+    id: 'name-that-tune',
+    name: 'Name That Tune',
+    description: 'Guess the song from a short clip! Classic music trivia.',
+    category: 'music',
+    difficulty: 'medium',
+    duration: '3-5 min',
+  },
+  {
+    id: 'one-word-song',
+    name: 'One Word Song',
+    description: 'I say a word, you think of a song with that word in the title.',
+    category: 'music',
+    difficulty: 'easy',
+    duration: '2-3 min',
+  },
+  {
+    id: 'desert-island-discs',
+    name: 'Desert Island Discs',
+    description: 'Pick 5 songs to take to a desert island. Share your story.',
+    category: 'music',
+    difficulty: 'easy',
+    duration: '5-10 min',
+  },
+  {
+    id: 'this-or-that',
+    name: 'This or That',
+    description: 'Quick-fire choices between two songs. Which speaks to you?',
+    category: 'music',
+    difficulty: 'easy',
+    duration: '2-3 min',
+  },
+  {
+    id: 'mood-dj-challenge',
+    name: 'Mood DJ Challenge',
+    description: 'I give you a mood, you pick the perfect song for it.',
+    category: 'music',
+    difficulty: 'medium',
+    duration: '3-5 min',
+  },
+  {
+    id: 'finish-the-lyric',
+    name: 'Finish the Lyric',
+    description: 'Complete famous song lyrics. Test your music knowledge!',
+    category: 'music',
+    difficulty: 'medium',
+    duration: '3-5 min',
+    isNew: true,
+  },
+  {
+    id: 'decade-challenge',
+    name: 'Decade Challenge',
+    description: 'Guess the decade from the sound. 60s, 70s, 80s, 90s, or 2000s?',
+    category: 'music',
+    difficulty: 'medium',
+    duration: '3-5 min',
+    isNew: true,
+  },
+];
+
+const TEXT_GAMES: GameCatalogEntry[] = [
+  {
+    id: 'tic-tac-toe',
+    name: 'Tic-Tac-Toe',
+    description: 'Classic 3x3 game! Say positions like "center" or "top left".',
+    category: 'text',
+    difficulty: 'easy',
+    duration: '2-3 min',
+  },
+  {
+    id: '20-questions',
+    name: '20 Questions',
+    description: 'Think of something. I have 20 yes/no questions to guess it!',
+    category: 'text',
+    difficulty: 'medium',
+    duration: '5-10 min',
+  },
+  {
+    id: 'word-association',
+    name: 'Word Association',
+    description: 'Quick word chains! Say the first word that comes to mind.',
+    category: 'text',
+    difficulty: 'easy',
+    duration: '2-3 min',
+  },
+  {
+    id: 'would-you-rather',
+    name: 'Would You Rather',
+    description: 'Fun dilemmas! Pick between two hypothetical scenarios.',
+    category: 'text',
+    difficulty: 'easy',
+    duration: '3-5 min',
+  },
+  {
+    id: 'story-builder',
+    name: 'Story Builder',
+    description: "Let's create a story together, one sentence at a time!",
+    category: 'text',
+    difficulty: 'easy',
+    duration: '5-10 min',
+  },
+];
+
+const LIBRARY_GAMES: GameCatalogEntry[] = [
+  {
+    id: 'library-name-that-tune',
+    name: 'Your Library Mix',
+    description: 'Name songs from YOUR Spotify library. Personal challenge!',
+    category: 'library',
+    difficulty: 'medium',
+    duration: '3-5 min',
+    requiresSpotify: true,
+  },
+  {
+    id: 'library-deep-cuts',
+    name: 'Deep Cuts Challenge',
+    description: 'Remember those songs you saved ages ago? Time to prove it!',
+    category: 'library',
+    difficulty: 'hard',
+    duration: '5-7 min',
+    requiresSpotify: true,
+  },
+];
+
+const ALL_GAMES = [...MUSIC_GAMES, ...TEXT_GAMES, ...LIBRARY_GAMES];
 
 // ============================================================================
 // RATE LIMITING (User + IP based)
@@ -173,6 +317,166 @@ export async function handleGamesRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  // GET /api/games - List all available games
+  if (pathname === '/api/games' && req.method === 'GET') {
+    const ip = getClientIP(req);
+
+    // Rate limit check (IP only - no auth required)
+    if (isIPRateLimited(ip)) {
+      sendRateLimitResponse(res);
+      return true;
+    }
+
+    // Optional category filter
+    const category = parsedUrl.searchParams.get('category');
+
+    let games: GameCatalogEntry[];
+    if (category && ['music', 'text', 'library'].includes(category)) {
+      games = ALL_GAMES.filter((g) => g.category === category);
+    } else {
+      games = ALL_GAMES;
+    }
+
+    sendJSON(res, {
+      success: true,
+      games,
+      categories: {
+        music: MUSIC_GAMES.length,
+        text: TEXT_GAMES.length,
+        library: LIBRARY_GAMES.length,
+      },
+      total: ALL_GAMES.length,
+    });
+    return true;
+  }
+
+  // GET /api/games/stats - Get user's game statistics
+  if (pathname === '/api/games/stats' && req.method === 'GET') {
+    const userId = requireUserId(req, res, parsedUrl);
+    if (!userId) return true;
+
+    // Rate limit check
+    if (isRateLimited(req, userId)) {
+      sendRateLimitResponse(res);
+      return true;
+    }
+
+    try {
+      const profile = await getUserProfileFromStore(userId);
+      const gameMemory = profile?.gameMemory;
+
+      if (!gameMemory) {
+        sendJSON(res, {
+          success: true,
+          stats: {
+            gamesPlayed: 0,
+            totalScore: 0,
+            currentStreak: 0,
+            bestStreak: 0,
+            favoriteGame: null,
+            lastPlayed: null,
+            gamesByType: {},
+          },
+        });
+        return true;
+      }
+
+      // Calculate stats from game memory
+      const gamesByType: Record<string, number> = {};
+      for (const [gameType, stats] of Object.entries(gameMemory.gameStats || {})) {
+        gamesByType[gameType] = stats.gamesPlayed;
+      }
+
+      // Find favorite game from favoriteGames array or gameStats
+      let favoriteGame: string | null = gameMemory.favoriteGames?.[0] || null;
+      if (!favoriteGame) {
+        let maxPlayed = 0;
+        for (const [gameType, count] of Object.entries(gamesByType)) {
+          if (count > maxPlayed) {
+            maxPlayed = count;
+            favoriteGame = gameType;
+          }
+        }
+      }
+
+      // Calculate total score from all game stats
+      let totalScore = 0;
+      for (const stats of Object.values(gameMemory.gameStats || {})) {
+        totalScore += stats.totalScore || 0;
+      }
+
+      // Get streak values (can be number or object with count)
+      const currentStreak =
+        typeof gameMemory.currentStreak === 'number'
+          ? gameMemory.currentStreak
+          : (gameMemory.currentStreak as { count?: number } | undefined)?.count || 0;
+      const bestStreak =
+        typeof gameMemory.bestStreak === 'number'
+          ? gameMemory.bestStreak
+          : (gameMemory.bestStreak as { count?: number } | undefined)?.count || 0;
+
+      sendJSON(res, {
+        success: true,
+        stats: {
+          gamesPlayed: gameMemory.totalGamesPlayed || 0,
+          totalScore,
+          currentStreak,
+          bestStreak,
+          favoriteGame,
+          lastPlayed: gameMemory.lastGamePlayed?.playedAt || null,
+          gamesByType,
+        },
+      });
+      return true;
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get game stats');
+      sendJSON(
+        res,
+        {
+          success: false,
+          error: 'Failed to get stats',
+        },
+        500
+      );
+      return true;
+    }
+  }
+
+  // GET /api/games/library/availability - Check if user can play library mode
+  if (pathname === '/api/games/library/availability' && req.method === 'GET') {
+    const userId = requireUserId(req, res, parsedUrl);
+    if (!userId) return true;
+
+    // Rate limit check
+    if (isRateLimited(req, userId)) {
+      sendRateLimitResponse(res);
+      return true;
+    }
+
+    try {
+      const { checkLibraryAvailability } =
+        await import('../../services/games/library-game-mode.js');
+      const availability = await checkLibraryAvailability(userId);
+
+      sendJSON(res, {
+        success: true,
+        ...availability,
+      });
+      return true;
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to check library availability');
+      sendJSON(
+        res,
+        {
+          success: false,
+          error: 'Failed to check library availability',
+        },
+        500
+      );
+      return true;
+    }
+  }
+
   // GET /api/games/insights - Dashboard data
   if (pathname === '/api/games/insights' && req.method === 'GET') {
     const userId = requireUserId(req, res, parsedUrl);

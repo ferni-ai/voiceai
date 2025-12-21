@@ -8,4 +8,3 @@
 
 export * from './gmail-service.js';
 export { default as GmailService } from './gmail-service.js';
-

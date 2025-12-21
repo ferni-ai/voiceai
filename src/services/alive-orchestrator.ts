@@ -26,10 +26,7 @@ import {
   type SongSelectionContext,
 } from './games/game-intelligence.js';
 import type { GameResult, GameType } from './games/types.js';
-import {
-  getVoiceMusicBridge,
-  type VoiceMusicSuggestion,
-} from './music-intelligence/voice-music-bridge.js';
+import { getVoiceMusicBridge, type VoiceMusicSuggestion } from './musical-you/index.js';
 import { getAllOurSongs } from './trust-systems/our-songs.js';
 
 const log = getLogger();

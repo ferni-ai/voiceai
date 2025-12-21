@@ -167,7 +167,9 @@ export async function analyzeAudio(audioBuffer: ArrayBuffer): Promise<AudioAnaly
     qualityScore = 0.4;
   } else {
     qualityScore = speechDuration / QUALITY_THRESHOLDS.minimum;
-    warnings.push(`Audio duration (${speechDuration.toFixed(1)}s) is below minimum (${QUALITY_THRESHOLDS.minimum}s)`);
+    warnings.push(
+      `Audio duration (${speechDuration.toFixed(1)}s) is below minimum (${QUALITY_THRESHOLDS.minimum}s)`
+    );
   }
 
   // Adjust quality based on sample rate
@@ -220,7 +222,10 @@ export async function processVoiceUpload(
   files: Array<{ filename: string; buffer: ArrayBuffer; mimeType: string }>,
   userId: string = 'anonymous'
 ): Promise<VoiceUploadResponse> {
-  log.info({ agentId, fileCount: files.length, gcsConfigured: isGcsConfigured() }, 'Processing voice upload');
+  log.info(
+    { agentId, fileCount: files.length, gcsConfigured: isGcsConfigured() },
+    'Processing voice upload'
+  );
 
   const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   const processed: ProcessedUpload[] = [];
@@ -319,10 +324,7 @@ export async function processVoiceUpload(
     60 * 60 * 1000
   );
 
-  log.info(
-    { uploadId, totalDuration, segmentCount: segments.length },
-    'Voice upload processed'
-  );
+  log.info({ uploadId, totalDuration, segmentCount: segments.length }, 'Voice upload processed');
 
   return {
     uploadId,
@@ -379,8 +381,16 @@ export async function createVoiceClone(
       }
     }
 
+    // Detect if the response is simulated (voice ID starts with voice_sim_)
+    const isSimulated = response.id.startsWith('voice_sim_');
+
     log.info(
-      { agentId, voiceId: response.id, qualityScore: uploads[0].analysis.qualityScore },
+      {
+        agentId,
+        voiceId: response.id,
+        qualityScore: uploads[0].analysis.qualityScore,
+        isSimulated,
+      },
       'Voice clone created'
     );
 
@@ -388,6 +398,7 @@ export async function createVoiceClone(
       voiceId: response.id,
       status: 'ready',
       qualityScore: uploads.reduce((sum, u) => sum + u.analysis.qualityScore, 0) / uploads.length,
+      isSimulated,
     };
   } catch (error) {
     log.error({ error: String(error), agentId }, 'Voice clone creation failed');
@@ -423,7 +434,7 @@ async function getAudioBuffer(upload: ProcessedUpload): Promise<ArrayBuffer | nu
 
 /**
  * Call Cartesia Voice Clone API
- * 
+ *
  * Uses Cartesia's instant voice cloning API which requires just 10 seconds of audio.
  * Docs: https://docs.cartesia.ai/api-reference/voices/clone
  */
@@ -483,13 +494,13 @@ async function callCartesiaCloneAPI(
       throw new Error(`Cartesia API error: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json() as CartesiaVoiceCloneResponse;
+    const result = (await response.json()) as CartesiaVoiceCloneResponse;
     log.info({ voiceId: result.id, name: result.name }, 'Voice clone created successfully');
 
     return result;
   } catch (error) {
     log.error({ error: String(error), name }, 'Failed to call Cartesia API');
-    
+
     // Fallback to simulated response in case of network errors
     if (process.env.NODE_ENV !== 'production') {
       log.warn('Falling back to simulated voice clone');
@@ -501,7 +512,7 @@ async function callCartesiaCloneAPI(
         created_at: new Date().toISOString(),
       };
     }
-    
+
     throw error;
   }
 }
@@ -552,7 +563,7 @@ export async function generateVoicePreview(
 
     const audioBuffer = await response.arrayBuffer();
     const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-    
+
     // Estimate duration based on audio size (~128kbps MP3)
     const durationSeconds = (audioBuffer.byteLength * 8) / (128 * 1000);
 
@@ -565,7 +576,7 @@ export async function generateVoicePreview(
     };
   } catch (error) {
     log.error({ error: String(error), voiceId }, 'Failed to generate voice preview');
-    
+
     // Fallback for development
     if (process.env.NODE_ENV !== 'production') {
       return {
@@ -573,7 +584,7 @@ export async function generateVoicePreview(
         durationSeconds: text.length * 0.05,
       };
     }
-    
+
     throw error;
   }
 }
@@ -661,9 +672,7 @@ export const VOICE_LIBRARY_CATEGORIES = [
 /**
  * Get available voices from library
  */
-export async function getVoiceLibrary(
-  category?: string
-): Promise<VoiceLibraryEntry[]> {
+export async function getVoiceLibrary(category?: string): Promise<VoiceLibraryEntry[]> {
   // In production, this would fetch from Cartesia's voice library
   // and filter to suitable voices for custom agents
 
@@ -731,9 +740,4 @@ export async function getVoiceLibrary(
 // EXPORTS
 // ============================================================================
 
-export {
-  QUALITY_THRESHOLDS,
-  SUPPORTED_FORMATS,
-  MAX_FILE_SIZE_BYTES,
-};
-
+export { QUALITY_THRESHOLDS, SUPPORTED_FORMATS, MAX_FILE_SIZE_BYTES };

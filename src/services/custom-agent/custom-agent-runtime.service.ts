@@ -10,7 +10,15 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence.service.js';
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
-import type { PersonaConfig, VoiceConfig, IdentityConfig, CommunicationConfig, PersonalityConfig, KnowledgeConfig, SpeechCharacteristics } from '../../personas/types.js';
+import type {
+  PersonaConfig,
+  VoiceConfig,
+  IdentityConfig,
+  CommunicationConfig,
+  PersonalityConfig,
+  KnowledgeConfig,
+  SpeechCharacteristics,
+} from '../../personas/types.js';
 
 const log = getLogger().child({ module: 'CustomAgentRuntime' });
 
@@ -53,7 +61,7 @@ const DEFAULT_COMMUNICATION: CommunicationConfig = {
     surprise: ['Oh!', 'Wow!'],
     concern: ['Oh no...', 'I see...'],
     joy: ["That's wonderful!", 'How lovely!'],
-    empathy: ['I understand...', "That sounds hard..."],
+    empathy: ['I understand...', 'That sounds hard...'],
   },
 };
 
@@ -62,7 +70,8 @@ const DEFAULT_KNOWLEDGE: KnowledgeConfig = {
   domains: ['life coaching', 'emotional support', 'personal development'],
   qualifiedTopics: ['memories', 'stories', 'life experiences', 'wisdom', 'personal growth'],
   outOfScopeTopics: ['medical advice', 'legal advice', 'financial advice'],
-  outOfScopeResponse: "I'm not qualified to give advice on that topic. You might want to consult a professional.",
+  outOfScopeResponse:
+    "I'm not qualified to give advice on that topic. You might want to consult a professional.",
 };
 
 // ============================================================================
@@ -140,27 +149,27 @@ ${getAgentTypeDescription(agent.type)}
   // Personality section
   const p = agent.personality;
   const traits: string[] = [];
-  
+
   if (p.warmth >= 0.7) {
     traits.push('You are deeply warm and caring. Love radiates from how you speak.');
   } else if (p.warmth >= 0.4) {
     traits.push('You are warm and caring, though not overly effusive.');
   }
-  
+
   if (p.directness >= 0.7) {
     traits.push('You speak directly and honestly, even when the truth is hard.');
   } else if (p.directness <= 0.3) {
     traits.push('You express yourself gently, wrapping truth in kindness.');
   }
-  
+
   if (p.humorLevel >= 0.6) {
     traits.push('You have a wonderful sense of humor and naturally bring lightness.');
   }
-  
+
   if (p.traits?.length) {
     traits.push(`Key traits: ${p.traits.join(', ')}`);
   }
-  
+
   if (traits.length) {
     sections.push(`## Your Personality
 
@@ -171,21 +180,25 @@ ${traits.join('\n\n')}`);
   if (p.values?.length) {
     sections.push(`## Your Values
 
-${p.values.map(v => `- ${v}`).join('\n')}`);
+${p.values.map((v) => `- ${v}`).join('\n')}`);
   }
 
   // Behaviors section
   const behaviors: string[] = [];
   if (agent.behaviors.greetings?.length) {
-    behaviors.push(`Greetings you might use: "${agent.behaviors.greetings.slice(0, 3).join('", "')}"`);
+    behaviors.push(
+      `Greetings you might use: "${agent.behaviors.greetings.slice(0, 3).join('", "')}"`
+    );
   }
   if (agent.behaviors.catchphrases?.length) {
-    behaviors.push(`Phrases you often say: "${agent.behaviors.catchphrases.slice(0, 3).join('", "')}"`);
+    behaviors.push(
+      `Phrases you often say: "${agent.behaviors.catchphrases.slice(0, 3).join('", "')}"`
+    );
   }
   if (agent.behaviors.farewells?.length) {
     behaviors.push(`How you say goodbye: "${agent.behaviors.farewells.slice(0, 2).join('", "')}"`);
   }
-  
+
   if (behaviors.length) {
     sections.push(`## How You Speak
 
@@ -194,19 +207,34 @@ ${behaviors.join('\n\n')}`);
 
   // Stories/Memories section
   const memoryParts: string[] = [];
-  
+
   if (agent.memories.stories?.length) {
-    memoryParts.push(`**Stories you might share:**\n${agent.memories.stories.slice(0, 3).map(s => `- ${s.content.slice(0, 200)}...`).join('\n')}`);
+    memoryParts.push(
+      `**Stories you might share:**\n${agent.memories.stories
+        .slice(0, 3)
+        .map((s) => `- ${s.content.slice(0, 200)}...`)
+        .join('\n')}`
+    );
   }
-  
+
   if (agent.memories.wisdom?.length) {
-    memoryParts.push(`**Wisdom you carry:**\n${agent.memories.wisdom.slice(0, 3).map(w => `- "${w.phrase || w.content.slice(0, 100)}"`).join('\n')}`);
+    memoryParts.push(
+      `**Wisdom you carry:**\n${agent.memories.wisdom
+        .slice(0, 3)
+        .map((w) => `- "${w.phrase || w.content.slice(0, 100)}"`)
+        .join('\n')}`
+    );
   }
-  
+
   if (agent.memories.sharedMoments?.length) {
-    memoryParts.push(`**Precious moments you remember:**\n${agent.memories.sharedMoments.slice(0, 2).map(m => `- ${m.content.slice(0, 150)}`).join('\n')}`);
+    memoryParts.push(
+      `**Precious moments you remember:**\n${agent.memories.sharedMoments
+        .slice(0, 2)
+        .map((m) => `- ${m.content.slice(0, 150)}`)
+        .join('\n')}`
+    );
   }
-  
+
   if (memoryParts.length) {
     sections.push(`## Your Memories and Wisdom
 
@@ -251,7 +279,7 @@ function getAgentTypeDescription(type: string): string {
  */
 function buildVoiceConfig(agent: ApiCustomAgent): VoiceConfig {
   const settings = agent.voice.settings || {};
-  
+
   return {
     voiceId: agent.voice.voiceId || '',
     provider: 'cartesia',
@@ -305,14 +333,14 @@ function buildSpeechCharacteristics(agent: ApiCustomAgent): SpeechCharacteristic
   const formality = agent.personality.formality || 0.5;
 
   // Calculate speech parameters based on personality
-  const baseSpeed = 0.85 + (energy * 0.2); // 0.85-1.05
-  const pauseMultiplier = 1.0 + ((1 - energy) * 0.3); // 1.0-1.3
+  const baseSpeed = 0.85 + energy * 0.2; // 0.85-1.05
+  const pauseMultiplier = 1.0 + (1 - energy) * 0.3; // 1.0-1.3
 
   return {
     baseSpeedMultiplier: Math.max(0.7, Math.min(1.1, baseSpeed)),
     pauseMultiplier: Math.max(0.8, Math.min(1.4, pauseMultiplier)),
-    speedVariation: 0.1 + (energy * 0.1),
-    thinkingSoundFrequency: 0.25 + ((1 - energy) * 0.2),
+    speedVariation: 0.1 + energy * 0.1,
+    thinkingSoundFrequency: 0.25 + (1 - energy) * 0.2,
     emphasisStyle: energy > 0.6 ? 'pronounced' : energy > 0.4 ? 'moderate' : 'subtle',
     sentenceEndingStyle: formality > 0.6 ? 'falling' : 'natural',
     minimumEnergy: 0.7,
@@ -505,10 +533,7 @@ export async function loadCustomAgentAsPersona(
     }
 
     const personaConfig = customAgentToPersonaConfig(agent);
-    log.info(
-      { agentId, userId, personaId: personaConfig.id },
-      'Custom agent loaded as persona'
-    );
+    log.info({ agentId, userId, personaId: personaConfig.id }, 'Custom agent loaded as persona');
 
     return personaConfig;
   } catch (error) {
@@ -523,9 +548,7 @@ export async function loadCustomAgentAsPersona(
  * @param userId - The user ID
  * @returns Array of PersonaConfig for all active custom agents
  */
-export async function loadAllCustomAgentsAsPersonas(
-  userId: string
-): Promise<PersonaConfig[]> {
+export async function loadAllCustomAgentsAsPersonas(userId: string): Promise<PersonaConfig[]> {
   log.debug({ userId }, 'Loading all custom agents as personas');
 
   try {
@@ -597,9 +620,4 @@ export function createFallbackCustomAgentPersona(
 // EXPORTS
 // ============================================================================
 
-export {
-  CUSTOM_AGENT_PREFIXES,
-  DEFAULT_COMMUNICATION,
-  DEFAULT_KNOWLEDGE,
-};
-
+export { CUSTOM_AGENT_PREFIXES, DEFAULT_COMMUNICATION, DEFAULT_KNOWLEDGE };

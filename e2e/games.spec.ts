@@ -14,24 +14,82 @@ const TEST_USER_ID = 'e2e-games-test-user';
 
 test.describe('Games API', () => {
   test('GET /api/games - returns available games list', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
-    });
+    const response = await request.get(`${BASE_URL}/api/games`);
 
-    expect([200, 404]).toContain(response.status());
+    expect(response.status()).toBe(200);
 
-    if (response.status() === 200) {
-      const data = await response.json();
-      expect(data).toHaveProperty('success', true);
-    }
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('games');
+    expect(data).toHaveProperty('total');
+    expect(data).toHaveProperty('categories');
+    
+    // Verify game count
+    expect(data.games.length).toBeGreaterThan(0);
+    expect(data.total).toBe(data.games.length);
+    
+    // Verify categories exist
+    expect(data.categories).toHaveProperty('music');
+    expect(data.categories).toHaveProperty('text');
+    expect(data.categories).toHaveProperty('library');
   });
 
-  test('GET /api/games/stats - returns user game stats', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games/stats`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
-    });
+  test('GET /api/games?category=music - returns only music games', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/games?category=music`);
 
-    expect([200, 404]).toContain(response.status());
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data.games.every((g: { category: string }) => g.category === 'music')).toBe(true);
+  });
+
+  test('GET /api/games?category=text - returns only text games', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/games?category=text`);
+
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data.games.every((g: { category: string }) => g.category === 'text')).toBe(true);
+  });
+
+  test('GET /api/games verifies specific games exist', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/games`);
+
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    const gameIds = data.games.map((g: { id: string }) => g.id);
+    
+    // Music games
+    expect(gameIds).toContain('name-that-tune');
+    expect(gameIds).toContain('finish-the-lyric'); // New game
+    expect(gameIds).toContain('decade-challenge'); // New game
+    
+    // Text games
+    expect(gameIds).toContain('tic-tac-toe');
+    expect(gameIds).toContain('20-questions');
+    expect(gameIds).toContain('word-association');
+    
+    // Library games
+    expect(gameIds).toContain('library-name-that-tune');
+    expect(gameIds).toContain('library-deep-cuts');
+  });
+
+  test('GET /api/games/stats - returns user game stats (requires auth)', async ({ request }) => {
+    const response = await request.get(
+      `${BASE_URL}/api/games/stats?userId=${TEST_USER_ID}`,
+      { headers: { 'X-User-ID': TEST_USER_ID } }
+    );
+
+    expect(response.status()).toBe(200);
+    
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('stats');
+    expect(data.stats).toHaveProperty('gamesPlayed');
+    expect(data.stats).toHaveProperty('totalScore');
   });
 });
 

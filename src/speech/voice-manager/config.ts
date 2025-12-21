@@ -36,7 +36,16 @@ export interface PersonaEmotionProfile {
 export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
   ferni: {
     defaultEmotion: 'affectionate',
-    emotionRange: ['affectionate', 'curious', 'contemplative', 'sympathetic', 'proud', 'wistful', 'calm', 'grateful'],
+    emotionRange: [
+      'affectionate',
+      'curious',
+      'contemplative',
+      'sympathetic',
+      'proud',
+      'wistful',
+      'calm',
+      'grateful',
+    ],
     defaultSpeed: 0.95,
     defaultVolume: 1.0,
     laughterFrequency: 0.15,
@@ -63,7 +72,7 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     emotionRange: ['affectionate', 'proud', 'calm', 'grateful', 'sympathetic'],
     defaultSpeed: 0.92,
     defaultVolume: 0.95,
-    laughterFrequency: 0.10,
+    laughterFrequency: 0.1,
     nonverbals: ['[soft laugh]', '<break time="300ms"/>'],
   },
   'jordan-taylor': {

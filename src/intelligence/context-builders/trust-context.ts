@@ -520,7 +520,7 @@ const FALLBACK_TRUST_PHRASES = {
   falseFine: [
     "You said 'fine' but... I don't know. That didn't land as fine. What's underneath?",
     "I'm not buying 'fine' today. Not from you. What's actually going on?",
-    'Hey. That sounded automatic. How are you really?',
+    'Hey. That sounded automatic. Your voice says something different.',
   ],
   deflection: [
     'Wait. We just changed subjects. What was that thing you almost said?',

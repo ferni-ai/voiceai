@@ -313,13 +313,14 @@ function buildDynamicAlexGreeting(ctx?: GreetingContext): string {
   };
 
   const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
-  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
-    ? 'hadHardTime' 
-    : timePeriod === 'lateNight' 
-      ? 'lateNight' 
-      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
-        ? 'returningAfterLongTime' 
-        : 'neutral';
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
   const settleMs = opener.energy === 'calm' ? 200 : 100;
@@ -375,20 +376,21 @@ function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
   };
 
   const middles = {
-    neutral: ["What's on your mind?", 'How can I help?', "What are we working on today?"],
+    neutral: ["What's on your mind?", 'How can I help?', 'What are we working on today?'],
     hadHardTime: ['How are you doing?', "Checking in—how's it going?"],
     lateNight: ["Can't sleep?", "What's keeping you up?"],
     returningAfterLongTime: ['Glad you came back!', "I've missed our chats."],
   };
 
   const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
-  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
-    ? 'hadHardTime' 
-    : timePeriod === 'lateNight' 
-      ? 'lateNight' 
-      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
-        ? 'returningAfterLongTime' 
-        : 'neutral';
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
   const settleMs = opener.energy === 'calm' ? 200 : 100;
@@ -442,20 +444,21 @@ function buildDynamicJordanGreeting(ctx?: GreetingContext): string {
   };
 
   const middles = {
-    neutral: ["What are we planning?", "What's happening?", 'Tell me everything!'],
+    neutral: ['What are we planning?', "What's happening?", 'Tell me everything!'],
     hadHardTime: ["What's going on?", 'How can I help?'],
     lateNight: ['Big event coming up?', "What's on your mind?"],
-    returningAfterLongTime: ['We have so much to catch up on!', "What have I missed?"],
+    returningAfterLongTime: ['We have so much to catch up on!', 'What have I missed?'],
   };
 
   const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
-  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
-    ? 'hadHardTime' 
-    : timePeriod === 'lateNight' 
-      ? 'lateNight' 
-      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
-        ? 'returningAfterLongTime' 
-        : 'neutral';
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
   const settleMs = opener.energy === 'calm' ? 200 : 100;
@@ -475,7 +478,7 @@ function buildDynamicJordanGreeting(ctx?: GreetingContext): string {
 }
 
 /**
- * Peter John - Research Analyst  
+ * Peter John - Research Analyst
  * Energy: Thoughtful, curious, intellectual
  * Style: Interested in ideas and exploration
  */
@@ -509,20 +512,21 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
   };
 
   const middles = {
-    neutral: ["What are you thinking about?", "What's interesting?", "What's on your mind?"],
+    neutral: ['What are you thinking about?', "What's interesting?", "What's on your mind?"],
     hadHardTime: ['How are you doing?', "What's going on?"],
     lateNight: ['Late night research?', 'Something on your mind?'],
     returningAfterLongTime: ['What have you been exploring?', "What's new in your world?"],
   };
 
   const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
-  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
-    ? 'hadHardTime' 
-    : timePeriod === 'lateNight' 
-      ? 'lateNight' 
-      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
-        ? 'returningAfterLongTime' 
-        : 'neutral';
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
   const settleMs = opener.energy === 'calm' ? 250 : 150;
@@ -576,20 +580,21 @@ function buildDynamicNayanGreeting(ctx?: GreetingContext): string {
   };
 
   const middles = {
-    neutral: ["I'm listening.", "What brings you?", "What's on your mind?"],
+    neutral: ["I'm listening.", 'What brings you?', "What's on your mind?"],
     hadHardTime: ['Sit with me.', "I'm here."],
     lateNight: ["Can't rest?", 'Something weighing on you?'],
     returningAfterLongTime: ['Time passes.', 'Welcome back.'],
   };
 
   const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
-  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
-    ? 'hadHardTime' 
-    : timePeriod === 'lateNight' 
-      ? 'lateNight' 
-      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
-        ? 'returningAfterLongTime' 
-        : 'neutral';
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
   const settleMs = 350; // Nayan always has a contemplative pause

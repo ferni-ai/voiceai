@@ -44,10 +44,7 @@ import {
   clearAllMusicMemories,
 } from '../music-memory-integration.js';
 
-import {
-  resetTransitionAnalytics,
-  getTransitionAnalytics,
-} from '../music-transition-analytics.js';
+import { resetTransitionAnalytics, getTransitionAnalytics } from '../music-transition-analytics.js';
 
 import {
   registerMusicFeedbackRecorder,
@@ -107,11 +104,14 @@ afterEach(() => {
 describe('E2E: Full Music Transition Flow', () => {
   it('should capture context when music starts and use it when music ends', () => {
     // 1. MUSIC STARTS - Context captured
-    startMusicContext(TEST_SESSION_ID, createTestContext({
-      startReason: 'emotional_processing',
-      emotionalTone: 'heavy',
-      topicBeforeMusic: 'relationship breakup',
-    }));
+    startMusicContext(
+      TEST_SESSION_ID,
+      createTestContext({
+        startReason: 'emotional_processing',
+        emotionalTone: 'heavy',
+        topicBeforeMusic: 'relationship breakup',
+      })
+    );
 
     // Verify context was captured
     const capturedContext = getMusicContext(TEST_SESSION_ID);
@@ -192,10 +192,13 @@ describe('E2E: Full Music Transition Flow', () => {
       const reasonIdx = i % musicTypes.length;
       const reason = musicTypes[reasonIdx];
 
-      startMusicContext(TEST_SESSION_ID, createTestContext({
-        startReason: reason,
-        emotionalTone: reason === 'emotional_processing' ? 'heavy' : 'light',
-      }));
+      startMusicContext(
+        TEST_SESSION_ID,
+        createTestContext({
+          startReason: reason,
+          emotionalTone: reason === 'emotional_processing' ? 'heavy' : 'light',
+        })
+      );
 
       const musicContext = endMusicContext(TEST_SESSION_ID);
 
@@ -208,15 +211,10 @@ describe('E2E: Full Music Transition Flow', () => {
       });
 
       // Positive feedback for silence, neutral otherwise
-      recordTransitionFeedback(
-        transition.eventId!,
-        TEST_USER_ID,
-        transition.transitionType,
-        {
-          wasPositive: transition.transitionType === 'silence',
-          confidence: 0.8,
-        }
-      );
+      recordTransitionFeedback(transition.eventId!, TEST_USER_ID, transition.transitionType, {
+        wasPositive: transition.transitionType === 'silence',
+        confidence: 0.8,
+      });
 
       clearMusicContext(TEST_SESSION_ID);
     }
@@ -229,12 +227,15 @@ describe('E2E: Full Music Transition Flow', () => {
 
   it('should remember music that helped', () => {
     // Create context for emotional music
-    startMusicContext(TEST_SESSION_ID, createTestContext({
-      startReason: 'comfort',
-      emotionalTone: 'heavy',
-      topicBeforeMusic: 'stress at work',
-      trackArtist: 'Chill Artist',
-    }));
+    startMusicContext(
+      TEST_SESSION_ID,
+      createTestContext({
+        startReason: 'comfort',
+        emotionalTone: 'heavy',
+        topicBeforeMusic: 'stress at work',
+        trackArtist: 'Chill Artist',
+      })
+    );
 
     const musicContext = endMusicContext(TEST_SESSION_ID);
 
@@ -320,11 +321,11 @@ describe('E2E: Feedback Manager Integration', () => {
     // /thank(s| you)/, /that (was |felt )?(nice|good|great|lovely|perfect)/,
     // /i (feel|felt) (better|calmer|more relaxed|good)/, /that helped/, /beautiful/
     const positiveResponses = [
-      'thanks so much',               // matches /thank(s| you)/
-      'that was nice',                // matches /that (was |felt )?(nice|...)/
-      'i feel better',                // matches /i (feel|felt) (better|...)/
-      'that helped',                  // matches /that helped/
-      'beautiful',                    // matches /beautiful/
+      'thanks so much', // matches /thank(s| you)/
+      'that was nice', // matches /that (was |felt )?(nice|...)/
+      'i feel better', // matches /i (feel|felt) (better|...)/
+      'that helped', // matches /that helped/
+      'beautiful', // matches /beautiful/
     ];
 
     for (const response of positiveResponses) {
@@ -335,9 +336,9 @@ describe('E2E: Feedback Manager Integration', () => {
     // These should match negative patterns
     // /not (really |what i |helping)/, /don't like/, /stop/, /too (loud|quiet|much)/, /annoying/, /weird/
     const negativeResponses = [
-      'annoying',                     // matches /annoying/
-      "i don't like that",            // matches /don't like/
-      'stop',                         // matches /stop/
+      'annoying', // matches /annoying/
+      "i don't like that", // matches /don't like/
+      'stop', // matches /stop/
     ];
 
     for (const response of negativeResponses) {
@@ -346,11 +347,7 @@ describe('E2E: Feedback Manager Integration', () => {
     }
 
     // These should not match either pattern
-    const neutralResponses = [
-      'okay',
-      'so anyway what were we talking about',
-      'lets continue',
-    ];
+    const neutralResponses = ['okay', 'so anyway what were we talking about', 'lets continue'];
 
     for (const response of neutralResponses) {
       const detected = detectFeedbackFromResponse(response);
@@ -390,7 +387,10 @@ describe('E2E: Analytics Dashboard', () => {
 
     // Multiple users should get assigned to variants
     for (let i = 0; i < 50; i++) {
-      const variant = analytics.getVariantAssignment(`ab-test-user-${i}`, 'intelligent_transitions_v1');
+      const variant = analytics.getVariantAssignment(
+        `ab-test-user-${i}`,
+        'intelligent_transitions_v1'
+      );
       if (variant) variants.add(variant);
     }
 
@@ -440,7 +440,14 @@ describe('E2E: Context Inference', () => {
 });
 
 describe('E2E: Persona-Specific Transitions', () => {
-  const personas = ['ferni', 'nayan-patel', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor'];
+  const personas = [
+    'ferni',
+    'nayan-patel',
+    'peter-john',
+    'alex-chen',
+    'maya-santos',
+    'jordan-taylor',
+  ];
 
   it('should generate appropriate transitions for each persona', () => {
     for (const persona of personas) {
@@ -481,11 +488,14 @@ describe('E2E: Relationship Stage Influence', () => {
       const trials = 20;
 
       for (let i = 0; i < trials; i++) {
-        startMusicContext(TEST_SESSION_ID, createTestContext({
-          startReason: 'emotional_processing',
-          emotionalTone: 'heavy',
-          relationshipStage: stage,
-        }));
+        startMusicContext(
+          TEST_SESSION_ID,
+          createTestContext({
+            startReason: 'emotional_processing',
+            emotionalTone: 'heavy',
+            relationshipStage: stage,
+          })
+        );
         const musicContext = endMusicContext(TEST_SESSION_ID);
 
         const transition = getMusicTransition({
@@ -564,4 +574,3 @@ describe('E2E: Late Night Awareness', () => {
     expect(lateNightSilence + normalSilence).toBeGreaterThan(0);
   });
 });
-

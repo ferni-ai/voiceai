@@ -50,8 +50,6 @@ import {
   createGroup,
   updateGroup,
   deleteGroup,
-  addToGroup,
-  removeFromGroup,
 } from '../services/contacts/contact-groups.js';
 import {
   buildNudgeContext,
@@ -69,7 +67,7 @@ async function listContacts(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -89,7 +87,7 @@ async function searchContactsHandler(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -116,7 +114,7 @@ async function getContactHandler(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -140,14 +138,14 @@ async function createContact(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
   }
 
   const body = await parseBody<Record<string, unknown>>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
@@ -200,14 +198,14 @@ async function updateContact(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
   }
 
   const body = await parseBody<Record<string, unknown>>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
@@ -240,14 +238,14 @@ async function addImportantDate(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
   }
 
   const body = await parseBody<{ date?: string; type?: string; label?: string }>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
@@ -306,14 +304,14 @@ async function recordInteractionHandler(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
   }
 
   const body = await parseBody<Record<string, unknown>>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
@@ -398,7 +396,7 @@ async function getInteractionHistoryHandler(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -438,7 +436,7 @@ async function getInteractionStatsHandler(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -464,7 +462,7 @@ async function getTopicsHandler(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -485,7 +483,7 @@ async function listGroups(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -505,7 +503,7 @@ async function createGroupHandler(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -516,7 +514,7 @@ async function createGroupHandler(
     description?: string;
     members?: string[];
   }>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
@@ -549,21 +547,21 @@ async function updateGroupHandler(
   parsedUrl: URL,
   groupId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
   }
 
   const body = await parseBody<Record<string, unknown>>(req);
-  if (!body) {
+  if (body === null || body === undefined) {
     sendError(res, 'Invalid request body', 400);
     return;
   }
 
   try {
     const group = await updateGroup(userId, groupId, body as Parameters<typeof updateGroup>[2]);
-    if (!group) {
+    if (group === null || group === undefined) {
       sendError(res, 'Group not found', 404);
       return;
     }
@@ -580,7 +578,7 @@ async function deleteGroupHandler(
   parsedUrl: URL,
   groupId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -607,7 +605,7 @@ async function getInsights(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -638,7 +636,7 @@ async function getInsights(
 }
 
 async function getNudges(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;

@@ -233,7 +233,7 @@ export async function recordMismatchInsight(
     return;
   }
 
-  await recordInsight(userId, personaId, {
+  recordInsight(userId, personaId, {
     category: 'emotional_state',
     content: mismatch.interpretation,
     summary: `Voice revealed ${mismatch.voiceEmotion} despite saying "${mismatch.textEmotion}"`,

@@ -12,10 +12,8 @@ describe('Life Thesis Tools', () => {
     });
 
     it('should have all required save tools', () => {
-      const saveToolIds = thesisTools
-        .filter((t) => t.id.startsWith('save'))
-        .map((t) => t.id);
-      
+      const saveToolIds = thesisTools.filter((t) => t.id.startsWith('save')).map((t) => t.id);
+
       expect(saveToolIds).toContain('saveHabitThesis');
       expect(saveToolIds).toContain('saveGoalThesis');
       expect(saveToolIds).toContain('saveCareerThesis');
@@ -27,10 +25,8 @@ describe('Life Thesis Tools', () => {
     });
 
     it('should have universal tools', () => {
-      const universalToolIds = thesisTools
-        .filter((t) => !t.id.startsWith('save'))
-        .map((t) => t.id);
-      
+      const universalToolIds = thesisTools.filter((t) => !t.id.startsWith('save')).map((t) => t.id);
+
       expect(universalToolIds).toContain('remindThesis');
       expect(universalToolIds).toContain('getTheses');
       expect(universalToolIds).toContain('reviewThesis');
@@ -94,4 +90,3 @@ describe('Life Thesis Tools', () => {
     });
   });
 });
-

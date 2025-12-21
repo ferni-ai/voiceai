@@ -61,7 +61,8 @@ export interface VoiceReferral {
 
 export const INTRO_TEMPLATES = {
   // When we know context about the referrer
-  withContext: (referrerName: string, recipientName: string, note?: string) => `
+  withContext: (referrerName: string, recipientName: string, note?: string) =>
+    `
 Hey ${recipientName}! This is Ferni - I'm a friend of ${referrerName}'s.
 
 ${note ? `${referrerName} wanted me to reach out because ${note}.` : `${referrerName} thought we might get along and asked me to say hi.`}
@@ -74,7 +75,8 @@ Take care, ${recipientName}. Hope to chat with you sometime!
 `.trim(),
 
   // Simple introduction
-  simple: (referrerName: string, recipientName: string) => `
+  simple: (referrerName: string, recipientName: string) =>
+    `
 Hey ${recipientName}! This is Ferni.
 
 Your friend ${referrerName} thought you might enjoy meeting me. They've been chatting with me about life stuff, and they wanted to share that with you.
@@ -87,7 +89,8 @@ Take care!
 `.trim(),
 
   // Holiday/special occasion
-  holiday: (referrerName: string, recipientName: string, occasion: string) => `
+  holiday: (referrerName: string, recipientName: string, occasion: string) =>
+    `
 Hey ${recipientName}! This is Ferni - I'm a friend of ${referrerName}'s.
 
 ${referrerName} asked me to reach out and wish you a wonderful ${occasion}! They wanted you to know they're thinking of you.
@@ -98,7 +101,8 @@ ${occasion === 'Christmas' ? 'Merry Christmas' : `Happy ${occasion}`}, ${recipie
 `.trim(),
 
   // Support-focused (when friend is going through something)
-  support: (referrerName: string, recipientName: string, situation?: string) => `
+  support: (referrerName: string, recipientName: string, situation?: string) =>
+    `
 Hey ${recipientName}. This is Ferni.
 
 Your friend ${referrerName} asked me to reach out. ${situation ? `They mentioned you've been going through ${situation}, and they wanted you to know you're not alone.` : `They care about you and wanted you to know someone's in your corner.`}
@@ -156,11 +160,7 @@ export async function makeVoiceReferralCall(params: {
   }
 
   // Determine call type for SSML emotional context
-  const ssmlCallType = occasion
-    ? 'celebration'
-    : supportSituation
-      ? 'support'
-      : 'introduction';
+  const ssmlCallType = occasion ? 'celebration' : supportSituation ? 'support' : 'introduction';
 
   try {
     const result = await callWithPersonaVoice(recipientPhone, message, 'ferni', {
@@ -371,7 +371,8 @@ export async function makeConversationalReferralCall(params: {
   personalNote?: string;
   occasion?: string;
 }): Promise<{ success: boolean; callId?: string; error?: string }> {
-  const { referrerId, referrerName, recipientName, recipientPhone, personalNote, occasion } = params;
+  const { referrerId, referrerName, recipientName, recipientPhone, personalNote, occasion } =
+    params;
 
   // Check if conversational calls are configured
   if (!isConversationalCallsConfigured()) {
@@ -460,4 +461,3 @@ export default {
   REFERRAL_PROMPT_INJECTION,
   INTRO_TEMPLATES,
 };
-

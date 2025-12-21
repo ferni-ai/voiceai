@@ -10,11 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  FinishTheLyricRound,
-  DecadeChallengeRound,
-  MusicTriviaQuestion,
-} from './types.js';
+import type { FinishTheLyricRound, DecadeChallengeRound, MusicTriviaQuestion } from './types.js';
 
 const log = createLogger({ module: 'MusicalYouGames' });
 
@@ -28,9 +24,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'bohemian-rhapsody',
     trackName: 'Bohemian Rhapsody',
     artistName: 'Queen',
-    lyricSnippet: "Is this the real life? Is this just fantasy?",
-    correctContinuation: "Caught in a landslide, no escape from reality",
-    alternatives: ["caught in a landslide", "no escape from reality", "caught in landslide"],
+    lyricSnippet: 'Is this the real life? Is this just fantasy?',
+    correctContinuation: 'Caught in a landslide, no escape from reality',
+    alternatives: ['caught in a landslide', 'no escape from reality', 'caught in landslide'],
     difficulty: 'easy',
     points: 50,
   },
@@ -38,9 +34,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'hotel-california',
     trackName: 'Hotel California',
     artistName: 'Eagles',
-    lyricSnippet: "Welcome to the Hotel California",
-    correctContinuation: "Such a lovely place, such a lovely face",
-    alternatives: ["such a lovely place", "lovely place", "lovely face"],
+    lyricSnippet: 'Welcome to the Hotel California',
+    correctContinuation: 'Such a lovely place, such a lovely face',
+    alternatives: ['such a lovely place', 'lovely place', 'lovely face'],
     difficulty: 'easy',
     points: 50,
   },
@@ -49,8 +45,8 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackName: "Sweet Child O' Mine",
     artistName: "Guns N' Roses",
     lyricSnippet: "She's got a smile that it seems to me",
-    correctContinuation: "Reminds me of childhood memories",
-    alternatives: ["reminds me of childhood", "childhood memories"],
+    correctContinuation: 'Reminds me of childhood memories',
+    alternatives: ['reminds me of childhood', 'childhood memories'],
     difficulty: 'medium',
     points: 75,
   },
@@ -60,9 +56,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'billie-jean',
     trackName: 'Billie Jean',
     artistName: 'Michael Jackson',
-    lyricSnippet: "Billie Jean is not my lover",
+    lyricSnippet: 'Billie Jean is not my lover',
     correctContinuation: "She's just a girl who claims that I am the one",
-    alternatives: ["she's just a girl", "just a girl who claims", "claims that I am the one"],
+    alternatives: ["she's just a girl", 'just a girl who claims', 'claims that I am the one'],
     difficulty: 'easy',
     points: 50,
   },
@@ -72,7 +68,7 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     artistName: 'Bruno Mars',
     lyricSnippet: "Don't believe me just watch",
     correctContinuation: "Don't believe me just watch",
-    alternatives: ["just watch", "watch"],
+    alternatives: ['just watch', 'watch'],
     difficulty: 'easy',
     points: 50,
   },
@@ -82,7 +78,7 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     artistName: 'Billie Eilish',
     lyricSnippet: "So you're a tough guy, like it really rough guy",
     correctContinuation: "Just can't get enough guy, chest always so puffed guy",
-    alternatives: ["just can't get enough", "chest always so puffed", "can't get enough guy"],
+    alternatives: ["just can't get enough", 'chest always so puffed', "can't get enough guy"],
     difficulty: 'medium',
     points: 75,
   },
@@ -92,9 +88,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'take-on-me',
     trackName: 'Take On Me',
     artistName: 'a-ha',
-    lyricSnippet: "Take on me",
-    correctContinuation: "Take me on",
-    alternatives: ["take me on"],
+    lyricSnippet: 'Take on me',
+    correctContinuation: 'Take me on',
+    alternatives: ['take me on'],
     difficulty: 'easy',
     points: 50,
   },
@@ -102,9 +98,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'africa',
     trackName: 'Africa',
     artistName: 'Toto',
-    lyricSnippet: "I bless the rains down in Africa",
-    correctContinuation: "Gonna take some time to do the things we never had",
-    alternatives: ["gonna take some time", "take some time to do", "things we never had"],
+    lyricSnippet: 'I bless the rains down in Africa',
+    correctContinuation: 'Gonna take some time to do the things we never had',
+    alternatives: ['gonna take some time', 'take some time to do', 'things we never had'],
     difficulty: 'medium',
     points: 75,
   },
@@ -115,8 +111,8 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackName: 'Smells Like Teen Spirit',
     artistName: 'Nirvana',
     lyricSnippet: "With the lights out, it's less dangerous",
-    correctContinuation: "Here we are now, entertain us",
-    alternatives: ["here we are now", "entertain us"],
+    correctContinuation: 'Here we are now, entertain us',
+    alternatives: ['here we are now', 'entertain us'],
     difficulty: 'medium',
     points: 75,
   },
@@ -124,9 +120,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'wannabe',
     trackName: 'Wannabe',
     artistName: 'Spice Girls',
-    lyricSnippet: "If you wanna be my lover",
-    correctContinuation: "You gotta get with my friends",
-    alternatives: ["get with my friends", "gotta get with my friends"],
+    lyricSnippet: 'If you wanna be my lover',
+    correctContinuation: 'You gotta get with my friends',
+    alternatives: ['get with my friends', 'gotta get with my friends'],
     difficulty: 'easy',
     points: 50,
   },
@@ -136,9 +132,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'crazy-in-love',
     trackName: 'Crazy in Love',
     artistName: 'Beyoncé',
-    lyricSnippet: "Got me looking so crazy right now",
+    lyricSnippet: 'Got me looking so crazy right now',
     correctContinuation: "Your love's got me looking so crazy right now",
-    alternatives: ["your love's got me", "looking so crazy"],
+    alternatives: ["your love's got me", 'looking so crazy'],
     difficulty: 'medium',
     points: 75,
   },
@@ -148,9 +144,9 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackId: 'lose-yourself',
     trackName: 'Lose Yourself',
     artistName: 'Eminem',
-    lyricSnippet: "His palms are sweaty, knees weak, arms are heavy",
+    lyricSnippet: 'His palms are sweaty, knees weak, arms are heavy',
     correctContinuation: "There's vomit on his sweater already, mom's spaghetti",
-    alternatives: ["mom's spaghetti", "vomit on his sweater", "sweater already"],
+    alternatives: ["mom's spaghetti", 'vomit on his sweater', 'sweater already'],
     difficulty: 'hard',
     points: 100,
   },
@@ -159,8 +155,8 @@ const LYRIC_ROUNDS: FinishTheLyricRound[] = [
     trackName: 'Mr. Brightside',
     artistName: 'The Killers',
     lyricSnippet: "Coming out of my cage and I've been doing just fine",
-    correctContinuation: "Gotta gotta be down because I want it all",
-    alternatives: ["gotta be down", "gotta gotta be down", "because I want it all"],
+    correctContinuation: 'Gotta gotta be down because I want it all',
+    alternatives: ['gotta be down', 'gotta gotta be down', 'because I want it all'],
     difficulty: 'hard',
     points: 100,
   },
@@ -311,11 +307,12 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-2',
     category: 'artist',
-    question: "Which member of The Beatles was the first to release a solo album?",
+    question: 'Which member of The Beatles was the first to release a solo album?',
     correctAnswer: 'Ringo Starr',
     wrongAnswers: ['John Lennon', 'Paul McCartney', 'George Harrison'],
     difficulty: 'hard',
-    funFact: "Ringo's 'Sentimental Journey' came out in 1970, just before the band officially split.",
+    funFact:
+      "Ringo's 'Sentimental Journey' came out in 1970, just before the band officially split.",
     points: 100,
   },
   {
@@ -333,7 +330,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-4',
     category: 'song',
-    question: "Which song spent the most weeks at #1 on the Billboard Hot 100?",
+    question: 'Which song spent the most weeks at #1 on the Billboard Hot 100?',
     correctAnswer: 'Old Town Road',
     wrongAnswers: ['Despacito', 'Shape of You', 'Blinding Lights'],
     difficulty: 'medium',
@@ -343,7 +340,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-5',
     category: 'song',
-    question: "What was the first music video ever played on MTV?",
+    question: 'What was the first music video ever played on MTV?',
     correctAnswer: 'Video Killed the Radio Star',
     wrongAnswers: ['Thriller', 'Like a Virgin', 'Take On Me'],
     difficulty: 'easy',
@@ -353,7 +350,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-6',
     category: 'song',
-    question: "Which 1970s song is the best-selling single of all time?",
+    question: 'Which 1970s song is the best-selling single of all time?',
     correctAnswer: 'White Christmas',
     wrongAnswers: ['Bohemian Rhapsody', 'Imagine', 'Hotel California'],
     difficulty: 'hard',
@@ -365,7 +362,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-7',
     category: 'album',
-    question: "What is the best-selling album of all time?",
+    question: 'What is the best-selling album of all time?',
     correctAnswer: 'Thriller',
     wrongAnswers: ['Back in Black', 'The Dark Side of the Moon', 'Abbey Road'],
     difficulty: 'easy',
@@ -375,7 +372,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-8',
     category: 'album',
-    question: "Which Pink Floyd album features a prism on its cover?",
+    question: 'Which Pink Floyd album features a prism on its cover?',
     correctAnswer: 'The Dark Side of the Moon',
     wrongAnswers: ['Wish You Were Here', 'The Wall', 'Animals'],
     difficulty: 'easy',
@@ -387,7 +384,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-9',
     category: 'history',
-    question: "In what year did Woodstock take place?",
+    question: 'In what year did Woodstock take place?',
     correctAnswer: '1969',
     wrongAnswers: ['1967', '1971', '1965'],
     difficulty: 'medium',
@@ -397,7 +394,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-10',
     category: 'history',
-    question: "Which streaming service launched first?",
+    question: 'Which streaming service launched first?',
     correctAnswer: 'Spotify',
     wrongAnswers: ['Apple Music', 'Amazon Music', 'Tidal'],
     difficulty: 'medium',
@@ -409,7 +406,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-11',
     category: 'awards',
-    question: "Which artist has won the most Grammy Awards?",
+    question: 'Which artist has won the most Grammy Awards?',
     correctAnswer: 'Beyoncé',
     wrongAnswers: ['Taylor Swift', 'Adele', 'Stevie Wonder'],
     difficulty: 'medium',
@@ -419,7 +416,7 @@ const TRIVIA_QUESTIONS: MusicTriviaQuestion[] = [
   {
     id: 'trivia-12',
     category: 'awards',
-    question: "Which album won Album of the Year at the 2021 Grammys?",
+    question: 'Which album won Album of the Year at the 2021 Grammys?',
     correctAnswer: 'folklore',
     wrongAnswers: ['Future Nostalgia', 'After Hours', 'Chromatica'],
     difficulty: 'medium',
@@ -460,7 +457,10 @@ export function getRandomLyricRound(
 /**
  * Check if lyric answer is correct
  */
-export function checkLyricAnswer(round: FinishTheLyricRound, answer: string): {
+export function checkLyricAnswer(
+  round: FinishTheLyricRound,
+  answer: string
+): {
   correct: boolean;
   score: number;
   exactMatch: boolean;
@@ -503,7 +503,10 @@ export function getRandomDecadeRound(excludeIds?: string[]): DecadeChallengeRoun
 /**
  * Check if decade guess is correct
  */
-export function checkDecadeGuess(round: DecadeChallengeRound, guessedDecade: string): {
+export function checkDecadeGuess(
+  round: DecadeChallengeRound,
+  guessedDecade: string
+): {
   correct: boolean;
   score: number;
   offBy: number;
@@ -569,7 +572,10 @@ export function getShuffledTriviaOptions(question: MusicTriviaQuestion): string[
 /**
  * Check trivia answer
  */
-export function checkTriviaAnswer(question: MusicTriviaQuestion, answer: string): {
+export function checkTriviaAnswer(
+  question: MusicTriviaQuestion,
+  answer: string
+): {
   correct: boolean;
   score: number;
   correctAnswer: string;
@@ -702,4 +708,3 @@ export default {
   checkTriviaAnswer,
   createTriviaGameSession,
 };
-

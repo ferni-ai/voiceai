@@ -29,6 +29,7 @@ export {
   connectToLiveKit,
   initLiveKitConnection,
   closeConnection,
+  prepareForShutdown,
   stopPingKeepalive,
   stopPendingJobsCleanup,
   type LiveKitConfig,

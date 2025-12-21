@@ -60,6 +60,14 @@ frontend-typescript/src/config/animation-constants.generated.ts
 frontend-typescript/public/design-system/manifest.json
 design-system/dist/
 
+# Brand docs - source of truth is design-system/brand/
+# apps/web/public/design-system/brand/ is a symlink -> ../../../../design-system/brand
+# These platform copies are created during capacitor sync / build
+apps/ios/ios/App/App/public/design-system/brand/
+apps/android/android/app/src/main/assets/public/design-system/brand/
+apps/electron/web/design-system/brand/
+apps/web/dist/design-system/brand/
+
 # Generated Tailwind config for promo site
 promo/ferni-website/tailwind.config.generated.js
 

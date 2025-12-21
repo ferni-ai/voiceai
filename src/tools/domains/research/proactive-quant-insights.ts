@@ -83,7 +83,8 @@ export async function generatePortfolioInsights(
 
         // Check if trading near 52-week low
         const currentPrice = fundamentals.fiftyTwoWeekLow * 1.05; // Approximate
-        const lowDistance = (currentPrice - fundamentals.fiftyTwoWeekLow) / fundamentals.fiftyTwoWeekLow;
+        const lowDistance =
+          (currentPrice - fundamentals.fiftyTwoWeekLow) / fundamentals.fiftyTwoWeekLow;
         if (lowDistance < 0.1 && fundamentals.peRatio < 20) {
           insights.push({
             id: uuidv4(),
@@ -95,7 +96,10 @@ export async function generatePortfolioInsights(
             actionable: true,
             priority: 'medium',
             symbols: [holding.symbol],
-            metrics: { fiftyTwoWeekLow: fundamentals.fiftyTwoWeekLow, peRatio: fundamentals.peRatio },
+            metrics: {
+              fiftyTwoWeekLow: fundamentals.fiftyTwoWeekLow,
+              peRatio: fundamentals.peRatio,
+            },
             acknowledged: false,
           });
         }
@@ -118,7 +122,10 @@ export async function generatePortfolioInsights(
         });
       }
     } catch (error) {
-      log.error({ error: String(error), symbol: holding.symbol }, 'Failed to generate portfolio insight');
+      log.error(
+        { error: String(error), symbol: holding.symbol },
+        'Failed to generate portfolio insight'
+      );
     }
   }
 
@@ -174,7 +181,7 @@ export async function generateBehavioralInsights(
 
   // Celebrate streaks
   const recentBudget = tracking.budgetAdherence.slice(-3);
-  if (recentBudget.length === 3 && recentBudget.every(m => m.value >= 90)) {
+  if (recentBudget.length === 3 && recentBudget.every((m) => m.value >= 90)) {
     insights.push({
       id: uuidv4(),
       date: new Date(),
@@ -191,7 +198,7 @@ export async function generateBehavioralInsights(
 
   // Check for panic sell recovery
   const recentPanicSells = tracking.panicSells.filter(
-    e => new Date(e.date) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    (e) => new Date(e.date) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   );
   if (recentPanicSells.length === 0 && tracking.panicSells.length > 0) {
     insights.push({
@@ -199,7 +206,7 @@ export async function generateBehavioralInsights(
       date: new Date(),
       type: 'behavioral',
       title: '💪 90 Days No Panic Selling!',
-      summary: 'You haven\'t panic sold in over 3 months',
+      summary: "You haven't panic sold in over 3 months",
       details: `Great progress! You haven't made any panic-driven investment decisions in over 90 days. This emotional discipline is what separates successful long-term investors from the crowd.`,
       actionable: false,
       priority: 'low',
@@ -239,9 +246,10 @@ export async function generateFIREInsights(
           type: 'fire',
           title: `🔥 FIRE Milestone: ${milestone}%!`,
           summary: `You've reached ${milestone}% of your FIRE number!`,
-          details: milestone === 100
-            ? `🎉 CONGRATULATIONS! You've achieved Financial Independence! Your net worth of $${currentSnapshot.netWorth.toLocaleString()} exceeds your FIRE number of $${currentSnapshot.fireNumber.toLocaleString()}. You now have the freedom to choose.`
-            : `You're ${milestone}% of the way to FIRE! Your current net worth is $${currentSnapshot.netWorth.toLocaleString()} toward your goal of $${currentSnapshot.fireNumber.toLocaleString()}. Keep going!`,
+          details:
+            milestone === 100
+              ? `🎉 CONGRATULATIONS! You've achieved Financial Independence! Your net worth of $${currentSnapshot.netWorth.toLocaleString()} exceeds your FIRE number of $${currentSnapshot.fireNumber.toLocaleString()}. You now have the freedom to choose.`
+              : `You're ${milestone}% of the way to FIRE! Your current net worth is $${currentSnapshot.netWorth.toLocaleString()} toward your goal of $${currentSnapshot.fireNumber.toLocaleString()}. Keep going!`,
           actionable: false,
           priority: milestone >= 90 ? 'high' : 'medium',
           metrics: {
@@ -347,7 +355,7 @@ export async function generateEconomicInsights(userId: string): Promise<QuantIns
  */
 export async function generateDailyBriefing(userId: string): Promise<DailyBriefing> {
   const firestore = getQuantFirestore();
-  
+
   const [profile, portfolio, behavioral, fireHistory, economicDashboard] = await Promise.all([
     firestore.loadFinancialProfile(userId),
     firestore.loadPortfolio(userId),
@@ -368,14 +376,10 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
 
   // Portfolio highlights
   if (portfolio && portfolio.holdings.length > 0) {
-    briefing.portfolioHighlights.push(
-      `You're tracking ${portfolio.holdings.length} holdings`
-    );
-    
+    briefing.portfolioHighlights.push(`You're tracking ${portfolio.holdings.length} holdings`);
+
     const totalCostBasis = portfolio.holdings.reduce((sum, h) => sum + h.costBasis, 0);
-    briefing.portfolioHighlights.push(
-      `Total cost basis: $${totalCostBasis.toLocaleString()}`
-    );
+    briefing.portfolioHighlights.push(`Total cost basis: $${totalCostBasis.toLocaleString()}`);
   }
 
   // Economic alerts
@@ -400,7 +404,7 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
   if (fireHistory.length > 0) {
     const latest = fireHistory[0];
     briefing.fireProgress = `${latest.percentToFire.toFixed(1)}% to FIRE ($${latest.netWorth.toLocaleString()} / $${latest.fireNumber.toLocaleString()})`;
-    
+
     if (fireHistory.length > 1) {
       const previous = fireHistory[1];
       const progress = latest.percentToFire - previous.percentToFire;
@@ -413,8 +417,8 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
   // Action items from insights
   const actionableInsights = await firestore.getActionableInsights(userId);
   briefing.actionItems = actionableInsights
-    .filter(i => i.priority === 'high')
-    .map(i => i.title);
+    .filter((i) => i.priority === 'high')
+    .map((i) => i.title);
 
   return briefing;
 }
@@ -424,34 +428,34 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
  */
 export function formatBriefingForSpeech(briefing: DailyBriefing): string {
   const lines: string[] = [];
-  
+
   lines.push(`Good ${getTimeOfDay()}! Here's your daily financial briefing.\n`);
-  
+
   if (briefing.fireProgress) {
     lines.push(`**FIRE Progress:** ${briefing.fireProgress}\n`);
   }
 
   if (briefing.portfolioHighlights.length > 0) {
     lines.push('**Portfolio:**');
-    briefing.portfolioHighlights.forEach(h => lines.push(`• ${h}`));
+    briefing.portfolioHighlights.forEach((h) => lines.push(`• ${h}`));
     lines.push('');
   }
 
   if (briefing.economicAlerts.length > 0) {
     lines.push('**Economic Alerts:**');
-    briefing.economicAlerts.forEach(a => lines.push(`• ${a}`));
+    briefing.economicAlerts.forEach((a) => lines.push(`• ${a}`));
     lines.push('');
   }
 
   if (briefing.behavioralCoaching.length > 0) {
     lines.push('**Behavioral Notes:**');
-    briefing.behavioralCoaching.forEach(c => lines.push(`• ${c}`));
+    briefing.behavioralCoaching.forEach((c) => lines.push(`• ${c}`));
     lines.push('');
   }
 
   if (briefing.actionItems.length > 0) {
     lines.push('**Action Items:**');
-    briefing.actionItems.forEach(a => lines.push(`• ${a}`));
+    briefing.actionItems.forEach((a) => lines.push(`• ${a}`));
     lines.push('');
   }
 
@@ -531,12 +535,14 @@ export async function generateAllInsights(userId: string): Promise<InsightGenera
       errors.push(`Economic insights: ${String(error)}`);
     }
 
-    log.info({
-      userId,
-      insightsGenerated: allInsights.length,
-      errorCount: errors.length,
-    }, 'Completed insight generation');
-
+    log.info(
+      {
+        userId,
+        insightsGenerated: allInsights.length,
+        errorCount: errors.length,
+      },
+      'Completed insight generation'
+    );
   } catch (error) {
     errors.push(`General error: ${String(error)}`);
     log.error({ error: String(error), userId }, 'Failed to generate insights');

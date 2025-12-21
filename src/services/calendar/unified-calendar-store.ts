@@ -145,7 +145,10 @@ async function loadUserData(userId: string): Promise<void> {
     providerCache.set(userId, providers);
 
     loadedUsers.add(userId);
-    log.debug({ userId, eventCount: events.size, providerCount: providers.size }, 'Loaded user calendar data');
+    log.debug(
+      { userId, eventCount: events.size, providerCount: providers.size },
+      'Loaded user calendar data'
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load user calendar data');
     loadedUsers.add(userId);
@@ -209,7 +212,10 @@ export async function getEventsForDay(userId: string, date: Date): Promise<Calen
 /**
  * Get events for the current week
  */
-export async function getEventsForWeek(userId: string, referenceDate: Date = new Date()): Promise<CalendarEvent[]> {
+export async function getEventsForWeek(
+  userId: string,
+  referenceDate: Date = new Date()
+): Promise<CalendarEvent[]> {
   const startOfWeek = new Date(referenceDate);
   startOfWeek.setDate(referenceDate.getDate() - referenceDate.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
@@ -242,7 +248,8 @@ export async function createEvent(
 
   const now = new Date();
   const endTime =
-    input.endTime || new Date(input.startTime.getTime() + (input.durationMinutes || 60) * 60 * 1000);
+    input.endTime ||
+    new Date(input.startTime.getTime() + (input.durationMinutes || 60) * 60 * 1000);
 
   const event: CalendarEvent = {
     id: generateEventId(),
@@ -376,7 +383,9 @@ export async function importExternalEvent(
       description: eventData.description,
       location: eventData.location,
       startTime: eventData.startTime,
-      endTime: eventData.endTime || new Date(eventData.startTime.getTime() + (eventData.durationMinutes || 60) * 60 * 1000),
+      endTime:
+        eventData.endTime ||
+        new Date(eventData.startTime.getTime() + (eventData.durationMinutes || 60) * 60 * 1000),
       isAllDay: eventData.isAllDay || false,
       attendees: eventData.attendees || [],
       reminders: eventData.reminders || [],
@@ -401,7 +410,9 @@ export async function importExternalEvent(
     description: eventData.description,
     location: eventData.location,
     startTime: eventData.startTime,
-    endTime: eventData.endTime || new Date(eventData.startTime.getTime() + (eventData.durationMinutes || 60) * 60 * 1000),
+    endTime:
+      eventData.endTime ||
+      new Date(eventData.startTime.getTime() + (eventData.durationMinutes || 60) * 60 * 1000),
     isAllDay: eventData.isAllDay || false,
     attendees: eventData.attendees || [],
     status: 'confirmed',
@@ -513,13 +524,19 @@ export async function updateProviderConnection(
   providerCache.set(userId, providers);
 
   await persistProviderConnection(userId, connection);
-  log.info({ userId, provider: connection.provider, connected: connection.connected }, 'Updated provider connection');
+  log.info(
+    { userId, provider: connection.provider, connected: connection.connected },
+    'Updated provider connection'
+  );
 }
 
 /**
  * Remove provider connection
  */
-export async function removeProviderConnection(userId: string, provider: CalendarProvider): Promise<void> {
+export async function removeProviderConnection(
+  userId: string,
+  provider: CalendarProvider
+): Promise<void> {
   await loadUserData(userId);
 
   const providers = providerCache.get(userId);
@@ -650,7 +667,10 @@ export async function getDayOverview(userId: string, date: Date): Promise<DayOve
 /**
  * Get week overview
  */
-export async function getWeekOverview(userId: string, referenceDate: Date = new Date()): Promise<WeekOverview> {
+export async function getWeekOverview(
+  userId: string,
+  referenceDate: Date = new Date()
+): Promise<WeekOverview> {
   const startOfWeek = new Date(referenceDate);
   startOfWeek.setDate(referenceDate.getDate() - referenceDate.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
@@ -726,7 +746,10 @@ async function deletePersistedEvent(userId: string, eventId: string): Promise<vo
   }
 }
 
-async function persistProviderConnection(userId: string, connection: ProviderConnection): Promise<void> {
+async function persistProviderConnection(
+  userId: string,
+  connection: ProviderConnection
+): Promise<void> {
   const firestore = await getFirestore();
   if (!firestore) return;
 
@@ -740,7 +763,10 @@ async function persistProviderConnection(userId: string, connection: ProviderCon
       .doc(connection.provider)
       .set(stored);
   } catch (error) {
-    log.error({ error: String(error), provider: connection.provider }, 'Failed to persist provider connection');
+    log.error(
+      { error: String(error), provider: connection.provider },
+      'Failed to persist provider connection'
+    );
   }
 }
 
@@ -827,4 +853,3 @@ export default {
   markEventsForSync,
   getEventsNeedingSync,
 };
-

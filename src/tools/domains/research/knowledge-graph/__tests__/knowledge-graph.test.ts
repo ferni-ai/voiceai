@@ -91,8 +91,7 @@ describe('Knowledge Graph Types', () => {
         type: 'principle',
         name: "Bogle's Cost Matters Hypothesis",
         aliases: ['cost matters', 'expense ratios matter'],
-        definition:
-          'In investing, you get what you dont pay for. Lower costs = higher returns.',
+        definition: 'In investing, you get what you dont pay for. Lower costs = higher returns.',
         context: {
           domain: 'investing',
           subdomains: ['costs', 'index funds'],
@@ -105,7 +104,7 @@ describe('Knowledge Graph Types', () => {
         ],
         metadata: {
           confidence: 1.0,
-          sources: ["The Little Book of Common Sense Investing"],
+          sources: ['The Little Book of Common Sense Investing'],
           lastVerified: new Date(),
           timesReferenced: 350,
           helpfulnessScore: 0.92,
@@ -635,4 +634,3 @@ describe('Seed Data', () => {
     expect(domains.has('behavior')).toBe(true);
   });
 });
-

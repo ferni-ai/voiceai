@@ -85,8 +85,16 @@ interface ToolInfo {
 const BEHAVIOR_TOOLS = ['shiftMode', 'adjustPacing', 'processing', 'holdSpace', 'expressPresence'];
 
 export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTrackingResult {
-  const { session, userData, services, sessionPersona, sessionId, debugEnabled, logToolResults, sendDataMessage } =
-    ctx;
+  const {
+    session,
+    userData,
+    services,
+    sessionPersona,
+    sessionId,
+    debugEnabled,
+    logToolResults,
+    sendDataMessage,
+  } = ctx;
   const logger = log();
 
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
@@ -169,13 +177,16 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           if (sendDataMessage && BEHAVIOR_TOOLS.includes(toolName) && !hasError && tool.result) {
             try {
               const result = tool.result as Record<string, unknown>;
-              
+
               // Emit the signal that the behavior tool returned
               if (result.signal) {
                 await sendDataMessage('behavior_signal', result.signal as Record<string, unknown>);
-                logger.debug({ toolName, signal: result.signal }, '🔄 Behavior signal emitted to frontend');
+                logger.debug(
+                  { toolName, signal: result.signal },
+                  '🔄 Behavior signal emitted to frontend'
+                );
               }
-              
+
               // For mode shifts, emit mode change
               if (toolName === 'shiftMode' && result.mode) {
                 await sendDataMessage('behavior_signal', {
@@ -184,7 +195,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                   timestamp: Date.now(),
                 });
               }
-              
+
               // For pacing changes, emit pacing change
               if (toolName === 'adjustPacing' && result.speed) {
                 await sendDataMessage('behavior_signal', {
@@ -193,7 +204,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                   timestamp: Date.now(),
                 });
               }
-              
+
               // For processing, emit processing state
               if (toolName === 'processing') {
                 await sendDataMessage('behavior_signal', {
@@ -202,7 +213,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                   timestamp: Date.now(),
                 });
               }
-              
+
               // For hold space, emit hold space
               if (toolName === 'holdSpace' && result.duration) {
                 await sendDataMessage('behavior_signal', {
@@ -211,7 +222,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                   timestamp: Date.now(),
                 });
               }
-              
+
               // For presence expressions
               if (toolName === 'expressPresence' && result.expression) {
                 await sendDataMessage('behavior_signal', {
@@ -221,7 +232,10 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                 });
               }
             } catch (emitError) {
-              logger.debug({ error: String(emitError), toolName }, 'Failed to emit behavior signal (non-critical)');
+              logger.debug(
+                { error: String(emitError), toolName },
+                'Failed to emit behavior signal (non-critical)'
+              );
             }
           }
 

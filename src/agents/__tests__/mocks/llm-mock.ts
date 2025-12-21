@@ -315,11 +315,7 @@ export function getMockResponseForEmotion(emotion: string, intensity: number = 0
       'I can understand why that would be upsetting. Want to vent a bit more?',
       "Sometimes things just don't go our way. I'm here to listen.",
     ],
-    neutral: [
-      mockResponses.curious,
-      mockResponses.greeting,
-      "What's on your mind?",
-    ],
+    neutral: [mockResponses.curious, mockResponses.greeting, "What's on your mind?"],
     excited: [
       'I can feel your excitement! This is so great!',
       mockResponses.celebratory,

@@ -226,7 +226,10 @@ export class QuantFirestoreService {
       await docRef.set(this.serializeProfile(profile), { merge: true });
       log.info({ userId: profile.userId }, 'Financial profile saved');
     } catch (error) {
-      log.error({ error: String(error), userId: profile.userId }, 'Failed to save financial profile');
+      log.error(
+        { error: String(error), userId: profile.userId },
+        'Failed to save financial profile'
+      );
     }
   }
 
@@ -257,10 +260,7 @@ export class QuantFirestoreService {
   /**
    * Update specific financial profile fields
    */
-  async updateFinancialProfile(
-    userId: string,
-    updates: Partial<FinancialProfile>
-  ): Promise<void> {
+  async updateFinancialProfile(userId: string, updates: Partial<FinancialProfile>): Promise<void> {
     await this.initialize();
     if (!this.db) return;
 
@@ -300,7 +300,10 @@ export class QuantFirestoreService {
         .doc('holdings');
 
       await docRef.set(this.serializePortfolio(portfolio), { merge: true });
-      log.info({ userId: portfolio.userId, holdingCount: portfolio.holdings.length }, 'Portfolio saved');
+      log.info(
+        { userId: portfolio.userId, holdingCount: portfolio.holdings.length },
+        'Portfolio saved'
+      );
     } catch (error) {
       log.error({ error: String(error), userId: portfolio.userId }, 'Failed to save portfolio');
     }
@@ -352,7 +355,7 @@ export class QuantFirestoreService {
     const portfolio = await this.loadPortfolio(userId);
     if (!portfolio) return;
 
-    const holdingIndex = portfolio.holdings.findIndex(h => h.symbol === symbol);
+    const holdingIndex = portfolio.holdings.findIndex((h) => h.symbol === symbol);
     if (holdingIndex === -1) return;
 
     portfolio.holdings[holdingIndex] = { ...portfolio.holdings[holdingIndex], ...updates };
@@ -368,7 +371,7 @@ export class QuantFirestoreService {
     const portfolio = await this.loadPortfolio(userId);
     if (!portfolio) return;
 
-    portfolio.holdings = portfolio.holdings.filter(h => h.symbol !== symbol);
+    portfolio.holdings = portfolio.holdings.filter((h) => h.symbol !== symbol);
     portfolio.lastUpdated = new Date();
 
     await this.savePortfolio(portfolio);
@@ -395,7 +398,10 @@ export class QuantFirestoreService {
       await docRef.set(this.serializeBehavioral(tracking), { merge: true });
       log.info({ userId: tracking.userId }, 'Behavioral tracking saved');
     } catch (error) {
-      log.error({ error: String(error), userId: tracking.userId }, 'Failed to save behavioral tracking');
+      log.error(
+        { error: String(error), userId: tracking.userId },
+        'Failed to save behavioral tracking'
+      );
     }
   }
 
@@ -431,7 +437,8 @@ export class QuantFirestoreService {
     eventType: 'panicSell' | 'timingAttempt' | 'impulsePurchase',
     event: Omit<BehaviorEvent, 'date'>
   ): Promise<void> {
-    const tracking = await this.loadBehavioralTracking(userId) || this.createEmptyTracking(userId);
+    const tracking =
+      (await this.loadBehavioralTracking(userId)) || this.createEmptyTracking(userId);
 
     const newEvent: BehaviorEvent = {
       ...event,
@@ -466,12 +473,13 @@ export class QuantFirestoreService {
     metricType: 'budgetAdherence' | 'savingsConsistency' | 'debtPaymentConsistency',
     value: number
   ): Promise<void> {
-    const tracking = await this.loadBehavioralTracking(userId) || this.createEmptyTracking(userId);
+    const tracking =
+      (await this.loadBehavioralTracking(userId)) || this.createEmptyTracking(userId);
 
     const month = new Date().toISOString().slice(0, 7); // YYYY-MM
     const metric: MonthlyMetric = { month, value };
 
-    const existingIndex = tracking[metricType].findIndex(m => m.month === month);
+    const existingIndex = tracking[metricType].findIndex((m) => m.month === month);
     if (existingIndex >= 0) {
       tracking[metricType][existingIndex] = metric;
     } else {
@@ -524,7 +532,7 @@ export class QuantFirestoreService {
 
       const querySnapshot = await colRef.orderBy('date', 'desc').limit(limit).get();
 
-      return querySnapshot.docs.map(doc => this.deserializeFIRESnapshot(doc.data()!));
+      return querySnapshot.docs.map((doc) => this.deserializeFIRESnapshot(doc.data()!));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to load FIRE history');
       return [];
@@ -578,7 +586,7 @@ export class QuantFirestoreService {
 
       const querySnapshot = await colRef.orderBy('date', 'desc').limit(limit).get();
 
-      return querySnapshot.docs.map(doc => this.deserializeInsight(doc.data()!));
+      return querySnapshot.docs.map((doc) => this.deserializeInsight(doc.data()!));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to load recent insights');
       return [];
@@ -606,7 +614,7 @@ export class QuantFirestoreService {
       query = query.where('actionable', '==', true);
       query = query.orderBy('date', 'desc');
       query = query.limit(20);
-      
+
       const querySnapshot = await query.get();
 
       return querySnapshot.docs
@@ -661,10 +669,10 @@ export class QuantFirestoreService {
   private calculateEmotionalControl(tracking: BehavioralTracking): number {
     // Fewer panic sells and timing attempts = higher score
     const recentPanicSells = tracking.panicSells.filter(
-      e => new Date(e.date) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+      (e) => new Date(e.date) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
     ).length;
     const recentTimingAttempts = tracking.timingAttempts.filter(
-      e => new Date(e.date) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+      (e) => new Date(e.date) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
     ).length;
 
     // Start at 100, deduct for each negative event
@@ -690,12 +698,15 @@ export class QuantFirestoreService {
 
     // Deduct for impulse purchases
     const recentImpulse = tracking.impulsePurchases.filter(
-      e => new Date(e.date) > new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+      (e) => new Date(e.date) > new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
     ).length;
 
     const impulseDeduction = recentImpulse * 5;
 
-    return Math.max(0, Math.min(100, (budgetScore + savingsScore + debtScore) / 3 - impulseDeduction));
+    return Math.max(
+      0,
+      Math.min(100, (budgetScore + savingsScore + debtScore) / 3 - impulseDeduction)
+    );
   }
 
   // ============================================================================
@@ -713,24 +724,25 @@ export class QuantFirestoreService {
   private deserializeProfile(data: Record<string, unknown>, userId: string): FinancialProfile {
     return {
       userId,
-      monthlyIncome: data.monthlyIncome as number || 0,
-      monthlyExpenses: data.monthlyExpenses as number || 0,
-      monthlyDebtPayments: data.monthlyDebtPayments as number || 0,
-      emergencyFundMonths: data.emergencyFundMonths as number || 0,
-      retirementContribution: data.retirementContribution as number || 0,
-      currentAge: data.currentAge as number || 30,
-      targetRetirementAge: data.targetRetirementAge as number || 65,
-      currentRetirementSavings: data.currentRetirementSavings as number || 0,
-      riskTolerance: (data.riskTolerance as string || 'moderate') as FinancialProfile['riskTolerance'],
-      createdAt: new Date(data.createdAt as string || Date.now()),
-      updatedAt: new Date(data.updatedAt as string || Date.now()),
+      monthlyIncome: (data.monthlyIncome as number) || 0,
+      monthlyExpenses: (data.monthlyExpenses as number) || 0,
+      monthlyDebtPayments: (data.monthlyDebtPayments as number) || 0,
+      emergencyFundMonths: (data.emergencyFundMonths as number) || 0,
+      retirementContribution: (data.retirementContribution as number) || 0,
+      currentAge: (data.currentAge as number) || 30,
+      targetRetirementAge: (data.targetRetirementAge as number) || 65,
+      currentRetirementSavings: (data.currentRetirementSavings as number) || 0,
+      riskTolerance: ((data.riskTolerance as string) ||
+        'moderate') as FinancialProfile['riskTolerance'],
+      createdAt: new Date((data.createdAt as string) || Date.now()),
+      updatedAt: new Date((data.updatedAt as string) || Date.now()),
     };
   }
 
   private serializePortfolio(portfolio: PortfolioHoldings): Record<string, unknown> {
     return {
       ...portfolio,
-      holdings: portfolio.holdings.map(h => ({
+      holdings: portfolio.holdings.map((h) => ({
         ...h,
         purchaseDate: h.purchaseDate.toISOString(),
       })),
@@ -742,15 +754,15 @@ export class QuantFirestoreService {
     const holdings = (data.holdings as Array<Record<string, unknown>>) || [];
     return {
       userId,
-      holdings: holdings.map(h => ({
+      holdings: holdings.map((h) => ({
         symbol: h.symbol as string,
         shares: h.shares as number,
         costBasis: h.costBasis as number,
         purchaseDate: new Date(h.purchaseDate as string),
-        accountType: (h.accountType as string || 'taxable') as Holding['accountType'],
+        accountType: ((h.accountType as string) || 'taxable') as Holding['accountType'],
         notes: h.notes as string | undefined,
       })),
-      lastUpdated: new Date(data.lastUpdated as string || Date.now()),
+      lastUpdated: new Date((data.lastUpdated as string) || Date.now()),
       totalValue: data.totalValue as number | undefined,
       totalCostBasis: data.totalCostBasis as number | undefined,
     };
@@ -758,7 +770,7 @@ export class QuantFirestoreService {
 
   private serializeBehavioral(tracking: BehavioralTracking): Record<string, unknown> {
     const serializeEvents = (events: BehaviorEvent[]) =>
-      events.map(e => ({ ...e, date: e.date.toISOString() }));
+      events.map((e) => ({ ...e, date: e.date.toISOString() }));
 
     return {
       ...tracking,
@@ -771,20 +783,24 @@ export class QuantFirestoreService {
 
   private deserializeBehavioral(data: Record<string, unknown>, userId: string): BehavioralTracking {
     const deserializeEvents = (events: Array<Record<string, unknown>>): BehaviorEvent[] =>
-      events.map(e => ({ ...e, date: new Date(e.date as string) })) as BehaviorEvent[];
+      events.map((e) => ({ ...e, date: new Date(e.date as string) })) as BehaviorEvent[];
 
     return {
       userId,
-      panicSells: deserializeEvents(data.panicSells as Array<Record<string, unknown>> || []),
-      timingAttempts: deserializeEvents(data.timingAttempts as Array<Record<string, unknown>> || []),
-      impulsePurchases: deserializeEvents(data.impulsePurchases as Array<Record<string, unknown>> || []),
-      budgetAdherence: data.budgetAdherence as MonthlyMetric[] || [],
-      savingsConsistency: data.savingsConsistency as MonthlyMetric[] || [],
-      debtPaymentConsistency: data.debtPaymentConsistency as MonthlyMetric[] || [],
-      currentEmotionalControlScore: data.currentEmotionalControlScore as number || 100,
-      currentDisciplineScore: data.currentDisciplineScore as number || 100,
-      currentPatienceScore: data.currentPatienceScore as number || 100,
-      lastCalculated: new Date(data.lastCalculated as string || Date.now()),
+      panicSells: deserializeEvents((data.panicSells as Array<Record<string, unknown>>) || []),
+      timingAttempts: deserializeEvents(
+        (data.timingAttempts as Array<Record<string, unknown>>) || []
+      ),
+      impulsePurchases: deserializeEvents(
+        (data.impulsePurchases as Array<Record<string, unknown>>) || []
+      ),
+      budgetAdherence: (data.budgetAdherence as MonthlyMetric[]) || [],
+      savingsConsistency: (data.savingsConsistency as MonthlyMetric[]) || [],
+      debtPaymentConsistency: (data.debtPaymentConsistency as MonthlyMetric[]) || [],
+      currentEmotionalControlScore: (data.currentEmotionalControlScore as number) || 100,
+      currentDisciplineScore: (data.currentDisciplineScore as number) || 100,
+      currentPatienceScore: (data.currentPatienceScore as number) || 100,
+      lastCalculated: new Date((data.lastCalculated as string) || Date.now()),
     };
   }
 
@@ -846,4 +862,3 @@ export function getQuantFirestore(): QuantFirestoreService {
 }
 
 export default getQuantFirestore;
-

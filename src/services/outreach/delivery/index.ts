@@ -177,7 +177,9 @@ export interface DeliverOutreachResult {
 /**
  * Deliver an outreach message via the specified channel
  */
-export async function deliverOutreach(options: DeliverOutreachOptions): Promise<DeliverOutreachResult> {
+export async function deliverOutreach(
+  options: DeliverOutreachOptions
+): Promise<DeliverOutreachResult> {
   const { userId, channel, message, personaId, subject, outreachId } = options;
   const persona = personaId || 'ferni';
   const outreach = outreachId || `outreach-${Date.now()}`;

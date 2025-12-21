@@ -36,6 +36,11 @@ export {
   detectTimeOfDay,
   type BanterContext,
   type IntelligentBanterResult,
+  // LLM-driven banter (new!)
+  getLLMDrivenBanter,
+  buildLLMSoftOpenInstructions,
+  buildLLMArrivingInstructions,
+  type LLMBanterInstructions,
 } from './team-engagement/intelligent-banter.js';
 
 // ============================================================================

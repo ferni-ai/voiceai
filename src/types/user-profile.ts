@@ -312,6 +312,26 @@ export interface UserPreferences {
   locales?: string[];
   /** Whether the accent was auto-detected or manually set by user */
   accentAutoDetected?: boolean;
+
+  // 🔔 Reminder Settings
+  /** Settings for important date reminders (birthdays, anniversaries, etc.) */
+  reminderSettings?: {
+    enabled: boolean;
+    daysBefore: number;
+    channels: {
+      voice: boolean;
+      push: boolean;
+      email: boolean;
+    };
+    includeGiftSuggestions: boolean;
+    includeMessageDrafts: boolean;
+  };
+  /** Cached upcoming important dates to remind about */
+  upcomingReminders?: Array<{
+    type: string;
+    date: string;
+    contactName?: string;
+  }>;
 }
 
 /**

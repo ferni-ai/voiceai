@@ -59,7 +59,16 @@
     "voice_id": "${env:FERNI_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}",
     "model": "sonic-3-latest",
     "default_emotion": "affectionate",
-    "emotion_range": ["affectionate", "curious", "contemplative", "sympathetic", "proud", "wistful", "calm", "grateful"],
+    "emotion_range": [
+      "affectionate",
+      "curious",
+      "contemplative",
+      "sympathetic",
+      "proud",
+      "wistful",
+      "calm",
+      "grateful"
+    ],
     "default_speed": 0.95,
     "default_volume": 1.0,
     "laughter_frequency": 0.15,

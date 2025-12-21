@@ -57,10 +57,38 @@ export const PRICING = {
 
   // Infrastructure (amortized)
   infrastructure: {
-    gcePerHour: 0.10, // n1-standard-2 ~$73/mo = $0.10/hr
+    gcePerHour: 0.1, // n1-standard-2 ~$73/mo = $0.10/hr
     firestorePerRead: 0.0000006, // $0.06/100K
     firestorePerWrite: 0.0000018, // $0.18/100K
     firestorePerGB: 0.18,
+  },
+
+  // ============================================================================
+  // OPERATING OVERHEAD - The "true cost" beyond API calls
+  // ============================================================================
+  // This captures all the invisible costs that make Ferni possible:
+  // - Cloud infrastructure (Firebase, Cloud Run, monitoring, storage)
+  // - Development & maintenance time
+  // - Support & operations
+  // - Error handling, retries, redundancy
+  overhead: {
+    // Multiplier on API costs for cloud infrastructure overhead
+    // API costs are typically 30-40% of total cloud bill
+    // (networking, storage, monitoring, logging, build, etc.)
+    cloudInfraMultiplier: 1.5, // 1.5x = API + 50% cloud overhead
+
+    // Fixed per-minute overhead for session infrastructure
+    // (LiveKit rooms, Firestore writes, monitoring, etc.)
+    perMinuteInfra: 0.002, // $0.002/min = $0.12/hr session overhead
+
+    // Operator cost - your time, monitoring, support
+    // Small bootstrapped operation: ~$0.01 per conversation minute
+    // This represents the human element keeping Ferni running
+    operatorPerMinute: 0.01, // $0.01/min = $0.60/hr of your time
+
+    // Minimum floor per conversation (covers fixed costs for very short convos)
+    // Even a 1-minute call has setup/teardown costs
+    minimumPerSession: 0.02, // $0.02 minimum per conversation
   },
 } as const;
 
@@ -96,7 +124,25 @@ export interface SessionCost {
     livekit: number;
     infra: number;
   };
+  /** Direct API costs only (what APIs charge us) */
   totalCost: number;
+
+  // ============================================================================
+  // TRUE COST - What it actually costs to run Ferni
+  // ============================================================================
+  /** API costs + cloud overhead (infrastructure beyond APIs) */
+  cloudCost: number;
+  /** Additional per-minute infrastructure overhead */
+  infraOverhead: number;
+  /** Operator costs (your time running things) */
+  operatorCost: number;
+  /**
+   * TRUE COST: Everything combined - what this conversation actually cost.
+   * This is what we show users in the cost transparency feature.
+   * trueCost = max(minimum, (apiCost * cloudMultiplier) + infraOverhead + operatorCost)
+   */
+  trueCost: number;
+
   // Usage metrics
   tokenCount: number;
   ttsCharacters: number;
@@ -311,8 +357,7 @@ export function recordLLMCost(params: {
 }): void {
   const { model, inputTokens, outputTokens, userId, sessionId, tier = 'free' } = params;
 
-  const pricing =
-    PRICING.llm[model as keyof typeof PRICING.llm] || PRICING.llm.default;
+  const pricing = PRICING.llm[model as keyof typeof PRICING.llm] || PRICING.llm.default;
   const cost =
     (inputTokens / 1000) * pricing.inputPer1KTokens +
     (outputTokens / 1000) * pricing.outputPer1KTokens;
@@ -350,8 +395,7 @@ export function recordTTSCost(params: {
 }): void {
   const { provider = 'cartesia', characters, userId, sessionId, tier = 'free' } = params;
 
-  const pricing =
-    PRICING.tts[provider as keyof typeof PRICING.tts] || PRICING.tts.default;
+  const pricing = PRICING.tts[provider as keyof typeof PRICING.tts] || PRICING.tts.default;
   const cost = characters * pricing.perCharacter;
 
   const event: CostEvent = {
@@ -384,8 +428,7 @@ export function recordSTTCost(params: {
 }): void {
   const { provider = 'deepgram', durationSeconds, userId, sessionId, tier = 'free' } = params;
 
-  const pricing =
-    PRICING.stt[provider as keyof typeof PRICING.stt] || PRICING.stt.default;
+  const pricing = PRICING.stt[provider as keyof typeof PRICING.stt] || PRICING.stt.default;
   const cost = (durationSeconds / 60) * pricing.perMinute;
 
   const event: CostEvent = {
@@ -455,6 +498,12 @@ export function startSession(params: {
     durationMinutes: 0,
     costs: { llm: 0, tts: 0, stt: 0, livekit: 0, infra: 0 },
     totalCost: 0,
+    // True cost fields - calculated at session end
+    cloudCost: 0,
+    infraOverhead: 0,
+    operatorCost: 0,
+    trueCost: 0,
+    // Usage metrics
     tokenCount: 0,
     ttsCharacters: 0,
     sttMinutes: 0,
@@ -466,6 +515,12 @@ export function startSession(params: {
 
 /**
  * End a session and calculate final costs.
+ *
+ * Calculates both direct API costs AND true operating costs:
+ * - Direct API costs: What the APIs charge us
+ * - Cloud overhead: Infrastructure beyond APIs (Firebase, monitoring, etc.)
+ * - Operator costs: Human time keeping Ferni running
+ * - Minimum floor: Even short convos have fixed costs
  */
 export function endSession(sessionId: string): SessionCost | null {
   const session = sessionCosts.get(sessionId);
@@ -474,22 +529,65 @@ export function endSession(sessionId: string): SessionCost | null {
   session.endTime = Date.now();
   session.durationMinutes = (session.endTime - session.startTime) / 60000;
 
-  // Add infrastructure cost (amortized per session)
+  // Add infrastructure cost (amortized per session - GCE compute)
   const infraCost = session.durationMinutes * (PRICING.infrastructure.gcePerHour / 60);
   session.costs.infra = infraCost;
   session.totalCost += infraCost;
+
+  // ============================================================================
+  // TRUE COST CALCULATION - What it actually costs to run this conversation
+  // ============================================================================
+  const { overhead } = PRICING;
+
+  // 1. Cloud cost = API costs * cloud infrastructure multiplier
+  //    (networking, monitoring, storage, builds, etc.)
+  session.cloudCost = session.totalCost * overhead.cloudInfraMultiplier;
+
+  // 2. Infrastructure overhead = per-minute cost for session infrastructure
+  //    (LiveKit rooms, Firestore writes, logging, etc.)
+  session.infraOverhead = session.durationMinutes * overhead.perMinuteInfra;
+
+  // 3. Operator cost = your time running things
+  //    (monitoring, support, maintenance, being on-call)
+  session.operatorCost = session.durationMinutes * overhead.operatorPerMinute;
+
+  // 4. TRUE COST = everything combined, with minimum floor
+  const calculatedTrueCost = session.cloudCost + session.infraOverhead + session.operatorCost;
+  session.trueCost = Math.max(overhead.minimumPerSession, calculatedTrueCost);
 
   log.info(
     {
       sessionId,
       tier: session.tier,
       duration: session.durationMinutes.toFixed(1),
-      cost: session.totalCost.toFixed(4),
+      apiCost: session.totalCost.toFixed(4),
+      trueCost: session.trueCost.toFixed(4),
     },
     'Session ended'
   );
 
   return session;
+}
+
+/**
+ * Get session cost for a specific session (active or ended).
+ * Used by user-facing cost transparency feature.
+ */
+export function getSessionCost(sessionId: string): SessionCost | null {
+  return sessionCosts.get(sessionId) || null;
+}
+
+/**
+ * Get session cost by userId (finds the most recent session).
+ * Falls back to any active session for the user.
+ */
+export function getSessionCostByUserId(userId: string): SessionCost | null {
+  // Find sessions for this user, sorted by start time (most recent first)
+  const userSessions = Array.from(sessionCosts.values())
+    .filter((s) => s.userId === userId)
+    .sort((a, b) => b.startTime - a.startTime);
+
+  return userSessions[0] || null;
 }
 
 // ============================================================================
@@ -595,7 +693,11 @@ export function getSnapshot(): FinOpsSnapshot {
 
       // Track per-user sessions
       if (session.userId) {
-        const existing = userCosts.get(session.userId) || { cost: 0, sessions: 0, tier: session.tier };
+        const existing = userCosts.get(session.userId) || {
+          cost: 0,
+          sessions: 0,
+          tier: session.tier,
+        };
         existing.sessions++;
         userCosts.set(session.userId, existing);
       }
@@ -611,15 +713,15 @@ export function getSnapshot(): FinOpsSnapshot {
   }
 
   // Unit economics
-  const totalSessions = costByTier.free.sessions + costByTier.friend.sessions + costByTier.partner.sessions;
+  const totalSessions =
+    costByTier.free.sessions + costByTier.friend.sessions + costByTier.partner.sessions;
   const avgCostPerConversation = totalSessions > 0 ? costThisMonth / totalSessions : 0;
 
   const freeUserCount = costByTier.free.users.size || 1;
-  const paidUserCount = (costByTier.friend.users.size + costByTier.partner.users.size) || 1;
+  const paidUserCount = costByTier.friend.users.size + costByTier.partner.users.size || 1;
 
   const avgCostPerFreeUser = costByTier.free.cost / freeUserCount;
-  const avgCostPerPaidUser =
-    (costByTier.friend.cost + costByTier.partner.cost) / paidUserCount;
+  const avgCostPerPaidUser = (costByTier.friend.cost + costByTier.partner.cost) / paidUserCount;
 
   const avgRevenuePerPaidUser = paidUserCount > 0 ? monthlyRevenue / paidUserCount : 0;
 
@@ -632,9 +734,7 @@ export function getSnapshot(): FinOpsSnapshot {
 
   // Runway
   const runwayMonths =
-    cashReserve !== null && projectedMonthCost > 0
-      ? cashReserve / projectedMonthCost
-      : null;
+    cashReserve !== null && projectedMonthCost > 0 ? cashReserve / projectedMonthCost : null;
 
   // ============== LTV:CAC CALCULATION ==============
   const ltvCac = calculateLTVCAC({
@@ -647,16 +747,12 @@ export function getSnapshot(): FinOpsSnapshot {
   });
 
   // ============== UNIT ECONOMICS ==============
-  const costPerFreeSession = costByTier.free.sessions > 0
-    ? costByTier.free.cost / costByTier.free.sessions
-    : 0;
+  const costPerFreeSession =
+    costByTier.free.sessions > 0 ? costByTier.free.cost / costByTier.free.sessions : 0;
   const paidSessions = costByTier.friend.sessions + costByTier.partner.sessions;
-  const costPerPaidSession = paidSessions > 0
-    ? (costByTier.friend.cost + costByTier.partner.cost) / paidSessions
-    : 0;
-  const revenuePerPaidSession = paidSessions > 0
-    ? monthlyRevenue / paidSessions
-    : 0;
+  const costPerPaidSession =
+    paidSessions > 0 ? (costByTier.friend.cost + costByTier.partner.cost) / paidSessions : 0;
+  const revenuePerPaidSession = paidSessions > 0 ? monthlyRevenue / paidSessions : 0;
 
   const unitEconomics: UnitEconomics = {
     costPerFreeSession,
@@ -664,9 +760,10 @@ export function getSnapshot(): FinOpsSnapshot {
     revenuePerPaidSession,
     marginPerPaidSession: revenuePerPaidSession - costPerPaidSession,
     // How many sessions before free user "pays off" conversion
-    breakEvenSessionsToConvert: costPerFreeSession > 0
-      ? 10 / costPerFreeSession // $10 (friend tier) / cost per free session
-      : 0,
+    breakEvenSessionsToConvert:
+      costPerFreeSession > 0
+        ? 10 / costPerFreeSession // $10 (friend tier) / cost per free session
+        : 0,
     // What would it cost if all free users converted to friend?
     projectedCostAtFullConversion: costByTier.free.sessions * costPerPaidSession,
   };
@@ -679,9 +776,7 @@ export function getSnapshot(): FinOpsSnapshot {
   });
 
   // Free tier cost percentage
-  const freeTierCostPercent = costThisMonth > 0
-    ? costByTier.free.cost / costThisMonth
-    : 0;
+  const freeTierCostPercent = costThisMonth > 0 ? costByTier.free.cost / costThisMonth : 0;
 
   // Alerts (enhanced)
   const alerts = generateAlerts({
@@ -709,9 +804,21 @@ export function getSnapshot(): FinOpsSnapshot {
     grossMargin,
     contributionMargin,
     costByTier: {
-      free: { cost: costByTier.free.cost, sessions: costByTier.free.sessions, users: costByTier.free.users.size },
-      friend: { cost: costByTier.friend.cost, sessions: costByTier.friend.sessions, users: costByTier.friend.users.size },
-      partner: { cost: costByTier.partner.cost, sessions: costByTier.partner.sessions, users: costByTier.partner.users.size },
+      free: {
+        cost: costByTier.free.cost,
+        sessions: costByTier.free.sessions,
+        users: costByTier.free.users.size,
+      },
+      friend: {
+        cost: costByTier.friend.cost,
+        sessions: costByTier.friend.sessions,
+        users: costByTier.friend.users.size,
+      },
+      partner: {
+        cost: costByTier.partner.cost,
+        sessions: costByTier.partner.sessions,
+        users: costByTier.partner.users.size,
+      },
     },
     costByService,
     projectedBreakeven: null, // Would need historical data
@@ -737,7 +844,14 @@ function calculateLTVCAC(params: {
   cac: number;
   lifetimeMonths: number;
 }): LTVCACMetrics {
-  const { avgRevenuePerPaidUser, avgCostPerPaidUser, paidUserCount, churnRate, cac, lifetimeMonths } = params;
+  const {
+    avgRevenuePerPaidUser,
+    avgCostPerPaidUser,
+    paidUserCount,
+    churnRate,
+    cac,
+    lifetimeMonths,
+  } = params;
 
   // Calculate LTV: Average revenue per user * expected lifetime
   // Using churn rate: Lifetime = 1 / churnRate (in months)
@@ -854,9 +968,10 @@ function generateAlerts(data: {
   }
 
   // High free tier cost
-  const avgFreeCost = data.costByTier.free.sessions > 0
-    ? data.costByTier.free.cost / data.costByTier.free.sessions
-    : 0;
+  const avgFreeCost =
+    data.costByTier.free.sessions > 0
+      ? data.costByTier.free.cost / data.costByTier.free.sessions
+      : 0;
   if (avgFreeCost > thresholds.maxCostPerFreeSession) {
     alerts.push({
       id: `free_cost_${Date.now()}`,
@@ -887,12 +1002,17 @@ function generateAlerts(data: {
       severity: data.freeTierCostPercent > 0.8 ? 'critical' : 'warning',
       type: 'budget_exceeded',
       message: `Free tier costs (${(data.freeTierCostPercent * 100).toFixed(0)}%) exceed threshold (${(thresholds.maxFreeTierCostPercent * 100).toFixed(0)}%). Consider soft caps or conversion incentives.`,
-      data: { freeTierPercent: data.freeTierCostPercent, threshold: thresholds.maxFreeTierCostPercent },
+      data: {
+        freeTierPercent: data.freeTierCostPercent,
+        threshold: thresholds.maxFreeTierCostPercent,
+      },
     });
   }
 
   // Power users - whales (free users costing more than partner tier)
-  const whales = data.powerUsers.filter((u) => u.tier === 'free' && u.costEquivalentTier === 'whale');
+  const whales = data.powerUsers.filter(
+    (u) => u.tier === 'free' && u.costEquivalentTier === 'whale'
+  );
   if (whales.length > 0) {
     alerts.push({
       id: `whales_${Date.now()}`,
@@ -1010,6 +1130,8 @@ export const finops = {
 
   // Analytics
   getSnapshot,
+  getSessionCost,
+  getSessionCostByUserId,
 
   // Configuration - Basic
   setMonthlyRevenue,
@@ -1028,4 +1150,3 @@ export const finops = {
 };
 
 export default finops;
-

@@ -18,11 +18,7 @@
       "You crossed my mind",
       "Something reminded me of you"
     ],
-    "check_in": [
-      "Just wanted to check in",
-      "How are you doing?",
-      "How's everything going?"
-    ],
+    "check_in": ["Just wanted to check in", "How are you doing?", "How's everything going?"],
     "closing": [
       "Take care of yourself",
       "Here if you need me",
@@ -138,4 +134,3 @@
     "Leave space for them to respond in their own time"
   ]
 }
-

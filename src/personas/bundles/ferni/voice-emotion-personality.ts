@@ -320,12 +320,22 @@ export function fromVoiceEmotionResult(result?: VoiceEmotionResult): VoiceEmotio
     valence: result.valence,
     confidence: result.confidence,
     // Map additional properties if available
-    speechPace: result.arousal !== undefined
-      ? (result.arousal > 0.7 ? 'fast' : result.arousal < 0.3 ? 'slow' : 'normal')
-      : undefined,
-    energyLevel: result.arousal !== undefined
-      ? (result.arousal > 0.7 ? 'high' : result.arousal < 0.3 ? 'low' : 'medium')
-      : undefined,
+    speechPace:
+      result.arousal !== undefined
+        ? result.arousal > 0.7
+          ? 'fast'
+          : result.arousal < 0.3
+            ? 'slow'
+            : 'normal'
+        : undefined,
+    energyLevel:
+      result.arousal !== undefined
+        ? result.arousal > 0.7
+          ? 'high'
+          : result.arousal < 0.3
+            ? 'low'
+            : 'medium'
+        : undefined,
   };
 }
 
@@ -341,4 +351,3 @@ export const voiceEmotionPersonality = {
 };
 
 export default voiceEmotionPersonality;
-

@@ -56,18 +56,18 @@ describe('Calendar Service', () => {
   describe('isConnected', () => {
     it('should return true when calendar is configured', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(true);
-      
+
       const result = await isConnected(mockUserId);
-      
+
       expect(result).toBe(true);
       expect(googleCalendarOAuth.isCalendarConfigured).toHaveBeenCalledWith(mockUserId);
     });
 
     it('should return true even when Google not configured (local fallback)', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
-      
+
       const result = await isConnected(mockUserId);
-      
+
       // Now returns true because local calendar is always available
       expect(result).toBe(true);
     });
@@ -76,17 +76,17 @@ describe('Calendar Service', () => {
   describe('isGoogleCalendarConnected', () => {
     it('should return true when Google Calendar is configured', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(true);
-      
+
       const result = await isGoogleCalendarConnected(mockUserId);
-      
+
       expect(result).toBe(true);
     });
 
     it('should return false when Google Calendar is not configured', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
-      
+
       const result = await isGoogleCalendarConnected(mockUserId);
-      
+
       expect(result).toBe(false);
     });
   });
@@ -94,17 +94,17 @@ describe('Calendar Service', () => {
   describe('getCalendarMode', () => {
     it('should return google when Google Calendar is configured', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(true);
-      
+
       const result = await getCalendarMode(mockUserId);
-      
+
       expect(result).toBe('google');
     });
 
     it('should return local when Google Calendar is not configured', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
-      
+
       const result = await getCalendarMode(mockUserId);
-      
+
       expect(result).toBe('local');
     });
   });
@@ -112,9 +112,9 @@ describe('Calendar Service', () => {
   describe('getEventsForDay', () => {
     it('should return empty array when no access token', async () => {
       vi.mocked(googleCalendarOAuth.getValidAccessToken).mockResolvedValue(null);
-      
+
       const result = await getEventsForDay(mockUserId);
-      
+
       expect(result).toEqual([]);
     });
 
@@ -133,9 +133,9 @@ describe('Calendar Service', () => {
       ];
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockGoogleEvents);
-      
+
       const result = await getEventsForDay(mockUserId);
-      
+
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('event-1');
       expect(result[0].title).toBe('Team Meeting');
@@ -156,9 +156,9 @@ describe('Calendar Service', () => {
       ];
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockGoogleEvents);
-      
+
       const result = await getEventsForDay(mockUserId);
-      
+
       expect(result[0].title).toBe('(No title)');
     });
   });
@@ -167,14 +167,14 @@ describe('Calendar Service', () => {
     it('should fall back to local calendar when no access token', async () => {
       vi.mocked(googleCalendarOAuth.getValidAccessToken).mockResolvedValue(null);
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
-      
+
       const input: CreateEventInput = {
         title: 'Test Meeting',
         startTime: new Date(),
       };
-      
+
       const result = await createEvent(mockUserId, input);
-      
+
       // Now falls back to local calendar instead of returning null
       expect(result).not.toBeNull();
       expect(result?.title).toBe('Test Meeting');
@@ -191,15 +191,15 @@ describe('Calendar Service', () => {
       };
 
       vi.mocked(googleCalendarOAuth.createEvent).mockResolvedValue(mockCreatedEvent);
-      
+
       const input: CreateEventInput = {
         title: 'Test Meeting',
         startTime: new Date('2024-12-20T14:00:00Z'),
         durationMinutes: 60,
       };
-      
+
       const result = await createEvent(mockUserId, input);
-      
+
       expect(result).not.toBeNull();
       expect(result?.title).toBe('Test Meeting');
       expect(googleCalendarOAuth.createEvent).toHaveBeenCalledWith(
@@ -215,9 +215,9 @@ describe('Calendar Service', () => {
   describe('findFreeTimeSlots', () => {
     it('should return full day as free when no events', async () => {
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue([]);
-      
+
       const result = await findFreeTimeSlots(mockUserId, new Date('2024-12-20'));
-      
+
       expect(result).toHaveLength(1);
       expect(result[0].durationMinutes).toBeGreaterThan(0);
     });
@@ -241,12 +241,12 @@ describe('Calendar Service', () => {
       ];
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockEvents);
-      
+
       const result = await findFreeTimeSlots(mockUserId, new Date('2024-12-20'), {
         minDurationMinutes: 30,
         workDayOnly: true,
       });
-      
+
       // Should have slots before first meeting, between meetings, and after last
       expect(result.length).toBeGreaterThan(0);
     });
@@ -270,12 +270,12 @@ describe('Calendar Service', () => {
       ];
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockEvents);
-      
+
       const result = await findFreeTimeSlots(mockUserId, new Date('2024-12-20'), {
         minDurationMinutes: 60,
         workDayOnly: true,
       });
-      
+
       // 10-minute gap should not appear
       expect(result.every((slot) => slot.durationMinutes >= 60)).toBe(true);
     });
@@ -284,9 +284,9 @@ describe('Calendar Service', () => {
   describe('getDayOverview', () => {
     it('should return overview with zero meetings when no events', async () => {
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue([]);
-      
+
       const result = await getDayOverview(mockUserId);
-      
+
       expect(result.totalMeetings).toBe(0);
       expect(result.isOverloaded).toBe(false);
       expect(result.hasBackToBack).toBe(false);
@@ -306,9 +306,9 @@ describe('Calendar Service', () => {
       }
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockEvents);
-      
+
       const result = await getDayOverview(mockUserId);
-      
+
       expect(result.isOverloaded).toBe(true);
       expect(result.totalMeetingMinutes).toBeGreaterThanOrEqual(360);
     });
@@ -332,9 +332,9 @@ describe('Calendar Service', () => {
       ];
 
       vi.mocked(googleCalendarOAuth.getEvents).mockResolvedValue(mockEvents);
-      
+
       const result = await getDayOverview(mockUserId);
-      
+
       expect(result.hasBackToBack).toBe(true);
     });
   });
@@ -394,4 +394,3 @@ describe('Calendar Service', () => {
     });
   });
 });
-

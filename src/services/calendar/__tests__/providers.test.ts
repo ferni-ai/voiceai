@@ -267,4 +267,3 @@ describe('Calendar Types', () => {
     expect(types).toBeDefined();
   });
 });
-

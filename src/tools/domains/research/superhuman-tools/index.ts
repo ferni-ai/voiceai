@@ -42,7 +42,18 @@ export const saveInvestmentThesis = llm.tool({
     timeHorizon: z.string().optional().describe('How long you plan to hold'),
     confidence: z.number().min(1).max(10).describe('How confident are you? 1-10'),
   }),
-  execute: async (params: { symbol: string; thesis: string; catalysts?: string[]; risks?: string[]; priceTarget?: number; timeHorizon?: string; confidence: number }, { ctx }: { ctx: unknown }) => {
+  execute: async (
+    params: {
+      symbol: string;
+      thesis: string;
+      catalysts?: string[];
+      risks?: string[];
+      priceTarget?: number;
+      timeHorizon?: string;
+      confidence: number;
+    },
+    { ctx }: { ctx: unknown }
+  ) => {
     const { symbol, thesis, priceTarget, timeHorizon, confidence } = params;
     const catalysts = params.catalysts || [];
     const risks = params.risks || [];
@@ -83,7 +94,9 @@ export const saveInvestmentThesis = llm.tool({
       `📊 Confidence: ${confidence}/10`,
       '',
       "I'll remind you of this when the market gets choppy. Your future self will thank you.",
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -92,7 +105,7 @@ export const saveInvestmentThesis = llm.tool({
  */
 export const remindThesis = llm.tool({
   description:
-    "Remind yourself why you bought a stock. Essential during market drops when emotions run high.",
+    'Remind yourself why you bought a stock. Essential during market drops when emotions run high.',
   parameters: z.object({
     symbol: z.string().describe('Stock ticker symbol'),
   }),
@@ -156,8 +169,8 @@ export const remindThesis = llm.tool({
     lines.push('');
     lines.push('---');
     lines.push('');
-    lines.push("**The Question:** Has anything changed that invalidates your original thesis?");
-    lines.push("If not, the price movement is just noise. Your thesis is what matters.");
+    lines.push('**The Question:** Has anything changed that invalidates your original thesis?');
+    lines.push('If not, the price movement is just noise. Your thesis is what matters.');
 
     return lines.join('\n');
   },
@@ -175,14 +188,34 @@ export const createFinancialGoal = llm.tool({
     'Create a financial goal. Peter will track progress and celebrate milestones with you.',
   parameters: z.object({
     name: z.string().describe('Name for this goal'),
-    type: z.enum(['emergency_fund', 'retirement', 'purchase', 'debt_payoff', 'investment', 'education', 'travel', 'custom']),
+    type: z.enum([
+      'emergency_fund',
+      'retirement',
+      'purchase',
+      'debt_payoff',
+      'investment',
+      'education',
+      'travel',
+      'custom',
+    ]),
     targetAmount: z.number().describe('Target amount in dollars'),
     targetDate: z.string().optional().describe('Target date (YYYY-MM-DD)'),
     currentAmount: z.number().default(0).describe('Current progress'),
     priority: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
     notes: z.string().optional(),
   }),
-  execute: async (params: { name: string; type: string; targetAmount: number; targetDate?: string; currentAmount: number; priority: string; notes?: string }, { ctx }: { ctx: unknown }) => {
+  execute: async (
+    params: {
+      name: string;
+      type: string;
+      targetAmount: number;
+      targetDate?: string;
+      currentAmount: number;
+      priority: string;
+      notes?: string;
+    },
+    { ctx }: { ctx: unknown }
+  ) => {
     const { name, type, targetAmount, targetDate, currentAmount, priority, notes } = params;
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
@@ -221,9 +254,7 @@ export const createFinancialGoal = llm.tool({
     const monthsToTarget = targetDate
       ? Math.ceil((new Date(targetDate).getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000))
       : null;
-    const monthlyNeeded = monthsToTarget
-      ? (targetAmount - currentAmount) / monthsToTarget
-      : null;
+    const monthlyNeeded = monthsToTarget ? (targetAmount - currentAmount) / monthsToTarget : null;
 
     return [
       `🎯 Goal Created: ${name}!`,
@@ -234,7 +265,9 @@ export const createFinancialGoal = llm.tool({
       monthlyNeeded ? `💰 Monthly Needed: $${monthlyNeeded.toFixed(0).toLocaleString()}` : '',
       '',
       "I'll celebrate with you at 10%, 25%, 50%, 75%, 90%, and 100%!",
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -281,7 +314,9 @@ export const updateGoalProgress = llm.tool({
         } else if (milestone.percentage >= 75) {
           lines.push(`🔥 ${milestone.percentage}% - You're in the home stretch!`);
         } else if (milestone.percentage >= 50) {
-          lines.push(`💪 ${milestone.percentage}% - Halfway there! The compound effect is working.`);
+          lines.push(
+            `💪 ${milestone.percentage}% - Halfway there! The compound effect is working.`
+          );
         } else if (milestone.percentage >= 25) {
           lines.push(`🚀 ${milestone.percentage}% - Quarter way! Building momentum.`);
         } else {
@@ -303,9 +338,15 @@ export const updateGoalProgress = llm.tool({
  */
 export const predictBehavior = llm.tool({
   description:
-    "Predict how you might react to future market events based on your history and patterns from similar investors.",
+    'Predict how you might react to future market events based on your history and patterns from similar investors.',
   parameters: z.object({
-    scenario: z.enum(['market_drop_10', 'market_drop_20', 'market_drop_30', 'rate_hike', 'recession_news']),
+    scenario: z.enum([
+      'market_drop_10',
+      'market_drop_20',
+      'market_drop_30',
+      'rate_hike',
+      'recession_news',
+    ]),
   }),
   execute: async (params: { scenario: string }, { ctx }: { ctx: unknown }) => {
     const { scenario } = params;
@@ -324,10 +365,7 @@ export const predictBehavior = llm.tool({
       recession_news: 'recession officially declared',
     };
 
-    const lines = [
-      `🔮 **Behavioral Prediction: ${scenarioDescriptions[scenario]}**`,
-      '',
-    ];
+    const lines = [`🔮 **Behavioral Prediction: ${scenarioDescriptions[scenario]}**`, ''];
 
     // Personal history
     if (crisisHistory.totalEvents > 0) {
@@ -350,20 +388,20 @@ export const predictBehavior = llm.tool({
       prediction = "You'll likely stay calm and stick to your plan";
       probability = 15;
     } else if (emotionalControl >= 60) {
-      prediction = "You may feel anxious but will probably hold";
+      prediction = 'You may feel anxious but will probably hold';
       probability = 35;
     } else {
-      prediction = "You might feel a strong urge to sell";
+      prediction = 'You might feel a strong urge to sell';
       probability = 55;
     }
 
     // Adjust based on history
     if (crisisHistory.panicSellCount > 1) {
       probability = Math.min(probability + 20, 90);
-      prediction = "Based on past patterns, you may feel pressure to sell";
+      prediction = 'Based on past patterns, you may feel pressure to sell';
     } else if (crisisHistory.heldCount > 2) {
       probability = Math.max(probability - 15, 5);
-      prediction = "Your track record shows you can handle volatility";
+      prediction = 'Your track record shows you can handle volatility';
     }
 
     lines.push(`🎯 **Prediction:**`);
@@ -384,11 +422,13 @@ export const predictBehavior = llm.tool({
     lines.push(`📝 **Recommendation:**`);
     if (probability > 50) {
       lines.push(
-        "Write down your investment theses NOW. When the drop comes, read them before making any decisions."
+        'Write down your investment theses NOW. When the drop comes, read them before making any decisions.'
       );
-      lines.push("Consider setting a 48-hour cooling-off rule for any sell decisions.");
+      lines.push('Consider setting a 48-hour cooling-off rule for any sell decisions.');
     } else {
-      lines.push("You're well-prepared. Just remember: volatility is the price of admission for long-term returns.");
+      lines.push(
+        "You're well-prepared. Just remember: volatility is the price of admission for long-term returns."
+      );
     }
 
     return lines.join('\n');
@@ -406,13 +446,30 @@ export const recordLifeEvent = llm.tool({
   description:
     'Record a significant life event. Peter will adjust advice based on your life circumstances.',
   parameters: z.object({
-    type: z.enum(['career', 'family', 'health', 'financial', 'education', 'housing', 'relationship']),
+    type: z.enum([
+      'career',
+      'family',
+      'health',
+      'financial',
+      'education',
+      'housing',
+      'relationship',
+    ]),
     description: z.string().describe('What happened'),
     incomeChange: z.number().optional().describe('Monthly income change (positive or negative)'),
     expenseChange: z.number().optional().describe('Monthly expense change (positive or negative)'),
     oneTimeImpact: z.number().optional().describe('One-time financial impact'),
   }),
-  execute: async (params: { type: string; description: string; incomeChange?: number; expenseChange?: number; oneTimeImpact?: number }, { ctx }: { ctx: unknown }) => {
+  execute: async (
+    params: {
+      type: string;
+      description: string;
+      incomeChange?: number;
+      expenseChange?: number;
+      oneTimeImpact?: number;
+    },
+    { ctx }: { ctx: unknown }
+  ) => {
     const { type, description, incomeChange, expenseChange, oneTimeImpact } = params;
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
@@ -441,19 +498,22 @@ export const recordLifeEvent = llm.tool({
       acknowledged: false,
     });
 
-    const lines = [
-      `📝 Life event recorded: ${description}`,
-      '',
-    ];
+    const lines = [`📝 Life event recorded: ${description}`, ''];
 
     if (incomeChange) {
-      lines.push(`💰 Income change: ${incomeChange > 0 ? '+' : ''}$${incomeChange.toLocaleString()}/month`);
+      lines.push(
+        `💰 Income change: ${incomeChange > 0 ? '+' : ''}$${incomeChange.toLocaleString()}/month`
+      );
     }
     if (expenseChange) {
-      lines.push(`📤 Expense change: ${expenseChange > 0 ? '+' : ''}$${expenseChange.toLocaleString()}/month`);
+      lines.push(
+        `📤 Expense change: ${expenseChange > 0 ? '+' : ''}$${expenseChange.toLocaleString()}/month`
+      );
     }
     if (oneTimeImpact) {
-      lines.push(`💵 One-time impact: ${oneTimeImpact > 0 ? '+' : ''}$${oneTimeImpact.toLocaleString()}`);
+      lines.push(
+        `💵 One-time impact: ${oneTimeImpact > 0 ? '+' : ''}$${oneTimeImpact.toLocaleString()}`
+      );
     }
 
     lines.push('');
@@ -507,7 +567,9 @@ export const getNextLesson = llm.tool({
       gap?.severity === 'critical' ? '⚠️ This is critical for your financial success.' : '',
       '',
       `Would you like me to explain ${nextTopic}?`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -547,4 +609,3 @@ export const superhumanTools = {
 };
 
 export default superhumanTools;
-

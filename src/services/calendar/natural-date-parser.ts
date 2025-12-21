@@ -44,25 +44,48 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 const DAY_NAMES_SHORT = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 const MONTH_NAMES = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december'
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
 ];
-const MONTH_NAMES_SHORT = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const MONTH_NAMES_SHORT = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
 
 const TIME_OF_DAY: Record<string, { hour: number; minute: number }> = {
-  'morning': { hour: 9, minute: 0 },
-  'noon': { hour: 12, minute: 0 },
-  'afternoon': { hour: 14, minute: 0 },
-  'evening': { hour: 18, minute: 0 },
-  'night': { hour: 20, minute: 0 },
-  'midnight': { hour: 0, minute: 0 },
+  morning: { hour: 9, minute: 0 },
+  noon: { hour: 12, minute: 0 },
+  afternoon: { hour: 14, minute: 0 },
+  evening: { hour: 18, minute: 0 },
+  night: { hour: 20, minute: 0 },
+  midnight: { hour: 0, minute: 0 },
 };
 
 const RELATIVE_DAYS: Record<string, number> = {
-  'today': 0,
-  'tomorrow': 1,
+  today: 0,
+  tomorrow: 1,
   'day after tomorrow': 2,
-  'yesterday': -1,
+  yesterday: -1,
   'day before yesterday': -2,
 };
 
@@ -90,18 +113,21 @@ export function parseNaturalDate(input: string, options: ParseOptions = {}): Par
 
   // Try each parser in order of specificity
   const parsers = [
-    parseExactDateTime,    // "December 15th at 3pm"
-    parseRelativeDay,      // "tomorrow", "day after tomorrow"
-    parseRelativeTime,     // "in 2 hours", "in 30 minutes"
-    parseNextWeekday,      // "next Tuesday", "this Friday"
-    parseDayOfMonth,       // "the 15th", "on the 3rd"
-    parseTimeOfDay,        // "at 3pm", "at noon"
+    parseExactDateTime, // "December 15th at 3pm"
+    parseRelativeDay, // "tomorrow", "day after tomorrow"
+    parseRelativeTime, // "in 2 hours", "in 30 minutes"
+    parseNextWeekday, // "next Tuesday", "this Friday"
+    parseDayOfMonth, // "the 15th", "on the 3rd"
+    parseTimeOfDay, // "at 3pm", "at noon"
   ];
 
   for (const parser of parsers) {
     const result = parser(normalized, referenceDate, defaultTime, prefer);
     if (result) {
-      log.debug({ input: normalized, interpretation: result.interpretation }, 'Date parsed successfully');
+      log.debug(
+        { input: normalized, interpretation: result.interpretation },
+        'Date parsed successfully'
+      );
       return result;
     }
   }
@@ -137,7 +163,7 @@ function parseExactDateTime(
   const monthStr = match[1].toLowerCase();
   const day = parseInt(match[2], 10);
   const hour = match[3] ? parseInt(match[3], 10) : defaultTime.hour;
-  const minute = match[4] ? parseInt(match[4], 10) : (match[3] ? 0 : defaultTime.minute);
+  const minute = match[4] ? parseInt(match[4], 10) : match[3] ? 0 : defaultTime.minute;
   const meridiem = match[5]?.toLowerCase();
 
   // Find month index
@@ -497,7 +523,7 @@ export function isValidForScheduling(date: Date): { valid: boolean; reason?: str
   const now = new Date();
 
   if (date < now) {
-    return { valid: false, reason: "That time has already passed" };
+    return { valid: false, reason: 'That time has already passed' };
   }
 
   // Check if too far in the future (1 year)
@@ -568,4 +594,3 @@ export function suggestTimes(
 
   return suggestions.slice(0, 3); // Return top 3 suggestions
 }
-

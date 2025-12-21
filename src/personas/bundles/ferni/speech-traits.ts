@@ -79,7 +79,11 @@ export function addPersonalHistoryWeight(text: string, _emotion: string): string
     // India - service and spirituality
     { pattern: /\b(india|ashram|service)\b/gi, emotion: 'contemplative', pause: 200 },
     // Family stories
-    { pattern: /\b(my father|my mother|my siblings?|seven siblings)\b/gi, emotion: 'affectionate', pause: 180 },
+    {
+      pattern: /\b(my father|my mother|my siblings?|seven siblings)\b/gi,
+      emotion: 'affectionate',
+      pause: 180,
+    },
     // Blended family
     { pattern: /\b(blended family|stepfather|stepmom)\b/gi, emotion: 'affectionate', pause: 200 },
   ];
@@ -301,9 +305,7 @@ export function addActiveListeningSounds(text: string, emotion: string): string 
     return result;
   }
 
-  const acknowledgmentPatterns = [
-    /\b(i understand|that makes sense|i hear you|i get it)\b/gi,
-  ];
+  const acknowledgmentPatterns = [/\b(i understand|that makes sense|i hear you|i get it)\b/gi];
 
   acknowledgmentPatterns.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
@@ -410,4 +412,3 @@ export const FERNI_SPEECH_CONFIG = {
   /** Probability of active listening sounds (0-1) */
   activeListeningProbability: 0.2,
 } as const;
-

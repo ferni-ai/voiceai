@@ -372,7 +372,10 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
     }
   } catch (error) {
     // Calendar integration is optional - don't fail burnout assessment
-    log.warn({ error: String(error), userId }, 'Calendar factors unavailable for burnout assessment');
+    log.warn(
+      { error: String(error), userId },
+      'Calendar factors unavailable for burnout assessment'
+    );
   }
 
   // Determine risk level
@@ -392,7 +395,12 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
 
     // Add calendar-specific recommendations
     const hasCalendarFactors = factors.some((f) =>
-      ['Heavy Meeting Load', 'Extreme Meeting Load', 'No Focus Time', 'Back-to-Back Overload'].includes(f.factor)
+      [
+        'Heavy Meeting Load',
+        'Extreme Meeting Load',
+        'No Focus Time',
+        'Back-to-Back Overload',
+      ].includes(f.factor)
     );
     if (hasCalendarFactors) {
       recommendations.push('Block "Do Not Schedule" time for the next few days.');
@@ -432,7 +440,9 @@ export async function buildCapacityContext(userId: string): Promise<string> {
   }
 
   const sections: string[] = ['[CAPACITY GUARDIAN - Better Than Human Energy Tracking]'];
-  sections.push('You track their energy AND calendar like no human can. Protect them from themselves.');
+  sections.push(
+    'You track their energy AND calendar like no human can. Protect them from themselves.'
+  );
 
   // Current assessment
   const riskEmoji: Record<BurnoutRisk, string> = {

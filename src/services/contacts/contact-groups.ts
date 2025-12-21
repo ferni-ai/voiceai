@@ -48,7 +48,9 @@ const loadedUsers = new Set<string>();
 // PREDEFINED GROUP TEMPLATES
 // ============================================================================
 
-const DEFAULT_GROUPS: Array<Omit<ContactGroup, 'id' | 'userId' | 'members' | 'createdAt' | 'updatedAt'>> = [
+const DEFAULT_GROUPS: Array<
+  Omit<ContactGroup, 'id' | 'userId' | 'members' | 'createdAt' | 'updatedAt'>
+> = [
   {
     name: 'Family',
     description: 'Immediate and extended family members',
@@ -110,11 +112,7 @@ export async function getGroup(userId: string, idOrName: string): Promise<Contac
   const groups = await getGroups(userId);
   const nameLower = idOrName.toLowerCase();
 
-  return (
-    groups.find(
-      (g) => g.id === idOrName || g.name.toLowerCase() === nameLower
-    ) || null
-  );
+  return groups.find((g) => g.id === idOrName || g.name.toLowerCase() === nameLower) || null;
 }
 
 /**
@@ -381,4 +379,3 @@ export default {
   getGroupsForOccasion,
   clearCache,
 };
-

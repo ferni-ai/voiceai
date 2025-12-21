@@ -26,6 +26,11 @@ export {
   detectTimeOfDay,
   type BanterContext,
   type IntelligentBanterResult,
+  // LLM-driven banter (new!)
+  getLLMDrivenBanter,
+  buildLLMSoftOpenInstructions,
+  buildLLMArrivingInstructions,
+  type LLMBanterInstructions,
 } from './intelligent-banter.js';
 
 // Main service is in the parent directory for backward compatibility

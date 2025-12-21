@@ -44,7 +44,19 @@
     "voice_id": "${env:JORDAN_TAYLOR_VOICE_ID|219ccddf-e83d-491f-ae44-5f4447d5a9ca}",
     "model": "sonic-3-latest",
     "default_emotion": "enthusiastic",
-    "emotion_range": ["enthusiastic", "affectionate", "curious", "excited", "hopeful", "proud", "calm", "sympathetic", "gentle", "triumphant", "wistful"],
+    "emotion_range": [
+      "enthusiastic",
+      "affectionate",
+      "curious",
+      "excited",
+      "hopeful",
+      "proud",
+      "calm",
+      "sympathetic",
+      "gentle",
+      "triumphant",
+      "wistful"
+    ],
     "default_speed": 0.98,
     "default_volume": 1.0,
     "laughter_frequency": 0.22,
@@ -409,11 +421,7 @@
       "milestone-mastery",
       "life-thesis"
     ],
-    "_planned_domains": [
-      "cross-domain-planning",
-      "proactive-celebration",
-      "seasonal-intelligence"
-    ],
+    "_planned_domains": ["cross-domain-planning", "proactive-celebration", "seasonal-intelligence"],
     "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). Target: 65-80 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
@@ -422,12 +430,7 @@
       "second_chances": "Fresh starts are milestones too! Celebrate the courage to begin again. The first day of sobriety, the day divorce was finalized, the restart after bankruptcy - these deserve planning and celebration just like weddings.",
       "quiet_growth": "Not all milestones are achievements. Celebrating maintenance, honoring rest, recognizing that holding steady IS progress. Some of the biggest wins are invisible - plan for fallow seasons just like you plan for growth seasons."
     },
-    "required": [
-      "manageMilestone",
-      "manageGoal",
-      "goalsSummary",
-      "manageEvent"
-    ],
+    "required": ["manageMilestone", "manageGoal", "goalsSummary", "manageEvent"],
     "optional": [
       "milestoneSupport",
       "planVacation",

@@ -21,6 +21,7 @@ describe('Persona Speech Traits Loader', () => {
 
   describe('hasCustomSpeechTraits', () => {
     it('should return true for personas with custom traits', () => {
+      expect(hasCustomSpeechTraits('ferni')).toBe(true);
       expect(hasCustomSpeechTraits('peter-john')).toBe(true);
       expect(hasCustomSpeechTraits('maya-santos')).toBe(true);
       expect(hasCustomSpeechTraits('alex-chen')).toBe(true);
@@ -29,20 +30,21 @@ describe('Persona Speech Traits Loader', () => {
     });
 
     it('should return false for personas without custom traits', () => {
-      expect(hasCustomSpeechTraits('ferni')).toBe(false);
       expect(hasCustomSpeechTraits('unknown-persona')).toBe(false);
+      expect(hasCustomSpeechTraits('non-existent-persona')).toBe(false);
     });
   });
 
   describe('getPersonasWithSpeechTraits', () => {
     it('should return all personas with speech traits', () => {
       const personas = getPersonasWithSpeechTraits();
+      expect(personas).toContain('ferni');
       expect(personas).toContain('peter-john');
       expect(personas).toContain('maya-santos');
       expect(personas).toContain('alex-chen');
       expect(personas).toContain('jordan-taylor');
       expect(personas).toContain('nayan-patel');
-      expect(personas).toHaveLength(5);
+      expect(personas).toHaveLength(6);
     });
   });
 
@@ -132,11 +134,16 @@ describe('Persona Speech Traits Loader', () => {
       expect(result).toBe(text);
     });
 
-    it('should return original text for ferni (no custom traits)', async () => {
+    it('should apply Ferni speech traits', async () => {
       const text = 'Hello world';
-      const result = await applyPersonaSpeechTraits(text, 'ferni');
+      const result = await applyPersonaSpeechTraits(text, 'ferni', {
+        emotion: 'affectionate',
+        baseSpeed: 0.92,
+        laughterCount: 0,
+      });
 
-      expect(result).toBe(text);
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
     });
   });
 

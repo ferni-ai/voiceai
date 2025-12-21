@@ -342,16 +342,19 @@ function computeCommunicationMetrics(
   metrics.communicationReadiness = Math.max(0, Math.min(100, readinessScore));
 
   // Calendar Density: Based on upcoming priorities
-  const criticalPriorities = upcomingPriorities.filter(p => p.urgency === 'critical').length;
-  const highPriorities = upcomingPriorities.filter(p => p.urgency === 'high').length;
-  metrics.calendarDensity = Math.min(100, criticalPriorities * 30 + highPriorities * 15 + upcomingPriorities.length * 5);
+  const criticalPriorities = upcomingPriorities.filter((p) => p.urgency === 'critical').length;
+  const highPriorities = upcomingPriorities.filter((p) => p.urgency === 'high').length;
+  metrics.calendarDensity = Math.min(
+    100,
+    criticalPriorities * 30 + highPriorities * 15 + upcomingPriorities.length * 5
+  );
 
   // Response Velocity: Based on pending follow-ups
   const pendingCount = communicationContext.pendingFollowUps.length;
   metrics.responseVelocity = Math.max(0, 100 - pendingCount * 15);
 
   // Delegation Clarity: Based on whether they have clear handoffs
-  if (upcomingPriorities.some(p => p.actionNeeded)) {
+  if (upcomingPriorities.some((p) => p.actionNeeded)) {
     metrics.delegationClarity = 70; // Has clear action items
   }
   if (communicationContext.boundaryConversations.length > 0) {
@@ -359,8 +362,8 @@ function computeCommunicationMetrics(
   }
 
   // Context Switch Load: Based on variety of priority types
-  const uniqueTypes = new Set(upcomingPriorities.map(p => p.type)).size;
-  const uniqueSources = new Set(upcomingPriorities.map(p => p.source)).size;
+  const uniqueTypes = new Set(upcomingPriorities.map((p) => p.type)).size;
+  const uniqueSources = new Set(upcomingPriorities.map((p) => p.source)).size;
   metrics.contextSwitchLoad = Math.min(100, uniqueTypes * 15 + uniqueSources * 10);
 
   // Detect patterns
@@ -459,8 +462,8 @@ function getUpcomingPriorities(userId: string): UpcomingPriority[] {
     }
 
     // Milestone celebrations
-    const milestonePriorities = activeHabits.filter(h => 
-      h.currentStreak === 7 || h.currentStreak === 30 || h.currentStreak === 100
+    const milestonePriorities = activeHabits.filter(
+      (h) => h.currentStreak === 7 || h.currentStreak === 30 || h.currentStreak === 100
     );
     for (const habit of milestonePriorities) {
       priorities.push({
@@ -488,14 +491,14 @@ const PROFESSIONAL_PATTERNS = ['boss', 'manager', 'coworker', 'colleague', 'clie
 const PERSONAL_PATTERNS = ['family', 'parent', 'partner', 'spouse', 'friend', 'sibling'];
 const SCRIPTING_PATTERNS = ['how to say', 'what to say', 'script', 'word it', 'phrase it'];
 
-function classifyTopic(topic: string): { 
-  isDifficult: boolean; 
+function classifyTopic(topic: string): {
+  isDifficult: boolean;
   isBoundary: boolean;
   needsScripting: boolean;
   dynamic: string | null;
 } {
   const lower = topic.toLowerCase();
-  
+
   return {
     isDifficult: DIFFICULT_CONVERSATION_PATTERNS.some((p) => lower.includes(p)),
     isBoundary: BOUNDARY_PATTERNS.some((p) => lower.includes(p)),
@@ -546,7 +549,7 @@ function buildCommunicationContext(handoffContext?: HandoffContextType): Communi
   // Classify each topic
   for (const topic of handoffContext.topics || []) {
     const classification = classifyTopic(topic);
-    
+
     if (classification.isDifficult) {
       context.recentDifficultTopics.push(topic);
     }
@@ -604,7 +607,7 @@ function detectProactiveTriggers(
   }
 
   // Deadline coordination
-  const criticalDeadlines = upcomingPriorities.filter(p => p.urgency === 'critical');
+  const criticalDeadlines = upcomingPriorities.filter((p) => p.urgency === 'critical');
   for (const deadline of criticalDeadlines) {
     triggers.push({
       type: 'coordination',
@@ -615,8 +618,8 @@ function detectProactiveTriggers(
   }
 
   // Celebration opportunities
-  const celebrations = upcomingPriorities.filter(p => 
-    p.type === 'event' && p.description.includes('🎉')
+  const celebrations = upcomingPriorities.filter(
+    (p) => p.type === 'event' && p.description.includes('🎉')
   );
   for (const celebration of celebrations) {
     triggers.push({
@@ -628,14 +631,20 @@ function detectProactiveTriggers(
   }
 
   // Difficult conversation prep
-  if (communicationContext.recentDifficultTopics.length > 0 && metrics.communicationReadiness > 60) {
+  if (
+    communicationContext.recentDifficultTopics.length > 0 &&
+    metrics.communicationReadiness > 60
+  ) {
     triggers.push({
       type: 'coordination',
       message: 'Good readiness for difficult conversations - consider tackling now',
       priority: 'medium',
       timing: 'when_relevant',
     });
-  } else if (communicationContext.recentDifficultTopics.length > 0 && metrics.communicationReadiness < 40) {
+  } else if (
+    communicationContext.recentDifficultTopics.length > 0 &&
+    metrics.communicationReadiness < 40
+  ) {
     triggers.push({
       type: 'reminder',
       message: 'Difficult conversation pending but readiness is low - prep work first',
@@ -698,7 +707,7 @@ function identifyCoachingOpportunities(
   // Relationship dynamics coaching
   if (communicationContext.relationshipDynamics.length > 0) {
     opportunities.push('Relationship context mentioned - explore the dynamic');
-    opportunities.push('Consider the other person\'s perspective');
+    opportunities.push("Consider the other person's perspective");
   }
 
   // Handoff-based coaching
@@ -797,26 +806,31 @@ function getMemoryContext(userId: string): MemoryContext {
     for (const reflection of reflections.slice(-5)) {
       if (reflection.challenges) {
         // Communication challenges often appear here
-        const commChallenges = reflection.challenges.filter(c => 
-          c.toLowerCase().includes('conversation') ||
-          c.toLowerCase().includes('tell') ||
-          c.toLowerCase().includes('ask')
+        const commChallenges = reflection.challenges.filter(
+          (c) =>
+            c.toLowerCase().includes('conversation') ||
+            c.toLowerCase().includes('tell') ||
+            c.toLowerCase().includes('ask')
         );
         context.previousCommunicationTopics.push(...commChallenges);
       }
       if (reflection.wins) {
         // Successful communications
-        const commWins = reflection.wins.filter(w => 
-          w.toLowerCase().includes('conversation') ||
-          w.toLowerCase().includes('told') ||
-          w.toLowerCase().includes('asked')
+        const commWins = reflection.wins.filter(
+          (w) =>
+            w.toLowerCase().includes('conversation') ||
+            w.toLowerCase().includes('told') ||
+            w.toLowerCase().includes('asked')
         );
         context.scriptsThatWorked.push(...commWins);
       }
     }
 
     // Deduplicate
-    context.previousCommunicationTopics = [...new Set(context.previousCommunicationTopics)].slice(0, 5);
+    context.previousCommunicationTopics = [...new Set(context.previousCommunicationTopics)].slice(
+      0,
+      5
+    );
     context.scriptsThatWorked = [...new Set(context.scriptsThatWorked)].slice(0, 3);
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not get memory context');
@@ -840,9 +854,22 @@ async function buildCommunicationBriefing(
 
   const upcomingPriorities = getUpcomingPriorities(userId);
   const communicationContext = buildCommunicationContext(handoffContext);
-  const communicationMetrics = computeCommunicationMetrics(userState, upcomingPriorities, communicationContext);
-  const proactiveTriggers = detectProactiveTriggers(userState, communicationMetrics, upcomingPriorities, communicationContext);
-  const coachingOpportunities = identifyCoachingOpportunities(userState, communicationContext, handoffContext);
+  const communicationMetrics = computeCommunicationMetrics(
+    userState,
+    upcomingPriorities,
+    communicationContext
+  );
+  const proactiveTriggers = detectProactiveTriggers(
+    userState,
+    communicationMetrics,
+    upcomingPriorities,
+    communicationContext
+  );
+  const coachingOpportunities = identifyCoachingOpportunities(
+    userState,
+    communicationContext,
+    handoffContext
+  );
   const teamInsights = gatherTeamInsights(userState, upcomingPriorities, handoffContext);
 
   // Build action items
@@ -931,16 +958,21 @@ function formatBriefingForInjection(
   }
 
   // High-priority proactive triggers
-  const highTriggers = briefing.proactiveTriggers.filter(t => t.priority === 'high');
+  const highTriggers = briefing.proactiveTriggers.filter((t) => t.priority === 'high');
   if (highTriggers.length > 0) {
     sections.push('\n=== ⚡ IMMEDIATE ACTIONS ===');
-    highTriggers.forEach(t => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
+    highTriggers.forEach((t) => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
   }
 
   // Upcoming Priorities
   if (briefing.upcomingPriorities.length > 0) {
     sections.push('\n=== 📋 PRIORITIES ===');
-    const urgencyEmoji: Record<string, string> = { critical: '🚨', high: '⚠️', medium: '📌', low: '📝' };
+    const urgencyEmoji: Record<string, string> = {
+      critical: '🚨',
+      high: '⚠️',
+      medium: '📌',
+      low: '📝',
+    };
     for (const p of briefing.upcomingPriorities.slice(0, 5)) {
       const emoji = urgencyEmoji[p.urgency] || '📋';
       sections.push(`${emoji} [${p.source}] ${p.description}`);
@@ -952,23 +984,22 @@ function formatBriefingForInjection(
 
   // Communication Context
   const { communicationContext } = briefing;
-  const hasCommunicationContext = 
+  const hasCommunicationContext =
     communicationContext.recentDifficultTopics.length > 0 ||
     communicationContext.boundaryConversations.length > 0 ||
     communicationContext.scriptingNeeds.length > 0;
 
   if (hasCommunicationContext) {
     sections.push('\n=== 💬 COMMUNICATION CONTEXT ===');
-    communicationContext.recentDifficultTopics.forEach(t => 
-      sections.push(`• Difficult topic: ${t}`));
-    communicationContext.boundaryConversations.forEach(t => 
-      sections.push(`• Boundary needed: ${t}`));
-    communicationContext.scriptingNeeds.forEach(t => 
-      sections.push(`• Scripting needed: ${t}`));
-    communicationContext.communicationPatterns.forEach(p => 
-      sections.push(`• ${p}`));
-    communicationContext.relationshipDynamics.forEach(d => 
-      sections.push(`• ${d}`));
+    communicationContext.recentDifficultTopics.forEach((t) =>
+      sections.push(`• Difficult topic: ${t}`)
+    );
+    communicationContext.boundaryConversations.forEach((t) =>
+      sections.push(`• Boundary needed: ${t}`)
+    );
+    communicationContext.scriptingNeeds.forEach((t) => sections.push(`• Scripting needed: ${t}`));
+    communicationContext.communicationPatterns.forEach((p) => sections.push(`• ${p}`));
+    communicationContext.relationshipDynamics.forEach((d) => sections.push(`• ${d}`));
   }
 
   // Coaching Opportunities
@@ -985,14 +1016,18 @@ function formatBriefingForInjection(
   }
 
   // Memory Context
-  if (briefing.memoryContext.scriptsThatWorked.length > 0 || 
-      briefing.memoryContext.previousCommunicationTopics.length > 0) {
+  if (
+    briefing.memoryContext.scriptsThatWorked.length > 0 ||
+    briefing.memoryContext.previousCommunicationTopics.length > 0
+  ) {
     sections.push('\n=== 🧠 RELATIONSHIP HISTORY ===');
     if (briefing.memoryContext.scriptsThatWorked.length > 0) {
       sections.push(`• What worked: ${briefing.memoryContext.scriptsThatWorked.join(', ')}`);
     }
     if (briefing.memoryContext.previousCommunicationTopics.length > 0) {
-      sections.push(`• Previous topics: ${briefing.memoryContext.previousCommunicationTopics.join(', ')}`);
+      sections.push(
+        `• Previous topics: ${briefing.memoryContext.previousCommunicationTopics.join(', ')}`
+      );
     }
   }
 
@@ -1012,9 +1047,7 @@ function formatBriefingForInjection(
     sections.push('• Slow down for stress - speed up for momentum');
   }
 
-  sections.push(
-    "\n[Remember: You're their Chief of Staff. Handle with clarity and care.]"
-  );
+  sections.push("\n[Remember: You're their Chief of Staff. Handle with clarity and care.]");
 
   return sections;
 }
@@ -1062,13 +1095,13 @@ async function buildAlexCommunicationInsightsContext(
   try {
     const briefing = await buildCommunicationBriefing(userId, handoffContext);
     const formattedSections = formatBriefingForInjection(briefing, handoffContext, turnCount);
-    
+
     // Get superhuman context (network, commitments, capacity)
     const superhumanContext = await getSuperhuman(userId, 'alex');
     if (superhumanContext) {
       formattedSections.push('\n' + superhumanContext);
     }
-    
+
     const content = formattedSections.join('\n');
 
     if (isHandoff) {
@@ -1078,7 +1111,10 @@ async function buildAlexCommunicationInsightsContext(
           confidence: 0.9,
         })
       );
-      log.info({ userId, urgency: handoffContext?.urgency }, '📬 Alex loaded with handoff briefing');
+      log.info(
+        { userId, urgency: handoffContext?.urgency },
+        '📬 Alex loaded with handoff briefing'
+      );
     } else if (turnCount === 0) {
       injections.push(
         createStandardInjection('alex_initial_briefing', content, {

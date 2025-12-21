@@ -160,7 +160,14 @@ let preloaded = false;
 export async function preloadAllTraits(): Promise<void> {
   if (preloaded) return;
 
-  const personas = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  const personas = [
+    'ferni',
+    'peter-john',
+    'maya-santos',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
 
   await Promise.all(personas.map((id) => loadPersonaTraits(id)));
 
@@ -252,7 +259,14 @@ export function applyPersonaSpeechTraitsSync(
  * Check if a persona has custom speech traits.
  */
 export function hasCustomSpeechTraits(personaId: string): boolean {
-  const withTraits = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  const withTraits = [
+    'ferni',
+    'peter-john',
+    'maya-santos',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
   return withTraits.includes(personaId);
 }
 

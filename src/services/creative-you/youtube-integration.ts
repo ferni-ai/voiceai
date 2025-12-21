@@ -830,52 +830,31 @@ function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): s
       'One of those talks that shifts how you see things.',
       "I've been sitting with this one. Worth your time.",
     ],
-    documentary: [
-      'I keep coming back to this one.',
-      'Worth the watch. Take your time with it.',
-    ],
-    educational: [
-      'This one made me pause and think.',
-      'You might find this useful.',
-    ],
+    documentary: ['I keep coming back to this one.', 'Worth the watch. Take your time with it.'],
+    educational: ['This one made me pause and think.', 'You might find this useful.'],
     'music-video': [
       'Good for when you need to think.',
       'Background for wherever you are right now.',
     ],
-    'podcast-clip': [
-      'Caught this and thought of you.',
-      'A conversation worth eavesdropping on.',
-    ],
-    tutorial: [
-      'Practical. Might actually help.',
-      'Step by step, no fluff.',
-    ],
+    'podcast-clip': ['Caught this and thought of you.', 'A conversation worth eavesdropping on.'],
+    tutorial: ['Practical. Might actually help.', 'Step by step, no fluff.'],
     inspiration: [
       'Needed this today. Maybe you do too.',
-      'A little spark for what you\'re working on.',
+      "A little spark for what you're working on.",
     ],
     mindfulness: [
       'Take a breath with this one.',
       'For when you need to slow down.',
       'A quieter moment.',
     ],
-    creativity: [
-      'Gets the wheels turning.',
-      "Fuel for what you're building.",
-    ],
-    science: [
-      'This one expanded how I think about things.',
-      'Changes how you see the world.',
-    ],
+    creativity: ['Gets the wheels turning.', "Fuel for what you're building."],
+    science: ['This one expanded how I think about things.', 'Changes how you see the world.'],
     philosophy: [
       'One to sit with.',
       'Food for thought. No easy answers.',
       'Made me think. Might do the same for you.',
     ],
-    'self-improvement': [
-      'For your journey.',
-      'Small idea, big ripple.',
-    ],
+    'self-improvement': ['For your journey.', 'Small idea, big ripple.'],
   };
 
   const reasons = categoryReasons[video.category];

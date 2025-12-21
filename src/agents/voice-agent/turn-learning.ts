@@ -181,10 +181,7 @@ export async function recordCollectiveLearning(ctx: LearningContext): Promise<bo
 
     return true;
   } catch (learningError) {
-    logger.debug(
-      { error: String(learningError) },
-      'Collective learning recording (non-critical)'
-    );
+    logger.debug({ error: String(learningError) }, 'Collective learning recording (non-critical)');
     return false;
   }
 }
@@ -203,7 +200,7 @@ export async function recordCollectiveLearning(ctx: LearningContext): Promise<bo
  */
 export async function recordAllLearningData(ctx: LearningContext): Promise<LearningResult> {
   const logger = log();
-  
+
   // Core learning (existing)
   const [trustRecorded, learningRecorded] = await Promise.all([
     recordTurnTrustData(ctx),
@@ -218,20 +215,23 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
     if (ctx.turnCount % 5 === 0) {
       void learnTemporalPattern(ctx.userId, {
         emotion: ctx.emotionalResult.primary || 'neutral',
-        topic: ctx.injections.find(i => i.category === 'topics')?.content?.split(' ')[0],
+        topic: ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0],
       }).catch((err) => {
         logger.debug({ error: String(err) }, 'Temporal pattern learning (non-critical)');
       });
     }
-    
+
     // Check for shared moments (phrases, jokes, meaningful exchanges)
     // Only on high-emotional turns AND rate-limited to every 3rd qualifying turn
-    const isHighEmotionTurn = ctx.emotionalResult.intensity > 0.6 || ctx.injections.some(i => 
-      i.content.includes('joke') || 
-      i.content.includes('laugh') || 
-      i.content.includes('meaningful')
-    );
-    
+    const isHighEmotionTurn =
+      ctx.emotionalResult.intensity > 0.6 ||
+      ctx.injections.some(
+        (i) =>
+          i.content.includes('joke') ||
+          i.content.includes('laugh') ||
+          i.content.includes('meaningful')
+      );
+
     if (isHighEmotionTurn && ctx.turnCount % 3 === 0) {
       void recordSharedMoment(ctx.userId, {
         type: 'callback_moment',
@@ -250,4 +250,3 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
     learningRecorded,
   };
 }
-

@@ -79,10 +79,7 @@ export {
   type PersonaEmotionProfile,
 } from '../cartesia-expressiveness.js';
 
-export {
-  getEmotionProfile,
-  PERSONA_EMOTION_PROFILES,
-} from '../voice-manager/config.js';
+export { getEmotionProfile, PERSONA_EMOTION_PROFILES } from '../voice-manager/config.js';
 
 // ============================================================================
 // DEFAULT EXPORT (For backwards compatibility)

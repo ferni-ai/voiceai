@@ -48,10 +48,10 @@ function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
 function getGreetingByTime(): string {
   const time = getTimeOfDay();
   const greetings = {
-    morning: ['Good morning!', "Morning!", "Hey, good morning!"],
-    afternoon: ['Hey there!', "Good afternoon!", "Hi!"],
-    evening: ['Good evening!', "Hey, how's it going?", "Hi there!"],
-    night: ["Hey, still up?", "Late night check-in!", "Hi!"],
+    morning: ['Good morning!', 'Morning!', 'Hey, good morning!'],
+    afternoon: ['Hey there!', 'Good afternoon!', 'Hi!'],
+    evening: ['Good evening!', "Hey, how's it going?", 'Hi there!'],
+    night: ['Hey, still up?', 'Late night check-in!', 'Hi!'],
   };
   const options = greetings[time];
   return options[Math.floor(Math.random() * options.length)];
@@ -113,8 +113,8 @@ const MICRO_ACTIONS: Record<string, string[]> = {
   ],
   journaling: [
     'Write one sentence about how you feel right now',
-    'Jot down one thing you\'re grateful for',
-    'Write down one thought that\'s been on your mind',
+    "Jot down one thing you're grateful for",
+    "Write down one thought that's been on your mind",
   ],
   sleep: [
     'Put your phone face-down',
@@ -125,7 +125,7 @@ const MICRO_ACTIONS: Record<string, string[]> = {
   default: [
     'Do the tiniest version right now - what would that look like?',
     'Start with just 2 minutes - set a timer and go',
-    'What\'s the absolute minimum you could do?',
+    "What's the absolute minimum you could do?",
   ],
 };
 
@@ -165,24 +165,18 @@ function getMicroAction(habitName: string): string {
 // ============================================================================
 
 const CELEBRATIONS = {
-  small: [
-    'Nice!',
-    'You did it!',
-    'That counts!',
-    'Progress!',
-    'Look at you go!',
-  ],
+  small: ['Nice!', 'You did it!', 'That counts!', 'Progress!', 'Look at you go!'],
   medium: [
     'Awesome! Every time adds up.',
-    'That\'s what consistency looks like!',
-    'You\'re building something real here.',
+    "That's what consistency looks like!",
+    "You're building something real here.",
     'This is how change happens - one day at a time.',
   ],
   streak: [
-    'You\'re on a roll!',
+    "You're on a roll!",
     'Streak city! Keep it going.',
     'Look at that consistency!',
-    'You\'ve got momentum now.',
+    "You've got momentum now.",
   ],
 };
 
@@ -251,73 +245,103 @@ export const quickHabitCheckDefinition: ToolDefinition = {
 
           // No habits set up yet
           if (habits.length === 0) {
-            return `${greeting} I don't see any habits tracked yet. Want to start with something simple? ` +
-              `What's one small thing you've been wanting to do more consistently?`;
+            return (
+              `${greeting} I don't see any habits tracked yet. Want to start with something simple? ` +
+              `What's one small thing you've been wanting to do more consistently?`
+            );
           }
 
           // Focus on specific habit
           if (focusHabit) {
-            const habit = habits.find(
-              (h) => h.name.toLowerCase().includes(focusHabit.toLowerCase())
+            const habit = habits.find((h) =>
+              h.name.toLowerCase().includes(focusHabit.toLowerCase())
             );
             if (habit) {
               const isDone = completed.some((c) => c.id === habit.id);
               if (isDone) {
-                return `${greeting} Looks like you already did "${habit.name}" today. ${getCelebration(1)} ` +
-                  `Want to check in on something else?`;
+                return (
+                  `${greeting} Looks like you already did "${habit.name}" today. ${getCelebration(1)} ` +
+                  `Want to check in on something else?`
+                );
               }
               const microAction = getMicroAction(habit.name);
-              return `${greeting} Let's talk about "${habit.name}". Have you done it today? ` +
-                `If not, here's a tiny version: ${microAction}`;
+              return (
+                `${greeting} Let's talk about "${habit.name}". Have you done it today? ` +
+                `If not, here's a tiny version: ${microAction}`
+              );
             }
-            return `${greeting} I don't see a habit called "${focusHabit}" yet. ` +
-              `Want me to help you set that up?`;
+            return (
+              `${greeting} I don't see a habit called "${focusHabit}" yet. ` +
+              `Want me to help you set that up?`
+            );
           }
 
           // All done for the day!
           if (remaining.length === 0) {
-            return `${greeting} You've done all ${completed.length} of your habits today! ` +
-              `${getCelebration(3)} Take a moment to feel good about that. How are you feeling?`;
+            return (
+              `${greeting} You've done all ${completed.length} of your habits today! ` +
+              `${getCelebration(3)} Take a moment to feel good about that. How are you feeling?`
+            );
           }
 
           // Morning check-in
           if (checkContext === 'morning') {
-            const habitList = remaining.slice(0, 3).map((h) => h.name).join(', ');
-            return `${greeting} You've got ${remaining.length} habit${remaining.length > 1 ? 's' : ''} for today. ` +
-              `Looking at: ${habitList}. Which one feels right to start with?`;
+            const habitList = remaining
+              .slice(0, 3)
+              .map((h) => h.name)
+              .join(', ');
+            return (
+              `${greeting} You've got ${remaining.length} habit${remaining.length > 1 ? 's' : ''} for today. ` +
+              `Looking at: ${habitList}. Which one feels right to start with?`
+            );
           }
 
           // Midday check
           if (checkContext === 'midday' || checkContext === 'general') {
             if (completed.length > 0) {
-              return `${greeting} Nice work on ${completed.length} habit${completed.length > 1 ? 's' : ''} so far! ` +
-                `Still have ${remaining.length} to go: ${remaining.slice(0, 2).map((h) => h.name).join(' and ')}. ` +
-                `Which one's calling to you?`;
+              return (
+                `${greeting} Nice work on ${completed.length} habit${completed.length > 1 ? 's' : ''} so far! ` +
+                `Still have ${remaining.length} to go: ${remaining
+                  .slice(0, 2)
+                  .map((h) => h.name)
+                  .join(' and ')}. ` +
+                `Which one's calling to you?`
+              );
             }
-            return `${greeting} Day's moving along! You've got ${remaining.length} habits waiting. ` +
-              `Want to knock one out real quick? ${getMicroAction(remaining[0].name)}`;
+            return (
+              `${greeting} Day's moving along! You've got ${remaining.length} habits waiting. ` +
+              `Want to knock one out real quick? ${getMicroAction(remaining[0].name)}`
+            );
           }
 
           // Evening/before bed
           if (checkContext === 'evening' || checkContext === 'before_bed') {
             if (remaining.length === 1) {
-              return `${greeting} Just one left for today: "${remaining[0].name}". ` +
-                `Want to end the day strong? ${getMicroAction(remaining[0].name)}`;
+              return (
+                `${greeting} Just one left for today: "${remaining[0].name}". ` +
+                `Want to end the day strong? ${getMicroAction(remaining[0].name)}`
+              );
             }
             if (remaining.length > 0 && completed.length > 0) {
-              return `${greeting} Good day! You did ${completed.length} out of ${habits.length}. ` +
+              return (
+                `${greeting} Good day! You did ${completed.length} out of ${habits.length}. ` +
                 `Still have ${remaining.length} left if you want to squeeze them in. ` +
-                `Or we can call it a day - progress is progress!`;
+                `Or we can call it a day - progress is progress!`
+              );
             }
             if (remaining.length > 0) {
-              return `${greeting} Looks like the day got away from us a bit - ${remaining.length} habits still waiting. ` +
-                `No judgment! Want to do a quick 2-minute version of one before bed?`;
+              return (
+                `${greeting} Looks like the day got away from us a bit - ${remaining.length} habits still waiting. ` +
+                `No judgment! Want to do a quick 2-minute version of one before bed?`
+              );
             }
           }
 
           // General fallback
-          return `${greeting} You're at ${completed.length}/${habits.length} habits today. ` +
-            `${remaining.length > 0 ? `Next up: "${remaining[0].name}". Ready?` : 'All done! Nice work!'}`;
+          return (
+            `${greeting} You're at ${completed.length}/${habits.length} habits today. ` +
+            `${remaining.length > 0 ? `Next up: "${remaining[0].name}". Ready?` : 'All done! Nice work!'}`
+          );
         } catch (error) {
           log.error({ error }, 'Quick habit check failed');
           return "Hmm, I couldn't check on your habits right now. Want to tell me how today's going instead?";
@@ -363,22 +387,24 @@ export const microCommitNowDefinition: ToolDefinition = {
 
           // No habits to work with
           if (habits.length === 0) {
-            return `I don't have any habits saved for you yet. But we can still do something good! ` +
+            return (
+              `I don't have any habits saved for you yet. But we can still do something good! ` +
               `How about this: ${MICRO_ACTIONS.default[0]} ` +
-              `Want to try that, or should we set up a habit to track?`;
+              `Want to try that, or should we set up a habit to track?`
+            );
           }
 
           // Find the target habit
           let targetHabit: HabitData | undefined;
 
           if (habit) {
-            targetHabit = habits.find(
-              (h) => h.name.toLowerCase().includes(habit.toLowerCase())
-            );
+            targetHabit = habits.find((h) => h.name.toLowerCase().includes(habit.toLowerCase()));
             if (!targetHabit) {
-              return `I don't see a habit called "${habit}". ` +
+              return (
+                `I don't see a habit called "${habit}". ` +
                 `Your habits are: ${habits.map((h) => h.name).join(', ')}. ` +
-                `Which one should we do?`;
+                `Which one should we do?`
+              );
             }
           } else {
             // Pick from remaining, or random if all done
@@ -396,9 +422,11 @@ export const microCommitNowDefinition: ToolDefinition = {
                 ? `Energy's good! Let's use that. `
                 : '';
 
-          return `${energyIntro}Here's your 2-minute challenge for "${targetHabit.name}": ` +
+          return (
+            `${energyIntro}Here's your 2-minute challenge for "${targetHabit.name}": ` +
             `${action} ` +
-            `\n\nCan you do that right now? I'll wait.`;
+            `\n\nCan you do that right now? I'll wait.`
+          );
         } catch (error) {
           log.error({ error }, 'Micro commit failed');
           return "Let's keep it simple: take 3 deep breaths right now. That counts! Ready to try something else?";
@@ -432,10 +460,7 @@ export const implementationIntentionDefinition: ToolDefinition = {
           .string()
           .optional()
           .describe('What will trigger this habit (time, location, preceding action)'),
-        obstacle: z
-          .string()
-          .optional()
-          .describe('What usually gets in the way of this habit'),
+        obstacle: z.string().optional().describe('What usually gets in the way of this habit'),
       }),
       execute: async ({ habit, cue, obstacle }, { ctx }) => {
         try {
@@ -445,8 +470,8 @@ export const implementationIntentionDefinition: ToolDefinition = {
 
           // Find or create context for the habit
           const habitName = habit;
-          const existingHabit = habits.find(
-            (h) => h.name.toLowerCase().includes(habitName.toLowerCase())
+          const existingHabit = habits.find((h) =>
+            h.name.toLowerCase().includes(habitName.toLowerCase())
           );
 
           // Generate cue suggestions if not provided
@@ -463,10 +488,12 @@ export const implementationIntentionDefinition: ToolDefinition = {
 
           if (!cue) {
             // Guide them to create one
-            return `Let's make "${habitName}" automatic with a "When-Then" plan. ` +
+            return (
+              `Let's make "${habitName}" automatic with a "When-Then" plan. ` +
               `\n\nThink about when you'll do this habit. What happens right before? ` +
               `\n\nSome ideas: ${suggestedCues.slice(0, 4).join(', ')}. ` +
-              `\n\nWhat cue would work best for you?`;
+              `\n\nWhat cue would work best for you?`
+            );
           }
 
           // Create the implementation intention
@@ -487,9 +514,8 @@ export const implementationIntentionDefinition: ToolDefinition = {
 
             const obstacleKey = obstacle.toLowerCase();
             copingPlan =
-              Object.entries(copingStrategies).find(([key]) =>
-                obstacleKey.includes(key)
-              )?.[1] || copingStrategies.default;
+              Object.entries(copingStrategies).find(([key]) => obstacleKey.includes(key))?.[1] ||
+              copingStrategies.default;
           }
 
           // Store the intention
@@ -516,7 +542,8 @@ export const implementationIntentionDefinition: ToolDefinition = {
             response += `\n\nAnd if ${obstacle}:\n"${copingPlan}"`;
           }
 
-          response += `\n\nSay this out loud once to help it stick. ` +
+          response +=
+            `\n\nSay this out loud once to help it stick. ` +
             `Research shows implementation intentions double your chances of following through!`;
 
           if (existingHabit) {

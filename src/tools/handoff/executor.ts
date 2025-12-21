@@ -290,9 +290,7 @@ export async function executeHandoff(
   // concurrent session interference. Fall back to global state for backwards compatibility.
   const { sessionId } = options;
   const sessionState = sessionId && hasSessionState(sessionId) ? getSessionState(sessionId) : null;
-  const previousAgent = sessionState
-    ? getSessionCurrentAgent(sessionState)
-    : getCurrentAgent();
+  const previousAgent = sessionState ? getSessionCurrentAgent(sessionState) : getCurrentAgent();
 
   // Normalize the target agent ID
   const canonicalTargetId = getCanonicalPersonaId(targetAgentId);
@@ -429,10 +427,7 @@ export async function executeHandoff(
   try {
     const userId = options.userId || options.sessionId;
     if (userId) {
-      const insightBriefing = await buildInsightBriefingForHandoff(
-        userId,
-        canonicalTargetId
-      );
+      const insightBriefing = await buildInsightBriefingForHandoff(userId, canonicalTargetId);
       const insightContext = formatInsightBriefingForPrompt(insightBriefing);
       if (insightContext) {
         contextContinuation += `\n\n${insightContext}`;

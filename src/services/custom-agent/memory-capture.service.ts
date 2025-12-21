@@ -183,31 +183,191 @@ Return as JSON with: title, themes[], emotions[], keyPhrases[], summary`,
 // TRANSCRIPTION
 // ============================================================================
 
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
+
+interface DeepgramResponse {
+  results?: {
+    channels?: Array<{
+      alternatives?: Array<{
+        transcript?: string;
+        confidence?: number;
+      }>;
+    }>;
+  };
+}
+
 /**
- * Transcribe audio to text using Deepgram or Whisper
+ * Transcribe audio to text using Deepgram or OpenAI Whisper
  */
 export async function transcribeAudio(audioUrl: string): Promise<string> {
   log.info({ audioUrl }, 'Transcribing audio');
 
-  // In production, this would:
-  // 1. Download audio from URL
-  // 2. Send to Deepgram for transcription
-  // 3. Return the transcript
+  // Try Deepgram first, then OpenAI Whisper as fallback
+  if (DEEPGRAM_API_KEY) {
+    return transcribeWithDeepgram(audioUrl);
+  }
 
-  // Example Deepgram integration:
-  // const response = await fetch(audioUrl);
-  // const audioBuffer = await response.arrayBuffer();
-  //
-  // const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-  // const { result } = await deepgram.listen.prerecorded.transcribeFile(
-  //   audioBuffer,
-  //   { model: 'nova-2', smart_format: true }
-  // );
-  //
-  // return result.results?.channels[0].alternatives[0].transcript || '';
+  if (OPENAI_API_KEY) {
+    return transcribeWithWhisper(audioUrl);
+  }
 
-  // Simulated response for development
-  return 'This is a simulated transcript of the audio recording.';
+  // Simulated response for development without API keys
+  log.warn('No transcription API key configured (DEEPGRAM_API_KEY or OPENAI_API_KEY)');
+  return '[Transcription unavailable - no API key configured]';
+}
+
+/**
+ * Transcribe audio using Deepgram Nova-2
+ */
+async function transcribeWithDeepgram(audioUrl: string): Promise<string> {
+  try {
+    // Download audio from URL
+    const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) {
+      throw new Error(`Failed to download audio: ${audioResponse.status}`);
+    }
+    const audioBuffer = await audioResponse.arrayBuffer();
+
+    // Send to Deepgram API
+    const response = await fetch(
+      'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Token ${DEEPGRAM_API_KEY}`,
+          'Content-Type': 'audio/webm', // Adjust based on actual audio format
+        },
+        body: audioBuffer,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'Deepgram API error');
+      throw new Error(`Deepgram API error: ${response.status}`);
+    }
+
+    const result = (await response.json()) as DeepgramResponse;
+    const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+
+    log.info({ transcriptLength: transcript.length }, 'Deepgram transcription complete');
+    return transcript;
+  } catch (error) {
+    log.error({ error: String(error), audioUrl }, 'Deepgram transcription failed');
+
+    // Fallback to Whisper if available
+    if (OPENAI_API_KEY) {
+      log.info('Falling back to OpenAI Whisper');
+      return transcribeWithWhisper(audioUrl);
+    }
+
+    return '[Transcription failed]';
+  }
+}
+
+/**
+ * Transcribe audio using OpenAI Whisper
+ */
+async function transcribeWithWhisper(audioUrl: string): Promise<string> {
+  try {
+    // Download audio from URL
+    const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) {
+      throw new Error(`Failed to download audio: ${audioResponse.status}`);
+    }
+    const audioBuffer = await audioResponse.arrayBuffer();
+
+    // Create form data for Whisper API
+    const formData = new FormData();
+    const blob = new Blob([audioBuffer], { type: 'audio/webm' });
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+    formData.append('response_format', 'text');
+
+    // Send to OpenAI Whisper API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'OpenAI Whisper API error');
+      throw new Error(`OpenAI Whisper API error: ${response.status}`);
+    }
+
+    const transcript = await response.text();
+
+    log.info({ transcriptLength: transcript.length }, 'Whisper transcription complete');
+    return transcript.trim();
+  } catch (error) {
+    log.error({ error: String(error), audioUrl }, 'Whisper transcription failed');
+    return '[Transcription failed]';
+  }
+}
+
+/**
+ * Transcribe audio from buffer directly (without URL)
+ */
+export async function transcribeAudioBuffer(
+  audioBuffer: ArrayBuffer,
+  mimeType = 'audio/webm'
+): Promise<string> {
+  log.info({ bufferSize: audioBuffer.byteLength, mimeType }, 'Transcribing audio buffer');
+
+  if (DEEPGRAM_API_KEY) {
+    try {
+      const response = await fetch(
+        'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Token ${DEEPGRAM_API_KEY}`,
+            'Content-Type': mimeType,
+          },
+          body: audioBuffer,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Deepgram error: ${response.status}`);
+      }
+
+      const result = (await response.json()) as DeepgramResponse;
+      return result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    } catch (error) {
+      log.error({ error: String(error) }, 'Deepgram buffer transcription failed');
+    }
+  }
+
+  if (OPENAI_API_KEY) {
+    try {
+      const formData = new FormData();
+      const blob = new Blob([audioBuffer], { type: mimeType });
+      formData.append('file', blob, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('response_format', 'text');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        return (await response.text()).trim();
+      }
+    } catch (error) {
+      log.error({ error: String(error) }, 'Whisper buffer transcription failed');
+    }
+  }
+
+  return '[Transcription unavailable]';
 }
 
 // ============================================================================
@@ -260,7 +420,7 @@ Be warm and human in your interpretations. Always respond with valid JSON.`,
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+    const data = (await response.json()) as { choices: Array<{ message: { content: string } }> };
     const extracted = JSON.parse(data.choices[0].message.content) as {
       title?: string;
       themes?: string[];
@@ -535,10 +695,7 @@ export async function processMemories(
       const processed = await processMemory(agentId, input);
       results.push(processed);
     } catch (error) {
-      log.error(
-        { error: String(error), type: input.type },
-        'Failed to process memory, skipping'
-      );
+      log.error({ error: String(error), type: input.type }, 'Failed to process memory, skipping');
     }
   }
 
@@ -676,4 +833,3 @@ export function createAddMemoryResponse(processed: ProcessedMemory): AddMemoryRe
 }
 
 // Types are already exported inline above
-

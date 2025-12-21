@@ -166,9 +166,7 @@ export function addEfficiencyEmphasis(text: string, _emotion: string): string {
   });
 
   // Quick/fast only in positive contexts (wins)
-  const speedPhrases = [
-    /\b(quick(ly)?|fast(er)?|streamline(d)?)\b/gi,
-  ];
+  const speedPhrases = [/\b(quick(ly)?|fast(er)?|streamline(d)?)\b/gi];
 
   speedPhrases.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
@@ -357,6 +355,101 @@ export function addPlantWarmth(text: string, _emotion: string): string {
 }
 
 // =============================================================================
+// THINKING SOUNDS
+// =============================================================================
+
+/**
+ * Add natural thinking sounds and pauses
+ * Alex thinks efficiently - short processing sounds before solutions
+ */
+export function addThinkingSounds(text: string, _emotion: string): string {
+  let result = text;
+
+  const thinkingPatterns = [
+    { pattern: /\b(okay)\b(?=,|\s+so)/gi, pause: 120, speed: 0.92 },
+    { pattern: /\b(let me see)\b/gi, pause: 150, speed: 0.9 },
+    { pattern: /\b(hmm)\b/gi, pause: 180, speed: 0.88 },
+    { pattern: /\b(right)\b(?=,)/gi, pause: 100, speed: 0.92 },
+    { pattern: /\b(so)\b(?=,\s*here['']s)/gi, pause: 120, speed: 0.92 },
+    { pattern: /\b(one sec(ond)?)\b/gi, pause: 180, speed: 0.9 },
+  ];
+
+  thinkingPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.94"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// ACTIVE LISTENING INJECTION
+// =============================================================================
+
+/**
+ * Add efficient active listening cues
+ * Alex acknowledges to signal tracking, not to fill space
+ */
+export function addActiveListeningInjection(text: string, emotion: string): string {
+  let result = text;
+
+  // Don't add in sad or angry contexts
+  if (emotion === 'sad' || emotion === 'angry') {
+    return result;
+  }
+
+  const acknowledgmentPatterns = [/\b(i understand|that makes sense|got it|okay)\b/gi];
+
+  acknowledgmentPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      // 18% chance to add a preceding sound (slightly less than others - Alex is efficient)
+      if (Math.random() < 0.18) {
+        const sounds = ['Got it. ', 'Okay. ', 'Right. ', 'Mm. '];
+        const sound = sounds[Math.floor(Math.random() * sounds.length)];
+        return `${sound}<break time="80ms"/>${match}`;
+      }
+      return match;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// OVERWHELM SUPPORT
+// =============================================================================
+
+/**
+ * Add extra calming presence for overwhelm situations
+ * Voice guidance: "SLOWER, not faster" when anxious
+ *
+ * When they're drowning in to-dos, Alex goes SLOWEST and warmest
+ */
+export function addOverwhelmSupport(text: string, _emotion: string): string {
+  let result = text;
+
+  const overwhelmPhrases = [
+    { pattern: /\b(you['']re overwhelmed)\b/gi, pause: 300, speed: 0.82, volume: 0.92 },
+    { pattern: /\b(that['']s a lot)\b/gi, pause: 250, speed: 0.85, volume: 0.92 },
+    { pattern: /\b(i see you['']re carrying)\b/gi, pause: 250, speed: 0.85, volume: 0.92 },
+    { pattern: /\b(let['']s simplify)\b/gi, pause: 200, speed: 0.88, volume: 0.95 },
+    { pattern: /\b(we don['']t have to do everything)\b/gi, pause: 200, speed: 0.85, volume: 0.92 },
+    { pattern: /\b(first,?\s*breathe)\b/gi, pause: 350, speed: 0.8, volume: 0.9 },
+    { pattern: /\b(you can only do one thing)\b/gi, pause: 200, speed: 0.85, volume: 0.92 },
+    { pattern: /\b(drop some of this)\b/gi, pause: 180, speed: 0.88, volume: 0.95 },
+  ];
+
+  overwhelmPhrases.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="calm"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.94"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
 // MAIN PROCESSOR
 // =============================================================================
 
@@ -365,6 +458,12 @@ export function addPlantWarmth(text: string, _emotion: string): string {
  *
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Alex's unique speech patterns to the text.
+ *
+ * Processing order:
+ * 1. Check for overwhelm content first (most important)
+ * 2. Apply calming presence and humanization
+ * 3. Apply communication style
+ * 4. Add warmth and nuance
  *
  * NOTE: Calming presence is TIER 1 - most important for Alex's purpose
  *
@@ -382,7 +481,16 @@ export function applyAlexChenSpeechTraits(
 ): string {
   let processedText = text;
 
-  // TIER 1: CALMING PRESENCE (Alex's core purpose)
+  // TIER 0: OVERWHELM SUPPORT (Check first - Alex's core purpose)
+  const isOverwhelmed =
+    /\b(overwhelmed|drowning|too much|can['']t handle|buried|stressed|panicking)\b/i.test(text);
+  if (isOverwhelmed || emotion === 'anxious' || emotion === 'stressed') {
+    processedText = addOverwhelmSupport(processedText, emotion);
+  }
+
+  // TIER 1: CALMING PRESENCE & HUMANIZATION
+  processedText = addThinkingSounds(processedText, emotion);
+  processedText = addActiveListeningInjection(processedText, emotion);
   processedText = addCalmingPresence(processedText, emotion);
   processedText = addCatchphraseEmphasis(processedText, emotion);
   processedText = addOrganizationVocabulary(processedText, emotion);
@@ -422,4 +530,12 @@ export const ALEX_CHEN_SPEECH_CONFIG = {
   warmthProbability: 0.25,
   /** Whether to enable boundary language */
   enableBoundaryLanguage: true,
+  /** Whether to enable overwhelm support */
+  enableOverwhelmSupport: true,
+  /** Whether to enable thinking sounds */
+  enableThinkingSounds: true,
+  /** Whether to enable active listening injection */
+  enableActiveListening: true,
+  /** Probability of active listening sounds (0-1, lower for efficiency) */
+  activeListeningProbability: 0.18,
 } as const;

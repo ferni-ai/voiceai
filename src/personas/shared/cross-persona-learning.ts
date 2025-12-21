@@ -166,7 +166,10 @@ export function extractPattern(expression: string): string {
   let pattern = expression;
 
   // Replace specific references with placeholders
-  pattern = pattern.replace(/\b(my grandmother|my abuela|my mother|my father)\b/gi, '[family member]');
+  pattern = pattern.replace(
+    /\b(my grandmother|my abuela|my mother|my father)\b/gi,
+    '[family member]'
+  );
   pattern = pattern.replace(/\b(Tokyo|Barcelona|Morocco|India|Peru)\b/gi, '[place]');
   pattern = pattern.replace(/\b(jazz|classical|ambient|lo-fi)\b/gi, '[music type]');
   pattern = pattern.replace(/\b(tea|coffee|matcha|chai)\b/gi, '[warm drink]');
@@ -181,10 +184,7 @@ export function extractPattern(expression: string): string {
 /**
  * Adapt a pattern to a specific persona's voice
  */
-export function adaptPatternToPersona(
-  pattern: string,
-  targetPersonaId: string
-): string {
+export function adaptPatternToPersona(pattern: string, targetPersonaId: string): string {
   const voice = personaVoices[targetPersonaId];
   if (!voice) {
     log.warn({ personaId: targetPersonaId }, 'Unknown persona for adaptation');
@@ -196,7 +196,8 @@ export function adaptPatternToPersona(
   // Add persona-specific opener based on voice
   if (voice.warmth > 0.8 && !adapted.startsWith('I notice') && !adapted.startsWith('You know')) {
     if (voice.signaturePhrases.length > 0) {
-      const opener = voice.signaturePhrases[Math.floor(Math.random() * voice.signaturePhrases.length)];
+      const opener =
+        voice.signaturePhrases[Math.floor(Math.random() * voice.signaturePhrases.length)];
       adapted = `${opener}, ${adapted.charAt(0).toLowerCase()}${adapted.slice(1)}`;
     }
   }
@@ -371,7 +372,8 @@ export function getBestPatternsForPersona(
     if (theme && pattern.theme !== theme) continue;
 
     // Get adaptation for this persona
-    const adaptation = pattern.adaptations[personaId] || adaptPatternToPersona(pattern.template, personaId);
+    const adaptation =
+      pattern.adaptations[personaId] || adaptPatternToPersona(pattern.template, personaId);
 
     // Calculate relevance score
     let relevanceScore = pattern.engagement.score;
@@ -381,7 +383,10 @@ export function getBestPatternsForPersona(
       if (context.emotionalState && pattern.context.emotionalState === context.emotionalState) {
         relevanceScore += 0.1;
       }
-      if (context.relationshipStage && pattern.context.relationshipStage === context.relationshipStage) {
+      if (
+        context.relationshipStage &&
+        pattern.context.relationshipStage === context.relationshipStage
+      ) {
         relevanceScore += 0.05;
       }
       if (context.momentum && pattern.context.momentum === context.momentum) {
@@ -407,9 +412,7 @@ export function getBestPatternsForPersona(
  * Get all patterns learned from a specific persona
  */
 export function getPatternsFromPersona(sourcePersonaId: string): LearnedPattern[] {
-  return Array.from(learnedPatterns.values()).filter(
-    (p) => p.sourcePersona === sourcePersonaId
-  );
+  return Array.from(learnedPatterns.values()).filter((p) => p.sourcePersona === sourcePersonaId);
 }
 
 /**
@@ -498,4 +501,3 @@ export const crossPersonaLearning = {
 };
 
 export default crossPersonaLearning;
-

@@ -90,51 +90,60 @@ const RELATIONSHIP_MULTIPLIERS: Record<string, number> = {
 
 /**
  * Processing phrases organized by trigger type and weight
+ *
+ * PHILOSOPHY: These should be CONVERSATIONAL, not "meta" about thinking.
+ * Bad: "Let me think..." (robotic, breaks immersion)
+ * Good: "Yeah, so..." (natural, continues conversation)
+ *
+ * The goal is to maintain conversational flow, not announce processing.
  */
 const PROCESSING_PHRASES: Record<ProcessingType, Record<ProcessingWeight, string[]>> = {
   thinking: {
-    light: ['Hmm.', 'Let me see...', "Let's see...", 'One moment.'],
+    // Light: Brief acknowledgments that continue flow
+    light: ['Yeah...', 'So...', 'Okay...', 'Right...'],
+    // Medium: Engaged responses that show you're processing the substance
     medium: [
-      'Let me think about that.',
-      "I'm sitting with that.",
-      "That's an interesting one.",
-      'Hmm, let me think.',
+      "That's interesting.",
+      'Yeah, I hear you.',
+      "Okay, so here's the thing...",
+      'You know what...',
     ],
-    heavy: [
-      "That's a lot to hold.",
-      "I'm really sitting with this.",
-      'Give me a moment with that.',
-      'That hit me. Let me sit with it.',
-    ],
+    // Heavy: Emotionally present responses for weighty topics
+    heavy: ["That's real.", 'Yeah... that makes sense.', 'I feel you on that.', "That's a lot."],
   },
   emotional: {
     light: ['I hear you.', 'Yeah.', 'Mm.'],
-    medium: ["I'm with you.", 'That makes sense.', 'I can feel that.'],
+    medium: ["I'm with you.", 'That makes sense.', 'I feel that.'],
     heavy: ["That's heavy.", "I'm here.", 'Take your time.', "I'm not going anywhere."],
   },
   tool_call: {
-    light: ['One sec.', 'Just a moment.', 'Checking...'],
-    medium: ['Let me look into that.', 'Give me a second to check.', 'Looking that up...'],
-    heavy: ['This might take a moment.', "I'm digging into this.", 'Let me really look into this.'],
+    // Light: Quick, casual - like checking your phone mid-conversation
+    light: ['One sec.', 'Oh!', 'Ooh.'],
+    // Medium: Engaged curiosity
+    medium: ['Ooh, let me check.', 'Yeah, one sec.', 'Oh nice, let me see.'],
+    // Heavy: Purposeful action
+    heavy: ['Okay, give me a second here.', "Yeah, I'm on it.", 'Let me dig into this.'],
   },
   memory_recall: {
-    light: ['Let me remember...', 'If I recall...'],
-    medium: ['Let me think back...', "I'm trying to remember...", 'Give me a second to recall.'],
+    // More conversational - like naturally remembering mid-conversation
+    light: ['Oh yeah...', 'Right, so...', 'You mentioned...'],
+    medium: ['Oh, you know what...', 'Actually...', 'Right, I remember...'],
     heavy: [
-      "I'm searching my memory.",
-      'Let me really think back on this.',
-      "There's something I'm trying to remember...",
+      'Oh yeah, this connects to something...',
+      'Wait, this reminds me...',
+      "Actually, there's something here...",
     ],
   },
   after_tool_result: {
-    light: ['Got it.', 'Here we go.', 'Okay.'],
-    medium: ['Interesting.', 'Let me make sense of this.', 'So...'],
-    heavy: ["That's a lot to unpack.", 'Okay, let me walk through this.', "There's a lot here."],
+    light: ['Nice.', 'Okay so...', 'Alright.'],
+    medium: ['Oh interesting.', 'Okay, so...', 'Huh.'],
+    heavy: ["Okay, there's a lot here.", 'Alright, so...', 'Oh wow.'],
   },
   context_loading: {
-    light: ['Just a moment.', 'Bear with me.'],
-    medium: ['Getting ready.', 'Setting things up.'],
-    heavy: ['This takes a second.', 'Almost there.'],
+    // Virtually silent - just brief presence signals
+    light: ['Mm.', '...'],
+    medium: ['One sec.', 'Okay...'],
+    heavy: ['Bear with me.', 'One moment.'],
   },
 };
 
@@ -396,6 +405,9 @@ export function getContextLoadingProcessing(weight: ProcessingWeight = 'light'):
 /**
  * Persona-specific phrase overrides
  * These ADD to the base phrases for specific personas
+ *
+ * RULE: Keep these CONVERSATIONAL, not meta about processing.
+ * Each persona should have their own natural speech pattern.
  */
 const PERSONA_OVERRIDES: Record<
   string,
@@ -403,81 +415,81 @@ const PERSONA_OVERRIDES: Record<
 > = {
   ferni: {
     thinking: {
-      medium: ["I'm sitting with that.", 'Give me a second.', "That's a hard one."],
-      heavy: ['That hit me. Give me a second.', "I'm really holding this."],
+      medium: ["That's real.", 'Yeah...', "You know what's interesting about that..."],
+      heavy: ['Wow.', "That's... yeah.", 'I feel that.'],
     },
     emotional: {
-      heavy: ["I'm here.", "I'm not going anywhere.", 'Take all the time you need.'],
+      heavy: ["I'm here.", "I'm not going anywhere.", 'Take your time.'],
     },
     memory_recall: {
-      medium: ['I remember something about this...', 'Let me think back...'],
-      heavy: ["There's a lot here. Give me a moment.", 'I want to do this justice.'],
+      medium: ['Oh, you mentioned...', 'Right, so...', 'Actually...'],
+      heavy: ['Oh, this connects...', "Wait, there's something here..."],
     },
   },
   maya: {
     thinking: {
-      light: ["Let's break this down.", 'Okay, thinking...'],
-      medium: ["Let's figure this out together.", "I'm working through this."],
+      light: ['Okay so...', 'Right...'],
+      medium: ["Yeah, here's the thing...", 'So actually...'],
     },
     tool_call: {
-      light: ['Checking that for you.', 'One sec.'],
-      medium: ['Let me look into this.', "I'll find that."],
+      light: ['One sec.', 'Oh!'],
+      medium: ['Ooh, let me check.', 'Yeah, one sec.'],
     },
     emotional: {
       medium: ['I hear you.', "That's real."],
-      heavy: ["I've got you.", "We'll get through this."],
+      heavy: ["I've got you.", "We're in this together."],
     },
   },
   peter: {
     thinking: {
-      light: ['Interesting.', 'Let me analyze that.'],
-      medium: ["I'm considering the data.", 'Let me think through this systematically.'],
+      light: ['Interesting.', 'Hm.'],
+      medium: ['Oh, that reminds me...', "You know what's fascinating..."],
     },
     tool_call: {
-      light: ['Let me pull that up.', 'Researching...'],
-      medium: ['Digging into the numbers.', 'Analyzing this.'],
-      heavy: ['This needs a deep dive.', 'Let me really examine this.'],
+      light: ['One sec.', 'Oh!'],
+      medium: ['Ooh, let me see.', 'Yeah, hang on.'],
+      heavy: ['Okay, this is interesting...', 'Alright, so...'],
     },
     memory_recall: {
-      medium: ['If I recall correctly...', 'The research showed...'],
+      medium: ['You know, actually...', 'Right, so...'],
     },
   },
   nayan: {
     thinking: {
-      medium: ['Hmm. Let me reflect.', 'There is wisdom in this question.'],
-      heavy: ['This touches something deep.', 'Let me sit with the fullness of this.'],
+      medium: ['Mm.', "That's worth sitting with."],
+      heavy: ['That touches something.', 'Mm... yes.'],
     },
     emotional: {
-      medium: ['I understand.', 'This matters.'],
+      medium: ['I understand.', 'Yes.'],
       heavy: ['The heart knows.', 'Be gentle with yourself.'],
     },
     memory_recall: {
-      heavy: ['Let me return to what you shared before.', 'Your story comes back to me.'],
+      heavy: ['This connects to something you shared...', 'Mm, yes...'],
     },
   },
   jordan: {
     thinking: {
-      light: ['Ooh! Let me think.', 'Okay, ideas forming...'],
-      medium: ["I'm brainstorming!", "Let's figure this out."],
-      heavy: ['Big question! Give me a second.', 'I want to do this right.'],
+      light: ['Ooh!', 'Oh!'],
+      medium: ['Ooh, okay so...', "Yeah, here's the thing!"],
+      heavy: ['Okay, wow!', 'Yeah, that hits.'],
     },
     tool_call: {
-      light: ['Checking!', 'Let me look.'],
-      medium: ['On it!', 'Finding that for you.'],
+      light: ['Ooh!', 'Oh!'],
+      medium: ['On it!', 'Ooh, let me see.'],
     },
     emotional: {
-      medium: ["I'm here for this.", "That's exciting!"],
-      heavy: ['Wow. That hit me.', "I'm feeling this with you."],
+      medium: ["I'm here for this!", 'Yeah!'],
+      heavy: ['Wow.', "I'm feeling this with you."],
     },
   },
   alex: {
     thinking: {
-      light: ['One moment.', 'Let me see.'],
-      medium: ['Processing.', 'Let me think this through.'],
+      light: ['Mm.', 'Right...'],
+      medium: ['Yeah, so...', 'Okay...'],
     },
     tool_call: {
-      light: ['Checking.', 'On it.'],
-      medium: ['Looking into that.', 'Give me a second.'],
+      light: ['One sec.', 'On it.'],
+      medium: ['Yeah, one sec.', 'Checking.'],
     },
     emotional: {
       medium: ['I hear you.', 'Got it.'],
@@ -568,4 +580,4 @@ export function getProcessingPhraseWithSSML(
 
 export type { ProcessingContext, ProcessingResult };
 
-export { BASE_PAUSES, PROCESSING_PHRASES, PERSONA_OVERRIDES, AVATAR_EXPRESSIONS };
+export { AVATAR_EXPRESSIONS, BASE_PAUSES, PERSONA_OVERRIDES, PROCESSING_PHRASES };

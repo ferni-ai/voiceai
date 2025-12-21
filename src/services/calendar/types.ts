@@ -382,4 +382,3 @@ export interface CalendarSelectionSettings {
   /** Currently selected calendar IDs */
   selectedIds: string[];
 }
-

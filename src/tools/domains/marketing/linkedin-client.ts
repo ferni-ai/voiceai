@@ -122,7 +122,7 @@ export class LinkedInClient {
 
       // Get the post ID from the response header
       const postId = response.headers.get('x-restli-id') || 'unknown';
-      
+
       // Construct the post URL
       const activityUrn = postId.replace('urn:li:share:', '');
       const url = `https://www.linkedin.com/feed/update/${activityUrn}`;
@@ -238,7 +238,11 @@ export class LinkedInClient {
 
       if (!response.ok) return null;
 
-      const data = (await response.json()) as { id: string; localizedFirstName: string; localizedLastName: string };
+      const data = (await response.json()) as {
+        id: string;
+        localizedFirstName: string;
+        localizedLastName: string;
+      };
       return {
         personUrn: data.id,
         name: `${data.localizedFirstName} ${data.localizedLastName}`,
@@ -250,4 +254,3 @@ export class LinkedInClient {
 }
 
 export default LinkedInClient;
-

@@ -158,19 +158,31 @@ ${platformInstructions}
 Return valid JSON with this exact structure (only include platforms requested):
 
 {
-  ${params.platforms.includes('twitter') ? `"twitter": {
+  ${
+    params.platforms.includes('twitter')
+      ? `"twitter": {
     "thread": ["Tweet 1", "Tweet 2", ...],
     "characterCounts": [120, 180, ...]
-  },` : ''}
-  ${params.platforms.includes('linkedin') ? `"linkedin": {
+  },`
+      : ''
+  }
+  ${
+    params.platforms.includes('linkedin')
+      ? `"linkedin": {
     "post": "Full LinkedIn post text",
     "hashtags": ["#AI", "#LifeCoach", "#Ferni"]
-  },` : ''}
-  ${params.platforms.includes('instagram') ? `"instagram": {
+  },`
+      : ''
+  }
+  ${
+    params.platforms.includes('instagram')
+      ? `"instagram": {
     "slides": ["Slide 1 text", "Slide 2 text", ...],
     "caption": "Caption text",
     "hashtags": ["#ferni", "#aicoach", ...]
-  }` : ''}
+  }`
+      : ''
+  }
 }
 
 IMPORTANT: Return ONLY the JSON object, no markdown code fences or explanation.`,
@@ -185,7 +197,7 @@ IMPORTANT: Return ONLY the JSON object, no markdown code fences or explanation.`
   }
 
   let jsonText = textContent.trim();
-  
+
   // Extract JSON if wrapped in code fences
   const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
@@ -197,17 +209,24 @@ IMPORTANT: Return ONLY the JSON object, no markdown code fences or explanation.`
     log.info({ platforms: Object.keys(content) }, '📝 Content generated successfully');
     return content;
   } catch (error) {
-    log.error({ error: String(error), response: jsonText.substring(0, 500) }, '📝 Failed to parse generated content');
+    log.error(
+      { error: String(error), response: jsonText.substring(0, 500) },
+      '📝 Failed to parse generated content'
+    );
     throw new Error('Failed to parse generated content');
   }
 }
 
 async function loadBlogContent(urlOrPath: string): Promise<{ title: string; content: string }> {
   // Check if it's a file path
-  if (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.includes('apps/marketing')) {
+  if (
+    urlOrPath.startsWith('/') ||
+    urlOrPath.startsWith('./') ||
+    urlOrPath.includes('apps/marketing')
+  ) {
     // It's a file path
     let filePath = urlOrPath;
-    
+
     // Handle relative paths
     if (!path.isAbsolute(filePath)) {
       filePath = path.join(process.cwd(), filePath);
@@ -218,7 +237,7 @@ async function loadBlogContent(urlOrPath: string): Promise<{ title: string; cont
     }
 
     const content = fs.readFileSync(filePath, 'utf-8');
-    
+
     // Extract title from markdown
     const titleMatch = content.match(/^#\s+(.+)$/m);
     const title = titleMatch ? titleMatch[1] : path.basename(filePath, '.md');
@@ -232,13 +251,13 @@ async function loadBlogContent(urlOrPath: string): Promise<{ title: string; cont
     if (!response.ok) {
       throw new Error(`Failed to fetch blog: ${response.statusText}`);
     }
-    
+
     const html = await response.text();
-    
+
     // Basic HTML to text extraction (could be improved with a proper parser)
     const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : 'Blog Post';
-    
+
     // Strip HTML tags for content
     const content = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -254,4 +273,3 @@ async function loadBlogContent(urlOrPath: string): Promise<{ title: string; cont
 }
 
 export default generateSocialContentFromBlog;
-

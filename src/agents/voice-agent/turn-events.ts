@@ -81,9 +81,7 @@ export interface EventDispatchResult {
  *
  * The frontend better-than-human.ui.ts responds with avatar expressions.
  */
-export async function dispatchTurnEmotionEvents(
-  ctx: EventDispatchContext
-): Promise<number> {
+export async function dispatchTurnEmotionEvents(ctx: EventDispatchContext): Promise<number> {
   const logger = log();
 
   if (!ctx.userId) {
@@ -92,7 +90,10 @@ export async function dispatchTurnEmotionEvents(
 
   try {
     // Map trajectory to valid values for emotion events
-    const trajectoryMap: Record<string, 'unknown' | 'improving' | 'stable' | 'declining' | 'volatile'> = {
+    const trajectoryMap: Record<
+      string,
+      'unknown' | 'improving' | 'stable' | 'declining' | 'volatile'
+    > = {
       improving: 'improving',
       stable: 'stable',
       declining: 'declining',
@@ -101,7 +102,7 @@ export async function dispatchTurnEmotionEvents(
       falling: 'declining',
     };
     const mappedTrajectory = ctx.emotionalResult.trajectory
-      ? trajectoryMap[ctx.emotionalResult.trajectory] ?? 'unknown'
+      ? (trajectoryMap[ctx.emotionalResult.trajectory] ?? 'unknown')
       : 'unknown';
 
     await dispatchEmotionEvents(
@@ -175,9 +176,7 @@ export function buildBehaviorContext(ctx: EventDispatchContext): BehaviorDetecti
  * This enables the bidirectional behavior system:
  * - System detects → dispatches event → LLM responds → calls behavior → loop
  */
-export async function dispatchTurnBehaviorEvents(
-  ctx: EventDispatchContext
-): Promise<number> {
+export async function dispatchTurnBehaviorEvents(ctx: EventDispatchContext): Promise<number> {
   const logger = log();
 
   try {
@@ -283,4 +282,3 @@ export async function dispatchAllTurnEvents(
     moodUpdateSent: moodSent,
   };
 }
-

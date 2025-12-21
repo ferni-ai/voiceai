@@ -55,7 +55,11 @@ export function analyzeMessage(ctx: TurnContext): TurnAnalysisResult {
   const analysis: any =
     services && typeof services.analyze === 'function'
       ? services.analyze(userText)
-      : { topics: { detected: [], categories: [] }, state: {}, emotion: { primary: 'neutral', intensity: 0.5 } };
+      : {
+          topics: { detected: [], categories: [] },
+          state: {},
+          emotion: { primary: 'neutral', intensity: 0.5 },
+        };
 
   // Track the user turn
   if (services && typeof services.addTurn === 'function') {
@@ -82,7 +86,10 @@ export function analyzeMessage(ctx: TurnContext): TurnAnalysisResult {
 /**
  * Update conversation state manager with analysis results
  */
-export function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisResult): void {
+export function updateConversationState(
+  ctx: TurnContext,
+  analysisResult: TurnAnalysisResult
+): void {
   const { userData, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
 

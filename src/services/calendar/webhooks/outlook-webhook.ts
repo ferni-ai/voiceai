@@ -156,7 +156,10 @@ export async function createSubscription(userId: string): Promise<OutlookSubscri
 
     if (!response.ok) {
       const error = await response.text();
-      log.error({ error, userId, status: response.status }, 'Failed to create Outlook subscription');
+      log.error(
+        { error, userId, status: response.status },
+        'Failed to create Outlook subscription'
+      );
       return null;
     }
 
@@ -351,17 +354,17 @@ export async function handleWebhookNotification(
       const endDate = new Date(now);
       endDate.setDate(now.getDate() + 30);
 
-      const events = await outlookCalendarProvider.fetchEvents(
-        subscription.userId,
-        now,
-        endDate
-      );
+      const events = await outlookCalendarProvider.fetchEvents(subscription.userId, now, endDate);
 
       // Import to unified store
       await importEventsFromProvider(subscription.userId, 'outlook', events);
 
       log.info(
-        { userId: subscription.userId, eventCount: events.length, changeType: notification.changeType },
+        {
+          userId: subscription.userId,
+          eventCount: events.length,
+          changeType: notification.changeType,
+        },
         '📧 Synced events from Outlook webhook'
       );
 
@@ -445,9 +448,7 @@ export async function getUserSubscriptions(userId: string): Promise<OutlookSubsc
   if (!firestore) return [];
 
   try {
-    const snapshot = await firestore
-      .collection(`users/${userId}/outlook_subscriptions`)
-      .get();
+    const snapshot = await firestore.collection(`users/${userId}/outlook_subscriptions`).get();
 
     return snapshot.docs.map((doc) => doc.data() as OutlookSubscription);
   } catch (error) {
@@ -511,4 +512,3 @@ export default {
   getUserSubscriptions,
   stopAllUserSubscriptions,
 };
-

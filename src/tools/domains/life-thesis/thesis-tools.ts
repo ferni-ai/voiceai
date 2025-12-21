@@ -56,7 +56,9 @@ Use when:
 Captures: The "why", the identity they're building, what reward they expect, known challenges.`,
       parameters: z.object({
         habitName: z.string().describe('Name of the habit (e.g., "morning meditation")'),
-        thesis: z.string().describe('Their "why" - the core reason for this habit in their own words'),
+        thesis: z
+          .string()
+          .describe('Their "why" - the core reason for this habit in their own words'),
         description: z.string().describe('What the habit involves'),
         cue: z.string().describe('What triggers the habit (e.g., "after morning coffee")'),
         routine: z.string().describe('The habit action itself'),
@@ -68,28 +70,23 @@ Captures: The "why", the identity they're building, what reward they expect, kno
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId, habit: params.habitName }, 'Saving habit thesis');
-        
+
         try {
-          const thesis = await saveHabitThesis(
-            ctx.userId,
-            params.habitName,
-            params.thesis,
-            {
-              description: params.description,
-              cue: params.cue,
-              routine: params.routine,
-              reward: params.reward,
-              identity: params.identity,
-              challenges: params.challenges,
-              confidence: params.confidence,
-              motivationSource: params.motivationSource,
-            }
-          );
-          
+          const thesis = await saveHabitThesis(ctx.userId, params.habitName, params.thesis, {
+            description: params.description,
+            cue: params.cue,
+            routine: params.routine,
+            reward: params.reward,
+            identity: params.identity,
+            challenges: params.challenges,
+            confidence: params.confidence,
+            motivationSource: params.motivationSource,
+          });
+
           return `Got it. I've captured why "${params.habitName}" matters to you. When the going gets tough, I'll remind you: "${params.thesis}". Your identity goal: "${params.identity}"`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save habit thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -121,17 +118,25 @@ Captures: The "why", target metrics, milestones, what they're sacrificing.`,
         goalName: z.string().describe('Name of the goal'),
         thesis: z.string().describe('Their "why" - the core reason for pursuing this goal'),
         targetDate: z.string().optional().describe('Target completion date (ISO string)'),
-        metric: z.object({
-          name: z.string(),
-          current: z.number(),
-          target: z.number(),
-          unit: z.string(),
-        }).optional().describe('Measurable target if applicable'),
-        milestones: z.array(z.object({
-          percentage: z.number(),
-          description: z.string(),
-        })).optional().describe('Key milestones along the way'),
-        sacrifices: z.array(z.string()).optional().describe('What they\'re giving up for this'),
+        metric: z
+          .object({
+            name: z.string(),
+            current: z.number(),
+            target: z.number(),
+            unit: z.string(),
+          })
+          .optional()
+          .describe('Measurable target if applicable'),
+        milestones: z
+          .array(
+            z.object({
+              percentage: z.number(),
+              description: z.string(),
+            })
+          )
+          .optional()
+          .describe('Key milestones along the way'),
+        sacrifices: z.array(z.string()).optional().describe("What they're giving up for this"),
         stakeholders: z.array(z.string()).optional().describe('Who else is affected'),
         challenges: z.array(z.string()).describe('Expected obstacles'),
         confidence: z.number().min(1).max(10),
@@ -139,31 +144,26 @@ Captures: The "why", target metrics, milestones, what they're sacrificing.`,
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId, goal: params.goalName }, 'Saving goal thesis');
-        
+
         try {
-          await saveGoalThesis(
-            ctx.userId,
-            params.goalName,
-            params.thesis,
-            {
-              targetDate: params.targetDate ? new Date(params.targetDate) : undefined,
-              metric: params.metric,
-              milestones: params.milestones,
-              sacrifices: params.sacrifices,
-              stakeholders: params.stakeholders,
-              challenges: params.challenges,
-              confidence: params.confidence,
-              motivationSource: params.motivationSource,
-            }
-          );
-          
-          const metricNote = params.metric 
+          await saveGoalThesis(ctx.userId, params.goalName, params.thesis, {
+            targetDate: params.targetDate ? new Date(params.targetDate) : undefined,
+            metric: params.metric,
+            milestones: params.milestones,
+            sacrifices: params.sacrifices,
+            stakeholders: params.stakeholders,
+            challenges: params.challenges,
+            confidence: params.confidence,
+            motivationSource: params.motivationSource,
+          });
+
+          const metricNote = params.metric
             ? ` Your target: ${params.metric.current} → ${params.metric.target} ${params.metric.unit}.`
             : '';
           return `Your "${params.goalName}" thesis is locked in.${metricNote} When you doubt yourself, I'll remind you why this matters.`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save goal thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -197,23 +197,23 @@ Captures: Values, tradeoffs they're accepting, growth areas.`,
         company: z.string().optional(),
         path: z.string().optional().describe('Career path (e.g., "startup founder", "senior IC")'),
         values: z.array(z.string()).describe('What matters to them in work'),
-        tradeoffs: z.array(z.string()).describe('What they\'re accepting/giving up'),
+        tradeoffs: z.array(z.string()).describe("What they're accepting/giving up"),
         growthAreas: z.array(z.string()).describe('What they hope to learn'),
-        timeframe: z.string().optional().describe('How long they\'ll give it'),
+        timeframe: z.string().optional().describe("How long they'll give it"),
         challenges: z.array(z.string()),
         confidence: z.number().min(1).max(10),
         motivationSource: z.string(),
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId }, 'Saving career thesis');
-        
+
         try {
           await saveCareerThesis(ctx.userId, params.thesis, params);
-          
+
           return `Career thesis captured. Values you're honoring: ${params.values.join(', ')}. When work gets hard, I'll remind you what you're building toward.`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save career thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -254,20 +254,18 @@ Captures: What they love, what's challenging, how they grow together.`,
         motivationSource: z.string(),
       }),
       execute: async (params) => {
-        getLogger().info({ userId: ctx.userId, person: params.personName }, 'Saving relationship thesis');
-        
+        getLogger().info(
+          { userId: ctx.userId, person: params.personName },
+          'Saving relationship thesis'
+        );
+
         try {
-          await saveRelationshipThesis(
-            ctx.userId,
-            params.personName,
-            params.thesis,
-            params
-          );
-          
+          await saveRelationshipThesis(ctx.userId, params.personName, params.thesis, params);
+
           return `I've captured what ${params.personName} means to you. When things get hard between you, I can remind you: "${params.whatYouLove[0]}"`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save relationship thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -299,31 +297,43 @@ Use when:
 Captures: Current state, target state, approach, measurables.`,
       parameters: z.object({
         thesis: z.string().describe('Their "why" for this health change'),
-        area: z.enum(['exercise', 'nutrition', 'sleep', 'mental_health', 'substance', 'medical', 'other']),
+        area: z.enum([
+          'exercise',
+          'nutrition',
+          'sleep',
+          'mental_health',
+          'substance',
+          'medical',
+          'other',
+        ]),
         currentState: z.string().describe('Where they are now'),
         targetState: z.string().describe('Where they want to be'),
-        approach: z.string().describe('The method/program they\'re following'),
+        approach: z.string().describe("The method/program they're following"),
         doctorAdvised: z.boolean().optional(),
-        measurables: z.array(z.object({
-          name: z.string(),
-          baseline: z.number(),
-          target: z.number(),
-          unit: z.string(),
-        })).optional(),
+        measurables: z
+          .array(
+            z.object({
+              name: z.string(),
+              baseline: z.number(),
+              target: z.number(),
+              unit: z.string(),
+            })
+          )
+          .optional(),
         challenges: z.array(z.string()),
         confidence: z.number().min(1).max(10),
         motivationSource: z.string(),
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId, area: params.area }, 'Saving health thesis');
-        
+
         try {
           await saveHealthThesis(ctx.userId, params.thesis, params);
-          
+
           return `Health thesis saved. Your transformation: ${params.currentState} → ${params.targetState}. When it gets hard, I'll remind you why you started.`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save health thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -365,20 +375,17 @@ Captures: Alternatives considered, pros/cons, deal-breakers.`,
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId }, 'Saving decision thesis');
-        
+
         try {
-          await saveDecisionThesis(
-            ctx.userId,
-            params.decision,
-            params.thesis,
-            params
-          );
-          
-          const reversibleNote = params.reversible ? ' (This is reversible if needed.)' : ' (You noted this isn\'t easily reversible.)';
+          await saveDecisionThesis(ctx.userId, params.decision, params.thesis, params);
+
+          const reversibleNote = params.reversible
+            ? ' (This is reversible if needed.)'
+            : " (You noted this isn't easily reversible.)";
           return `Decision recorded: "${params.decision}". If you have doubts later, I'll walk you through your reasoning.${reversibleNote}`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save decision thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -421,14 +428,14 @@ Captures: The boundary, who it's with, how to enforce it.`,
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId }, 'Saving boundary thesis');
-        
+
         try {
           await saveBoundaryThesis(ctx.userId, params.thesis, params);
-          
+
           return `Boundary recorded: "${params.boundary}" with ${params.withWhom}. When you're tempted to bend, I'll remind you why you drew this line.`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save boundary thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -471,20 +478,15 @@ Captures: The commitment, to whom, costs and gains.`,
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId }, 'Saving commitment thesis');
-        
+
         try {
-          await saveCommitmentThesis(
-            ctx.userId,
-            params.commitment,
-            params.thesis,
-            params
-          );
-          
+          await saveCommitmentThesis(ctx.userId, params.commitment, params.thesis, params);
+
           const toWhomNote = params.toWhom === 'myself' ? 'to yourself' : `to ${params.toWhom}`;
           return `Commitment locked in ${toWhomNote}: "${params.commitment}". When it's hard to keep, I'll remind you what you gain: "${params.whatYouGain}"`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to save commitment thesis');
-          return 'I couldn\'t save that thesis right now. Let\'s try again.';
+          return "I couldn't save that thesis right now. Let's try again.";
         }
       },
     });
@@ -514,16 +516,29 @@ Use when:
 
 Returns: Their original motivation, reflective questions, encouragement.`,
       parameters: z.object({
-        domain: z.enum([
-          'investment', 'habit', 'goal', 'career', 'relationship',
-          'health', 'learning', 'decision', 'boundary', 'commitment'
-        ]).describe('Which type of thesis to recall'),
-        currentSituation: z.string().describe('What they\'re currently facing'),
+        domain: z
+          .enum([
+            'investment',
+            'habit',
+            'goal',
+            'career',
+            'relationship',
+            'health',
+            'learning',
+            'decision',
+            'boundary',
+            'commitment',
+          ])
+          .describe('Which type of thesis to recall'),
+        currentSituation: z.string().describe("What they're currently facing"),
         emotionalState: z.string().optional().describe('How they seem to be feeling'),
       }),
       execute: async (params) => {
-        getLogger().info({ userId: ctx.userId, domain: params.domain }, 'Generating thesis reminder');
-        
+        getLogger().info(
+          { userId: ctx.userId, domain: params.domain },
+          'Generating thesis reminder'
+        );
+
         try {
           const reminder = await generateReminder(
             ctx.userId,
@@ -531,11 +546,11 @@ Returns: Their original motivation, reflective questions, encouragement.`,
             params.currentSituation,
             params.emotionalState
           );
-          
+
           if (!reminder) {
             return `I don't have a saved thesis for your ${params.domain}. Would you like to capture one now while you're thinking about it?`;
           }
-          
+
           const dayText = reminder.daysSinceCreation === 1 ? 'day' : 'days';
           return JSON.stringify({
             message: `${reminder.daysSinceCreation} ${dayText} ago, when you felt ${reminder.thesis.emotionalState.atCreation}, you wrote this: "${reminder.thesis.thesis}"`,
@@ -546,7 +561,7 @@ Returns: Their original motivation, reflective questions, encouragement.`,
           });
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to generate reminder');
-          return 'I couldn\'t retrieve that thesis right now. Let\'s try again.';
+          return "I couldn't retrieve that thesis right now. Let's try again.";
         }
       },
     });
@@ -573,24 +588,35 @@ Use when:
 - You need context on their active commitments
 - Reviewing progress across a life area`,
       parameters: z.object({
-        domain: z.enum([
-          'investment', 'habit', 'goal', 'career', 'relationship',
-          'health', 'learning', 'decision', 'boundary', 'commitment'
-        ]).optional().describe('Leave empty to get ALL theses'),
+        domain: z
+          .enum([
+            'investment',
+            'habit',
+            'goal',
+            'career',
+            'relationship',
+            'health',
+            'learning',
+            'decision',
+            'boundary',
+            'commitment',
+          ])
+          .optional()
+          .describe('Leave empty to get ALL theses'),
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId, domain: params.domain }, 'Getting theses');
-        
+
         try {
           const theses = params.domain
             ? await getThesesByDomain(ctx.userId, params.domain as ThesisDomain)
             : await getAllTheses(ctx.userId);
-          
+
           if (theses.length === 0) {
             const domainText = params.domain ? `${params.domain} theses` : 'theses';
             return `No ${domainText} saved yet. Would you like to capture one?`;
           }
-          
+
           return JSON.stringify({
             count: theses.length,
             theses: theses.map((t) => ({
@@ -604,7 +630,7 @@ Use when:
           });
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to get theses');
-          return 'I couldn\'t retrieve theses right now. Let\'s try again.';
+          return "I couldn't retrieve theses right now. Let's try again.";
         }
       },
     });
@@ -635,33 +661,33 @@ Use when:
         note: z.string().describe('Update note'),
         stillValid: z.boolean().describe('Is this thesis still valid?'),
         newConfidence: z.number().min(1).max(10).optional(),
-        trigger: z.enum([
-          'scheduled_review', 'struggle_moment', 'milestone', 'change_in_circumstances'
-        ]).optional(),
+        trigger: z
+          .enum(['scheduled_review', 'struggle_moment', 'milestone', 'change_in_circumstances'])
+          .optional(),
       }),
       execute: async (params) => {
         getLogger().info({ userId: ctx.userId, thesisId: params.thesisId }, 'Reviewing thesis');
-        
+
         try {
           if (!params.stillValid) {
             await invalidateThesis(ctx.userId, params.thesisId, params.note);
             return 'Thesis marked as no longer valid. That clarity is valuable too - knowing when something has changed is wisdom.';
           }
-          
+
           const updated = await updateThesis(ctx.userId, params.thesisId, {
             note: params.note,
             stillValid: true,
             newConfidence: params.newConfidence,
             trigger: params.trigger,
           });
-          
-          const confidenceNote = params.newConfidence 
+
+          const confidenceNote = params.newConfidence
             ? ` Your confidence is now ${params.newConfidence}/10.`
             : '';
           return `Thesis updated.${confidenceNote} Staying connected to your why is powerful.`;
         } catch (error) {
           getLogger().error({ error: String(error) }, 'Failed to review thesis');
-          return 'I couldn\'t update that thesis right now. Let\'s try again.';
+          return "I couldn't update that thesis right now. Let's try again.";
         }
       },
     });

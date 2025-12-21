@@ -56,7 +56,8 @@ describe('Quant Firestore Schema', () => {
 
     it('should calculate savings rate correctly', () => {
       const profile: FinancialProfile = createBaseProfile();
-      const savingsRate = ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100;
+      const savingsRate =
+        ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100;
 
       expect(savingsRate).toBe(40); // (10000 - 6000) / 10000 = 40%
     });
@@ -139,7 +140,9 @@ describe('Quant Firestore Schema', () => {
         { month: '2024-03', value: 95 },
       ];
 
-      const avg = tracking.budgetAdherence.reduce((sum, m) => sum + m.value, 0) / tracking.budgetAdherence.length;
+      const avg =
+        tracking.budgetAdherence.reduce((sum, m) => sum + m.value, 0) /
+        tracking.budgetAdherence.length;
       expect(avg).toBe(90);
     });
 
@@ -216,7 +219,14 @@ describe('Quant Firestore Schema', () => {
     });
 
     it('should support all insight types', () => {
-      const types: QuantInsight['type'][] = ['technical', 'risk', 'behavioral', 'fire', 'portfolio', 'market'];
+      const types: QuantInsight['type'][] = [
+        'technical',
+        'risk',
+        'behavioral',
+        'fire',
+        'portfolio',
+        'market',
+      ];
 
       for (const type of types) {
         const insight: QuantInsight = { ...createBaseInsight(), type };
@@ -266,7 +276,8 @@ describe('Quant Firestore Schema', () => {
         fireNumber,
         percentToFire: (profile.currentRetirementSavings / fireNumber) * 100,
         projectedFireDate: null,
-        savingsRate: ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100,
+        savingsRate:
+          ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100,
         monthlyPassiveIncome: 0,
       };
 

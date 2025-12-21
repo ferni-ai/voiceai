@@ -241,21 +241,26 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
   // First, strip markdown code fences if present
   // Handles: ```json\n{...}\n``` or ```\n{...}\n```
   let cleanText = text;
-  
+
   // Remove markdown code fences
   const markdownMatch = text.match(/```(?:json)?\s*\n?\s*(\{[\s\S]*?\})\s*\n?\s*```/i);
   if (markdownMatch) {
     cleanText = markdownMatch[1];
-    log.debug({ original: text.slice(0, 50), cleaned: cleanText.slice(0, 50) }, '📝 Stripped markdown code fence');
+    log.debug(
+      { original: text.slice(0, 50), cleaned: cleanText.slice(0, 50) },
+      '📝 Stripped markdown code fence'
+    );
   }
-  
+
   // Look for JSON pattern - handles both inline and multiline
-  const jsonMatch = cleanText.match(/\{\s*"?fn"?\s*:\s*"(\w+)"\s*,\s*"?args"?\s*:\s*(\{[^}]*\})\s*\}/i);
+  const jsonMatch = cleanText.match(
+    /\{\s*"?fn"?\s*:\s*"(\w+)"\s*,\s*"?args"?\s*:\s*(\{[^}]*\})\s*\}/i
+  );
   if (!jsonMatch) {
     // Try a more permissive match for split chunks
     const looseMatch = cleanText.match(/"fn"\s*:\s*"(\w+)".*"args"\s*:\s*(\{[^}]*\})/is);
     if (!looseMatch) return null;
-    
+
     try {
       const fn = looseMatch[1];
       const argsStr = looseMatch[2];
@@ -271,7 +276,7 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
     const fn = jsonMatch[1];
     const argsStr = jsonMatch[2];
     const args = JSON.parse(argsStr) as Record<string, unknown>;
-    
+
     log.info({ fn, args }, '🎯 JSON function call detected in text stream');
     return { fn, args };
   } catch {
@@ -294,7 +299,9 @@ interface ToolExecutionResult {
  * Routes to the general-purpose json-function-executor for comprehensive tool support.
  * Returns the result so it can be spoken via TTS.
  */
-async function executeJsonFunctionCall(call: JsonFunctionCall): Promise<ToolExecutionResult | null> {
+async function executeJsonFunctionCall(
+  call: JsonFunctionCall
+): Promise<ToolExecutionResult | null> {
   try {
     // Use the general-purpose executor
     const { executeJsonFunction } = await import('./json-function-executor.js');
@@ -307,7 +314,10 @@ async function executeJsonFunctionCall(call: JsonFunctionCall): Promise<ToolExec
       error: result.error,
     };
   } catch (err) {
-    log.error({ fn: call.fn, args: call.args, error: String(err) }, '❌ Failed to execute JSON function call');
+    log.error(
+      { fn: call.fn, args: call.args, error: String(err) },
+      '❌ Failed to execute JSON function call'
+    );
     return { success: false, fn: call.fn, error: String(err) };
   }
 }
@@ -577,11 +587,38 @@ export function sanitizeToolCallLeakage(text: string): string {
  * Patterns that might be the start of a tool call (for partial matching)
  */
 const PARTIAL_TOOL_PREFIXES = [
-  'play', 'remember', 'recall', 'hand', 'get', 'set', 'add', 'update', 'create',
-  'search', 'send', 'schedule', 'cancel', 'delete', 'track', 'log', 'stop',
-  'pause', 'resume', 'crisis', 'grounding', 'breathing', 'invoke',
-  '[INTERNAL', '[internal', 'Transferring', "I'll call", "Let me use",
-  'rememberName', 'noteEmotional', 'gracefulExit', 'endConversation',
+  'play',
+  'remember',
+  'recall',
+  'hand',
+  'get',
+  'set',
+  'add',
+  'update',
+  'create',
+  'search',
+  'send',
+  'schedule',
+  'cancel',
+  'delete',
+  'track',
+  'log',
+  'stop',
+  'pause',
+  'resume',
+  'crisis',
+  'grounding',
+  'breathing',
+  'invoke',
+  '[INTERNAL',
+  '[internal',
+  'Transferring',
+  "I'll call",
+  'Let me use',
+  'rememberName',
+  'noteEmotional',
+  'gracefulExit',
+  'endConversation',
 ];
 
 /**
@@ -589,9 +626,8 @@ const PARTIAL_TOOL_PREFIXES = [
  */
 function mightBePartialToolCall(text: string): boolean {
   const trimmed = text.trim().toLowerCase();
-  return PARTIAL_TOOL_PREFIXES.some(prefix =>
-    trimmed.startsWith(prefix.toLowerCase()) ||
-    prefix.toLowerCase().startsWith(trimmed)
+  return PARTIAL_TOOL_PREFIXES.some(
+    (prefix) => trimmed.startsWith(prefix.toLowerCase()) || prefix.toLowerCase().startsWith(trimmed)
   );
 }
 
@@ -614,8 +650,7 @@ export function createSanitizerTransformStream(): AnyTransformStream {
     text.includes('.') || text.includes('!') || text.includes('?');
 
   /** Check if we have a natural word boundary (space, punctuation) */
-  const hasWordBoundary = (text: string): boolean =>
-    /\s|[.,!?;:]/.test(text);
+  const hasWordBoundary = (text: string): boolean => /\s|[.,!?;:]/.test(text);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   return new (globalThis as any).TransformStream({
@@ -711,6 +746,57 @@ export function containsToolCallLeakage(text: string): boolean {
 }
 
 /**
+ * Get a natural, warm acknowledgment for slow tools.
+ * These are Ferni-voice acknowledgments that keep the conversation flowing
+ * while we wait for API calls to complete.
+ */
+function getSlowToolAcknowledgment(fn: string): string {
+  const fnLower = fn.toLowerCase();
+
+  // Tool-specific acknowledgments for more natural responses
+  if (fnLower.includes('news')) {
+    const newsAcks = [
+      'Hold on, let me grab that for you.',
+      'One sec, pulling up the latest.',
+      "Let me check what's happening out there.",
+      'Hang on, grabbing some headlines.',
+      'Give me just a moment to look that up.',
+    ];
+    return newsAcks[Math.floor(Math.random() * newsAcks.length)];
+  }
+
+  if (fnLower.includes('weather')) {
+    const weatherAcks = [
+      'Let me check the forecast real quick.',
+      'One moment, looking at the weather.',
+      'Hold on, checking conditions.',
+      'Give me a sec to pull that up.',
+    ];
+    return weatherAcks[Math.floor(Math.random() * weatherAcks.length)];
+  }
+
+  if (fnLower.includes('stock') || fnLower.includes('market')) {
+    const stockAcks = [
+      'Let me pull up the numbers.',
+      'One moment, checking the markets.',
+      'Hold on, grabbing those figures.',
+      'Give me a sec to look at that.',
+    ];
+    return stockAcks[Math.floor(Math.random() * stockAcks.length)];
+  }
+
+  // Generic fallback - still warm and human
+  const genericAcks = [
+    'Hold on, let me grab that for you.',
+    'One moment while I look that up.',
+    'Give me just a sec.',
+    'Let me check on that real quick.',
+    'Hang on, pulling that up now.',
+  ];
+  return genericAcks[Math.floor(Math.random() * genericAcks.length)];
+}
+
+/**
  * Extract music query from narrated tool call text.
  *
  * Examples:
@@ -749,10 +835,15 @@ function extractMusicQuery(text: string): string | null {
  * outputs text like "silently calls playMusic with query jazz" instead of
  * making an actual function call. This detects those patterns and invokes
  * the tool directly.
+ *
+ * @param toolContext - Tools available for execution
+ * @param session - Voice session for speaking tool results via safeGenerateReply
  */
 export function createSanitizerWithMusicFallback(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toolContext?: Record<string, any>
+  toolContext?: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session?: any // voice.AgentSession - avoiding import cycle
 ): AnyTransformStream {
   let buffer = '';
   let suppressMode = false;
@@ -776,10 +867,13 @@ export function createSanitizerWithMusicFallback(
 
     try {
       musicFallbackInFlight = true;
-      log.info({ query }, '🎵 MUSIC FALLBACK: Executing playMusic because Gemini narrated instead of called');
+      log.info(
+        { query },
+        '🎵 MUSIC FALLBACK: Executing playMusic because Gemini narrated instead of called'
+      );
 
       // Try to get playMusic from tool context
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       const playMusic = toolContext?.playMusic as
         | { execute?: (args: { query: string }) => Promise<unknown> }
         | undefined;
@@ -795,7 +889,10 @@ export function createSanitizerWithMusicFallback(
           await playMusicUnified(query);
           log.info({ query }, '🎵 MUSIC FALLBACK: playMusicUnified executed via direct import');
         } catch (importErr) {
-          log.warn({ query, error: String(importErr) }, '🎵 MUSIC FALLBACK: Could not import music tool');
+          log.warn(
+            { query, error: String(importErr) },
+            '🎵 MUSIC FALLBACK: Could not import music tool'
+          );
         }
       }
     } catch (err) {
@@ -808,11 +905,15 @@ export function createSanitizerWithMusicFallback(
   // Track how many chunks to suppress after catching JSON
   let suppressChunksRemaining = 0;
   const SUPPRESS_CHUNKS_AFTER_JSON = 5; // Suppress 5 chunks after JSON to catch "Ok so..."
-  
+
   // JSON fragment accumulator - for handling split JSON like {"  then fn":"playMusic"...
   let jsonAccumulator = '';
   let jsonAccumulatorActive = false;
   const MAX_JSON_ACCUMULATOR_SIZE = 500;
+
+  // 🐛 FIX: Track if stream is closed to prevent race condition errors
+  // When async tool execution completes after stream closes, enqueue() fails
+  let streamClosed = false;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   return new (globalThis as any).TransformStream({
@@ -822,7 +923,10 @@ export function createSanitizerWithMusicFallback(
       // After catching JSON, suppress several chunks to catch trailing "Ok so..." type text
       if (suppressChunksRemaining > 0) {
         suppressChunksRemaining--;
-        log.debug({ chunk: chunk.slice(0, 30), remaining: suppressChunksRemaining }, '🗑️ Suppressing post-JSON chunk');
+        log.debug(
+          { chunk: chunk.slice(0, 30), remaining: suppressChunksRemaining },
+          '🗑️ Suppressing post-JSON chunk'
+        );
         buffer = '';
         return;
       }
@@ -837,23 +941,24 @@ export function createSanitizerWithMusicFallback(
         }
         return;
       }
-      
+
       // FRAGMENTED JSON DETECTION
       // Gemini sometimes splits JSON across chunks like:
       // Chunk 1: {"
       // Chunk 2: fn":"playMusic","args":{"query":"jazz"}}
       // We need to accumulate these
-      
+
       const trimmed = buffer.trim();
-      
+
       // Detect if this chunk looks like the START of JSON
-      const looksLikeJsonStart = /^\s*\{?\s*["']?\s*$/.test(trimmed) || 
-                                  trimmed === '{' || 
-                                  trimmed === '{"' ||
-                                  trimmed === '{ "' ||
-                                  /^\s*```json?\s*$/i.test(trimmed) ||
-                                  /^\s*```json?\s*\{?\s*$/i.test(trimmed);
-      
+      const looksLikeJsonStart =
+        /^\s*\{?\s*["']?\s*$/.test(trimmed) ||
+        trimmed === '{' ||
+        trimmed === '{"' ||
+        trimmed === '{ "' ||
+        /^\s*```json?\s*$/i.test(trimmed) ||
+        /^\s*```json?\s*\{?\s*$/i.test(trimmed);
+
       // If we see JSON start marker, start accumulating
       if (looksLikeJsonStart && !jsonAccumulatorActive) {
         jsonAccumulatorActive = true;
@@ -862,38 +967,104 @@ export function createSanitizerWithMusicFallback(
         buffer = '';
         return;
       }
-      
+
       // If we're accumulating JSON, add to accumulator
       if (jsonAccumulatorActive) {
         jsonAccumulator += chunk;
-        
+
         // Check if we have a complete JSON now
         const jsonCall = detectJsonFunctionCall(jsonAccumulator);
         if (jsonCall) {
-          log.info({ fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length }, '🎯 Accumulated JSON function call - executing');
-          
-          // Execute the tool and get the result to speak
-          // NOTE: We fire-and-forget because TransformStream.transform() can't be async.
-          // The result will be spoken via a separate path if the stream is still open.
-          executeJsonFunctionCall(jsonCall).then((execResult) => {
-            if (execResult?.success && execResult.result) {
-              // Emit the tool result to be spoken
-              const resultText = typeof execResult.result === 'string' 
-                ? execResult.result 
-                : JSON.stringify(execResult.result);
-              log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
-              try {
-                controller.enqueue(resultText + ' ');
-              } catch (enqueueErr) {
-                // Stream may have closed - this is expected in some race conditions
-                // The tool executed successfully, but we couldn't inject the result into the stream
-                log.warn({ fn: jsonCall.fn, error: String(enqueueErr) }, '⚠️ Could not enqueue tool result (stream may have closed)');
+          log.info(
+            { fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length },
+            '🎯 Accumulated JSON function call - executing'
+          );
+
+          // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
+          const slowTools = [
+            'searchnews',
+            'getnews',
+            'getweather',
+            'getfinancialsnews',
+            'getstocknews',
+            'gettechnews',
+            'getmarketsummary',
+          ];
+          const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
+          if (isSlowTool) {
+            const ack = getSlowToolAcknowledgment(jsonCall.fn);
+            log.info({ fn: jsonCall.fn, ack }, '⏳ Injecting acknowledgment for slow tool');
+            controller.enqueue(`${ack} `);
+          }
+
+          // Execute the tool and speak the result via safeGenerateReply
+          // This is the proper way to inject async tool results - not stream injection
+          executeJsonFunctionCall(jsonCall)
+            .then(async (execResult) => {
+              if (execResult?.success && execResult.result) {
+                const resultText =
+                  typeof execResult.result === 'string'
+                    ? execResult.result
+                    : JSON.stringify(execResult.result);
+
+                log.info(
+                  { fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) },
+                  '🎤 Tool result ready - triggering LLM response'
+                );
+
+                // Use safeGenerateReply to speak the result properly
+                if (session) {
+                  try {
+                    const { safeGenerateReply } = await import('./safe-generate-reply.js');
+
+                    // Music tools need special handling - TTS + music coordination can take >3.5s
+                    const isMusicTool = jsonCall.fn.toLowerCase().includes('music');
+
+                    await safeGenerateReply(session, {
+                      instructions: `You just executed the ${jsonCall.fn} tool. Here's the result to share with the user naturally and conversationally (don't read it verbatim, summarize the key points):\n\n${resultText}`,
+                      allowInterruptions: true,
+                      context: `tool-result-${jsonCall.fn}`,
+                      // For music tools: don't wait for playout (TTS + music coordination can be slow)
+                      // For other tools: wait for playout to ensure user hears the result
+                      waitForPlayout: !isMusicTool,
+                      // Longer timeout for music tools since audio coordination takes time
+                      timeoutMs: isMusicTool ? 5500 : 3500,
+                      // Fallback message if LLM response fails
+                      fallbackMessage: isMusicTool ? "Here's some music for you." : 'Done!',
+                    });
+                    log.info(
+                      { fn: jsonCall.fn, isMusicTool },
+                      '✅ Tool result spoken via safeGenerateReply'
+                    );
+                  } catch (speakErr) {
+                    log.warn(
+                      { fn: jsonCall.fn, error: String(speakErr) },
+                      '⚠️ Could not speak tool result via safeGenerateReply'
+                    );
+                  }
+                } else {
+                  // Fallback: try to enqueue if no session (shouldn't happen in normal flow)
+                  log.warn(
+                    { fn: jsonCall.fn },
+                    '⚠️ No session available - attempting stream injection'
+                  );
+                  if (!streamClosed) {
+                    try {
+                      controller.enqueue(`${resultText} `);
+                    } catch (enqueueErr) {
+                      log.warn(
+                        { fn: jsonCall.fn, error: String(enqueueErr) },
+                        '⚠️ Stream injection failed'
+                      );
+                    }
+                  }
+                }
               }
-            }
-          }).catch((err) => {
-            log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
-          });
-          
+            })
+            .catch((err) => {
+              log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+            });
+
           suppressMode = true;
           suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;
           buffer = '';
@@ -901,10 +1072,13 @@ export function createSanitizerWithMusicFallback(
           jsonAccumulatorActive = false;
           return;
         }
-        
+
         // Safety: if accumulator gets too big without completing, it's probably not JSON
         if (jsonAccumulator.length > MAX_JSON_ACCUMULATOR_SIZE) {
-          log.debug({ accumulated: jsonAccumulator.slice(0, 100) }, '🔧 JSON accumulator timeout - not valid JSON');
+          log.debug(
+            { accumulated: jsonAccumulator.slice(0, 100) },
+            '🔧 JSON accumulator timeout - not valid JSON'
+          );
           // Emit what we accumulated (it wasn't JSON after all)
           controller.enqueue(jsonAccumulator);
           jsonAccumulator = '';
@@ -912,7 +1086,7 @@ export function createSanitizerWithMusicFallback(
           buffer = '';
           return;
         }
-        
+
         // Keep accumulating - don't emit anything yet
         buffer = '';
         return;
@@ -924,49 +1098,124 @@ export function createSanitizerWithMusicFallback(
       // {"fn":"playMusic","args":{"query":"jazz"}}
       // ```
       // OR sometimes inline: {"fn":"playMusic","args":{"query":"jazz"}}
-      
+
       // Check for markdown code fence start - buffer until we see the closing fence
       const hasCodeFenceStart = buffer.includes('```json') || buffer.includes('```\n{');
       const hasCodeFenceEnd = hasCodeFenceStart && buffer.match(/```json[\s\S]*```/);
-      
+
       // Check for inline JSON start
       const hasInlineJsonStart = trimmed.includes('{"fn"') || trimmed.includes('{ "fn"');
       const hasInlineJsonEnd = hasInlineJsonStart && trimmed.includes('}}');
-      
+
       // If we see a code fence or JSON start, buffer until complete
       if (hasCodeFenceStart && !hasCodeFenceEnd && buffer.length < 300) {
-        log.debug({ bufferLen: buffer.length, preview: buffer.slice(0, 50) }, '⏳ Buffering markdown JSON block');
+        log.debug(
+          { bufferLen: buffer.length, preview: buffer.slice(0, 50) },
+          '⏳ Buffering markdown JSON block'
+        );
         return;
       }
-      
+
       if (hasInlineJsonStart && !hasInlineJsonEnd && buffer.length < 200) {
-        log.debug({ bufferLen: buffer.length, preview: buffer.slice(0, 50) }, '⏳ Buffering inline JSON');
+        log.debug(
+          { bufferLen: buffer.length, preview: buffer.slice(0, 50) },
+          '⏳ Buffering inline JSON'
+        );
         return;
       }
-      
+
       // Check if buffer contains a complete JSON function call (in markdown or inline)
       const jsonCall = detectJsonFunctionCall(buffer);
       if (jsonCall) {
-        log.info({ fn: jsonCall.fn, args: jsonCall.args, bufferLen: buffer.length }, '🎯 JSON function call intercepted - executing');
-        
-        // Execute the tool and emit the result to be spoken
-        executeJsonFunctionCall(jsonCall).then((execResult) => {
-          if (execResult?.success && execResult.result) {
-            const resultText = typeof execResult.result === 'string' 
-              ? execResult.result 
-              : JSON.stringify(execResult.result);
-            log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
-            try {
-              controller.enqueue(resultText + ' ');
-            } catch (enqueueErr) {
-              // Stream may have closed - this is expected in some race conditions
-              log.warn({ fn: jsonCall.fn, error: String(enqueueErr) }, '⚠️ Could not enqueue tool result (stream may have closed)');
+        log.info(
+          { fn: jsonCall.fn, args: jsonCall.args, bufferLen: buffer.length },
+          '🎯 JSON function call intercepted - executing'
+        );
+
+        // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
+        const slowTools = [
+          'searchnews',
+          'getnews',
+          'getweather',
+          'getfinancialsnews',
+          'getstocknews',
+          'gettechnews',
+          'getmarketsummary',
+        ];
+        const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
+        if (isSlowTool) {
+          const ack = getSlowToolAcknowledgment(jsonCall.fn);
+          log.info({ fn: jsonCall.fn, ack }, '⏳ Injecting acknowledgment for slow tool');
+          controller.enqueue(`${ack} `);
+        }
+
+        // Execute the tool and speak the result via safeGenerateReply
+        executeJsonFunctionCall(jsonCall)
+          .then(async (execResult) => {
+            if (execResult?.success && execResult.result) {
+              const resultText =
+                typeof execResult.result === 'string'
+                  ? execResult.result
+                  : JSON.stringify(execResult.result);
+
+              log.info(
+                { fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) },
+                '🎤 Tool result ready - triggering LLM response'
+              );
+
+              // Use safeGenerateReply to speak the result properly
+              if (session) {
+                try {
+                  const { safeGenerateReply } = await import('./safe-generate-reply.js');
+
+                  // Music tools need special handling - TTS + music coordination can take >3.5s
+                  const isMusicTool = jsonCall.fn.toLowerCase().includes('music');
+
+                  await safeGenerateReply(session, {
+                    instructions: `You just executed the ${jsonCall.fn} tool. Here's the result to share with the user naturally and conversationally (don't read it verbatim, summarize the key points):\n\n${resultText}`,
+                    allowInterruptions: true,
+                    context: `tool-result-${jsonCall.fn}`,
+                    // For music tools: don't wait for playout (TTS + music coordination can be slow)
+                    // For other tools: wait for playout to ensure user hears the result
+                    waitForPlayout: !isMusicTool,
+                    // Longer timeout for music tools since audio coordination takes time
+                    timeoutMs: isMusicTool ? 5500 : 3500,
+                    // Fallback message if LLM response fails
+                    fallbackMessage: isMusicTool ? "Here's some music for you." : 'Done!',
+                  });
+                  log.info(
+                    { fn: jsonCall.fn, isMusicTool },
+                    '✅ Tool result spoken via safeGenerateReply'
+                  );
+                } catch (speakErr) {
+                  log.warn(
+                    { fn: jsonCall.fn, error: String(speakErr) },
+                    '⚠️ Could not speak tool result via safeGenerateReply'
+                  );
+                }
+              } else {
+                // Fallback: try to enqueue if no session
+                log.warn(
+                  { fn: jsonCall.fn },
+                  '⚠️ No session available - attempting stream injection'
+                );
+                if (!streamClosed) {
+                  try {
+                    controller.enqueue(`${resultText} `);
+                  } catch (enqueueErr) {
+                    log.warn(
+                      { fn: jsonCall.fn, error: String(enqueueErr) },
+                      '⚠️ Stream injection failed'
+                    );
+                  }
+                }
+              }
             }
-          }
-        }).catch((err) => {
-          log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
-        });
-        
+          })
+          .catch((err) => {
+            log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+          });
+
         // Suppress the JSON text and trailing conversational text
         suppressMode = true;
         suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;
@@ -974,25 +1223,32 @@ export function createSanitizerWithMusicFallback(
         waitForMoreContext = false;
         return;
       }
-      
+
       // Check if this looks like a continuation of JSON/markdown (contains fn, args, query patterns)
-      const looksLikeJsonContinuation = /^[a-zA-Z]*["']?[:,}\]{"'`]/.test(trimmed) || 
-                                         trimmed.includes('"args"') || 
-                                         trimmed.includes('"query"') ||
-                                         trimmed.includes('"fn"') ||
-                                         trimmed.includes('```') ||
-                                         trimmed.includes('}}');
-      
+      const looksLikeJsonContinuation =
+        /^[a-zA-Z]*["']?[:,}\]{"'`]/.test(trimmed) ||
+        trimmed.includes('"args"') ||
+        trimmed.includes('"query"') ||
+        trimmed.includes('"fn"') ||
+        trimmed.includes('```') ||
+        trimmed.includes('}}');
+
       // Catch JSON/markdown continuation chunks
       if (looksLikeJsonContinuation && buffer.length < 80) {
-        log.debug({ preview: buffer.slice(0, 40) }, '🗑️ Suppressing JSON/markdown continuation chunk');
+        log.debug(
+          { preview: buffer.slice(0, 40) },
+          '🗑️ Suppressing JSON/markdown continuation chunk'
+        );
         buffer = '';
         return;
       }
 
       const detection = detectsFunctionCallLeakage(buffer);
       if (detection.detected) {
-        log.warn({ buffer, ...detection }, '🚨 STREAMING TOOL CALL LEAKAGE - Filtering malformed output');
+        log.warn(
+          { buffer, ...detection },
+          '🚨 STREAMING TOOL CALL LEAKAGE - Filtering malformed output'
+        );
 
         // Check if this is a music request that needs fallback execution
         const musicQuery = extractMusicQuery(buffer);
@@ -1045,6 +1301,10 @@ export function createSanitizerWithMusicFallback(
     },
 
     flush(controller: { enqueue: (s: string) => void }) {
+      // 🐛 FIX: Mark stream as closed FIRST to prevent race conditions
+      // Any pending async tool executions will see this flag and skip enqueue
+      streamClosed = true;
+
       if (buffer && !suppressMode) {
         const finalCheck = detectsFunctionCallLeakage(buffer);
         if (finalCheck.detected) {

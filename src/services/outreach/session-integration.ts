@@ -25,10 +25,7 @@ import {
   publishStreakProtectionAlert,
   publishMilestoneCelebration,
 } from './maya-habit-outreach.js';
-import {
-  evaluateTrustBasedOutreach,
-  handleConcernDetection,
-} from './trust-outreach-bridge.js';
+import { evaluateTrustBasedOutreach, handleConcernDetection } from './trust-outreach-bridge.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -381,11 +378,10 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
   if (wins.length > 0 && (satisfaction === 'positive' || !satisfaction)) {
     try {
       // Publish milestone celebration trigger via Pub/Sub
-      const result = await publishMilestoneTrigger(
-        userId,
-        wins[0],
-        { sessionId: data.sessionId, personaId }
-      );
+      const result = await publishMilestoneTrigger(userId, wins[0], {
+        sessionId: data.sessionId,
+        personaId,
+      });
       if (result.success) triggersCreated++;
     } catch (error) {
       log.warn({ error }, 'Failed to publish celebration trigger');
@@ -441,7 +437,10 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     try {
       const mayaResults = await analyzeMayaHabitSession(userId, data.sessionId);
       triggersCreated += mayaResults.triggersCreated;
-      log.debug({ userId, mayaTriggersCreated: mayaResults.triggersCreated }, '🌱 Maya habit session analyzed');
+      log.debug(
+        { userId, mayaTriggersCreated: mayaResults.triggersCreated },
+        '🌱 Maya habit session analyzed'
+      );
     } catch (error) {
       log.debug({ error: String(error), userId }, 'Maya habit session analysis failed (non-fatal)');
     }
@@ -459,7 +458,10 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
       );
     }
   } catch (error) {
-    log.debug({ error: String(error), userId }, 'Trust-based outreach evaluation failed (non-fatal)');
+    log.debug(
+      { error: String(error), userId },
+      'Trust-based outreach evaluation failed (non-fatal)'
+    );
   }
 
   // 💚 CONCERN DETECTION: If emotional state indicates concern, schedule follow-up
@@ -530,7 +532,7 @@ interface MayaHabitSessionResult {
 
 /**
  * Analyze a Maya session for habit-specific outreach triggers
- * 
+ *
  * This runs after any session with Maya to:
  * 1. Check if any habit milestones were just hit
  * 2. Schedule streak protection alerts for tonight
@@ -564,13 +566,13 @@ async function analyzeMayaHabitSession(
 
     // 2. Check for streaks at risk (schedule evening reminder)
     const hour = new Date().getHours();
-    
+
     // If it's afternoon or later, check streaks and schedule evening alert
     if (hour >= 12) {
       const atRisk = await checkStreaksAtRisk(userId);
       if (atRisk.atRisk) {
         result.streaksAtRisk = atRisk.habits.length;
-        
+
         // Only schedule evening alert if not already evening
         if (hour < 18) {
           for (const habit of atRisk.habits.slice(0, 2)) {
@@ -589,10 +591,7 @@ async function analyzeMayaHabitSession(
       }
     }
 
-    log.debug(
-      { userId, sessionId, ...result },
-      'Maya habit session analysis complete'
-    );
+    log.debug({ userId, sessionId, ...result }, 'Maya habit session analysis complete');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Maya habit session analysis error');
   }

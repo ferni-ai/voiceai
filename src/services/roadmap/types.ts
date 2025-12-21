@@ -85,4 +85,3 @@ export const STREAK_REWARDS = {
 
 export const MIN_BLOOM_THRESHOLD = 100;
 export const DEFAULT_BLOOM_THRESHOLD = 500;
-

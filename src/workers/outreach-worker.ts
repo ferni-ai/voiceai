@@ -299,7 +299,9 @@ export async function processPendingTriggers(
     );
 
     // Wait for processing to complete (with timeout)
-    await new Promise((resolve) => setTimeout(resolve, Math.min(cfg.maxMessages * 500, 60_000)));
+    await new Promise((resolve) => {
+      setTimeout(resolve, Math.min(cfg.maxMessages * 500, 60_000));
+    });
 
     // Unsubscribe after processing
     await client.unsubscribe('outreach-worker');
@@ -432,7 +434,7 @@ async function main(): Promise<void> {
 
 // Run if executed directly
 if (process.argv[1]?.includes('outreach-worker')) {
-  main();
+  void main();
 }
 
 export default {

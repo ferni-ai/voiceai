@@ -99,7 +99,8 @@ export async function loadLifeContext(userId: string): Promise<LifeContext> {
 
 async function loadLifePlanningContext(userId: string, context: LifeContext): Promise<void> {
   try {
-    const { getActiveGoals, getUpcomingMilestones } = await import('../life-planning/goal-management.js');
+    const { getActiveGoals, getUpcomingMilestones } =
+      await import('../life-planning/goal-management.js');
 
     // Load active goals
     const activeGoals = getActiveGoals(userId);

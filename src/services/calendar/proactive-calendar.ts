@@ -90,7 +90,8 @@ export async function getUpcomingBriefings(
     const briefings: PreMeetingBriefing[] = [];
 
     for (const event of dayEvents) {
-      const startTime = event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
+      const startTime =
+        event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
 
       // Only events starting within the window
       if (startTime < now || startTime > windowEnd) continue;
@@ -198,7 +199,11 @@ function generateBriefing(
 
   // Location tips
   if (event.location) {
-    if (event.location.includes('http') || event.location.includes('zoom') || event.location.includes('meet')) {
+    if (
+      event.location.includes('http') ||
+      event.location.includes('zoom') ||
+      event.location.includes('meet')
+    ) {
       prepTips.push('Test your audio and video');
     } else {
       prepTips.push(`Remember: This is at ${event.location}`);
@@ -206,7 +211,10 @@ function generateBriefing(
   }
 
   // Build summary
-  const time = new Date(event.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const time = new Date(event.startTime).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
   let summary = `"${event.title || 'Meeting'}" starts at ${time} (in ${minutesUntil} minutes)`;
 
   if (event.attendees && event.attendees.length > 0) {
@@ -332,7 +340,8 @@ export async function analyzeConflicts(
     const conflicts: CalendarEvent[] = [];
 
     for (const event of dayEvents) {
-      const eventStart = event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
+      const eventStart =
+        event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
       const eventEnd = event.endTime instanceof Date ? event.endTime : new Date(event.endTime);
 
       // Check for overlap
@@ -356,18 +365,21 @@ export async function analyzeConflicts(
 
     // Find alternatives
     const duration = Math.round((proposedEnd.getTime() - proposedStart.getTime()) / 60000);
-    const freeSlots = await findFreeTimeSlots(userId, proposedStart, { minDurationMinutes: duration });
+    const freeSlots = await findFreeTimeSlots(userId, proposedStart, {
+      minDurationMinutes: duration,
+    });
 
-    const suggestions = freeSlots.map(slot => ({
+    const suggestions = freeSlots.map((slot) => ({
       alternativeTime: slot.start,
       description: formatTimeSlot(slot.start, slot.end),
     }));
 
     // Build description
-    const conflictNames = conflicts.map(c => c.title || 'Event').slice(0, 2);
-    const description = conflicts.length === 1
-      ? `Conflicts with "${conflictNames[0]}"`
-      : `Conflicts with ${conflictNames.join(' and ')}${conflicts.length > 2 ? ` and ${conflicts.length - 2} more` : ''}`;
+    const conflictNames = conflicts.map((c) => c.title || 'Event').slice(0, 2);
+    const description =
+      conflicts.length === 1
+        ? `Conflicts with "${conflictNames[0]}"`
+        : `Conflicts with ${conflictNames.join(' and ')}${conflicts.length > 2 ? ` and ${conflicts.length - 2} more` : ''}`;
 
     return {
       hasConflict: true,
@@ -393,7 +405,7 @@ export async function analyzeConflicts(
  */
 function determineSeverity(conflicts: CalendarEvent[]): 'hard' | 'soft' | 'warning' {
   // Hard conflict = overlapping with confirmed, important meetings
-  const hasHardConflict = conflicts.some(event => {
+  const hasHardConflict = conflicts.some((event) => {
     const priority = calculateMeetingPriority(event);
     return priority === 'high' && event.status === 'confirmed';
   });
@@ -401,7 +413,7 @@ function determineSeverity(conflicts: CalendarEvent[]): 'hard' | 'soft' | 'warni
   if (hasHardConflict) return 'hard';
 
   // Soft conflict = overlapping with less important events
-  const hasSoftConflict = conflicts.some(event => event.status === 'confirmed');
+  const hasSoftConflict = conflicts.some((event) => event.status === 'confirmed');
 
   if (hasSoftConflict) return 'soft';
 
@@ -415,7 +427,11 @@ function determineSeverity(conflicts: CalendarEvent[]): 'hard' | 'soft' | 'warni
 function formatTimeSlot(start: Date, end: Date): string {
   const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const endTime = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  const day = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const day = start.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return `${day} ${startTime} - ${endTime}`;
 }
@@ -503,7 +519,7 @@ export async function findBestTimeFor(
     const today = new Date();
     const freeSlots = await findFreeTimeSlots(userId, today, { minDurationMinutes: duration });
 
-    const scoredSlots = freeSlots.map(slot => {
+    const scoredSlots = freeSlots.map((slot) => {
       let score = 0.5; // Base score
       const reasons: string[] = [];
 
@@ -554,4 +570,3 @@ export async function findBestTimeFor(
     return [];
   }
 }
-

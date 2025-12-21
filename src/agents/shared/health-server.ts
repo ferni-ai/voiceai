@@ -504,19 +504,59 @@ async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<v
             success: true,
             data: {
               pipeline: [
-                { stage: 'STT (Speech-to-Text)', target: '<50ms', description: 'Transcribes user speech' },
-                { stage: 'Message Analysis', target: '<50ms', description: 'Intent, emotion, safety checks' },
-                { stage: 'Context Building', target: '<100ms', description: 'Memory, persona, tools context' },
-                { stage: 'LLM (Gemini)', target: '<200ms TTFT', description: 'Generates response (biggest variable)' },
-                { stage: 'TTS (Cartesia)', target: '<150ms TTFB', description: 'Text to speech synthesis' },
-                { stage: 'Audio Playback', target: 'Immediate', description: 'WebRTC audio delivery' },
+                {
+                  stage: 'STT (Speech-to-Text)',
+                  target: '<50ms',
+                  description: 'Transcribes user speech',
+                },
+                {
+                  stage: 'Message Analysis',
+                  target: '<50ms',
+                  description: 'Intent, emotion, safety checks',
+                },
+                {
+                  stage: 'Context Building',
+                  target: '<100ms',
+                  description: 'Memory, persona, tools context',
+                },
+                {
+                  stage: 'LLM (Gemini)',
+                  target: '<200ms TTFT',
+                  description: 'Generates response (biggest variable)',
+                },
+                {
+                  stage: 'TTS (Cartesia)',
+                  target: '<150ms TTFB',
+                  description: 'Text to speech synthesis',
+                },
+                {
+                  stage: 'Audio Playback',
+                  target: 'Immediate',
+                  description: 'WebRTC audio delivery',
+                },
               ],
               totalTarget: '<400ms to first audio',
               commonIssues: [
-                { issue: 'Cold start', symptom: 'First response slow', fix: 'Instance warming up, wait for second turn' },
-                { issue: 'Complex query', symptom: 'Variable delay', fix: 'LLM needs more tokens for nuanced response' },
-                { issue: 'Tool execution', symptom: 'Pause before response', fix: 'Ferni checking calendar/habits/memories' },
-                { issue: 'Network latency', symptom: 'Consistent delay', fix: 'Check your internet connection' },
+                {
+                  issue: 'Cold start',
+                  symptom: 'First response slow',
+                  fix: 'Instance warming up, wait for second turn',
+                },
+                {
+                  issue: 'Complex query',
+                  symptom: 'Variable delay',
+                  fix: 'LLM needs more tokens for nuanced response',
+                },
+                {
+                  issue: 'Tool execution',
+                  symptom: 'Pause before response',
+                  fix: 'Ferni checking calendar/habits/memories',
+                },
+                {
+                  issue: 'Network latency',
+                  symptom: 'Consistent delay',
+                  fix: 'Check your internet connection',
+                },
               ],
               debugTips: [
                 'Enable frontend logging: window.ferniLatency.enable()',

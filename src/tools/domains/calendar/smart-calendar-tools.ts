@@ -804,8 +804,11 @@ const getPreMeetingBriefingDef: ToolDefinition = {
         }
 
         // Better Than Human: Relationship context
-        if (enrichedBriefing?.relationshipContext && enrichedBriefing.relationshipContext.length > 0) {
-          response += '**Who you\'re meeting:**\n';
+        if (
+          enrichedBriefing?.relationshipContext &&
+          enrichedBriefing.relationshipContext.length > 0
+        ) {
+          response += "**Who you're meeting:**\n";
           for (const ctx of enrichedBriefing.relationshipContext.slice(0, 3)) {
             const name = ctx.displayName || ctx.attendeeEmail.split('@')[0];
             let personNote = `- **${name}**`;
@@ -829,21 +832,33 @@ const getPreMeetingBriefingDef: ToolDefinition = {
         // Better Than Human: Past topics to reference
         if (enrichedBriefing?.pastTopics && enrichedBriefing.pastTopics.length > 0) {
           response += '**Topics from last time:**\n';
-          response += enrichedBriefing.pastTopics.slice(0, 3).map((t) => `- ${t}`).join('\n');
+          response += enrichedBriefing.pastTopics
+            .slice(0, 3)
+            .map((t) => `- ${t}`)
+            .join('\n');
           response += '\n\n';
         }
 
         // Better Than Human: Open commitments
         if (enrichedBriefing?.openCommitments && enrichedBriefing.openCommitments.length > 0) {
           response += '**Open items to follow up:**\n';
-          response += enrichedBriefing.openCommitments.slice(0, 3).map((c) => `- ${c}`).join('\n');
+          response += enrichedBriefing.openCommitments
+            .slice(0, 3)
+            .map((c) => `- ${c}`)
+            .join('\n');
           response += '\n\n';
         }
 
         // Suggested agenda items
-        if (enrichedBriefing?.suggestedAgendaItems && enrichedBriefing.suggestedAgendaItems.length > 0) {
+        if (
+          enrichedBriefing?.suggestedAgendaItems &&
+          enrichedBriefing.suggestedAgendaItems.length > 0
+        ) {
           response += '**Suggested talking points:**\n';
-          response += enrichedBriefing.suggestedAgendaItems.slice(0, 3).map((i) => `- ${i}`).join('\n');
+          response += enrichedBriefing.suggestedAgendaItems
+            .slice(0, 3)
+            .map((i) => `- ${i}`)
+            .join('\n');
           response += '\n';
         }
 
@@ -851,7 +866,10 @@ const getPreMeetingBriefingDef: ToolDefinition = {
           response += `\n📅 You also have ${briefings.length - 1} more meeting${briefings.length > 2 ? 's' : ''} coming up.`;
         }
 
-        log.info({ userId, briefingCount: briefings.length, enriched: !!enrichedBriefing }, 'Delivered enriched pre-meeting briefing');
+        log.info(
+          { userId, briefingCount: briefings.length, enriched: !!enrichedBriefing },
+          'Delivered enriched pre-meeting briefing'
+        );
         return response;
       },
     }),
@@ -927,9 +945,7 @@ const recordMeetingOutcomeDef: ToolDefinition = {
         meetingTitle: z.string().describe('Title or description of the meeting'),
         attendeeEmail: z.string().describe('Email of the main person they met with'),
         attendeeName: z.string().optional().describe('Name of the person if known'),
-        topics: z
-          .array(z.string())
-          .describe('Topics or subjects discussed in the meeting'),
+        topics: z.array(z.string()).describe('Topics or subjects discussed in the meeting'),
         commitmentsMade: z
           .array(z.string())
           .optional()
@@ -1146,7 +1162,11 @@ const smartRescheduleDef: ToolDefinition = {
               // Time of day preference
               if (params.preferredTimeOfDay === 'morning' && slotHour >= 9 && slotHour < 12) {
                 score += 20;
-              } else if (params.preferredTimeOfDay === 'afternoon' && slotHour >= 12 && slotHour < 17) {
+              } else if (
+                params.preferredTimeOfDay === 'afternoon' &&
+                slotHour >= 12 &&
+                slotHour < 17
+              ) {
                 score += 20;
               } else if (params.preferredTimeOfDay === 'evening' && slotHour >= 17) {
                 score += 20;
@@ -1170,7 +1190,9 @@ const smartRescheduleDef: ToolDefinition = {
               }
 
               // Prefer sooner rather than later (slight bias)
-              const daysOut = Math.floor((slot.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const daysOut = Math.floor(
+                (slot.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+              );
               score -= daysOut * 2;
 
               return { slot, score };
@@ -1198,7 +1220,10 @@ const smartRescheduleDef: ToolDefinition = {
             const slot = scored.slot;
             const dayName = slot.start.toLocaleDateString('en-US', { weekday: 'long' });
             const date = slot.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const time = slot.start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const time = slot.start.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            });
 
             let reason = '';
             if (loadFactors.lightestDayThisWeek === dayName) {

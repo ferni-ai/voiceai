@@ -383,11 +383,7 @@ class CreativeYouPersistence {
   /**
    * Save topic history for a user
    */
-  async saveTopicHistory(
-    userId: string,
-    topics: string[],
-    sessionId: string
-  ): Promise<void> {
+  async saveTopicHistory(userId: string, topics: string[], sessionId: string): Promise<void> {
     await this.ensureInitialized();
 
     // Load existing history

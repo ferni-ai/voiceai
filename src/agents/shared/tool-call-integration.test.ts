@@ -31,9 +31,14 @@ const PROJECT_ROOT = findProjectRoot();
 
 describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
   const baseIdentityPath = join(PROJECT_ROOT, 'src/personas/base-identity.ts');
-  const ferniPromptPath = join(
+  // New architecture: shared base + persona specialty
+  const sharedFunctionCallingPath = join(
     PROJECT_ROOT,
-    'src/personas/bundles/ferni/identity/function-calling.md'
+    'src/personas/bundles/shared/function-calling-base.md'
+  );
+  const ferniSpecialtyPath = join(
+    PROJECT_ROOT,
+    'src/personas/bundles/ferni/identity/function-calling-specialty.md'
   );
 
   test('base-identity.ts contains critical tool calling rules', () => {
@@ -76,8 +81,8 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
     expect(content).toContain("you don't SAY you're calling it");
   });
 
-  test('ferni function-calling.md has silent execution instructions', () => {
-    const content = readFileSync(ferniPromptPath, 'utf-8');
+  test('shared function-calling-base.md has silent execution instructions', () => {
+    const content = readFileSync(sharedFunctionCallingPath, 'utf-8');
 
     // Must have function calling guidance
     expect(content.toLowerCase()).toContain('function');
@@ -90,17 +95,27 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
 
     expect(hasSilentInstruction).toBe(true);
 
-    console.log('✅ ferni function-calling.md has silent execution instructions');
+    console.log('✅ shared function-calling-base.md has silent execution instructions');
   });
 
-  test('ferni prompt shows tool call patterns', () => {
-    const content = readFileSync(ferniPromptPath, 'utf-8');
+  test('shared function-calling-base.md shows tool call patterns', () => {
+    const content = readFileSync(sharedFunctionCallingPath, 'utf-8');
 
     // Should have JSON examples for function calls
     expect(content).toContain('"fn"');
     expect(content).toContain('"args"');
 
-    console.log('✅ ferni prompt shows function call JSON patterns');
+    console.log('✅ shared function-calling-base.md shows function call JSON patterns');
+  });
+
+  test('ferni specialty file exists and contains persona-specific tools', () => {
+    const content = readFileSync(ferniSpecialtyPath, 'utf-8');
+
+    // Should have ferni-specific tools
+    expect(content.toLowerCase()).toContain('ferni');
+    expect(content).toContain('"fn"');
+
+    console.log('✅ ferni specialty file contains persona-specific tools');
   });
 });
 

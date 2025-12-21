@@ -11,7 +11,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { parseNaturalDate, suggestTimes, isValidForScheduling, type ParsedDateTime } from './natural-date-parser.js';
+import {
+  parseNaturalDate,
+  suggestTimes,
+  isValidForScheduling,
+  type ParsedDateTime,
+} from './natural-date-parser.js';
 import {
   isTimeSlotAvailable,
   getEventsForDay,
@@ -118,7 +123,7 @@ export async function parseEventRequest(
     return {
       success: false,
       needsClarification: true,
-      clarificationPrompt: "What would you like to call this event?",
+      clarificationPrompt: 'What would you like to call this event?',
     };
   }
 
@@ -172,8 +177,9 @@ export async function parseEventRequest(
   if (!isAvailable) {
     // Find conflicts
     const dayEvents = await getEventsForDay(userId, pending.proposedStart);
-    const conflicts = dayEvents.filter(event => {
-      const eventStart = event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
+    const conflicts = dayEvents.filter((event) => {
+      const eventStart =
+        event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
       const eventEnd = event.endTime instanceof Date ? event.endTime : new Date(event.endTime);
       return pending.proposedStart! < eventEnd && pending.proposedEnd! > eventStart;
     });
@@ -182,14 +188,19 @@ export async function parseEventRequest(
     pending.conflicts = conflicts;
 
     // Find alternative times
-    const freeSlots = await findFreeTimeSlots(userId, pending.proposedStart!, { minDurationMinutes: duration });
-    pending.suggestions = freeSlots.slice(0, 3).map(slot => slot.start);
+    const freeSlots = await findFreeTimeSlots(userId, pending.proposedStart!, {
+      minDurationMinutes: duration,
+    });
+    pending.suggestions = freeSlots.slice(0, 3).map((slot) => slot.start);
 
     pendingEvents.set(pending.id, pending);
 
     const conflictEvent = conflicts[0];
     const conflictTime = conflictEvent
-      ? new Date(conflictEvent.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      ? new Date(conflictEvent.startTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        })
       : 'that time';
 
     return {
@@ -248,7 +259,8 @@ export async function clarifyEventTime(
     return {
       success: false,
       needsClarification: true,
-      clarificationPrompt: "I couldn't understand that time. Could you try something like '3pm tomorrow' or 'next Tuesday at 2'?",
+      clarificationPrompt:
+        "I couldn't understand that time. Could you try something like '3pm tomorrow' or 'next Tuesday at 2'?",
     };
   }
 
@@ -266,8 +278,9 @@ export async function clarifyEventTime(
 
   if (!isAvailable) {
     const dayEvents = await getEventsForDay(pending.userId, pending.proposedStart);
-    const conflicts = dayEvents.filter(event => {
-      const eventStart = event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
+    const conflicts = dayEvents.filter((event) => {
+      const eventStart =
+        event.startTime instanceof Date ? event.startTime : new Date(event.startTime);
       const eventEnd = event.endTime instanceof Date ? event.endTime : new Date(event.endTime);
       return pending.proposedStart! < eventEnd && pending.proposedEnd! > eventStart;
     });
@@ -275,8 +288,10 @@ export async function clarifyEventTime(
     pending.status = 'conflict';
     pending.conflicts = conflicts;
 
-    const freeSlots = await findFreeTimeSlots(pending.userId, pending.proposedStart!, { minDurationMinutes: pending.duration });
-    pending.suggestions = freeSlots.slice(0, 3).map(slot => slot.start);
+    const freeSlots = await findFreeTimeSlots(pending.userId, pending.proposedStart!, {
+      minDurationMinutes: pending.duration,
+    });
+    pending.suggestions = freeSlots.slice(0, 3).map((slot) => slot.start);
 
     pendingEvents.set(pending.id, pending);
 
@@ -327,7 +342,7 @@ export async function confirmEvent(pendingId: string): Promise<ConfirmEventResul
     return {
       success: false,
       error: 'Missing event times',
-      speakableResponse: "I need a time for this event. When would you like to schedule it?",
+      speakableResponse: 'I need a time for this event. When would you like to schedule it?',
     };
   }
 
@@ -355,8 +370,15 @@ export async function confirmEvent(pendingId: string): Promise<ConfirmEventResul
 
     pending.status = 'confirmed';
 
-    const time = pending.proposedStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    const date = pending.proposedStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const time = pending.proposedStart.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    const date = pending.proposedStart.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
 
     return {
       success: true,
@@ -368,7 +390,7 @@ export async function confirmEvent(pendingId: string): Promise<ConfirmEventResul
     return {
       success: false,
       error: String(error),
-      speakableResponse: "Something went wrong creating that event. Please try again.",
+      speakableResponse: 'Something went wrong creating that event. Please try again.',
     };
   }
 }
@@ -376,13 +398,16 @@ export async function confirmEvent(pendingId: string): Promise<ConfirmEventResul
 /**
  * Cancel a pending event
  */
-export function cancelPendingEvent(pendingId: string): { success: boolean; speakableResponse: string } {
+export function cancelPendingEvent(pendingId: string): {
+  success: boolean;
+  speakableResponse: string;
+} {
   const pending = pendingEvents.get(pendingId);
 
   if (!pending) {
     return {
       success: false,
-      speakableResponse: "No problem! Let me know if you want to schedule something else.",
+      speakableResponse: 'No problem! Let me know if you want to schedule something else.',
     };
   }
 
@@ -405,7 +430,7 @@ export function getPendingEvent(pendingId: string): PendingEvent | undefined {
  * Get all pending events for a user
  */
 export function getUserPendingEvents(userId: string): PendingEvent[] {
-  return Array.from(pendingEvents.values()).filter(e => e.userId === userId);
+  return Array.from(pendingEvents.values()).filter((e) => e.userId === userId);
 }
 
 // ============================================================================
@@ -437,11 +462,15 @@ function extractEventDetails(
 
   // Extract location (after "at" that isn't followed by a time)
   let location: string | undefined;
-  const locationMatch = input.match(/(?:at|in)\s+([^0-9][^,\n]+?)(?:,|\s+(?:at|on|for|tomorrow|today|next)|$)/i);
+  const locationMatch = input.match(
+    /(?:at|in)\s+([^0-9][^,\n]+?)(?:,|\s+(?:at|on|for|tomorrow|today|next)|$)/i
+  );
   if (locationMatch && !locationMatch[1].match(/^\d/)) {
     const possibleLocation = locationMatch[1].trim();
     // Filter out time-related words
-    if (!['morning', 'noon', 'afternoon', 'evening', 'night'].includes(possibleLocation.toLowerCase())) {
+    if (
+      !['morning', 'noon', 'afternoon', 'evening', 'night'].includes(possibleLocation.toLowerCase())
+    ) {
       location = possibleLocation;
     }
   }
@@ -473,15 +502,19 @@ function extractEventDetails(
 function buildConflictPrompt(pending: PendingEvent, conflicts: CalendarEvent[]): string {
   const conflictEvent = conflicts[0];
   const conflictTime = conflictEvent
-    ? new Date(conflictEvent.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    ? new Date(conflictEvent.startTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
     : 'that time';
 
   let prompt = `That time conflicts with "${conflictEvent?.title || 'another event'}" at ${conflictTime}. `;
 
   if (pending.suggestions && pending.suggestions.length > 0) {
-    const alternatives = pending.suggestions.slice(0, 2).map(d =>
-      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    ).join(' or ');
+    const alternatives = pending.suggestions
+      .slice(0, 2)
+      .map((d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
+      .join(' or ');
     prompt += `How about ${alternatives} instead?`;
   } else {
     prompt += 'When else would work for you?';
@@ -504,8 +537,15 @@ function buildAmbiguousTimePrompt(pending: PendingEvent, parsed: ParsedDateTime)
 function buildConfirmationPrompt(pending: PendingEvent): string {
   if (!pending.proposedStart) return `Ready to schedule "${pending.title}"?`;
 
-  const time = pending.proposedStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  const date = pending.proposedStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const time = pending.proposedStart.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  const date = pending.proposedStart.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 
   let prompt = `I'll schedule "${pending.title}" for ${time} on ${date}`;
 
@@ -513,12 +553,12 @@ function buildConfirmationPrompt(pending: PendingEvent): string {
     prompt += ` at ${pending.location}`;
   }
 
-  const duration = pending.duration >= 60
-    ? `${pending.duration / 60} hour${pending.duration > 60 ? 's' : ''}`
-    : `${pending.duration} minutes`;
+  const duration =
+    pending.duration >= 60
+      ? `${pending.duration / 60} hour${pending.duration > 60 ? 's' : ''}`
+      : `${pending.duration} minutes`;
 
   prompt += ` for ${duration}. Sound good?`;
 
   return prompt;
 }
-

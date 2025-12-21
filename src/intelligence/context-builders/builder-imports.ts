@@ -117,9 +117,9 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'trust-context': () => import('./trust-context.js'),
   'relationship-behaviors': () => import('./relationship-behaviors.js'),
   'session-flow': () => import('./session-flow.js'),
-    'calendar-awareness': () => import('./calendar-awareness.js'),
-    'contact-awareness': () => import('./contact-awareness.js'),
-    'message-review-awareness': () => import('./message-review-awareness.js'), // Alex: calendar snapshot for scheduling
+  'calendar-awareness': () => import('./calendar-awareness.js'),
+  'contact-awareness': () => import('./contact-awareness.js'),
+  'message-review-awareness': () => import('./message-review-awareness.js'), // Alex: calendar snapshot for scheduling
   goodbye: () => import('./goodbye.js'),
   rag: () => import('./rag.js'),
   tasks: () => import('./tasks.js'),
@@ -131,6 +131,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'social-relationships': () => import('./social-relationships.js'),
   'world-awareness': () => import('./world-awareness.js'),
   'personal-journey': () => import('./personal-journey.js'),
+  'macos-context': () => import('./macos-context.js'), // macOS menubar app context
 
   // HUMANIZING
   'unified-humanizing': () => import('./unified-humanizing.js'), // Consolidated humanization orchestrator

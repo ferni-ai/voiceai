@@ -119,7 +119,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Budgeting',
       aliases: ['spending plan', 'money management', 'expense tracking'],
-      definition: 'Creating a plan for how to allocate income across expenses, savings, and investments.',
+      definition:
+        'Creating a plan for how to allocate income across expenses, savings, and investments.',
       context: {
         domain: 'basics',
         subdomains: ['planning', 'cash flow'],
@@ -179,7 +180,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'metric',
       name: 'Net Worth',
       aliases: ['wealth', 'total assets minus liabilities'],
-      definition: 'Total assets minus total liabilities - the clearest measure of financial health.',
+      definition:
+        'Total assets minus total liabilities - the clearest measure of financial health.',
       context: {
         domain: 'basics',
         subdomains: ['wealth measurement', 'tracking'],
@@ -243,7 +245,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Diversification',
       aliases: ['not putting all eggs in one basket', 'spreading risk'],
-      definition: 'Spreading investments across different assets to reduce risk from any single investment.',
+      definition:
+        'Spreading investments across different assets to reduce risk from any single investment.',
       context: {
         domain: 'investing',
         subdomains: ['risk management', 'portfolio construction'],
@@ -306,7 +309,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Asset Allocation',
       aliases: ['portfolio mix', 'stocks/bonds split', 'investment mix'],
-      definition: 'The strategic division of investments across asset classes based on goals and risk tolerance.',
+      definition:
+        'The strategic division of investments across asset classes based on goals and risk tolerance.',
       context: {
         domain: 'investing',
         subdomains: ['portfolio construction', 'risk management'],
@@ -321,7 +325,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       commonMisunderstandings: [
         "One size fits all (it doesn't)",
         'Never needs adjusting (rebalance annually)',
-        "More stocks always = more wealth (sequence of returns risk)",
+        'More stocks always = more wealth (sequence of returns risk)',
       ],
       metadata: {
         confidence: 1.0,
@@ -338,7 +342,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'metric',
       name: 'Expense Ratio',
       aliases: ['fund fees', 'management fee', 'TER'],
-      definition: 'Annual fee charged by funds as a percentage of assets, directly reducing returns.',
+      definition:
+        'Annual fee charged by funds as a percentage of assets, directly reducing returns.',
       context: {
         domain: 'investing',
         subdomains: ['costs', 'fund selection'],
@@ -371,7 +376,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Rebalancing',
       aliases: ['portfolio rebalancing', 'allocation adjustment'],
-      definition: 'Periodically adjusting portfolio back to target allocation as assets grow at different rates.',
+      definition:
+        'Periodically adjusting portfolio back to target allocation as assets grow at different rates.',
       context: {
         domain: 'investing',
         subdomains: ['portfolio management', 'risk control'],
@@ -434,7 +440,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Risk Tolerance',
       aliases: ['risk capacity', 'risk appetite', 'investment temperament'],
-      definition: 'Your ability and willingness to accept investment volatility and potential losses.',
+      definition:
+        'Your ability and willingness to accept investment volatility and potential losses.',
       context: {
         domain: 'investing',
         subdomains: ['behavioral finance', 'portfolio construction'],
@@ -500,7 +507,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'metric',
       name: 'Price-to-Earnings Ratio',
       aliases: ['P/E', 'PE ratio', 'earnings multiple'],
-      definition: 'Stock price divided by earnings per share - measures how much you pay per dollar of earnings.',
+      definition:
+        'Stock price divided by earnings per share - measures how much you pay per dollar of earnings.',
       context: {
         domain: 'valuation',
         subdomains: ['fundamentals', 'stock analysis'],
@@ -562,13 +570,18 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'metric',
       name: 'Dividend Yield',
       aliases: ['yield', 'dividend percentage'],
-      definition: 'Annual dividend per share divided by stock price - income generated per dollar invested.',
+      definition:
+        'Annual dividend per share divided by stock price - income generated per dollar invested.',
       context: {
         domain: 'valuation',
         subdomains: ['income investing', 'dividends'],
         difficulty: 'beginner',
       },
-      examples: ['S&P 500 average: ~1.5-2%', 'REITs: often 4-8%', 'Dividend aristocrats: stable, growing'],
+      examples: [
+        'S&P 500 average: ~1.5-2%',
+        'REITs: often 4-8%',
+        'Dividend aristocrats: stable, growing',
+      ],
       relatedMetrics: ['Payout ratio', 'Dividend growth rate'],
       ranges: {
         low: 0.5,
@@ -650,7 +663,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Loss Aversion',
       aliases: ['fear of loss', 'loss hurts more than gains feel good'],
-      definition: 'Psychological tendency where losses feel about 2x as painful as equivalent gains feel good.',
+      definition:
+        'Psychological tendency where losses feel about 2x as painful as equivalent gains feel good.',
       context: {
         domain: 'behavior',
         subdomains: ['behavioral finance', 'psychology'],
@@ -681,7 +695,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Recency Bias',
       aliases: ['recency effect', 'recent performance bias'],
-      definition: 'Tendency to weigh recent events more heavily than historical data when making decisions.',
+      definition:
+        'Tendency to weigh recent events more heavily than historical data when making decisions.',
       context: {
         domain: 'behavior',
         subdomains: ['behavioral finance', 'cognitive bias'],
@@ -712,7 +727,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Confirmation Bias',
       aliases: ['seeking confirming evidence', 'cherry-picking data'],
-      definition: "Tendency to search for, interpret, and remember information that confirms one's preexisting beliefs.",
+      definition:
+        "Tendency to search for, interpret, and remember information that confirms one's preexisting beliefs.",
       context: {
         domain: 'behavior',
         subdomains: ['behavioral finance', 'cognitive bias'],
@@ -726,7 +742,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       commonMisunderstandings: [
         "Being objective means you don't have this bias",
         'More research eliminates it',
-        "It only affects other people",
+        'It only affects other people',
       ],
       metadata: {
         confidence: 1.0,
@@ -743,7 +759,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'Herd Behavior',
       aliases: ['following the crowd', 'FOMO investing', 'social proof'],
-      definition: "Tendency to follow what others are doing, assuming they must know something you don't.",
+      definition:
+        "Tendency to follow what others are doing, assuming they must know something you don't.",
       context: {
         domain: 'behavior',
         subdomains: ['behavioral finance', 'market psychology'],
@@ -842,7 +859,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'concept',
       name: 'FIRE Number',
       aliases: ['financial independence number', 'retirement number', 'FI number'],
-      definition: 'The amount of invested assets needed to live indefinitely off investment returns.',
+      definition:
+        'The amount of invested assets needed to live indefinitely off investment returns.',
       context: {
         domain: 'fire',
         subdomains: ['financial independence', 'retirement planning'],
@@ -938,7 +956,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       name: 'Coast FIRE',
       aliases: ['coast financial independence', 'compound coasting'],
       definition:
-        "Having enough invested that you no longer need to save more - compounding will get you to full FIRE.",
+        'Having enough invested that you no longer need to save more - compounding will get you to full FIRE.',
       context: {
         domain: 'fire',
         subdomains: ['financial independence variants', 'milestones'],
@@ -973,7 +991,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'metric',
       name: 'Beta',
       aliases: ['market beta', 'systematic risk measure'],
-      definition: "Measure of a stock's volatility relative to the overall market. Beta 1 = moves with market.",
+      definition:
+        "Measure of a stock's volatility relative to the overall market. Beta 1 = moves with market.",
       context: {
         domain: 'risk',
         subdomains: ['volatility', 'portfolio analysis'],
@@ -1014,7 +1033,11 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
         subdomains: ['portfolio analysis', 'risk-adjusted returns'],
         difficulty: 'advanced',
       },
-      examples: ['Sharpe > 1 is good', 'S&P 500 historical: ~0.5-0.9', 'Comparing fund performance'],
+      examples: [
+        'Sharpe > 1 is good',
+        'S&P 500 historical: ~0.5-0.9',
+        'Comparing fund performance',
+      ],
       relatedMetrics: ['Sortino ratio', 'Standard deviation', 'Alpha'],
       ranges: {
         low: 0.3,
@@ -1101,7 +1124,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       name: "Bogle's Cost Matters Hypothesis",
       aliases: ['costs matter', 'expense ratios matter', "you get what you don't pay for"],
       definition:
-        "In investing, gross returns minus costs equals net returns. Lower costs = higher returns.",
+        'In investing, gross returns minus costs equals net returns. Lower costs = higher returns.',
       source: 'John Bogle',
       context: {
         domain: 'principles',
@@ -1115,7 +1138,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       ],
       metadata: {
         confidence: 1.0,
-        sources: ['John Bogle', "The Little Book of Common Sense Investing"],
+        sources: ['John Bogle', 'The Little Book of Common Sense Investing'],
         lastVerified: now,
         timesReferenced: 0,
         helpfulnessScore: 0.96,
@@ -1139,7 +1162,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       examples: [
         '2008-2009: Those who stayed recovered by 2013',
         '2020 March: 30% drop recovered in months',
-        "Markets reward patience, punish panic",
+        'Markets reward patience, punish panic',
       ],
       metadata: {
         confidence: 1.0,
@@ -1184,8 +1207,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       type: 'principle',
       name: 'Margin of Safety',
       aliases: ['safety margin', 'conservative valuation'],
-      definition:
-        'Only investing when the price is significantly below estimated intrinsic value.',
+      definition: 'Only investing when the price is significantly below estimated intrinsic value.',
       source: 'Benjamin Graham',
       context: {
         domain: 'principles',
@@ -1220,7 +1242,7 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
         difficulty: 'intermediate',
       },
       examples: [
-        "Mr. Market offers high prices when euphoric, low when depressed",
+        'Mr. Market offers high prices when euphoric, low when depressed',
         "You don't have to trade - you can ignore him",
         "His mood doesn't change the business value",
       ],
@@ -1353,7 +1375,11 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
         subdomains: ['creditworthiness', 'borrowing capacity'],
         difficulty: 'beginner',
       },
-      examples: ['<36% generally considered healthy', 'Lenders use for mortgage approval', '43% often max for mortgages'],
+      examples: [
+        '<36% generally considered healthy',
+        'Lenders use for mortgage approval',
+        '43% often max for mortgages',
+      ],
       relatedMetrics: ['Credit utilization', 'FICO score'],
       ranges: {
         low: 20,
@@ -1424,8 +1450,8 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
       ],
       commonMisunderstandings: [
         'Recessions destroy wealth permanently',
-        "You can predict them accurately",
-        "Getting out before and back in after is easy",
+        'You can predict them accurately',
+        'Getting out before and back in after is easy',
       ],
       metadata: {
         confidence: 1.0,
@@ -1506,7 +1532,11 @@ export function getFinancialSeedNodes(): KnowledgeNode[] {
         subdomains: ['technical analysis', 'momentum'],
         difficulty: 'intermediate',
       },
-      examples: ['RSI > 70: potentially overbought', 'RSI < 30: potentially oversold', 'Used for timing, not valuation'],
+      examples: [
+        'RSI > 70: potentially overbought',
+        'RSI < 30: potentially oversold',
+        'Used for timing, not valuation',
+      ],
       relatedMetrics: ['MACD', 'Moving average'],
       ranges: {
         low: 30,

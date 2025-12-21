@@ -323,7 +323,17 @@ export async function getSuperhumanMemoryContext(
  * Extract dominant emotion from emotional arc
  */
 function extractDominantEmotion(arc: string): string {
-  const emotions = ['anxious', 'stressed', 'frustrated', 'curious', 'hopeful', 'excited', 'calm', 'reflective', 'overwhelmed'];
+  const emotions = [
+    'anxious',
+    'stressed',
+    'frustrated',
+    'curious',
+    'hopeful',
+    'excited',
+    'calm',
+    'reflective',
+    'overwhelmed',
+  ];
   const arcLower = arc.toLowerCase();
 
   // Check for "ended X" pattern first (final state matters most)
@@ -504,5 +514,3 @@ export async function getMemoryEnhancedReasons(
   await Promise.all(promises);
   return results;
 }
-
-

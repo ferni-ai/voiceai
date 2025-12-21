@@ -141,7 +141,7 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
       },
       {
         name: 'High-quality water bottle or gear',
-        description: 'Premium workout essentials they\'ll use daily',
+        description: "Premium workout essentials they'll use daily",
         category: 'practical',
         priceRanges: ['thoughtful', 'moderate'],
         whereToBuy: ['Hydro Flask', 'Yeti', 'Lululemon'],
@@ -219,7 +219,7 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
         category: 'personalized',
         priceRanges: ['thoughtful', 'moderate'],
         whereToBuy: ['Etsy', 'National Geographic Store'],
-        personalizeHow: 'Mark places they\'ve been or want to go',
+        personalizeHow: "Mark places they've been or want to go",
       },
       {
         name: 'Language learning subscription',
@@ -276,17 +276,17 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
       },
       {
         name: 'Quality gardening tools',
-        description: 'Beautiful, durable tools they\'ll use for years',
+        description: "Beautiful, durable tools they'll use for years",
         category: 'practical',
         priceRanges: ['moderate', 'generous'],
-        whereToBuy: ['Gardener\'s Supply', 'Terrain', 'Barebones'],
+        whereToBuy: ["Gardener's Supply", 'Terrain', 'Barebones'],
       },
       {
         name: 'Seed subscription or heirloom seeds',
         description: 'Interesting varieties to grow',
         category: 'hobby',
         priceRanges: ['thoughtful', 'moderate'],
-        whereToBuy: ['Baker Creek', 'Johnny\'s Seeds', 'Seed Savers Exchange'],
+        whereToBuy: ['Baker Creek', "Johnny's Seeds", 'Seed Savers Exchange'],
       },
     ],
   },
@@ -324,7 +324,7 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
         description: 'Premium materials in their medium',
         category: 'hobby',
         priceRanges: ['moderate', 'generous'],
-        whereToBuy: ['Blick Art', 'Jerry\'s Artarama', 'Michaels'],
+        whereToBuy: ['Blick Art', "Jerry's Artarama", 'Michaels'],
       },
       {
         name: 'Art class or workshop',
@@ -354,7 +354,7 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
       },
       {
         name: 'Premium bottle selection',
-        description: 'A special bottle they wouldn\'t buy themselves',
+        description: "A special bottle they wouldn't buy themselves",
         category: 'food_drink',
         priceRanges: ['moderate', 'generous', 'splurge'],
         whereToBuy: ['Local wine shops', 'Total Wine', 'K&L Wine'],
@@ -374,11 +374,14 @@ const INTEREST_GIFT_MAPPINGS: InterestGiftMap[] = [
 // RELATIONSHIP-BASED DEFAULTS
 // ============================================================================
 
-const RELATIONSHIP_GIFT_STYLES: Record<RelationshipType, {
-  categories: GiftCategory[];
-  defaultBudget: BudgetRange;
-  personalTouch: string;
-}> = {
+const RELATIONSHIP_GIFT_STYLES: Record<
+  RelationshipType,
+  {
+    categories: GiftCategory[];
+    defaultBudget: BudgetRange;
+    personalTouch: string;
+  }
+> = {
   family: {
     categories: ['personalized', 'experiences', 'practical', 'homemade'],
     defaultBudget: 'generous',
@@ -438,7 +441,8 @@ export function generateGiftRecommendations(
   occasion: OutreachOccasion,
   budget?: BudgetRange
 ): GiftRecommendation {
-  const relationshipStyle = RELATIONSHIP_GIFT_STYLES[contact.relationship] || RELATIONSHIP_GIFT_STYLES.other;
+  const relationshipStyle =
+    RELATIONSHIP_GIFT_STYLES[contact.relationship] || RELATIONSHIP_GIFT_STYLES.other;
   const selectedBudget = budget || relationshipStyle.defaultBudget;
   const budgetInfo = BUDGET_RANGES[selectedBudget];
 
@@ -447,9 +451,10 @@ export function generateGiftRecommendations(
 
   for (const mapping of INTEREST_GIFT_MAPPINGS) {
     const hasMatchingInterest = contact.interests.some((interest) =>
-      mapping.interests.some((mappedInterest) =>
-        interest.toLowerCase().includes(mappedInterest) ||
-        mappedInterest.includes(interest.toLowerCase())
+      mapping.interests.some(
+        (mappedInterest) =>
+          interest.toLowerCase().includes(mappedInterest) ||
+          mappedInterest.includes(interest.toLowerCase())
       )
     );
 
@@ -460,8 +465,8 @@ export function generateGiftRecommendations(
 
         // Find which interest matched
         const matchedInterest = contact.interests.find((interest) =>
-          mapping.interests.some((mi) =>
-            interest.toLowerCase().includes(mi) || mi.includes(interest.toLowerCase())
+          mapping.interests.some(
+            (mi) => interest.toLowerCase().includes(mi) || mi.includes(interest.toLowerCase())
           )
         );
 
@@ -650,10 +655,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
 /**
  * Record a gift given (to avoid suggesting the same thing again)
  */
-export async function recordGiftGiven(
-  userId: string,
-  gift: Omit<PastGift, 'date'>
-): Promise<void> {
+export async function recordGiftGiven(userId: string, gift: Omit<PastGift, 'date'>): Promise<void> {
   const firestore = await getFirestore();
   if (!firestore) return;
 
@@ -676,10 +678,7 @@ export async function recordGiftGiven(
 /**
  * Get past gifts for a contact (to avoid repeats)
  */
-export async function getPastGifts(
-  userId: string,
-  contactId: string
-): Promise<PastGift[]> {
+export async function getPastGifts(userId: string, contactId: string): Promise<PastGift[]> {
   const firestore = await getFirestore();
   if (!firestore) return [];
 
@@ -718,4 +717,3 @@ export const giftSuggestions = {
 };
 
 export default giftSuggestions;
-

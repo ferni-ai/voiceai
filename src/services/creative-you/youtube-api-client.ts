@@ -301,9 +301,9 @@ function generateDiscussionPrompts(title: string, description: string): string[]
 
   // Warm, curious prompts (not interview questions)
   const openingPrompts = [
-    "What part stuck with you?",
-    "Did anything surprise you?",
-    "What would you push back on?",
+    'What part stuck with you?',
+    'Did anything surprise you?',
+    'What would you push back on?',
   ];
   prompts.push(openingPrompts[Math.floor(Math.random() * openingPrompts.length)]);
 
@@ -313,29 +313,29 @@ function generateDiscussionPrompts(title: string, description: string): string[]
   const combined = lowerTitle + ' ' + lowerDesc;
 
   if (combined.includes('habit') || combined.includes('routine')) {
-    prompts.push("Would you actually try this? Be honest.");
+    prompts.push('Would you actually try this? Be honest.');
   }
   if (combined.includes('anxiety') || combined.includes('stress')) {
-    prompts.push("Does this land, or does it feel like advice that misses the mark?");
+    prompts.push('Does this land, or does it feel like advice that misses the mark?');
   }
   if (combined.includes('productivity') || combined.includes('focus')) {
-    prompts.push("What would your biggest obstacle be if you tried this?");
+    prompts.push('What would your biggest obstacle be if you tried this?');
   }
   if (combined.includes('relationship') || combined.includes('communication')) {
-    prompts.push("Who came to mind while watching this?");
+    prompts.push('Who came to mind while watching this?');
   }
   if (combined.includes('purpose') || combined.includes('meaning')) {
-    prompts.push("Does this change anything for you, or confirm what you already knew?");
+    prompts.push('Does this change anything for you, or confirm what you already knew?');
   }
   if (combined.includes('creativity') || combined.includes('creative')) {
-    prompts.push("What would you make with this idea?");
+    prompts.push('What would you make with this idea?');
   }
 
   // Closing prompt (warm, forward-looking)
   const closingPrompts = [
     "What's one thing you'd tell them if you could?",
-    "How does this sit with you now versus when it started?",
-    "Anything you want to come back to later?",
+    'How does this sit with you now versus when it started?',
+    'Anything you want to come back to later?',
   ];
   prompts.push(closingPrompts[Math.floor(Math.random() * closingPrompts.length)]);
 
@@ -555,4 +555,3 @@ export function clearYouTubeCache(): void {
 // ============================================================================
 
 export { TRUSTED_CHANNELS, TOPIC_SEARCH_QUERIES };
-

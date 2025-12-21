@@ -74,36 +74,30 @@ const DEFAULT_TTS_CONFIG: TTSConfig = {
 /**
  * Generate speech audio from text using ElevenLabs
  */
-async function generateSpeechElevenLabs(
-  text: string,
-  config: TTSConfig
-): Promise<Buffer> {
+async function generateSpeechElevenLabs(text: string, config: TTSConfig): Promise<Buffer> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     throw new Error('ElevenLabs API key not configured');
   }
 
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`,
-    {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
+  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'audio/mpeg',
+    },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_monolingual_v1',
+      voice_settings: {
+        stability: config.stability || 0.5,
+        similarity_boost: config.similarityBoost || 0.75,
+        style: config.style || 0,
+        use_speaker_boost: true,
       },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: config.stability || 0.5,
-          similarity_boost: config.similarityBoost || 0.75,
-          style: config.style || 0,
-          use_speaker_boost: true,
-        },
-      }),
-    }
-  );
+    }),
+  });
 
   if (!response.ok) {
     const error = await response.text();
@@ -117,16 +111,17 @@ async function generateSpeechElevenLabs(
 /**
  * Generate speech audio from text using Google Cloud TTS
  */
-async function generateSpeechGoogle(
-  text: string,
-  config: TTSConfig
-): Promise<Buffer> {
-  let TextToSpeechClient: new () => { synthesizeSpeech: (req: unknown) => Promise<[{ audioContent?: Buffer | string }]> };
+async function generateSpeechGoogle(text: string, config: TTSConfig): Promise<Buffer> {
+  let TextToSpeechClient: new () => {
+    synthesizeSpeech: (req: unknown) => Promise<[{ audioContent?: Buffer | string }]>;
+  };
   try {
     const tts = await import('@google-cloud/text-to-speech');
     TextToSpeechClient = tts.TextToSpeechClient as typeof TextToSpeechClient;
   } catch {
-    throw new Error('@google-cloud/text-to-speech not installed. Run: npm install @google-cloud/text-to-speech');
+    throw new Error(
+      '@google-cloud/text-to-speech not installed. Run: npm install @google-cloud/text-to-speech'
+    );
   }
   const client = new TextToSpeechClient();
 
@@ -319,9 +314,7 @@ async function deliverViaEmail(
  * "Better Than Human" Feature: Creates a personalized audio message
  * that sounds like you and delivers it through their preferred channel.
  */
-export async function sendVoiceMessage(
-  request: VoiceMessageRequest
-): Promise<VoiceMessageResult> {
+export async function sendVoiceMessage(request: VoiceMessageRequest): Promise<VoiceMessageResult> {
   const { userId, contactId, message, deliveryMethod, subject } = request;
 
   log.info({ userId, contactId, deliveryMethod }, 'Generating voice message');
@@ -490,4 +483,3 @@ export default {
   synthesizeSpeech,
   getAvailableVoices,
 };
-

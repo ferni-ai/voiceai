@@ -96,7 +96,9 @@ const config: PredictiveIntelligenceConfig = {
 /**
  * Configure predictive intelligence behavior
  */
-export function configurePredictiveIntelligence(newConfig: Partial<PredictiveIntelligenceConfig>): void {
+export function configurePredictiveIntelligence(
+  newConfig: Partial<PredictiveIntelligenceConfig>
+): void {
   Object.assign(config, newConfig);
   log.info({ config }, '🔮 Predictive intelligence configured');
 }

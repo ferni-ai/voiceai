@@ -601,29 +601,52 @@ async function loadData(): Promise<void> {
   state.isLoading = true;
 
   try {
-    // Load settings
-    const settingsRes = await apiFetch('/api/user/preferences/reminders');
+    // Load settings from the new /api/user/reminders endpoint
+    const settingsRes = await apiFetch('/api/user/reminders');
     if (settingsRes.ok) {
       const data = await settingsRes.json();
-      state.settings = { ...defaultSettings, ...data };
+      if (data.settings) {
+        // Map API settings to local state format
+        state.settings = {
+          ...defaultSettings,
+          birthdayReminderDays: data.settings.daysBefore || defaultSettings.birthdayReminderDays,
+          anniversaryReminderDays: data.settings.daysBefore || defaultSettings.anniversaryReminderDays,
+          enablePushNotifications: data.settings.channels?.push ?? defaultSettings.enablePushNotifications,
+          enableEmailReminders: data.settings.channels?.email ?? defaultSettings.enableEmailReminders,
+          enableVoiceReminders: data.settings.channels?.voice ?? defaultSettings.enableVoiceReminders,
+          suggestGifts: data.settings.includeGiftSuggestions ?? defaultSettings.suggestGifts,
+          suggestMessages: data.settings.includeMessageDrafts ?? defaultSettings.suggestMessages,
+        };
+      }
+      // Load upcoming dates if provided by API
+      if (data.upcomingDates) {
+        state.upcomingDates = data.upcomingDates.slice(0, 5);
+      }
     }
 
-    // Load upcoming dates from nudges
-    const nudgesRes = await apiFetch('/api/contacts/nudges');
-    if (nudgesRes.ok) {
-      const data = await nudgesRes.json();
-      state.upcomingDates = (data.nudges || [])
-        .filter((n: { type: string }) => 
-          n.type === 'upcoming_birthday' || n.type === 'upcoming_anniversary'
-        )
-        .map((n: { contactId: string; contactName: string; type: string; daysUntilEvent?: number }) => ({
-          contactId: n.contactId,
-          contactName: n.contactName,
-          dateType: n.type === 'upcoming_birthday' ? 'birthday' : 'anniversary',
-          date: '', // Not needed for display
-          daysUntil: n.daysUntilEvent || 0,
-        }))
-        .slice(0, 5); // Show max 5 upcoming
+    // Also load upcoming dates from nudges as fallback
+    if (state.upcomingDates.length === 0) {
+      const nudgesRes = await apiFetch('/api/contacts/nudges');
+      if (nudgesRes.ok) {
+        const data = await nudgesRes.json();
+        const nudges = Array.isArray(data) ? data : (data.nudges || []);
+        state.upcomingDates = nudges
+          .filter((n: { type?: string; reason?: string }) => 
+            n.type === 'upcoming_birthday' || n.type === 'upcoming_anniversary' ||
+            n.reason?.toLowerCase().includes('birthday') ||
+            n.reason?.toLowerCase().includes('anniversary')
+          )
+          .map((n: { contactId: string; contactName: string; type?: string; reason?: string; daysUntilEvent?: number; daysSinceContact?: number }) => ({
+            contactId: n.contactId,
+            contactName: n.contactName,
+            dateType: (n.type === 'upcoming_birthday' || n.reason?.toLowerCase().includes('birthday')) 
+              ? 'birthday' as const 
+              : 'anniversary' as const,
+            date: '',
+            daysUntil: n.daysUntilEvent || n.daysSinceContact || 0,
+          }))
+          .slice(0, 5);
+      }
     }
   } catch (error) {
     log.error('Failed to load reminder settings:', error);
@@ -638,9 +661,22 @@ async function saveSettings(): Promise<void> {
   state.isSaving = true;
 
   try {
-    const response = await apiFetch('/api/user/preferences/reminders', {
-      method: 'PUT',
-      body: JSON.stringify(state.settings),
+    // Map local state to API format
+    const apiSettings = {
+      enabled: true,
+      daysBefore: state.settings.birthdayReminderDays,
+      channels: {
+        voice: state.settings.enableVoiceReminders,
+        push: state.settings.enablePushNotifications,
+        email: state.settings.enableEmailReminders,
+      },
+      includeGiftSuggestions: state.settings.suggestGifts,
+      includeMessageDrafts: state.settings.suggestMessages,
+    };
+
+    const response = await apiFetch('/api/user/reminders', {
+      method: 'POST',
+      body: JSON.stringify(apiSettings),
     });
 
     if (response.ok) {

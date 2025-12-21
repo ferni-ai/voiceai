@@ -142,7 +142,12 @@ describe('Music Session Context', () => {
     });
 
     it('should infer thinking for thinking keywords', () => {
-      const reason = inferMusicStartReason('neutral', 'Let me think about this for a moment', false, false);
+      const reason = inferMusicStartReason(
+        'neutral',
+        'Let me think about this for a moment',
+        false,
+        false
+      );
       expect(reason).toBe('thinking');
     });
 
@@ -157,7 +162,12 @@ describe('Music Session Context', () => {
     });
 
     it('should infer user_request from spotify mention', () => {
-      const reason = inferMusicStartReason('neutral', 'Can you play something on Spotify?', false, false);
+      const reason = inferMusicStartReason(
+        'neutral',
+        'Can you play something on Spotify?',
+        false,
+        false
+      );
       expect(reason).toBe('user_request');
     });
 
@@ -172,7 +182,12 @@ describe('Music Session Context', () => {
     });
 
     it('should infer comfort from comfort-seeking messages', () => {
-      const reason = inferMusicStartReason('neutral', 'I need some calm, it was a rough day', false, false);
+      const reason = inferMusicStartReason(
+        'neutral',
+        'I need some calm, it was a rough day',
+        false,
+        false
+      );
       expect(reason).toBe('comfort');
     });
   });
@@ -440,7 +455,14 @@ describe('Intelligent Music Transitions', () => {
   });
 
   describe('Persona-Specific Phrases', () => {
-    const personas = ['ferni', 'nayan-patel', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor'];
+    const personas = [
+      'ferni',
+      'nayan-patel',
+      'peter-john',
+      'alex-chen',
+      'maya-santos',
+      'jordan-taylor',
+    ];
 
     it('should generate different phrases for different personas', () => {
       const context: MusicSessionContext = {
@@ -530,7 +552,9 @@ describe('Full Flow Integration', () => {
 
     // 4. Should respect the emotional context (can be silence, presence, or check-in)
     const validReasonings = ['emotional', 'relationship', 'support', 'silence'];
-    const hasValidReasoning = validReasonings.some((r) => transition.reasoning.toLowerCase().includes(r));
+    const hasValidReasoning = validReasonings.some((r) =>
+      transition.reasoning.toLowerCase().includes(r)
+    );
     expect(hasValidReasoning).toBe(true);
     expect(transition.confidence).toBeGreaterThan(0.5);
 
@@ -560,4 +584,3 @@ describe('Full Flow Integration', () => {
     expect(['silence', 'acknowledgment', 'gentle_return']).toContain(transition.transitionType);
   });
 });
-

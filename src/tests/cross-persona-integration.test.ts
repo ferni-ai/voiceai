@@ -594,7 +594,9 @@ describe('E2E Insight Flow', () => {
     });
 
     // Give time for async operations
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
 
     // Verify insight was created
     expect(insight.id).toBeDefined();
@@ -629,7 +631,9 @@ describe('E2E Insight Flow', () => {
       oneTime: false,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
 
     // Verify insight was created
     expect(insight.id).toBeDefined();
@@ -666,7 +670,9 @@ describe('E2E Insight Flow', () => {
       oneTime: false,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
 
     expect(insight.id).toBeDefined();
     expect(insight.proactive).toBe(true);

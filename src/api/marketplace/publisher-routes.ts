@@ -399,4 +399,3 @@ export async function handlePublisherRoutes(
 
   return false;
 }
-

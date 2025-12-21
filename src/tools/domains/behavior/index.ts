@@ -22,7 +22,11 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import type { BehaviorMode, PresenceExpression, SilenceDuration } from '../../../types/behavior-types.js';
+import type {
+  BehaviorMode,
+  PresenceExpression,
+  SilenceDuration,
+} from '../../../types/behavior-types.js';
 import {
   createModeShiftSignal,
   createPacingChangeSignal,
@@ -45,15 +49,17 @@ const log = createLogger({ module: 'BehaviorTools' });
 // ============================================================================
 
 export const shiftModeSchema = z.object({
-  mode: z.enum([
-    'presence',
-    'deep_listening',
-    'processing',
-    'celebration',
-    'holding_space',
-    'energy_match',
-    'grounding',
-  ]).describe('The presence mode to shift into'),
+  mode: z
+    .enum([
+      'presence',
+      'deep_listening',
+      'processing',
+      'celebration',
+      'holding_space',
+      'energy_match',
+      'grounding',
+    ])
+    .describe('The presence mode to shift into'),
   reason: z.string().optional().describe('Optional reason for the mode shift'),
 });
 
@@ -65,7 +71,11 @@ export const adjustPacingSchema = z.object({
 
 export const processingSchema = z.object({
   type: z.enum(['thinking', 'emotional', 'tool_call', 'memory_recall']).describe('Processing type'),
-  weight: z.enum(['light', 'medium', 'heavy']).optional().default('medium').describe('Processing weight'),
+  weight: z
+    .enum(['light', 'medium', 'heavy'])
+    .optional()
+    .default('medium')
+    .describe('Processing weight'),
   reason: z.string().optional().describe('Optional reason for processing'),
 });
 
@@ -75,8 +85,14 @@ export const holdSpaceSchema = z.object({
 });
 
 export const expressPresenceSchema = z.object({
-  type: z.enum(['breath', 'hum', 'nod', 'sigh', 'soft_sound']).describe('Type of non-verbal expression'),
-  intensity: z.enum(['subtle', 'visible']).optional().default('subtle').describe('Expression intensity'),
+  type: z
+    .enum(['breath', 'hum', 'nod', 'sigh', 'soft_sound'])
+    .describe('Type of non-verbal expression'),
+  intensity: z
+    .enum(['subtle', 'visible'])
+    .optional()
+    .default('subtle')
+    .describe('Expression intensity'),
 });
 
 // ============================================================================
@@ -137,7 +153,7 @@ export const shiftModeDef: ToolDefinition = {
         const signal = createModeShiftSignal(mode as BehaviorMode, reason);
         // Note: sendDataMessage would need to be injected via ctx.services or toolCtx
         // For now, we return the signal data for the agent to handle
-        
+
         return {
           success: true,
           mode,
@@ -201,7 +217,7 @@ export const processingDef: ToolDefinition = {
       parameters: processingSchema,
       execute: async ({ type, weight = 'medium', reason }) => {
         log.info({ type, weight, reason, agentId: ctx.agentId }, 'Processing');
-        
+
         // Compose the processing expression using unified intelligence
         const result = composeProcessingExpression({
           trigger: type as 'thinking' | 'emotional' | 'tool_call' | 'memory_recall',
@@ -254,7 +270,7 @@ export const holdSpaceDef: ToolDefinition = {
 
         return {
           success: true,
-          duration: durationMs,  // Return milliseconds for frontend
+          duration: durationMs, // Return milliseconds for frontend
           ssml: `<break time="${durationMs}ms"/>`,
           signal,
         };

@@ -371,7 +371,7 @@ export function analyzeMessage(
 
   // Check for apologetic tone
   if (
-    contentLower.includes('i\'m sorry') ||
+    contentLower.includes("i'm sorry") ||
     contentLower.includes('apologize') ||
     contentLower.includes('my fault') ||
     contentLower.includes('forgive me')
@@ -404,7 +404,13 @@ export function analyzeMessage(
   }
 
   // Add points for negative tones
-  const negativeTones: MessageTone[] = ['angry', 'frustrated', 'defensive', 'passive-aggressive', 'demanding'];
+  const negativeTones: MessageTone[] = [
+    'angry',
+    'frustrated',
+    'defensive',
+    'passive-aggressive',
+    'demanding',
+  ];
   const negToneCount = tones.filter((t) => negativeTones.includes(t)).length;
   riskScore += negToneCount * 10;
 
@@ -477,7 +483,7 @@ function calculateWaitHours(analysis: MessageAnalysis, timeOfDay?: Date): number
 
   // If late night, always suggest at least until morning
   if (hour >= 22 || hour < 6) {
-    const hoursUntilMorning = hour >= 22 ? (24 - hour + 8) : (8 - hour);
+    const hoursUntilMorning = hour >= 22 ? 24 - hour + 8 : 8 - hour;
     waitHours = Math.max(waitHours, hoursUntilMorning);
   }
 
@@ -672,7 +678,7 @@ export function formatAnalysisForSpeech(analysis: MessageAnalysis): string {
 
   // Risk assessment
   if (analysis.riskScore >= 70) {
-    output += 'I\'d really suggest sleeping on this one. ';
+    output += "I'd really suggest sleeping on this one. ";
   } else if (analysis.riskScore >= 50) {
     output += 'This might be worth a second look. ';
   } else if (analysis.riskScore >= 30) {
@@ -786,4 +792,3 @@ export default {
   formatAnalysisForSpeech,
   clearCache,
 };
-

@@ -94,7 +94,17 @@
     "voice_id": "${env:ALEX_CHEN_VOICE_ID|81c164d9-7baa-419d-9f9a-6b18100a01ee}",
     "model": "sonic-3-latest",
     "default_emotion": "calm",
-    "emotion_range": ["calm", "affectionate", "content", "sympathetic", "proud", "enthusiastic", "wistful", "satisfied", "grateful"],
+    "emotion_range": [
+      "calm",
+      "affectionate",
+      "content",
+      "sympathetic",
+      "proud",
+      "enthusiastic",
+      "wistful",
+      "satisfied",
+      "grateful"
+    ],
     "default_speed": 0.95,
     "default_volume": 1.0,
     "laughter_frequency": 0.15,

@@ -54,7 +54,11 @@ import {
   type ExpressionContext,
 } from './llm-expression-generator.js';
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
-import type { BehaviorEvent, BehaviorEventType, BehaviorMode } from '../../../types/behavior-types.js';
+import type {
+  BehaviorEvent,
+  BehaviorEventType,
+  BehaviorMode,
+} from '../../../types/behavior-types.js';
 
 // NEW: Telemetry & Transparency
 import {
@@ -73,10 +77,7 @@ import {
 } from './voice-emotion-personality.js';
 
 // NEW: Memory Callbacks
-import {
-  memoryPersonalityBridge,
-  type MemoryCallback,
-} from './memory-personality-bridge.js';
+import { memoryPersonalityBridge, type MemoryCallback } from './memory-personality-bridge.js';
 
 // NEW: Cross-Persona Learning
 import { crossPersonaLearning } from '../../shared/cross-persona-learning.js';
@@ -102,16 +103,16 @@ const log = createLogger({ module: 'ferni-personality-integration' });
  */
 function mapNoticingToBehaviorEventType(noticingType: NoticingType): BehaviorEventType | null {
   const eventMap: Partial<Record<NoticingType, BehaviorEventType>> = {
-    'significant_pause': 'extended_silence',
-    'energy_drop': 'energy_drop',
-    'energy_rise': 'energy_spike',
-    'mismatch': 'emotional_shift',
-    'topic_deflection': 'emotional_shift',
-    'breakthrough_moment': 'breakthrough_moment',
-    'protective_language': 'vulnerability_shared',
-    'speech_rate_change': 'speech_pace_changed',
+    significant_pause: 'extended_silence',
+    energy_drop: 'energy_drop',
+    energy_rise: 'energy_spike',
+    mismatch: 'emotional_shift',
+    topic_deflection: 'emotional_shift',
+    breakthrough_moment: 'breakthrough_moment',
+    protective_language: 'vulnerability_shared',
+    speech_rate_change: 'speech_pace_changed',
   };
-  
+
   return eventMap[noticingType] ?? null;
 }
 
@@ -121,7 +122,7 @@ function mapNoticingToBehaviorEventType(noticingType: NoticingType): BehaviorEve
 export function noticingToBehaviorEvent(noticing: NoticingResult): BehaviorEvent | null {
   const eventType = mapNoticingToBehaviorEventType(noticing.type);
   if (!eventType) return null;
-  
+
   // Determine suggested behavior mode based on noticing type
   const suggestedMode: BehaviorMode | undefined = (() => {
     switch (noticing.type) {
@@ -138,7 +139,7 @@ export function noticingToBehaviorEvent(noticing: NoticingResult): BehaviorEvent
         return undefined;
     }
   })();
-  
+
   return {
     event: eventType,
     data: {
@@ -701,9 +702,7 @@ export function applyPersonalityToResponse(
   // Apply expression
   if (personalityResult.expression) {
     const expr = personalityResult.expression;
-    const content = expr.shouldBeSubtle
-      ? `<break time="150ms"/>${expr.content}`
-      : expr.content;
+    const content = expr.shouldBeSubtle ? `<break time="150ms"/>${expr.content}` : expr.content;
 
     switch (personalityResult.injectionPoint) {
       case 'before_response':
@@ -828,4 +827,3 @@ export const ferniPersonality = {
 };
 
 export default ferniPersonality;
-

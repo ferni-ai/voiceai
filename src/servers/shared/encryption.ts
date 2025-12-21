@@ -24,11 +24,15 @@ function getEncryptionKey(): Buffer | null {
   if (!key) {
     if (isProduction) {
       log.error('SECURITY CRITICAL: OAUTH_ENCRYPTION_KEY must be set in production!');
-      log.error('OAuth tokens cannot be stored without encryption. Generate with: openssl rand -hex 32');
+      log.error(
+        'OAuth tokens cannot be stored without encryption. Generate with: openssl rand -hex 32'
+      );
       // In production, throw to prevent insecure token storage
       throw new Error('OAUTH_ENCRYPTION_KEY is required in production');
     }
-    log.warn('SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption (dev only)');
+    log.warn(
+      'SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption (dev only)'
+    );
     return null;
   }
 

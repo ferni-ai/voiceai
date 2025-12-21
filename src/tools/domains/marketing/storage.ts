@@ -93,11 +93,11 @@ export class MarketingStorage {
   async saveDraft(draft: Draft): Promise<string> {
     const id = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const draftWithId = { ...draft, id };
-    
+
     draftsStore.set(`${this.userId}:${id}`, draftWithId);
-    
+
     log.debug({ userId: this.userId, draftId: id }, '📝 Draft saved');
-    
+
     return id;
   }
 
@@ -126,11 +126,14 @@ export class MarketingStorage {
   async schedulePost(post: Omit<ScheduledPost, 'id'>): Promise<string> {
     const id = `sched_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const postWithId = { ...post, id };
-    
+
     scheduledStore.set(`${this.userId}:${id}`, postWithId);
-    
-    log.debug({ userId: this.userId, scheduleId: id, scheduledAt: post.scheduledAt }, '📅 Post scheduled');
-    
+
+    log.debug(
+      { userId: this.userId, scheduleId: id, scheduledAt: post.scheduledAt },
+      '📅 Post scheduled'
+    );
+
     return id;
   }
 
@@ -140,13 +143,13 @@ export class MarketingStorage {
     limit?: number;
   }): Promise<ScheduledPost[]> {
     const posts: ScheduledPost[] = [];
-    
+
     for (const [key, value] of scheduledStore.entries()) {
       if (key.startsWith(`${this.userId}:`)) {
         // Apply filters
         if (filters?.platform && value.platform !== filters.platform) continue;
         if (filters?.status && value.status !== filters.status) continue;
-        
+
         posts.push(value);
       }
     }
@@ -165,7 +168,7 @@ export class MarketingStorage {
   async updateScheduledPost(id: string, update: Partial<ScheduledPost>): Promise<void> {
     const key = `${this.userId}:${id}`;
     const existing = scheduledStore.get(key);
-    
+
     if (existing) {
       scheduledStore.set(key, { ...existing, ...update });
     }
@@ -182,11 +185,11 @@ export class MarketingStorage {
   async savePostedContent(content: Omit<PostedContent, 'id'>): Promise<string> {
     const id = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const postWithId = { ...content, id };
-    
+
     postedStore.set(`${this.userId}:${id}`, postWithId);
-    
+
     log.debug({ userId: this.userId, postId: id }, '✅ Posted content saved');
-    
+
     return id;
   }
 
@@ -197,13 +200,13 @@ export class MarketingStorage {
     endDate?: Date;
   }): Promise<PostedContent[]> {
     const posts: PostedContent[] = [];
-    
+
     for (const [key, value] of postedStore.entries()) {
       if (key.startsWith(`${this.userId}:`)) {
         if (filters?.platform && value.platform !== filters.platform) continue;
         if (filters?.startDate && value.postedAt < filters.startDate) continue;
         if (filters?.endDate && value.postedAt > filters.endDate) continue;
-        
+
         posts.push(value);
       }
     }
@@ -225,7 +228,7 @@ export class MarketingStorage {
     // Calculate date range
     const now = new Date();
     let startDate: Date;
-    
+
     switch (query.period) {
       case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -255,8 +258,8 @@ export class MarketingStorage {
     }
 
     // Aggregate analytics
-    const twitterPosts = posts.filter(p => p.platform === 'twitter');
-    const linkedinPosts = posts.filter(p => p.platform === 'linkedin');
+    const twitterPosts = posts.filter((p) => p.platform === 'twitter');
+    const linkedinPosts = posts.filter((p) => p.platform === 'linkedin');
 
     const result: AnalyticsResult = {
       totalPosts: posts.length,
@@ -272,7 +275,7 @@ export class MarketingStorage {
         (sum, p) => sum + (p.analytics?.engagements || 0),
         0
       );
-      
+
       // Find best performer
       const bestTwitter = twitterPosts.reduce((best, p) => {
         const score = (p.analytics?.engagements || 0) / (p.analytics?.impressions || 1);
@@ -284,12 +287,10 @@ export class MarketingStorage {
         posts: twitterPosts.length,
         impressions: totalImpressions,
         engagements: totalEngagements,
-        engagementRate: totalImpressions > 0 
-          ? ((totalEngagements / totalImpressions) * 100).toFixed(1) 
-          : '0',
-        bestPost: typeof bestTwitter.content === 'string' 
-          ? bestTwitter.content 
-          : bestTwitter.content[0],
+        engagementRate:
+          totalImpressions > 0 ? ((totalEngagements / totalImpressions) * 100).toFixed(1) : '0',
+        bestPost:
+          typeof bestTwitter.content === 'string' ? bestTwitter.content : bestTwitter.content[0],
       };
     }
 
@@ -298,14 +299,8 @@ export class MarketingStorage {
         (sum, p) => sum + (p.analytics?.impressions || 0),
         0
       );
-      const totalReactions = linkedinPosts.reduce(
-        (sum, p) => sum + (p.analytics?.likes || 0),
-        0
-      );
-      const totalComments = linkedinPosts.reduce(
-        (sum, p) => sum + (p.analytics?.comments || 0),
-        0
-      );
+      const totalReactions = linkedinPosts.reduce((sum, p) => sum + (p.analytics?.likes || 0), 0);
+      const totalComments = linkedinPosts.reduce((sum, p) => sum + (p.analytics?.comments || 0), 0);
 
       const bestLinkedIn = linkedinPosts.reduce((best, p) => {
         const score = (p.analytics?.likes || 0) + (p.analytics?.comments || 0) * 2;
@@ -318,9 +313,8 @@ export class MarketingStorage {
         impressions: totalImpressions,
         reactions: totalReactions,
         comments: totalComments,
-        bestPost: typeof bestLinkedIn.content === 'string'
-          ? bestLinkedIn.content
-          : bestLinkedIn.content[0],
+        bestPost:
+          typeof bestLinkedIn.content === 'string' ? bestLinkedIn.content : bestLinkedIn.content[0],
       };
     }
 
@@ -330,12 +324,16 @@ export class MarketingStorage {
       if (rate > 3) {
         result.insights.push('Your Twitter engagement is above average! Keep up the good content.');
       } else if (rate < 1) {
-        result.insights.push('Twitter engagement is low. Try posting at different times or with more engaging hooks.');
+        result.insights.push(
+          'Twitter engagement is low. Try posting at different times or with more engaging hooks.'
+        );
       }
     }
 
     if (result.linkedin && result.linkedin.comments > 5) {
-      result.insights.push('LinkedIn comments are strong - your content is sparking conversations!');
+      result.insights.push(
+        'LinkedIn comments are strong - your content is sparking conversations!'
+      );
     }
 
     return result;
@@ -343,4 +341,3 @@ export class MarketingStorage {
 }
 
 export default MarketingStorage;
-

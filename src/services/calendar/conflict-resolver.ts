@@ -16,12 +16,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import type {
-  CalendarEvent,
-  SyncConflict,
-  ConflictResolution,
-  CalendarProvider,
-} from './types.js';
+import type { CalendarEvent, SyncConflict, ConflictResolution, CalendarProvider } from './types.js';
 
 const log = getLogger();
 
@@ -91,9 +86,7 @@ export function detectConflicts(
 
   // Check for both-modified (need timestamps)
   const ferniUpdated = ferniEvent.updatedAt?.getTime() || 0;
-  const providerUpdated = providerEvent.updatedAt
-    ? new Date(providerEvent.updatedAt).getTime()
-    : 0;
+  const providerUpdated = providerEvent.updatedAt ? new Date(providerEvent.updatedAt).getTime() : 0;
   const lastSync = ferniEvent.lastSyncAttempt?.getTime() || 0;
 
   if (ferniUpdated > lastSync && providerUpdated > lastSync) {
@@ -160,7 +153,10 @@ export async function storeConflict(
       .doc(conflictId)
       .set(storedConflict);
 
-    log.info({ userId, conflictId, conflictType: conflict.conflictType }, 'Stored calendar conflict');
+    log.info(
+      { userId, conflictId, conflictType: conflict.conflictType },
+      'Stored calendar conflict'
+    );
     return conflictId;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Error storing conflict');
@@ -206,9 +202,7 @@ export async function getConflictSummary(userId: string): Promise<ConflictSummar
   }
 
   try {
-    const snapshot = await firestore
-      .collection(`users/${userId}/calendar_conflicts`)
-      .get();
+    const snapshot = await firestore.collection(`users/${userId}/calendar_conflicts`).get();
 
     const conflicts = snapshot.docs.map((doc) => doc.data() as StoredConflict);
 
@@ -266,9 +260,7 @@ export async function resolveConflict(
   }
 
   try {
-    const conflictRef = firestore
-      .collection(`users/${userId}/calendar_conflicts`)
-      .doc(conflictId);
+    const conflictRef = firestore.collection(`users/${userId}/calendar_conflicts`).doc(conflictId);
 
     const conflictDoc = await conflictRef.get();
     if (!conflictDoc.exists) {
@@ -295,9 +287,8 @@ export async function resolveConflict(
         const providerUpdated = conflict.providerEvent.updatedAt
           ? new Date(conflict.providerEvent.updatedAt as unknown as string).getTime()
           : 0;
-        resolvedEvent = ferniUpdated > providerUpdated
-          ? conflict.ferniEvent
-          : conflict.providerEvent;
+        resolvedEvent =
+          ferniUpdated > providerUpdated ? conflict.ferniEvent : conflict.providerEvent;
         break;
       case 'manual':
         // For manual, we just mark as resolved - caller handles the merge
@@ -358,10 +349,7 @@ export async function dismissConflict(userId: string, conflictId: string): Promi
   if (!firestore) return false;
 
   try {
-    await firestore
-      .collection(`users/${userId}/calendar_conflicts`)
-      .doc(conflictId)
-      .delete();
+    await firestore.collection(`users/${userId}/calendar_conflicts`).doc(conflictId).delete();
 
     log.info({ userId, conflictId }, 'Dismissed calendar conflict');
     return true;
@@ -374,9 +362,7 @@ export async function dismissConflict(userId: string, conflictId: string): Promi
 /**
  * Get user's preferred conflict resolution strategy
  */
-export async function getResolutionPreference(
-  userId: string
-): Promise<ConflictResolution> {
+export async function getResolutionPreference(userId: string): Promise<ConflictResolution> {
   const firestore = await getFirestore();
   if (!firestore) return 'newest-wins';
 
@@ -400,10 +386,10 @@ export async function setResolutionPreference(
   if (!firestore) return false;
 
   try {
-    await firestore.collection('users').doc(userId).set(
-      { calendarConflictResolution: strategy },
-      { merge: true }
-    );
+    await firestore
+      .collection('users')
+      .doc(userId)
+      .set({ calendarConflictResolution: strategy }, { merge: true });
     log.info({ userId, strategy }, 'Updated conflict resolution preference');
     return true;
   } catch (error) {
@@ -423,4 +409,3 @@ export default {
   getResolutionPreference,
   setResolutionPreference,
 };
-

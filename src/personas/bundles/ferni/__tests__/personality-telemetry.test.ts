@@ -70,7 +70,12 @@ describe('personality-telemetry', () => {
         recordTelemetry(testSessionId, {
           sessionId: testSessionId,
           turnCount: i,
-          timing: { contextAssemblyMs: 1, noticingDetectionMs: 1, expressionLookupMs: 1, totalMs: 3 },
+          timing: {
+            contextAssemblyMs: 1,
+            noticingDetectionMs: 1,
+            expressionLookupMs: 1,
+            totalMs: 3,
+          },
           decisions: {
             timeOfDay: 'morning',
             momentum: 'cruising',
@@ -139,7 +144,12 @@ describe('personality-telemetry', () => {
       recordTelemetry(testSessionId, {
         sessionId: testSessionId,
         turnCount: 1,
-        timing: { contextAssemblyMs: 10, noticingDetectionMs: 5, expressionLookupMs: 5, totalMs: 20 },
+        timing: {
+          contextAssemblyMs: 10,
+          noticingDetectionMs: 5,
+          expressionLookupMs: 5,
+          totalMs: 20,
+        },
         decisions: {
           timeOfDay: 'morning',
           momentum: 'cruising',
@@ -161,4 +171,3 @@ describe('personality-telemetry', () => {
     });
   });
 });
-

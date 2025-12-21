@@ -83,8 +83,8 @@ const WARM_ERRORS = {
   noGameData: "Play a few music games first—then I'll know your musical soul!",
   challengeNotFound: "Can't find that challenge. It might have expired.",
   cardNotFound: "That card isn't available anymore.",
-  spotifyNotConnected: "Connect Spotify to unlock this feature!",
-  internalError: "Something went wrong on my end. Mind trying again?",
+  spotifyNotConnected: 'Connect Spotify to unlock this feature!',
+  internalError: 'Something went wrong on my end. Mind trying again?',
 } as const;
 
 // ============================================================================
@@ -174,7 +174,7 @@ export async function handleMusicalYouRoutes(
     if (pathname === '/api/musical/daily' && method === 'GET') {
       const challenge = getDailyChallenge();
       const userId = searchParams.get('userId');
-      
+
       let progress = null;
       if (userId) {
         progress = getUserChallengeProgress(userId, challenge.id);
@@ -440,10 +440,14 @@ export async function handleMusicalYouRoutes(
       const user2Memory = await getUserGameMemory(user2Id);
 
       if (!user1Memory || !user2Memory) {
-        sendJSON(res, {
-          success: false,
-          error: 'Both users need to play some games first!',
-        }, 400);
+        sendJSON(
+          res,
+          {
+            success: false,
+            error: 'Both users need to play some games first!',
+          },
+          400
+        );
         return true;
       }
 
@@ -750,7 +754,14 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      recordGameResult(userId, displayName || 'Player', gameType, score, gamesPlayed || 1, bestStreak || 0);
+      recordGameResult(
+        userId,
+        displayName || 'Player',
+        gameType,
+        score,
+        gamesPlayed || 1,
+        bestStreak || 0
+      );
 
       sendJSON(res, {
         success: true,
@@ -978,4 +989,3 @@ export async function handleMusicalYouRoutes(
     return true;
   }
 }
-

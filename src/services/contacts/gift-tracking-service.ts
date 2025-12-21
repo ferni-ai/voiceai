@@ -108,9 +108,9 @@ async function loadGiftsFromFirestore(userId: string): Promise<Gift[]> {
     if (!collection) {
       return giftCache.get(getCacheKey(userId)) || [];
     }
-    
+
     const snapshot = await collection.orderBy('date', 'desc').get();
-    
+
     const gifts: Gift[] = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -119,10 +119,10 @@ async function loadGiftsFromFirestore(userId: string): Promise<Gift[]> {
         date: data.date?.toDate?.() || new Date(data.date),
       } as Gift;
     });
-    
+
     const key = getCacheKey(userId);
     giftCache.set(key, gifts);
-    
+
     return gifts;
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load gifts from Firestore, using cache');
@@ -140,7 +140,7 @@ async function saveGiftToFirestore(userId: string, gift: Gift): Promise<void> {
       log.debug('Firestore not available, gift saved to cache only');
       return;
     }
-    
+
     await collection.doc(gift.id).set({
       ...gift,
       date: gift.date,
@@ -158,7 +158,7 @@ async function saveGiftToFirestore(userId: string, gift: Gift): Promise<void> {
 
 /**
  * Record a gift given or received
- * 
+ *
  * "Better Than Human" Integration:
  * - Saves to Firestore for persistence
  * - Automatically records an interaction
@@ -193,8 +193,12 @@ export async function recordGift(userId: string, gift: Omit<Gift, 'id' | 'userId
       direction: gift.direction === 'given' ? 'outbound' : 'inbound',
       summary: `${gift.direction === 'given' ? 'Gave' : 'Received'} ${gift.item} for ${gift.occasion}`,
       topics: gift.tags,
-      sentiment: gift.reaction === 'loved' || gift.reaction === 'liked' ? 'positive' : 
-                 gift.reaction === 'disliked' ? 'negative' : 'positive', // Gifts are generally positive
+      sentiment:
+        gift.reaction === 'loved' || gift.reaction === 'liked'
+          ? 'positive'
+          : gift.reaction === 'disliked'
+            ? 'negative'
+            : 'positive', // Gifts are generally positive
       linkedGiftId: newGift.id,
       amount: gift.price,
     });
@@ -261,12 +265,12 @@ export async function getGiftHistory(userId: string, contactId: string): Promise
  */
 export async function getAllGifts(userId: string): Promise<Gift[]> {
   const key = getCacheKey(userId);
-  
+
   // Check cache first
   if (giftCache.has(key)) {
     return giftCache.get(key) || [];
   }
-  
+
   // Load from Firestore
   return loadGiftsFromFirestore(userId);
 }

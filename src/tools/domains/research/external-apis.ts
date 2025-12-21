@@ -99,15 +99,18 @@ export async function getCompanyFundamentals(symbol: string): Promise<CompanyFun
       try {
         const url = `${ALPHA_VANTAGE_BASE}?function=OVERVIEW&symbol=${symbol}&apikey=${apiKey}`;
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
 
         const data = (await response.json()) as Record<string, string | undefined>;
-        
+
         if (data.Note || data['Error Message']) {
-          log.warn({ symbol, note: data.Note ?? data['Error Message'] }, 'Alpha Vantage API limit or error');
+          log.warn(
+            { symbol, note: data.Note ?? data['Error Message'] },
+            'Alpha Vantage API limit or error'
+          );
           return getMockFundamentals(symbol);
         }
 
@@ -149,7 +152,10 @@ export async function getCompanyFundamentals(symbol: string): Promise<CompanyFun
 /**
  * Get earnings history from Alpha Vantage
  */
-export async function getEarningsHistory(symbol: string, limit: number = 4): Promise<EarningsData[]> {
+export async function getEarningsHistory(
+  symbol: string,
+  limit: number = 4
+): Promise<EarningsData[]> {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
   if (!apiKey) {
     return getMockEarnings(symbol, limit);
@@ -161,13 +167,13 @@ export async function getEarningsHistory(symbol: string, limit: number = 4): Pro
       try {
         const url = `${ALPHA_VANTAGE_BASE}?function=EARNINGS&symbol=${symbol}&apikey=${apiKey}`;
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
 
         const data = (await response.json()) as Record<string, unknown>;
-        
+
         if (data.Note || data['Error Message'] || !data.quarterlyEarnings) {
           return getMockEarnings(symbol, limit);
         }
@@ -207,22 +213,49 @@ const FRED_SERIES: Record<string, FREDSeriesConfig> = {
   fed_rate: { seriesId: 'FEDFUNDS', name: 'Federal Funds Rate', unit: '%', frequency: 'monthly' },
   unemployment: { seriesId: 'UNRATE', name: 'Unemployment Rate', unit: '%', frequency: 'monthly' },
   cpi: { seriesId: 'CPIAUCSL', name: 'Consumer Price Index', unit: 'index', frequency: 'monthly' },
-  gdp: { seriesId: 'GDP', name: 'Gross Domestic Product', unit: 'billions USD', frequency: 'quarterly' },
-  inflation: { seriesId: 'T10YIE', name: '10-Year Breakeven Inflation', unit: '%', frequency: 'daily' },
+  gdp: {
+    seriesId: 'GDP',
+    name: 'Gross Domestic Product',
+    unit: 'billions USD',
+    frequency: 'quarterly',
+  },
+  inflation: {
+    seriesId: 'T10YIE',
+    name: '10-Year Breakeven Inflation',
+    unit: '%',
+    frequency: 'daily',
+  },
   yield_10y: { seriesId: 'DGS10', name: '10-Year Treasury Yield', unit: '%', frequency: 'daily' },
   yield_2y: { seriesId: 'DGS2', name: '2-Year Treasury Yield', unit: '%', frequency: 'daily' },
-  housing_starts: { seriesId: 'HOUST', name: 'Housing Starts', unit: 'thousands', frequency: 'monthly' },
-  retail_sales: { seriesId: 'RSAFS', name: 'Retail Sales', unit: 'millions USD', frequency: 'monthly' },
-  consumer_sentiment: { seriesId: 'UMCSENT', name: 'Consumer Sentiment', unit: 'index', frequency: 'monthly' },
+  housing_starts: {
+    seriesId: 'HOUST',
+    name: 'Housing Starts',
+    unit: 'thousands',
+    frequency: 'monthly',
+  },
+  retail_sales: {
+    seriesId: 'RSAFS',
+    name: 'Retail Sales',
+    unit: 'millions USD',
+    frequency: 'monthly',
+  },
+  consumer_sentiment: {
+    seriesId: 'UMCSENT',
+    name: 'Consumer Sentiment',
+    unit: 'index',
+    frequency: 'monthly',
+  },
 };
 
 /**
  * Get economic indicator from FRED
  */
-export async function getEconomicIndicator(indicatorKey: string): Promise<EconomicIndicator | null> {
+export async function getEconomicIndicator(
+  indicatorKey: string
+): Promise<EconomicIndicator | null> {
   const apiKey = process.env.FRED_API_KEY;
   const config = FRED_SERIES[indicatorKey];
-  
+
   if (!config) {
     log.warn({ indicatorKey }, 'Unknown FRED series');
     return null;
@@ -239,13 +272,15 @@ export async function getEconomicIndicator(indicatorKey: string): Promise<Econom
       try {
         const url = `${FRED_BASE}?series_id=${config.seriesId}&api_key=${apiKey}&file_type=json&limit=2&sort_order=desc`;
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const data = (await response.json()) as { observations?: { date: string; value: string }[] };
-        
+        const data = (await response.json()) as {
+          observations?: { date: string; value: string }[];
+        };
+
         if (!data.observations || data.observations.length === 0) {
           return getMockEconomicIndicator(indicatorKey);
         }
@@ -262,7 +297,8 @@ export async function getEconomicIndicator(indicatorKey: string): Promise<Econom
           date: new Date(latest.date),
           previousValue,
           change: currentValue - previousValue,
-          changePercent: previousValue !== 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0,
+          changePercent:
+            previousValue !== 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0,
           frequency: config.frequency,
           source: 'Federal Reserve Bank of St. Louis (FRED)',
         };
@@ -278,7 +314,11 @@ export async function getEconomicIndicator(indicatorKey: string): Promise<Econom
 /**
  * Get yield curve (10Y - 2Y spread)
  */
-export async function getYieldCurve(): Promise<{ spread: number; status: 'normal' | 'flat' | 'inverted'; interpretation: string }> {
+export async function getYieldCurve(): Promise<{
+  spread: number;
+  status: 'normal' | 'flat' | 'inverted';
+  interpretation: string;
+}> {
   const [yield10y, yield2y] = await Promise.all([
     getEconomicIndicator('yield_10y'),
     getEconomicIndicator('yield_2y'),
@@ -320,9 +360,9 @@ export async function getEconomicDashboard(): Promise<{
   summary: string;
 }> {
   const indicatorKeys = ['fed_rate', 'unemployment', 'inflation', 'consumer_sentiment'];
-  
+
   const [indicators, yieldCurve] = await Promise.all([
-    Promise.all(indicatorKeys.map(k => getEconomicIndicator(k))),
+    Promise.all(indicatorKeys.map((k) => getEconomicIndicator(k))),
     getYieldCurve(),
   ]);
 
@@ -330,7 +370,7 @@ export async function getEconomicDashboard(): Promise<{
 
   // Generate summary
   let summary = '📊 **Economic Dashboard**\n\n';
-  
+
   for (const indicator of validIndicators) {
     const trend = indicator.change > 0 ? '📈' : indicator.change < 0 ? '📉' : '➡️';
     summary += `${trend} **${indicator.name}:** ${indicator.value.toFixed(2)}${indicator.unit === '%' ? '%' : ` ${indicator.unit}`}`;
@@ -406,7 +446,7 @@ function getMockFundamentals(symbol: string): CompanyFundamentals {
     eps: base.eps || 5,
     revenuePerShare: 50,
     profitMargin: 0.15,
-    operatingMargin: 0.20,
+    operatingMargin: 0.2,
     returnOnEquity: 0.25,
     beta: base.beta || 1.0,
     fiftyTwoWeekHigh: 200,
@@ -423,7 +463,7 @@ function getMockFundamentals(symbol: string): CompanyFundamentals {
 
 function getMockEarnings(symbol: string, limit: number): EarningsData[] {
   const quarters = ['2024-09-30', '2024-06-30', '2024-03-31', '2023-12-31'];
-  
+
   return quarters.slice(0, limit).map((date, i) => ({
     symbol,
     fiscalDateEnding: date,
@@ -475,10 +515,4 @@ function getMockEconomicIndicator(indicatorKey: string): EconomicIndicator {
 // EXPORTS
 // ============================================================================
 
-export {
-  FRED_SERIES,
-  getMockFundamentals,
-  getMockEarnings,
-  getMockEconomicIndicator,
-};
-
+export { FRED_SERIES, getMockFundamentals, getMockEarnings, getMockEconomicIndicator };

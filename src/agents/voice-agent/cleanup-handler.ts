@@ -165,10 +165,7 @@ export async function handleSessionCleanup(
 
   try {
     // Wrap cleanup with timeout protection to prevent zombie sessions
-    await Promise.race([
-      executeSessionCleanup(ctx, cleanupStart),
-      createCleanupTimeout(timeoutMs),
-    ]);
+    await Promise.race([executeSessionCleanup(ctx, cleanupStart), createCleanupTimeout(timeoutMs)]);
   } catch (error) {
     const elapsed = Date.now() - cleanupStart;
     success = false;
@@ -322,9 +319,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       // Personality resonance - flush to Firestore
       userId
         ? (async () => {
-            const { flushResonanceProfile } = await import(
-              '../../personas/bundles/ferni/personality-resonance-store.js'
-            );
+            const { flushResonanceProfile } =
+              await import('../../personas/bundles/ferni/personality-resonance-store.js');
             await flushResonanceProfile(userId);
             diag.session('🎭 Personality resonance profile persisted');
           })()
@@ -333,9 +329,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       // LLM expressions - flush high-engagement to Firestore
       userId
         ? (async () => {
-            const { flushExpressions } = await import(
-              '../../personas/bundles/ferni/llm-expression-generator.js'
-            );
+            const { flushExpressions } =
+              await import('../../personas/bundles/ferni/llm-expression-generator.js');
             await flushExpressions(userId);
             diag.session('🎭 High-engagement expressions persisted');
           })()
@@ -416,9 +411,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
       // Predictive Intelligence cleanup
       (async () => {
-        const { cleanupPredictiveIntelligence } = await import(
-          '../integrations/predictive-intelligence-integration.js'
-        );
+        const { cleanupPredictiveIntelligence } =
+          await import('../integrations/predictive-intelligence-integration.js');
         cleanupPredictiveIntelligence(sessionId);
       })(),
 

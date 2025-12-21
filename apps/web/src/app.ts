@@ -727,6 +727,17 @@ class VoiceAIApp {
     // Step 8: Now perform the actual disconnect (gracefully)
     await this.performStandardDisconnect(true); // true = skip disconnect sound
 
+    // Step 9: 💰 Show conversation cost transparency ("tip jar")
+    // Give the user a moment to settle, then show the cost card
+    setTimeout(async () => {
+      try {
+        const { showConversationCost } = await import('./ui/conversation-cost.ui.js');
+        await showConversationCost();
+      } catch (e) {
+        log.debug('Cost display skipped', { error: String(e) });
+      }
+    }, 800);
+
     log.info('🌅 Goodbye ceremony complete');
   }
 

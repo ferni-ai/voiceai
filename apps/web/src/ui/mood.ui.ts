@@ -49,6 +49,16 @@ let currentMood: MoodConfig | null = null;
 let ambientElement: HTMLElement | null = null;
 
 // ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+/**
+ * Disable holiday easter eggs (Santa hats, etc.) until we polish them.
+ * Set to true to re-enable holiday themes.
+ */
+const HOLIDAY_THEMES_ENABLED = false;
+
+// ============================================================================
 // MOOD CONFIGURATIONS
 // ============================================================================
 
@@ -113,10 +123,12 @@ export function initMoodUI(): void {
   // Set initial mood based on time
   updateMood();
   
-  // Check for holiday
-  const holiday = detectHoliday();
-  if (holiday) {
-    applyHolidayTheme(holiday);
+  // Check for holiday (disabled until we polish the easter eggs)
+  if (HOLIDAY_THEMES_ENABLED) {
+    const holiday = detectHoliday();
+    if (holiday) {
+      applyHolidayTheme(holiday);
+    }
   }
   
   // Update mood periodically (every 30 minutes)
@@ -284,28 +296,25 @@ function addChristmasTreeDecoration(): void {
     // Fur band is an arc that wraps around the top of the avatar
     decoration.innerHTML = `
       <svg viewBox="0 0 150 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Main hat cone - rises from the fur band -->
+        <!-- Main hat cone + droopy tip as single closed shape to prevent gaps -->
         <path d="M25 75 
-                 Q30 45, 50 28 
-                 Q70 15, 85 22
-                 Q95 28, 100 40
+                 Q30 50, 50 30
+                 Q65 18, 80 22
+                 Q92 26, 98 38
+                 Q115 28, 130 35
+                 Q142 44, 135 56
+                 Q130 64, 120 68
                  L120 75
-                 Q75 72, 25 75Z" 
+                 Q75 73, 25 75
+                 Z" 
               fill="#c41e3a" stroke="#a01830" stroke-width="1"/>
         
-        <!-- Hat highlight -->
-        <path d="M35 68 Q42 42, 58 28 Q52 45, 38 65Z" 
+        <!-- Hat highlight on main cone -->
+        <path d="M35 68 Q40 45, 55 32 Q50 48, 38 65Z" 
               fill="rgba(255,255,255,0.15)"/>
         
-        <!-- Droopy tip curling right -->
-        <path d="M100 40 
-                 Q115 30, 130 35 
-                 Q140 42, 135 55
-                 Q130 62, 122 64" 
-              fill="#c41e3a" stroke="#a01830" stroke-width="1" stroke-linecap="round"/>
-        
         <!-- Tip shine -->
-        <path d="M103 39 Q118 32, 132 37 Q122 38, 106 43Z" 
+        <path d="M102 40 Q118 30, 132 38 Q120 40, 105 46Z" 
               fill="rgba(255,255,255,0.12)"/>
         
         <!-- Fur trim band - arc shape that wraps around avatar's head -->
@@ -329,9 +338,9 @@ function addChristmasTreeDecoration(): void {
         
         <!-- Pompom -->
         <g class="pompom-group">
-          <circle cx="128" cy="60" r="11" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
-          <circle cx="124" cy="56" r="3" fill="#f8f5f2" opacity="0.9"/>
-          <circle cx="132" cy="63" r="2" fill="#f0ebe6" opacity="0.7"/>
+          <circle cx="128" cy="52" r="11" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+          <circle cx="124" cy="48" r="3" fill="#f8f5f2" opacity="0.9"/>
+          <circle cx="132" cy="55" r="2" fill="#f0ebe6" opacity="0.7"/>
         </g>
       </svg>
     `;
@@ -695,6 +704,7 @@ export function getCurrentTimeOfDay(): TimeOfDay {
  * Check if it's a holiday.
  */
 export function isHoliday(): boolean {
+  if (!HOLIDAY_THEMES_ENABLED) return false;
   return detectHoliday() !== null;
 }
 
@@ -702,6 +712,7 @@ export function isHoliday(): boolean {
  * Get current holiday.
  */
 export function getCurrentHoliday(): Holiday {
+  if (!HOLIDAY_THEMES_ENABLED) return null;
   return detectHoliday();
 }
 

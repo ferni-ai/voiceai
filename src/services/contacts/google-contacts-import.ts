@@ -55,7 +55,29 @@ export interface ImportOptions {
 // ============================================================================
 
 const RELATIONSHIP_KEYWORDS: Record<string, string[]> = {
-  family: ['mother', 'father', 'mom', 'dad', 'parent', 'sister', 'brother', 'sibling', 'aunt', 'uncle', 'cousin', 'grandmother', 'grandfather', 'grandma', 'grandpa', 'wife', 'husband', 'spouse', 'son', 'daughter', 'child'],
+  family: [
+    'mother',
+    'father',
+    'mom',
+    'dad',
+    'parent',
+    'sister',
+    'brother',
+    'sibling',
+    'aunt',
+    'uncle',
+    'cousin',
+    'grandmother',
+    'grandfather',
+    'grandma',
+    'grandpa',
+    'wife',
+    'husband',
+    'spouse',
+    'son',
+    'daughter',
+    'child',
+  ],
   friend: ['friend', 'buddy', 'pal', 'bestie', 'bff'],
   work: ['colleague', 'coworker', 'boss', 'manager', 'employee', 'work', 'office'],
   mentor: ['mentor', 'coach', 'advisor', 'teacher', 'professor'],
@@ -67,7 +89,7 @@ function detectRelationship(person: GoogleContactPerson): ContactRelationship['r
   if (person.relations && person.relations.length > 0) {
     const relationType = person.relations[0].type?.toLowerCase() || '';
     for (const [category, keywords] of Object.entries(RELATIONSHIP_KEYWORDS)) {
-      if (keywords.some(k => relationType.includes(k))) {
+      if (keywords.some((k) => relationType.includes(k))) {
         return category as ContactRelationship['relationship'];
       }
     }
@@ -77,7 +99,7 @@ function detectRelationship(person: GoogleContactPerson): ContactRelationship['r
   if (person.biographies && person.biographies.length > 0) {
     const bio = person.biographies[0].value?.toLowerCase() || '';
     for (const [category, keywords] of Object.entries(RELATIONSHIP_KEYWORDS)) {
-      if (keywords.some(k => bio.includes(k))) {
+      if (keywords.some((k) => bio.includes(k))) {
         return category as ContactRelationship['relationship'];
       }
     }
@@ -124,13 +146,35 @@ export async function importGoogleContacts(
     // Initialize Google People API client (dynamic import)
     // Note: googleapis must be installed separately: npm install googleapis
     let google: {
-      auth: { OAuth2: new (...args: unknown[]) => { setCredentials: (creds: unknown) => void; getToken: (code: string) => Promise<{ tokens: { access_token?: string; refresh_token?: string } }>; generateAuthUrl: (opts: unknown) => string } };
+      auth: {
+        OAuth2: new (...args: unknown[]) => {
+          setCredentials: (creds: unknown) => void;
+          getToken: (
+            code: string
+          ) => Promise<{ tokens: { access_token?: string; refresh_token?: string } }>;
+          generateAuthUrl: (opts: unknown) => string;
+        };
+      };
       people: (config: { version: string; auth: unknown }) => {
-        contactGroups: { list: (opts: { pageSize: number }) => Promise<{ data: { contactGroups?: Array<{ resourceName?: string; name?: string; groupType?: string }> } }> };
-        people: { connections: { list: (opts: unknown) => Promise<{ data: { connections?: GoogleContactPerson[]; nextPageToken?: string } }> } };
+        contactGroups: {
+          list: (opts: {
+            pageSize: number;
+          }) => Promise<{
+            data: {
+              contactGroups?: Array<{ resourceName?: string; name?: string; groupType?: string }>;
+            };
+          }>;
+        };
+        people: {
+          connections: {
+            list: (
+              opts: unknown
+            ) => Promise<{ data: { connections?: GoogleContactPerson[]; nextPageToken?: string } }>;
+          };
+        };
       };
     };
-    
+
     try {
       const googleapis = await import('googleapis');
       google = googleapis.google as typeof google;
@@ -172,7 +216,8 @@ export async function importGoogleContacts(
         resourceName: 'people/me',
         pageSize: Math.min(100, maxContacts - totalFetched),
         pageToken: nextPageToken,
-        personFields: 'names,emailAddresses,phoneNumbers,birthdays,relations,memberships,biographies,organizations,addresses',
+        personFields:
+          'names,emailAddresses,phoneNumbers,birthdays,relations,memberships,biographies,organizations,addresses',
       });
 
       const connections = response.data.connections || [];
@@ -180,16 +225,12 @@ export async function importGoogleContacts(
 
       for (const person of connections) {
         try {
-          const imported = await importSingleContact(
-            userId,
-            person as GoogleContactPerson,
-            {
-              detectRelationships,
-              importBirthdays,
-              mergeExisting,
-              groupMap,
-            }
-          );
+          const imported = await importSingleContact(userId, person as GoogleContactPerson, {
+            detectRelationships,
+            importBirthdays,
+            mergeExisting,
+            groupMap,
+          });
 
           if (imported) {
             result.imported++;
@@ -198,7 +239,8 @@ export async function importGoogleContacts(
             // Handle group memberships
             if (includeGroups && person.memberships) {
               for (const membership of person.memberships) {
-                const groupResourceName = membership.contactGroupMembership?.contactGroupResourceName;
+                const groupResourceName =
+                  membership.contactGroupMembership?.contactGroupResourceName;
                 if (groupResourceName && groupMap.has(groupResourceName)) {
                   const groupName = groupMap.get(groupResourceName)!;
                   await ensureGroupAndAddContact(userId, groupName, imported.contactId, result);
@@ -209,7 +251,9 @@ export async function importGoogleContacts(
             result.skipped++;
           }
         } catch (contactError) {
-          result.errors.push(`Failed to import ${person.names?.[0]?.displayName || 'unknown'}: ${String(contactError)}`);
+          result.errors.push(
+            `Failed to import ${person.names?.[0]?.displayName || 'unknown'}: ${String(contactError)}`
+          );
         }
       }
 
@@ -217,8 +261,10 @@ export async function importGoogleContacts(
     } while (nextPageToken && totalFetched < maxContacts);
 
     result.success = true;
-    log.info({ imported: result.imported, skipped: result.skipped }, 'Google contacts import completed');
-
+    log.info(
+      { imported: result.imported, skipped: result.skipped },
+      'Google contacts import completed'
+    );
   } catch (error) {
     log.error({ error: String(error) }, 'Google contacts import failed');
     result.errors.push(`Import failed: ${String(error)}`);
@@ -257,9 +303,7 @@ async function importSingleContact(
   const contactId = email || phone || `google_${person.resourceName}`;
 
   // Detect relationship type
-  const relationship = options.detectRelationships 
-    ? detectRelationship(person)
-    : 'other';
+  const relationship = options.detectRelationships ? detectRelationship(person) : 'other';
 
   // Extract birthday if present
   const importantDates: ContactRelationship['importantDates'] = [];
@@ -314,7 +358,7 @@ async function ensureGroupAndAddContact(
     // Try to get or create the group
     const { getGroups } = await import('./contact-groups.js');
     const existingGroups = await getGroups(userId);
-    let group = existingGroups.find(g => g.name.toLowerCase() === groupName.toLowerCase());
+    let group = existingGroups.find((g) => g.name.toLowerCase() === groupName.toLowerCase());
 
     if (!group) {
       group = await createGroup(userId, {
@@ -370,7 +414,13 @@ export async function getGoogleContactsAuthUrl(
   state: string
 ): Promise<string> {
   try {
-    const { google } = await import('googleapis') as { google: { auth: { OAuth2: new (...args: unknown[]) => { generateAuthUrl: (opts: unknown) => string } } } };
+    const { google } = (await import('googleapis')) as {
+      google: {
+        auth: {
+          OAuth2: new (...args: unknown[]) => { generateAuthUrl: (opts: unknown) => string };
+        };
+      };
+    };
     const oauth2Client = new google.auth.OAuth2(clientId, undefined, redirectUri);
 
     return oauth2Client.generateAuthUrl({
@@ -397,7 +447,17 @@ export async function exchangeGoogleContactsCode(
   code: string
 ): Promise<{ accessToken: string; refreshToken?: string }> {
   try {
-    const { google } = await import('googleapis') as { google: { auth: { OAuth2: new (...args: unknown[]) => { getToken: (code: string) => Promise<{ tokens: { access_token?: string; refresh_token?: string } }> } } } };
+    const { google } = (await import('googleapis')) as {
+      google: {
+        auth: {
+          OAuth2: new (...args: unknown[]) => {
+            getToken: (
+              code: string
+            ) => Promise<{ tokens: { access_token?: string; refresh_token?: string } }>;
+          };
+        };
+      };
+    };
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
     const { tokens } = await oauth2Client.getToken(code);

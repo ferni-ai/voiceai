@@ -35,13 +35,7 @@ const log = getLogger();
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const AUTH_BASE_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0';
 
-const SCOPES = [
-  'openid',
-  'profile',
-  'offline_access',
-  'User.Read',
-  'Calendars.ReadWrite',
-];
+const SCOPES = ['openid', 'profile', 'offline_access', 'User.Read', 'Calendars.ReadWrite'];
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -131,11 +125,7 @@ class MicrosoftGraphClient {
   /**
    * Make an authenticated request to Microsoft Graph
    */
-  private async request<T>(
-    method: string,
-    endpoint: string,
-    body?: unknown
-  ): Promise<T | null> {
+  private async request<T>(method: string, endpoint: string, body?: unknown): Promise<T | null> {
     // Refresh token if expired
     if (Date.now() >= this.tokens.expiresAt - 60000) {
       const refreshed = await this.refreshAccessToken();
@@ -235,10 +225,11 @@ class MicrosoftGraphClient {
    * Get user profile
    */
   async getProfile(): Promise<{ email: string; displayName: string } | null> {
-    const profile = await this.request<{ mail?: string; userPrincipalName: string; displayName: string }>(
-      'GET',
-      '/me'
-    );
+    const profile = await this.request<{
+      mail?: string;
+      userPrincipalName: string;
+      displayName: string;
+    }>('GET', '/me');
 
     if (!profile) return null;
 
@@ -275,9 +266,7 @@ class MicrosoftGraphClient {
    * Create a new event
    */
   async createEvent(event: GraphEvent, calendarId?: string): Promise<GraphEvent | null> {
-    const endpoint = calendarId
-      ? `/me/calendars/${calendarId}/events`
-      : '/me/events';
+    const endpoint = calendarId ? `/me/calendars/${calendarId}/events` : '/me/events';
 
     return this.request<GraphEvent>('POST', endpoint, event);
   }
@@ -559,7 +548,9 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get user's Outlook calendars
    */
-  async getCalendars(userId: string): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  async getCalendars(
+    userId: string
+  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
     const tokens = await this.getTokens(userId);
     if (!tokens) {
       return [];
@@ -649,10 +640,8 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     if (!firestore) return;
 
     try {
-      await firestore
-        .collection(`users/${userId}/calendar_providers`)
-        .doc('outlook')
-        .set({
+      await firestore.collection(`users/${userId}/calendar_providers`).doc('outlook').set(
+        {
           provider: 'outlook',
           connected: true,
           email: tokens.email,
@@ -661,7 +650,9 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
           syncDirection: 'two-way',
           tokens,
           lastSyncedAt: null,
-        }, { merge: true });
+        },
+        { merge: true }
+      );
     } catch (error) {
       log.error({ error: String(error) }, 'Error storing Microsoft tokens');
     }
@@ -672,10 +663,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     if (!firestore) return;
 
     try {
-      await firestore
-        .collection(`users/${userId}/calendar_providers`)
-        .doc('outlook')
-        .delete();
+      await firestore.collection(`users/${userId}/calendar_providers`).doc('outlook').delete();
     } catch (error) {
       log.error({ error: String(error) }, 'Error deleting Microsoft tokens');
     }
@@ -723,9 +711,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
 
     const graphEvent: GraphEvent = {
       subject: event.title,
-      body: event.description
-        ? { contentType: 'text', content: event.description }
-        : undefined,
+      body: event.description ? { contentType: 'text', content: event.description } : undefined,
       start: {
         dateTime: event.startTime.toISOString().replace('Z', ''),
         timeZone,

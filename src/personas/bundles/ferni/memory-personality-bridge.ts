@@ -87,9 +87,7 @@ const DELIVERY_COOLDOWN_MS = 24 * 60 * 60 * 1000; // Don't repeat same callback 
 /**
  * Create a memory callback from a proactive insight
  */
-export function createCallbackFromInsight(
-  insight: ProactiveInsight
-): MemoryCallback {
+export function createCallbackFromInsight(insight: ProactiveInsight): MemoryCallback {
   const typeMap: Record<ProactiveInsight['type'], MemoryCallback['type']> = {
     date_reminder: 'date',
     growth_celebration: 'growth',
@@ -172,13 +170,8 @@ export function createDateCallback(
 /**
  * Create a topic absence callback
  */
-export function createAbsenceCallback(
-  topic: string,
-  lastMentioned: Date
-): MemoryCallback {
-  const daysSince = Math.floor(
-    (Date.now() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24)
-  );
+export function createAbsenceCallback(topic: string, lastMentioned: Date): MemoryCallback {
+  const daysSince = Math.floor((Date.now() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24));
 
   let naturalPhrase: string;
   let priority: MemoryCallback['priority'] = 'low';
@@ -210,10 +203,7 @@ export function createAbsenceCallback(
 /**
  * Create a growth celebration callback
  */
-export function createGrowthCallback(
-  area: string,
-  progress: string
-): MemoryCallback {
+export function createGrowthCallback(area: string, progress: string): MemoryCallback {
   return {
     type: 'growth',
     content: `Growth in ${area}: ${progress}`,
@@ -230,10 +220,7 @@ export function createGrowthCallback(
 /**
  * Create a comfort pattern callback
  */
-export function createComfortCallback(
-  pattern: string,
-  context: string
-): MemoryCallback {
+export function createComfortCallback(pattern: string, context: string): MemoryCallback {
   return {
     type: 'comfort',
     content: `Comfort pattern: ${pattern}`,
@@ -292,9 +279,7 @@ export function getBestCallback(
 
   // If user is distressed, prefer supportive/gentle callbacks
   if (currentMood === 'stressed' || currentMood === 'sad') {
-    const supportive = available.find(
-      (cb) => cb.tone === 'supportive' || cb.tone === 'gentle'
-    );
+    const supportive = available.find((cb) => cb.tone === 'supportive' || cb.tone === 'gentle');
     if (supportive) return supportive;
   }
 
@@ -359,7 +344,10 @@ export function callbackToExpression(callback: MemoryCallback): {
   timing: 'immediate' | 'after_pause' | 'mid_response' | 'at_end';
 } {
   // Map callback timing to ComposedExpression timing
-  const timingMap: Record<MemoryCallback['timing'], 'immediate' | 'after_pause' | 'mid_response' | 'at_end'> = {
+  const timingMap: Record<
+    MemoryCallback['timing'],
+    'immediate' | 'after_pause' | 'mid_response' | 'at_end'
+  > = {
     greeting: 'immediate',
     when_relevant: 'mid_response',
     closing: 'at_end',
@@ -419,4 +407,3 @@ export const memoryPersonalityBridge = {
 };
 
 export default memoryPersonalityBridge;
-

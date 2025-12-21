@@ -23,14 +23,21 @@ import {
 } from '../../intelligence/silence-intelligence.js';
 import {
   getMeaningfulSilenceResponse,
+  getLLMSilenceInstructions,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
   type SilenceContext,
+  type LLMSilenceInstructions,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
+import {
+  generateBackchannelInstructions,
+  generateSilenceInstructions,
+} from '../../speech/llm-backchannel.js';
 import { getContextAwareThinkingFiller } from '../../speech/response-naturalness.js';
 import {
   trackBackchannelEvent,
@@ -38,6 +45,7 @@ import {
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
 import { SILENCE_THRESHOLDS } from '../shared/constants.js';
+import { safeGenerateReply } from '../shared/safe-generate-reply.js';
 import type { UserData } from '../shared/types.js';
 
 // ============================================================================
@@ -82,6 +90,35 @@ const getLogger = () => log();
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
   const { session, sessionPersona, conversationManager, userData, sessionId } = ctx;
+
+  // ============================================================
+  // INTERRUPT-AWARE SPEECH HELPER
+  // ============================================================
+  /**
+   * Speak text with interrupt awareness.
+   * Applies recovery softening if the user interrupted us previously.
+   * This makes agent responses feel less abrupt after an interrupt.
+   */
+  const sayWithInterruptAwareness = (
+    text: string,
+    options?: { allowInterruptions?: boolean }
+  ): void => {
+    const wrapped = wrapSpeechWithInterruptAwareness(text, {
+      wasInterrupted: userData.wasInterrupted,
+      interruptType: userData.interruptType,
+      personaId: sessionPersona.id,
+      sessionId,
+    });
+
+    session.say(wrapped.text, options);
+
+    // Clear the interrupt flag after using it (only for recovery, not cushioning)
+    if (wrapped.recoveryApplied) {
+      userData.wasInterrupted = false;
+      userData.interruptType = undefined;
+      diag.state('🎭 Interrupt recovery applied to speech');
+    }
+  };
 
   // ============================================================
   // STATE VARIABLES
@@ -131,6 +168,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
   // ============================================================
   // BACKCHANNEL HELPER (Regular - after user pauses)
+  // LLM-based: Let the LLM generate contextual backchannels
   // ============================================================
   const attemptBackchannel = async () => {
     // Don't backchannel if agent is speaking
@@ -139,47 +177,102 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // Don't backchannel too frequently
     if (Date.now() - lastBackchannelAt < BACKCHANNEL_MIN_INTERVAL_MS) return;
 
-    // Get a backchannel from active listening engine
-    const backchannel = activeListening.getBackchannel(sessionPersona.id, {
-      userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : undefined,
-      topicSeriousness: silenceContext.recentEmotionalTone === 'heavy' ? 'serious' : 'casual',
-      userJustSharedSomethingPersonal: silenceContext.recentEmotionalTone === 'heavy',
-    });
+    // Feature flag: Use LLM-based backchannels for more natural variation
+    const useLLMBackchannels = voiceFlags.enableLLMBackchannels ?? true;
 
-    if (backchannel) {
-      try {
-        // Say the backchannel with SSML - allow interruption
-        session.say(backchannel.ssml, { allowInterruptions: true });
+    if (useLLMBackchannels) {
+      // LLM-BASED: Generate contextual backchannel via LLM
+      const backchannelType =
+        silenceContext.recentEmotionalTone === 'heavy' ? 'empathy' : 'acknowledgment';
+
+      // Get recent transcript from recentTranscripts array
+      const recentTranscripts = userData.recentTranscripts ?? [];
+      const lastTranscript = recentTranscripts[recentTranscripts.length - 1] ?? '';
+
+      const result = generateBackchannelInstructions(sessionId, {
+        recentUserSpeech: lastTranscript,
+        emotionalTone:
+          silenceContext.recentEmotionalTone === 'heavy'
+            ? 'heavy'
+            : silenceContext.recentEmotionalTone === 'light'
+              ? 'excited' // Map 'light' to 'excited' for LLM context
+              : 'neutral',
+        type: backchannelType,
+        turnNumber: userData.turnCount ?? 0,
+        speakingDurationMs: userData.currentSpeechDurationMs ?? 0,
+        personaId: sessionPersona.id,
+      });
+
+      if (result.shouldTrigger) {
+        // FIX: Use safeGenerateReply - don't await, fire and forget for backchannels
+        // Backchannels should be quick acknowledgments, not blocking operations
+        void safeGenerateReply(session, {
+          instructions: result.instructions,
+          allowInterruptions: true,
+          waitForPlayout: false, // Don't wait - backchannels are non-blocking
+          context: 'backchannel',
+        });
+
         const backchannelFiredAt = Date.now();
         const pauseDuration = backchannelFiredAt - lastBackchannelAt;
         lastBackchannelAt = backchannelFiredAt;
-
-        // Track that we gave a backchannel (for reaction analysis)
         pendingBackchannelReaction = true;
 
-        // Track detailed backchannel event in unified metrics
         trackBackchannelEvent(sessionId, {
           pauseDurationMs: pauseDuration,
           wasTimely: true,
-          category:
-            backchannel.type === 'empathy'
-              ? 'empathy'
-              : backchannel.type === 'encouragement'
-                ? 'encouragement'
-                : backchannel.type === 'agreement'
-                  ? 'affirmation'
-                  : 'acknowledgment',
+          category: backchannelType === 'empathy' ? 'empathy' : 'acknowledgment',
           userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
-          mode: 'adaptive',
+          mode: 'llm',
         });
 
-        diag.state('Backchannel fired', {
-          text: backchannel.verbal,
-          type: backchannel.type,
+        diag.state('🤖 LLM backchannel triggered', {
+          type: backchannelType,
           persona: sessionPersona.id,
+          turnNumber: userData.turnCount,
         });
-      } catch (e) {
-        getLogger().warn({ error: e }, 'Failed to fire backchannel');
+      } else {
+        diag.state('Backchannel skipped', { reason: result.skipReason });
+      }
+    } else {
+      // LEGACY: Use hardcoded phrase pools (fallback)
+      const backchannel = activeListening.getBackchannel(sessionPersona.id, {
+        userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : undefined,
+        topicSeriousness: silenceContext.recentEmotionalTone === 'heavy' ? 'serious' : 'casual',
+        userJustSharedSomethingPersonal: silenceContext.recentEmotionalTone === 'heavy',
+      });
+
+      if (backchannel) {
+        try {
+          session.say(backchannel.ssml, { allowInterruptions: true });
+          const backchannelFiredAt = Date.now();
+          const pauseDuration = backchannelFiredAt - lastBackchannelAt;
+          lastBackchannelAt = backchannelFiredAt;
+          pendingBackchannelReaction = true;
+
+          trackBackchannelEvent(sessionId, {
+            pauseDurationMs: pauseDuration,
+            wasTimely: true,
+            category:
+              backchannel.type === 'empathy'
+                ? 'empathy'
+                : backchannel.type === 'encouragement'
+                  ? 'encouragement'
+                  : backchannel.type === 'agreement'
+                    ? 'affirmation'
+                    : 'acknowledgment',
+            userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
+            mode: 'adaptive',
+          });
+
+          diag.state('Backchannel fired (legacy)', {
+            text: backchannel.verbal,
+            type: backchannel.type,
+            persona: sessionPersona.id,
+          });
+        } catch (e) {
+          getLogger().warn({ error: e }, 'Failed to fire backchannel');
+        }
       }
     }
   };
@@ -275,9 +368,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         diag.state('Agent speaking - DJ Booth managing music');
       } else {
         // Fallback to basic ducking if DJ Booth not initialized
-        import('../../config/environment.js')
-          .then(async ({ isMusicEnabled }) => {
-            if (!isMusicEnabled()) return;
+        // GUARD: Don't access music player singleton if session is cleaning up (race condition fix)
+        import('../session/event-cleanup-registry.js')
+          .then(async ({ isSessionCleaningUp }) => {
+            if (isSessionCleaningUp(sessionId)) {
+              diag.debug('Skipping music ducking - session is cleaning up');
+              return null;
+            }
+            const { isMusicEnabled } = await import('../../config/environment.js');
+            if (!isMusicEnabled()) return null;
             return import('../../audio/index.js');
           })
           .then((audioModule) => {
@@ -306,13 +405,26 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         diag.state('Agent stopped - DJ Booth restoring music');
       } else {
         // Fallback to basic unducking
-        import('../../config/environment.js')
-          .then(async ({ isMusicEnabled }) => {
-            if (!isMusicEnabled()) return;
+        // GUARD: Don't access music player singleton if session is cleaning up (race condition fix)
+        import('../session/event-cleanup-registry.js')
+          .then(async ({ isSessionCleaningUp }) => {
+            if (isSessionCleaningUp(sessionId)) {
+              diag.debug('Skipping music unducking - session is cleaning up');
+              return null;
+            }
+            const { isMusicEnabled } = await import('../../config/environment.js');
+            if (!isMusicEnabled()) return null;
             return import('../../audio/index.js');
           })
-          .then((audioModule) => {
+          .then(async (audioModule) => {
             if (!audioModule) return;
+            // Re-check cleanup state - async imports can take time
+            const { isSessionCleaningUp: recheck } =
+              await import('../session/event-cleanup-registry.js');
+            if (recheck(sessionId)) {
+              diag.debug('Skipping music unducking - session cleanup started during import');
+              return;
+            }
             const player = audioModule.getMusicPlayer();
             if (player.getState().isDucked) {
               player.unduck();
@@ -495,21 +607,27 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             // Use dynamic context-aware filler based on emotional state & time
             const filler = getContextAwareThinkingFiller(sessionPersona.id, {
               type: 'thinking',
-              weight: userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.7
-                ? 'heavy'
-                : userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.4
-                  ? 'medium'
-                  : 'light',
+              weight:
+                userData.lastEmotionAnalysis?.intensity &&
+                userData.lastEmotionAnalysis.intensity > 0.7
+                  ? 'heavy'
+                  : userData.lastEmotionAnalysis?.intensity &&
+                      userData.lastEmotionAnalysis.intensity > 0.4
+                    ? 'medium'
+                    : 'light',
               emotionalState: userData.lastEmotionAnalysis,
               hourOfDay: new Date().getHours(),
               relationshipStage: userData.relationshipStage,
             });
             try {
-              session.say(filler, { allowInterruptions: true });
+              // Use interrupt-aware wrapper - if user just interrupted us,
+              // this acknowledgment will start softer and more human
+              sayWithInterruptAwareness(filler, { allowInterruptions: true });
               diag.filler('Early context-aware acknowledgment', {
                 waitedMs: timeSinceStop,
                 personaId: sessionPersona.id,
                 emotionalContext: userData.lastEmotionAnalysis?.primary,
+                recoveredFromInterrupt: userData.wasInterrupted,
               });
             } catch (e) {
               getLogger().debug({ error: e }, 'Failed to say early acknowledgment');
@@ -626,7 +744,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
           if (silenceBackchannel) {
             try {
-              session.say(silenceBackchannel.ssml, { allowInterruptions: true });
+              // Use interrupt-aware wrapper for softer recovery after interrupts
+              sayWithInterruptAwareness(silenceBackchannel.ssml, { allowInterruptions: true });
               lastBackchannelAt = Date.now();
               diag.state('Silence-aware backchannel', {
                 phrase: silenceBackchannel.verbal,
@@ -647,7 +766,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             try {
               const insight = userData.pendingVoiceInsight;
               if (insight.confidence > 0.6) {
-                session.say(`<break time="300ms"/>${insight.ssml}`, {
+                // Voice insights benefit from interrupt-aware delivery
+                sayWithInterruptAwareness(`<break time="300ms"/>${insight.ssml}`, {
                   allowInterruptions: true,
                 });
                 userData.deliveredVoiceInsight = true;
@@ -691,34 +811,79 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         silenceContext.userName = userData.name;
         silenceContext.silenceResponseCount = silenceResponseCount; // Sync for deduplication
 
-        // Get meaningful silence response
-        const silenceResponse = getMeaningfulSilenceResponse(sessionPersona, silenceContext);
+        // FIX: Sync topics JUST BEFORE generating silence response (not at transcript time)
+        // This ensures topics from turn analysis are available for memory_callback responses.
+        // Previously, topics were synced in processFinalTranscript which runs BEFORE topic analysis.
+        if (userData.recentTopics && userData.recentTopics.length > 0) {
+          silenceContext.topicsDiscussed = [...userData.recentTopics];
+        } else if (userData.lastTopic) {
+          // Accumulate topics instead of replacing
+          if (!silenceContext.topicsDiscussed.includes(userData.lastTopic)) {
+            silenceContext.topicsDiscussed = [
+              userData.lastTopic,
+              ...silenceContext.topicsDiscussed.slice(0, 9),
+            ];
+          }
+        }
+        if (userData.lastTopic) {
+          silenceContext.wasDiscussingTopic = userData.lastTopic;
+        }
 
-        diag.state('Meaningful silence response', {
-          type: silenceResponse.type,
+        // LLM-DRIVEN: Get instructions for natural, contextual silence response
+        const silenceInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
+
+        diag.state('LLM-driven silence response', {
+          type: silenceInstructions.type,
           silenceDuration: Math.round(silenceDurationSec),
           responseCount: silenceResponseCount + 1,
+          hasInstructions: !!silenceInstructions.instructions,
         });
 
-        try {
-          session.say(silenceResponse.text, { allowInterruptions: true });
-          silenceResponseCount++;
+        // Try LLM-driven response using safe wrapper to prevent native crash
+        void (async () => {
+          try {
+            if (silenceInstructions.instructions) {
+              // FIX: Use safeGenerateReply to prevent native mutex crash
+              // The SDK's generateReply can timeout and trigger a native crash
+              // in @livekit/rtc-node when cleanup races with the mutex
+              const result = await safeGenerateReply(session, {
+                instructions: silenceInstructions.instructions,
+                allowInterruptions: silenceInstructions.allowInterruptions,
+                fallbackMessage: silenceInstructions.fallback,
+                context: `silence-${silenceInstructions.type}`,
+              });
 
-          // If we offered music, actually play it after a short delay
-          if (silenceResponse.type === 'music_offering') {
-            setTimeout(() => {
-              void (async () => {
-                const musicStarted = await playAmbientMusicDuringSilence();
-                if (musicStarted) {
-                  diag.state('Started ambient music during silence');
-                }
-              })();
-            }, 3000);
+              if (result.success) {
+                diag.state('LLM silence response complete', { type: silenceInstructions.type });
+              } else if (result.usedFallback) {
+                diag.state('LLM silence used fallback', {
+                  type: silenceInstructions.type,
+                  error: result.error,
+                });
+              }
+            } else if (silenceInstructions.fallback) {
+              // No LLM instructions (e.g., music playing) - use fallback if present
+              sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
+            }
+
+            // If we offered music, actually play it after a short delay
+            if (silenceInstructions.type === 'music_offering') {
+              setTimeout(() => {
+                void (async () => {
+                  const musicStarted = await playAmbientMusicDuringSilence();
+                  if (musicStarted) {
+                    diag.state('Started ambient music during silence');
+                  }
+                })();
+              }, 3000);
+            }
+          } catch (silenceErr) {
+            getLogger().warn({ error: silenceErr }, 'Silence response error');
           }
-          lastSilenceResponseAt = Date.now();
-        } catch (e) {
-          getLogger().warn({ error: e }, 'Failed to say silence response');
-        }
+        })();
+
+        silenceResponseCount++;
+        lastSilenceResponseAt = Date.now();
       }
     }
   });

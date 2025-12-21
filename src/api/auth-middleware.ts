@@ -174,7 +174,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     // Allow either 'dev-mode' string OR configured ADMIN_KEY in development
     const isValidDevKey =
       adminKeyHeader === 'dev-mode' ||
-      (configuredAdminKey && adminKeyHeader === configuredAdminKey);
+      (typeof configuredAdminKey === 'string' &&
+        configuredAdminKey.length > 0 &&
+        adminKeyHeader === configuredAdminKey);
     if (isValidDevKey) {
       const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
       return {
@@ -267,12 +269,12 @@ export async function requireAuth(
     log.warn({ ip, lockoutUntil: ipLockout.lockoutUntil }, 'Request from locked out IP');
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Too many failed attempts. Please try again later.',
-        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;
@@ -303,12 +305,12 @@ export async function requireAuth(
     );
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((userLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((userLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Account temporarily locked. Please try again later.',
-        retryAfter: Math.ceil((userLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((userLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;
@@ -365,12 +367,12 @@ export function requireAuthSync(
   if (ipLockout.locked) {
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Too many failed attempts. Please try again later.',
-        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;

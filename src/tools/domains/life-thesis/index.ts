@@ -14,4 +14,3 @@ export async function getToolDefinitions(): Promise<ToolDefinition[]> {
   const { thesisTools } = await import('./thesis-tools.js');
   return thesisTools;
 }
-

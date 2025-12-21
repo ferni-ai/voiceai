@@ -554,6 +554,26 @@ class ConnectionService {
       this.room?.off('connectionStateChanged', onConnectionStateChange);
     });
 
+    // 🔄 Handle reconnection - re-enable microphone after LiveKit reconnects
+    // This fixes the issue where mic disconnects and needs to be manually re-enabled
+    const onReconnected = async () => {
+      log.info('🔄 Room reconnected - re-enabling microphone');
+      try {
+        // Check if mic should be enabled (user hasn't muted)
+        const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+        if (!isMuted && this.room?.localParticipant) {
+          await this.room.localParticipant.setMicrophoneEnabled(true);
+          log.info('🎤 Microphone re-enabled after reconnection');
+        }
+      } catch (err) {
+        log.warn('Failed to re-enable mic after reconnection:', err);
+      }
+    };
+    this.room.on('reconnected', onReconnected);
+    this.cleanupFunctions.push(() => {
+      this.room?.off('reconnected', onReconnected);
+    });
+
     // Participant connected (agent joins)
     const onParticipantConnected = (participant: { identity: string; isLocal?: boolean }) => {
       if (!participant.isLocal) {
@@ -739,8 +759,13 @@ class ConnectionService {
     });
 
     // Local track unpublished (microphone disabled)
+    // ⚠️ This fires when mic is taken away by iOS audio interruption, reconnect, etc.
     const onLocalTrackUnpublished = (publication: { kind: string }, _participant: unknown) => {
       if (publication.kind === 'audio') {
+        log.warn('⚠️ Local audio track unpublished (mic dropped)', { 
+          roomState: this.room?.state,
+          visibilityState: document.visibilityState,
+        });
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -750,8 +775,13 @@ class ConnectionService {
     });
 
     // Track muted/unmuted (for detecting when user mutes their mic)
+    // ⚠️ trackMuted can fire due to iOS audio session interruption
     const onTrackMuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
+        log.debug('🔇 Local audio track muted', {
+          roomState: this.room?.state,
+          visibilityState: document.visibilityState,
+        });
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -792,6 +822,64 @@ class ConnectionService {
     this.room.on('disconnected', onDisconnected);
     this.cleanupFunctions.push(() => {
       this.room?.off('disconnected', onDisconnected);
+    });
+
+    // 📱 Handle mobile visibility changes (screen lock, tab switch)
+    // When returning to app, audio track may need to be restored
+    const onVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
+        log.debug('📱 App became visible - checking microphone state');
+        try {
+          const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+          if (!isMuted && this.room?.localParticipant) {
+            // Small delay to let audio context resume
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Check if mic is already publishing
+            const audioTracks = this.room.localParticipant.getTrackPublications()
+              .filter((pub: any) => pub.kind === 'audio' && pub.track);
+            
+            if (audioTracks.length === 0) {
+              log.info('📱 No audio track found - re-enabling microphone');
+              await this.room.localParticipant.setMicrophoneEnabled(true);
+              log.info('🎤 Microphone restored after visibility change');
+            }
+          }
+        } catch (err) {
+          log.warn('Failed to restore mic on visibility change:', err);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    this.cleanupFunctions.push(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
+
+    // 📱 Handle native app state changes (iOS/Android via Capacitor)
+    // This fires when app comes back from background, after phone calls, etc.
+    const onAppState = async (event: Event) => {
+      const { isActive } = (event as CustomEvent<{ isActive: boolean }>).detail;
+      
+      if (isActive && this.room?.state === 'connected') {
+        log.info('📱 Native app became active - restoring microphone');
+        try {
+          const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+          if (!isMuted && this.room?.localParticipant) {
+            // Longer delay for native - iOS audio session needs time to restore
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Re-enable microphone
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+            log.info('🎤 Microphone restored after native app state change');
+          }
+        } catch (err) {
+          log.warn('Failed to restore mic on app state change:', err);
+        }
+      }
+    };
+    document.addEventListener('ferni:app-state', onAppState);
+    this.cleanupFunctions.push(() => {
+      document.removeEventListener('ferni:app-state', onAppState);
     });
   }
 

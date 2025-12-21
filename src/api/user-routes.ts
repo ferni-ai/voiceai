@@ -482,6 +482,128 @@ export async function handleUserRoutes(
     return true;
   }
 
+  // ============================================================================
+  // GET /api/user/reminders - Get reminder settings and upcoming dates
+  // ============================================================================
+  if (route === '/reminders' && method === 'GET') {
+    const userId = authenticatedUserId;
+
+    try {
+      const store = getDefaultStore();
+      const profile = await store.getProfile(userId);
+
+      // Default reminder settings
+      const defaultSettings = {
+        enabled: true,
+        daysBefore: 7,
+        channels: {
+          voice: true,
+          push: true,
+          email: false,
+        },
+        includeGiftSuggestions: true,
+        includeMessageDrafts: true,
+      };
+
+      const settings = profile?.preferences?.reminderSettings || defaultSettings;
+
+      // Get upcoming important dates from contacts
+      // This would ideally query the contacts service, but for now return from profile
+      const upcomingDates = profile?.preferences?.upcomingReminders || [];
+
+      sendJson(res, 200, {
+        success: true,
+        settings,
+        upcomingDates,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get reminder settings');
+      sendJson(res, 500, { success: false, error: 'Failed to get reminder settings' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/user/reminders - Update reminder settings
+  // ============================================================================
+  if (route === '/reminders' && method === 'POST') {
+    const body = await parseBody<{
+      enabled?: boolean;
+      daysBefore?: number;
+      channels?: {
+        voice?: boolean;
+        push?: boolean;
+        email?: boolean;
+      };
+      includeGiftSuggestions?: boolean;
+      includeMessageDrafts?: boolean;
+    }>(req);
+    const userId = authenticatedUserId;
+
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+      }
+
+      // Merge with existing settings
+      const currentSettings = profile.preferences?.reminderSettings || {
+        enabled: true,
+        daysBefore: 7,
+        channels: { voice: true, push: true, email: false },
+        includeGiftSuggestions: true,
+        includeMessageDrafts: true,
+      };
+
+      const updatedSettings = {
+        ...currentSettings,
+        ...(body?.enabled !== undefined && { enabled: body.enabled }),
+        ...(body?.daysBefore !== undefined && { daysBefore: body.daysBefore }),
+        ...(body?.channels && {
+          channels: {
+            ...currentSettings.channels,
+            ...body.channels,
+          },
+        }),
+        ...(body?.includeGiftSuggestions !== undefined && {
+          includeGiftSuggestions: body.includeGiftSuggestions,
+        }),
+        ...(body?.includeMessageDrafts !== undefined && {
+          includeMessageDrafts: body.includeMessageDrafts,
+        }),
+      };
+
+      // Validate daysBefore
+      if (
+        updatedSettings.daysBefore &&
+        (updatedSettings.daysBefore < 1 || updatedSettings.daysBefore > 30)
+      ) {
+        sendJson(res, 400, { success: false, error: 'daysBefore must be between 1 and 30' });
+        return true;
+      }
+
+      // Update profile
+      profile.preferences = {
+        ...profile.preferences,
+        reminderSettings: updatedSettings,
+      };
+
+      await store.saveProfile(profile);
+
+      log.info({ userId, settings: updatedSettings }, '🔔 Reminder settings updated');
+      sendJson(res, 200, {
+        success: true,
+        settings: updatedSettings,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to update reminder settings');
+      sendJson(res, 500, { success: false, error: 'Failed to update reminder settings' });
+    }
+    return true;
+  }
+
   // Not handled
   return false;
 }

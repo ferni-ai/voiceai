@@ -51,6 +51,7 @@ enum ClientMessageType: String {
     case handoffCancel = "handoff_cancel"
     case gameStartRequest = "game_start_request"
     case voicePackChange = "voice-pack-change"
+    case macosContext = "macos_context"
 }
 
 // MARK: - Agent Message Structures
@@ -139,9 +140,17 @@ class NativeLiveKitSession: ObservableObject {
     }
     
     // MARK: - LiveKit
-    
+
     private var room: Room?
     private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Context Updates
+
+    /// Timer for periodic context updates to the agent
+    private var contextUpdateTimer: Timer?
+
+    /// How often to send context updates (seconds)
+    private let contextUpdateInterval: TimeInterval = 15.0
     
     // Audio processing
     private var audioLevelTimer: Timer?
@@ -243,8 +252,14 @@ class NativeLiveKitSession: ObservableObject {
             connectionProgress = ""
             startAudioLevelMonitoring()
             playSound("connect")
-            
+
             print("[NativeLK] Connected to room: \(tokenData.room)")
+
+            // Send initial macOS context to agent
+            await sendMacOSContext()
+
+            // Start periodic context updates
+            startContextUpdateTimer()
             
         } catch {
             state = .error("Connection failed")
@@ -275,7 +290,10 @@ class NativeLiveKitSession: ObservableObject {
     private func disconnect() async {
         audioLevelTimer?.invalidate()
         audioLevelTimer = nil
-        
+
+        contextUpdateTimer?.invalidate()
+        contextUpdateTimer = nil
+
         guard let currentRoom = room else {
             roomName = nil
             sessionId = nil
@@ -614,7 +632,137 @@ class NativeLiveKitSession: ObservableObject {
             playSound("celebration")
         }
     }
-    
+
+    // MARK: - macOS Context Updates
+
+    /// Start periodic context updates to keep the agent informed
+    private func startContextUpdateTimer() {
+        // Invalidate any existing timer
+        contextUpdateTimer?.invalidate()
+
+        // Create a timer that fires on the main run loop
+        contextUpdateTimer = Timer.scheduledTimer(withTimeInterval: contextUpdateInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                await self.sendMacOSContext()
+            }
+        }
+        print("[NativeLK] Started context update timer (every \(Int(contextUpdateInterval))s)")
+    }
+
+    // MARK: - macOS Context Sending
+
+    /// Send macOS system context to the TypeScript agent
+    func sendMacOSContext() async {
+        guard let room = room, state.isActive else { return }
+
+        let manager = SystemIntelligenceManager.shared
+
+        // Build context payload
+        var payload: [String: Any] = [
+            "timestamp": Date().timeIntervalSince1970 * 1000
+        ]
+
+        // Context Awareness
+        if let snapshot = manager.lastContextSnapshot {
+            payload["activeApp"] = snapshot.activeApp
+            payload["windowTitle"] = snapshot.windowTitle
+            if let selectedText = snapshot.selectedText {
+                payload["selectedText"] = String(selectedText.prefix(500))
+            }
+        }
+
+        // Calendar Context
+        let calendarContext = manager.calendarService.getCalendarContext()
+        payload["todaysEventCount"] = calendarContext["todaysEventCount"] ?? 0
+        payload["isInMeeting"] = calendarContext["isInMeeting"] ?? false
+        if let upcoming = calendarContext["upcomingEvent"] {
+            payload["upcomingEvent"] = upcoming
+        }
+        if let current = calendarContext["currentMeeting"] {
+            payload["currentMeeting"] = current
+        }
+
+        // Focus Mode
+        let focusContext = manager.focusModeService.getFocusContext()
+        payload["isFocused"] = focusContext["isFocused"] ?? false
+        if let focusMode = focusContext["focusMode"] {
+            payload["focusMode"] = focusMode
+        }
+
+        // Contacts (birthdays)
+        let contactsContext = manager.contactsService.getContactsContext()
+        if let birthdays = contactsContext["upcomingBirthdays"] as? [[String: Any]], !birthdays.isEmpty {
+            payload["upcomingBirthdays"] = birthdays
+        }
+
+        // Location
+        let locationContext = manager.locationService.getLocationContext()
+        if let location = locationContext["location"] {
+            payload["location"] = location
+        }
+        if locationContext["isCommuting"] as? Bool == true {
+            payload["isCommuting"] = true
+        }
+
+        // Screen Time
+        let screenTimeContext = manager.screenTimeService.getScreenTimeContext()
+        payload["totalMinutesToday"] = screenTimeContext["totalMinutesToday"] ?? 0
+        if let topApp = screenTimeContext["topApp"] {
+            payload["topApp"] = topApp
+        }
+        if screenTimeContext["needsBreak"] as? Bool == true {
+            payload["needsBreak"] = true
+            payload["currentSessionMinutes"] = screenTimeContext["currentSessionMinutes"] ?? 0
+        }
+
+        // Wrap in message
+        let message: [String: Any] = [
+            "type": ClientMessageType.macosContext.rawValue,
+            "payload": payload
+        ]
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: message)
+            try await room.localParticipant.publish(data: data, options: DataPublishOptions(reliable: true))
+            print("[NativeLK] Sent macOS context to agent")
+        } catch {
+            print("[NativeLK] Failed to send macOS context: \(error)")
+        }
+    }
+
+    /// Send context with specific selected text (for "Help me with this" hotkey)
+    func sendContextWithSelectedText(_ selectedText: String) async {
+        guard let room = room, state.isActive else { return }
+
+        let manager = SystemIntelligenceManager.shared
+
+        var payload: [String: Any] = [
+            "timestamp": Date().timeIntervalSince1970 * 1000,
+            "selectedText": String(selectedText.prefix(1000))
+        ]
+
+        // Add current context
+        if let snapshot = manager.lastContextSnapshot {
+            payload["activeApp"] = snapshot.activeApp
+            payload["windowTitle"] = snapshot.windowTitle
+        }
+
+        let message: [String: Any] = [
+            "type": ClientMessageType.macosContext.rawValue,
+            "payload": payload,
+            "helpMeWithThis": true
+        ]
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: message)
+            try await room.localParticipant.publish(data: data, options: DataPublishOptions(reliable: true))
+            print("[NativeLK] Sent 'Help me with this' context")
+        } catch {
+            print("[NativeLK] Failed to send context: \(error)")
+        }
+    }
+
     // MARK: - Transcription Handling
     
     func handleTranscription(_ text: String, isAgent: Bool, isFinal: Bool) {

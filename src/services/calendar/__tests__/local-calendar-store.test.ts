@@ -139,10 +139,10 @@ describe('Local Calendar Store', () => {
       const before = new Date(now);
       before.setDate(before.getDate() - 2);
       before.setHours(10, 0, 0, 0);
-      
+
       const middle = new Date(now);
       middle.setHours(10, 0, 0, 0);
-      
+
       const after = new Date(now);
       after.setDate(after.getDate() + 5);
       after.setHours(10, 0, 0, 0);
@@ -164,7 +164,7 @@ describe('Local Calendar Store', () => {
       const rangeStart = new Date(now);
       rangeStart.setDate(rangeStart.getDate() - 1);
       rangeStart.setHours(0, 0, 0, 0);
-      
+
       const rangeEnd = new Date(now);
       rangeEnd.setDate(rangeEnd.getDate() + 2);
       rangeEnd.setHours(23, 59, 59, 999);
@@ -254,4 +254,3 @@ describe('Local Calendar Store', () => {
     });
   });
 });
-

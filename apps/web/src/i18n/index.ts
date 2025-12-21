@@ -294,8 +294,17 @@ export function getDirection(): TextDirection {
 
 /**
  * Set the current locale
+ *
+ * @param locale - The locale to set
+ * @param options - Options for locale change behavior
+ * @param options.reload - Whether to reload the page (default: true for user-initiated changes)
  */
-export async function setLocale(locale: SupportedLocale): Promise<void> {
+export async function setLocale(
+  locale: SupportedLocale,
+  options: { reload?: boolean } = {}
+): Promise<void> {
+  const { reload = true } = options;
+
   if (!loadedTranslations.has(locale)) {
     await loadTranslations(locale);
   }
@@ -323,9 +332,18 @@ export async function setLocale(locale: SupportedLocale): Promise<void> {
     document.documentElement.classList.remove('rtl');
   }
 
-  // Notify listeners
+  // Handle locale change
   if (previousLocale !== locale) {
+    // Notify listeners first (for any cleanup/prep)
     localeChangeListeners.forEach((listener) => listener(locale));
+
+    // Reload page to re-render all UI with new translations
+    // This is the most reliable approach since 70+ components use t()
+    // and don't individually subscribe to locale changes
+    if (reload) {
+      log.info(`Locale changed from ${previousLocale} to ${locale}, reloading page`);
+      window.location.reload();
+    }
   }
 }
 
@@ -502,10 +520,11 @@ export function formatRelativeTime(date: Date, baseDate: Date = new Date()): str
 
 /**
  * Initialize i18n with detected locale
+ * Note: Uses reload: false since this is initial setup, not a user-initiated change
  */
 export async function initI18n(): Promise<void> {
   const detected = detectLocale();
-  await setLocale(detected);
+  await setLocale(detected, { reload: false });
 }
 
 /**

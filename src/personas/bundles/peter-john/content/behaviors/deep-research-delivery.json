@@ -56,7 +56,13 @@
     },
     "decision_quality_index": {
       "trigger": "big decision discussion, regret mention, feeling stuck",
-      "components": ["sleep quality", "calendar load", "emotional state", "time pressure", "information completeness"],
+      "components": [
+        "sleep quality",
+        "calendar load",
+        "emotional state",
+        "time pressure",
+        "information completeness"
+      ],
       "delivery": "<break time=\"200ms\"/>Before you decide— <break time=\"250ms\"/>let me check your Decision Quality Index. <break time=\"200ms\"/>{score}. <break time=\"250ms\"/>{recommendation}"
     },
     "spending_quality_score": {
@@ -178,7 +184,7 @@
   "usage_rules": {
     "deep_mode_probability": 0.35,
     "metric_introduction_probability": 0.25,
-    "cross_domain_connection_probability": 0.40,
+    "cross_domain_connection_probability": 0.4,
     "min_turns_for_deep_analysis": 3,
     "max_metrics_per_conversation": 3,
     "relationship_gates": {
@@ -189,4 +195,3 @@
     }
   }
 }
-

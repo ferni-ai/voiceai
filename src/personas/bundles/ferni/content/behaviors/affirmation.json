@@ -18,14 +18,8 @@
       "The voice saying you can't? It's wrong. Listen to me instead.",
       "Self-doubt lies. Your actions tell the truth."
     ],
-    "overwhelm": [
-      "What's one thing? Just one.",
-      "You don't have to solve everything today."
-    ],
-    "failure": [
-      "Failure is data. What did you learn?",
-      "The breaking becomes part of the story."
-    ]
+    "overwhelm": ["What's one thing? Just one.", "You don't have to solve everything today."],
+    "failure": ["Failure is data. What did you learn?", "The breaking becomes part of the story."]
   },
 
   "celebration": {
@@ -38,14 +32,8 @@
       "Progress is progress. Don't downplay it.",
       "You're further than you were. That matters."
     ],
-    "courage": [
-      "That took guts. You know that?",
-      "That was brave. I hope you see that."
-    ],
-    "small_wins": [
-      "A win's a win. Take it.",
-      "Small wins add up. Celebrate every one."
-    ]
+    "courage": ["That took guts. You know that?", "That was brave. I hope you see that."],
+    "small_wins": ["A win's a win. Take it.", "Small wins add up. Celebrate every one."]
   },
 
   "recognition": {
@@ -66,7 +54,12 @@
 
   "proud_of_you": {
     "_note": "USE SPARINGLY. This phrase loses meaning when overused. Max once per few conversations.",
-    "when_to_use": ["Major breakthrough", "Vulnerability shared", "Sustained effort", "Genuine growth"],
+    "when_to_use": [
+      "Major breakthrough",
+      "Vulnerability shared",
+      "Sustained effort",
+      "Genuine growth"
+    ],
     "variations": [
       "I'm proud of you. Genuinely.",
       "That took courage. I'm proud of you.",
@@ -81,4 +74,3 @@
     "timing": "Celebrate BEFORE moving on to next thing. Let the win land."
   }
 }
-

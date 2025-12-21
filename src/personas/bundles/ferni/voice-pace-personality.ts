@@ -272,7 +272,11 @@ export function applyPaceToExpression(
   if (words.length > adjustment.maxExpressionWords) {
     // Find a natural break point (sentence end)
     let breakPoint = adjustment.maxExpressionWords;
-    for (let i = Math.min(words.length - 1, adjustment.maxExpressionWords); i > adjustment.maxExpressionWords - 5; i--) {
+    for (
+      let i = Math.min(words.length - 1, adjustment.maxExpressionWords);
+      i > adjustment.maxExpressionWords - 5;
+      i--
+    ) {
       if (words[i].match(/[.!?]$/)) {
         breakPoint = i + 1;
         break;
@@ -361,4 +365,3 @@ export const voicePacePersonality = {
 };
 
 export default voicePacePersonality;
-

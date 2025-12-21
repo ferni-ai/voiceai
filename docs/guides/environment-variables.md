@@ -230,6 +230,58 @@ Without these, reservations fall back to phone calls via Twilio.
 2. Add redirect URI matching your production URL
 3. Set `SPOTIFY_REDIRECT_URI` environment variable to match
 
+### Apple Services (MusicKit & WeatherKit)
+
+For Apple Music search and premium weather data:
+
+| Variable            | Required | Description                                     |
+| ------------------- | -------- | ----------------------------------------------- |
+| `APPLE_TEAM_ID`     | ✓        | Your 10-character Apple Team ID                 |
+| `APPLE_KEY_ID`      | ✓        | Key ID from the .p8 key you created             |
+| `APPLE_PRIVATE_KEY` | ✓        | Contents of your .p8 private key file           |
+| `APPLE_MUSIC_APP_ID`|          | Optional: App identifier for MusicKit           |
+
+**Setup:**
+
+1. Go to [Apple Developer Account](https://developer.apple.com/account/)
+2. Navigate to **Keys** → **Create a Key**
+3. Enable **MusicKit** and **WeatherKit**
+4. Download the `.p8` private key file
+5. Add to `.env`:
+
+```bash
+APPLE_TEAM_ID=XXXXXXXXXX           # From Membership page
+APPLE_KEY_ID=YYYYYYYYYY            # From key creation
+APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByq...
+-----END PRIVATE KEY-----"
+```
+
+**Free Tier:** Apple Developer account ($99/year) includes:
+- MusicKit: 25,000 API calls/month
+- WeatherKit: 500,000 API calls/month
+
+### Home Assistant (Smart Home)
+
+Control smart home devices via Home Assistant:
+
+| Variable               | Required | Description                              |
+| ---------------------- | -------- | ---------------------------------------- |
+| `HOME_ASSISTANT_URL`   | ✓        | Your Home Assistant URL                  |
+| `HOME_ASSISTANT_TOKEN` | ✓        | Long-lived access token                  |
+
+**Setup:**
+
+1. Set up [Home Assistant](https://www.home-assistant.io/)
+2. Go to your profile → **Long-Lived Access Tokens**
+3. Create a new token
+4. Add to `.env`:
+
+```bash
+HOME_ASSISTANT_URL=http://homeassistant.local:8123
+HOME_ASSISTANT_TOKEN=eyJhbGciOi...your-long-token...
+```
+
 ---
 
 ## Push Notifications (Web Push)

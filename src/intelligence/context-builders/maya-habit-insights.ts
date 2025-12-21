@@ -481,11 +481,9 @@ export const mayaHabitInsightsBuilder: ContextBuilder = {
       const greetingContext = await generateHabitAwareGreetingContext(userId);
       if (greetingContext) {
         injections.push(
-          createStandardInjection(
-            'maya_habit_greeting_context',
-            greetingContext,
-            { category: 'greeting' }
-          )
+          createStandardInjection('maya_habit_greeting_context', greetingContext, {
+            category: 'greeting',
+          })
         );
       }
     }
@@ -517,4 +515,3 @@ export const mayaHabitInsightsBuilder: ContextBuilder = {
 registerContextBuilder(mayaHabitInsightsBuilder);
 
 export default mayaHabitInsightsBuilder;
-

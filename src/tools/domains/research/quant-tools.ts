@@ -63,7 +63,7 @@ function calculateMACD(prices: number[]): { macd: number; signal: number; histog
   const macd = ema12 - ema26;
 
   // Signal line is 9-day EMA of MACD (simplified)
-  const signal = macd * 0.2 + (prices[0] - prices[8]) * 0.8 / 8;
+  const signal = macd * 0.2 + ((prices[0] - prices[8]) * 0.8) / 8;
   const histogram = macd - signal;
 
   return { macd, signal, histogram };
@@ -297,7 +297,8 @@ function calculateSavingsRate(
       "FIRE territory! At this rate, you're building serious wealth. Just don't forget to enjoy today too.";
   } else {
     rating = 'Exceptional';
-    advice = "You're saving like a machine! Make sure you're not sacrificing quality of life unnecessarily.";
+    advice =
+      "You're saving like a machine! Make sure you're not sacrificing quality of life unnecessarily.";
   }
 
   return {
@@ -319,8 +320,8 @@ function calculateFIRENumber(
   coastFIRE: { age30: number; age40: number; age50: number };
 } {
   const fireNumber = annualExpenses * (100 / withdrawalRate);
-  const leanFIRE = (annualExpenses * 0.7) * (100 / withdrawalRate); // 70% of current expenses
-  const fatFIRE = (annualExpenses * 1.5) * (100 / withdrawalRate); // 150% of current expenses
+  const leanFIRE = annualExpenses * 0.7 * (100 / withdrawalRate); // 70% of current expenses
+  const fatFIRE = annualExpenses * 1.5 * (100 / withdrawalRate); // 150% of current expenses
 
   // Coast FIRE - amount needed now to coast to regular retirement
   // Assuming 7% real returns, retiring at 65
@@ -356,7 +357,8 @@ function calculateRetirementReadiness(
   const monthlyReturn = expectedReturn / 100 / 12;
 
   // Future value of current savings + contributions
-  let projectedAtRetirement = currentSavings * Math.pow(1 + expectedReturn / 100, yearsToRetirement);
+  let projectedAtRetirement =
+    currentSavings * Math.pow(1 + expectedReturn / 100, yearsToRetirement);
 
   // Add future value of monthly contributions (annuity formula)
   const months = yearsToRetirement * 12;
@@ -378,13 +380,16 @@ function calculateRetirementReadiness(
 
   let recommendation: string;
   if (score >= 100) {
-    recommendation = "You're on track for a comfortable retirement! Consider whether you want to retire earlier.";
+    recommendation =
+      "You're on track for a comfortable retirement! Consider whether you want to retire earlier.";
   } else if (score >= 80) {
-    recommendation = "Good progress! A small increase in contributions would get you to 100%.";
+    recommendation = 'Good progress! A small increase in contributions would get you to 100%.';
   } else if (score >= 60) {
-    recommendation = "You're making progress, but consider increasing contributions by 3-5% of income.";
+    recommendation =
+      "You're making progress, but consider increasing contributions by 3-5% of income.";
   } else if (score >= 40) {
-    recommendation = "There's work to do. Focus on increasing income or cutting expenses to save more.";
+    recommendation =
+      "There's work to do. Focus on increasing income or cutting expenses to save more.";
   } else {
     recommendation = "Let's make a plan. Small changes now compound into big differences later.";
   }
@@ -425,19 +430,20 @@ function calculateBehavioralScore(behavior: FinancialBehavior): {
 
   // Discipline (budget adherence, impulse control)
   const impulsePenalty = Math.min(30, behavior.impulsePurchases * 10);
-  const discipline = Math.round((behavior.budgetAdherence * 0.7 + (100 - impulsePenalty) * 0.3));
+  const discipline = Math.round(behavior.budgetAdherence * 0.7 + (100 - impulsePenalty) * 0.3);
 
   // Patience (savings and debt consistency)
   const patience = Math.round((behavior.savingsConsistency + behavior.debtPaymentConsistency) / 2);
 
   // Overall score
-  const overallScore = Math.round((emotionalControl * 0.3 + discipline * 0.35 + patience * 0.35));
+  const overallScore = Math.round(emotionalControl * 0.3 + discipline * 0.35 + patience * 0.35);
 
   // Identify strengths and improvements
   const strengths: string[] = [];
   const improvements: string[] = [];
 
-  if (emotionalControl >= 80) strengths.push('Excellent emotional control - you stay calm in volatility');
+  if (emotionalControl >= 80)
+    strengths.push('Excellent emotional control - you stay calm in volatility');
   else if (emotionalControl < 60) improvements.push('Work on staying calm during market drops');
 
   if (discipline >= 80) strengths.push('Strong financial discipline');
@@ -446,7 +452,8 @@ function calculateBehavioralScore(behavior: FinancialBehavior): {
   if (patience >= 80) strengths.push('Consistent saver - the key to building wealth');
   else if (patience < 60) improvements.push('Automate savings to improve consistency');
 
-  if (behavior.panicSells === 0) strengths.push("You haven't panic sold - that's rare and valuable!");
+  if (behavior.panicSells === 0)
+    strengths.push("You haven't panic sold - that's rare and valuable!");
   if (behavior.impulsePurchases === 0) strengths.push('No impulse purchases - great self-control');
 
   return {
@@ -455,7 +462,7 @@ function calculateBehavioralScore(behavior: FinancialBehavior): {
     discipline,
     patience,
     strengths: strengths.length > 0 ? strengths : ['Making progress - keep building good habits'],
-    improvements: improvements.length > 0 ? improvements : ['Keep doing what you\'re doing!'],
+    improvements: improvements.length > 0 ? improvements : ["Keep doing what you're doing!"],
   };
 }
 
@@ -478,7 +485,10 @@ function calculatePeerComparison(
   standoutAreas: string[];
 } {
   // Median benchmarks by age group (based on Federal Reserve data, simplified)
-  const benchmarks: Record<string, { savingsRate: number; netWorth: number; debtToIncome: number; emergencyFund: number }> = {
+  const benchmarks: Record<
+    string,
+    { savingsRate: number; netWorth: number; debtToIncome: number; emergencyFund: number }
+  > = {
     '20s': { savingsRate: 8, netWorth: 10000, debtToIncome: 0.8, emergencyFund: 1 },
     '30s': { savingsRate: 10, netWorth: 50000, debtToIncome: 1.2, emergencyFund: 2 },
     '40s': { savingsRate: 12, netWorth: 150000, debtToIncome: 1.0, emergencyFund: 3 },
@@ -489,10 +499,22 @@ function calculatePeerComparison(
   const benchmark = benchmarks[ageGroup];
 
   // Calculate percentiles (simplified - actual would use distribution)
-  const savingsRatePercentile = Math.min(99, Math.round((userMetrics.savingsRate / benchmark.savingsRate) * 50));
-  const netWorthPercentile = Math.min(99, Math.round((userMetrics.netWorth / benchmark.netWorth) * 50));
-  const debtPercentile = Math.min(99, Math.round((1 - userMetrics.debtToIncome / benchmark.debtToIncome) * 50 + 50));
-  const emergencyFundPercentile = Math.min(99, Math.round((userMetrics.emergencyFundMonths / benchmark.emergencyFund) * 50));
+  const savingsRatePercentile = Math.min(
+    99,
+    Math.round((userMetrics.savingsRate / benchmark.savingsRate) * 50)
+  );
+  const netWorthPercentile = Math.min(
+    99,
+    Math.round((userMetrics.netWorth / benchmark.netWorth) * 50)
+  );
+  const debtPercentile = Math.min(
+    99,
+    Math.round((1 - userMetrics.debtToIncome / benchmark.debtToIncome) * 50 + 50)
+  );
+  const emergencyFundPercentile = Math.min(
+    99,
+    Math.round((userMetrics.emergencyFundMonths / benchmark.emergencyFund) * 50)
+  );
 
   const overallPercentile = Math.round(
     (savingsRatePercentile + netWorthPercentile + debtPercentile + emergencyFundPercentile) / 4
@@ -502,7 +524,8 @@ function calculatePeerComparison(
   if (savingsRatePercentile >= 75) standoutAreas.push(`Savings rate in top 25% for your age group`);
   if (netWorthPercentile >= 75) standoutAreas.push(`Net worth in top 25% for your age group`);
   if (debtPercentile >= 75) standoutAreas.push(`Debt management in top 25% for your age group`);
-  if (emergencyFundPercentile >= 75) standoutAreas.push(`Emergency fund in top 25% for your age group`);
+  if (emergencyFundPercentile >= 75)
+    standoutAreas.push(`Emergency fund in top 25% for your age group`);
 
   return {
     savingsRatePercentile,
@@ -510,7 +533,8 @@ function calculatePeerComparison(
     debtPercentile,
     emergencyFundPercentile,
     overallPercentile,
-    standoutAreas: standoutAreas.length > 0 ? standoutAreas : ['Keep building - every step counts!'],
+    standoutAreas:
+      standoutAreas.length > 0 ? standoutAreas : ['Keep building - every step counts!'],
   };
 }
 
@@ -545,33 +569,58 @@ export function createQuantTools() {
         if (showAll || indicators.includes('rsi')) {
           const rsi = calculateRSI(prices);
           const rsiSignal =
-            rsi > 70 ? 'OVERBOUGHT - might be due for a pullback' : rsi < 30 ? 'OVERSOLD - could be a buying opportunity' : 'NEUTRAL';
+            rsi > 70
+              ? 'OVERBOUGHT - might be due for a pullback'
+              : rsi < 30
+                ? 'OVERSOLD - could be a buying opportunity'
+                : 'NEUTRAL';
           results.push(`• RSI (14-day): ${rsi.toFixed(1)} - ${rsiSignal}`);
         }
 
         if (showAll || indicators.includes('macd')) {
           const macd = calculateMACD(prices);
           const macdSignal =
-            macd.histogram > 0 ? 'BULLISH momentum' : macd.histogram < 0 ? 'BEARISH momentum' : 'NEUTRAL';
-          results.push(`• MACD: ${macd.macd.toFixed(2)} (Signal: ${macd.signal.toFixed(2)}) - ${macdSignal}`);
+            macd.histogram > 0
+              ? 'BULLISH momentum'
+              : macd.histogram < 0
+                ? 'BEARISH momentum'
+                : 'NEUTRAL';
+          results.push(
+            `• MACD: ${macd.macd.toFixed(2)} (Signal: ${macd.signal.toFixed(2)}) - ${macdSignal}`
+          );
         }
 
         if (showAll || indicators.includes('sma')) {
           const sma20 = calculateSMA(prices, 20);
           const sma50 = calculateSMA(prices, 50);
           const currentPrice = prices[0];
-          const trend = currentPrice > sma20 && sma20 > sma50 ? 'UPTREND' : currentPrice < sma20 && sma20 < sma50 ? 'DOWNTREND' : 'SIDEWAYS';
-          results.push(`• Moving Averages: 20-day $${sma20.toFixed(2)}, 50-day $${sma50.toFixed(2)} - ${trend}`);
+          const trend =
+            currentPrice > sma20 && sma20 > sma50
+              ? 'UPTREND'
+              : currentPrice < sma20 && sma20 < sma50
+                ? 'DOWNTREND'
+                : 'SIDEWAYS';
+          results.push(
+            `• Moving Averages: 20-day $${sma20.toFixed(2)}, 50-day $${sma50.toFixed(2)} - ${trend}`
+          );
         }
 
         if (showAll || indicators.includes('bollinger')) {
           const bb = calculateBollingerBands(prices);
           const bbSignal =
-            bb.percentB > 1 ? 'ABOVE upper band - extended' : bb.percentB < 0 ? 'BELOW lower band - oversold' : 'WITHIN bands';
-          results.push(`• Bollinger Bands: $${bb.lower.toFixed(2)} - $${bb.upper.toFixed(2)} - ${bbSignal}`);
+            bb.percentB > 1
+              ? 'ABOVE upper band - extended'
+              : bb.percentB < 0
+                ? 'BELOW lower band - oversold'
+                : 'WITHIN bands';
+          results.push(
+            `• Bollinger Bands: $${bb.lower.toFixed(2)} - $${bb.upper.toFixed(2)} - ${bbSignal}`
+          );
         }
 
-        results.push('\nRemember: Technical analysis is just one piece of the puzzle. Always consider the fundamentals too!');
+        results.push(
+          '\nRemember: Technical analysis is just one piece of the puzzle. Always consider the fundamentals too!'
+        );
         return results.join('\n');
       },
     }),
@@ -604,14 +653,20 @@ export function createQuantTools() {
           const metrics = calculateRiskMetrics(prices, benchmarkPrices);
 
           results.push(`\n${symbol.toUpperCase()}:`);
-          results.push(`  • Beta: ${metrics.beta} ${metrics.beta > 1 ? '(more volatile than market)' : metrics.beta < 1 ? '(less volatile than market)' : '(moves with market)'}`);
+          results.push(
+            `  • Beta: ${metrics.beta} ${metrics.beta > 1 ? '(more volatile than market)' : metrics.beta < 1 ? '(less volatile than market)' : '(moves with market)'}`
+          );
           results.push(`  • Volatility: ${metrics.volatility}% annualized`);
-          results.push(`  • Sharpe Ratio: ${metrics.sharpeRatio} ${metrics.sharpeRatio > 1 ? '(good risk-adjusted returns)' : metrics.sharpeRatio > 0.5 ? '(decent)' : '(poor risk-adjusted returns)'}`);
+          results.push(
+            `  • Sharpe Ratio: ${metrics.sharpeRatio} ${metrics.sharpeRatio > 1 ? '(good risk-adjusted returns)' : metrics.sharpeRatio > 0.5 ? '(decent)' : '(poor risk-adjusted returns)'}`
+          );
           results.push(`  • Max Drawdown: ${metrics.maxDrawdown}% (worst decline from peak)`);
           results.push(`  • VaR (95%): ${metrics.var95}% (could lose this much on a bad day)`);
         }
 
-        results.push('\nRemember: Past volatility doesn\'t predict future volatility, but it gives us a baseline!');
+        results.push(
+          "\nRemember: Past volatility doesn't predict future volatility, but it gives us a baseline!"
+        );
         return results.join('\n');
       },
     }),
@@ -619,10 +674,12 @@ export function createQuantTools() {
     // PERSONAL FINANCE QUANT: Savings Rate
     analyzeSavingsRate: llm.tool({
       description:
-        'Calculate and analyze your savings rate. Shows where you stand, how much you\'re saving annually, and personalized advice to improve.',
+        "Calculate and analyze your savings rate. Shows where you stand, how much you're saving annually, and personalized advice to improve.",
       parameters: z.object({
         monthlyIncome: z.number().describe('Total monthly take-home income'),
-        monthlyExpenses: z.number().describe('Total monthly expenses (including bills, food, entertainment)'),
+        monthlyExpenses: z
+          .number()
+          .describe('Total monthly expenses (including bills, food, entertainment)'),
       }),
       execute: async ({ monthlyIncome, monthlyExpenses }) => {
         log.info({ monthlyIncome, monthlyExpenses }, 'Analyzing savings rate');
@@ -699,7 +756,10 @@ export function createQuantTools() {
         monthlyExpenses,
         expectedReturn = 7,
       }) => {
-        log.info({ currentAge, targetRetirementAge, currentSavings }, 'Calculating retirement readiness');
+        log.info(
+          { currentAge, targetRetirementAge, currentSavings },
+          'Calculating retirement readiness'
+        );
 
         const readiness = calculateRetirementReadiness(
           currentAge,
@@ -710,7 +770,14 @@ export function createQuantTools() {
           expectedReturn
         );
 
-        const scoreEmoji = readiness.score >= 100 ? '🎉' : readiness.score >= 80 ? '👍' : readiness.score >= 60 ? '📈' : '💪';
+        const scoreEmoji =
+          readiness.score >= 100
+            ? '🎉'
+            : readiness.score >= 80
+              ? '👍'
+              : readiness.score >= 60
+                ? '📈'
+                : '💪';
 
         return [
           'Retirement Readiness Analysis:',
@@ -734,12 +801,24 @@ export function createQuantTools() {
       description:
         'Analyze your financial behavior patterns. Scores emotional control, discipline, and patience. Identifies strengths and areas for improvement.',
       parameters: z.object({
-        panicSells: z.number().describe('Times you\'ve sold investments during market drops'),
-        timingAttempts: z.number().describe('Times you\'ve tried to time the market'),
+        panicSells: z.number().describe("Times you've sold investments during market drops"),
+        timingAttempts: z.number().describe("Times you've tried to time the market"),
         impulsePurchases: z.number().describe('Unplanned large purchases in past year'),
-        budgetAdherence: z.number().min(0).max(100).describe('How well you stick to budget (0-100)'),
-        savingsConsistency: z.number().min(0).max(100).describe('How consistently you save (0-100)'),
-        debtPaymentConsistency: z.number().min(0).max(100).describe('How consistently you pay debt (0-100)'),
+        budgetAdherence: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe('How well you stick to budget (0-100)'),
+        savingsConsistency: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe('How consistently you save (0-100)'),
+        debtPaymentConsistency: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe('How consistently you pay debt (0-100)'),
       }),
       execute: async (behavior) => {
         log.info('Calculating behavioral score');
@@ -747,7 +826,13 @@ export function createQuantTools() {
         const score = calculateBehavioralScore(behavior);
 
         const overallEmoji =
-          score.overallScore >= 80 ? '🏆' : score.overallScore >= 60 ? '👍' : score.overallScore >= 40 ? '📈' : '💪';
+          score.overallScore >= 80
+            ? '🏆'
+            : score.overallScore >= 60
+              ? '👍'
+              : score.overallScore >= 40
+                ? '📈'
+                : '💪';
 
         return [
           'Financial Behavior Analysis:',
@@ -789,7 +874,8 @@ export function createQuantTools() {
           ageGroup
         );
 
-        const percentileEmoji = (p: number) => (p >= 75 ? '🏆' : p >= 50 ? '👍' : p >= 25 ? '📈' : '💪');
+        const percentileEmoji = (p: number) =>
+          p >= 75 ? '🏆' : p >= 50 ? '👍' : p >= 25 ? '📈' : '💪';
 
         return [
           `Peer Comparison (vs. others in their ${ageGroup}):`,
@@ -832,10 +918,19 @@ export function createPersistentQuantTools() {
         currentAge: z.number().describe('Your current age'),
         targetRetirementAge: z.number().describe('When you want to retire'),
         currentRetirementSavings: z.number().describe('Current retirement savings'),
-        riskTolerance: z.enum(['conservative', 'moderate', 'aggressive']).describe('Your risk tolerance'),
+        riskTolerance: z
+          .enum(['conservative', 'moderate', 'aggressive'])
+          .describe('Your risk tolerance'),
       }),
       execute: async (
-        { monthlyIncome, monthlyExpenses, currentAge, targetRetirementAge, currentRetirementSavings, riskTolerance },
+        {
+          monthlyIncome,
+          monthlyExpenses,
+          currentAge,
+          targetRetirementAge,
+          currentRetirementSavings,
+          riskTolerance,
+        },
         { ctx }
       ) => {
         const userId = getUserIdFromContext(ctx);
@@ -873,7 +968,7 @@ export function createPersistentQuantTools() {
           `• Retirement Savings: $${currentRetirementSavings.toLocaleString()}`,
           `• Risk Tolerance: ${riskTolerance}`,
           '',
-          "Now I can give you personalized insights and track your progress over time!",
+          'Now I can give you personalized insights and track your progress over time!',
         ].join('\n');
       },
     }),
@@ -885,7 +980,9 @@ export function createPersistentQuantTools() {
         symbol: z.string().describe('Stock/fund ticker symbol (e.g., AAPL, VTI)'),
         shares: z.number().describe('Number of shares'),
         costBasis: z.number().describe('Total cost basis (what you paid)'),
-        accountType: z.enum(['taxable', 'ira', '401k', 'roth', 'other']).describe('Type of account'),
+        accountType: z
+          .enum(['taxable', 'ira', '401k', 'roth', 'other'])
+          .describe('Type of account'),
       }),
       execute: async ({ symbol, shares, costBasis, accountType }, { ctx }) => {
         const userId = getUserIdFromContext(ctx);
@@ -947,7 +1044,9 @@ export function createPersistentQuantTools() {
           lines.push(`**${account.toUpperCase()} Account:**`);
           for (const h of holdings) {
             const avgPrice = h.costBasis / h.shares;
-            lines.push(`  • ${h.symbol}: ${h.shares} shares @ $${avgPrice.toFixed(2)} avg ($${h.costBasis.toLocaleString()} basis)`);
+            lines.push(
+              `  • ${h.symbol}: ${h.shares} shares @ $${avgPrice.toFixed(2)} avg ($${h.costBasis.toLocaleString()} basis)`
+            );
           }
           lines.push('');
         }
@@ -961,13 +1060,15 @@ export function createPersistentQuantTools() {
 
     // DAILY BRIEFING
     getDailyBriefing: llm.tool({
-      description: 'Get your personalized daily financial briefing with market updates, portfolio insights, and action items.',
+      description:
+        'Get your personalized daily financial briefing with market updates, portfolio insights, and action items.',
       parameters: z.object({}),
       execute: async (_params, { ctx }) => {
         const userId = getUserIdFromContext(ctx);
         if (!userId) return 'I need to know who you are to generate your briefing.';
 
-        const { generateDailyBriefing, formatBriefingForSpeech } = await import('./proactive-quant-insights.js');
+        const { generateDailyBriefing, formatBriefingForSpeech } =
+          await import('./proactive-quant-insights.js');
 
         const briefing = await generateDailyBriefing(userId);
         return formatBriefingForSpeech(briefing);
@@ -976,9 +1077,12 @@ export function createPersistentQuantTools() {
 
     // BEHAVIORAL TRACKING
     recordBehavior: llm.tool({
-      description: 'Record a financial behavior for tracking. Use this when you notice yourself making emotional or impulsive financial decisions.',
+      description:
+        'Record a financial behavior for tracking. Use this when you notice yourself making emotional or impulsive financial decisions.',
       parameters: z.object({
-        type: z.enum(['panicSell', 'timingAttempt', 'impulsePurchase']).describe('Type of behavior'),
+        type: z
+          .enum(['panicSell', 'timingAttempt', 'impulsePurchase'])
+          .describe('Type of behavior'),
         description: z.string().describe('What happened'),
         amount: z.number().optional().describe('Amount involved if applicable'),
       }),
@@ -1005,10 +1109,10 @@ export function createPersistentQuantTools() {
           timingAttempt: [
             '📝 Market timing attempt recorded.',
             '',
-            "Trying to time the market is tempting but rarely works.",
+            'Trying to time the market is tempting but rarely works.',
             '',
-            "💡 Time in the market > timing the market.",
-            "Even missing the 10 best days over 20 years cuts returns in half.",
+            '💡 Time in the market > timing the market.',
+            'Even missing the 10 best days over 20 years cuts returns in half.',
             '',
             "What made you think now was a good time to time? Let's examine the reasoning.",
           ],
@@ -1050,7 +1154,8 @@ export function createPersistentQuantTools() {
         const annualExpenses = profile.monthlyExpenses * 12;
         const fireNumber = annualExpenses * 25; // 4% rule
         const percentToFire = (netWorth / fireNumber) * 100;
-        const savingsRate = ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100;
+        const savingsRate =
+          ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100;
 
         // Calculate projected FIRE date
         let projectedFireDate: Date | null = null;
@@ -1084,7 +1189,16 @@ export function createPersistentQuantTools() {
           }
         }
 
-        const progressEmoji = percentToFire >= 100 ? '🎉' : percentToFire >= 75 ? '🔥' : percentToFire >= 50 ? '🚀' : percentToFire >= 25 ? '💪' : '🌱';
+        const progressEmoji =
+          percentToFire >= 100
+            ? '🎉'
+            : percentToFire >= 75
+              ? '🔥'
+              : percentToFire >= 50
+                ? '🚀'
+                : percentToFire >= 25
+                  ? '💪'
+                  : '🌱';
 
         return [
           '✅ FIRE Progress Recorded!',
@@ -1096,10 +1210,14 @@ export function createPersistentQuantTools() {
           `• Net Worth: $${netWorth.toLocaleString()}`,
           `• FIRE Number: $${fireNumber.toLocaleString()}`,
           `• Savings Rate: ${savingsRate.toFixed(1)}%`,
-          projectedFireDate ? `• Projected FIRE: ${projectedFireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}` : '',
+          projectedFireDate
+            ? `• Projected FIRE: ${projectedFireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}`
+            : '',
           '',
           "I'll track your progress and celebrate milestones with you!",
-        ].filter(Boolean).join('\n');
+        ]
+          .filter(Boolean)
+          .join('\n');
       },
     }),
   };
@@ -1110,12 +1228,12 @@ export function createPersistentQuantTools() {
  */
 function getUserIdFromContext(ctx: unknown): string | null {
   if (!ctx || typeof ctx !== 'object') return null;
-  
+
   // Try different context patterns
   if ('userId' in ctx && typeof (ctx as Record<string, unknown>).userId === 'string') {
     return (ctx as Record<string, unknown>).userId as string;
   }
-  
+
   if ('room' in ctx && typeof ctx === 'object') {
     const room = (ctx as Record<string, unknown>).room;
     if (room && typeof room === 'object' && 'name' in room) {
@@ -1128,4 +1246,3 @@ function getUserIdFromContext(ctx: unknown): string | null {
 }
 
 export default createQuantTools;
-

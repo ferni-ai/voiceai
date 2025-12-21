@@ -44,7 +44,9 @@ declare module 'googleapis' {
               phoneNumbers?: Array<{ value?: string; type?: string }>;
               birthdays?: Array<{ date?: { year?: number; month?: number; day?: number } }>;
               relations?: Array<{ person?: string; type?: string }>;
-              memberships?: Array<{ contactGroupMembership?: { contactGroupResourceName?: string } }>;
+              memberships?: Array<{
+                contactGroupMembership?: { contactGroupResourceName?: string };
+              }>;
               biographies?: Array<{ value?: string }>;
               organizations?: Array<{ name?: string; title?: string }>;
               addresses?: Array<{ formattedValue?: string; type?: string }>;
@@ -87,4 +89,3 @@ declare module '@google-cloud/text-to-speech' {
     synthesizeSpeech(request: SynthesizeSpeechRequest): Promise<[SynthesizeSpeechResponse]>;
   }
 }
-

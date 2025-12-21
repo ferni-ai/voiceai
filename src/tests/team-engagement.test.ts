@@ -39,6 +39,18 @@ vi.mock('../utils/safe-logger.js', () => ({
       debug: vi.fn(),
     }),
   }),
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: () => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }),
+  }),
 }));
 
 vi.mock('../services/persistence/index.js', () => ({

@@ -376,8 +376,14 @@ function injectStyles(): void {
       border: 1px solid transparent;
     }
 
-    .yp-nudge:hover {
+    .yp-nudge:hover,
+    .yp-nudge:focus {
       border-color: var(--persona-primary, #4a6741);
+      outline: none;
+    }
+
+    .yp-nudge:focus-visible {
+      box-shadow: 0 0 0 2px var(--persona-primary, #4a6741);
     }
 
     .yp-nudge:last-child {
@@ -479,8 +485,15 @@ function injectStyles(): void {
       transition: background ${DURATION.FAST}ms;
     }
 
-    .yp-person:hover {
+    .yp-person:hover,
+    .yp-person:focus {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
+      outline: none;
+    }
+
+    .yp-person:focus-visible {
+      box-shadow: 0 0 0 2px var(--persona-primary, #4a6741);
+      border-radius: var(--radius-lg, 0.75rem);
     }
 
     .yp-person:active {
@@ -631,6 +644,23 @@ function injectStyles(): void {
       height: 18px;
     }
 
+    .yp-secondary-btn {
+      background: var(--color-background-elevated, #f8f5f2);
+      color: var(--color-text-secondary, #5a524a);
+      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+    }
+
+    .yp-secondary-btn:hover {
+      background: var(--color-background-tertiary, #f0ebe4);
+      color: var(--color-text-primary, #2C2520);
+    }
+
+    .yp-action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+    }
+
     /* =========================================================================
        LOADING
        ========================================================================= */
@@ -747,7 +777,17 @@ function renderHeader(): string {
 }
 
 function renderNudges(): string {
-  const visibleNudges = state.nudges.slice(0, 3);
+  // Filter nudges by search query if present
+  let filteredNudges = state.nudges;
+  if (state.searchQuery) {
+    const query = state.searchQuery.toLowerCase();
+    filteredNudges = filteredNudges.filter(nudge =>
+      nudge.contactName.toLowerCase().includes(query) ||
+      nudge.message?.toLowerCase().includes(query)
+    );
+  }
+  
+  const visibleNudges = filteredNudges.slice(0, 3);
   if (visibleNudges.length === 0) return '';
 
   return `
@@ -756,15 +796,15 @@ function renderNudges(): string {
         ${ICONS.sparkles} Ferni suggests
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}">
-          <div class="yp-nudge-avatar">${getInitials(nudge.contactName)}</div>
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.message)}">
+          <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
             <div class="yp-nudge-reason">${escapeHtml(nudge.message)}</div>
           </div>
           ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">Soon</span>` : ''}
           ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">Check in</span>` : ''}
-          <span class="yp-nudge-arrow">${ICONS.chevronRight}</span>
+          <span class="yp-nudge-arrow" aria-hidden="true">${ICONS.chevronRight}</span>
         </div>
       `).join('')}
     </div>
@@ -780,7 +820,9 @@ function renderPeopleList(): string {
     filteredPeople = filteredPeople.filter(p =>
       p.name.toLowerCase().includes(query) ||
       p.email?.toLowerCase().includes(query) ||
-      p.phone?.includes(query)
+      p.phone?.includes(query) ||
+      p.relationship?.toLowerCase().includes(query) ||
+      p.notes?.toLowerCase().includes(query)
     );
   }
 
@@ -849,9 +891,12 @@ function renderPeopleList(): string {
   }
 
   html += `
-    <div class="yp-section">
+    <div class="yp-section yp-action-buttons">
       <button class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} Add Someone
+      </button>
+      <button class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+        ${ICONS.upload} Import Contacts
       </button>
     </div>
   `;
@@ -872,13 +917,19 @@ function renderPersonItem(person: Person): string {
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : '';
 
+  const metaText = [
+    person.relationship || 'Contact',
+    lastContactText,
+    person.upcomingDate ? `${person.upcomingDate.label || person.upcomingDate.type} in ${person.upcomingDate.daysUntil} days` : ''
+  ].filter(Boolean).join('. ');
+
   return `
-    <div class="yp-person" data-contact-id="${person.contactId}">
-      <div class="yp-person-avatar">${initials}</div>
+    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0" aria-label="View ${escapeHtml(person.name)}. ${metaText}">
+      <div class="yp-person-avatar" aria-hidden="true">${initials}</div>
       <div class="yp-person-info">
         <div class="yp-person-name">
           ${escapeHtml(person.name)}
-          ${trendIcon ? `<span class="yp-person-trend ${person.strengthTrend}">${trendIcon}</span>` : ''}
+          ${trendIcon ? `<span class="yp-person-trend ${person.strengthTrend}" aria-hidden="true">${trendIcon}</span>` : ''}
         </div>
         <div class="yp-person-meta">
           <span>${person.relationship || 'Contact'}</span>
@@ -891,8 +942,8 @@ function renderPersonItem(person: Person): string {
           ` : ''}
         </div>
       </div>
-      <span class="yp-person-strength" style="background: ${strengthColor};"></span>
-      <span class="yp-person-arrow">${ICONS.chevronRight}</span>
+      <span class="yp-person-strength" style="background: ${strengthColor};" aria-hidden="true"></span>
+      <span class="yp-person-arrow" aria-hidden="true">${ICONS.chevronRight}</span>
     </div>
   `;
 }
@@ -932,20 +983,34 @@ function bindEvents(): void {
 
   // Nudges - click to open relationship card
   panelContainer.querySelectorAll('.yp-nudge').forEach(nudge => {
-    nudge.addEventListener('click', () => {
+    const handleNudgeActivation = () => {
       const contactId = nudge.getAttribute('data-contact-id');
       if (contactId) {
         openPersonCard(contactId);
+      }
+    };
+    nudge.addEventListener('click', handleNudgeActivation);
+    nudge.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        handleNudgeActivation();
       }
     });
   });
 
   // People list - click to open relationship card
   panelContainer.querySelectorAll('.yp-person').forEach(person => {
-    person.addEventListener('click', () => {
+    const handlePersonActivation = () => {
       const contactId = person.getAttribute('data-contact-id');
       if (contactId) {
         openPersonCard(contactId);
+      }
+    };
+    person.addEventListener('click', handlePersonActivation);
+    person.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        handlePersonActivation();
       }
     });
   });

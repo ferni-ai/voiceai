@@ -147,7 +147,10 @@ export async function runDailyOutreachJob(
               }
             }
           } catch (mayaError) {
-            log.debug({ userId: profile.id, error: String(mayaError) }, 'Maya habit outreach error (non-fatal)');
+            log.debug(
+              { userId: profile.id, error: String(mayaError) },
+              'Maya habit outreach error (non-fatal)'
+            );
           }
         }
 
@@ -245,7 +248,7 @@ interface MayaHabitOutreachResult {
 
 /**
  * Evaluate and trigger Maya's habit-specific outreach for a user
- * 
+ *
  * Checks for:
  * 1. Streaks at risk (evening alert before midnight)
  * 2. Milestones to celebrate (7, 21, 30, 66, 100 days)
@@ -260,7 +263,8 @@ async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutre
     if (hour >= 18 && hour <= 22) {
       const atRisk = await checkStreaksAtRisk(userId);
       if (atRisk.atRisk) {
-        for (const habit of atRisk.habits.slice(0, 2)) { // Max 2 alerts per day
+        for (const habit of atRisk.habits.slice(0, 2)) {
+          // Max 2 alerts per day
           const sent = await publishStreakProtectionAlert({
             userId,
             habitId: habit.id,
@@ -279,7 +283,8 @@ async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutre
     // 2. MILESTONE CELEBRATION (Morning check - 8am to 11am optimal)
     if (hour >= 8 && hour <= 11) {
       const milestones = await checkMilestonesToCelebrate(userId);
-      for (const milestone of milestones.slice(0, 2)) { // Max 2 celebrations per day
+      for (const milestone of milestones.slice(0, 2)) {
+        // Max 2 celebrations per day
         const sent = await publishMilestoneCelebration(
           userId,
           milestone.habitId,
@@ -288,7 +293,8 @@ async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutre
         );
         if (sent) {
           result.sent++;
-          result.byType['milestone_celebration'] = (result.byType['milestone_celebration'] || 0) + 1;
+          result.byType['milestone_celebration'] =
+            (result.byType['milestone_celebration'] || 0) + 1;
         }
       }
     }
@@ -296,7 +302,8 @@ async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutre
     // 3. SETBACK RECOVERY (Afternoon check - 2pm to 5pm optimal)
     if (hour >= 14 && hour <= 17) {
       const setbacks = await checkSetbackRecoveryNeeded(userId);
-      for (const setback of setbacks.slice(0, 1)) { // Max 1 setback outreach per day
+      for (const setback of setbacks.slice(0, 1)) {
+        // Max 1 setback outreach per day
         const sent = await publishSetbackRecoveryTrigger(
           userId,
           setback.habitId,

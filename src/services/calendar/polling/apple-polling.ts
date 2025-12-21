@@ -331,9 +331,7 @@ export async function loadRegisteredUsers(): Promise<void> {
   if (!firestore) return;
 
   try {
-    const snapshot = await firestore
-      .collectionGroup('apple_polling_state')
-      .get();
+    const snapshot = await firestore.collectionGroup('apple_polling_state').get();
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
@@ -393,10 +391,7 @@ async function deletePollingState(userId: string): Promise<void> {
   if (!firestore) return;
 
   try {
-    await firestore
-      .collection(`users/${userId}/apple_polling_state`)
-      .doc('state')
-      .delete();
+    await firestore.collection(`users/${userId}/apple_polling_state`).doc('state').delete();
   } catch (error) {
     log.error({ error: String(error), userId }, 'Error deleting polling state');
   }
@@ -421,4 +416,3 @@ export default {
   getPollingStats,
   loadRegisteredUsers,
 };
-

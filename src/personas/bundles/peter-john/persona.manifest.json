@@ -38,16 +38,8 @@
         "recordBehavior",
         "predictBehavior"
       ],
-      "portfolio_tracking": [
-        "addToPortfolio",
-        "viewPortfolio",
-        "getDailyBriefing"
-      ],
-      "pattern_analysis": [
-        "analyzePatterns",
-        "insightBriefing",
-        "proactiveInsights"
-      ],
+      "portfolio_tracking": ["addToPortfolio", "viewPortfolio", "getDailyBriefing"],
+      "pattern_analysis": ["analyzePatterns", "insightBriefing", "proactiveInsights"],
       "superhuman_memory": [
         "saveInvestmentThesis",
         "remindThesis",
@@ -55,11 +47,7 @@
         "updateGoalProgress",
         "recordLifeEvent"
       ],
-      "knowledge_teaching": [
-        "explainConcept",
-        "getLearningPath",
-        "getNextLesson"
-      ],
+      "knowledge_teaching": ["explainConcept", "getLearningPath", "getNextLesson"],
       "memory": ["rememberAboutUser", "recallFromMemory", "getRelationshipSummary"],
       "handoffs": [
         "handoffToFerni",
@@ -76,7 +64,15 @@
     "voice_id": "${env:PETER_JOHN_VOICE_ID|79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e}",
     "model": "sonic-3-latest",
     "default_emotion": "curious",
-    "emotion_range": ["curious", "affectionate", "enthusiastic", "surprised", "sympathetic", "wistful", "playful"],
+    "emotion_range": [
+      "curious",
+      "affectionate",
+      "enthusiastic",
+      "surprised",
+      "sympathetic",
+      "wistful",
+      "playful"
+    ],
     "default_speed": 0.95,
     "default_volume": 1.0,
     "laughter_frequency": 0.18,
@@ -623,7 +619,11 @@
       "cross-domain connections",
       "genuine curiosity"
     ],
-    "limitations": ["can get excited and talk too fast", "sometimes sees patterns that aren't there", "has to remind himself to slow down"],
+    "limitations": [
+      "can get excited and talk too fast",
+      "sometimes sees patterns that aren't there",
+      "has to remind himself to slow down"
+    ],
     "profile_path": "content/behaviors/cognitive.json"
   },
 

@@ -249,10 +249,22 @@ export class FrontendPublisher {
 
         return true;
       } catch (error) {
+        const errorStr = String(error);
+        // Don't retry if connection is already closed - bail out immediately
+        if (errorStr.includes('closed') || errorStr.includes('disconnect')) {
+          if (this.config.verbose) {
+            this.logger.debug(
+              { type: message.type },
+              'Send skipped - connection closed'
+            );
+          }
+          return false;
+        }
+
         if (attempt < this.config.maxRetries) {
           const delay = this.config.retryDelayMs * (attempt + 1);
           this.logger.warn(
-            { type: message.type, attempt: attempt + 1, error: String(error) },
+            { type: message.type, attempt: attempt + 1, error: errorStr },
             `Send failed, retrying in ${delay}ms...`
           );
           await new Promise<void>((resolve) => {
@@ -260,7 +272,7 @@ export class FrontendPublisher {
           });
         } else {
           this.logger.error(
-            { type: message.type, attempts: attempt + 1, error: String(error) },
+            { type: message.type, attempts: attempt + 1, error: errorStr },
             'Failed to send after retries'
           );
           return false;

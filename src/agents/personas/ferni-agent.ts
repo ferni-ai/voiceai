@@ -12,13 +12,18 @@
  */
 
 import { llm, voice } from '@livekit/agents';
+import type { AudioFrame } from '@livekit/rtc-node';
+import { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { createSanitizerWithMusicFallback } from '../shared/tool-call-sanitizer.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
-import { finops } from '../../services/observability/finops.js';
+import {
+  wrappedTtsNode,
+  extractTtsSessionContext,
+  clearInterruptFlags,
+} from '../shared/tts-wrapper.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -534,69 +539,30 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
    * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
    * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
    *
-   * Additionally tracks FinOps costs:
-   * - TTS characters sent to Cartesia
-   * - LLM tokens (estimated from text length at ~4 chars/token)
+   * This uses the shared wrappedTtsNode which handles:
+   * - JSON function call sanitization
+   * - Interrupt-aware SSML softening
+   * - FinOps cost tracking
    *
-   * @see ../shared/tool-call-sanitizer.ts
+   * @see ../shared/tts-wrapper.ts
    */
   async ttsNode(
-    text: ReadableStream<string>,
+    text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
-    // Return type is inferred - the base class returns AudioFrame from @livekit/rtc-node
-    // but we don't need to import it explicitly since we're calling the parent implementation
-  ) {
-    log.info('ttsNode override called - filtering JSON function calls');
+  ): Promise<NodeReadableStream<AudioFrame> | null> {
+    // Get persona ID from session or use default
+    const personaId =
+      ((this.session.userData as Record<string, unknown> | undefined)?.personaId as string) ||
+      'ferni';
 
-    // Get session data for cost tracking
-    const sessionUserData = this.session.userData;
-    const userId = sessionUserData?.userId;
-    const sessionId = (sessionUserData as Record<string, unknown>)?.sessionId as string | undefined;
-
-    // Filter the text through our sanitizer BEFORE it reaches TTS
-    const sanitizerWithFallback = createSanitizerWithMusicFallback(
-      this._tools as Record<string, unknown> | undefined
-    );
-    const filteredText = text.pipeThrough(sanitizerWithFallback);
-
-    // Create a transform stream to count characters for FinOps tracking
-    let totalCharacters = 0;
-    const costTrackingStream = new TransformStream<string, string>({
-      transform(chunk, controller) {
-        totalCharacters += chunk.length;
-        controller.enqueue(chunk);
-      },
-      flush() {
-        // Record TTS cost when stream completes
-        if (totalCharacters > 0) {
-          finops.recordTTSCost({
-            characters: totalCharacters,
-            userId,
-            sessionId,
-          });
-          // Estimate LLM output tokens (~4 chars per token) and record
-          // Note: This is an approximation; actual token counts would require model metadata
-          const estimatedOutputTokens = Math.ceil(totalCharacters / 4);
-          finops.recordLLMCost({
-            model: 'gemini-2.0-flash-exp',
-            inputTokens: 0, // Input tokens counted elsewhere (system prompt + context)
-            outputTokens: estimatedOutputTokens,
-            userId,
-            sessionId,
-          });
-          log.debug({ characters: totalCharacters, estimatedTokens: estimatedOutputTokens }, 'FinOps: TTS/LLM costs recorded');
-        }
-      },
+    // Use the shared TTS wrapper with explicit agent reference
+    // Pass session so tool results can be spoken via safeGenerateReply
+    return wrappedTtsNode(this, text, modelSettings, {
+      tools: this._tools as Record<string, unknown> | undefined,
+      sessionContext: extractTtsSessionContext(this, personaId),
+      onInterruptRecoveryApplied: () => clearInterruptFlags(this),
+      session: this.session,
     });
-
-    // Chain: filteredText -> costTracking -> TTS
-    const trackedText = filteredText.pipeThrough(costTrackingStream);
-
-    log.debug('Sanitizer and cost tracking attached to text stream');
-
-    // Now pass the tracked text to the default TTS implementation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (voice.Agent.default as any).ttsNode(this, trackedText, modelSettings);
   }
 }
 

@@ -459,4 +459,3 @@ describe('Quant Tools Integration', () => {
     }
   });
 });
-

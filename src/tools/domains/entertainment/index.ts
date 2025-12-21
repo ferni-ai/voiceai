@@ -20,6 +20,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createMusicTools } from './music.js';
 import { createSpotifyTools } from '../../spotify.js';
 
+// Import Apple Music tools
+import { appleMusicTools } from './apple-music-tools.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -139,10 +142,10 @@ function createMusicControlTool(legacyTools: ReturnType<typeof createMusicTools>
           case 'skip': {
             const musicPlayer = getMusicPlayer();
             musicPlayer.skip(); // skip() returns void, triggers onTrackEnded
-            
+
             // Wait a moment for the next track to start
             await new Promise((resolve) => setTimeout(resolve, 100));
-            
+
             const nextTrack = musicPlayer.getCurrentTrack();
             log.info({ action, nextTrack: nextTrack?.name }, '🎵 TOOL: musicControl - skipped');
 
@@ -348,6 +351,7 @@ log.info('🎵 [DIAG] Building entertainmentTools array...');
 const entertainmentTools: ToolDefinition[] = [
   ...getUnifiedMusicToolDefinitions(), // PRIMARY: iTunes-based, works for everyone
   ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
+  ...appleMusicTools, // Apple Music catalog search
 ];
 
 log.info(

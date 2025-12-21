@@ -501,9 +501,10 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
     return {
       injections,
       summary: {
-        hasEmotionalMismatch: trustContext.unsaidSignals?.some(
-          (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
-        ) ?? false,
+        hasEmotionalMismatch:
+          trustContext.unsaidSignals?.some(
+            (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+          ) ?? false,
         topicsToAvoid: trustContext.topicsToAvoid ?? [],
         hasGrowthReflection: !!trustContext.growthReflection,
         hasCelebration: !!trustContext.celebrationOpportunity,

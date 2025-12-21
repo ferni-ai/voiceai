@@ -287,7 +287,7 @@ export async function processResponse(
       const guardResult = guardPostResponse(processedText, guardContext);
 
       crisisGuardResult = {
-        resourcesAdded: !!(guardResult.requiredAdditions?.length),
+        resourcesAdded: !!guardResult.requiredAdditions?.length,
         dismissiveBlocked: guardResult.shouldBlock,
         reason: guardResult.reason,
       };

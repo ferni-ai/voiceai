@@ -26,12 +26,7 @@ import type {
   CalendarProvider,
   EventReminder,
 } from '../types.js';
-import {
-  encrypt,
-  decrypt,
-  isEncrypted,
-  type EncryptedData,
-} from '../utils/encryption.js';
+import { encrypt, decrypt, isEncrypted, type EncryptedData } from '../utils/encryption.js';
 
 const log = getLogger();
 
@@ -266,11 +261,7 @@ class AppleCalDAVClient {
   /**
    * Get events from a calendar within a time range
    */
-  async getEvents(
-    calendarUrl: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<ICalEvent[]> {
+  async getEvents(calendarUrl: string, startDate: Date, endDate: Date): Promise<ICalEvent[]> {
     const startStr = startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const endStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
@@ -397,7 +388,10 @@ class AppleCalDAVClient {
         let line = lines[i];
 
         // Handle line folding (continuation lines start with space or tab)
-        while (i + 1 < lines.length && (lines[i + 1].startsWith(' ') || lines[i + 1].startsWith('\t'))) {
+        while (
+          i + 1 < lines.length &&
+          (lines[i + 1].startsWith(' ') || lines[i + 1].startsWith('\t'))
+        ) {
           line += lines[++i].substring(1);
         }
 
@@ -529,7 +523,10 @@ END:VCALENDAR`;
   }
 
   private formatICalDate(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    return date
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '');
   }
 }
 
@@ -716,7 +713,9 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get user's Apple calendars
    */
-  async getCalendars(userId: string): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  async getCalendars(
+    userId: string
+  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
     const creds = await this.getCredentials(userId);
     if (!creds) {
       return [];
@@ -782,18 +781,15 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
     }
 
     try {
-      await firestore
-        .collection(`users/${userId}/calendar_providers`)
-        .doc('apple')
-        .set({
-          provider: 'apple',
-          connected: true,
-          email: appleId,
-          syncEnabled: true,
-          syncDirection: 'two-way',
-          credentials: storedCreds,
-          lastSyncedAt: null,
-        });
+      await firestore.collection(`users/${userId}/calendar_providers`).doc('apple').set({
+        provider: 'apple',
+        connected: true,
+        email: appleId,
+        syncEnabled: true,
+        syncDirection: 'two-way',
+        credentials: storedCreds,
+        lastSyncedAt: null,
+      });
 
       log.info({ userId }, 'Stored Apple Calendar credentials (encrypted)');
       return true;
@@ -885,21 +881,24 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
     if (!firestore) return;
 
     try {
-      await firestore
-        .collection(`users/${userId}/calendar_providers`)
-        .doc('apple')
-        .delete();
+      await firestore.collection(`users/${userId}/calendar_providers`).doc('apple').delete();
     } catch (error) {
       log.error({ error: String(error) }, 'Error deleting Apple credentials');
     }
   }
 
-  private icalToCalendarEvent(ical: ICalEvent, userId: string, calendarUrl: string): CalendarEvent | null {
+  private icalToCalendarEvent(
+    ical: ICalEvent,
+    userId: string,
+    calendarUrl: string
+  ): CalendarEvent | null {
     if (!ical.uid || !ical.dtstart) return null;
 
     const startTime = ical.dtstart instanceof Date ? ical.dtstart : new Date(ical.dtstart);
     const endTime = ical.dtend
-      ? (ical.dtend instanceof Date ? ical.dtend : new Date(ical.dtend))
+      ? ical.dtend instanceof Date
+        ? ical.dtend
+        : new Date(ical.dtend)
       : new Date(startTime.getTime() + 60 * 60 * 1000); // Default 1 hour
 
     const isAllDay = typeof ical.dtstart === 'string' && ical.dtstart.length === 8;

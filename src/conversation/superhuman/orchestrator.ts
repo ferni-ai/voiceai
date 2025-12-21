@@ -873,4 +873,47 @@ export function clearBetterThanHuman(userId: string, sessionId: string): void {
   orchestrators.delete(`${userId}:${sessionId}`);
 }
 
+/**
+ * Get an existing orchestrator for a user without creating a new one.
+ * Used for exporting state without causing memory leaks from orphaned orchestrators.
+ *
+ * @returns The most recent orchestrator for this user, or undefined if none exists
+ */
+export function getExistingBetterThanHumanForUser(
+  userId: string
+): BetterThanHumanOrchestrator | undefined {
+  // Find any orchestrator for this user (they all share the same underlying engine data)
+  for (const [key, orchestrator] of orchestrators) {
+    if (key.startsWith(`${userId}:`)) {
+      return orchestrator;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Get count of active orchestrators (for debugging memory leaks)
+ */
+export function getOrchestratorCount(): number {
+  return orchestrators.size;
+}
+
+/**
+ * Clear all orchestrators for a user (cleanup on session end)
+ */
+export function clearAllBetterThanHumanForUser(userId: string): void {
+  const keysToDelete: string[] = [];
+  for (const key of orchestrators.keys()) {
+    if (key.startsWith(`${userId}:`)) {
+      keysToDelete.push(key);
+    }
+  }
+  for (const key of keysToDelete) {
+    orchestrators.delete(key);
+  }
+  if (keysToDelete.length > 0) {
+    logger.debug({ userId, clearedCount: keysToDelete.length }, '🧹 Cleared user orchestrators');
+  }
+}
+
 export default BetterThanHumanOrchestrator;

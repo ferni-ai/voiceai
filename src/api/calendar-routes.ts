@@ -24,15 +24,17 @@ import {
   getDayOverview,
   getWeekOverview,
   getEventsForDay,
+  findFreeTimeSlots,
+  createEvent,
   type CalendarEvent,
 } from '../services/calendar/calendar-service.js';
 import {
   generateDailyBriefing,
   detectCalendarAlerts,
+  analyzeCalendarPatterns,
 } from '../services/calendar/calendar-intelligence.js';
 import { appleCalendarProvider } from '../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../services/calendar/providers/outlook-provider.js';
-import { googleCalendarProvider } from '../services/calendar/providers/google-provider.js';
 import {
   checkCalendarRateLimit,
   getCalendarRateLimitStatus,
@@ -58,9 +60,7 @@ import type {
 // Better Than Human: Calendar Analytics
 import { getCalendarLoadFactors } from '../services/calendar/calendar-load-service.js';
 import { detectRecoveryNeeds } from '../services/calendar/recovery-protection.js';
-import { analyzeCalendarPatterns } from '../services/calendar/calendar-intelligence.js';
 import { getAmbientCalendarContext } from '../services/calendar/ambient-calendar-awareness.js';
-import { findFreeTimeSlots, createEvent } from '../services/calendar/calendar-service.js';
 
 // Webhook and polling services for real-time sync
 import { stopAllUserChannels as stopGoogleWatchChannels } from '../services/calendar/webhooks/google-webhook.js';

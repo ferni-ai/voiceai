@@ -14,4 +14,3 @@ export { OutlookCalendarProvider, outlookCalendarProvider } from './outlook-prov
 
 // Registry functions
 export { getProvider, getAllProviders, getConfiguredProviders } from './provider-registry.js';
-

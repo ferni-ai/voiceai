@@ -182,7 +182,13 @@ import { modelConfig } from '../../services/model-config.js';
 
 // Base always-available domains (before filtering by enabledDomains)
 // Games included so all personas can play Name That Tune, Tic-Tac-Toe, etc.
-const BASE_ALWAYS_DOMAINS: ToolDomain[] = ['memory', 'handoff', 'entertainment', 'information', 'games'];
+const BASE_ALWAYS_DOMAINS: ToolDomain[] = [
+  'memory',
+  'handoff',
+  'entertainment',
+  'information',
+  'games',
+];
 
 const getDefaultConfig = (): OrchestratorConfig => {
   const adminConfig = modelConfig.getDefaultToolConfig();
@@ -192,9 +198,7 @@ const getDefaultConfig = (): OrchestratorConfig => {
   // - If enabledDomains is empty, use all BASE_ALWAYS_DOMAINS
   let finalAlwaysDomains = BASE_ALWAYS_DOMAINS;
   if (adminConfig.enabledDomains && adminConfig.enabledDomains.length > 0) {
-    finalAlwaysDomains = BASE_ALWAYS_DOMAINS.filter((d) =>
-      adminConfig.enabledDomains.includes(d)
-    );
+    finalAlwaysDomains = BASE_ALWAYS_DOMAINS.filter((d) => adminConfig.enabledDomains.includes(d));
     // Ensure we always have at least memory and handoff for core functionality
     if (!finalAlwaysDomains.includes('memory')) finalAlwaysDomains.push('memory');
     if (!finalAlwaysDomains.includes('handoff')) finalAlwaysDomains.push('handoff');

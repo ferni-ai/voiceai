@@ -169,8 +169,7 @@ class AsyncEventBus {
     const processedPerSecond = elapsed > 0 ? processedSinceLastReport / elapsed : 0;
 
     // Calculate oldest message age (approximate)
-    const oldestMessageAgeMs =
-      this.queue.length > 0 ? now - (this.queue[0]?.timestamp ?? now) : 0;
+    const oldestMessageAgeMs = this.queue.length > 0 ? now - (this.queue[0]?.timestamp ?? now) : 0;
 
     // Check if backpressure is active
     const backpressureActive = this.queue.length >= WARN_QUEUE_DEPTH;

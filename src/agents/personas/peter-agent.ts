@@ -1,17 +1,19 @@
 /**
  * Peter Agent - Investment Research & Market Analysis
  *
+ * Extends PersonaVoiceAgent for shared TTS processing (sanitization, FinOps, interrupt handling).
  * Clean LiveKit 1.0 Implementation with direct domain imports.
  *
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 import { loadSystemPrompt } from './prompt-loader.js';
+import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
 const log = createLogger({ module: 'PeterAgent' });
 
@@ -38,14 +40,8 @@ import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // TYPES
 // ============================================================================
 
-interface PeterSessionData {
-  userId?: string;
-  userName?: string;
-  personaId?: string;
-  [key: string]: unknown;
-}
-
-type ToolSet = llm.ToolContext<PeterSessionData>;
+// PeterAgent uses PersonaVoiceAgent's session data type
+type ToolSet = llm.ToolContext<Record<string, unknown>>;
 
 // ============================================================================
 // TOOL BUILDING HELPERS
@@ -198,12 +194,13 @@ function buildHandoffTools(): ToolSet {
 /**
  * Peter John - Investment Research & Market Analysis
  *
+ * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/peter-john/identity/system-prompt.md
  */
-export class PeterAgent extends voice.Agent<PeterSessionData> {
+export class PeterAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
-  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
+  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
     const memoryTools = buildMemoryTools('peter-john');
     const researchTools = buildResearchTools();
     const handoffTools = buildHandoffTools();
@@ -216,20 +213,21 @@ export class PeterAgent extends voice.Agent<PeterSessionData> {
       ...conversationTools,
     } as ToolSet;
 
-    super({
-      instructions: systemPrompt,
-      chatCtx,
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
       tools: allTools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
     });
 
-    process.stderr.write(`[PeterAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
+    log.info({ totalTools: Object.keys(allTools).length }, 'PeterAgent initialized');
   }
 
   static async create(chatCtx?: llm.ChatContext): Promise<PeterAgent> {
     if (!PeterAgent.systemPromptCache) {
       PeterAgent.systemPromptCache = await loadSystemPrompt('peter-john');
     }
-    return new PeterAgent(PeterAgent.systemPromptCache, chatCtx);
+    return new PeterAgent(PeterAgent.systemPromptCache, { chatCtx });
   }
 
   /**
@@ -241,7 +239,7 @@ export class PeterAgent extends voice.Agent<PeterSessionData> {
   }
 
   async onExit(): Promise<void> {
-    process.stderr.write(`[PeterAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent');
   }
 }
 

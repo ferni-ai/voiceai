@@ -49,6 +49,9 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 let pingInterval: ReturnType<typeof setInterval> | null = null;
 let lastPongTime = Date.now();
 
+/** Flag to prevent reconnect during shutdown */
+let isShuttingDown = false;
+
 const PING_INTERVAL_MS = 15_000;
 const PONG_TIMEOUT_MS = 30_000;
 
@@ -281,6 +284,12 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
 // ============================================================================
 
 function scheduleReconnect(): void {
+  // CRITICAL: Don't reconnect during shutdown - causes native mutex crash
+  if (isShuttingDown) {
+    _log('Skipping reconnect - shutdown in progress');
+    return;
+  }
+
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     _log('Max reconnect attempts reached, exiting');
     process.exit(1);
@@ -291,6 +300,11 @@ function scheduleReconnect(): void {
 
   _log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
   setTimeout(() => {
+    // Double-check shutdown flag before actually reconnecting
+    if (isShuttingDown) {
+      _log('Aborting scheduled reconnect - shutdown in progress');
+      return;
+    }
     void connectToLiveKit().catch(_log);
   }, delay);
 }
@@ -373,9 +387,21 @@ export async function connectToLiveKit(): Promise<void> {
 }
 
 /**
+ * Prepare for shutdown - prevents reconnect attempts.
+ * MUST be called BEFORE closeConnection() to prevent native mutex crash.
+ */
+export function prepareForShutdown(): void {
+  isShuttingDown = true;
+  _log('LiveKit connection prepared for shutdown - reconnect disabled');
+}
+
+/**
  * Close the WebSocket connection gracefully.
  */
 export function closeConnection(): void {
+  // Ensure shutdown flag is set to prevent reconnect race
+  isShuttingDown = true;
+
   if (ws) {
     try {
       ws.close();
@@ -393,4 +419,3 @@ export function initLiveKitConnection(config: LiveKitConfig, log: LogFn): void {
   _config = config;
   _log = log;
 }
-

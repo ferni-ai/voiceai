@@ -185,6 +185,35 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <string>public.app-category.productivity</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Ferni Voice uses AppleScript to integrate with Terminal for Claude Code.</string>
+    <!-- System Intelligence Permissions -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Ferni uses accessibility to understand what you're working on and offer contextual help with the "Help me with this" feature.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Ferni uses calendar access to provide meeting context, help you prepare for upcoming events, and manage your schedule.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Ferni uses contacts to help you remember birthdays, anniversaries, and maintain important relationships.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ferni uses location for habit reminders when you arrive at places like home, work, or gym.</string>
+    <key>NSLocationUsageDescription</key>
+    <string>Ferni uses location to provide context-aware suggestions and location-based reminders.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Ferni can analyze your screen to help with errors and provide context-aware assistance.</string>
+    <!-- Siri / Shortcuts Integration -->
+    <key>INIntentsSupported</key>
+    <array>
+        <string>StartFerniCheckInIntent</string>
+        <string>EndFerniSessionIntent</string>
+        <string>HelpMeWithThisIntent</string>
+    </array>
+    <key>INIntentsRestrictedWhileLocked</key>
+    <array/>
+    <!-- Handoff / Continuity -->
+    <key>NSUserActivityTypes</key>
+    <array>
+        <string>com.ferni.voice.conversation</string>
+        <string>com.ferni.voice.insight</string>
+        <string>com.ferni.voice.checkin</string>
+    </array>
     <key>SUFeedURL</key>
     <string>https://app.ferni.ai/updates/macos/appcast.xml</string>
     <key>SUPublicDSAKeyFile</key>

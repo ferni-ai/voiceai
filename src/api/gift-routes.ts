@@ -47,7 +47,7 @@ const log = createLogger({ module: 'GiftAPI' });
  * List all gifts for the user
  */
 async function listGifts(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -71,7 +71,7 @@ async function getContactGiftHistory(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -94,7 +94,7 @@ async function createGift(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -171,7 +171,7 @@ async function updateGift(
   parsedUrl: URL,
   giftId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -213,7 +213,7 @@ async function getGiftSuggestions(
   parsedUrl: URL,
   contactId: string
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -245,7 +245,7 @@ async function getUpcomingOccasions(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;
@@ -270,7 +270,7 @@ async function getAnalytics(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await getUserId(req, parsedUrl);
+  const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'Unauthorized', 401);
     return;

@@ -185,9 +185,13 @@
     "relationship_gates": {
       "stranger": ["pattern_reveal"],
       "acquaintance": ["pattern_reveal", "correlation_discovery"],
-      "friend": ["pattern_reveal", "correlation_discovery", "warning_surface", "opportunity_highlight"],
+      "friend": [
+        "pattern_reveal",
+        "correlation_discovery",
+        "warning_surface",
+        "opportunity_highlight"
+      ],
       "trusted_advisor": "all"
     }
   }
 }
-

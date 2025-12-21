@@ -67,7 +67,10 @@ import {
 } from '../intelligence/cross-session-threader.js';
 
 // 🌟 Better Than Human capabilities
-import { getBetterThanHuman } from '../conversation/superhuman/index.js';
+import {
+  getBetterThanHuman,
+  getExistingBetterThanHumanForUser,
+} from '../conversation/superhuman/orchestrator.js';
 
 // ============================================================================
 // TYPES
@@ -286,17 +289,21 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
 
   // 🌟 Better Than Human capabilities
   try {
-    // Note: We need a sessionId to get the orchestrator, but for export
-    // we export from any active session for this user
-    // The orchestrator persists per userId anyway
-    const bthOrchestrator = getBetterThanHuman(userId, `export-${Date.now()}`, 'ferni', 0);
-    const bthState = bthOrchestrator.export();
-    state.betterThanHuman = bthState;
-    engineCount++;
-    getLogger().debug(
-      { userId, sessionCount: bthState.sessionCount },
-      'Exported Better Than Human state'
-    );
+    // FIX: Use getExistingBetterThanHuman to avoid creating orphaned orchestrators
+    // that cause memory leaks. Each `export-{timestamp}` sessionId was creating
+    // a new orchestrator in the singleton Map that was never cleaned up.
+    const existingOrchestrator = getExistingBetterThanHumanForUser(userId);
+    if (existingOrchestrator) {
+      const bthState = existingOrchestrator.export();
+      state.betterThanHuman = bthState;
+      engineCount++;
+      getLogger().debug(
+        { userId, sessionCount: bthState.sessionCount },
+        'Exported Better Than Human state'
+      );
+    } else {
+      getLogger().debug({ userId }, 'No active Better Than Human session to export');
+    }
   } catch (error) {
     getLogger().debug({ error, userId }, 'No Better Than Human data');
   }

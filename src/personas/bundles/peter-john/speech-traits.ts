@@ -472,6 +472,64 @@ export function addSelfCorrections(text: string, emotion: string): string {
 }
 
 // =============================================================================
+// SOFT PRESENCE (EMOTIONAL SUPPORT)
+// =============================================================================
+
+/**
+ * Add softer presence for emotionally heavy moments
+ * Jack is like a grandfather sitting with you through hard times
+ */
+export function addSoftPresence(text: string, _emotion: string): string {
+  let result = text;
+
+  const heavyMoments = [
+    { pattern: /\b(i['']m (so )?sorry)\b/gi, pause: 300, speed: 0.72, volume: 0.92 },
+    { pattern: /\b(that['']s (very |really )?hard)\b/gi, pause: 250, speed: 0.75, volume: 0.92 },
+    { pattern: /\b(take your time)\b/gi, pause: 200, speed: 0.78, volume: 0.95 },
+    { pattern: /\b(i['']m here)\b/gi, pause: 200, speed: 0.78, volume: 0.92 },
+    { pattern: /\b(grief|grieving|loss)\b/gi, pause: 300, speed: 0.72, volume: 0.9 },
+    { pattern: /\b(it['']s okay to (feel|be|cry))\b/gi, pause: 200, speed: 0.75, volume: 0.92 },
+    { pattern: /\b(we['']ve all been there)\b/gi, pause: 200, speed: 0.78, volume: 0.95 },
+  ];
+
+  heavyMoments.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="sympathetic"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// THINKING SOUNDS (GRANDFATHERLY VERSION)
+// =============================================================================
+
+/**
+ * Add natural thinking sounds
+ * Jack thinks out loud like a wise grandfather considering your question
+ */
+export function addThinkingSounds(text: string, _emotion: string): string {
+  let result = text;
+
+  const thinkingPatterns = [
+    { pattern: /\b(well)\b(?=,|\s+[a-z])/gi, pause: 250, speed: 0.78 },
+    { pattern: /\b(hmm)\b/gi, pause: 300, speed: 0.75 },
+    { pattern: /\b(let me (think|see))\b/gi, pause: 250, speed: 0.78 },
+    { pattern: /\b(you know)\b/gi, pause: 200, speed: 0.8 },
+    { pattern: /\b(now)\b(?=,)/gi, pause: 180, speed: 0.8 },
+  ];
+
+  thinkingPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
 // MAIN PROCESSOR
 // =============================================================================
 
@@ -480,6 +538,12 @@ export function addSelfCorrections(text: string, emotion: string): string {
  *
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Jack's unique speech patterns to the text.
+ *
+ * Processing order:
+ * 1. Check for heavy emotional content first
+ * 2. Apply signature personality traits
+ * 3. Add warmth and humanization
+ * 4. Apply elderly character traits
  *
  * @param text - The text to process
  * @param emotion - The detected emotion
@@ -494,6 +558,15 @@ export function applyPeterJohnSpeechTraits(
   laughterCount: number
 ): string {
   let processedText = text;
+
+  // TIER 0: EMOTIONAL PRESENCE (Check first for heavy moments)
+  const isHeavyContent = /\b(grief|grieving|loss|lost|died|death|sorry for your)\b/i.test(text);
+  if (isHeavyContent || emotion === 'sad' || emotion === 'sympathetic') {
+    processedText = addSoftPresence(processedText, emotion);
+  }
+
+  // TIER 1: HUMANIZATION (thinking sounds)
+  processedText = addThinkingSounds(processedText, emotion);
 
   // TIER 2: JACK'S SIGNATURE PERSONALITY
   processedText = addCatchphraseEmphasis(processedText, emotion);
@@ -534,4 +607,8 @@ export const PETER_JOHN_SPEECH_CONFIG = {
   enableActiveListening: true,
   /** Probability of active listening sounds (0-1) */
   activeListeningProbability: 0.25,
+  /** Whether to enable soft presence for heavy moments */
+  enableSoftPresence: true,
+  /** Whether to enable thinking sounds */
+  enableThinkingSounds: true,
 } as const;

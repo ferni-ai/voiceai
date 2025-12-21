@@ -259,9 +259,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       // Predictive Intelligence - initialize pattern tracking for predictions
       (async () => {
         try {
-          const { initializePredictiveIntelligence } = await import(
-            '../integrations/predictive-intelligence-integration.js'
-          );
+          const { initializePredictiveIntelligence } =
+            await import('../integrations/predictive-intelligence-integration.js');
           initializePredictiveIntelligence(sessionId, userId);
           diag.session('🔮 Predictive intelligence initialized', { userId });
         } catch (predictiveErr) {

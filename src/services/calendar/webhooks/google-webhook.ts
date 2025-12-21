@@ -401,9 +401,7 @@ export async function getUserWatchChannels(userId: string): Promise<WatchChannel
   if (!firestore) return [];
 
   try {
-    const snapshot = await firestore
-      .collection(`users/${userId}/google_watch_channels`)
-      .get();
+    const snapshot = await firestore.collection(`users/${userId}/google_watch_channels`).get();
 
     return snapshot.docs.map((doc) => doc.data() as WatchChannel);
   } catch (error) {
@@ -435,4 +433,3 @@ export default {
   getUserWatchChannels,
   stopAllUserChannels,
 };
-

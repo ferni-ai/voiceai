@@ -7,12 +7,15 @@ import AVFoundation
 struct SettingsView: View {
     @ObservedObject var voiceManager: DualModeVoiceManager
     @ObservedObject var loginItemManager = LoginItemManager.shared
+    @ObservedObject var intelligence = SystemIntelligenceManager.shared
     @StateObject private var audioDeviceManager = AudioDeviceManager()
-    
+
     @AppStorage("defaultPersonaId") private var defaultPersonaId = "ferni"
     @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
+    @AppStorage("helpMeHotkeyEnabled") private var helpMeHotkeyEnabled = true
     @AppStorage("showNotifications") private var showNotifications = true
     @AppStorage("playSounds") private var playSounds = true
+    @AppStorage("sendContextToAgent") private var sendContextToAgent = true
     
     var body: some View {
         TabView {
@@ -33,7 +36,13 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Personas", systemImage: "person.3")
                 }
-            
+
+            // Intelligence Tab (System Intelligence)
+            intelligenceTab
+                .tabItem {
+                    Label("Intelligence", systemImage: "brain")
+                }
+
             // Advanced Tab
             advancedTab
                 .tabItem {
@@ -63,7 +72,10 @@ struct SettingsView: View {
                 
                 Toggle("Global Hotkey (⌘⇧F)", isOn: $globalHotkeyEnabled)
                     .help("Enable Cmd+Shift+F to toggle voice from anywhere")
-                
+
+                Toggle("Help Me Hotkey (⌘⇧H)", isOn: $helpMeHotkeyEnabled)
+                    .help("Enable Cmd+Shift+H to get help with selected text")
+
                 Toggle("Show Notifications", isOn: $showNotifications)
                     .help("Show system notifications for connection events")
                 
@@ -164,8 +176,210 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Intelligence Tab
+
+    private var intelligenceTab: some View {
+        ScrollView {
+            Form {
+                // Core Permissions Section
+                Section {
+                    PermissionRow(
+                        title: "Accessibility",
+                        subtitle: "Read selected text and window titles",
+                        isGranted: intelligence.contextService.hasAccessibilityPermission,
+                        systemImage: "hand.point.up.fill",
+                        onRequest: { intelligence.contextService.requestAccessibilityPermission() },
+                        onOpenSettings: { intelligence.contextService.openAccessibilitySettings() }
+                    )
+
+                    PermissionRow(
+                        title: "Calendar",
+                        subtitle: "Meeting awareness and scheduling",
+                        isGranted: intelligence.calendarService.hasAccess,
+                        systemImage: "calendar",
+                        onRequest: {
+                            Task { await intelligence.calendarService.requestAccess() }
+                        },
+                        onOpenSettings: { intelligence.calendarService.openCalendarSettings() }
+                    )
+
+                    PermissionRow(
+                        title: "Contacts",
+                        subtitle: "Birthday reminders and relationships",
+                        isGranted: intelligence.contactsService.hasAccess,
+                        systemImage: "person.crop.circle",
+                        onRequest: {
+                            Task { await intelligence.contactsService.requestAccess() }
+                        },
+                        onOpenSettings: { intelligence.contactsService.openContactsSettings() }
+                    )
+
+                    PermissionRow(
+                        title: "Location",
+                        subtitle: "Place awareness and geofencing",
+                        isGranted: intelligence.locationService.hasAccess,
+                        systemImage: "location.fill",
+                        onRequest: { intelligence.locationService.requestAccess() },
+                        onOpenSettings: { intelligence.locationService.openLocationSettings() }
+                    )
+
+                    PermissionRow(
+                        title: "Notifications",
+                        subtitle: "Check-in reminders and insights",
+                        isGranted: intelligence.notificationService.isAuthorized,
+                        systemImage: "bell.fill",
+                        onRequest: {
+                            Task { await intelligence.notificationService.requestAuthorization() }
+                        },
+                        onOpenSettings: { intelligence.notificationService.openNotificationSettings() }
+                    )
+
+                    PermissionRow(
+                        title: "Focus Mode",
+                        subtitle: "Respect Do Not Disturb",
+                        isGranted: intelligence.focusModeService.hasPermission,
+                        systemImage: "moon.fill",
+                        onRequest: {
+                            Task { await intelligence.focusModeService.requestAuthorization() }
+                        },
+                        onOpenSettings: nil
+                    )
+                } header: {
+                    Text("Permissions")
+                } footer: {
+                    let status = intelligence.getPermissionStatus()
+                    Text("\(status.grantedCount)/\(status.totalCount) permissions granted")
+                        .foregroundColor(status.allGranted ? .green : .secondary)
+                }
+
+                // Features Section
+                Section {
+                    Toggle("Help Me With This (⌘⇧H)", isOn: $helpMeHotkeyEnabled)
+                        .help("Press Cmd+Shift+H to get help with selected text")
+
+                    Toggle("Send Context to Agent", isOn: $sendContextToAgent)
+                        .help("Share app context, calendar, and focus mode with the AI")
+
+                    Toggle("Meeting Reminders", isOn: $showNotifications)
+                        .help("Get notified before meetings start")
+                } header: {
+                    Text("Features")
+                }
+
+                // Current Context Section
+                Section {
+                    LabeledContent("Active App") {
+                        Text(intelligence.contextService.activeApp.isEmpty ? "None" : intelligence.contextService.activeApp)
+                            .foregroundColor(.secondary)
+                    }
+
+                    LabeledContent("Window") {
+                        Text(intelligence.contextService.activeWindowTitle.isEmpty ? "None" : intelligence.contextService.activeWindowTitle)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+
+                    if let event = intelligence.calendarService.upcomingEvent {
+                        LabeledContent("Upcoming") {
+                            Text("\(event.title) in \(event.minutesUntilStart)m")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    if intelligence.focusModeService.isFocused {
+                        LabeledContent("Focus") {
+                            Text(intelligence.focusModeService.focusModeName ?? "Active")
+                                .foregroundColor(.orange)
+                        }
+                    }
+
+                    if let place = intelligence.currentPlace {
+                        LabeledContent("Location") {
+                            Text(place)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    if intelligence.needsBreak {
+                        LabeledContent("Screen Time") {
+                            Text("Break suggested")
+                                .foregroundColor(.orange)
+                        }
+                    }
+
+                    if let birthday = intelligence.upcomingBirthdays.first {
+                        LabeledContent("Birthday") {
+                            if birthday.daysUntilBirthday == 0 {
+                                Text("🎂 \(birthday.name) today!")
+                                    .foregroundColor(.green)
+                            } else if birthday.daysUntilBirthday == 1 {
+                                Text("\(birthday.name) tomorrow")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("\(birthday.name) in \(birthday.daysUntilBirthday ?? 0) days")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Current Context")
+                }
+
+                // Screen Time Section
+                Section {
+                    LabeledContent("Screen Time Today") {
+                        let hours = intelligence.screenTimeService.totalScreenTimeMinutes / 60
+                        let mins = intelligence.screenTimeService.totalScreenTimeMinutes % 60
+                        Text(hours > 0 ? "\(hours)h \(mins)m" : "\(mins) min")
+                            .foregroundColor(.secondary)
+                    }
+
+                    if let topApp = intelligence.screenTimeService.topApps.first {
+                        LabeledContent("Most Used") {
+                            Text("\(topApp.app) (\(topApp.minutes) min)")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Screen Time")
+                }
+
+                // Siri Section
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Available Siri commands:")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Group {
+                            Text("\"Hey Siri, start a Ferni check-in\"")
+                            Text("\"Hey Siri, talk to Maya\"")
+                            Text("\"Hey Siri, help me with this\"")
+                        }
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    }
+                } header: {
+                    Text("Siri & Shortcuts")
+                }
+
+                // Request All Button
+                Section {
+                    Button("Request All Permissions") {
+                        Task {
+                            await intelligence.requestAllPermissions()
+                        }
+                    }
+                    .disabled(intelligence.getPermissionStatus().allGranted)
+                }
+            }
+            .formStyle(.grouped)
+        }
+    }
+
     // MARK: - Advanced Tab
-    
+
     private var advancedTab: some View {
         Form {
             Section {
@@ -365,6 +579,57 @@ struct AudioLevelMeter: View {
         } else {
             return .green
         }
+    }
+}
+
+// MARK: - Permission Row
+
+struct PermissionRow: View {
+    let title: String
+    let subtitle: String
+    let isGranted: Bool
+    let systemImage: String
+    let onRequest: () -> Void
+    let onOpenSettings: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.title3)
+                .foregroundColor(isGranted ? .green : .secondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            if isGranted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            } else {
+                Button("Grant") {
+                    onRequest()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                if let openSettings = onOpenSettings {
+                    Button {
+                        openSettings()
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

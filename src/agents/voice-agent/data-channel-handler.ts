@@ -3,7 +3,8 @@
  *
  * Handles incoming data messages from the frontend via LiveKit data channel:
  * - handoff_request: User clicks a persona in the UI to switch
- * - game_start_request: User starts a game from the UI game picker
+ * - game_start_request: User starts a music game from the UI game picker
+ * - text_game_start_request: User starts a text game from the UI game picker
  * - practice_start_request: User starts a guided practice from the UI
  * - voice-pack-change: User changes voice pack from Personalize UI
  *
@@ -26,6 +27,7 @@ import {
   getNextMessageSeq,
   getHandoffPersonaInfo,
 } from '../shared/handoff/session-state.js';
+import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
 
 // ============================================================================
 // TYPES
@@ -114,6 +116,10 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleGameStartRequest(message, ctx);
       }
 
+      if (message.type === 'text_game_start_request') {
+        await handleTextGameStartRequest(message, ctx);
+      }
+
       if (message.type === 'practice_start_request') {
         await handlePracticeStartRequest(message, ctx);
       }
@@ -128,6 +134,16 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
 
       if (message.type === 'handoff_cancel') {
         await handleHandoffCancel(message, ctx);
+      }
+
+      if (message.type === 'macos_context') {
+        await handleMacOSContext(message, ctx);
+      }
+
+      // DEV MODE SYNC: Frontend dev panel can send dev mode state to backend
+      // This allows dev panel unlock bypasses to propagate to voice agent
+      if (message.type === 'dev_mode_sync') {
+        await handleDevModeSync(message, ctx);
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
@@ -390,6 +406,82 @@ async function handleGameStartRequest(
 }
 
 /**
+ * Handle text_game_start_request messages - user started a text game from UI
+ */
+async function handleTextGameStartRequest(
+  message: { gameType: string },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, session, sessionPersona } = ctx;
+  const { gameType } = message;
+
+  getLogger().info({ gameType }, '🎮 User requested text game start via UI');
+
+  try {
+    const { getSessionTextGameEngine } = await import('../../services/games/index.js');
+    const engine = getSessionTextGameEngine(ctx.sessionId, sessionPersona.id);
+
+    // Start the text game - returns result with message
+    type TextGameType = import('../../services/games/text-game-types.js').TextGameType;
+    const result = await engine.startGame(gameType as TextGameType);
+    getLogger().info({ gameType, result }, '🎮 Text game engine returned result');
+
+    // CRITICAL: Make the agent actually SPEAK the welcome message
+    if (result.message && session) {
+      getLogger().info({ message: result.message }, '🎮 Agent speaking text game welcome...');
+
+      session.generateReply({
+        instructions: `You are starting a text game called "${gameType}".
+        Say the following welcome message naturally, with enthusiasm:
+
+        "${result.message}"
+
+        ${result.boardDescription ? `Current game state: ${result.boardDescription}` : ''}
+
+        After speaking, wait for the user's response.`,
+      });
+
+      getLogger().info('🎮 Agent spoke text game welcome message');
+    }
+
+    // Send ack to frontend
+    const ackMessage = JSON.stringify({
+      type: 'text_game_start_ack',
+      gameType,
+      success: true,
+      message: result.message,
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+
+    getLogger().info({ gameType }, '🎮 Text game started successfully');
+  } catch (gameErr) {
+    getLogger().error({ error: String(gameErr), gameType }, '❌ Text game start failed');
+
+    // Make agent acknowledge the error gracefully
+    if (session) {
+      session.generateReply({
+        instructions: `Apologize briefly - there was a technical issue starting the game.
+        Suggest the user try saying "let's play ${gameType}" instead.`,
+      });
+    }
+
+    const errorMsg = JSON.stringify({
+      type: 'text_game_start_ack',
+      gameType,
+      success: false,
+      error: String(gameErr),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
+      reliable: true,
+    });
+  }
+}
+
+/**
  * Handle practice_start_request messages - user started a guided practice from UI
  */
 async function handlePracticeStartRequest(
@@ -629,6 +721,185 @@ async function handleHandoffCancel(
       getLogger().debug({ error: String(sendErr) }, 'Failed to send cancellation error');
     }
   }
+}
+
+/**
+ * Handle macos_context messages - macOS native app sending system intelligence
+ *
+ * This enables superhuman awareness where:
+ * 1. macOS app monitors user context (calendar, focus, apps)
+ * 2. Context is sent to agent via data channel
+ * 3. Agent incorporates context into responses
+ */
+async function handleMacOSContext(
+  message: { payload: Record<string, unknown>; helpMeWithThis?: boolean },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { session, services, sessionId } = ctx;
+  const { payload, helpMeWithThis } = message;
+
+  getLogger().info(
+    {
+      activeApp: payload.activeApp,
+      hasSelectedText: !!payload.selectedText,
+      hasMeeting: !!payload.upcomingEvent,
+      isFocused: payload.isFocused,
+      helpMeWithThis,
+    },
+    '🖥️ macOS context received'
+  );
+
+  try {
+    // Import and use the macOS context builder
+    const { buildMacOSContext } =
+      await import('../../intelligence/context-builders/macos-context.js');
+
+    // The message is already parsed, use payload directly as MacOSContextPayload
+    const macOSContext = payload as unknown as MacOSContextPayload;
+
+    if (macOSContext) {
+      // Store context in session for use by turn processor
+      // Note: Session context storage would need to be implemented via session userData
+      const sessionContext = session?.userData as Record<string, unknown> | undefined;
+      if (sessionContext) {
+        (sessionContext as Record<string, unknown>).macOS = macOSContext;
+      }
+
+      // If this is a "Help me with this" request, generate an immediate response
+      if (helpMeWithThis && payload.selectedText && session) {
+        const contextString = buildMacOSContext(macOSContext);
+        getLogger().info(
+          { selectedTextLength: String(payload.selectedText).length },
+          '🆘 Help me with this - generating response'
+        );
+
+        session.generateReply({
+          instructions: `The user pressed "Help me with this" on their Mac while looking at something.
+
+${contextString}
+
+They want help understanding or working with this selected text. Provide a helpful, contextual response.
+Be concise but thorough. If it's code, offer to explain or improve it.
+If it's an error, help them understand and fix it.`,
+        });
+      }
+
+      getLogger().info('✅ macOS context stored for session');
+    }
+  } catch (contextErr) {
+    getLogger().warn({ error: String(contextErr) }, 'Failed to process macOS context');
+  }
+}
+
+// ============================================================================
+// DEV MODE SYNC HANDLER
+// ============================================================================
+
+/**
+ * Handle dev_mode_sync messages from frontend dev panel.
+ *
+ * When the frontend dev panel is enabled, it sends this message to let the
+ * backend know it should bypass team unlock checks. This allows testing of
+ * all personas without needing environment variables.
+ *
+ * Message format:
+ * {
+ *   type: 'dev_mode_sync',
+ *   enabled: boolean,
+ *   bypassUnlocks: boolean,     // Bypass team member unlock checks
+ *   simulatedTier?: string,     // 'free' | 'friend' | 'partner'
+ *   timestamp: number
+ * }
+ */
+async function handleDevModeSync(
+  message: {
+    enabled: boolean;
+    bypassUnlocks?: boolean;
+    simulatedTier?: 'free' | 'friend' | 'partner';
+    timestamp?: number;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { services, sessionId, room } = ctx;
+
+  getLogger().info(
+    {
+      enabled: message.enabled,
+      bypassUnlocks: message.bypassUnlocks,
+      simulatedTier: message.simulatedTier,
+      sessionId,
+    },
+    '🔧 Dev mode sync received from frontend'
+  );
+
+  try {
+    // Store dev mode state in services for this session
+    // This will be checked by handoff unlock validation
+    if (services && typeof services === 'object') {
+      // Use a type assertion to add the devMode property
+      (services as SessionServices & { devMode?: DevModeState }).devMode = {
+        enabled: message.enabled,
+        bypassUnlocks: message.bypassUnlocks ?? message.enabled,
+        simulatedTier: message.simulatedTier,
+        syncedAt: Date.now(),
+      };
+
+      getLogger().info(
+        {
+          devModeEnabled: message.enabled,
+          bypassUnlocks: message.bypassUnlocks ?? message.enabled,
+        },
+        '✅ Dev mode state stored in session services'
+      );
+
+      // Send acknowledgment back to frontend
+      try {
+        const ackMessage = JSON.stringify({
+          type: 'dev_mode_sync_ack',
+          success: true,
+          bypassUnlocks: message.bypassUnlocks ?? message.enabled,
+          timestamp: Date.now(),
+        });
+        await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+          reliable: true,
+        });
+      } catch (ackErr) {
+        getLogger().debug({ error: String(ackErr) }, 'Failed to send dev mode ack');
+      }
+    }
+  } catch (err) {
+    getLogger().warn({ error: String(err) }, 'Failed to process dev mode sync');
+  }
+}
+
+/**
+ * Dev mode state stored in session services.
+ * Exported for use by handoff unlock checks.
+ */
+export interface DevModeState {
+  enabled: boolean;
+  bypassUnlocks: boolean;
+  simulatedTier?: 'free' | 'friend' | 'partner';
+  syncedAt: number;
+}
+
+/**
+ * Check if dev mode bypass is enabled for this session.
+ * Used by handoff unlock validation.
+ */
+export function isDevModeBypassEnabled(services: SessionServices): boolean {
+  const devMode = (services as SessionServices & { devMode?: DevModeState }).devMode;
+  return devMode?.enabled === true && devMode?.bypassUnlocks === true;
+}
+
+/**
+ * Get simulated tier from dev mode, if set.
+ */
+export function getDevModeSimulatedTier(
+  services: SessionServices
+): 'free' | 'friend' | 'partner' | undefined {
+  const devMode = (services as SessionServices & { devMode?: DevModeState }).devMode;
+  return devMode?.enabled ? devMode.simulatedTier : undefined;
 }
 
 export default setupDataChannelHandler;

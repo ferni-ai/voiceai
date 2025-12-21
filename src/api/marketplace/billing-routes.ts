@@ -28,7 +28,14 @@ import {
 import { getAgent, getTool, listInstallations } from '../../marketplace/index.js';
 import type { MarketplaceId, UserId } from '../../marketplace/schema/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { parseBody, parseRawBody, sendJson, getUserId, getPublisher, getSubscriptionTier } from './helpers.js';
+import {
+  parseBody,
+  parseRawBody,
+  sendJson,
+  getUserId,
+  getPublisher,
+  getSubscriptionTier,
+} from './helpers.js';
 
 const log = getLogger().child({ module: 'marketplace-billing-routes' });
 
@@ -286,4 +293,3 @@ export async function handlePaymentRoutes(
 
   return false;
 }
-

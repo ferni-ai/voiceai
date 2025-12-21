@@ -50,21 +50,40 @@ export function createConversationTools() {
       description:
         "CALL silently when user shares their name. Execute without announcing - DO NOT say 'let me remember that'. Respond naturally after. CRITICAL: Do NOT call this with persona names (Ferni, Maya, Peter, Alex, Jordan, Nayan) - those are YOUR team members, not the user!",
       parameters: z.object({
-        name: z.string().describe("The user's name (NOT a persona name like Ferni, Maya, Peter, Alex, Jordan, or Nayan)"),
+        name: z
+          .string()
+          .describe(
+            "The user's name (NOT a persona name like Ferni, Maya, Peter, Alex, Jordan, or Nayan)"
+          ),
       }),
       execute: async ({ name }, { ctx }) => {
         // CRITICAL: Prevent saving persona names as user names!
         // This happens when user says "Hi Maya" after Maya introduces herself
         const personaNames = new Set([
-          'ferni', 'maya', 'peter', 'alex', 'jordan', 'nayan',
-          'santos', 'chen', 'taylor', 'john', 'patel',
+          'ferni',
+          'maya',
+          'peter',
+          'alex',
+          'jordan',
+          'nayan',
+          'santos',
+          'chen',
+          'taylor',
+          'john',
+          'patel',
           // Full names
-          'maya santos', 'alex chen', 'jordan taylor', 'peter john', 'nayan patel',
+          'maya santos',
+          'alex chen',
+          'jordan taylor',
+          'peter john',
+          'nayan patel',
         ]);
-        
+
         const nameLower = name.toLowerCase().trim();
         if (personaNames.has(nameLower)) {
-          getLogger().warn(`Blocked saving persona name "${name}" as user name - this is a team member, not the user!`);
+          getLogger().warn(
+            `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
+          );
           return `[INTERNAL: "${name}" is a team member name, not the user's name. Ask the user for their actual name.]`;
         }
 
@@ -504,4 +523,3 @@ export function createConversationTools() {
 }
 
 export default createConversationTools;
-

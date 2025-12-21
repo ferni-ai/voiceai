@@ -719,9 +719,9 @@ function promptContextToQuestionContext(
     userId: context.userId,
     sessionId: `journal-${context.userId}-${Date.now()}`,
     knownFacts: [
-      ...(context.wins || []).map(w => `Recent win: ${w}`),
-      ...(context.struggles || []).map(s => `Working on: ${s}`),
-      ...(context.growthAreas || []).map(g => `Growth area: ${g}`),
+      ...(context.wins || []).map((w) => `Recent win: ${w}`),
+      ...(context.struggles || []).map((s) => `Working on: ${s}`),
+      ...(context.growthAreas || []).map((g) => `Growth area: ${g}`),
     ],
     recentTopics: context.recentTopics || [],
     currentStruggle: context.struggles?.[0],
@@ -731,10 +731,14 @@ function promptContextToQuestionContext(
     emotionalState: context.currentEmotion
       ? { primary: context.currentEmotion, intensity: 0.6 }
       : undefined,
-    hourOfDay: context.timeOfDay === 'morning' ? 8
-      : context.timeOfDay === 'afternoon' ? 14
-      : context.timeOfDay === 'evening' ? 19
-      : 22,
+    hourOfDay:
+      context.timeOfDay === 'morning'
+        ? 8
+        : context.timeOfDay === 'afternoon'
+          ? 14
+          : context.timeOfDay === 'evening'
+            ? 19
+            : 22,
     isWeekend: false,
     turnCount: 5,
     boundaries: [],
@@ -778,9 +782,10 @@ export async function generateDynamicPrompt(
       id: `dynamic-${selectedCategory}-${Date.now()}`,
       category: selectedCategory,
       prompt: generated.text,
-      followUp: generated.followUpStrategy.ifPositive !== 'Acknowledge and explore'
-        ? generated.followUpStrategy.ifPositive
-        : undefined,
+      followUp:
+        generated.followUpStrategy.ifPositive !== 'Acknowledge and explore'
+          ? generated.followUpStrategy.ifPositive
+          : undefined,
       context: `Dynamic: ${generated.intent.seekingToUnderstand}`,
       difficulty: context.relationshipStage === 'deep' ? 'deep' : 'moderate',
       estimatedMinutes: questionType === 'deepening' ? 15 : 10,

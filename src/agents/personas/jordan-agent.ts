@@ -1,17 +1,19 @@
 /**
  * Jordan Agent - Life Planning & Milestone Celebrations
  *
+ * Extends PersonaVoiceAgent for shared TTS processing (sanitization, FinOps, interrupt handling).
  * Clean LiveKit 1.0 Implementation with direct domain imports.
  *
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 import { loadSystemPrompt } from './prompt-loader.js';
+import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
 const log = createLogger({ module: 'JordanAgent' });
 
@@ -41,14 +43,8 @@ import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // TYPES
 // ============================================================================
 
-interface JordanSessionData {
-  userId?: string;
-  userName?: string;
-  personaId?: string;
-  [key: string]: unknown;
-}
-
-type ToolSet = llm.ToolContext<JordanSessionData>;
+// JordanAgent uses PersonaVoiceAgent's session data type
+type ToolSet = llm.ToolContext<Record<string, unknown>>;
 
 // ============================================================================
 // TOOL BUILDING HELPERS
@@ -204,12 +200,13 @@ function buildHandoffTools(): ToolSet {
 /**
  * Jordan Taylor - Life Planning & Milestone Celebrations
  *
+ * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/jordan-taylor/identity/system-prompt.md
  */
-export class JordanAgent extends voice.Agent<JordanSessionData> {
+export class JordanAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
-  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
+  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
     const memoryTools = buildMemoryTools('jordan-taylor');
     const lifePlanningTools = buildLifePlanningTools();
     const handoffTools = buildHandoffTools();
@@ -222,20 +219,21 @@ export class JordanAgent extends voice.Agent<JordanSessionData> {
       ...conversationTools,
     } as ToolSet;
 
-    super({
-      instructions: systemPrompt,
-      chatCtx,
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
       tools: allTools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
     });
 
-    process.stderr.write(`[JordanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
+    log.info({ totalTools: Object.keys(allTools).length }, 'JordanAgent initialized');
   }
 
   static async create(chatCtx?: llm.ChatContext): Promise<JordanAgent> {
     if (!JordanAgent.systemPromptCache) {
       JordanAgent.systemPromptCache = await loadSystemPrompt('jordan-taylor');
     }
-    return new JordanAgent(JordanAgent.systemPromptCache, chatCtx);
+    return new JordanAgent(JordanAgent.systemPromptCache, { chatCtx });
   }
 
   /**
@@ -247,7 +245,7 @@ export class JordanAgent extends voice.Agent<JordanSessionData> {
   }
 
   async onExit(): Promise<void> {
-    process.stderr.write(`[JordanAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent');
   }
 }
 

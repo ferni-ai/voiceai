@@ -60,13 +60,13 @@ function schedulePersist(userId: string, profile: StoredResonanceProfile): void 
   if (existing) {
     clearTimeout(existing);
   }
-  
+
   // Schedule new save
   const timeout = setTimeout(() => {
     pendingSaves.delete(userId);
     void persistToFirestore(userId, profile);
   }, SAVE_DEBOUNCE_MS);
-  
+
   pendingSaves.set(userId, timeout);
 }
 
@@ -76,16 +76,16 @@ function schedulePersist(userId: string, profile: StoredResonanceProfile): void 
 async function persistToFirestore(userId: string, profile: StoredResonanceProfile): Promise<void> {
   const db = await initFirestore();
   if (!db) return;
-  
+
   try {
     const docRef = db.collection('bogle_users').doc(userId);
     const profileDoc = docRef.collection('personality_resonance').doc('profile');
-    
+
     // Serialize dates for Firestore
     const serialized = {
       ...profile,
       lastUpdated: profile.lastUpdated.toISOString(),
-      mentionedTopics: profile.mentionedTopics.map(t => ({
+      mentionedTopics: profile.mentionedTopics.map((t) => ({
         ...t,
         firstMentioned: t.firstMentioned.toISOString(),
         lastMentioned: t.lastMentioned.toISOString(),
@@ -101,9 +101,12 @@ async function persistToFirestore(userId: string, profile: StoredResonanceProfil
         lastVulnerableShare: profile.vulnerabilityComfort.lastVulnerableShare?.toISOString(),
       },
     };
-    
+
     await profileDoc.set(serialized, { merge: true });
-    log.debug({ userId, totalExpressions: profile.totalExpressions }, 'Persisted resonance profile');
+    log.debug(
+      { userId, totalExpressions: profile.totalExpressions },
+      'Persisted resonance profile'
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to persist resonance profile');
   }
@@ -119,7 +122,7 @@ export async function flushResonanceProfile(userId: string): Promise<void> {
     clearTimeout(existing);
     pendingSaves.delete(userId);
   }
-  
+
   // Get cached profile and persist immediately
   const profile = resonanceCache.get(userId);
   if (profile) {
@@ -132,7 +135,7 @@ export async function flushResonanceProfile(userId: string): Promise<void> {
  */
 async function initFirestore(): Promise<Firestore | null> {
   if (firestoreDb) return firestoreDb;
-  
+
   if (!firestoreInitPromise) {
     firestoreInitPromise = (async () => {
       try {
@@ -148,7 +151,7 @@ async function initFirestore(): Promise<Firestore | null> {
       }
     })();
   }
-  
+
   await firestoreInitPromise;
   return firestoreDb;
 }
@@ -176,11 +179,14 @@ interface StoredResonanceProfile {
   themeScores: Record<ThemeCategory, number>;
 
   // Specific expression resonance
-  expressionEngagement: Record<string, {
-    positive: number;
-    negative: number;
-    lastUsed: Date;
-  }>;
+  expressionEngagement: Record<
+    string,
+    {
+      positive: number;
+      negative: number;
+      lastUsed: Date;
+    }
+  >;
 
   // User topic mentions (for callbacks)
   mentionedTopics: Array<{
@@ -225,9 +231,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 /**
  * Load user's resonance profile from cache or Firestore
  */
-export async function loadResonanceProfile(
-  userId: string
-): Promise<UserResonanceProfile | null> {
+export async function loadResonanceProfile(userId: string): Promise<UserResonanceProfile | null> {
   try {
     // Check cache first
     const cached = resonanceCache.get(userId);
@@ -241,7 +245,7 @@ export async function loadResonanceProfile(
       try {
         const docRef = db.collection('bogle_users').doc(userId);
         const profileDoc = await docRef.collection('personality_resonance').doc('profile').get();
-        
+
         if (profileDoc.exists) {
           const data = profileDoc.data() as StoredResonanceProfile | undefined;
           if (data) {
@@ -249,7 +253,7 @@ export async function loadResonanceProfile(
             const profile: StoredResonanceProfile = {
               ...data,
               lastUpdated: new Date(data.lastUpdated as unknown as string),
-              mentionedTopics: (data.mentionedTopics || []).map(t => ({
+              mentionedTopics: (data.mentionedTopics || []).map((t) => ({
                 ...t,
                 firstMentioned: new Date(t.firstMentioned as unknown as string),
                 lastMentioned: new Date(t.lastMentioned as unknown as string),
@@ -261,7 +265,7 @@ export async function loadResonanceProfile(
                   : undefined,
               },
             };
-            
+
             resonanceCache.set(userId, profile);
             log.debug({ userId }, 'Loaded resonance profile from Firestore');
             return transformToResonanceProfile(profile);
@@ -283,10 +287,7 @@ export async function loadResonanceProfile(
 /**
  * Record a resonance event (called when we detect user reaction)
  */
-export async function recordResonanceEvent(
-  userId: string,
-  event: ResonanceEvent
-): Promise<void> {
+export async function recordResonanceEvent(userId: string, event: ResonanceEvent): Promise<void> {
   try {
     // Get or create profile
     let profile = resonanceCache.get(userId) || createDefaultProfile(userId);
@@ -338,10 +339,7 @@ export async function recordResonanceEvent(
 /**
  * Record a user topic mention (for future callbacks)
  */
-export async function recordUserTopicMention(
-  userId: string,
-  topic: string
-): Promise<void> {
+export async function recordUserTopicMention(userId: string, topic: string): Promise<void> {
   try {
     let profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
@@ -369,7 +367,7 @@ export async function recordUserTopicMention(
 
     profile.lastUpdated = new Date();
     resonanceCache.set(userId, profile);
-    
+
     // Persist to Firestore (debounced)
     schedulePersist(userId, profile);
 
@@ -411,7 +409,7 @@ export async function recordVulnerabilityResponse(
 
     profile.lastUpdated = new Date();
     resonanceCache.set(userId, profile);
-    
+
     // Persist to Firestore (debounced)
     schedulePersist(userId, profile);
 
@@ -453,9 +451,7 @@ function createDefaultProfile(userId: string): StoredResonanceProfile {
   };
 }
 
-function transformToResonanceProfile(
-  stored: StoredResonanceProfile
-): UserResonanceProfile {
+function transformToResonanceProfile(stored: StoredResonanceProfile): UserResonanceProfile {
   // Find resonant themes (score > 0.6)
   const resonantThemes: ThemeCategory[] = [];
   const avoidThemes: ThemeCategory[] = [];
@@ -609,4 +605,3 @@ export const personalityResonanceStore = {
 };
 
 export default personalityResonanceStore;
-

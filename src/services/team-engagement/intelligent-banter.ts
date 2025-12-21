@@ -9,7 +9,9 @@
  * - Time of day (energy level adjustment)
  * - Handoff reason (why we're transferring)
  *
- * Falls back to static banter if context unavailable.
+ * NOW LLM-DRIVEN: Instead of template-based generation, we provide
+ * instructions to the LLM to generate natural, contextual banter.
+ * This makes handoffs feel more genuine and responsive to the moment.
  *
  * @module team-engagement/intelligent-banter
  */
@@ -365,11 +367,51 @@ const PERSONA_BANTER_TRAITS: Record<string, PersonaBanterTrait> = {
 // ============================================================================
 
 const TOPIC_KEYWORDS: Record<string, string[]> = {
-  habits: ['habit', 'routine', 'morning', 'exercise', 'meditation', 'sleep', 'daily', 'workout', 'practice'],
+  habits: [
+    'habit',
+    'routine',
+    'morning',
+    'exercise',
+    'meditation',
+    'sleep',
+    'daily',
+    'workout',
+    'practice',
+  ],
   calendar: ['calendar', 'schedule', 'meeting', 'appointment', 'time', 'busy', 'available', 'book'],
-  planning: ['plan', 'goal', 'milestone', 'future', 'dream', 'vision', 'celebrate', 'birthday', 'event'],
-  research: ['research', 'data', 'pattern', 'analyze', 'number', 'trend', 'investment', 'stock', 'money'],
-  wisdom: ['meaning', 'purpose', 'life', 'philosophy', 'perspective', 'deep', 'why', 'death', 'legacy'],
+  planning: [
+    'plan',
+    'goal',
+    'milestone',
+    'future',
+    'dream',
+    'vision',
+    'celebrate',
+    'birthday',
+    'event',
+  ],
+  research: [
+    'research',
+    'data',
+    'pattern',
+    'analyze',
+    'number',
+    'trend',
+    'investment',
+    'stock',
+    'money',
+  ],
+  wisdom: [
+    'meaning',
+    'purpose',
+    'life',
+    'philosophy',
+    'perspective',
+    'deep',
+    'why',
+    'death',
+    'legacy',
+  ],
   coaching: ['help', 'advice', 'guidance', 'feeling', 'struggle', 'support', 'stuck', 'confused'],
   work: ['work', 'job', 'career', 'boss', 'colleague', 'project', 'deadline', 'promotion'],
   stress: ['stressed', 'overwhelmed', 'anxious', 'worried', 'nervous', 'scared', 'panicking'],
@@ -392,7 +434,9 @@ function detectTopicCategory(topic?: string, reason?: string): string {
 // RELATIONSHIP STAGE DETECTION
 // ============================================================================
 
-function detectRelationshipStage(context: BanterContext): 'new' | 'building' | 'established' | 'deep' {
+function detectRelationshipStage(
+  context: BanterContext
+): 'new' | 'building' | 'established' | 'deep' {
   // Explicit stage overrides
   if (context.relationshipStage) return context.relationshipStage;
 
@@ -472,11 +516,7 @@ function generateSoftOpenBanter(
   }
 
   // 5. Relationship warmth (only for established+ relationships)
-  if (
-    relationshipStage === 'deep' &&
-    !isRepeatHandoff &&
-    timeProfile.energy !== 'low'
-  ) {
+  if (relationshipStage === 'deep' && !isRepeatHandoff && timeProfile.energy !== 'low') {
     const warmth = traits.relationshipWarmth[relationshipStage];
     if (warmth && Math.random() < 0.3) {
       // 30% chance to include warmth
@@ -592,7 +632,7 @@ function getTopicQuestion(personaId: string, topicCategory: string): string {
     'jordan-taylor': {
       planning: "What's the milestone?",
       habits: "What's the dream behind this?",
-      stress: "What would feel like a win?",
+      stress: 'What would feel like a win?',
       default: "What's the vision?",
     },
     'nayan-patel': {
@@ -604,7 +644,7 @@ function getTopicQuestion(personaId: string, topicCategory: string): string {
     'peter-john': {
       research: "What's the pattern?",
       habits: "What's the data showing?",
-      planning: "What does the timeline look like?",
+      planning: 'What does the timeline look like?',
       default: 'What should we analyze?',
     },
     ferni: {
@@ -770,7 +810,8 @@ export function getIntelligentBanter(
   // Fallback to static banter
   return {
     softOpenBanter:
-      getHandoffBanter(fromPersonaId, toPersonaId) || `Let me get ${getPersonaFirstName(toPersonaId)}.`,
+      getHandoffBanter(fromPersonaId, toPersonaId) ||
+      `Let me get ${getPersonaFirstName(toPersonaId)}.`,
     arrivingBanter: getArrivingBanter(toPersonaId, fromPersonaId) || "Hey! What's up?",
     wasIntelligent: false,
   };
@@ -835,5 +876,281 @@ export function buildBanterContext(options: {
     handoffReason: options.handoffReason,
     totalSessions: options.totalSessions,
     relationshipStage,
+  };
+}
+
+// ============================================================================
+// LLM-DRIVEN BANTER (NEW!)
+// Instead of template-based generation, let the LLM create natural banter.
+// ============================================================================
+
+/**
+ * Persona character profiles for LLM-driven banter
+ * These help the LLM understand each persona's voice
+ */
+const PERSONA_PROFILES: Record<
+  string,
+  { name: string; role: string; style: string; traits: string }
+> = {
+  ferni: {
+    name: 'Ferni',
+    role: 'life coach and team coordinator',
+    style: 'warm, grounded, wise',
+    traits: 'uses gentle humor, feels like a supportive friend',
+  },
+  'alex-chen': {
+    name: 'Alex',
+    role: 'calendar and communication coach',
+    style: 'efficient, caring, organized',
+    traits: 'direct but warm, focused on getting things done',
+  },
+  'maya-santos': {
+    name: 'Maya',
+    role: 'habits and routines coach',
+    style: 'gentle, supportive, patient',
+    traits: 'believes in small steps, encouraging without being pushy',
+  },
+  'peter-john': {
+    name: 'Peter',
+    role: 'research analyst (the Triple Quant)',
+    style: 'analytical, thorough, data-driven',
+    traits: 'loves patterns, quotes Jack Bogle, brings the facts',
+  },
+  'jordan-taylor': {
+    name: 'Jordan',
+    role: 'life milestones and events planner',
+    style: 'enthusiastic, visionary, celebratory',
+    traits: 'sees the big picture, loves helping dream big',
+  },
+  'nayan-patel': {
+    name: 'Nayan',
+    role: 'wisdom keeper and philosopher',
+    style: 'calm, contemplative, profound',
+    traits: 'asks deep questions, comfortable with silence and mystery',
+  },
+};
+
+/**
+ * Instructions for LLM to generate soft open banter (departing persona)
+ */
+export interface LLMBanterInstructions {
+  /** Instructions for generateReply() */
+  instructions: string;
+  /** Whether to allow interruptions */
+  allowInterruptions: boolean;
+  /** Fallback text if LLM generation fails or times out */
+  fallback: string;
+  /** Type of banter */
+  type: 'soft_open' | 'arriving';
+}
+
+/**
+ * Build LLM instructions for soft open banter (departing persona introduces arriving)
+ */
+export function buildLLMSoftOpenInstructions(
+  fromPersonaId: string,
+  toPersonaId: string,
+  context: BanterContext
+): LLMBanterInstructions {
+  const fromProfile = PERSONA_PROFILES[fromPersonaId] || PERSONA_PROFILES.ferni;
+  const toProfile = PERSONA_PROFILES[toPersonaId] || PERSONA_PROFILES.ferni;
+
+  // Build contextual hints
+  const contextHints: string[] = [];
+
+  if (context.currentTopic) {
+    contextHints.push(`You were just discussing: ${context.currentTopic}`);
+  }
+
+  if (context.userEmotion && context.userEmotion !== 'neutral') {
+    const emotionMap: Record<string, string> = {
+      stressed: 'The user seems stressed - be reassuring',
+      negative: 'The user seems down - be gentle',
+      excited: 'The user is excited - match their energy',
+      positive: 'The user is in a good mood',
+    };
+    contextHints.push(emotionMap[context.userEmotion] || '');
+  }
+
+  if (context.handoffReason) {
+    contextHints.push(`Handoff reason: ${context.handoffReason.slice(0, 50)}`);
+  }
+
+  // Brevity for repeat handoffs
+  const brevity =
+    (context.handoffCountThisSession || 0) > 1
+      ? 'This is a repeat handoff this session - be VERY brief (under 8 words).'
+      : 'Keep it natural and brief (1-2 short sentences max).';
+
+  // Time awareness
+  const timeHint = context.timeOfDay === 'night' ? "It's late - gentle energy." : '';
+
+  // Relationship depth
+  const relationshipHint =
+    context.relationshipStage === 'deep'
+      ? 'You have a deep relationship - be warm and familiar.'
+      : context.relationshipStage === 'new'
+        ? 'This is a newer relationship - be welcoming but not overly familiar.'
+        : '';
+
+  const instructions = `You are ${fromProfile.name}, the ${fromProfile.role}. Your style: ${fromProfile.style}. ${fromProfile.traits}.
+
+You are handing off to ${toProfile.name} (the ${toProfile.role}). Generate a natural, warm transition phrase.
+
+${contextHints.length > 0 ? 'Context:\n' + contextHints.filter(Boolean).join('\n') : ''}
+${timeHint}
+${relationshipHint}
+
+Rules:
+- ${brevity}
+- Sound like a real team member introducing a colleague
+- Don't say "I'm handing you off" or use formal language
+- Just be natural, like "Let me get Maya" or "Peter's got this"
+- You can mention why (if relevant) but keep it conversational
+- DO NOT include any greeting from ${toProfile.name} - just your sendoff
+
+Say ONLY the handoff phrase, nothing else.`;
+
+  // Generate fallback using template system
+  const fallback = getHandoffBanter(fromPersonaId, toPersonaId) || `Let me get ${toProfile.name}.`;
+
+  return {
+    instructions,
+    allowInterruptions: false, // Don't interrupt during handoff
+    fallback,
+    type: 'soft_open',
+  };
+}
+
+/**
+ * Build LLM instructions for arriving banter (new persona greets user)
+ */
+export function buildLLMArrivingInstructions(
+  toPersonaId: string,
+  fromPersonaId: string,
+  context: BanterContext
+): LLMBanterInstructions {
+  const toProfile = PERSONA_PROFILES[toPersonaId] || PERSONA_PROFILES.ferni;
+  const fromProfile = PERSONA_PROFILES[fromPersonaId] || PERSONA_PROFILES.ferni;
+
+  // Build contextual hints
+  const contextHints: string[] = [];
+
+  if (context.currentTopic) {
+    contextHints.push(`They were just discussing: ${context.currentTopic}`);
+  }
+
+  if (context.handoffReason) {
+    contextHints.push(`You were called in for: ${context.handoffReason.slice(0, 50)}`);
+  }
+
+  if (context.userEmotion && context.userEmotion !== 'neutral') {
+    const emotionMap: Record<string, string> = {
+      stressed: 'The user seems stressed - be calming',
+      negative: 'The user seems down - be supportive',
+      excited: 'The user is excited - match their energy!',
+      positive: 'The user is in a good mood',
+    };
+    contextHints.push(emotionMap[context.userEmotion] || '');
+  }
+
+  // Name usage
+  const nameHint = context.userName ? `Their name is ${context.userName}.` : '';
+
+  // Brevity for repeat handoffs
+  const brevity =
+    (context.handoffCountThisSession || 0) > 1
+      ? 'This is a repeat handoff - be VERY brief (just "Hey!" or "What\'s up?" level).'
+      : 'Keep it brief but warm (1-2 short sentences).';
+
+  // Time awareness
+  const timeEnergy: Record<string, string> = {
+    morning: 'Morning energy - be bright',
+    afternoon: 'Afternoon - steady energy',
+    evening: 'Evening - calmer energy',
+    night: 'Late night - gentle and soft energy',
+  };
+  const timeHint = context.timeOfDay ? timeEnergy[context.timeOfDay] || '' : '';
+
+  // Relationship depth
+  const relationshipHint =
+    context.relationshipStage === 'deep'
+      ? 'You have a deep relationship - be warm, maybe use their name.'
+      : context.relationshipStage === 'new'
+        ? 'Newer relationship - be welcoming and open.'
+        : '';
+
+  const instructions = `You are ${toProfile.name}, the ${toProfile.role}. Your style: ${toProfile.style}. ${toProfile.traits}.
+
+You just got handed a conversation from ${fromProfile.name}. Generate a natural greeting/arrival.
+
+${nameHint}
+${contextHints.length > 0 ? 'Context:\n' + contextHints.filter(Boolean).join('\n') : ''}
+${timeHint}
+${relationshipHint}
+
+Rules:
+- ${brevity}
+- Sound like yourself arriving, not reading a script
+- Can acknowledge what they need OR just be a friendly arrival
+- Examples of good arrivals: "Hey! What do we need?" / "I heard scheduling - let me help." / "What's going on?"
+- DO NOT explain who you are or what you do
+- Just arrive naturally
+
+Say ONLY your arrival greeting, nothing else.`;
+
+  // Generate fallback using template system
+  const fallback = getArrivingBanter(toPersonaId, fromPersonaId) || "Hey! What's up?";
+
+  return {
+    instructions,
+    allowInterruptions: true, // User can interrupt arriving greeting
+    fallback,
+    type: 'arriving',
+  };
+}
+
+/**
+ * Get LLM-driven banter instructions for a handoff
+ *
+ * This returns instructions that can be passed to `session.generateReply()`
+ * for natural, contextual handoff banter.
+ *
+ * @example
+ * const { softOpen, arriving } = getLLMDrivenBanter('ferni', 'alex-chen', context);
+ *
+ * // Departing persona says soft open
+ * await session.generateReply({ instructions: softOpen.instructions });
+ *
+ * // [Voice switches]
+ *
+ * // Arriving persona greets
+ * await session.generateReply({ instructions: arriving.instructions });
+ */
+export function getLLMDrivenBanter(
+  fromPersonaId: string,
+  toPersonaId: string,
+  context: BanterContext = {}
+): { softOpen: LLMBanterInstructions; arriving: LLMBanterInstructions } {
+  const enrichedContext: BanterContext = {
+    ...context,
+    timeOfDay: context.timeOfDay || detectTimeOfDay(),
+  };
+
+  log.debug(
+    {
+      from: fromPersonaId,
+      to: toPersonaId,
+      topic: context.currentTopic,
+      emotion: context.userEmotion,
+      time: enrichedContext.timeOfDay,
+      relationship: context.relationshipStage,
+    },
+    '🎭 Building LLM-driven banter instructions'
+  );
+
+  return {
+    softOpen: buildLLMSoftOpenInstructions(fromPersonaId, toPersonaId, enrichedContext),
+    arriving: buildLLMArrivingInstructions(toPersonaId, fromPersonaId, enrichedContext),
   };
 }

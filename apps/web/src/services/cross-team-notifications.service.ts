@@ -493,6 +493,21 @@ export function getState(): {
 // ============================================================================
 
 /**
+ * Check if we're running on Firebase Hosting (production)
+ * Firebase Hosting doesn't support WebSocket proxying, so we need to use polling
+ */
+function isFirebaseHosting(): boolean {
+  const host = window.location.hostname;
+  // Firebase Hosting domains and custom domains pointing to Firebase
+  return (
+    host.endsWith('.web.app') ||
+    host.endsWith('.firebaseapp.com') ||
+    host === 'app.ferni.ai' ||
+    host === 'ferni.ai'
+  );
+}
+
+/**
  * Initialize cross-team notifications
  */
 export function initCrossTeamNotifications(userId: string): void {
@@ -503,12 +518,19 @@ export function initCrossTeamNotifications(userId: string): void {
 
   resetSession();
   
-  // Try WebSocket first, fall back to polling
-  try {
-    connectToInsightsStream(userId);
-  } catch {
-    log.info('WebSocket unavailable, using polling');
+  // Firebase Hosting doesn't support WebSocket proxying
+  // Use polling directly in production to avoid connection errors
+  if (isFirebaseHosting()) {
+    log.info('Firebase Hosting detected - using polling for insights (WebSocket not supported through Firebase proxy)');
     startInsightsPolling(userId);
+  } else {
+    // Local development - try WebSocket (works directly with ui-server)
+    try {
+      connectToInsightsStream(userId);
+    } catch {
+      log.info('WebSocket unavailable, using polling');
+      startInsightsPolling(userId);
+    }
   }
 
   log.info('Cross-team notifications initialized');

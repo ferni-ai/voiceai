@@ -272,7 +272,7 @@ export class EmbeddingCache {
           results[index] = embedding;
 
           if (text.length >= this.config.minTextLength) {
-            this.set(hash, embedding, text.length);
+            void this.set(hash, embedding, text.length);
           }
         }
       } catch (error) {

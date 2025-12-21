@@ -41,42 +41,50 @@ const PERSONALITY_DEFINITIONS: Record<
 > = {
   'nostalgic-explorer': {
     label: 'Nostalgic Explorer',
-    description: 'You have a deep emotional connection to music. Songs aren\'t just sounds—they\'re time machines to memories and feelings.',
+    description:
+      "You have a deep emotional connection to music. Songs aren't just sounds—they're time machines to memories and feelings.",
     detectFrom: ['emotional_songs', 'decade_loyalty', 'desert_island_picks'],
   },
   'genre-specialist': {
     label: 'Genre Specialist',
-    description: 'You know your favorite genres inside and out. Your deep knowledge in specific areas makes you a true connoisseur.',
+    description:
+      'You know your favorite genres inside and out. Your deep knowledge in specific areas makes you a true connoisseur.',
     detectFrom: ['high_genre_accuracy', 'genre_loyalty'],
   },
   'decade-devotee': {
     label: 'Decade Devotee',
-    description: 'You have a strong connection to a particular era. That decade\'s music speaks to your soul in a way others don\'t.',
+    description:
+      "You have a strong connection to a particular era. That decade's music speaks to your soul in a way others don't.",
     detectFrom: ['decade_dominance', 'era_knowledge'],
   },
   'eclectic-wanderer': {
     label: 'Eclectic Wanderer',
-    description: 'Your musical taste knows no boundaries. You appreciate everything from classical to hip-hop, 60s to today.',
+    description:
+      'Your musical taste knows no boundaries. You appreciate everything from classical to hip-hop, 60s to today.',
     detectFrom: ['diverse_genres', 'diverse_decades', 'broad_accuracy'],
   },
   'deep-listener': {
     label: 'Deep Listener',
-    description: 'You take your time and rarely miss. Quality over speed—you hear details others might miss.',
+    description:
+      'You take your time and rarely miss. Quality over speed—you hear details others might miss.',
     detectFrom: ['high_accuracy', 'slower_guesses', 'thoughtful_play'],
   },
   'social-curator': {
     label: 'Social Curator',
-    description: 'You love sharing music and discovering through others. Music is a social experience for you.',
+    description:
+      'You love sharing music and discovering through others. Music is a social experience for you.',
     detectFrom: ['challenges_sent', 'shares_cards', 'taste_matches'],
   },
   'mood-master': {
     label: 'Mood Master',
-    description: 'You intuitively know what music fits each moment. Your mood-matching abilities are exceptional.',
+    description:
+      'You intuitively know what music fits each moment. Your mood-matching abilities are exceptional.',
     detectFrom: ['mood_game_success', 'contextual_picks'],
   },
   'discovery-seeker': {
     label: 'Discovery Seeker',
-    description: 'You\'re always looking for something new. The thrill of discovering a new favorite never gets old.',
+    description:
+      "You're always looking for something new. The thrill of discovering a new favorite never gets old.",
     detectFrom: ['diverse_library', 'obscure_tracks', 'new_genre_exploration'],
   },
 };
@@ -94,7 +102,7 @@ const TRAIT_DEFINITIONS: Record<
   },
   'deep-knowledge': {
     displayName: 'Deep Knowledge',
-    explanation: () => 'You know music beyond just the hits. Deep cuts and B-sides don\'t fool you.',
+    explanation: () => "You know music beyond just the hits. Deep cuts and B-sides don't fool you.",
   },
   'broad-taste': {
     displayName: 'Broad Taste',
@@ -116,11 +124,13 @@ const TRAIT_DEFINITIONS: Record<
   },
   'melody-matcher': {
     displayName: 'Melody Matcher',
-    explanation: () => 'You can identify a song from just a few notes. Your melodic memory is impressive.',
+    explanation: () =>
+      'You can identify a song from just a few notes. Your melodic memory is impressive.',
   },
   'mood-sensitive': {
     displayName: 'Mood Sensitive',
-    explanation: () => 'You excel at matching music to moods. Your emotional intelligence shines through.',
+    explanation: () =>
+      'You excel at matching music to moods. Your emotional intelligence shines through.',
   },
   'consistent-performer': {
     displayName: 'Consistent Performer',
@@ -197,7 +207,7 @@ export async function generateMusicalDNA(
 
   // Calculate total minutes from recent games (durationSeconds is in seconds)
   const totalMinutes = Math.round(
-    ((gameMemory.recentGames || []).reduce((sum, g) => sum + (g.durationSeconds || 0), 0)) / 60
+    (gameMemory.recentGames || []).reduce((sum, g) => sum + (g.durationSeconds || 0), 0) / 60
   );
 
   // Get first game date from recent games
@@ -262,9 +272,7 @@ function convertAffinities(
     .sort((a, b) => b.affinityScore - a.affinityScore);
 }
 
-function convertDecadeAffinities(
-  affinities: Record<string, AffinityScore>
-): DecadeAffinity[] {
+function convertDecadeAffinities(affinities: Record<string, AffinityScore>): DecadeAffinity[] {
   return Object.entries(affinities)
     .filter(([, a]) => a.totalAttempts >= 3)
     .map(([category, a]) => ({
@@ -328,9 +336,7 @@ function detectTraits(gameMemory: GameMemory): MusicalTrait[] {
 
   // Broad Taste (multiple genres with decent scores)
   const genreAffinities = Object.values(gameMemory.genreAffinities || {});
-  const goodGenres = genreAffinities.filter(
-    (a) => a.affinityScore >= 50 && a.totalAttempts >= 3
-  );
+  const goodGenres = genreAffinities.filter((a) => a.affinityScore >= 50 && a.totalAttempts >= 3);
   if (goodGenres.length >= 4) {
     const def = TRAIT_DEFINITIONS['broad-taste'];
     traits.push({
@@ -391,9 +397,10 @@ function determinePersonalityType(
   // Check for Deep Listener
   if (traitSet.has('consistent-performer')) {
     const timings = gameMemory.recentGuessTimings || [];
-    const avgTime = timings.length > 0
-      ? timings.reduce((sum, t) => sum + t.guessTimeMs, 0) / timings.length
-      : 8000;
+    const avgTime =
+      timings.length > 0
+        ? timings.reduce((sum, t) => sum + t.guessTimeMs, 0) / timings.length
+        : 8000;
     if (avgTime > 6000) {
       return 'deep-listener';
     }
@@ -496,12 +503,16 @@ function determineEnergyPreference(
   return 'varies';
 }
 
-function determineLyricVsMelody(_gameMemory: GameMemory): 'lyric-focused' | 'melody-focused' | 'balanced' {
+function determineLyricVsMelody(
+  _gameMemory: GameMemory
+): 'lyric-focused' | 'melody-focused' | 'balanced' {
   // Would need data from specific game types
   return 'balanced';
 }
 
-function determineSoloVsSocial(gameMemory: GameMemory): 'private-listener' | 'social-sharer' | 'balanced' {
+function determineSoloVsSocial(
+  gameMemory: GameMemory
+): 'private-listener' | 'social-sharer' | 'balanced' {
   // Check if they've sent challenges or shared cards
   // For now, default to balanced
   if ((gameMemory.totalGamesPlayed || 0) > 20) {
@@ -575,7 +586,13 @@ function getNextMilestone(gameMemory: GameMemory): MusicalMilestone | null {
   // Define candidates mapping from frontend milestone types to backend types
   const candidates: Array<{
     frontendType: MilestoneType;
-    backendType: 'first_game' | 'ten_games' | 'fifty_games' | 'streak_five' | 'streak_ten' | 'music_savant';
+    backendType:
+      | 'first_game'
+      | 'ten_games'
+      | 'fifty_games'
+      | 'streak_five'
+      | 'streak_ten'
+      | 'music_savant';
     check: () => boolean;
     progress: () => number;
     displayName: string;
@@ -650,9 +667,13 @@ export function generateCoachingMessage(dna: MusicalDNA): string {
 
   // Personality-based message
   if (dna.personalityType === 'mood-master') {
-    messages.push(`Your ${dna.personalityLabel} skills are showing—you've got a natural ear for this!`);
+    messages.push(
+      `Your ${dna.personalityLabel} skills are showing—you've got a natural ear for this!`
+    );
   } else if (dna.personalityType === 'deep-listener') {
-    messages.push(`I love that you take your time. Your ${Math.round((dna.traits.find(t => t.trait === 'consistent-performer')?.confidence || 0.7) * 100)}% accuracy proves quality beats speed.`);
+    messages.push(
+      `I love that you take your time. Your ${Math.round((dna.traits.find((t) => t.trait === 'consistent-performer')?.confidence || 0.7) * 100)}% accuracy proves quality beats speed.`
+    );
   } else {
     messages.push(`Your ${dna.personalityLabel} nature makes our music sessions unique.`);
   }
@@ -660,25 +681,33 @@ export function generateCoachingMessage(dna: MusicalDNA): string {
   // Strength acknowledgment
   if (dna.genreAffinities.length > 0) {
     const topGenre = dna.genreAffinities[0];
-    messages.push(`Your ${topGenre.displayName} knowledge is impressive—${topGenre.accuracy}% accuracy there!`);
+    messages.push(
+      `Your ${topGenre.displayName} knowledge is impressive—${topGenre.accuracy}% accuracy there!`
+    );
   }
 
   // Growth suggestion
   const weakGenres = dna.genreAffinities.filter((g) => g.accuracy < 50);
   if (weakGenres.length > 0 && dna.totalGamesPlayed > 10) {
-    messages.push(`Want to explore more ${weakGenres[0].displayName}? I can help you discover gems.`);
+    messages.push(
+      `Want to explore more ${weakGenres[0].displayName}? I can help you discover gems.`
+    );
   }
 
   // Next milestone encouragement
   if (dna.nextMilestone) {
     const progress = dna.nextMilestone.progress || 0;
     if (progress > 50) {
-      messages.push(`You're ${Math.round(progress)}% of the way to "${dna.nextMilestone.displayName}"—keep going!`);
+      messages.push(
+        `You're ${Math.round(progress)}% of the way to "${dna.nextMilestone.displayName}"—keep going!`
+      );
     }
   }
 
-  return messages[Math.floor(Math.random() * messages.length)] || 
-    `You've played ${dna.totalGamesPlayed} games—your musical story is unfolding beautifully.`;
+  return (
+    messages[Math.floor(Math.random() * messages.length)] ||
+    `You've played ${dna.totalGamesPlayed} games—your musical story is unfolding beautifully.`
+  );
 }
 
 // ============================================================================
@@ -727,4 +756,3 @@ export function generateTimeMachine(dna: MusicalDNA): TimeMachineEntry[] {
 
   return entries.sort((a, b) => b.currentAffinity - a.currentAffinity);
 }
-

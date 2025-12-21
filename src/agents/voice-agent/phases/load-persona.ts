@@ -40,14 +40,14 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
   }
 
   const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
-  
+
   // Priority: firebase_uid (cryptographically secure) > user_id > userId
   // This ensures Firebase-authenticated users get their Firebase UID as the profile key
-  const userId = 
+  const userId =
     (metadata.firebase_uid as string) ||
     (metadata.firebaseUid as string) ||
-    (metadata.user_id as string) || 
-    (metadata.userId as string) || 
+    (metadata.user_id as string) ||
+    (metadata.userId as string) ||
     null;
 
   return { personaId, userId };
@@ -155,10 +155,7 @@ async function loadRichSystemPrompt(personaId: string): Promise<string> {
 /**
  * Load a custom user-created agent from Firestore.
  */
-async function loadCustomAgent(
-  personaId: string,
-  userId: string
-): Promise<PersonaConfig | null> {
+async function loadCustomAgent(personaId: string, userId: string): Promise<PersonaConfig | null> {
   try {
     const { isCustomAgentId, loadCustomAgentAsPersona, createFallbackCustomAgentPersona } =
       await import('../../../services/custom-agent/custom-agent-runtime.service.js');
@@ -177,9 +174,7 @@ async function loadCustomAgent(
     const customPersona = await loadCustomAgentAsPersona(personaId, userId);
 
     if (customPersona) {
-      process.stderr.write(
-        `[load-persona] Loaded custom agent: ${customPersona.name} ✨\n`
-      );
+      process.stderr.write(`[load-persona] Loaded custom agent: ${customPersona.name} ✨\n`);
       return customPersona;
     }
 

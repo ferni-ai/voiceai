@@ -170,12 +170,7 @@ async function saveFollowUpTask(
     createdAt: now,
   };
 
-  await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection(COLLECTION_FOLLOWUPS)
-    .doc(id)
-    .set(doc);
+  await db.collection('bogle_users').doc(userId).collection(COLLECTION_FOLLOWUPS).doc(id).set(doc);
 
   return doc;
 }
@@ -259,11 +254,7 @@ function extractPriority(commitment: string): MeetingCommitment['priority'] {
     return 'high';
   }
 
-  if (
-    text.includes('important') ||
-    text.includes('priority') ||
-    text.includes('key')
-  ) {
+  if (text.includes('important') || text.includes('priority') || text.includes('key')) {
     return 'medium';
   }
 
@@ -446,10 +437,7 @@ export async function getOverdueCommitments(userId: string): Promise<MeetingComm
 /**
  * Mark a commitment as completed.
  */
-export async function completeCommitment(
-  userId: string,
-  commitmentId: string
-): Promise<void> {
+export async function completeCommitment(userId: string, commitmentId: string): Promise<void> {
   await updateCommitmentStatus(userId, commitmentId, 'completed');
   log.info({ userId, commitmentId }, 'Commitment marked as completed');
 }
@@ -565,7 +553,11 @@ export async function buildFollowUpContextInjection(userId: string): Promise<str
     for (const c of upcoming.slice(0, 3)) {
       const person = c.personName || c.personEmail.split('@')[0];
       const dueStr = c.dueDate
-        ? new Date(c.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        ? new Date(c.dueDate).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          })
         : 'soon';
       sections.push(`- "${c.commitment}" → ${person} (due ${dueStr})`);
     }
@@ -573,4 +565,3 @@ export async function buildFollowUpContextInjection(userId: string): Promise<str
 
   return sections.join('\n');
 }
-

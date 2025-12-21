@@ -18,7 +18,11 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { generateToolQuestions, formatQuestionsForResponse, type QuestionFocus } from '../../utils/dynamic-tool-questions.js';
+import {
+  generateToolQuestions,
+  formatQuestionsForResponse,
+  type QuestionFocus,
+} from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // LIFE STORY TOOLS
 // ============================================================================
@@ -88,7 +92,7 @@ const captureLifeStoryDef: ToolDefinition = {
           boldQuestions: true,
         });
 
-        response += '\n\nOr feel free to start wherever you\'d like.';
+        response += "\n\nOr feel free to start wherever you'd like.";
 
         return response;
       },

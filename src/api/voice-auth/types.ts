@@ -55,4 +55,3 @@ export type VoiceAuthRouteHandler = (
   res: ServerResponse,
   route: string
 ) => Promise<boolean>;
-

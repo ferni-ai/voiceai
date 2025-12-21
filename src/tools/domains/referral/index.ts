@@ -27,7 +27,10 @@ const inviteFriendByCallDef: ToolDefinition = {
   requiredServices: ['twilio'],
 
   create: (ctx: ToolContext) => {
-    const tools = createVoiceReferralTools(ctx.userId || 'unknown', ctx.agentDisplayName || 'friend');
+    const tools = createVoiceReferralTools(
+      ctx.userId || 'unknown',
+      ctx.agentDisplayName || 'friend'
+    );
     return tools.inviteFriendByCall;
   },
 };
@@ -42,7 +45,10 @@ const sendSupportCallDef: ToolDefinition = {
   requiredServices: ['twilio'],
 
   create: (ctx: ToolContext) => {
-    const tools = createVoiceReferralTools(ctx.userId || 'unknown', ctx.agentDisplayName || 'friend');
+    const tools = createVoiceReferralTools(
+      ctx.userId || 'unknown',
+      ctx.agentDisplayName || 'friend'
+    );
     return tools.sendSupportCall;
   },
 };
@@ -61,4 +67,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export { createVoiceReferralTools, makeVoiceReferralCall } from './voice-referral.js';
 
 export default getToolDefinitions;
-

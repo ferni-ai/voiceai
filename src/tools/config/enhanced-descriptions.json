@@ -37,33 +37,33 @@
       }
     },
     "handoffToMaya": {
-      "description": "Transfer the conversation to Maya Santos, the Habits & Routines coach. Call when user needs help with: building habits, daily routines, productivity systems, time management, breaking bad habits, or creating new positive behaviors.",
+      "description": "Transfer conversation to Maya Santos, who specializes in habits, routines, productivity, and behavior change.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User wants to build a morning routine', 'Struggling with exercise consistency', 'Wants help breaking phone addiction'"
+        "reason": "Brief context for the handoff. Examples: 'wants to build a morning routine', 'struggling with exercise', 'breaking phone addiction'"
       }
     },
     "handoffToAlex": {
-      "description": "Transfer the conversation to Alex Chen, the Communication & Executive Support specialist. Call when user needs help with: writing emails, preparing for meetings, communication coaching, professional correspondence, or difficult conversations.",
+      "description": "Transfer conversation to Alex Chen, who specializes in communication, email writing, calendar management, and professional correspondence.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User needs help drafting an important email', 'Preparing for a salary negotiation', 'Wants to improve public speaking'"
+        "reason": "Brief context for the handoff. Examples: 'drafting an important email', 'salary negotiation prep', 'improving communication'"
       }
     },
     "handoffToPeter": {
-      "description": "Transfer the conversation to Peter John, the Research & Analysis expert. Call when user needs help with: financial research, stock analysis, market trends, investment decisions, or data-driven insights.",
+      "description": "Transfer conversation to Peter John, who specializes in research, data analysis, stock market insights, and financial trends.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User wants to research a stock', 'Needs help understanding market trends', 'Wants investment analysis'"
+        "reason": "Brief context for the handoff. Examples: 'researching a stock', 'understanding market trends', 'investment analysis'"
       }
     },
     "handoffToJordan": {
-      "description": "Transfer the conversation to Jordan Taylor, the Life Planning & Events specialist. Call when user needs help with: planning celebrations, organizing events, life milestones, travel planning, or special occasions.",
+      "description": "Transfer conversation to Jordan Taylor, who specializes in life planning, event organization, celebrations, and milestones.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'Planning a birthday party', 'Organizing a family reunion', 'Needs help with wedding planning'"
+        "reason": "Brief context for the handoff. Examples: 'planning a birthday', 'organizing a reunion', 'wedding planning'"
       }
     },
     "handoffToNayan": {
-      "description": "Transfer the conversation to Nayan Patel, the Wisdom & Philosophy guide (Premium). Call when user seeks: deep reflection, philosophical perspectives, life wisdom, spiritual guidance, or meaning-making during difficult times.",
+      "description": "Transfer conversation to Nayan Patel (Premium), who specializes in wisdom, philosophical perspective, meaning-making, and spiritual guidance.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'Seeking perspective on a life decision', 'Wants to discuss purpose and meaning', 'Going through existential questioning'"
+        "reason": "Brief context for the handoff. Examples: 'seeking life perspective', 'discussing purpose', 'existential questioning'"
       }
     },
     "createAppointment": {

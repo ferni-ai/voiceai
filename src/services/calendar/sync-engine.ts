@@ -103,7 +103,14 @@ export class CalendarSyncEngine {
         eventsUpdated: 0,
         eventsDeleted: 0,
         conflicts: [],
-        errors: [{ message: 'Sync already in progress', code: 'SYNC_IN_PROGRESS', provider, timestamp: new Date() }],
+        errors: [
+          {
+            message: 'Sync already in progress',
+            code: 'SYNC_IN_PROGRESS',
+            provider,
+            timestamp: new Date(),
+          },
+        ],
         syncedAt: new Date(),
       };
     }
@@ -145,7 +152,14 @@ export class CalendarSyncEngine {
       log.info({ userId, provider, startDate, endDate }, 'Starting calendar sync');
 
       // Step 1: Pull events from provider
-      const pullResult = await this.pullFromProvider(userId, provider, adapter, startDate, endDate, opts);
+      const pullResult = await this.pullFromProvider(
+        userId,
+        provider,
+        adapter,
+        startDate,
+        endDate,
+        opts
+      );
       result.eventsCreated += pullResult.created;
       result.eventsUpdated += pullResult.updated;
       result.conflicts.push(...pullResult.conflicts);
@@ -222,7 +236,12 @@ export class CalendarSyncEngine {
     conflicts: SyncConflict[];
     errors: SyncError[];
   }> {
-    const result = { created: 0, updated: 0, conflicts: [] as SyncConflict[], errors: [] as SyncError[] };
+    const result = {
+      created: 0,
+      updated: 0,
+      conflicts: [] as SyncConflict[],
+      errors: [] as SyncError[],
+    };
 
     if (!adapter) return result;
 
@@ -424,8 +443,7 @@ export class CalendarSyncEngine {
   ): SyncConflict | null {
     // If Ferni event was modified after last sync
     const ferniModified =
-      ferniEvent.lastSyncAttempt &&
-      ferniEvent.updatedAt > ferniEvent.lastSyncAttempt;
+      ferniEvent.lastSyncAttempt && ferniEvent.updatedAt > ferniEvent.lastSyncAttempt;
 
     // Check for meaningful differences
     const timeDiff =
@@ -534,4 +552,3 @@ export default {
   syncAllProviders,
   syncProvider,
 };
-

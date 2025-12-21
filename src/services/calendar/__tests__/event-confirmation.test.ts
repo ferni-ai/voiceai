@@ -65,10 +65,9 @@ vi.mock('../natural-date-parser.js', async () => {
       }
       return null;
     }),
-    suggestTimes: vi.fn().mockReturnValue([
-      new Date('2025-03-17T10:00:00'),
-      new Date('2025-03-17T14:00:00'),
-    ]),
+    suggestTimes: vi
+      .fn()
+      .mockReturnValue([new Date('2025-03-17T10:00:00'), new Date('2025-03-17T14:00:00')]),
     isValidForScheduling: vi.fn().mockReturnValue({ valid: true }),
   };
 });
@@ -82,7 +81,10 @@ describe('Event Confirmation Flow', () => {
 
   describe('parseEventRequest', () => {
     it('should parse simple event request', async () => {
-      const result = await parseEventRequest(testUserId, 'schedule meeting with John tomorrow at 2pm');
+      const result = await parseEventRequest(
+        testUserId,
+        'schedule meeting with John tomorrow at 2pm'
+      );
 
       expect(result.success).toBe(true);
       expect(result.pendingEvent).toBeDefined();

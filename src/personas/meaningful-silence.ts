@@ -1626,6 +1626,196 @@ export async function getMeaningfulSilenceResponseAsync(
   return getMeaningfulSilenceResponse(persona, context);
 }
 
+// ============================================================================
+// LLM-DRIVEN SILENCE RESPONSES (NEW!)
+// Instead of static phrases, let the LLM generate contextual responses
+// ============================================================================
+
+/**
+ * LLM instructions for silence responses
+ */
+export interface LLMSilenceInstructions {
+  /** Instructions for generateReply() */
+  instructions: string;
+  /** Whether to allow interruptions */
+  allowInterruptions: boolean;
+  /** Fallback text if LLM fails */
+  fallback: string;
+  /** Type of silence response */
+  type: SilenceResponseType;
+  /** Whether this invites a reply */
+  invitesReply: boolean;
+}
+
+/**
+ * Build LLM instructions for a contextual silence response
+ *
+ * Instead of picking from static phrases, let the LLM generate
+ * something that feels genuine and responsive to the moment.
+ */
+export function buildLLMSilenceInstructions(
+  persona: PersonaConfig,
+  context: SilenceContext
+): LLMSilenceInstructions {
+  const {
+    silenceDurationSeconds,
+    lastUserMessage,
+    recentEmotionalTone,
+    wasDiscussingTopic,
+    topicsDiscussed,
+    turnCount,
+    userName,
+    currentHour = new Date().getHours(),
+    isMusicPlaying,
+  } = context;
+
+  // Get persona identity
+  const personaName = persona.name || 'Ferni';
+  const personaStyle = persona.personality?.traits?.join(', ') || 'warm, supportive, present';
+
+  // Build context hints
+  const contextHints: string[] = [];
+
+  if (lastUserMessage) {
+    contextHints.push(`Last thing user said: "${lastUserMessage.slice(0, 100)}"`);
+  }
+
+  if (wasDiscussingTopic) {
+    contextHints.push(`You were discussing: ${wasDiscussingTopic}`);
+  } else if (topicsDiscussed && topicsDiscussed.length > 0) {
+    contextHints.push(`Topics this session: ${topicsDiscussed.slice(-3).join(', ')}`);
+  }
+
+  if (recentEmotionalTone === 'heavy') {
+    contextHints.push('The conversation has been heavy/emotional - be gentle');
+  }
+
+  if (userName) {
+    contextHints.push(`User's name: ${userName}`);
+  }
+
+  // Time of day awareness
+  const timeHint =
+    currentHour >= 22 || currentHour < 6
+      ? "It's late night - gentle, soft energy"
+      : currentHour >= 6 && currentHour < 12
+        ? "It's morning - steady energy"
+        : '';
+
+  // Determine response type based on silence duration
+  let responseType: SilenceResponseType;
+  let responseGuidance: string;
+  let invitesReply = false;
+
+  // Check if we have content for a memory callback
+  const hasTopicsToReference =
+    (topicsDiscussed && topicsDiscussed.length > 0) || wasDiscussingTopic || lastUserMessage;
+
+  if (silenceDurationSeconds < 12 || recentEmotionalTone === 'heavy') {
+    // Short silence or heavy topic - just presence
+    responseType = 'comfortable_presence';
+    responseGuidance = `Just offer presence. Short, warm. Like "I'm here" or "Take your time." 
+Don't ask questions. Don't fill the silence with words. Just BE THERE.
+One short sentence max. Often just a few words is perfect.`;
+    invitesReply = false;
+  } else if (silenceDurationSeconds < 25 && hasTopicsToReference) {
+    // Medium silence WITH something to reference - use memory callback
+    responseType = 'memory_callback';
+    responseGuidance = `Gently reference something they shared earlier or what you were discussing.
+Example: "I keep thinking about what you said about [topic]."
+Don't push for a response. Just show you're still engaged with their story.
+Keep it brief - one sentence.`;
+    invitesReply = false;
+  } else if (silenceDurationSeconds < 25) {
+    // Medium silence but NO topics to reference - fall back to presence
+    // This prevents LLM timeouts from trying to generate memory callbacks with no context
+    responseType = 'comfortable_presence';
+    responseGuidance = `Just offer warm presence. Short and gentle.
+Like "I'm here with you" or "Take all the time you need."
+One short sentence. Don't ask questions yet.`;
+    invitesReply = false;
+  } else if (turnCount >= 5) {
+    // Longer silence, established conversation - thoughtful question
+    responseType = 'thoughtful_question';
+    responseGuidance = `Ask ONE thoughtful question that shows you've been listening.
+Based on what they've shared, ask something that invites deeper reflection.
+NOT generic ("how's your day?"). Make it SPECIFIC to them.
+Example: "What would [person they mentioned] say about this?"
+Keep it conversational - like a friend genuinely curious.`;
+    invitesReply = true;
+  } else {
+    // Early conversation, long silence - gentle check-in
+    responseType = 'warm_check_in';
+    responseGuidance = `Gentle check-in without pressure.
+Example: "Just checking in - what's on your mind?"
+Keep it open. No pressure. Give them space.`;
+    invitesReply = true;
+  }
+
+  // Don't speak if music is playing and silence is short
+  if (isMusicPlaying && silenceDurationSeconds < 20) {
+    return {
+      instructions: '',
+      allowInterruptions: true,
+      fallback: '',
+      type: 'comfortable_presence',
+      invitesReply: false,
+    };
+  }
+
+  const instructions = `You are ${personaName}. Style: ${personaStyle}.
+
+The user has been silent for ${Math.round(silenceDurationSeconds)} seconds.
+
+${contextHints.length > 0 ? 'Context:\n' + contextHints.join('\n') : ''}
+${timeHint}
+
+${responseGuidance}
+
+CRITICAL RULES:
+- Be BRIEF. This is a silence response, not a monologue.
+- Sound natural, not scripted. Like you're genuinely present.
+- No SSML tags or formatting - just natural speech.
+- Don't explain that they've been silent or apologize.
+- If presence response: just be warmly there, no questions.
+- If question: ask ONE question only.
+
+Say ONLY your response, nothing else.`;
+
+  // Generate fallback using static system
+  const staticResponse = getMeaningfulSilenceResponse(persona, context);
+
+  return {
+    instructions,
+    allowInterruptions: true,
+    fallback: staticResponse.text,
+    type: responseType,
+    invitesReply,
+  };
+}
+
+/**
+ * Get LLM-driven silence response instructions
+ *
+ * Use this with session.generateReply() for natural, contextual responses
+ * that feel genuinely responsive to the moment.
+ *
+ * @example
+ * const silenceInstructions = getLLMSilenceInstructions(persona, context);
+ * if (silenceInstructions.instructions) {
+ *   await session.generateReply({
+ *     instructions: silenceInstructions.instructions,
+ *     allowInterruptions: silenceInstructions.allowInterruptions
+ *   });
+ * }
+ */
+export function getLLMSilenceInstructions(
+  persona: PersonaConfig,
+  context: SilenceContext
+): LLMSilenceInstructions {
+  return buildLLMSilenceInstructions(persona, context);
+}
+
 // Export types and utilities for other modules
 export type { QuestionContext, GeneratedQuestion };
 export { getDynamicThoughtfulQuestion, silenceContextToQuestionContext };

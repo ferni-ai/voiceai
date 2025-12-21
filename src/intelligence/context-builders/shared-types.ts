@@ -267,4 +267,3 @@ export function createDefaultMemoryInsights(): MemoryInsights {
 export function createDefaultCrossTeamData(): CrossTeamData {
   return {};
 }
-

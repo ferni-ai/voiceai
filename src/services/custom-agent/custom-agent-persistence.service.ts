@@ -10,10 +10,7 @@
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
-import type {
-  CustomAgent,
-  CreateCustomAgentRequest,
-} from '../../types/custom-agent-api.js';
+import type { CustomAgent, CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
 
 const log = getLogger().child({ module: 'CustomAgentPersistence' });
 
@@ -39,7 +36,12 @@ function removeUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
     if (value === undefined) {
       continue; // Skip undefined values
     }
-    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+    ) {
       // Recursively clean nested objects
       result[key] = removeUndefinedFields(value as Record<string, unknown>);
     } else if (Array.isArray(value)) {
@@ -63,10 +65,7 @@ function removeUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
  */
 function getCustomAgentsCollection(userId: string) {
   const db = getFirestore();
-  return db
-    .collection(COLLECTION_USERS)
-    .doc(userId)
-    .collection(SUBCOLLECTION_CUSTOM_AGENTS);
+  return db.collection(COLLECTION_USERS).doc(userId).collection(SUBCOLLECTION_CUSTOM_AGENTS);
 }
 
 /**
@@ -139,9 +138,7 @@ function createDefaultAgent(
 /**
  * Converts Firestore document data to CustomAgent type
  */
-function docToCustomAgent(
-  doc: FirebaseFirestore.DocumentSnapshot
-): CustomAgent | null {
+function docToCustomAgent(doc: FirebaseFirestore.DocumentSnapshot): CustomAgent | null {
   if (!doc.exists) return null;
 
   const data = doc.data();
@@ -188,14 +185,14 @@ export async function createCustomAgent(
 
   try {
     const collection = getCustomAgentsCollection(userId);
-    
+
     // Remove undefined fields for Firestore compatibility
     const firestoreDoc = removeUndefinedFields({
       ...agent,
       createdAt: agent.createdAt,
       updatedAt: agent.updatedAt,
     });
-    
+
     await collection.doc(agentId).set(firestoreDoc);
 
     log.info({ userId, agentId }, 'Custom agent created');
@@ -209,10 +206,7 @@ export async function createCustomAgent(
 /**
  * Gets a custom agent by ID
  */
-export async function getCustomAgent(
-  userId: string,
-  agentId: string
-): Promise<CustomAgent | null> {
+export async function getCustomAgent(userId: string, agentId: string): Promise<CustomAgent | null> {
   log.debug({ userId, agentId }, 'Getting custom agent');
 
   try {
@@ -254,22 +248,19 @@ export async function listCustomAgents(userId: string): Promise<CustomAgent[]> {
 /**
  * Deep merges two objects, preserving existing values when partial updates are made
  */
-function deepMerge<T>(
-  existing: T,
-  updates: Partial<T>
-): T {
+function deepMerge<T>(existing: T, updates: Partial<T>): T {
   const result = { ...existing } as Record<string, unknown>;
   const existingRecord = existing as Record<string, unknown>;
   const updatesRecord = updates as Record<string, unknown>;
-  
+
   for (const key in updatesRecord) {
     const updateValue = updatesRecord[key];
     const existingValue = existingRecord[key];
-    
+
     if (updateValue === undefined) {
       continue; // Skip undefined values
     }
-    
+
     // If both are objects (not arrays, not null), deep merge
     if (
       existingValue !== null &&
@@ -289,7 +280,7 @@ function deepMerge<T>(
       result[key] = updateValue;
     }
   }
-  
+
   return result as T;
 }
 
@@ -344,10 +335,7 @@ export async function updateCustomAgent(
 /**
  * Deletes a custom agent
  */
-export async function deleteCustomAgent(
-  userId: string,
-  agentId: string
-): Promise<boolean> {
+export async function deleteCustomAgent(userId: string, agentId: string): Promise<boolean> {
   log.info({ userId, agentId }, 'Deleting custom agent');
 
   try {
@@ -437,17 +425,13 @@ export async function removeMemoryFromAgent(
     const memories = { ...agent.memories };
 
     if (memoryType === 'journalEntries' && memories.journalEntries) {
-      memories.journalEntries = memories.journalEntries.filter(
-        (m) => m.id !== memoryId
-      );
+      memories.journalEntries = memories.journalEntries.filter((m) => m.id !== memoryId);
     } else if (memoryType === 'stories') {
       memories.stories = memories.stories.filter((m) => m.id !== memoryId);
     } else if (memoryType === 'wisdom') {
       memories.wisdom = memories.wisdom.filter((m) => m.id !== memoryId);
     } else if (memoryType === 'sharedMoments') {
-      memories.sharedMoments = memories.sharedMoments.filter(
-        (m) => m.id !== memoryId
-      );
+      memories.sharedMoments = memories.sharedMoments.filter((m) => m.id !== memoryId);
     }
 
     return await updateCustomAgent(userId, agentId, { memories });
@@ -496,16 +480,12 @@ export async function updateAgentVoice(
 /**
  * Gets all active custom agents for a user (for runtime loading)
  */
-export async function getActiveCustomAgents(
-  userId: string
-): Promise<CustomAgent[]> {
+export async function getActiveCustomAgents(userId: string): Promise<CustomAgent[]> {
   log.debug({ userId }, 'Getting active custom agents');
 
   try {
     const collection = getCustomAgentsCollection(userId);
-    const snapshot = await collection
-      .where('status', '==', 'active')
-      .get();
+    const snapshot = await collection.where('status', '==', 'active').get();
 
     const agents: CustomAgent[] = [];
     snapshot.forEach((doc) => {
@@ -525,10 +505,7 @@ export async function getActiveCustomAgents(
 /**
  * Checks if a user owns a specific custom agent
  */
-export async function userOwnsAgent(
-  userId: string,
-  agentId: string
-): Promise<boolean> {
+export async function userOwnsAgent(userId: string, agentId: string): Promise<boolean> {
   try {
     const agent = await getCustomAgent(userId, agentId);
     return agent !== null;
@@ -536,4 +513,3 @@ export async function userOwnsAgent(
     return false;
   }
 }
-

@@ -178,13 +178,15 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="450ms"/>What else?',
       '<break time="400ms"/>Go on.',
     ],
-    // 🎧 DJ Vibes - Ferni's chill style
+    // 🎧 DJ Vibes - Ferni's warm DJ persona
     dj_vibes: [
-      '<break time="300ms"/>Mm. <break time="200ms"/>Want me to keep the vibes going?',
-      '<break time="350ms"/>Good one. <break time="200ms"/>More?',
-      '<break time="300ms"/>Got more where that came from... <break time="200ms"/>just say the word.',
-      '<break time="400ms"/>How was that? <break time="250ms"/>I can keep it going.',
-      '<break time="300ms"/>Nice, right? <break time="200ms"/>Want another?',
+      '<break time="300ms"/>That was a good one. <break time="200ms"/>DJ Ferni has more in the vault if you want.',
+      '<break time="350ms"/>Mm. <break time="200ms"/>Your personal DJ is standing by. <break time="150ms"/>What\'s next?',
+      '<break time="300ms"/>Got more where that came from. <break time="200ms"/>Want me to keep the jukebox spinning?',
+      '<break time="400ms"/>How was that? <break time="250ms"/>I can queue up another one.',
+      '<break time="300ms"/>Nice vibes. <break time="200ms"/>Say the word and I\'ll keep the music going.',
+      '<break time="350ms"/>Your DJ is here all night. <break time="200ms"/>Another track?',
+      '<break time="300ms"/>Good stuff right? <break time="200ms"/>I\'ve got a whole playlist ready.',
     ],
   },
   'nayan-patel': {
@@ -575,33 +577,35 @@ function generateThinkingTransition(
 /**
  * User-requested music transition
  *
- * They asked for this song. Honor that — simple acknowledgment.
+ * They asked for this song - be a good DJ! Offer more or check in warmly.
  */
 function generateUserRequestTransition(
   context: MusicSessionContext,
   personaId: string,
   relationshipStage?: string
 ): TransitionResult {
-  // User requested: 40% silence (they chose the moment), 40% acknowledgment, 20% gentle return
+  // User requested: 20% silence, 50% DJ vibes (offer more), 30% gentle return
+  // Lower silence because they actively wanted music - DJ Ferni should engage!
   const roll = Math.random();
 
-  if (roll < 0.4) {
+  if (roll < 0.2) {
     return {
       shouldSpeak: false,
-      reasoning: 'User-requested music — let them set the pace',
+      reasoning: 'User-requested music — brief pause to let them breathe',
       confidence: 0.75,
       transitionType: 'silence',
     };
   }
 
-  if (roll < 0.8) {
-    const phrase = getPersonaPhrase(personaId, 'acknowledgment');
+  // 50% DJ Vibes - the user wanted music, lean into the DJ persona!
+  if (roll < 0.7) {
+    const phrase = getPersonaPhrase(personaId, 'dj_vibes');
     return {
       shouldSpeak: true,
       phrase,
-      reasoning: 'Simple acknowledgment of user-requested music',
-      confidence: 0.7,
-      transitionType: 'acknowledgment',
+      reasoning: 'DJ vibes - user requested music, offering more',
+      confidence: 0.8,
+      transitionType: 'dj_vibes',
     };
   }
 
@@ -674,7 +678,9 @@ function generateBackgroundTransition(
   // Regular background: 50% silence, 30% acknowledgment, 20% gentle return
   const roll = Math.random();
 
-  if (roll < 0.5) {
+  // HUMANIZATION: Increased silence from 50% to 75%
+  // When playing background music, let people enjoy it without constant commentary
+  if (roll < 0.75) {
     return {
       shouldSpeak: false,
       reasoning: 'Background music — silence is natural',
@@ -683,7 +689,8 @@ function generateBackgroundTransition(
     };
   }
 
-  if (roll < 0.8) {
+  // Only 15% acknowledgment (was 30%)
+  if (roll < 0.9) {
     const phrase = getPersonaPhrase(personaId, 'acknowledgment');
     return {
       shouldSpeak: true,
@@ -720,8 +727,10 @@ function generateBackgroundTransition(
  * Fallback transition when we have no context
  */
 function generateFallbackTransition(personaId: string): TransitionResult {
-  // No context: 60% silence, 40% simple acknowledgment
-  if (Math.random() < 0.6) {
+  // No context: 85% silence, 15% simple acknowledgment
+  // HUMANIZATION: Increased silence from 60% to 85% - when we don't know
+  // why music is playing, default to letting people enjoy it quietly
+  if (Math.random() < 0.85) {
     return {
       shouldSpeak: false,
       reasoning: 'No context — defaulting to silence',
@@ -906,15 +915,21 @@ export function getMusicTransition(input: TransitionInput): EnhancedTransitionRe
       availableTypes.push('check_in');
     }
 
-    // 🎧 DJ VIBES: For background/ambient music, let the DJ offer more!
+    // 🎧 DJ VIBES: Make Ferni feel like a personal DJ!
     // This makes the DJ feel alive - not just an auto-queue robot.
-    // 40% chance for ambient/background, 25% chance for other music
-    if (musicContext?.startReason === 'background' || musicContext?.wasAmbient) {
+    // Higher chance for user-requested music (they wanted tunes!)
+    if (musicContext?.startReason === 'user_request') {
+      // User asked for music - they're in the mood! 60% DJ vibes
+      if (Math.random() < 0.6) {
+        availableTypes.push('dj_vibes');
+      }
+    } else if (musicContext?.startReason === 'background' || musicContext?.wasAmbient) {
+      // Ambient/background - 40% chance
       if (Math.random() < 0.4) {
         availableTypes.push('dj_vibes');
       }
     } else if (Math.random() < 0.25) {
-      // Sometimes offer more music even for non-ambient
+      // Other music - 25% chance
       availableTypes.push('dj_vibes');
     }
 

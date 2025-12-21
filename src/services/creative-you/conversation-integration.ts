@@ -73,9 +73,7 @@ export function recordConversationTopics(
   };
 
   for (const topic of topics) {
-    const existingTopic = cached.topics.find(
-      (t) => t.topic.toLowerCase() === topic.toLowerCase()
-    );
+    const existingTopic = cached.topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
     if (existingTopic) {
       existingTopic.count++;
       existingTopic.timestamp = new Date();
@@ -245,7 +243,10 @@ export async function shouldSuggestContent(
  * Generate a natural transition phrase to suggest content
  * Brand voice: Friend sharing something, not algorithm recommending
  */
-function generateTransitionPhrase(topic: string, recommendation: IntelligentRecommendation): string {
+function generateTransitionPhrase(
+  topic: string,
+  recommendation: IntelligentRecommendation
+): string {
   const title =
     recommendation.contentType === 'video'
       ? (recommendation.content as unknown as { video?: { title: string } }).video?.title
@@ -298,9 +299,7 @@ export async function getEndOfConversationSuggestion(
 /**
  * Get personalized content for "Creative You" menu based on conversation history
  */
-export async function getPersonalizedCreativeYouContent(
-  userId: string
-): Promise<{
+export async function getPersonalizedCreativeYouContent(userId: string): Promise<{
   recommendations: IntelligentRecommendation[];
   personalizedTrackAvailable: boolean;
   topTopics: string[];
@@ -316,7 +315,7 @@ export async function getPersonalizedCreativeYouContent(
 
   // Check if we have enough data for a personalized track
   const personalizedTrackAvailable =
-    topTopics.length >= 2 && (dna.totalVideosWatched + dna.totalPodcastsListened >= 3);
+    topTopics.length >= 2 && dna.totalVideosWatched + dna.totalPodcastsListened >= 3;
 
   return {
     recommendations,
@@ -332,4 +331,3 @@ export async function getPersonalizedCreativeYouContent(
 export {
   userTopicCache as userTopicHistory, // For testing (renamed for backward compat)
 };
-

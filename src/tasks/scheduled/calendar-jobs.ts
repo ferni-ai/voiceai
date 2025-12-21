@@ -123,9 +123,8 @@ export class WeeklyCalendarDigestJob extends ScheduledJob<WeeklyDigestConfig, We
 
   private async sendDigest(userId: string): Promise<boolean> {
     try {
-      const { generateWeeklyDigest, formatDigestForPush } = await import(
-        '../../services/calendar/weekly-calendar-digest.js'
-      );
+      const { generateWeeklyDigest, formatDigestForPush } =
+        await import('../../services/calendar/weekly-calendar-digest.js');
       const { getPushNotificationsService } = await import('../../services/push-notifications.js');
 
       const digest = await generateWeeklyDigest(userId);
@@ -133,7 +132,7 @@ export class WeeklyCalendarDigestJob extends ScheduledJob<WeeklyDigestConfig, We
 
       const notification = formatDigestForPush(digest);
       const pushService = getPushNotificationsService();
-      
+
       return await pushService.sendNotification(userId, {
         title: notification.title,
         body: notification.body,
@@ -188,7 +187,10 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
           const sent = await this.sendPreMeetingNotifications(userId);
           result.notificationsSent += sent;
         } catch (error) {
-          ctx.log.error({ userId, error: String(error) }, 'Failed to send pre-meeting notification');
+          ctx.log.error(
+            { userId, error: String(error) },
+            'Failed to send pre-meeting notification'
+          );
           result.notificationsSkipped++;
         }
       }
@@ -217,9 +219,8 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
 
   private async sendPreMeetingNotifications(userId: string): Promise<number> {
     try {
-      const { checkForPreMeetingNotification, toOutreachFormat } = await import(
-        '../../services/calendar/pre-meeting-notifications.js'
-      );
+      const { checkForPreMeetingNotification, toOutreachFormat } =
+        await import('../../services/calendar/pre-meeting-notifications.js');
       const { getPushNotificationsService } = await import('../../services/push-notifications.js');
 
       // Check for meetings requiring notification
@@ -229,7 +230,7 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
       // Send via push notification
       const pushService = getPushNotificationsService();
       const outreach = toOutreachFormat(notification);
-      
+
       const sent = await pushService.sendNotification(userId, {
         title: outreach.title,
         body: outreach.message,
@@ -319,9 +320,8 @@ export class MeetingFollowUpJob extends ScheduledJob<FollowUpAutomationConfig, F
 
   private async processFollowUps(userId: string, lookBackHours: number): Promise<number> {
     try {
-      const { processRecentMeetingsForFollowUp } = await import(
-        '../../services/calendar/meeting-followup-automation.js'
-      );
+      const { processRecentMeetingsForFollowUp } =
+        await import('../../services/calendar/meeting-followup-automation.js');
       return await processRecentMeetingsForFollowUp(userId, lookBackHours);
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Failed to process follow-ups');
@@ -376,4 +376,3 @@ export const calendarJobs = {
 };
 
 export default calendarJobs;
-

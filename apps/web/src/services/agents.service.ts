@@ -50,6 +50,10 @@ export interface ApiAgent {
   } | null;
   aliases?: string[];
   handoffTriggers?: string[];
+  /** True if this is a user-created custom agent */
+  isCustomAgent?: boolean;
+  /** Custom agent type (if isCustomAgent is true) */
+  customAgentType?: 'legacy' | 'mentor' | 'twin' | 'fictional' | 'professional';
 }
 
 /**

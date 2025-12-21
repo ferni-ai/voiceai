@@ -305,4 +305,3 @@ describe('Data Serialization', () => {
     expect(partialGoal.linkedAccounts).toBeUndefined();
   });
 });
-

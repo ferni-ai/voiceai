@@ -902,15 +902,21 @@ async function buildInsightBriefing(
   _isHandoff: boolean
 ): Promise<UserInsightBriefing> {
   // Parallel fetch from all data sources + calendar context
-  const [spendingInsights, goalInsights, mayaInsights, moodPatterns, memoryInsights, calendarContext] =
-    await Promise.all([
-      analyzeSpendingPatterns(userId),
-      analyzeGoalTrajectory(userId),
-      getMayaHabitInsights(userId),
-      getMoodPatterns(userId),
-      getMemoryOrchestratorInsights(userId),
-      buildCalendarResearchContext(userId).catch(() => null),
-    ]);
+  const [
+    spendingInsights,
+    goalInsights,
+    mayaInsights,
+    moodPatterns,
+    memoryInsights,
+    calendarContext,
+  ] = await Promise.all([
+    analyzeSpendingPatterns(userId),
+    analyzeGoalTrajectory(userId),
+    getMayaHabitInsights(userId),
+    getMoodPatterns(userId),
+    getMemoryOrchestratorInsights(userId),
+    buildCalendarResearchContext(userId).catch(() => null),
+  ]);
 
   const crossDomainPatterns = generateCrossDomainPatterns();
   const personalLifeInsights = analyzePersonalLifePatterns();
@@ -1330,12 +1336,12 @@ async function buildPeterResearchInsightsContext(
 
     // Format for injection
     const briefingLines = formatBriefingForInjection(briefing, handoffBriefing, turnCount);
-    
+
     // Add superhuman context if available
     if (superhumanContext) {
       briefingLines.push('\n' + superhumanContext);
     }
-    
+
     const briefingContent = briefingLines.join('\n');
 
     // Determine injection priority based on context

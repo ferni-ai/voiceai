@@ -271,7 +271,10 @@ export async function findOutreachWindows(
   const now = new Date();
 
   // If currently free with no imminent meeting
-  if (!ambient.currentlyInMeeting && (!ambient.nextMeeting.minutesUntil || ambient.nextMeeting.minutesUntil > 30)) {
+  if (
+    !ambient.currentlyInMeeting &&
+    (!ambient.nextMeeting.minutesUntil || ambient.nextMeeting.minutesUntil > 30)
+  ) {
     const windowEnd = ambient.nextMeeting.event
       ? new Date(ambient.nextMeeting.event.startTime.getTime() - 5 * 60 * 1000) // 5 min buffer
       : new Date(now.getTime() + 60 * 60 * 1000); // Default 1 hour
@@ -279,13 +282,20 @@ export async function findOutreachWindows(
     windows.push({
       start: now,
       end: windowEnd,
-      quality: ambient.nextMeeting.minutesUntil && ambient.nextMeeting.minutesUntil < 60 ? 'good' : 'excellent',
+      quality:
+        ambient.nextMeeting.minutesUntil && ambient.nextMeeting.minutesUntil < 60
+          ? 'good'
+          : 'excellent',
       reason: 'Currently free',
     });
   }
 
   // If just ended meeting, short window before processing
-  if (ambient.justEndedMeeting.event && ambient.justEndedMeeting.minutesSince && ambient.justEndedMeeting.minutesSince < 10) {
+  if (
+    ambient.justEndedMeeting.event &&
+    ambient.justEndedMeeting.minutesSince &&
+    ambient.justEndedMeeting.minutesSince < 10
+  ) {
     const start = new Date(now.getTime() + 5 * 60 * 1000); // Give 5 min buffer
     const end = ambient.nextMeeting.event
       ? new Date(ambient.nextMeeting.event.startTime.getTime() - 5 * 60 * 1000)
@@ -355,7 +365,9 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyCalend
 
   // Analyze back-to-back
   if (loadFactors.weeklyBackToBackPercentage > 40) {
-    keyInsights.push(`${Math.round(loadFactors.weeklyBackToBackPercentage)}% back-to-back meetings`);
+    keyInsights.push(
+      `${Math.round(loadFactors.weeklyBackToBackPercentage)}% back-to-back meetings`
+    );
     recommendations.push('Add 5-minute buffers between meetings');
   }
 
@@ -451,4 +463,3 @@ export function formatPreMeetingNotification(trigger: CalendarOutreachTrigger): 
     },
   };
 }
-

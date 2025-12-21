@@ -22,12 +22,21 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
 // Import underlying functions directly for routing
-import { getFinancialNews, getGeneralNews, getStockNews, getTechNews } from '../../news.js';
+import {
+  getFinancialNews,
+  getGeneralNews,
+  getStockNews,
+  getTechNews,
+  searchNewsByTopic,
+} from '../../news.js';
 import { getSportScores, getTeamScore } from '../../sports.js';
 
 // Import legacy tool creators for simple wrapping
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createWeatherTools } from '../../weather.js';
+
+// Import Apple WeatherKit tools
+import { appleWeatherTools } from './apple-weather-tools.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -63,51 +72,63 @@ function getNewsToolDefinitions(): ToolDefinition[] {
       id: 'getNews',
       name: 'Get News',
       description:
-        'Get current news headlines. Categories: "general" (top headlines), "finance" (market news, economy), "tech" (technology, AI, startups), or "stock" (news about a specific stock ticker). For stock news, include the ticker symbol.',
+        'Get news headlines. Can search by TOPIC (e.g., "Christmas", "AI", "sports") or by CATEGORY ("general", "finance", "tech", "stock"). For topic search, provide the topic parameter. For stock news, include the ticker.',
       domain: 'information',
-      tags: ['information', 'news', 'headlines', 'finance', 'tech', 'stocks'],
+      tags: ['information', 'news', 'headlines', 'finance', 'tech', 'stocks', 'search'],
       create: (_ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('getNews'),
           parameters: z.object({
+            topic: z
+              .string()
+              .optional()
+              .describe(
+                'Topic to search for (e.g., "Christmas", "AI", "weather"). Use this for any specific topic.'
+              ),
             category: z
               .enum(['general', 'finance', 'tech', 'stock'])
               .optional()
-              .describe('News category (defaults to general)'),
+              .describe('News category - only used if no topic specified'),
             ticker: z
               .string()
               .optional()
               .describe('Stock ticker symbol (required for stock category, e.g., "AAPL")'),
           }),
-          execute: async ({ category = 'general', ticker }) => {
-            log.info({ category, ticker }, '📰 News tool called');
+          execute: async ({ topic, category = 'general', ticker }) => {
+            log.info({ topic, category, ticker }, '📰 News tool called');
 
             try {
               let result: string;
 
-              switch (category) {
-                case 'finance':
-                  result = await getFinancialNews('general');
-                  break;
-                case 'tech':
-                  result = await getTechNews();
-                  break;
-                case 'stock':
-                  if (!ticker) {
-                    return 'Please specify a stock ticker symbol (e.g., AAPL, TSLA)';
-                  }
-                  result = await getStockNews(ticker.toUpperCase());
-                  break;
-                case 'general':
-                default:
-                  result = await getGeneralNews();
+              // If topic is provided, use topic search
+              if (topic) {
+                result = await searchNewsByTopic(topic);
+              } else {
+                // Otherwise use category-based news
+                switch (category) {
+                  case 'finance':
+                    result = await getFinancialNews('general');
+                    break;
+                  case 'tech':
+                    result = await getTechNews();
+                    break;
+                  case 'stock':
+                    if (!ticker) {
+                      return 'Please specify a stock ticker symbol (e.g., AAPL, TSLA)';
+                    }
+                    result = await getStockNews(ticker.toUpperCase());
+                    break;
+                  case 'general':
+                  default:
+                    result = await getGeneralNews();
+                }
               }
 
-              log.info({ category, resultLength: result.length }, '📰 News result returned');
+              log.info({ topic, category, resultLength: result.length }, '📰 News result returned');
               return result;
             } catch (error) {
-              log.error({ category, ticker, error: String(error) }, '📰 News tool error');
-              return `I couldn't get ${category} news right now. Try again in a moment?`;
+              log.error({ topic, category, ticker, error: String(error) }, '📰 News tool error');
+              return `I couldn't get news right now. Try again in a moment?`;
             }
           },
         }),
@@ -221,6 +242,7 @@ const informationTools: ToolDefinition[] = [
   ...getNewsToolDefinitions(),
   ...getWeatherToolDefinitions(),
   ...getSportsToolDefinitions(),
+  ...appleWeatherTools, // Apple WeatherKit for detailed weather/alerts
 ];
 
 // ============================================================================
@@ -232,10 +254,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   informationTools
 );
 
-export {
-  getNewsToolDefinitions,
-  getSportsToolDefinitions,
-  getWeatherToolDefinitions,
-};
+export { getNewsToolDefinitions, getSportsToolDefinitions, getWeatherToolDefinitions };
 
 export default getToolDefinitions;

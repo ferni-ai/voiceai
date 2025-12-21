@@ -311,25 +311,41 @@ function assessCalendarHealth(
   const meetingLoadFactor = assessMeetingLoad(summary.totalMeetingHours);
   factors.push(meetingLoadFactor);
   totalWeight += meetingLoadFactor.weight;
-  weightedScore += meetingLoadFactor.weight * (meetingLoadFactor.status === 'positive' ? 100 : meetingLoadFactor.status === 'neutral' ? 70 : 30);
+  weightedScore +=
+    meetingLoadFactor.weight *
+    (meetingLoadFactor.status === 'positive'
+      ? 100
+      : meetingLoadFactor.status === 'neutral'
+        ? 70
+        : 30);
 
   // Focus time factor (weight: 25)
   const focusFactor = assessFocusTime(summary.focusTimePercent);
   factors.push(focusFactor);
   totalWeight += focusFactor.weight;
-  weightedScore += focusFactor.weight * (focusFactor.status === 'positive' ? 100 : focusFactor.status === 'neutral' ? 70 : 30);
+  weightedScore +=
+    focusFactor.weight *
+    (focusFactor.status === 'positive' ? 100 : focusFactor.status === 'neutral' ? 70 : 30);
 
   // Back-to-back factor (weight: 20)
   const backToBackFactor = assessBackToBack(summary.backToBackPercent);
   factors.push(backToBackFactor);
   totalWeight += backToBackFactor.weight;
-  weightedScore += backToBackFactor.weight * (backToBackFactor.status === 'positive' ? 100 : backToBackFactor.status === 'neutral' ? 70 : 30);
+  weightedScore +=
+    backToBackFactor.weight *
+    (backToBackFactor.status === 'positive'
+      ? 100
+      : backToBackFactor.status === 'neutral'
+        ? 70
+        : 30);
 
   // Recovery factor (weight: 25)
   const recoveryFactor = assessRecoveryNeeds(recoveryNeeds);
   factors.push(recoveryFactor);
   totalWeight += recoveryFactor.weight;
-  weightedScore += recoveryFactor.weight * (recoveryFactor.status === 'positive' ? 100 : recoveryFactor.status === 'neutral' ? 70 : 30);
+  weightedScore +=
+    recoveryFactor.weight *
+    (recoveryFactor.status === 'positive' ? 100 : recoveryFactor.status === 'neutral' ? 70 : 30);
 
   const score = Math.round(weightedScore / totalWeight);
 
@@ -380,7 +396,9 @@ function assessBackToBack(percent: number): HealthFactor {
   }
 }
 
-function assessRecoveryNeeds(recoveryNeeds: Awaited<ReturnType<typeof detectRecoveryNeeds>>): HealthFactor {
+function assessRecoveryNeeds(
+  recoveryNeeds: Awaited<ReturnType<typeof detectRecoveryNeeds>>
+): HealthFactor {
   const factor = 'Recovery Status';
   const weight = 25;
 
@@ -459,7 +477,8 @@ function generateRecommendations(
       priority: 'high',
       category: 'recovery',
       title: 'Review your calendar',
-      description: 'Your calendar health score is concerning. Consider declining or rescheduling non-essential meetings.',
+      description:
+        'Your calendar health score is concerning. Consider declining or rescheduling non-essential meetings.',
     });
   }
 
@@ -478,24 +497,32 @@ function generateConversationStarters(
 
   // Positive opener if health is good
   if (health.score >= 80) {
-    starters.push("Your calendar looks balanced this week. Nice work protecting your time!");
+    starters.push('Your calendar looks balanced this week. Nice work protecting your time!');
   }
 
   // Meeting load observation
   if (summary.totalMeetingHours > 30) {
-    starters.push(`I noticed you have ${Math.round(summary.totalMeetingHours)} hours of meetings this week. That's a lot.`);
+    starters.push(
+      `I noticed you have ${Math.round(summary.totalMeetingHours)} hours of meetings this week. That's a lot.`
+    );
   } else if (summary.totalMeetingHours < 10) {
-    starters.push(`Lighter meeting week ahead with only ${Math.round(summary.totalMeetingHours)} hours scheduled.`);
+    starters.push(
+      `Lighter meeting week ahead with only ${Math.round(summary.totalMeetingHours)} hours scheduled.`
+    );
   }
 
   // Focus time observation
   if (summary.focusTimePercent < 20) {
-    starters.push("I see you have very little uninterrupted time this week. Want help blocking some focus time?");
+    starters.push(
+      'I see you have very little uninterrupted time this week. Want help blocking some focus time?'
+    );
   }
 
   // Day comparison
   if (summary.busiestDay.name !== summary.lightestDay.name) {
-    starters.push(`${summary.busiestDay.name} looks packed, but ${summary.lightestDay.name} has more breathing room.`);
+    starters.push(
+      `${summary.busiestDay.name} looks packed, but ${summary.lightestDay.name} has more breathing room.`
+    );
   }
 
   // Recommendation-based
@@ -519,14 +546,20 @@ export function formatDigestForPush(digest: WeeklyDigest): {
   body: string;
   data: Record<string, unknown>;
 } {
-  const healthEmoji = 
-    digest.health.status === 'excellent' ? '💚' :
-    digest.health.status === 'good' ? '💛' :
-    digest.health.status === 'needs-attention' ? '🟠' : '🔴';
+  const healthEmoji =
+    digest.health.status === 'excellent'
+      ? '💚'
+      : digest.health.status === 'good'
+        ? '💛'
+        : digest.health.status === 'needs-attention'
+          ? '🟠'
+          : '🔴';
 
   return {
     title: `${healthEmoji} Your Week Ahead`,
-    body: digest.conversationStarters[0] || `${Math.round(digest.summary.totalMeetingHours)}h of meetings across ${digest.summary.totalMeetings} calls`,
+    body:
+      digest.conversationStarters[0] ||
+      `${Math.round(digest.summary.totalMeetingHours)}h of meetings across ${digest.summary.totalMeetings} calls`,
     data: {
       type: 'weekly-digest',
       healthScore: digest.health.score,
@@ -571,7 +604,9 @@ export function formatDigestForEmail(digest: WeeklyDigest): {
 
   return {
     subject: `Your Week Ahead (${weekStr})`,
-    previewText: digest.conversationStarters[0] || `${Math.round(digest.summary.totalMeetingHours)}h of meetings this week`,
+    previewText:
+      digest.conversationStarters[0] ||
+      `${Math.round(digest.summary.totalMeetingHours)}h of meetings this week`,
     sections,
   };
 }
@@ -590,7 +625,9 @@ export async function buildWeeklyDigestContextInjection(userId: string): Promise
     sections.push(`- Meeting Hours: ${Math.round(digest.summary.totalMeetingHours)}h`);
     sections.push(`- Focus Time: ${digest.summary.focusTimePercent}%`);
     sections.push(`- Health Score: ${digest.health.score}/100 (${digest.health.status})`);
-    sections.push(`- Busiest Day: ${digest.summary.busiestDay.name} (${Math.round(digest.summary.busiestDay.hours)}h)`);
+    sections.push(
+      `- Busiest Day: ${digest.summary.busiestDay.name} (${Math.round(digest.summary.busiestDay.hours)}h)`
+    );
     sections.push(`- Lightest Day: ${digest.summary.lightestDay.name}`);
 
     // Key factors
@@ -619,4 +656,3 @@ export async function buildWeeklyDigestContextInjection(userId: string): Promise
     return null;
   }
 }
-

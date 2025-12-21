@@ -10,6 +10,14 @@
  * @module types/custom-agent
  */
 
+/// <reference lib="dom" />
+
+// Browser types (for environments without DOM types)
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+declare class Blob {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+declare class File extends Blob {}
+
 // ============================================================================
 // CORE TYPES
 // ============================================================================
@@ -735,6 +743,8 @@ export interface CreateVoiceCloneResponse {
   status: 'processing' | 'ready' | 'failed';
   qualityScore?: number;
   estimatedWaitSeconds?: number;
+  /** True if voice clone was simulated (no API key configured) */
+  isSimulated?: boolean;
 }
 
 /**

@@ -14,10 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { isOutreachTriggerCreationEnabled } from '../../config/feature-flags.js';
-import {
-  publishOutreachTrigger,
-  type OutreachTriggerPayload,
-} from './trigger-publisher.js';
+import { publishOutreachTrigger, type OutreachTriggerPayload } from './trigger-publisher.js';
 import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js';
 
 // Trust Systems imports
@@ -58,13 +55,20 @@ import {
   type PendingIntention,
 } from '../trust-systems/small-wins.js';
 
-import { checkBoundary, getActiveBoundaries, type BoundaryCheckResult } from '../trust-systems/boundary-memory.js';
+import {
+  checkBoundary,
+  getActiveBoundaries,
+  type BoundaryCheckResult,
+} from '../trust-systems/boundary-memory.js';
 
 // Life Rhythm integration
 import { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } from './life-rhythm-outreach.js';
 
 // Superhuman memory integration
-import { checkForMemoryBasedOutreach, syncMemoriesToOutreachContext } from './superhuman-outreach-integration.js';
+import {
+  checkForMemoryBasedOutreach,
+  syncMemoriesToOutreachContext,
+} from './superhuman-outreach-integration.js';
 
 const log = createLogger({ module: 'TrustOutreachBridge' });
 
@@ -206,8 +210,8 @@ async function processThinkingOfYouMoments(
     const underlying = moment.trigger.context || '';
 
     // Skip if this would violate a boundary
-    const hasBoundaryIssue = boundaries.some(
-      (b) => underlying.toLowerCase().includes(b.topic.toLowerCase())
+    const hasBoundaryIssue = boundaries.some((b) =>
+      underlying.toLowerCase().includes(b.topic.toLowerCase())
     );
 
     if (hasBoundaryIssue) {
@@ -370,8 +374,8 @@ async function processOverdueIntentions(
 
     // Check if this intention is related to a boundary
     const boundaries = getActiveBoundaries(userId);
-    const wouldViolateBoundary = boundaries.some(
-      (b) => intention.intention.toLowerCase().includes(b.topic.toLowerCase())
+    const wouldViolateBoundary = boundaries.some((b) =>
+      intention.intention.toLowerCase().includes(b.topic.toLowerCase())
     );
 
     if (wouldViolateBoundary) {
@@ -501,9 +505,7 @@ export async function handleConcernDetection(context: ConcernOutreachContext): P
   // Look for minimizing or false closure
   const significantSignal = unsaidSignals.find(
     (s) =>
-      s.type === 'minimizing_pain' ||
-      s.type === 'false_closure' ||
-      s.type === 'emotional_mismatch'
+      s.type === 'minimizing_pain' || s.type === 'false_closure' || s.type === 'emotional_mismatch'
   );
 
   // Calculate priority
@@ -543,8 +545,7 @@ export async function handleConcernDetection(context: ConcernOutreachContext): P
     personaId: 'ferni', // Ferni handles emotional support
     context: {
       emotion: detectedEmotion,
-      emotionIntensity:
-        concernLevel === 'crisis' ? 1.0 : concernLevel === 'elevated' ? 0.8 : 0.6,
+      emotionIntensity: concernLevel === 'crisis' ? 1.0 : concernLevel === 'elevated' ? 0.8 : 0.6,
       metadata: {
         concernLevel,
         concernType,
@@ -562,10 +563,7 @@ export async function handleConcernDetection(context: ConcernOutreachContext): P
   });
 
   if (published.success) {
-    log.info(
-      { userId, concernLevel, concernType },
-      '💚 Concern-based outreach scheduled'
-    );
+    log.info({ userId, concernLevel, concernType }, '💚 Concern-based outreach scheduled');
     return true;
   }
 
@@ -582,7 +580,10 @@ export async function handleConcernDetection(context: ConcernOutreachContext): P
  * Uses boundary memory and reading-between-lines to prevent
  * outreach that would make users uncomfortable.
  */
-export function shouldAvoidOutreachTopic(userId: string, topic: string): {
+export function shouldAvoidOutreachTopic(
+  userId: string,
+  topic: string
+): {
   avoid: boolean;
   reason?: string;
 } {
@@ -591,17 +592,18 @@ export function shouldAvoidOutreachTopic(userId: string, topic: string): {
   if (boundaryCheck.crossesBoundary) {
     return {
       avoid: true,
-      reason: boundaryCheck.recommendation === 'avoid_completely' 
-        ? 'Topic crosses explicit boundary' 
-        : 'Topic should be approached carefully',
+      reason:
+        boundaryCheck.recommendation === 'avoid_completely'
+          ? 'Topic crosses explicit boundary'
+          : 'Topic should be approached carefully',
     };
   }
 
   // Check avoided topics from reading-between-lines
   // getAvoidedTopics returns string[], not ConversationPattern[]
   const avoidedTopics = getAvoidedTopics(userId);
-  const isAvoided = avoidedTopics.some(
-    (avoidedTopic) => topic.toLowerCase().includes(avoidedTopic.toLowerCase())
+  const isAvoided = avoidedTopics.some((avoidedTopic) =>
+    topic.toLowerCase().includes(avoidedTopic.toLowerCase())
   );
 
   if (isAvoided) {
@@ -642,9 +644,7 @@ function mapTriggerType(
  *
  * Called by the daily outreach job.
  */
-export async function runTrustBasedOutreachBatch(
-  userIds: string[]
-): Promise<{
+export async function runTrustBasedOutreachBatch(userIds: string[]): Promise<{
   processed: number;
   totalTriggers: number;
   byType: Record<string, number>;
@@ -667,10 +667,7 @@ export async function runTrustBasedOutreachBatch(
     }
   }
 
-  log.info(
-    { processed, totalTriggers, byType },
-    '🧠 Trust-based outreach batch complete'
-  );
+  log.info({ processed, totalTriggers, byType }, '🧠 Trust-based outreach batch complete');
 
   return { processed, totalTriggers, byType };
 }

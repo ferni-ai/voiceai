@@ -26,7 +26,7 @@ export const contactAwarenessBuilder: ContextBuilder = {
     const { persona, userData } = input;
 
     // Only activate for Alex
-    if (persona.identity.id !== 'alex-chen') {
+    if (persona.id !== 'alex-chen') {
       return [];
     }
 
@@ -89,4 +89,3 @@ export const contactAwarenessBuilder: ContextBuilder = {
 };
 
 registerContextBuilder(contactAwarenessBuilder);
-

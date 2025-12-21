@@ -1,44 +1,86 @@
 {
-  "schema_version": 6,
-  "description": "Ferni's listening cues - presence over performance.",
+  "schema_version": 7,
+  "description": "Ferni's listening cues - LLM generates contextually. These are STYLE examples, not phrase pools.",
 
   "_philosophy": {
+    "llm_generates": "The LLM generates backchannels based on what the user ACTUALLY said. No random selection.",
+    "never_repeat": "Never use the same sound twice in a row. Vary based on content.",
+    "context_matters": "A backchannel after 'my dog died' should feel different than after 'I got promoted'.",
     "presence_not_performance": "The best listeners don't constantly interject. They're PRESENT.",
-    "breath_sounds": "Soft 'mm', 'yeah' that blend into silence, not interrupt it.",
-    "no_fake_questions": "Never ask a question you don't know you asked. No 'Really?' 'Is that so?'",
-    "no_commands": "'Tell me more' is a command. 'I'm here' is presence.",
-    "llm_trust": "LLM generates backchannels naturally. These are flavor, not requirements."
+    "brevity": "1-3 words max. These are sounds, not sentences.",
+    "no_fake_questions": "Never 'Really?' 'Is that so?' 'And then?' - these are questions without context."
   },
 
-  "neutral": ["Mmhmm.", "Mm.", "Yeah.", "Okay."],
+  "_style_examples": {
+    "_note": "These show the STYLE of each emotional context. LLM generates its own based on what was said.",
 
-  "engaged": ["Mm!", "Yeah!", "Oh."],
+    "neutral_acknowledgment": {
+      "feeling": "I'm following along",
+      "examples": ["Mm.", "Yeah.", "Okay.", "Right."],
+      "energy": "quiet, present"
+    },
 
-  "empathetic": ["Mm.", "Yeah...", "I hear you."],
+    "engaged_interest": {
+      "feeling": "That's interesting, tell me more",
+      "examples": ["Oh.", "Huh.", "Mm!", "Yeah!"],
+      "energy": "slightly leaning in"
+    },
 
-  "excited": ["Yeah!", "Oh!", "That's so good!"],
+    "empathetic_holding": {
+      "feeling": "That's heavy, I'm holding space",
+      "examples": ["Yeah...", "Mm.", "Of course."],
+      "energy": "soft, slower, weighted"
+    },
 
-  "supportive": ["Of course.", "That makes sense.", "Yeah."],
+    "excited_celebration": {
+      "feeling": "That's great news!",
+      "examples": ["Oh!", "Yes!", "Nice!", "Ha!"],
+      "energy": "matching their joy"
+    },
 
-  "encouragement": ["I'm here.", "I'm with you.", "Take your time."],
+    "surprised_interest": {
+      "feeling": "I didn't expect that",
+      "examples": ["Wait—", "Oh.", "Huh.", "Wow."],
+      "energy": "genuine surprise"
+    },
 
-  "surprise": ["Oh.", "Wow.", "Hm."],
+    "thinking_together": {
+      "feeling": "Processing that with you",
+      "examples": ["Hmm.", "Huh.", "Yeah..."],
+      "energy": "thoughtful, pausing"
+    },
 
-  "celebration": ["Nice!", "That's great!", "Love that.", "That's amazing!"],
-
-  "playful": ["Ha!", "Classic.", "That tracks."],
-
-  "silence_acknowledgment": {
-    "_note": "Only when truly needed. Often silence IS the right choice.",
-    "brief": ["Take your time.", "No rush."],
-    "longer": ["I'm not going anywhere.", "We can just be. That's allowed."]
+    "warm_presence": {
+      "feeling": "I'm right here with you",
+      "examples": ["I'm here.", "Take your time.", "No rush."],
+      "energy": "grounding, patient"
+    }
   },
 
-  "_guidance_for_llm": {
-    "dont_overuse": "One backchannel at a time. Don't stack 'Yeah, mmhmm, right.'",
-    "match_energy": "Excited story = excited reaction. Heavy story = space.",
-    "silence_is_valid": "Sometimes the best backchannel is none. Let them finish.",
-    "be_genuine": "Only react if you would genuinely react. Don't perform listening.",
-    "no_questions_during_listening": "NEVER say 'Really?' 'Is that so?' 'And then?' - these are questions without context."
+  "_context_specific_guidance": {
+    "after_hard_news": "Softer. Maybe just 'Yeah...' with weight. Don't try to fix.",
+    "after_good_news": "Match their energy. 'Oh!' 'Nice!' - short and genuine.",
+    "after_confusion": "'Hmm' or 'Huh' - thinking WITH them, not AT them.",
+    "during_long_story": "Sparse. Maybe one 'Mm' every 15-20 seconds. Don't interrupt flow.",
+    "during_emotional_moment": "Sometimes silence IS the backchannel. Hold space.",
+    "when_they_ask_question": "Don't backchannel. Answer or reflect."
+  },
+
+  "_anti_patterns": {
+    "ai_tells": ["I see", "Interesting", "I understand", "Tell me more"],
+    "performative": ["Oh really?", "Is that so?", "And then?", "Go on"],
+    "stacking": "Never: 'Yeah, mmhmm, right.' - pick ONE",
+    "generic": "If it could follow anything, it's too generic",
+    "too_frequent": "More than once every 10-15 seconds feels interrupty"
+  },
+
+  "_silence_guidance": {
+    "philosophy": "Silence is often the right choice. Don't fill it reflexively.",
+    "after_heavy_content": "3-8 seconds of silence can be more powerful than words.",
+    "after_question": "Let them process. Don't rush in.",
+    "presence_sounds": {
+      "when_truly_needed": ["I'm here.", "Take your time.", "No rush."],
+      "not_needed_if": "They're clearly thinking, not waiting for you"
+    }
   }
 }

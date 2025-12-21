@@ -144,4 +144,3 @@ export function validateAgentManifest(manifest: AgentManifest): string[] {
 
   return errors;
 }
-

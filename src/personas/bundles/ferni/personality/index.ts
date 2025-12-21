@@ -183,4 +183,3 @@ export {
 
 // Default export
 export { ferniPersonality as default } from '../personality-integration.js';
-

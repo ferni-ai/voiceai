@@ -163,8 +163,7 @@ export async function handleVerificationRoutes(
       suggestion: shouldSuggestRetry
         ? {
             action: 'retry',
-            message:
-              emotionContext.userMessage || 'Your voice sounds a bit different. Try again?',
+            message: emotionContext.userMessage || 'Your voice sounds a bit different. Try again?',
             adjustedThreshold: emotionContext.adjustedThreshold,
           }
         : undefined,
@@ -429,4 +428,3 @@ export async function handleVerificationRoutes(
 
   return false;
 }
-

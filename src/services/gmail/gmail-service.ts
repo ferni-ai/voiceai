@@ -240,10 +240,10 @@ export async function getInboxMessages(
 
   try {
     // Get message IDs
-    const listResponse = await gmailRequest<{ messages?: Array<{ id: string; threadId: string }>; resultSizeEstimate: number }>(
-      accessToken,
-      endpoint
-    );
+    const listResponse = await gmailRequest<{
+      messages?: Array<{ id: string; threadId: string }>;
+      resultSizeEstimate: number;
+    }>(accessToken, endpoint);
 
     if (!listResponse.messages || listResponse.messages.length === 0) {
       return [];
@@ -271,10 +271,7 @@ export async function getInboxMessages(
 /**
  * Get unread messages
  */
-export async function getUnreadMessages(
-  userId: string,
-  maxResults = 10
-): Promise<EmailSummary[]> {
+export async function getUnreadMessages(userId: string, maxResults = 10): Promise<EmailSummary[]> {
   return getInboxMessages(userId, {
     maxResults,
     labelIds: ['INBOX', 'UNREAD'],
@@ -284,10 +281,7 @@ export async function getUnreadMessages(
 /**
  * Get important unread messages
  */
-export async function getImportantUnread(
-  userId: string,
-  maxResults = 5
-): Promise<EmailSummary[]> {
+export async function getImportantUnread(userId: string, maxResults = 5): Promise<EmailSummary[]> {
   return getInboxMessages(userId, {
     maxResults,
     labelIds: ['INBOX', 'UNREAD', 'IMPORTANT'],
@@ -321,25 +315,25 @@ export async function getInboxStats(userId: string): Promise<InboxStats | null> 
 
   try {
     // Get unread count
-    const unreadResponse = await gmailRequest<{ messages?: Array<{ id: string }>; resultSizeEstimate: number }>(
-      accessToken,
-      '/messages?maxResults=100&labelIds=INBOX,UNREAD'
-    );
+    const unreadResponse = await gmailRequest<{
+      messages?: Array<{ id: string }>;
+      resultSizeEstimate: number;
+    }>(accessToken, '/messages?maxResults=100&labelIds=INBOX,UNREAD');
 
     // Get important unread
-    const importantResponse = await gmailRequest<{ messages?: Array<{ id: string }>; resultSizeEstimate: number }>(
-      accessToken,
-      '/messages?maxResults=100&labelIds=INBOX,UNREAD,IMPORTANT'
-    );
+    const importantResponse = await gmailRequest<{
+      messages?: Array<{ id: string }>;
+      resultSizeEstimate: number;
+    }>(accessToken, '/messages?maxResults=100&labelIds=INBOX,UNREAD,IMPORTANT');
 
     // Get today's messages
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayQuery = `after:${Math.floor(today.getTime() / 1000)}`;
-    const todayResponse = await gmailRequest<{ messages?: Array<{ id: string }>; resultSizeEstimate: number }>(
-      accessToken,
-      `/messages?maxResults=100&labelIds=INBOX&q=${encodeURIComponent(todayQuery)}`
-    );
+    const todayResponse = await gmailRequest<{
+      messages?: Array<{ id: string }>;
+      resultSizeEstimate: number;
+    }>(accessToken, `/messages?maxResults=100&labelIds=INBOX&q=${encodeURIComponent(todayQuery)}`);
 
     return {
       unreadCount: unreadResponse.resultSizeEstimate || 0,
@@ -577,4 +571,3 @@ export default {
   formatEmailForSpeech,
   formatInboxSummaryForSpeech,
 };
-

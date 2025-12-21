@@ -222,8 +222,17 @@ export function extractNameFromMessage(
   // CRITICAL: Never confuse persona names with user names!
   // When user says "Hi Maya" after Maya introduces herself, that's NOT the user's name
   const personaNames = new Set([
-    'ferni', 'maya', 'peter', 'alex', 'jordan', 'nayan',
-    'santos', 'chen', 'taylor', 'john', 'patel',
+    'ferni',
+    'maya',
+    'peter',
+    'alex',
+    'jordan',
+    'nayan',
+    'santos',
+    'chen',
+    'taylor',
+    'john',
+    'patel',
   ]);
 
   for (const pattern of patterns) {

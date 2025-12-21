@@ -30,4 +30,3 @@ export class InProcessInferenceExecutor {
     throw new Error(`Inference not supported in single-process mode: ${method}`);
   }
 }
-

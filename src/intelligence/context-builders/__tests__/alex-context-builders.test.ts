@@ -221,4 +221,3 @@ describe('calendar-awareness context builder', () => {
     });
   });
 });
-

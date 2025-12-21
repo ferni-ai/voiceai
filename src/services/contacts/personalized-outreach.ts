@@ -83,20 +83,12 @@ interface OccasionTemplate {
 
 const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
   christmas: {
-    greetings: [
-      'Merry Christmas',
-      'Happy Holidays',
-      'Wishing you a wonderful Christmas',
-    ],
-    occasionPhrases: [
-      'this holiday season',
-      'as the year winds down',
-      'during this festive time',
-    ],
+    greetings: ['Merry Christmas', 'Happy Holidays', 'Wishing you a wonderful Christmas'],
+    occasionPhrases: ['this holiday season', 'as the year winds down', 'during this festive time'],
     closings: [
       'Hope your holidays are filled with joy',
       'Wishing you warmth and happiness',
-      'Here\'s to a magical holiday season',
+      "Here's to a magical holiday season",
     ],
     includePersonalContext: true,
     includeRecentTopics: true,
@@ -104,18 +96,14 @@ const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
   },
 
   new_year: {
-    greetings: [
-      'Happy New Year',
-      'Wishing you an amazing new year',
-      'Here\'s to a fresh start',
-    ],
+    greetings: ['Happy New Year', 'Wishing you an amazing new year', "Here's to a fresh start"],
     occasionPhrases: [
       'as we step into the new year',
       'looking ahead to the new year',
       'as one year ends and another begins',
     ],
     closings: [
-      'May this year bring you everything you\'re hoping for',
+      "May this year bring you everything you're hoping for",
       'Excited to see what this year has in store for you',
       'Cheers to new beginnings',
     ],
@@ -125,18 +113,9 @@ const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
   },
 
   thanksgiving: {
-    greetings: [
-      'Happy Thanksgiving',
-      'Wishing you a wonderful Thanksgiving',
-    ],
-    occasionPhrases: [
-      'this Thanksgiving',
-      'as we reflect on what we\'re grateful for',
-    ],
-    closings: [
-      'Grateful to have you in my life',
-      'Hope you have a wonderful day with loved ones',
-    ],
+    greetings: ['Happy Thanksgiving', 'Wishing you a wonderful Thanksgiving'],
+    occasionPhrases: ['this Thanksgiving', "as we reflect on what we're grateful for"],
+    closings: ['Grateful to have you in my life', 'Hope you have a wonderful day with loved ones'],
     includePersonalContext: true,
     includeRecentTopics: false,
     includeQuestions: false,
@@ -148,13 +127,10 @@ const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
       'Wishing you the happiest of birthdays',
       'Hope your birthday is as wonderful as you are',
     ],
-    occasionPhrases: [
-      'on your special day',
-      'as you celebrate another year',
-    ],
+    occasionPhrases: ['on your special day', 'as you celebrate another year'],
     closings: [
       'May this year bring you joy and adventure',
-      'Can\'t wait to see what this year brings you',
+      "Can't wait to see what this year brings you",
       'Hope your day is filled with everything you love',
     ],
     includePersonalContext: true,
@@ -163,94 +139,45 @@ const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
   },
 
   anniversary: {
-    greetings: [
-      'Happy Anniversary',
-      'Congratulations on another wonderful year',
-    ],
-    occasionPhrases: [
-      'on this special milestone',
-      'as you celebrate this beautiful journey',
-    ],
-    closings: [
-      'Here\'s to many more years of happiness',
-      'Your love is truly inspiring',
-    ],
+    greetings: ['Happy Anniversary', 'Congratulations on another wonderful year'],
+    occasionPhrases: ['on this special milestone', 'as you celebrate this beautiful journey'],
+    closings: ["Here's to many more years of happiness", 'Your love is truly inspiring'],
     includePersonalContext: true,
     includeRecentTopics: false,
     includeQuestions: false,
   },
 
   memorial: {
-    greetings: [
-      'Thinking of you today',
-      'Holding you in my thoughts',
-    ],
-    occasionPhrases: [
-      'on this day',
-      'as you remember',
-    ],
-    closings: [
-      'I\'m here if you need anything',
-      'Sending you love and strength',
-    ],
+    greetings: ['Thinking of you today', 'Holding you in my thoughts'],
+    occasionPhrases: ['on this day', 'as you remember'],
+    closings: ["I'm here if you need anything", 'Sending you love and strength'],
     includePersonalContext: false,
     includeRecentTopics: false,
     includeQuestions: false,
   },
 
   check_in: {
-    greetings: [
-      'Hey',
-      'Hi',
-      'Was just thinking about you',
-    ],
-    occasionPhrases: [
-      'and wanted to check in',
-      'and thought I\'d reach out',
-      'it\'s been a while',
-    ],
-    closings: [
-      'Would love to catch up sometime',
-      'Let me know how you\'re doing',
-      'Miss you!',
-    ],
+    greetings: ['Hey', 'Hi', 'Was just thinking about you'],
+    occasionPhrases: ['and wanted to check in', "and thought I'd reach out", "it's been a while"],
+    closings: ['Would love to catch up sometime', "Let me know how you're doing", 'Miss you!'],
     includePersonalContext: true,
     includeRecentTopics: true,
     includeQuestions: true,
   },
 
   thinking_of_you: {
-    greetings: [
-      'Hey',
-      'Just wanted you to know',
-    ],
-    occasionPhrases: [
-      'I was thinking about you',
-      'you crossed my mind today',
-    ],
-    closings: [
-      'Hope you\'re doing well',
-      'Sending good vibes your way',
-    ],
+    greetings: ['Hey', 'Just wanted you to know'],
+    occasionPhrases: ['I was thinking about you', 'you crossed my mind today'],
+    closings: ["Hope you're doing well", 'Sending good vibes your way'],
     includePersonalContext: true,
     includeRecentTopics: true,
     includeQuestions: true,
   },
 
   congratulations: {
-    greetings: [
-      'Congratulations',
-      'So proud of you',
-      'This is amazing news',
-    ],
-    occasionPhrases: [
-      'what an achievement',
-      'you deserve this',
-    ],
-    closings: [
-      'Can\'t wait to celebrate with you',
-      'So happy for you',
-    ],
+    greetings: ['Congratulations', 'So proud of you', 'This is amazing news'],
+    occasionPhrases: ['what an achievement', 'you deserve this'],
+    closings: ["Can't wait to celebrate with you", 'So happy for you'],
     includePersonalContext: true,
     includeRecentTopics: true,
     includeQuestions: false,
@@ -258,16 +185,13 @@ const OCCASION_TEMPLATES: Record<OutreachOccasion, OccasionTemplate> = {
 
   sympathy: {
     greetings: [
-      'I\'m so sorry to hear',
+      "I'm so sorry to hear",
       'My heart goes out to you',
       'Thinking of you during this difficult time',
     ],
-    occasionPhrases: [
-      'I can\'t imagine what you\'re going through',
-      'please know that I\'m here',
-    ],
+    occasionPhrases: ["I can't imagine what you're going through", "please know that I'm here"],
     closings: [
-      'I\'m here for you, whatever you need',
+      "I'm here for you, whatever you need",
       'Sending you all my love',
       'Take all the time you need',
     ],
@@ -375,22 +299,26 @@ export async function buildOutreachContext(
   const upcomingDates: ContactImportantDate[] = [];
 
   // Check for contact's dates
-  const contactDates = personalDates.filter(
-    (d) => d.name.toLowerCase().includes(contact.name.toLowerCase())
+  const contactDates = personalDates.filter((d) =>
+    d.name.toLowerCase().includes(contact.name.toLowerCase())
   );
 
   for (const pd of contactDates) {
     const targetDate = new Date(now.getFullYear(), pd.month - 1, pd.day);
-    const daysUntil = Math.ceil(
-      (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 1000)
-    );
+    const daysUntil = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 1000));
 
     if (daysUntil >= 0 && daysUntil <= 30) {
       upcomingDates.push({
         date: `${String(pd.month).padStart(2, '0')}-${String(pd.day).padStart(2, '0')}`,
-        type: pd.type === 'celebration' ? 'birthday' : pd.type === 'memorial' ? 'memorial' : 'custom',
+        type:
+          pd.type === 'celebration' ? 'birthday' : pd.type === 'memorial' ? 'memorial' : 'custom',
         label: pd.name,
-        sentiment: pd.sentiment === 'positive' ? 'celebratory' : pd.sentiment === 'negative' ? 'sensitive' : 'neutral',
+        sentiment:
+          pd.sentiment === 'positive'
+            ? 'celebratory'
+            : pd.sentiment === 'negative'
+              ? 'sensitive'
+              : 'neutral',
       });
     }
   }
@@ -461,16 +389,15 @@ function buildChannelsFromContact(contact: {
       value: contact.phone,
       label: 'mobile',
       verified: true,
-      preferenceRank: contact.preferredChannel === 'phone' || contact.preferredChannel === 'text' ? 1 : 2,
+      preferenceRank:
+        contact.preferredChannel === 'phone' || contact.preferredChannel === 'text' ? 1 : 2,
     });
   }
 
   return channels;
 }
 
-function mapSentiment(
-  networkSentiment?: string
-): 'warm' | 'neutral' | 'strained' | 'complicated' {
+function mapSentiment(networkSentiment?: string): 'warm' | 'neutral' | 'strained' | 'complicated' {
   switch (networkSentiment) {
     case 'very_positive':
     case 'positive':
@@ -505,9 +432,7 @@ function mapSentiment(
  * genuinely personalized messages based on relationship context.
  * Falls back to template if LLM unavailable.
  */
-export async function generatePersonalizedMessageLLM(
-  context: OutreachContext
-): Promise<string> {
+export async function generatePersonalizedMessageLLM(context: OutreachContext): Promise<string> {
   const log = createLogger({ module: 'personalized-outreach' });
 
   // Build the LLM prompt with all available context
@@ -543,11 +468,15 @@ function buildMessagePrompt(context: OutreachContext): string {
   }
 
   if (context.recentTopicsDiscussed.length > 0) {
-    relationshipContext.push(`Recent topics you discussed: ${context.recentTopicsDiscussed.slice(0, 3).join(', ')}`);
+    relationshipContext.push(
+      `Recent topics you discussed: ${context.recentTopicsDiscussed.slice(0, 3).join(', ')}`
+    );
   }
 
   if (context.sharedExperiences.length > 0) {
-    relationshipContext.push(`Shared experiences: ${context.sharedExperiences.slice(0, 2).join(', ')}`);
+    relationshipContext.push(
+      `Shared experiences: ${context.sharedExperiences.slice(0, 2).join(', ')}`
+    );
   }
 
   if (context.lastContactedDays > 0) {
@@ -616,9 +545,10 @@ export function generatePersonalizedMessage(context: OutreachContext): string {
 
   // 1. Greeting with name
   const greeting = pickRandom(template.greetings);
-  const nameGreeting = style.formality === 'formal'
-    ? `Dear ${context.contact.name},`
-    : `${greeting}, ${context.contact.name}!`;
+  const nameGreeting =
+    style.formality === 'formal'
+      ? `Dear ${context.contact.name},`
+      : `${greeting}, ${context.contact.name}!`;
   parts.push(nameGreeting);
 
   // 2. Occasion-specific opening
@@ -656,7 +586,7 @@ export function generatePersonalizedMessage(context: OutreachContext): string {
 
   // 7. Question (if appropriate)
   if (template.includeQuestions) {
-    parts.push('Would love to hear how you\'ve been.');
+    parts.push("Would love to hear how you've been.");
   }
 
   // Join and format (NO EMOJIS - brand requirement)
@@ -826,12 +756,13 @@ export async function sendBatchMessages(
   }
 
   // Save outreach history
-  await saveOutreachHistory(userId, requestId, messages.filter((m) => m.sent));
-
-  log.info(
-    { requestId, userId, sent: sentCount, skipped: skipped.length },
-    'Batch send completed'
+  await saveOutreachHistory(
+    userId,
+    requestId,
+    messages.filter((m) => m.sent)
   );
+
+  log.info({ requestId, userId, sent: sentCount, skipped: skipped.length }, 'Batch send completed');
 
   return {
     requestId,
@@ -875,10 +806,7 @@ function getSubjectForOccasion(occasion: OutreachOccasion, name: string): string
 // HELPER FUNCTIONS
 // ============================================================================
 
-async function resolveRecipients(
-  userId: string,
-  recipients: string | string[]
-): Promise<string[]> {
+async function resolveRecipients(userId: string, recipients: string | string[]): Promise<string[]> {
   // If it's a string, check if it's a group name
   if (typeof recipients === 'string') {
     const group = await getGroup(userId, recipients);
@@ -893,25 +821,18 @@ async function resolveRecipients(
   return recipients;
 }
 
-function getBestChannel(
-  contact: EnhancedContact
-): ContactChannel | null {
+function getBestChannel(contact: EnhancedContact): ContactChannel | null {
   if (contact.channels.length === 0) {
     return null;
   }
 
   // Sort by preference rank
-  const sorted = [...contact.channels].sort(
-    (a, b) => a.preferenceRank - b.preferenceRank
-  );
+  const sorted = [...contact.channels].sort((a, b) => a.preferenceRank - b.preferenceRank);
 
   return sorted[0] || null;
 }
 
-function personalizeBaseMessage(
-  baseMessage: string,
-  context: OutreachContext
-): string {
+function personalizeBaseMessage(baseMessage: string, context: OutreachContext): string {
   // Replace placeholders
   let message = baseMessage
     .replace(/{name}/gi, context.contact.name)
@@ -979,8 +900,7 @@ export async function getOutreachSuggestions(
 
     // 1. Overdue contacts (haven't talked in 30+ days)
     if (daysSinceContact > 30 && contact.relationship !== 'acquaintance') {
-      const urgency =
-        daysSinceContact > 90 ? 'high' : daysSinceContact > 60 ? 'medium' : 'low';
+      const urgency = daysSinceContact > 90 ? 'high' : daysSinceContact > 60 ? 'medium' : 'low';
 
       // Build minimal enhanced contact for suggestion
       const enhancedContact: EnhancedContact = {
@@ -1026,9 +946,7 @@ export async function getOutreachSuggestions(
         targetDate.setFullYear(now.getFullYear() + 1);
       }
 
-      const daysUntil = Math.ceil(
-        (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
+      const daysUntil = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysUntil <= 7 && daysUntil >= 0) {
         const enhancedContact: EnhancedContact = {
@@ -1040,12 +958,14 @@ export async function getOutreachSuggestions(
           preferredChannel: contact.preferredChannel || 'email',
           relationship: contact.relationship || 'other',
           groups: [],
-          importantDates: [{
-            date: `${String(pd.month).padStart(2, '0')}-${String(pd.day).padStart(2, '0')}`,
-            type: pd.type === 'celebration' ? 'birthday' : 'custom',
-            label: pd.name,
-            sentiment: pd.sentiment === 'positive' ? 'celebratory' : 'neutral',
-          }],
+          importantDates: [
+            {
+              date: `${String(pd.month).padStart(2, '0')}-${String(pd.day).padStart(2, '0')}`,
+              type: pd.type === 'celebration' ? 'birthday' : 'custom',
+              label: pd.name,
+              sentiment: pd.sentiment === 'positive' ? 'celebratory' : 'neutral',
+            },
+          ],
           interests: [],
           recentTopics: [],
           sharedMemories: [],
@@ -1169,9 +1089,7 @@ function getUpcomingHolidays(): Array<{
       targetDate = new Date(currentYear + 1, holiday.month - 1, holiday.day);
     }
 
-    const daysUntil = Math.ceil(
-      (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const daysUntil = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     if (daysUntil <= 14 && daysUntil >= 0) {
       holidays.push({
@@ -1198,18 +1116,21 @@ async function saveOutreachHistory(
   if (!firestore) return;
 
   try {
-    await firestore.collection(OUTREACH_COLLECTION).doc(requestId).set({
-      userId,
-      requestId,
-      messages: messages.map((m) => ({
-        contactId: m.contactId,
-        contactName: m.contactName,
-        occasion: m.occasion,
-        channel: m.channel,
-        sentAt: m.sentAt,
-      })),
-      createdAt: new Date(),
-    });
+    await firestore
+      .collection(OUTREACH_COLLECTION)
+      .doc(requestId)
+      .set({
+        userId,
+        requestId,
+        messages: messages.map((m) => ({
+          contactId: m.contactId,
+          contactName: m.contactName,
+          occasion: m.occasion,
+          channel: m.channel,
+          sentAt: m.sentAt,
+        })),
+        createdAt: new Date(),
+      });
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save outreach history');
   }
@@ -1226,4 +1147,3 @@ export default {
   sendBatchMessages,
   getOutreachSuggestions,
 };
-

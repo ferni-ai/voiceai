@@ -207,7 +207,7 @@ describe('Data Types', () => {
         fireProgress: { medianPercentage: 25, averageYearsToFire: 18 },
         characteristics: {
           emergencyFundRate: 0.65,
-          automatedSavingsRate: 0.70,
+          automatedSavingsRate: 0.7,
           budgetTrackingRate: 0.55,
           indexFundRate: 0.68,
         },
@@ -372,9 +372,7 @@ describe('Data Types', () => {
         effectiveness: {
           timesShared: 1250,
           helpfulnessScore: 0.82,
-          memorableQuotes: [
-            'Be fearful when others are greedy, greedy when others are fearful',
-          ],
+          memorableQuotes: ['Be fearful when others are greedy, greedy when others are fearful'],
         },
         createdAt: new Date(),
       };
@@ -385,4 +383,3 @@ describe('Data Types', () => {
     });
   });
 });
-

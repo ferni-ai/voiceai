@@ -12,10 +12,26 @@
  * @module outbound-ssml
  */
 
-import { breakTag, emotionTag, speedTag } from '../../ssml/cartesia.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { getEmotionProfile } from '../../speech/voice-manager/config.js';
 import { getLogger } from '../../utils/safe-logger.js';
+
+// ============================================================================
+// SSML TAG HELPERS (inlined to avoid layer violation with ssml/)
+// ============================================================================
+
+function breakTag(time: string): string {
+  return `<break time="${time}"/>`;
+}
+
+function speedTag(ratio: number): string {
+  const clamped = Math.max(0.6, Math.min(1.5, ratio));
+  return `<speed ratio="${clamped.toFixed(2)}"/>`;
+}
+
+function emotionTag(emotion: string): string {
+  return `<emotion value="${emotion}"/>`;
+}
 
 const log = getLogger();
 
@@ -54,10 +70,7 @@ const CALL_TYPE_EMOTION_OVERRIDES: Record<string, string> = {
  * - Thoughtful pacing for important phrases (using persona's defaultSpeed)
  * - Closing warmth
  */
-export function enhanceOutboundMessage(
-  message: string,
-  options: OutboundSsmlOptions = {}
-): string {
+export function enhanceOutboundMessage(message: string, options: OutboundSsmlOptions = {}): string {
   const {
     personaId = 'ferni',
     callType = 'introduction',
@@ -91,9 +104,12 @@ export function enhanceOutboundMessage(
 
   // 3. Add breath pauses after names (first mention)
   // "Hey Sarah!" → "Hey Sarah!<break time='200ms'/>"
-  enhanced = enhanced.replace(/^(Hey|Hi|Hello)\s+([A-Z][a-z]+)([!,])/i, (match, greeting, name, punct) => {
-    return `${greeting} ${name}${punct}${breakTag('200ms')}`;
-  });
+  enhanced = enhanced.replace(
+    /^(Hey|Hi|Hello)\s+([A-Z][a-z]+)([!,])/i,
+    (match, greeting, name, punct) => {
+      return `${greeting} ${name}${punct}${breakTag('200ms')}`;
+    }
+  );
 
   // 4. Add thoughtful pauses before important phrases
   const thoughtfulPhrases = [
@@ -104,7 +120,7 @@ export function enhanceOutboundMessage(
     'no pressure',
     'take care',
     'thinking of you',
-    'I\'d love to',
+    "I'd love to",
     'I care about',
   ];
 
@@ -122,7 +138,7 @@ export function enhanceOutboundMessage(
     'thinking of you',
     'Hope to chat',
     'I care about you',
-    'you\'re not alone',
+    "you're not alone",
   ];
 
   // Calculate slowdown speed: 95% of persona's default speed (subtle but noticeable)
@@ -139,9 +155,9 @@ export function enhanceOutboundMessage(
 
   // 6. Add warmth shift for supportive phrases
   const supportivePhrases = [
-    'you\'re not alone',
-    'I\'m here',
-    'someone\'s in your corner',
+    "you're not alone",
+    "I'm here",
+    "someone's in your corner",
     'cares about you',
   ];
 
@@ -249,4 +265,3 @@ export function emphasize(text: string, speed?: number, personaId?: string): str
 
   return `${speedTag(effectiveSpeed)}${text}`;
 }
-

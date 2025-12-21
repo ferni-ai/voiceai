@@ -18,21 +18,43 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 
 // Services
-import { getTemplateForOccasion, generatePlainTextVersion } from '../../../services/contacts/rich-email-templates.js';
-import { generateGiftRecommendations, recordGiftGiven } from '../../../services/contacts/gift-suggestions.js';
+import {
+  getTemplateForOccasion,
+  generatePlainTextVersion,
+} from '../../../services/contacts/rich-email-templates.js';
+import {
+  generateGiftRecommendations,
+  recordGiftGiven,
+} from '../../../services/contacts/gift-suggestions.js';
 import {
   getTimingRecommendation,
   recordOutcome,
   getBatchTimingRecommendations,
 } from '../../../services/contacts/optimal-timing.js';
-import { generateVoiceMessage, initializeVoiceSynthesis, isVoiceSynthesisAvailable } from '../../../services/outreach/voice-synthesis.js';
+import {
+  generateVoiceMessage,
+  initializeVoiceSynthesis,
+  isVoiceSynthesisAvailable,
+} from '../../../services/outreach/voice-synthesis.js';
 import { importFromGoogle } from '../../../services/contacts.js';
-import { searchContacts, getContact, upsertContact } from '../../../services/contacts/contact-relationship-service.js';
-import { buildOutreachContext, generatePersonalizedMessage } from '../../../services/contacts/personalized-outreach.js';
+import {
+  searchContacts,
+  getContact,
+  upsertContact,
+} from '../../../services/contacts/contact-relationship-service.js';
+import {
+  buildOutreachContext,
+  generatePersonalizedMessage,
+} from '../../../services/contacts/personalized-outreach.js';
 import { sendEmail, sendSMS } from '../../../services/communication-service.js';
 
 // Types
-import type { OutreachOccasion, OutreachTone, EnhancedContact, BudgetRange } from '../../../services/contacts/types.js';
+import type {
+  OutreachOccasion,
+  OutreachTone,
+  EnhancedContact,
+  BudgetRange,
+} from '../../../services/contacts/types.js';
 
 const log = getLogger();
 
@@ -74,22 +96,19 @@ Perfect for more personal, warm communication.`,
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
             message: z.string().describe('The message to speak'),
-            persona: z.enum(['ferni', 'alex', 'maya', 'peter', 'jordan', 'nayan'])
+            persona: z
+              .enum(['ferni', 'alex', 'maya', 'peter', 'jordan', 'nayan'])
               .optional()
               .describe('Whose voice to use (default: ferni)'),
           }),
-          execute: async (params: {
-            contactName: string;
-            message: string;
-            persona?: string;
-          }) => {
+          execute: async (params: { contactName: string; message: string; persona?: string }) => {
             const userId = ctx.userId;
             if (!userId) {
               return 'I need to know who you are.';
             }
 
             if (!isVoiceSynthesisAvailable()) {
-              return 'Voice messages aren\'t configured yet. I\'ll send a text message instead.';
+              return "Voice messages aren't configured yet. I'll send a text message instead.";
             }
 
             // Find contact
@@ -146,10 +165,19 @@ Much nicer than plain text emails.`,
           description: 'Send a beautifully designed HTML email.',
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
-            occasion: z.enum([
-              'christmas', 'new_year', 'thanksgiving', 'birthday', 'anniversary',
-              'check_in', 'thinking_of_you', 'sympathy', 'congratulations'
-            ]).describe('The occasion for this email'),
+            occasion: z
+              .enum([
+                'christmas',
+                'new_year',
+                'thanksgiving',
+                'birthday',
+                'anniversary',
+                'check_in',
+                'thinking_of_you',
+                'sympathy',
+                'congratulations',
+              ])
+              .describe('The occasion for this email'),
             message: z.string().describe('The message content'),
             personalNote: z.string().optional().describe('Optional personal note to add'),
             age: z.number().optional().describe('Their age (for birthday)'),
@@ -245,13 +273,24 @@ Better than generic gift guides because it knows who they are.`,
           description: 'Get personalized gift suggestions for a contact.',
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
-            occasion: z.enum([
-              'christmas', 'new_year', 'birthday', 'anniversary',
-              'thanksgiving', 'congratulations', 'thinking_of_you', 'custom'
-            ]).describe('The occasion for the gift'),
-            budget: z.enum(['thoughtful', 'moderate', 'generous', 'splurge'])
+            occasion: z
+              .enum([
+                'christmas',
+                'new_year',
+                'birthday',
+                'anniversary',
+                'thanksgiving',
+                'congratulations',
+                'thinking_of_you',
+                'custom',
+              ])
+              .describe('The occasion for the gift'),
+            budget: z
+              .enum(['thoughtful', 'moderate', 'generous', 'splurge'])
               .optional()
-              .describe('Budget range: thoughtful (<$25), moderate ($25-75), generous ($75-150), splurge ($150+)'),
+              .describe(
+                'Budget range: thoughtful (<$25), moderate ($25-75), generous ($75-150), splurge ($150+)'
+              ),
           }),
           execute: async (params: {
             contactName: string;
@@ -289,8 +328,9 @@ Better than generic gift guides because it knows who they are.`,
             response += `Budget: ${params.budget || 'moderate'}\n\n`;
 
             if (recommendations.suggestions.length === 0) {
-              response += 'I need more information about their interests to give good suggestions. ';
-              response += 'Tell me what they\'re into and I\'ll have better ideas.';
+              response +=
+                'I need more information about their interests to give good suggestions. ';
+              response += "Tell me what they're into and I'll have better ideas.";
               return response;
             }
 
@@ -329,7 +369,8 @@ Better than generic gift guides because it knows who they are.`,
     {
       id: 'recordGift',
       name: 'Record Gift Given',
-      description: 'Record a gift you gave to someone (helps avoid suggesting the same thing again).',
+      description:
+        'Record a gift you gave to someone (helps avoid suggesting the same thing again).',
       domain: 'communication',
       tags: ['gifts', 'tracking', 'history'],
 
@@ -340,7 +381,8 @@ Better than generic gift guides because it knows who they are.`,
             contactName: z.string().describe('Name of the contact'),
             giftDescription: z.string().describe('What you gave them'),
             occasion: z.string().describe('The occasion (birthday, christmas, etc.)'),
-            reaction: z.enum(['loved_it', 'liked_it', 'neutral', 'not_their_thing'])
+            reaction: z
+              .enum(['loved_it', 'liked_it', 'neutral', 'not_their_thing'])
               .optional()
               .describe('How they reacted'),
           }),
@@ -374,7 +416,7 @@ Better than generic gift guides because it knows who they are.`,
             if (params.reaction) {
               response += ` They ${params.reaction.replace(/_/g, ' ')}.`;
             }
-            response += '\n\nI\'ll remember this for future suggestions.';
+            response += "\n\nI'll remember this for future suggestions.";
 
             return response;
           },
@@ -413,11 +455,7 @@ The more you use it, the smarter it gets.`,
 
             const contact = matches[0];
 
-            const recommendation = await getTimingRecommendation(
-              userId,
-              contact.id,
-              contact.name
-            );
+            const recommendation = await getTimingRecommendation(userId, contact.id, contact.name);
 
             let response = `Best time to reach ${contact.name}:\n\n`;
             response += `${recommendation.recommendedTimeLabel}\n\n`;
@@ -519,13 +557,19 @@ You choose the channel: email, text, or voice.`,
           description: 'Send a deeply personalized message to one person.',
           parameters: z.object({
             contactName: z.string().describe('Name of the person to message'),
-            purpose: z.string().describe('Why are you reaching out? (check-in, birthday, thank you, etc.)'),
-            channel: z.enum(['email', 'text', 'voice'])
+            purpose: z
+              .string()
+              .describe('Why are you reaching out? (check-in, birthday, thank you, etc.)'),
+            channel: z
+              .enum(['email', 'text', 'voice'])
               .optional()
-              .describe('How to send: email, text, or voice. Uses their preference if not specified.'),
-            customMessage: z.string()
+              .describe(
+                'How to send: email, text, or voice. Uses their preference if not specified.'
+              ),
+            customMessage: z
+              .string()
               .optional()
-              .describe('Optional: Your own message. If not provided, I\'ll draft one for you.'),
+              .describe("Optional: Your own message. If not provided, I'll draft one for you."),
           }),
           execute: async (params: {
             contactName: string;
@@ -545,7 +589,8 @@ You choose the channel: email, text, or voice.`,
             }
 
             const contact = matches[0];
-            const channel = params.channel || (contact.preferredChannel as 'email' | 'text') || 'email';
+            const channel =
+              params.channel || (contact.preferredChannel as 'email' | 'text') || 'email';
 
             // Check we have the required contact info
             if (channel === 'email' && !contact.email) {
@@ -562,7 +607,10 @@ You choose the channel: email, text, or voice.`,
             // If no custom message, generate one
             if (!message && context) {
               // Add purpose to context for better message generation
-              const contextWithPurpose = { ...context, occasion: params.purpose as OutreachOccasion };
+              const contextWithPurpose = {
+                ...context,
+                occasion: params.purpose as OutreachOccasion,
+              };
               message = generatePersonalizedMessage(contextWithPurpose);
             }
 
@@ -574,7 +622,7 @@ You choose the channel: email, text, or voice.`,
             try {
               if (channel === 'voice') {
                 if (!isVoiceSynthesisAvailable()) {
-                  return 'Voice messages aren\'t configured. Should I send a text instead?';
+                  return "Voice messages aren't configured. Should I send a text instead?";
                 }
 
                 const voiceMsg = await generateVoiceMessage({
@@ -617,7 +665,6 @@ You choose the channel: email, text, or voice.`,
               });
 
               return `Sent email to ${contact.name}.\n\nSubject: ${subject}\nMessage: "${message}"`;
-
             } catch (error) {
               log.error({ error: String(error), channel }, 'Failed to send message');
               return `Had trouble sending that: ${String(error)}`;
@@ -659,7 +706,7 @@ You choose the channel: email, text, or voice.`,
             }
 
             if (contacts.length === 0) {
-              return 'Couldn\'t find any of those contacts.';
+              return "Couldn't find any of those contacts.";
             }
 
             const recommendations = await getBatchTimingRecommendations(userId, contacts);
@@ -695,4 +742,3 @@ You choose the channel: email, text, or voice.`,
 export default {
   getEnhancedOutreachToolDefinitions,
 };
-

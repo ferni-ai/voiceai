@@ -272,7 +272,10 @@ export async function publishMilestoneCelebration(
     });
 
     if (result.success) {
-      log.info({ userId, habitName, days, triggerId: result.triggerId }, 'Milestone celebration published');
+      log.info(
+        { userId, habitName, days, triggerId: result.triggerId },
+        'Milestone celebration published'
+      );
     }
 
     return result.success;
@@ -289,9 +292,7 @@ export async function publishMilestoneCelebration(
 /**
  * Generate weekly habit review data
  */
-export async function generateWeeklyReviewData(
-  userId: string
-): Promise<{
+export async function generateWeeklyReviewData(userId: string): Promise<{
   totalHabits: number;
   completedThisWeek: number;
   missedThisWeek: number;
@@ -445,7 +446,9 @@ export async function publishWeeklyReviewTrigger(userId: string): Promise<boolea
  */
 export async function checkSetbackRecoveryNeeded(
   userId: string
-): Promise<Array<{ habitId: string; habitName: string; daysMissed: number; previousStreak: number }>> {
+): Promise<
+  Array<{ habitId: string; habitName: string; daysMissed: number; previousStreak: number }>
+> {
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
@@ -456,7 +459,12 @@ export async function checkSetbackRecoveryNeeded(
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const needsRecovery: Array<{ habitId: string; habitName: string; daysMissed: number; previousStreak: number }> = [];
+    const needsRecovery: Array<{
+      habitId: string;
+      habitName: string;
+      daysMissed: number;
+      previousStreak: number;
+    }> = [];
 
     for (const habit of habits) {
       const habitLogs = logs
@@ -638,7 +646,4 @@ export const MAYA_SETBACK_MESSAGES: string[] = [
 // EXPORTS
 // ============================================================================
 
-export {
-  CONFIG as MAYA_HABIT_OUTREACH_CONFIG,
-};
-
+export { CONFIG as MAYA_HABIT_OUTREACH_CONFIG };

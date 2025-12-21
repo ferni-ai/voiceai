@@ -23,5 +23,8 @@ export type {
   BehaviorState,
 } from '../../../types/behavior-types.js';
 
-export { SILENCE_DURATIONS, PACING_MULTIPLIERS, PAUSE_MULTIPLIERS } from '../../../types/behavior-types.js';
-
+export {
+  SILENCE_DURATIONS,
+  PACING_MULTIPLIERS,
+  PAUSE_MULTIPLIERS,
+} from '../../../types/behavior-types.js';

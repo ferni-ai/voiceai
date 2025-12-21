@@ -504,4 +504,3 @@ function generateCelebration(profile: GamificationProfile): string {
 // ============================================================================
 
 export default createGamificationToolsV2;
-

@@ -16,4 +16,3 @@ export {
   createSuggestion,
   getSuggestions,
 } from './storage.js';
-

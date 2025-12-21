@@ -148,9 +148,8 @@ export async function initConversationSession(
     if (config.personaId === 'ferni') {
       // Ferni has the full "Better Than Human" personality system
       try {
-        const { prewarmPersonalitySession } = await import(
-          '../../personas/bundles/ferni/personality-integration.js'
-        );
+        const { prewarmPersonalitySession } =
+          await import('../../personas/bundles/ferni/personality-integration.js');
         void prewarmPersonalitySession(config.userId, {
           relationshipStage: config.relationshipStage,
         });
@@ -162,9 +161,8 @@ export async function initConversationSession(
       // This queues proactive insights like birthdays, growth celebrations, etc.
       if (config.userId && config.userProfile?.humanMemory) {
         try {
-          const { initializeMemoryCallbacks } = await import(
-            '../../personas/bundles/ferni/superhuman-memory-integration.js'
-          );
+          const { initializeMemoryCallbacks } =
+            await import('../../personas/bundles/ferni/superhuman-memory-integration.js');
           // Pass actual humanMemory for callback generation
           void initializeMemoryCallbacks(
             config.userId,
@@ -181,9 +179,8 @@ export async function initConversationSession(
     } else {
       // Other personas use the shared LLM expression system
       try {
-        const { prewarmPersonaExpressions, hasPersonaExpressionSupport } = await import(
-          '../../personas/shared/persona-llm-expressions.js'
-        );
+        const { prewarmPersonaExpressions, hasPersonaExpressionSupport } =
+          await import('../../personas/shared/persona-llm-expressions.js');
         if (hasPersonaExpressionSupport(config.personaId)) {
           const hour = new Date().getHours();
           const timeOfDay =

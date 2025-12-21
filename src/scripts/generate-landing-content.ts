@@ -37,20 +37,22 @@ async function main() {
 
   try {
     switch (mode) {
-      case 'heroes':
+      case 'heroes': {
         console.log('📝 Generating hero variations...');
         const heroCount = await generateAndCacheHeroes();
         console.log(`✅ Generated ${heroCount} hero variations`);
         break;
+      }
 
-      case 'social':
+      case 'social': {
         console.log('💬 Generating social proof messages...');
         const socialCount = await generateAndCacheSocialProof();
         console.log(`✅ Generated ${socialCount} social proof messages`);
         break;
+      }
 
       case 'all':
-      default:
+      default: {
         console.log('🚀 Generating all content...');
         console.log('');
 
@@ -74,6 +76,7 @@ async function main() {
         console.log('║  Edge cache headers set for CDN distribution                 ║');
         console.log('╚══════════════════════════════════════════════════════════════╝');
         break;
+      }
     }
 
     console.log('');
@@ -93,4 +96,4 @@ async function main() {
   }
 }
 
-main();
+void main();

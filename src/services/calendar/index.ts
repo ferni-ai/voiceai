@@ -152,7 +152,4 @@ export async function isConnected(userId: string): Promise<boolean> {
 
 // Re-export the old calendar-service functions for gradual migration
 // These will be deprecated once all tools are updated
-export {
-  formatEventForSpeech,
-  formatDayOverviewForSpeech,
-} from './calendar-service.js';
+export { formatEventForSpeech, formatDayOverviewForSpeech } from './calendar-service.js';

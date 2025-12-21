@@ -336,6 +336,101 @@ export function addCulturalAuthenticity(text: string, _emotion: string): string 
 }
 
 // =============================================================================
+// CONTEMPLATIVE THINKING
+// =============================================================================
+
+/**
+ * Add contemplative thinking sounds and pauses
+ * Nayan's thinking is meditative - he creates space for reflection
+ * Different from other personas: longer pauses, fewer words
+ */
+export function addContemplativeThinking(text: string, _emotion: string): string {
+  let result = text;
+
+  const contemplativePatterns = [
+    { pattern: /\b(hmm)\b/gi, pause: 400, speed: 0.72 },
+    { pattern: /\b(well)\b(?=,|\s*\.)/gi, pause: 350, speed: 0.75 },
+    { pattern: /\b(you see)\b/gi, pause: 300, speed: 0.78 },
+    { pattern: /\b(let me (ask|put it))\b/gi, pause: 350, speed: 0.75 },
+    { pattern: /\b(consider this)\b/gi, pause: 400, speed: 0.72 },
+    { pattern: /\b(interesting)\b/gi, pause: 300, speed: 0.78 },
+  ];
+
+  contemplativePatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// PRESENCE ACKNOWLEDGMENT
+// =============================================================================
+
+/**
+ * Add presence-based acknowledgment
+ * Nayan doesn't say "I understand" - he creates space and mirrors back
+ * This is his form of active listening: silence and reflection
+ */
+export function addPresenceAcknowledgment(text: string, _emotion: string): string {
+  let result = text;
+
+  const presencePhrases = [
+    { pattern: /\b(i hear you)\b/gi, pause: 350, speed: 0.75, volume: 0.95 },
+    {
+      pattern: /\b(that is (significant|important|real))\b/gi,
+      pause: 300,
+      speed: 0.78,
+      volume: 0.98,
+    },
+    { pattern: /\b(yes)\b(?=\.|,)/gi, pause: 400, speed: 0.7, volume: 0.95 },
+    { pattern: /\b(stay with that)\b/gi, pause: 350, speed: 0.75, volume: 0.95 },
+    { pattern: /\b(feel (that|it))\b/gi, pause: 300, speed: 0.75, volume: 0.95 },
+    { pattern: /\b(allow it)\b/gi, pause: 350, speed: 0.72, volume: 0.95 },
+  ];
+
+  presencePhrases.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="affectionate"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// EMOTIONAL DEPTHS
+// =============================================================================
+
+/**
+ * Add gentle presence for emotional moments
+ * Nayan doesn't comfort with words - he creates space for feeling
+ */
+export function addEmotionalDepths(text: string, _emotion: string): string {
+  let result = text;
+
+  const emotionalPhrases = [
+    { pattern: /\b(pain is)\b/gi, pause: 300, speed: 0.72, volume: 0.92 },
+    { pattern: /\b(suffering)\b/gi, pause: 250, speed: 0.75, volume: 0.92 },
+    { pattern: /\b(the heart (knows|feels|remembers))\b/gi, pause: 350, speed: 0.72, volume: 0.92 },
+    { pattern: /\b(let it (be|move|pass))\b/gi, pause: 400, speed: 0.7, volume: 0.9 },
+    { pattern: /\b(grief|loss|death)\b/gi, pause: 350, speed: 0.7, volume: 0.9 },
+    { pattern: /\b(resistance creates suffering)\b/gi, pause: 400, speed: 0.7, volume: 0.9 },
+    { pattern: /\b(be with (this|it|what is))\b/gi, pause: 400, speed: 0.72, volume: 0.92 },
+  ];
+
+  emotionalPhrases.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="sympathetic"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
 // MAIN PROCESSOR
 // =============================================================================
 
@@ -344,6 +439,15 @@ export function addCulturalAuthenticity(text: string, _emotion: string): string 
  *
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Nayan's unique speech patterns to the text.
+ *
+ * Processing order:
+ * 1. Check for emotional content first (presence, not fixing)
+ * 2. Apply contemplative thinking and presence acknowledgment
+ * 3. Apply signature phrases and teaching style
+ * 4. Add lightness and cultural elements
+ *
+ * NOTE: Nayan uses SILENCE as active listening - he doesn't need
+ * injected "mm-hmm" sounds. His presence is felt through space.
  *
  * @param text - The text to process
  * @param emotion - The detected emotion
@@ -359,21 +463,33 @@ export function applyNayanPatelSpeechTraits(
 ): string {
   let processedText = text;
 
-  // TIER 1: SIGNATURE PRESENCE
+  // TIER 0: EMOTIONAL DEPTHS (Check first - presence, not fixing)
+  const isEmotionalContent = /\b(grief|pain|suffering|loss|death|fear|anxious|scared)\b/i.test(
+    text
+  );
+  if (isEmotionalContent || emotion === 'sad' || emotion === 'sympathetic') {
+    processedText = addEmotionalDepths(processedText, emotion);
+  }
+
+  // TIER 1: CONTEMPLATIVE HUMANIZATION
+  processedText = addContemplativeThinking(processedText, emotion);
+  processedText = addPresenceAcknowledgment(processedText, emotion);
+
+  // TIER 2: SIGNATURE PRESENCE
   processedText = addCatchphraseEmphasis(processedText, emotion);
   processedText = addPhilosophicalVocabulary(processedText, emotion);
   processedText = addProfoundPauses(processedText, emotion);
 
-  // TIER 2: TEACHING STYLE
+  // TIER 3: TEACHING STYLE
   processedText = addParadoxEmphasis(processedText, emotion);
   processedText = addStorytellingMode(processedText, emotion);
   processedText = addChallengingDirectness(processedText, emotion);
 
-  // TIER 3: LIGHTNESS & PRESENCE
+  // TIER 4: LIGHTNESS & PRESENCE
   processedText = addLaughterLightness(processedText, emotion);
   processedText = addPresenceReferences(processedText, emotion);
 
-  // TIER 4: CULTURAL AUTHENTICITY
+  // TIER 5: CULTURAL AUTHENTICITY
   processedText = addCulturalAuthenticity(processedText, emotion);
 
   return processedText;
@@ -399,4 +515,10 @@ export const NAYAN_PATEL_SPEECH_CONFIG = {
   maxPauseDuration: 1000,
   /** Whether to use silence as teaching tool */
   silenceAsTeaching: true,
+  /** Whether to enable contemplative thinking sounds */
+  enableContemplativeThinking: true,
+  /** Whether to enable presence acknowledgment */
+  enablePresenceAcknowledgment: true,
+  /** Whether to enable emotional depths handling */
+  enableEmotionalDepths: true,
 } as const;

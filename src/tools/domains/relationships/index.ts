@@ -20,7 +20,10 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { generateToolQuestions, formatQuestionsForResponse } from '../../utils/dynamic-tool-questions.js';
+import {
+  generateToolQuestions,
+  formatQuestionsForResponse,
+} from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // RELATIONSHIP HEALTH TOOLS
 // ============================================================================
@@ -55,10 +58,13 @@ const assessRelationshipHealthDef: ToolDefinition = {
         const generated = generateToolQuestions({
           personaId: ctx.agentId,
           domain: 'relationships',
-          focus: specificConcern?.toLowerCase().includes('trust') ? 'trust' :
-                 specificConcern?.toLowerCase().includes('communicat') ? 'communication' :
-                 specificConcern?.toLowerCase().includes('conflict') ? 'conflict' :
-                 'connection',
+          focus: specificConcern?.toLowerCase().includes('trust')
+            ? 'trust'
+            : specificConcern?.toLowerCase().includes('communicat')
+              ? 'communication'
+              : specificConcern?.toLowerCase().includes('conflict')
+                ? 'conflict'
+                : 'connection',
           specificContext: personName,
           emotionalTone: 'gentle',
         });

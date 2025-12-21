@@ -428,10 +428,7 @@ export async function saveCommitment(commitment: Commitment): Promise<void> {
       .doc(commitment.id)
       .set(commitmentData);
 
-    log.info(
-      { userId: commitment.userId, commitmentId: commitment.id },
-      '💫 Commitment saved'
-    );
+    log.info({ userId: commitment.userId, commitmentId: commitment.id }, '💫 Commitment saved');
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to save commitment');
   }
@@ -464,12 +461,12 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
         createdAt: new Date(data.createdAt as string),
         lastMentioned: new Date(data.lastMentioned as string),
         followUpDate: data.followUpDate ? new Date(data.followUpDate as string) : null,
-        progressNotes: ((data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []).map(
-          (note) => ({
-            ...note,
-            date: new Date(note.date),
-          })
-        ),
+        progressNotes: (
+          (data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []
+        ).map((note) => ({
+          ...note,
+          date: new Date(note.date),
+        })),
       } as Commitment;
     });
   } catch (err) {
@@ -507,12 +504,12 @@ export async function getCommitmentsDueForFollowUp(userId: string): Promise<Comm
         createdAt: new Date(data.createdAt as string),
         lastMentioned: new Date(data.lastMentioned as string),
         followUpDate: data.followUpDate ? new Date(data.followUpDate as string) : null,
-        progressNotes: ((data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []).map(
-          (note) => ({
-            ...note,
-            date: new Date(note.date),
-          })
-        ),
+        progressNotes: (
+          (data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []
+        ).map((note) => ({
+          ...note,
+          date: new Date(note.date),
+        })),
       } as Commitment;
     });
   } catch (err) {
@@ -543,7 +540,11 @@ export async function updateCommitmentStatus(
 
     if (note) {
       // We need to add to progressNotes array
-      const docRef = db.collection(COLLECTION).doc(userId).collection('commitments').doc(commitmentId);
+      const docRef = db
+        .collection(COLLECTION)
+        .doc(userId)
+        .collection('commitments')
+        .doc(commitmentId);
       const doc = await docRef.get();
       if (doc.exists) {
         const data = doc.data();
@@ -647,9 +648,7 @@ export async function processCommitments(
 
   for (const d of detected) {
     // Check if similar commitment already exists
-    const exists = existingCommitments.some(
-      (c) => isCommitmentRelated(c.content, d.content)
-    );
+    const exists = existingCommitments.some((c) => isCommitmentRelated(c.content, d.content));
 
     if (!exists) {
       const commitment: Commitment = {
@@ -727,4 +726,3 @@ export function generateFollowUpPhrase(commitment: Commitment): string {
 }
 
 // Types are already exported at definition - no need to re-export
-

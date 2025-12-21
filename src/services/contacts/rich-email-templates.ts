@@ -36,10 +36,13 @@ const COLORS = {
 // BASE TEMPLATE
 // ============================================================================
 
-function baseTemplate(content: string, options: {
-  accentColor?: string;
-  previewText?: string;
-} = {}): string {
+function baseTemplate(
+  content: string,
+  options: {
+    accentColor?: string;
+    previewText?: string;
+  } = {}
+): string {
   const { accentColor = COLORS.ferni, previewText = '' } = options;
 
   return `<!DOCTYPE html>
@@ -506,4 +509,3 @@ export const emailTemplates = {
 };
 
 export default emailTemplates;
-

@@ -84,7 +84,14 @@
       "id": "deep-financial-analysis",
       "topic": "Deep Financial Analysis",
       "file": "deep-financial-analysis.md",
-      "domains": ["finance", "behavioral-finance", "net-worth", "spending", "investing", "retirement"],
+      "domains": [
+        "finance",
+        "behavioral-finance",
+        "net-worth",
+        "spending",
+        "investing",
+        "retirement"
+      ],
       "priority": "high",
       "description": "Quant-level financial analysis: behavioral finance profiles, cash flow intelligence, spending DNA, investment behavior, financial stress, FI trajectory, tax efficiency"
     }
@@ -111,24 +118,24 @@
       "invest-in-what-you-know",
       "personal-life-research"
     ],
-    "proactive-intelligence": ["proactive-discovery", "pattern-recognition-techniques", "coaching-analytics"],
-    "goal-insight-connection": ["cross-domain-analysis", "proactive-discovery", "coaching-analytics"],
-    "behavioral-economics": ["behavioral-economics", "deep-financial-analysis"],
-    "personal-research": [
-      "personal-life-research",
-      "coaching-analytics",
-      "cross-domain-analysis"
+    "proactive-intelligence": [
+      "proactive-discovery",
+      "pattern-recognition-techniques",
+      "coaching-analytics"
     ],
+    "goal-insight-connection": [
+      "cross-domain-analysis",
+      "proactive-discovery",
+      "coaching-analytics"
+    ],
+    "behavioral-economics": ["behavioral-economics", "deep-financial-analysis"],
+    "personal-research": ["personal-life-research", "coaching-analytics", "cross-domain-analysis"],
     "financial-deep-dive": [
       "deep-financial-analysis",
       "behavioral-economics",
       "research-frameworks"
     ],
-    "coaching-research": [
-      "coaching-analytics",
-      "behavioral-economics",
-      "personal-life-research"
-    ],
+    "coaching-research": ["coaching-analytics", "behavioral-economics", "personal-life-research"],
     "life-trajectory": [
       "personal-life-research",
       "coaching-analytics",

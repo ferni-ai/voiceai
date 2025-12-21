@@ -261,7 +261,7 @@ describe('Phase 1.7: Cross-Session Memory', () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const module = await import('../services/music-intelligence/music-memory-persistence.js');
+    const module = await import('../services/musical-you/memory-persistence.js');
     musicMemoryToPreferences = module.musicMemoryToPreferences;
     preferencesToMusicMemory = module.preferencesToMusicMemory;
   });

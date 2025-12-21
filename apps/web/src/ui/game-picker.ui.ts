@@ -27,6 +27,8 @@ interface GameOption {
   icon: string;
   difficulty: 'easy' | 'medium' | 'hard';
   duration: string;
+  category: 'music' | 'text' | 'library';
+  requiresSpotify?: boolean;
 }
 
 // ============================================================================
@@ -42,9 +44,19 @@ const ICONS = {
   headphones: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>`,
   gamepad: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>`,
   lightbulb: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
+  // New icons for additional games
+  mic: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`,
+  clock: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  grid: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>`,
+  helpCircle: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
+  link: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  scale: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>`,
+  book: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
+  spotify: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 11.973c2.5-1.473 5.5-.973 7.5.527"/><path d="M9 15c1.5-1 3.5-.5 4.5.5"/><path d="M7 8.959c3.5-2 7-1.5 9.5 1.041"/></svg>`,
 };
 
-const GAMES: GameOption[] = [
+// Music Games - Main category
+const MUSIC_GAMES: GameOption[] = [
   {
     id: 'name-that-tune',
     name: 'Name That Tune',
@@ -52,6 +64,7 @@ const GAMES: GameOption[] = [
     icon: ICONS.music,
     difficulty: 'medium',
     duration: '3-5 min',
+    category: 'music',
   },
   {
     id: 'one-word-song',
@@ -60,6 +73,7 @@ const GAMES: GameOption[] = [
     icon: ICONS.messageCircle,
     difficulty: 'easy',
     duration: '2-3 min',
+    category: 'music',
   },
   {
     id: 'desert-island-discs',
@@ -68,6 +82,7 @@ const GAMES: GameOption[] = [
     icon: ICONS.palmtree,
     difficulty: 'easy',
     duration: '5-10 min',
+    category: 'music',
   },
   {
     id: 'this-or-that',
@@ -76,6 +91,7 @@ const GAMES: GameOption[] = [
     icon: ICONS.zap,
     difficulty: 'easy',
     duration: '2-3 min',
+    category: 'music',
   },
   {
     id: 'mood-dj-challenge',
@@ -84,8 +100,103 @@ const GAMES: GameOption[] = [
     icon: ICONS.headphones,
     difficulty: 'medium',
     duration: '3-5 min',
+    category: 'music',
+  },
+  {
+    id: 'finish-the-lyric',
+    name: 'Finish the Lyric',
+    description: 'Complete famous song lyrics. Test your music knowledge!',
+    icon: ICONS.mic,
+    difficulty: 'medium',
+    duration: '3-5 min',
+    category: 'music',
+  },
+  {
+    id: 'decade-challenge',
+    name: 'Decade Challenge',
+    description: 'Guess the decade from the sound. 60s, 70s, 80s, 90s, or 2000s?',
+    icon: ICONS.clock,
+    difficulty: 'medium',
+    duration: '3-5 min',
+    category: 'music',
   },
 ];
+
+// Text Games - Fun non-music games
+const TEXT_GAMES: GameOption[] = [
+  {
+    id: 'tic-tac-toe',
+    name: 'Tic-Tac-Toe',
+    description: 'Classic 3x3 game! Say positions like "center" or "top left".',
+    icon: ICONS.grid,
+    difficulty: 'easy',
+    duration: '2-3 min',
+    category: 'text',
+  },
+  {
+    id: '20-questions',
+    name: '20 Questions',
+    description: 'Think of something. I have 20 yes/no questions to guess it!',
+    icon: ICONS.helpCircle,
+    difficulty: 'medium',
+    duration: '5-10 min',
+    category: 'text',
+  },
+  {
+    id: 'word-association',
+    name: 'Word Association',
+    description: 'Quick word chains! Say the first word that comes to mind.',
+    icon: ICONS.link,
+    difficulty: 'easy',
+    duration: '2-3 min',
+    category: 'text',
+  },
+  {
+    id: 'would-you-rather',
+    name: 'Would You Rather',
+    description: 'Fun dilemmas! Pick between two hypothetical scenarios.',
+    icon: ICONS.scale,
+    difficulty: 'easy',
+    duration: '3-5 min',
+    category: 'text',
+  },
+  {
+    id: 'story-builder',
+    name: 'Story Builder',
+    description: "Let's create a story together, one sentence at a time!",
+    icon: ICONS.book,
+    difficulty: 'easy',
+    duration: '5-10 min',
+    category: 'text',
+  },
+];
+
+// Library Games - Spotify integration required
+const LIBRARY_GAMES: GameOption[] = [
+  {
+    id: 'library-name-that-tune',
+    name: 'Your Library Mix',
+    description: 'Name songs from YOUR Spotify library. Personal challenge!',
+    icon: ICONS.spotify,
+    difficulty: 'medium',
+    duration: '3-5 min',
+    category: 'library',
+    requiresSpotify: true,
+  },
+  {
+    id: 'library-deep-cuts',
+    name: 'Deep Cuts Challenge',
+    description: 'Remember those songs you saved ages ago? Time to prove it!',
+    icon: ICONS.spotify,
+    difficulty: 'hard',
+    duration: '5-7 min',
+    category: 'library',
+    requiresSpotify: true,
+  },
+];
+
+// All games combined for backward compatibility
+const GAMES: GameOption[] = [...MUSIC_GAMES, ...TEXT_GAMES, ...LIBRARY_GAMES];
 
 // ============================================================================
 // GAME PICKER UI CLASS
@@ -155,7 +266,7 @@ class GamePickerUI {
       <div class="game-picker__content">
         <header class="game-picker__header">
           <span class="game-picker__eyebrow">LET'S PLAY</span>
-          <h2 class="game-picker__title">Music Games</h2>
+          <h2 class="game-picker__title">Games</h2>
           <p class="game-picker__subtitle">Pick a game to play together</p>
           <button class="game-picker__close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -165,8 +276,41 @@ class GamePickerUI {
           </button>
         </header>
         
+        <!-- Category Tabs -->
+        <div class="game-picker__tabs">
+          <button class="game-picker__tab game-picker__tab--active" data-category="music">
+            ${ICONS.music}
+            <span>Music</span>
+          </button>
+          <button class="game-picker__tab" data-category="text">
+            ${ICONS.gamepad}
+            <span>Fun</span>
+          </button>
+          <button class="game-picker__tab" data-category="library">
+            ${ICONS.spotify}
+            <span>Your Library</span>
+          </button>
+        </div>
+        
         <div class="game-picker__games">
-          ${GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
+          <!-- Music Games Section -->
+          <div class="game-picker__section game-picker__section--active" data-section="music">
+            ${MUSIC_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
+          </div>
+          
+          <!-- Text Games Section -->
+          <div class="game-picker__section" data-section="text">
+            ${TEXT_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
+          </div>
+          
+          <!-- Library Games Section -->
+          <div class="game-picker__section" data-section="library">
+            <div class="game-picker__library-notice">
+              <p>Play games using YOUR Spotify library!</p>
+              <p class="game-picker__library-hint">Connect Spotify to unlock these personalized games.</p>
+            </div>
+            ${LIBRARY_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
+          </div>
         </div>
         
         <footer class="game-picker__footer">
@@ -197,11 +341,19 @@ class GamePickerUI {
       hard: 'var(--color-warning)',
     };
     
+    const spotifyBadge = game.requiresSpotify 
+      ? `<span class="game-card__badge game-card__badge--spotify">Spotify</span>` 
+      : '';
+    
+    const newBadge = (game.id === 'finish-the-lyric' || game.id === 'decade-challenge')
+      ? `<span class="game-card__badge game-card__badge--new">New</span>`
+      : '';
+    
     return `
-      <button class="game-card" data-game="${game.id}" style="animation-delay: ${index * 50}ms">
+      <button class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
-          <h3 class="game-card__name">${game.name}</h3>
+          <h3 class="game-card__name">${game.name}${newBadge}${spotifyBadge}</h3>
           <p class="game-card__description">${game.description}</p>
           <div class="game-card__meta">
             <span class="game-card__difficulty" style="color: ${difficultyColors[game.difficulty]}">
@@ -233,12 +385,23 @@ class GamePickerUI {
       this.hide();
     });
     
+    // Tab switching
+    modal.querySelectorAll('.game-picker__tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const category = (tab as HTMLElement).dataset.category;
+        if (category) {
+          this.switchCategory(modal, category);
+        }
+      });
+    });
+    
     // Game cards
     modal.querySelectorAll('.game-card').forEach(card => {
       card.addEventListener('click', () => {
         const gameId = (card as HTMLElement).dataset.game;
+        const gameCategory = (card as HTMLElement).dataset.category;
         if (gameId) {
-          this.startGame(gameId);
+          this.startGame(gameId, gameCategory);
         }
       });
     });
@@ -257,6 +420,23 @@ class GamePickerUI {
     };
     document.addEventListener('keydown', handleEscape);
   }
+  
+  /**
+   * Switch between game categories
+   */
+  private switchCategory(modal: HTMLElement, category: string): void {
+    // Update tabs
+    modal.querySelectorAll('.game-picker__tab').forEach(tab => {
+      tab.classList.toggle('game-picker__tab--active', (tab as HTMLElement).dataset.category === category);
+    });
+    
+    // Update sections
+    modal.querySelectorAll('.game-picker__section').forEach(section => {
+      section.classList.toggle('game-picker__section--active', (section as HTMLElement).dataset.section === category);
+    });
+    
+    log.debug({ category }, '🎮 Switched game category');
+  }
 
   /**
    * Show help modal with game instructions
@@ -274,8 +454,10 @@ class GamePickerUI {
           </button>
           <h2 class="game-help-modal__title">
             <span class="game-help-modal__icon">${ICONS.gamepad}</span>
-            How to Play Music Games
+            How to Play Games
           </h2>
+          
+          <h3 class="game-help-category">🎵 Music Games</h3>
           
           <section class="game-help-section">
             <h3><span class="game-help-section__icon">${ICONS.music}</span> Name That Tune</h3>
@@ -288,39 +470,62 @@ class GamePickerUI {
           </section>
           
           <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.mic}</span> Finish the Lyric</h3>
+            <p>Complete famous song lyrics. I'll give you the start, you finish it!</p>
+            <ul>
+              <li>Say the word or phrase that completes the lyric</li>
+              <li>Hints available if you're stuck</li>
+            </ul>
+          </section>
+          
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.clock}</span> Decade Challenge</h3>
+            <p>Guess what decade a song is from - 60s, 70s, 80s, 90s, or 2000s?</p>
+            <ul>
+              <li>Listen to the production style and sound</li>
+              <li>Partial credit for being one decade off!</li>
+            </ul>
+          </section>
+          
+          <section class="game-help-section">
             <h3><span class="game-help-section__icon">${ICONS.messageCircle}</span> One Word Song</h3>
             <p>I give you a word, you think of a song with that word in the title.</p>
-            <ul>
-              <li>Any song with the word counts!</li>
-              <li>Bonus points for creative picks</li>
-            </ul>
           </section>
           
           <section class="game-help-section">
             <h3><span class="game-help-section__icon">${ICONS.palmtree}</span> Desert Island Discs</h3>
             <p>Pick 5 songs to take with you to a desert island. Tell me why each one matters.</p>
+          </section>
+          
+          <h3 class="game-help-category">🎮 Fun Games</h3>
+          
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.grid}</span> Tic-Tac-Toe</h3>
+            <p>Classic 3x3 game! Just say positions like "center", "top left", or "bottom right".</p>
             <ul>
-              <li>No wrong answers - it's about your story</li>
-              <li>We'll play each song together</li>
+              <li>You're X, I'm O</li>
+              <li>Choose difficulty: easy, medium, or hard</li>
             </ul>
           </section>
           
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.zap}</span> This or That</h3>
-            <p>Quick choices between two songs. Which speaks to you more?</p>
-            <ul>
-              <li>Fast-paced and fun</li>
-              <li>Helps me learn your taste!</li>
-            </ul>
+            <h3><span class="game-help-section__icon">${ICONS.helpCircle}</span> 20 Questions</h3>
+            <p>Think of something. I have 20 yes/no questions to guess what it is!</p>
           </section>
           
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.headphones}</span> Mood DJ Challenge</h3>
-            <p>I give you a mood, you pick the perfect song for it.</p>
-            <ul>
-              <li>Be creative with your picks</li>
-              <li>Explain your choice for bonus fun</li>
-            </ul>
+            <h3><span class="game-help-section__icon">${ICONS.link}</span> Word Association</h3>
+            <p>Quick word chains! I say a word, you say the first thing that comes to mind.</p>
+          </section>
+          
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.scale}</span> Would You Rather</h3>
+            <p>Fun dilemmas! Pick between two hypothetical scenarios and tell me why.</p>
+          </section>
+          
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.book}</span> Story Builder</h3>
+            <p>Let's create a story together! We take turns adding one sentence at a time.</p>
           </section>
           
           <div class="game-help-tip">
@@ -346,13 +551,42 @@ class GamePickerUI {
   }
 
   /**
+   * Check if Spotify library is available for library games
+   */
+  private async checkLibraryAvailability(): Promise<{ available: boolean; reason?: string }> {
+    try {
+      const { getFirebaseUid } = await import('../services/firebase-auth.service.js');
+      const userId = getFirebaseUid();
+      
+      if (!userId) {
+        return { available: false, reason: 'Sign in to unlock library games' };
+      }
+
+      const response = await fetch(`/api/games/library/availability?userId=${userId}`);
+      const data = await response.json();
+      
+      if (data.success && data.available) {
+        return { available: true };
+      }
+      
+      return { 
+        available: false, 
+        reason: data.reason || 'Connect Spotify to play from your library' 
+      };
+    } catch (error) {
+      log.warn({ error }, '🎮 Failed to check library availability');
+      return { available: false, reason: 'Connect Spotify to unlock library games' };
+    }
+  }
+
+  /**
    * Start a game via the voice agent
    */
-  private async startGame(gameId: string): Promise<void> {
+  private async startGame(gameId: string, category?: string): Promise<void> {
     const game = GAMES.find(g => g.id === gameId);
     if (!game) return;
     
-    log.info({ gameId }, '🎮 Starting game');
+    log.info({ gameId, category }, '🎮 Starting game');
     
     // Show loading state
     const card = this.container?.querySelector(`[data-game="${gameId}"]`);
@@ -361,6 +595,21 @@ class GamePickerUI {
     }
     
     try {
+      // For library games, check availability first
+      const isLibraryGame = game.requiresSpotify || category === 'library' || game.category === 'library';
+      
+      if (isLibraryGame) {
+        const availability = await this.checkLibraryAvailability();
+        if (!availability.available) {
+          log.warn({ gameId, reason: availability.reason }, '🎮 Library not available');
+          this.showError(availability.reason || 'Connect Spotify to play library games');
+          if (card) {
+            card.classList.remove('game-card--loading');
+          }
+          return;
+        }
+      }
+
       const { connectionService } = await import('../services/connection.service.js');
       const roomState = connectionService.getRoomState();
       const room = connectionService.getRoom();
@@ -380,14 +629,30 @@ class GamePickerUI {
         return;
       }
 
+      // Determine the correct message type based on category
+      const isTextGame = category === 'text' || game.category === 'text';
+      
+      // Map library game IDs to actual game types
+      let actualGameType = gameId;
+      if (isLibraryGame) {
+        if (gameId === 'library-name-that-tune') {
+          actualGameType = 'name-that-tune';
+        } else if (gameId === 'library-deep-cuts') {
+          actualGameType = 'name-that-tune'; // Same game, harder mode
+        }
+      }
+
       // Send game start request via data channel
       const message = JSON.stringify({
-        type: 'game_start_request',
-        gameType: gameId,
+        type: isTextGame ? 'text_game_start_request' : 'game_start_request',
+        gameType: actualGameType,
+        gameCategory: game.category,
+        isLibraryMode: isLibraryGame,
+        libraryMode: isLibraryGame ? (gameId === 'library-deep-cuts' ? 'challenge' : 'library') : undefined,
         timestamp: Date.now(),
       });
 
-      log.info({ gameId, message }, '🎮 Sending game start request');
+      log.info({ gameId, actualGameType, isTextGame, isLibraryGame, message }, '🎮 Sending game start request');
       
       await room.localParticipant.publishData(
         new TextEncoder().encode(message),
@@ -532,14 +797,87 @@ class GamePickerUI {
         color: var(--color-text-primary, #2C2520);
       }
       
+      /* Category Tabs */
+      .game-picker__tabs {
+        display: flex;
+        gap: var(--space-2, 8px);
+        padding: 0 var(--space-4, 16px);
+        margin-bottom: var(--space-3, 12px);
+        border-bottom: 1px solid var(--color-border, #E8E2DA);
+        padding-bottom: var(--space-3, 12px);
+      }
+      
+      .game-picker__tab {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        padding: var(--space-2, 8px) var(--space-4, 16px);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--radius-full, 50px);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary, #6B5D52);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+      
+      .game-picker__tab svg {
+        width: 16px;
+        height: 16px;
+      }
+      
+      .game-picker__tab:hover {
+        background: var(--color-background-subtle, #F5F1E8);
+        color: var(--color-text-primary, #2C2520);
+      }
+      
+      .game-picker__tab--active {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        border-color: var(--persona-primary, #4a6741);
+      }
+      
+      .game-picker__tab--active:hover {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+      }
+      
       /* Games List */
       .game-picker__games {
         flex: 1;
         overflow-y: auto;
         padding: 0 var(--space-4, 16px);
-        display: flex;
+      }
+      
+      .game-picker__section {
+        display: none;
         flex-direction: column;
         gap: var(--space-3, 12px);
+      }
+      
+      .game-picker__section--active {
+        display: flex;
+      }
+      
+      .game-picker__library-notice {
+        background: var(--color-background-subtle, #F5F1E8);
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-4, 16px);
+        margin-bottom: var(--space-3, 12px);
+        text-align: center;
+      }
+      
+      .game-picker__library-notice p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--color-text-secondary, #6B5D52);
+      }
+      
+      .game-picker__library-hint {
+        font-size: 12px !important;
+        color: var(--color-text-muted, #9A8B7A) !important;
+        margin-top: var(--space-2, 8px) !important;
       }
       
       /* Game Card */
@@ -602,11 +940,35 @@ class GamePickerUI {
       }
       
       .game-card__name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        flex-wrap: wrap;
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 16px;
         font-weight: 600;
         color: var(--color-text-primary, #2C2520);
         margin: 0 0 var(--space-1, 4px);
+      }
+      
+      .game-card__badge {
+        display: inline-flex;
+        padding: 2px 6px;
+        border-radius: var(--radius-sm, 4px);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .game-card__badge--new {
+        background: var(--color-warning, #E8A838);
+        color: white;
+      }
+      
+      .game-card__badge--spotify {
+        background: #1DB954;
+        color: white;
       }
       
       .game-card__description {

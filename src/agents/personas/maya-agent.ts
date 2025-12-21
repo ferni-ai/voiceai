@@ -1,17 +1,19 @@
 /**
  * Maya Agent - Habits & Financial Wellness Coach
  *
+ * Extends PersonaVoiceAgent for shared TTS processing (sanitization, FinOps, interrupt handling).
  * Clean LiveKit 1.0 Implementation with direct domain imports.
  *
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 import { loadSystemPrompt } from './prompt-loader.js';
+import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
 const log = createLogger({ module: 'MayaAgent' });
 
@@ -41,14 +43,8 @@ import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // TYPES
 // ============================================================================
 
-interface MayaSessionData {
-  userId?: string;
-  userName?: string;
-  personaId?: string;
-  [key: string]: unknown;
-}
-
-type ToolSet = llm.ToolContext<MayaSessionData>;
+// MayaAgent uses PersonaVoiceAgent's session data type
+type ToolSet = llm.ToolContext<Record<string, unknown>>;
 
 // ============================================================================
 // TOOL BUILDING HELPERS
@@ -169,6 +165,7 @@ function buildHandoffTools(): ToolSet {
 /**
  * Maya Santos - Habits & Financial Wellness Coach
  *
+ * Extends PersonaVoiceAgent for shared TTS processing.
  * Pure LiveKit 1.0 implementation with:
  * - Direct domain imports for habit tools
  * - Memory tools for cross-session recall
@@ -176,14 +173,14 @@ function buildHandoffTools(): ToolSet {
  * - Inline handoff tools for team switching
  * - Rich system prompt loaded from bundles/maya-santos/identity/system-prompt.md
  */
-export class MayaAgent extends voice.Agent<MayaSessionData> {
+export class MayaAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
   /**
    * Create a MayaAgent with proper prompt loading.
    * Use MayaAgent.create() for async initialization with full prompt.
    */
-  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
+  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
     // Build all tools from domains
     const memoryTools = buildMemoryTools('maya-santos');
     const habitTools = buildHabitTools();
@@ -198,14 +195,22 @@ export class MayaAgent extends voice.Agent<MayaSessionData> {
       ...conversationTools,
     } as ToolSet;
 
-    super({
-      instructions: systemPrompt,
-      chatCtx,
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
       tools: allTools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
     });
 
-    process.stderr.write(
-      `[MayaAgent] Initialized with ${Object.keys(allTools).length} tools (memory: ${Object.keys(memoryTools).length}, habits: ${Object.keys(habitTools).length}, handoffs: ${Object.keys(handoffTools).length}, conversation: ${Object.keys(conversationTools).length})\n`
+    log.info(
+      {
+        totalTools: Object.keys(allTools).length,
+        memoryTools: Object.keys(memoryTools).length,
+        habitTools: Object.keys(habitTools).length,
+        handoffTools: Object.keys(handoffTools).length,
+        conversationTools: Object.keys(conversationTools).length,
+      },
+      'MayaAgent initialized'
     );
   }
 
@@ -216,7 +221,7 @@ export class MayaAgent extends voice.Agent<MayaSessionData> {
     if (!MayaAgent.systemPromptCache) {
       MayaAgent.systemPromptCache = await loadSystemPrompt('maya-santos');
     }
-    return new MayaAgent(MayaAgent.systemPromptCache, chatCtx);
+    return new MayaAgent(MayaAgent.systemPromptCache, { chatCtx });
   }
 
   /**
@@ -237,7 +242,7 @@ export class MayaAgent extends voice.Agent<MayaSessionData> {
   }
 
   async onExit(): Promise<void> {
-    process.stderr.write(`[MayaAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent');
   }
 }
 

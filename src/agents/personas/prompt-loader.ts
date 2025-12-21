@@ -2,9 +2,16 @@
  * Prompt Loader Utility for Persona Agents
  *
  * Centralized utility for loading and ASSEMBLING system prompts from persona bundles.
- * Prompts are now modular:
+ *
+ * ARCHITECTURE (Dec 2024):
+ * Function calling instructions are now SPLIT for maintainability:
+ *   - shared/function-calling-base.md - Common tools + critical rules (ALL personas)
+ *   - identity/function-calling-specialty.md - Persona-specific tools
+ *
+ * The loader automatically assembles: base + specialty when loading function_calling.
+ *
+ * Other prompt modules:
  *   - identity/core-identity.md - WHO the persona IS
- *   - identity/function-calling.md - Tool usage instructions
  *   - identity/directors-notes.md - Performance guidance
  *   - identity/biography.md - Backstory
  *
@@ -88,10 +95,64 @@ async function loadFile(bundleDir: string, relativePath: string): Promise<string
   }
 }
 
+/**
+ * Load shared file from bundles/shared/ directory
+ */
+async function loadSharedFile(relativePath: string): Promise<string | null> {
+  try {
+    const fs = await import('fs/promises');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    const filePath = join(__dirname, '../../personas/bundles/shared', relativePath);
+    return await fs.readFile(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load function calling prompt with base + specialty pattern.
+ *
+ * This assembles:
+ * 1. shared/function-calling-base.md (common tools + critical rules)
+ * 2. identity/function-calling-specialty.md (persona-specific tools)
+ *
+ * Falls back to legacy identity/function-calling.md if new files don't exist.
+ */
+async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
+  // Try new pattern first: base + specialty
+  const base = await loadSharedFile('function-calling-base.md');
+  const specialty = await loadFile(bundleDir, 'identity/function-calling-specialty.md');
+
+  if (base && specialty) {
+    log.debug({ bundleDir }, 'Loaded function-calling with base + specialty pattern');
+    return `${base}\n\n---\n\n${specialty}`;
+  }
+
+  // Fall back to legacy single-file pattern
+  const legacy = await loadFile(bundleDir, 'identity/function-calling.md');
+  if (legacy) {
+    log.debug({ bundleDir }, 'Loaded legacy function-calling.md');
+    return legacy;
+  }
+
+  // Last resort: just the base if specialty doesn't exist
+  if (base) {
+    log.warn({ bundleDir }, 'No specialty file found, using base only');
+    return base;
+  }
+
+  return null;
+}
+
 async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | null> {
   const configJson = await loadFile(bundleDir, 'content/prompts/_assembly.json');
   if (!configJson) return null;
-  
+
   try {
     return JSON.parse(configJson);
   } catch {
@@ -121,7 +182,7 @@ export async function loadSystemPrompt(
   try {
     // Load assembly config
     const config = await loadAssemblyConfig(bundleDir);
-    
+
     if (!config) {
       // No assembly config - fall back to legacy system-prompt.md
       const legacyPrompt = await loadFile(bundleDir, 'identity/system-prompt.md');
@@ -133,17 +194,28 @@ export async function loadSystemPrompt(
     }
 
     // Determine which modules to include based on mode
-    const moduleKeys = mode === 'voice_agent' 
-      ? (config.voice_agent_modules || ['core_identity', 'function_calling'])
-      : (config.full_context_modules || Object.keys(config.prompt_modules));
+    const moduleKeys =
+      mode === 'voice_agent'
+        ? config.voice_agent_modules || ['core_identity', 'function_calling']
+        : config.full_context_modules || Object.keys(config.prompt_modules);
 
     // Load and assemble modules
     const sections: string[] = [];
     const loadedModules: string[] = [];
-    
+
     for (const moduleKey of moduleKeys) {
       const modulePath = config.prompt_modules[moduleKey];
       if (!modulePath) continue;
+
+      // Special handling for function_calling - use base + specialty pattern
+      if (moduleKey === 'function_calling') {
+        const functionCallingContent = await loadFunctionCallingWithBase(bundleDir);
+        if (functionCallingContent) {
+          sections.push(functionCallingContent);
+          loadedModules.push(moduleKey);
+        }
+        continue;
+      }
 
       const content = await loadFile(bundleDir, modulePath);
       if (content) {
@@ -158,16 +230,16 @@ export async function loadSystemPrompt(
     }
 
     const assembled = sections.join('\n\n---\n\n');
-    
+
     log.info(
-      { 
-        personaId, 
-        bundleDir, 
+      {
+        personaId,
+        bundleDir,
         mode,
         modules: loadedModules,
         length: assembled.length,
-        estimatedTokens: Math.round(assembled.length / 4)
-      }, 
+        estimatedTokens: Math.round(assembled.length / 4),
+      },
       'Assembled modular prompt'
     );
 
@@ -183,10 +255,11 @@ export async function loadSystemPrompt(
 
 /**
  * Load only the function calling instructions (for injection).
+ * Uses the new base + specialty pattern automatically.
  */
 export async function loadFunctionCallingPrompt(personaId: string): Promise<string | null> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  return loadFile(bundleDir, 'identity/function-calling.md');
+  return loadFunctionCallingWithBase(bundleDir);
 }
 
 /**

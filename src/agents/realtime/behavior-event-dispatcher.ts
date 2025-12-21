@@ -214,11 +214,7 @@ function detectBehaviorEvents(ctx: BehaviorDetectionContext): BehaviorEvent[] {
   }
 
   // 7. Vulnerability shared (high distress + personal topic)
-  if (
-    ctx.emotionalState &&
-    ctx.emotionalState.distressLevel > 0.6 &&
-    ctx.topicWeight === 'heavy'
-  ) {
+  if (ctx.emotionalState && ctx.emotionalState.distressLevel > 0.6 && ctx.topicWeight === 'heavy') {
     events.push({
       event: 'vulnerability_shared',
       data: {
@@ -319,7 +315,10 @@ export async function emitBehaviorSignal(
       ...signal,
     });
 
-    log.debug({ signalType: signal.type, mode: signal.mode }, '🚀 Emitted behavior signal to frontend');
+    log.debug(
+      { signalType: signal.type, mode: signal.mode },
+      '🚀 Emitted behavior signal to frontend'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to emit behavior signal');
   }
@@ -370,10 +369,7 @@ export function createHoldSpaceSignal(duration: number, reason?: string): Behavi
 /**
  * Create processing signal
  */
-export function createProcessingSignal(
-  isStart: boolean,
-  expression?: string
-): BehaviorSignal {
+export function createProcessingSignal(isStart: boolean, expression?: string): BehaviorSignal {
   return {
     type: isStart ? 'processing_start' : 'processing_end',
     expression,
@@ -425,7 +421,4 @@ export function dispatchBehaviorEvents(
 
 export type { BehaviorDetectionContext };
 
-export {
-  DETECTION_THRESHOLDS,
-};
-
+export { DETECTION_THRESHOLDS };

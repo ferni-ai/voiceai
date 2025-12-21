@@ -239,6 +239,15 @@ export function clearAllRegistries(): void {
 }
 
 /**
+ * Check if a session is currently in cleanup phase.
+ * Use this to prevent race conditions when accessing singletons during cleanup.
+ */
+export function isSessionCleaningUp(sessionId: string): boolean {
+  const registry = sessionRegistries.get(sessionId);
+  return registry?.isCleaningUp ?? false;
+}
+
+/**
  * Create a session-scoped cleanup tracker.
  * Provides a convenient API for tracking cleanups within a session.
  */

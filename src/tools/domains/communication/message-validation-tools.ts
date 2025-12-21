@@ -40,13 +40,15 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
     {
       id: 'analyzeMessageTone',
       name: 'Analyze Message Tone',
-      description: 'Analyze a message for tone, emotional content, and potential issues before sending.',
+      description:
+        'Analyze a message for tone, emotional content, and potential issues before sending.',
       domain: 'communication',
       tags: ['message', 'tone', 'analysis', 'validation'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Analyze a message for tone and emotional content. Use this to help users understand how their message might be received.',
+          description:
+            'Analyze a message for tone and emotional content. Use this to help users understand how their message might be received.',
           parameters: z.object({
             message: z.string().describe('The message content to analyze'),
             recipient: z.string().optional().describe('Who the message is for (for context)'),
@@ -65,19 +67,21 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
     {
       id: 'saveMessageForReview',
       name: 'Save Message for Review',
-      description: 'Save a message to review later ("sleep on it"). The message will be held for the suggested wait time.',
+      description:
+        'Save a message to review later ("sleep on it"). The message will be held for the suggested wait time.',
       domain: 'communication',
       tags: ['message', 'draft', 'review', 'sleep-on-it'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Save a message for later review. Use when user wants to "sleep on it" or when you recommend waiting before sending.',
+          description:
+            'Save a message for later review. Use when user wants to "sleep on it" or when you recommend waiting before sending.',
           parameters: z.object({
             recipient: z.string().describe('Who the message is for'),
             content: z.string().describe('The message content'),
             subject: z.string().optional().describe('Subject line (for emails)'),
             recipientType: z.enum(['email', 'text', 'social', 'other']).optional(),
-            notes: z.string().optional().describe('Any notes about why they\'re saving it'),
+            notes: z.string().optional().describe("Any notes about why they're saving it"),
           }),
           execute: async (params: {
             recipient: string;
@@ -134,7 +138,8 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Get all pending message drafts. Use when user asks about saved messages or what\'s waiting for review.',
+          description:
+            "Get all pending message drafts. Use when user asks about saved messages or what's waiting for review.",
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -145,7 +150,7 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
             const pending = await getPendingDrafts(userId);
 
             if (pending.length === 0) {
-              return 'You don\'t have any messages saved for review right now.';
+              return "You don't have any messages saved for review right now.";
             }
 
             const now = new Date();
@@ -153,7 +158,9 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
 
             for (const draft of pending) {
               const isReady = draft.waitUntil <= now;
-              const minutesLeft = Math.ceil((draft.waitUntil.getTime() - now.getTime()) / (1000 * 60));
+              const minutesLeft = Math.ceil(
+                (draft.waitUntil.getTime() - now.getTime()) / (1000 * 60)
+              );
               const hoursLeft = Math.ceil(minutesLeft / 60);
 
               response += `To ${draft.recipient}`;
@@ -187,7 +194,8 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
     {
       id: 'getMessagesReadyForReview',
       name: 'Get Messages Ready for Review',
-      description: 'Get messages where the wait time has elapsed and they\'re ready for final review.',
+      description:
+        "Get messages where the wait time has elapsed and they're ready for final review.",
       domain: 'communication',
       tags: ['message', 'draft', 'ready', 'review'],
 
@@ -204,7 +212,7 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
             const ready = await getDraftsReadyForReview(userId);
 
             if (ready.length === 0) {
-              return 'No messages are ready for review yet. I\'ll let you know when they are.';
+              return "No messages are ready for review yet. I'll let you know when they are.";
             }
 
             let response = `${ready.length} message${ready.length > 1 ? 's are' : ' is'} ready for your review:\n\n`;
@@ -222,7 +230,8 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
               response += '\n\n';
             }
 
-            response += 'Would you like to review any of these? You can approve, modify, or discard them.';
+            response +=
+              'Would you like to review any of these? You can approve, modify, or discard them.';
 
             return response;
           },
@@ -291,7 +300,8 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
 
             response += '\n';
             if (isReady) {
-              response += 'This message is ready for review. Would you like to send it, modify it, or discard it?';
+              response +=
+                'This message is ready for review. Would you like to send it, modify it, or discard it?';
             } else if (minutesLeft !== null) {
               if (minutesLeft > 60) {
                 response += `Wait time: ${Math.ceil(minutesLeft / 60)} more hours before review.`;
@@ -321,7 +331,10 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
           description: 'Approve a message for sending after review.',
           parameters: z.object({
             recipient: z.string().describe('The recipient name to find the draft'),
-            modifiedContent: z.string().optional().describe('Modified content if user wants to change it'),
+            modifiedContent: z
+              .string()
+              .optional()
+              .describe('Modified content if user wants to change it'),
           }),
           execute: async (params: { recipient: string; modifiedContent?: string }) => {
             const userId = ctx.userId;
@@ -402,7 +415,7 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
             const responses = [
               'That took courage. The unwritten message is often the wisest one.',
               'Good call. Not everything needs to be said.',
-              'Done. Sometimes the best message is the one we don\'t send.',
+              "Done. Sometimes the best message is the one we don't send.",
               'Discarded. You can always come back to it if things change.',
               'I think that was the right choice. Moving on.',
             ];
@@ -418,4 +431,3 @@ export function getMessageValidationToolDefinitions(): ToolDefinition[] {
 export default {
   getMessageValidationToolDefinitions,
 };
-

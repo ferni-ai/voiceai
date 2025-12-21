@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Ferni Favicon 16x16 - Three Stones -->
-  <rect width="16" height="16" rx="3" fill="#F5F1E8"/>
-  <circle cx="8" cy="8" r="6" fill="#4a6741"/>
-  <circle cx="8" cy="8" r="2.5" fill="white"/>
-  <circle cx="8" cy="8" r="1.2" fill="#2c2520"/>
-  <circle cx="7.3" cy="7.3" r="0.4" fill="white" opacity="0.9"/>
-</svg>

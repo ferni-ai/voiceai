@@ -62,7 +62,15 @@ export interface PersonaTurnInput {
   };
 
   // Conversation state
-  momentum?: 'opening' | 'building' | 'cruising' | 'winding_down' | 'peaking' | 'intimate' | 'closing' | 'stalled';
+  momentum?:
+    | 'opening'
+    | 'building'
+    | 'cruising'
+    | 'winding_down'
+    | 'peaking'
+    | 'intimate'
+    | 'closing'
+    | 'stalled';
   topics?: string[];
 
   // Relationship
@@ -149,7 +157,8 @@ function detectSignals(input: PersonaTurnInput): DetectedSignals {
   // Testing waters: Hesitant language before vulnerable share
   if (
     transcript.match(/\b(i don'?t know if|maybe i|i was thinking|i'?ve been meaning to)\b/i) &&
-    input.pauseBeforeMs && input.pauseBeforeMs > 1500
+    input.pauseBeforeMs &&
+    input.pauseBeforeMs > 1500
   ) {
     signals.needsSubtext = true;
     signals.subtextType = 'testing_waters';
@@ -322,7 +331,10 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
           ssml: content,
         };
         result.injectionPoint = 'before_response';
-        log.debug({ personaId, type: signals.subtextType, source: 'pool' }, '🎭 Pool subtext response');
+        log.debug(
+          { personaId, type: signals.subtextType, source: 'pool' },
+          '🎭 Pool subtext response'
+        );
         return result;
       }
     }
@@ -346,7 +358,10 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
         ssml: llmResult.ssml,
       };
       result.injectionPoint = 'before_response';
-      log.debug({ personaId, type: signals.aftercareType, source: 'llm' }, '🎭 LLM aftercare response');
+      log.debug(
+        { personaId, type: signals.aftercareType, source: 'llm' },
+        '🎭 LLM aftercare response'
+      );
       return result;
     }
 
@@ -363,7 +378,10 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
           ssml: content,
         };
         result.injectionPoint = 'before_response';
-        log.debug({ personaId, type: signals.aftercareType, source: 'pool' }, '🎭 Pool aftercare response');
+        log.debug(
+          { personaId, type: signals.aftercareType, source: 'pool' },
+          '🎭 Pool aftercare response'
+        );
         return result;
       }
     }
@@ -404,7 +422,10 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
           ssml: content,
         };
         result.injectionPoint = 'before_response';
-        log.debug({ personaId, type: signals.energyType, source: 'pool' }, '🎭 Pool energy response');
+        log.debug(
+          { personaId, type: signals.energyType, source: 'pool' },
+          '🎭 Pool energy response'
+        );
         return result;
       }
     }
@@ -476,7 +497,10 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
           ssml: content,
         };
         result.injectionPoint = 'as_acknowledgment';
-        log.debug({ personaId, type: signals.affirmationType, source: 'pool' }, '🎭 Pool affirmation');
+        log.debug(
+          { personaId, type: signals.affirmationType, source: 'pool' },
+          '🎭 Pool affirmation'
+        );
       }
     }
   }
@@ -583,4 +607,3 @@ export const sharedPersonality = {
   applyToResponse: applyPersonaPersonalityToResponse,
   hasSupport: hasPersonaTurnSupport,
 };
-

@@ -90,7 +90,7 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       fireProgress: { medianPercentage: 22, averageYearsToFire: 14 },
       characteristics: {
         emergencyFundRate: 0.78,
-        automatedSavingsRate: 0.80,
+        automatedSavingsRate: 0.8,
         budgetTrackingRate: 0.62,
         indexFundRate: 0.72,
       },
@@ -108,7 +108,7 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       fireProgress: { medianPercentage: 5, averageYearsToFire: 28 },
       characteristics: {
         emergencyFundRate: 0.38,
-        automatedSavingsRate: 0.40,
+        automatedSavingsRate: 0.4,
         budgetTrackingRate: 0.42,
         indexFundRate: 0.32,
       },
@@ -124,9 +124,9 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       fireProgress: { medianPercentage: 12, averageYearsToFire: 22 },
       characteristics: {
         emergencyFundRate: 0.55,
-        automatedSavingsRate: 0.60,
+        automatedSavingsRate: 0.6,
         budgetTrackingRate: 0.52,
-        indexFundRate: 0.50,
+        indexFundRate: 0.5,
       },
       sampleSize: 15000,
       lastUpdated: new Date(),
@@ -139,7 +139,7 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       behavioralScore: { median: 65, topQuartile: 80 },
       fireProgress: { medianPercentage: 25, averageYearsToFire: 15 },
       characteristics: {
-        emergencyFundRate: 0.70,
+        emergencyFundRate: 0.7,
         automatedSavingsRate: 0.75,
         budgetTrackingRate: 0.58,
         indexFundRate: 0.68,
@@ -206,9 +206,9 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       fireProgress: { medianPercentage: 45, averageYearsToFire: 12 },
       characteristics: {
         emergencyFundRate: 0.72,
-        automatedSavingsRate: 0.70,
-        budgetTrackingRate: 0.60,
-        indexFundRate: 0.70,
+        automatedSavingsRate: 0.7,
+        budgetTrackingRate: 0.6,
+        indexFundRate: 0.7,
       },
       sampleSize: 9000,
       lastUpdated: new Date(),
@@ -224,7 +224,7 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
         emergencyFundRate: 0.85,
         automatedSavingsRate: 0.82,
         budgetTrackingRate: 0.68,
-        indexFundRate: 0.80,
+        indexFundRate: 0.8,
       },
       sampleSize: 4500,
       lastUpdated: new Date(),
@@ -289,7 +289,7 @@ const BENCHMARK_DATA: Record<string, Record<string, PeerBenchmarkData>> = {
       characteristics: {
         emergencyFundRate: 0.88,
         automatedSavingsRate: 0.78,
-        budgetTrackingRate: 0.70,
+        budgetTrackingRate: 0.7,
         indexFundRate: 0.82,
       },
       sampleSize: 4000,
@@ -412,9 +412,7 @@ export class PeerBenchmarks {
       (savingsPercentile + netWorthPercentile + behavioralPercentile + firePercentile) / 4
     );
 
-    const getComparison = (
-      percentile: number
-    ): 'below' | 'median' | 'above' | 'top' => {
+    const getComparison = (percentile: number): 'below' | 'median' | 'above' | 'top' => {
       if (percentile >= 75) return 'top';
       if (percentile >= 50) return 'above';
       if (percentile >= 25) return 'median';
@@ -451,9 +449,7 @@ export class PeerBenchmarks {
     }
 
     if (userProfile.hasIndexFunds) {
-      insights.push(
-        `Using index funds puts you ahead in cost efficiency.`
-      );
+      insights.push(`Using index funds puts you ahead in cost efficiency.`);
     }
 
     return {

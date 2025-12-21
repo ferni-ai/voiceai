@@ -351,4 +351,3 @@ describe('Insight Prioritization', () => {
     expect(sorted[2].priority).toBe('low');
   });
 });
-

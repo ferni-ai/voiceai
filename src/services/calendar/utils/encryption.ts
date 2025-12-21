@@ -132,10 +132,7 @@ export function isEncrypted(value: unknown): value is EncryptedData {
 /**
  * Encrypt an object's sensitive fields
  */
-export function encryptFields<T extends Record<string, unknown>>(
-  obj: T,
-  fields: (keyof T)[]
-): T {
+export function encryptFields<T extends Record<string, unknown>>(obj: T, fields: (keyof T)[]): T {
   const result = { ...obj };
 
   for (const field of fields) {
@@ -151,10 +148,7 @@ export function encryptFields<T extends Record<string, unknown>>(
 /**
  * Decrypt an object's encrypted fields
  */
-export function decryptFields<T extends Record<string, unknown>>(
-  obj: T,
-  fields: (keyof T)[]
-): T {
+export function decryptFields<T extends Record<string, unknown>>(obj: T, fields: (keyof T)[]): T {
   const result = { ...obj };
 
   for (const field of fields) {
@@ -264,4 +258,3 @@ export default {
   encryptOAuthTokens,
   decryptOAuthTokens,
 };
-

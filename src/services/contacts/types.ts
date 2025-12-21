@@ -336,4 +336,3 @@ export interface OutreachSuggestion {
   urgency: 'low' | 'medium' | 'high';
   daysUntilStale: number; // How long this suggestion is valid
 }
-

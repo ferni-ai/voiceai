@@ -108,10 +108,12 @@ export function generateBehavioralInsight(behavior: {
     return {
       type: 'behavioral',
       priority: 'high',
-      message: 'I noticed some reactive selling recently. Let\'s talk about your thesis for those positions.',
+      message:
+        "I noticed some reactive selling recently. Let's talk about your thesis for those positions.",
       sentiment: 'negative',
       actionable: true,
-      details: 'Panic selling often leads to regret. Historical data shows most recover within 18 months.',
+      details:
+        'Panic selling often leads to regret. Historical data shows most recover within 18 months.',
       date: now,
     };
   }
@@ -324,7 +326,7 @@ export function formatDailyBriefing(insights: QuantInsight[], userName: string):
   // Add medium priority
   const mediumPriority = sorted.filter((i) => i.priority === 'medium');
   if (mediumPriority.length > 0) {
-    parts.push("Also worth noting:");
+    parts.push('Also worth noting:');
     for (const insight of mediumPriority) {
       parts.push(insight.message);
     }

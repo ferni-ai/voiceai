@@ -356,10 +356,7 @@ export async function recordVote(
 /**
  * Get user's vote on a feature
  */
-export async function getUserVote(
-  userId: string,
-  featureId: string
-): Promise<FeatureVote | null> {
+export async function getUserVote(userId: string, featureId: string): Promise<FeatureVote | null> {
   const db = getFirestore();
   if (!db) return null;
 
@@ -468,4 +465,3 @@ export async function getSuggestions(options: {
     return [];
   }
 }
-

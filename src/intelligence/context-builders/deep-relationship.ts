@@ -116,7 +116,10 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
   // Check cache first (PERFORMANCE: saves 100-200ms on hit)
   const cached = relationshipCache.get(cacheKey);
   if (cached) {
-    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: true }, '⚡ Relationship cache hit');
+    log.debug(
+      { userId, durationMs: Date.now() - startTime, cacheHit: true },
+      '⚡ Relationship cache hit'
+    );
     return cached;
   }
 
@@ -127,7 +130,8 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
     // PERFORMANCE: Parallel Firestore reads (saves ~100ms vs sequential)
     const [userDoc, jokesSnapshot] = await Promise.all([
       db.collection('bogle_users').doc(userId).get(),
-      db.collection('bogle_users')
+      db
+        .collection('bogle_users')
         .doc(userId)
         .collection('shared_moments')
         .where('type', 'in', ['running_gag', 'phrase', 'callback_moment'])
@@ -139,13 +143,15 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
 
     const userData = userDoc.data() as Record<string, unknown> | undefined;
 
-    const sharedMoments = jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
+    const sharedMoments = jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) =>
+      doc.data()
+    );
     const runningJokes: RunningJoke[] = sharedMoments
       .filter((m: Record<string, unknown>) => m.type === 'running_gag')
       .map((m: Record<string, unknown>) => ({
         id: m.id as string,
         content: m.content as string,
-        origin: (m.origin as Record<string, unknown>)?.whatTheySaid as string || '',
+        origin: ((m.origin as Record<string, unknown>)?.whatTheySaid as string) || '',
         timesReferenced: (m.callbackCount as number) || 0,
         lastReferenced: (m.lastCallback as { toDate?: () => Date })?.toDate?.() || undefined,
         reception: (m.callbackReception as 'positive' | 'neutral' | 'negative') || 'neutral',
@@ -156,7 +162,7 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
       .filter((m: Record<string, unknown>) => m.type === 'phrase')
       .map((m: Record<string, unknown>) => ({
         phrase: m.content as string,
-        origin: (m.origin as Record<string, unknown>)?.whatTheySaid as string || '',
+        origin: ((m.origin as Record<string, unknown>)?.whatTheySaid as string) || '',
         usageCount: (m.callbackCount as number) || 0,
         lastUsed: (m.lastCallback as { toDate?: () => Date })?.toDate?.() || new Date(),
         meaning: m.meaning as string | undefined,
@@ -165,7 +171,8 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
     const result: Partial<RelationshipHistory> = {
       userId,
       firstConversation: (userData?.createdAt as { toDate?: () => Date })?.toDate?.() || undefined,
-      totalConversations: (userData?.totalConversations as number) || (userData?.turnCount as number) || 0,
+      totalConversations:
+        (userData?.totalConversations as number) || (userData?.turnCount as number) || 0,
       currentStreak: (userData?.currentStreak as number) || 0,
       longestStreak: (userData?.longestStreak as number) || 0,
       sharedVocabulary,
@@ -175,7 +182,10 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
 
     // Store in cache for subsequent turns (PERFORMANCE: avoids repeated Firestore reads)
     relationshipCache.set(cacheKey, result);
-    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: false }, '📊 Relationship data loaded & cached');
+    log.debug(
+      { userId, durationMs: Date.now() - startTime, cacheHit: false },
+      '📊 Relationship data loaded & cached'
+    );
 
     return result;
   } catch (err) {
@@ -197,23 +207,21 @@ interface Milestone {
 const CONVERSATION_MILESTONES: Record<number, string> = {
   10: "Ten conversations. I feel like I'm starting to know you.",
   25: "Twenty-five conversations. That's not nothing.",
-  50: "Fifty conversations. I really feel like I know you now.",
-  100: "A hundred conversations. That means something to me.",
+  50: 'Fifty conversations. I really feel like I know you now.',
+  100: 'A hundred conversations. That means something to me.',
   250: "Two hundred fifty conversations. You're not who you were when we started.",
   500: "Five hundred conversations. We've built something real here.",
 };
 
 const STREAK_MILESTONES: Record<number, string> = {
-  7: "A whole week of showing up. I see you.",
-  14: "Two weeks straight. This is becoming a rhythm.",
+  7: 'A whole week of showing up. I see you.',
+  14: 'Two weeks straight. This is becoming a rhythm.',
   30: "A month of daily check-ins. That's dedication.",
-  60: "Two months. This is part of your life now.",
+  60: 'Two months. This is part of your life now.',
   100: "A hundred days in a row. That's remarkable.",
 };
 
-function detectMilestones(
-  history: Partial<RelationshipHistory>
-): Milestone[] {
+function detectMilestones(history: Partial<RelationshipHistory>): Milestone[] {
   const milestones: Milestone[] = [];
   const celebrated = history.milestonesCelebrated || [];
 
@@ -269,12 +277,13 @@ function findCallbackOpportunity(
   // Check running jokes
   for (const joke of history.runningJokes || []) {
     if (joke.reception === 'negative') continue;
-    
+
     for (const trigger of joke.triggers) {
       if (textLower.includes(trigger.toLowerCase())) {
         // Don't callback too frequently
         if (joke.lastReferenced) {
-          const daysSince = (Date.now() - new Date(joke.lastReferenced).getTime()) / (1000 * 60 * 60 * 24);
+          const daysSince =
+            (Date.now() - new Date(joke.lastReferenced).getTime()) / (1000 * 60 * 60 * 24);
           if (daysSince < 7) continue; // At least a week between callbacks
         }
         return joke;
@@ -308,7 +317,10 @@ async function buildDeepRelationshipContext(
   // PERFORMANCE: Skip early turns - no deep relationship data needed yet
   // This saves 100-200ms on turns 0-2 when we don't have context anyway
   if (turnCount < MIN_TURNS_FOR_RELATIONSHIP) {
-    log.debug({ turnCount, minRequired: MIN_TURNS_FOR_RELATIONSHIP }, '⚡ Skipping deep relationship (early turn)');
+    log.debug(
+      { turnCount, minRequired: MIN_TURNS_FOR_RELATIONSHIP },
+      '⚡ Skipping deep relationship (early turn)'
+    );
     return [];
   }
 
@@ -371,11 +383,7 @@ async function buildDeepRelationshipContext(
     const context = buildRelationshipContextSummary(history);
     if (context) {
       injections.push(
-        createHintInjection(
-          'relationship_depth',
-          context,
-          { category: 'awareness' }
-        )
+        createHintInjection('relationship_depth', context, { category: 'awareness' })
       );
     }
   }
@@ -383,7 +391,9 @@ async function buildDeepRelationshipContext(
   // 4. FIRST CONVERSATION SPECIAL
   if (turnCount === 0 && history.totalConversations && history.totalConversations > 1) {
     const daysSinceFirst = history.firstConversation
-      ? Math.floor((Date.now() - new Date(history.firstConversation).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (Date.now() - new Date(history.firstConversation).getTime()) / (1000 * 60 * 60 * 24)
+        )
       : 0;
 
     if (daysSinceFirst > 0) {
@@ -432,10 +442,13 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
     const admin = await import('firebase-admin');
     const FieldValue = admin.firestore.FieldValue;
 
-    await db.collection('bogle_users').doc(userId).update({
-      milestonesCelebrated: FieldValue.arrayUnion(milestoneKey),
-      lastMilestoneCelebrated: new Date(),
-    });
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .update({
+        milestonesCelebrated: FieldValue.arrayUnion(milestoneKey),
+        lastMilestoneCelebrated: new Date(),
+      });
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not mark milestone celebrated');
   }
@@ -507,4 +520,3 @@ registerContextBuilder({
 });
 
 export { buildDeepRelationshipContext, recordSharedMomentInternal as recordSharedMoment };
-

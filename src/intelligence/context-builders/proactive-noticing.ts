@@ -180,7 +180,8 @@ function detectContradictionPattern(
   const negativVoiceEmotions = ['sad', 'anxious', 'frustrated', 'tired', 'stressed', 'worried'];
 
   const saidFine = finePatterns.some((p) => lowerText.includes(p));
-  const voiceSaysOtherwise = negativVoiceEmotions.includes(voiceEmotion || '') && voiceIntensity > 0.4;
+  const voiceSaysOtherwise =
+    negativVoiceEmotions.includes(voiceEmotion || '') && voiceIntensity > 0.4;
 
   if (saidFine && voiceSaysOtherwise) {
     return {
@@ -244,7 +245,8 @@ function buildNoticingPhrase(
       if (relationshipStage === 'friend' || relationshipStage === 'close_friend') {
         const contradictionPhrases = phrases.contradiction_surfacing.phrases;
         if (contradictionPhrases.length > 0) {
-          bodyPhrase = contradictionPhrases[Math.floor(Math.random() * contradictionPhrases.length)];
+          bodyPhrase =
+            contradictionPhrases[Math.floor(Math.random() * contradictionPhrases.length)];
         }
       }
       break;
@@ -284,7 +286,8 @@ async function buildProactiveNoticingContext(
   const userId = services?.userId;
   const turnCount = userData?.turnCount || 0;
   const personaId = persona?.id || 'ferni';
-  const relationshipStage = (userData as Record<string, unknown> | undefined)?.relationshipStage as string || 'stranger';
+  const relationshipStage =
+    ((userData as Record<string, unknown> | undefined)?.relationshipStage as string) || 'stranger';
 
   // Skip if no user identification
   if (!userId) return [];
@@ -373,4 +376,3 @@ registerContextBuilder({
 });
 
 export { buildProactiveNoticingContext };
-

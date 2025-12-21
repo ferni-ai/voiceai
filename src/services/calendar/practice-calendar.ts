@@ -11,15 +11,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  findFreeTimeSlots,
-  getEventsForDay,
-  type TimeSlot,
-} from './calendar-service.js';
-import {
-  createEvent,
-  deleteEvent,
-} from './unified-calendar-store.js';
+import { findFreeTimeSlots, getEventsForDay, type TimeSlot } from './calendar-service.js';
+import { createEvent, deleteEvent } from './unified-calendar-store.js';
 import type { CreateEventInput, CalendarEvent } from './types.js';
 import { analyzeCalendarPatterns } from './calendar-intelligence.js';
 
@@ -135,7 +128,10 @@ export function frequencyToRRule(frequency: PracticeFrequency): string {
 /**
  * Get preferred hour range for a time preference
  */
-function getTimePreferenceHours(preference: PracticeTimePreference): { start: number; end: number } {
+function getTimePreferenceHours(preference: PracticeTimePreference): {
+  start: number;
+  end: number;
+} {
   switch (preference) {
     case 'morning':
       return { start: 6, end: 11 };
@@ -269,11 +265,10 @@ export async function createPracticeCalendarEvents(
       description: generatePracticeDescription(practice),
       startTime: startDate,
       durationMinutes: practice.durationMinutes,
-      reminders:
-        practice.reminderMinutes?.map((mins) => ({
-          method: 'popup' as const,
-          minutesBefore: mins,
-        })) || [{ method: 'popup' as const, minutesBefore: 5 }],
+      reminders: practice.reminderMinutes?.map((mins) => ({
+        method: 'popup' as const,
+        minutesBefore: mins,
+      })) || [{ method: 'popup' as const, minutesBefore: 5 }],
       recurrence: frequencyToRRule(practice.frequency),
     };
 
@@ -289,7 +284,10 @@ export async function createPracticeCalendarEvents(
 
     return eventIds;
   } catch (error) {
-    log.error({ error: String(error), userId, practiceId: practice.id }, 'Failed to create practice calendar events');
+    log.error(
+      { error: String(error), userId, practiceId: practice.id },
+      'Failed to create practice calendar events'
+    );
     return [];
   }
 }
@@ -449,9 +447,7 @@ function generatePracticeBriefing(
         `Amazing – you've done this for ${practice.streak} days straight. You're building something real.`
       );
     } else if (practice.streak >= 7) {
-      encouragements.push(
-        `${practice.streak} days in a row! Your consistency is inspiring.`
-      );
+      encouragements.push(`${practice.streak} days in a row! Your consistency is inspiring.`);
     } else if (practice.streak >= 3) {
       encouragements.push(`${practice.streak} day streak – keep it going!`);
     } else {
@@ -461,7 +457,7 @@ function generatePracticeBriefing(
     encouragements.push(
       'Every journey starts with a single step.',
       "You showed up. That's what matters.",
-      "Ready when you are."
+      'Ready when you are.'
     );
   }
 
@@ -469,9 +465,7 @@ function generatePracticeBriefing(
 
   return {
     greeting: greetings[Math.floor(Math.random() * greetings.length)] ?? greetings[0] ?? '',
-    lastSession: practice.lastCompletedAt
-      ? formatLastSession(practice.lastCompletedAt)
-      : undefined,
+    lastSession: practice.lastCompletedAt ? formatLastSession(practice.lastCompletedAt) : undefined,
     streak: practice.streak,
     encouragement: encouragements[Math.floor(Math.random() * encouragements.length)] ?? '',
     prepTips: prepTips.length > 0 ? prepTips : undefined,
@@ -605,4 +599,3 @@ export default {
   suggestPracticesFromPatterns,
   frequencyToRRule,
 };
-

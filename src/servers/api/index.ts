@@ -55,12 +55,8 @@ import {
   loadRegisteredUsers as loadApplePollingUsers,
   stopPolling as shutdownApplePolling,
 } from '../../services/calendar/polling/apple-polling.js';
-import {
-  renewExpiringChannels as startGoogleWebhookRenewal,
-} from '../../services/calendar/webhooks/google-webhook.js';
-import {
-  renewExpiringSubscriptions as startOutlookSubscriptionRenewal,
-} from '../../services/calendar/webhooks/outlook-webhook.js';
+import { renewExpiringChannels as startGoogleWebhookRenewal } from '../../services/calendar/webhooks/google-webhook.js';
+import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '../../services/calendar/webhooks/outlook-webhook.js';
 
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
@@ -119,6 +115,7 @@ import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
+import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -452,9 +449,15 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // FinOps routes
+    // FinOps routes (admin)
     if (pathname.startsWith('/api/finops')) {
       const handled = await handleFinOpsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Conversation cost routes (user-facing cost transparency)
+    if (pathname.startsWith('/api/conversation/cost')) {
+      const handled = await handleConversationCostRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

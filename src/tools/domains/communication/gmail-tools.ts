@@ -40,13 +40,15 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
     {
       id: 'getInboxSummary',
       name: 'Get Inbox Summary',
-      description: 'Get a quick summary of the email inbox: unread count, important items, and what arrived today.',
+      description:
+        'Get a quick summary of the email inbox: unread count, important items, and what arrived today.',
       domain: 'communication',
       tags: ['email', 'inbox', 'summary'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Get a quick summary of the email inbox: unread count, important items, and what arrived today.',
+          description:
+            'Get a quick summary of the email inbox: unread count, important items, and what arrived today.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -85,7 +87,10 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
         return llm.tool({
           description: 'Get a list of unread emails from the inbox.',
           parameters: z.object({
-            count: z.number().optional().describe('Maximum number of emails to retrieve (default: 5)'),
+            count: z
+              .number()
+              .optional()
+              .describe('Maximum number of emails to retrieve (default: 5)'),
           }),
           execute: async (params: { count?: number }) => {
             const userId = ctx.userId;
@@ -122,15 +127,21 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
     {
       id: 'searchInbox',
       name: 'Search Inbox',
-      description: 'Search emails in the inbox. Supports queries like "from:john", "subject:meeting", "is:unread", etc.',
+      description:
+        'Search emails in the inbox. Supports queries like "from:john", "subject:meeting", "is:unread", etc.',
       domain: 'communication',
       tags: ['email', 'inbox', 'search'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Search emails in the inbox. Supports queries like "from:john", "subject:meeting", "is:unread", etc.',
+          description:
+            'Search emails in the inbox. Supports queries like "from:john", "subject:meeting", "is:unread", etc.',
           parameters: z.object({
-            query: z.string().describe('Search query (e.g., "from:boss@company.com", "subject:urgent", "is:unread")'),
+            query: z
+              .string()
+              .describe(
+                'Search query (e.g., "from:boss@company.com", "subject:urgent", "is:unread")'
+              ),
             count: z.number().optional().describe('Maximum results (default: 5)'),
           }),
           execute: async (params: { query: string; count?: number }) => {
@@ -168,13 +179,15 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
     {
       id: 'triageInbox',
       name: 'Triage Inbox',
-      description: 'Automatically categorize unread emails into urgent, needs response, FYI, and promotional.',
+      description:
+        'Automatically categorize unread emails into urgent, needs response, FYI, and promotional.',
       domain: 'communication',
       tags: ['email', 'inbox', 'triage', 'prioritize'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Automatically categorize unread emails into urgent, needs response, FYI, and promotional.',
+          description:
+            'Automatically categorize unread emails into urgent, needs response, FYI, and promotional.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -192,7 +205,11 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
               return 'I had trouble triaging your inbox. Let me try again.';
             }
 
-            const total = triage.urgent.length + triage.needsResponse.length + triage.fyi.length + triage.promotional.length;
+            const total =
+              triage.urgent.length +
+              triage.needsResponse.length +
+              triage.fyi.length +
+              triage.promotional.length;
 
             if (total === 0) {
               return 'Your inbox is clear. No unread emails to triage.';
@@ -218,9 +235,10 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             if (triage.fyi.length > 0) {
               response += `FYI (${triage.fyi.length}): `;
-              response += triage.fyi.length === 1
-                ? `1 informational email`
-                : `${triage.fyi.length} informational emails`;
+              response +=
+                triage.fyi.length === 1
+                  ? `1 informational email`
+                  : `${triage.fyi.length} informational emails`;
               response += '\n\n';
             }
 
@@ -365,4 +383,3 @@ function formatTimeAgo(date: Date): string {
 export default {
   getGmailToolDefinitions,
 };
-

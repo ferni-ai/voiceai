@@ -223,7 +223,10 @@ export function getUserId(req: IncomingMessage): string | null {
 /**
  * SECURITY: Get authenticated user ID with validation.
  */
-export function getVerifiedUserId(req: IncomingMessage): { userId: string | null; verified: boolean } {
+export function getVerifiedUserId(req: IncomingMessage): {
+  userId: string | null;
+  verified: boolean;
+} {
   const firebaseUid = req.headers['x-firebase-uid'] as string;
   const xUserId = req.headers['x-user-id'] as string;
 
@@ -392,4 +395,3 @@ export function parseAudio(body: Record<string, unknown>): Float32Array | null {
 
   return null;
 }
-

@@ -8,4 +8,3 @@
 
 export * from './message-validation-service.js';
 export { default as MessageValidationService } from './message-validation-service.js';
-

@@ -436,6 +436,12 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'marketing' as ToolDomain,
       loader: () => import('../domains/marketing/index.js').then((m) => m.getToolDefinitions()),
     },
+
+    // === SMART HOME DOMAIN (Home Assistant integration) ===
+    {
+      name: 'smart-home' as ToolDomain,
+      loader: () => import('../domains/smart-home/index.js').then((m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

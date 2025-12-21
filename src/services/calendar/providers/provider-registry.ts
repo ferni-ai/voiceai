@@ -84,7 +84,15 @@ export function getProviderInfo(provider: CalendarProvider): {
 } {
   const configured = isProviderConfigured(provider);
 
-  const info: Record<CalendarProvider, { name: string; icon: string; description: string; authType: 'oauth' | 'credentials' | 'native' }> = {
+  const info: Record<
+    CalendarProvider,
+    {
+      name: string;
+      icon: string;
+      description: string;
+      authType: 'oauth' | 'credentials' | 'native';
+    }
+  > = {
     ferni: {
       name: 'Ferni Calendar',
       icon: 'calendar',
@@ -134,4 +142,3 @@ export default {
   getProviderInfo,
   getAllProviderInfo,
 };
-

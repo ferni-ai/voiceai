@@ -5,10 +5,10 @@
  * No agent-specific references - just pure memory functionality.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { getLogger } from '../../../utils/safe-logger.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -112,14 +112,9 @@ export const rememberAboutUserDef: ToolDefinition = {
           getLogger().info('Fact captured to learning engine for persistence');
         }
 
-        // Generic acknowledgments (no agent-specific phrasing)
-        const acknowledgments = [
-          `I'll remember that.`,
-          `That's important. I'm keeping that in mind.`,
-          `Thank you for sharing that. I won't forget.`,
-          `Noted. That helps me understand you better.`,
-        ];
-        return acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        // The tool executed silently; the agent decides how/if to respond
+        return '';
       },
     });
   },
@@ -322,12 +317,16 @@ export const rememberImportantFactDef: ToolDefinition = {
           ],
           concern: [
             `I hear that this is weighing on you. I'll remember.`,
-            `That concern is valid. I'll keep this in our conversations.`,
+            `That concern is valid. I'll keep this in mind.`,
+          ],
+          default: [
+            `I'll hold onto that. It feels important.`,
+            `Thank you for trusting me with that.`,
           ],
         };
 
-        const typeResponses = responses[type] || responses.life_event;
-        return typeResponses[Math.floor(Math.random() * typeResponses.length)];
+        const options = responses[type] || responses.default;
+        return options[Math.floor(Math.random() * options.length)];
       },
     });
   },
@@ -456,12 +455,8 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        const responses = [
-          `Got it, I've updated my memory. ${updatedFact}`,
-          `Thanks for the update! I'll remember that now.`,
-          `Updated. I appreciate you keeping me in the loop.`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        return '';
       },
     });
   },
@@ -517,12 +512,8 @@ export const forgetMemoryDef: ToolDefinition = {
           );
         }
 
-        const responses = [
-          `Done. I've forgotten about that. Your privacy matters.`,
-          `Removed. That information is no longer stored.`,
-          `I've deleted that from my memory. Let me know if there's anything else.`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        return '';
       },
     });
   },

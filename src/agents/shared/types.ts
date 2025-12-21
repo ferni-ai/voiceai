@@ -272,6 +272,14 @@ export interface UserData {
 
   /** When user's last conversation was (for briefing calculation) */
   lastConversationDate?: string;
+
+  // ============================================================
+  // macOS NATIVE APP CONTEXT
+  // System intelligence from the macOS menubar app
+  // ============================================================
+
+  /** macOS desktop context from menubar app (sent via data channel) */
+  macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
 }
 
 // ============================================================================

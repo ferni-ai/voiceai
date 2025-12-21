@@ -8,11 +8,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import type {
-  CalendarProviderAdapter,
-  CalendarEvent,
-  CalendarProvider,
-} from '../types.js';
+import type { CalendarProviderAdapter, CalendarEvent, CalendarProvider } from '../types.js';
 import {
   isOAuthConfigured,
   getValidAccessToken,
@@ -29,7 +25,10 @@ const log = getLogger();
 /**
  * Convert Google Calendar event to unified format
  */
-function googleToUnified(event: GoogleCalendarEvent, userId: string): Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'> {
+function googleToUnified(
+  event: GoogleCalendarEvent,
+  userId: string
+): Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'> {
   const startDateTime = event.start?.dateTime || event.start?.date;
   const endDateTime = event.end?.dateTime || event.end?.date;
 
@@ -94,7 +93,10 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    */
   isConfigured(): boolean {
     // Use the service check which can be mocked in tests
-    return isOAuthConfigured() || !!(process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET);
+    return (
+      isOAuthConfigured() ||
+      !!(process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET)
+    );
   }
 
   /**
@@ -206,7 +208,10 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
 
       return created?.id || null;
     } catch (error) {
-      log.error({ error: String(error), userId, eventId: event.id }, 'Failed to create Google Calendar event');
+      log.error(
+        { error: String(error), userId, eventId: event.id },
+        'Failed to create Google Calendar event'
+      );
       return null;
     }
   }
@@ -237,7 +242,10 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
 
       return true;
     } catch (error) {
-      log.error({ error: String(error), userId, eventId: event.id }, 'Failed to update Google Calendar event');
+      log.error(
+        { error: String(error), userId, eventId: event.id },
+        'Failed to update Google Calendar event'
+      );
       return false;
     }
   }
@@ -245,7 +253,11 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Delete event from Google Calendar
    */
-  async deleteEvent(userId: string, eventId: string, calendarId: string = 'primary'): Promise<boolean> {
+  async deleteEvent(
+    userId: string,
+    eventId: string,
+    calendarId: string = 'primary'
+  ): Promise<boolean> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
       log.warn({ userId }, 'No valid Google access token for delete');
@@ -256,7 +268,10 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
       await deleteGoogleEvent(accessToken, calendarId, eventId);
       return true;
     } catch (error) {
-      log.error({ error: String(error), userId, eventId }, 'Failed to delete Google Calendar event');
+      log.error(
+        { error: String(error), userId, eventId },
+        'Failed to delete Google Calendar event'
+      );
       return false;
     }
   }
@@ -264,25 +279,26 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get list of user's calendars
    */
-  async getCalendars(userId: string): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  async getCalendars(
+    userId: string
+  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
       return [];
     }
 
     try {
-      const response = await fetch(
-        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+      const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch calendars: ${response.status}`);
       }
 
-      const data = (await response.json()) as { items?: Array<{ id: string; summary: string; primary?: boolean }> };
+      const data = (await response.json()) as {
+        items?: Array<{ id: string; summary: string; primary?: boolean }>;
+      };
       return (data.items || []).map((cal) => ({
         id: cal.id,
         name: cal.summary,
@@ -297,4 +313,3 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
 
 export const googleCalendarProvider = new GoogleCalendarProvider();
 export default GoogleCalendarProvider;
-

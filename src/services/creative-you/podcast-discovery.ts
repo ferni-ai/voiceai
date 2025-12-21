@@ -708,7 +708,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'productivity-mastery',
       title: 'Getting Things Done (For Real)',
       description:
-        "Not another productivity hack list. This is about understanding your brain—why focus fades, how sleep changes everything, and what actually sticks.",
+        'Not another productivity hack list. This is about understanding your brain—why focus fades, how sleep changes everything, and what actually sticks.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'huberman-sleep'),
         CURATED_EPISODES.find((e) => e.id === 'huberman-focus'),
@@ -750,7 +750,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'understanding-yourself',
       title: 'Why You Do What You Do',
       description:
-        "Ever wonder why you make certain choices? Why some patterns keep repeating? These episodes pull back the curtain.",
+        'Ever wonder why you make certain choices? Why some patterns keep repeating? These episodes pull back the curtain.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'hidden-brain-decisions'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
@@ -770,7 +770,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'relationships-connection',
       title: 'Love, Boundaries & Connection',
       description:
-        "Why we attach the way we do, how to say no without guilt, and what loneliness teaches us. For anyone working on their relationships—including the one with themselves.",
+        'Why we attach the way we do, how to say no without guilt, and what loneliness teaches us. For anyone working on their relationships—including the one with themselves.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'shetty-attachment'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-boundaries'),
@@ -791,7 +791,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'building-something',
       title: 'Building Something From Nothing',
       description:
-        "Stories of people who started with an idea and made it real. Not hustle porn—just honest accounts of what it actually takes.",
+        'Stories of people who started with an idea and made it real. Not hustle porn—just honest accounts of what it actually takes.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'hibt-airbnb'),
         CURATED_EPISODES.find((e) => e.id === 'hibt-spanx'),
@@ -811,7 +811,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'big-questions',
       title: 'The Big Questions',
       description:
-        "Meaning, freedom, mortality. The stuff that keeps you up at night. No answers here—just better questions.",
+        'Meaning, freedom, mortality. The stuff that keeps you up at night. No answers here—just better questions.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'philosophize-existentialism'),
         CURATED_EPISODES.find((e) => e.id === 'philosophize-nietzsche'),
@@ -831,7 +831,7 @@ export function getLearningTracks(): LearningTrack[] {
       id: 'anxiety-toolkit',
       title: 'When Anxiety Hits',
       description:
-        "Not about fixing yourself. About understanding what anxiety is trying to tell you, and finding some gentler ways through.",
+        'Not about fixing yourself. About understanding what anxiety is trying to tell you, and finding some gentler ways through.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'tenpercent-anxiety'),
         CURATED_EPISODES.find((e) => e.id === 'tenpercent-compassion'),
@@ -850,7 +850,7 @@ export function getLearningTracks(): LearningTrack[] {
     },
     {
       id: 'dopamine-motivation',
-      title: 'Understanding Your Brain\'s Reward System',
+      title: "Understanding Your Brain's Reward System",
       description:
         "Why you can't stop scrolling, why cold showers work, and how dopamine actually controls motivation. Brain science that you can use.",
       episodes: [
@@ -947,7 +947,7 @@ function getRecommendationReason(episode: CuratedEpisode, recentTopics: string[]
     inspire: [
       'This one might spark something.',
       'Needed this today. Maybe you do too.',
-      "For when you need a lift.",
+      'For when you need a lift.',
     ],
     reflect: [
       'One to sit with.',

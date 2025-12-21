@@ -61,9 +61,7 @@ import type { MusicSessionContext, MusicStartReason } from '../music-session-con
 // TEST FIXTURES
 // ============================================================================
 
-function createTestMusicContext(
-  overrides: Partial<MusicSessionContext> = {}
-): MusicSessionContext {
+function createTestMusicContext(overrides: Partial<MusicSessionContext> = {}): MusicSessionContext {
   return {
     startReason: 'user_request',
     emotionalToneBeforeMusic: 'light',
@@ -75,9 +73,7 @@ function createTestMusicContext(
   };
 }
 
-function createTestTransitionResult(
-  overrides: Partial<TransitionResult> = {}
-): TransitionResult {
+function createTestTransitionResult(overrides: Partial<TransitionResult> = {}): TransitionResult {
   return {
     shouldSpeak: true,
     phrase: 'Test phrase',
@@ -109,13 +105,7 @@ describe('Music Transition Analytics', () => {
       const context = createTestMusicContext();
       const result = createTestTransitionResult();
 
-      const event = createTransitionEvent(
-        'session-123',
-        'user-456',
-        'ferni',
-        context,
-        result
-      );
+      const event = createTransitionEvent('session-123', 'user-456', 'ferni', context, result);
 
       expect(event.sessionId).toBe('session-123');
       expect(event.userId).toBe('user-456');
@@ -302,10 +292,7 @@ describe('Music User Learning (Thompson Sampling)', () => {
     });
 
     it('should return exploration rate', () => {
-      const { explorationRate } = selectTransitionWithLearning('new-user', [
-        'silence',
-        'presence',
-      ]);
+      const { explorationRate } = selectTransitionWithLearning('new-user', ['silence', 'presence']);
 
       // New users should have high exploration
       expect(explorationRate).toBeGreaterThan(0);
@@ -314,15 +301,30 @@ describe('Music User Learning (Thompson Sampling)', () => {
 
     it('should use context preferences when available', () => {
       // Train the system to prefer silence for emotional moments
-      updateUserLearning('user-123', 'silence', { wasPositive: true, confidence: 0.9, signals: [] }, {
-        emotionalTone: 'heavy',
-      });
-      updateUserLearning('user-123', 'silence', { wasPositive: true, confidence: 0.9, signals: [] }, {
-        emotionalTone: 'heavy',
-      });
-      updateUserLearning('user-123', 'silence', { wasPositive: true, confidence: 0.9, signals: [] }, {
-        emotionalTone: 'heavy',
-      });
+      updateUserLearning(
+        'user-123',
+        'silence',
+        { wasPositive: true, confidence: 0.9, signals: [] },
+        {
+          emotionalTone: 'heavy',
+        }
+      );
+      updateUserLearning(
+        'user-123',
+        'silence',
+        { wasPositive: true, confidence: 0.9, signals: [] },
+        {
+          emotionalTone: 'heavy',
+        }
+      );
+      updateUserLearning(
+        'user-123',
+        'silence',
+        { wasPositive: true, confidence: 0.9, signals: [] },
+        {
+          emotionalTone: 'heavy',
+        }
+      );
 
       // Check preference is learned
       const profile = getUserProfile('user-123');
@@ -444,7 +446,7 @@ describe('Music Memory Integration', () => {
     });
 
     it('should detect emotion from user message', () => {
-      const emotional = detectEmotionalContext(null, 'I\'ve been so stressed lately');
+      const emotional = detectEmotionalContext(null, "I've been so stressed lately");
       expect(emotional.state).toBe('stressed');
     });
 
@@ -496,16 +498,11 @@ describe('Music Memory Integration', () => {
         trackArtist: 'Miles Davis',
       });
 
-      const memory = storeMusicHelpedMemory(
-        'user-123',
-        context,
-        'silence',
-        {
-          userResponse: 'That was lovely, thank you',
-          voiceTone: 'calmer',
-          continuedSession: true,
-        }
-      );
+      const memory = storeMusicHelpedMemory('user-123', context, 'silence', {
+        userResponse: 'That was lovely, thank you',
+        voiceTone: 'calmer',
+        continuedSession: true,
+      });
 
       expect(memory).not.toBeNull();
       expect(memory!.userId).toBe('user-123');
@@ -516,15 +513,10 @@ describe('Music Memory Integration', () => {
     it('should NOT store memory when music did not help', () => {
       const context = createTestMusicContext();
 
-      const memory = storeMusicHelpedMemory(
-        'user-123',
-        context,
-        'acknowledgment',
-        {
-          userResponse: 'meh',
-          voiceTone: 'neutral',
-        }
-      );
+      const memory = storeMusicHelpedMemory('user-123', context, 'acknowledgment', {
+        userResponse: 'meh',
+        voiceTone: 'neutral',
+      });
 
       // May or may not store depending on confidence
       // Just verify no error occurs
@@ -539,16 +531,11 @@ describe('Music Memory Integration', () => {
         trackArtist: 'Jazz Artist',
       });
 
-      storeMusicHelpedMemory(
-        'user-123',
-        context,
-        'silence',
-        {
-          userResponse: 'That jazz really helped, thank you',
-          voiceTone: 'calmer',
-          continuedSession: true,
-        }
-      );
+      storeMusicHelpedMemory('user-123', context, 'silence', {
+        userResponse: 'That jazz really helped, thank you',
+        voiceTone: 'calmer',
+        continuedSession: true,
+      });
 
       const memories = findRelevantMemories('user-123', {
         emotionalState: 'stressed',
@@ -590,16 +577,11 @@ describe('Music Memory Integration', () => {
     it('should track memory stats', () => {
       // Store a memory
       const context = createTestMusicContext({ startReason: 'comfort' });
-      storeMusicHelpedMemory(
-        'user-123',
-        context,
-        'silence',
-        {
-          userResponse: 'That was perfect, thank you',
-          voiceTone: 'calmer',
-          continuedSession: true,
-        }
-      );
+      storeMusicHelpedMemory('user-123', context, 'silence', {
+        userResponse: 'That was perfect, thank you',
+        voiceTone: 'calmer',
+        continuedSession: true,
+      });
 
       const stats = getUserMusicMemoryStats('user-123');
       expect(stats.totalMemories).toBeGreaterThanOrEqual(0); // May or may not store
@@ -754,12 +736,10 @@ describe('Enhanced Music Transitions (Full Integration)', () => {
           );
         } else {
           // Negative feedback for non-silence
-          recordTransitionFeedback(
-            result.eventId!,
-            userId,
-            result.transitionType,
-            { wasPositive: false, confidence: 0.8 }
-          );
+          recordTransitionFeedback(result.eventId!, userId, result.transitionType, {
+            wasPositive: false,
+            confidence: 0.8,
+          });
         }
       }
 
@@ -854,4 +834,3 @@ describe('Edge Cases', () => {
     });
   });
 });
-

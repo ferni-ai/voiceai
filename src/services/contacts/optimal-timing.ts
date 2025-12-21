@@ -31,7 +31,14 @@ export type TimeSlot =
   | 'evening' // 5-8 PM
   | 'night'; // 8-11 PM
 
-export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type DayOfWeek =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
 
 const TIME_SLOT_HOURS: Record<TimeSlot, { start: number; end: number; label: string }> = {
   early_morning: { start: 6, end: 8, label: '6-8 AM' },
@@ -43,7 +50,13 @@ const TIME_SLOT_HOURS: Record<TimeSlot, { start: number; end: number; label: str
 };
 
 const DAYS_OF_WEEK: DayOfWeek[] = [
-  'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
 ];
 
 /**
@@ -347,10 +360,7 @@ async function saveTimingProfile(profile: ContactTimingProfile): Promise<void> {
 /**
  * Record the outcome of an outreach attempt and update the model
  */
-export async function recordOutcome(
-  userId: string,
-  outcome: OutreachOutcome
-): Promise<void> {
+export async function recordOutcome(userId: string, outcome: OutreachOutcome): Promise<void> {
   const profile = await getTimingProfile(userId, outcome.contactId);
 
   // Determine time slot and day
@@ -569,9 +579,7 @@ export async function getBatchTimingRecommendations(
   }
 
   // Sort by suggested send time
-  recommendations.sort(
-    (a, b) => a.suggestedSendTime.getTime() - b.suggestedSendTime.getTime()
-  );
+  recommendations.sort((a, b) => a.suggestedSendTime.getTime() - b.suggestedSendTime.getTime());
 
   return recommendations;
 }
@@ -621,4 +629,3 @@ export const optimalTiming = {
 };
 
 export default optimalTiming;
-

@@ -349,7 +349,9 @@ export async function generateDailyBriefing(
   }
 
   if (overview.freeTimeMinutes >= 60 && overview.totalMeetings > 0) {
-    suggestions.push(`You have ${Math.floor(overview.freeTimeMinutes / 60)} hours of focus time available.`);
+    suggestions.push(
+      `You have ${Math.floor(overview.freeTimeMinutes / 60)} hours of focus time available.`
+    );
   }
 
   if (overview.totalMeetings === 0) {
@@ -469,10 +471,12 @@ export async function analyzeCalendarPatterns(
 
   return {
     busiestDayOfWeek: busiestDay,
-    averageMeetingsPerDay: totalWorkDays > 0 ? Math.round(totalMeetingMinutes / 60 / totalWorkDays * 10) / 10 : 0,
+    averageMeetingsPerDay:
+      totalWorkDays > 0 ? Math.round((totalMeetingMinutes / 60 / totalWorkDays) * 10) / 10 : 0,
     peakMeetingHours: { start: peakStart, end: peakEnd },
     totalMeetingHoursThisWeek: Math.round(totalMeetingMinutes / 60),
-    focusTimeRatio: totalWorkMinutes > 0 ? (totalWorkMinutes - totalMeetingMinutes) / totalWorkMinutes : 1,
+    focusTimeRatio:
+      totalWorkMinutes > 0 ? (totalWorkMinutes - totalMeetingMinutes) / totalWorkMinutes : 1,
     backToBackFrequency: totalWorkDays > 0 ? backToBackDays / totalWorkDays : 0,
   };
 }
@@ -488,4 +492,3 @@ export default {
   generateDailyBriefing,
   analyzeCalendarPatterns,
 };
-

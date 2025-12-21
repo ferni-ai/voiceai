@@ -26,7 +26,7 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
     const { persona, userData } = input;
 
     // Only activate for Alex
-    if (persona.identity.id !== 'alex-chen') {
+    if (persona.id !== 'alex-chen') {
       return [];
     }
 
@@ -67,12 +67,17 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
         content += `\nStill in cooling off:\n`;
         const now = new Date();
         stillWaiting.slice(0, 3).forEach((draft) => {
-          const hoursLeft = Math.ceil((draft.waitUntil.getTime() - now.getTime()) / (1000 * 60 * 60));
+          const hoursLeft = Math.ceil(
+            (draft.waitUntil.getTime() - now.getTime()) / (1000 * 60 * 60)
+          );
           content += `- To ${draft.recipient} (~${hoursLeft}h left)\n`;
         });
       }
 
-      log.debug({ userId, pendingCount: pending.length, readyCount: ready.length }, 'Injected message review context');
+      log.debug(
+        { userId, pendingCount: pending.length, readyCount: ready.length },
+        'Injected message review context'
+      );
 
       return [
         createStandardInjection('message_review_awareness', content, {
@@ -87,4 +92,3 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
 };
 
 registerContextBuilder(messageReviewAwarenessBuilder);
-

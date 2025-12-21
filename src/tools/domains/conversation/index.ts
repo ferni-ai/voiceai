@@ -3,20 +3,12 @@
  *
  * Barrel export for conversation management tools:
  * - Conversation flow
- * - Memory tools
- * - Proactive features
- * - Context awareness
+ *
+ * NOTE: Memory, Proactive, and Awareness tools have their own domain modules:
+ * - Memory: src/tools/domains/memory/
+ * - Proactive: src/tools/domains/proactive/
+ * - Awareness: src/tools/domains/awareness/
  */
 
 // Conversation tools - core conversation management
 export { createConversationTools, default } from './conversation-tools.js';
-
-// Re-export memory tools creator
-export { createMemoryTools } from '../../memory-tools.js';
-
-// Re-export proactive tools creator
-export { createProactiveTools } from '../../proactive.js';
-
-// Re-export awareness tools creator
-export { createAwarenessTools } from '../../awareness.js';
-

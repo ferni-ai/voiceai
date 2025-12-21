@@ -16,39 +16,39 @@ export interface LifeThesis {
   type: string; // Domain-specific type
   createdAt: Date;
   updatedAt: Date;
-  
+
   // The core "why"
   thesis: string;
-  
+
   // What you expect to happen
   expectedOutcomes: string[];
-  
+
   // What might go wrong (that you're accepting)
   knownChallenges: string[];
-  
+
   // When you'll know it's working
   successIndicators: string[];
-  
+
   // When you should reconsider
   exitCriteria?: {
     conditions: string[];
     timeLimit?: string;
   };
-  
+
   // Emotional context at creation
   emotionalState: {
     atCreation: 'excited' | 'determined' | 'hopeful' | 'nervous' | 'committed' | 'desperate';
     confidenceLevel: number; // 1-10
     motivationSource: string;
   };
-  
+
   // Updates over time
   updates: ThesisUpdate[];
-  
+
   // How often to review
   reviewSchedule?: 'weekly' | 'monthly' | 'quarterly' | 'on_struggle';
   lastReviewed?: Date;
-  
+
   // Domain-specific data
   domainData: Record<string, unknown>;
 }
@@ -64,17 +64,17 @@ export interface ThesisUpdate {
 /**
  * All supported thesis domains.
  */
-export type ThesisDomain = 
-  | 'investment'      // Why you bought a stock
-  | 'habit'           // Why you're building a habit
-  | 'goal'            // Why you set a goal
-  | 'career'          // Why you chose a path/job
-  | 'relationship'    // What you love about someone
-  | 'health'          // Why you're making health changes
-  | 'learning'        // Why you're learning something
-  | 'decision'        // Why you made a big decision
-  | 'boundary'        // Why you set a boundary
-  | 'commitment';     // Why you committed to something
+export type ThesisDomain =
+  | 'investment' // Why you bought a stock
+  | 'habit' // Why you're building a habit
+  | 'goal' // Why you set a goal
+  | 'career' // Why you chose a path/job
+  | 'relationship' // What you love about someone
+  | 'health' // Why you're making health changes
+  | 'learning' // Why you're learning something
+  | 'decision' // Why you made a big decision
+  | 'boundary' // Why you set a boundary
+  | 'commitment'; // Why you committed to something
 
 /**
  * Investment thesis (Peter's domain).
@@ -95,9 +95,9 @@ export interface InvestmentThesisData {
 export interface HabitThesisData {
   habitName: string;
   habitDescription: string;
-  cue: string;           // What triggers the habit
-  routine: string;       // The habit itself
-  reward: string;        // What you get from it
+  cue: string; // What triggers the habit
+  routine: string; // The habit itself
+  reward: string; // What you get from it
   currentStreak?: number;
   longestStreak?: number;
   relatedIdentity: string; // "I am someone who..."
@@ -122,7 +122,7 @@ export interface GoalThesisData {
     reachedAt?: Date;
   }[];
   stakeholders?: string[]; // Who's affected by this goal
-  sacrifices?: string[];   // What you're giving up
+  sacrifices?: string[]; // What you're giving up
 }
 
 /**
@@ -131,11 +131,11 @@ export interface GoalThesisData {
 export interface CareerThesisData {
   role?: string;
   company?: string;
-  path?: string;          // e.g., "startup founder", "senior IC"
-  values: string[];       // What matters to you in work
-  tradeoffs: string[];    // What you're accepting
-  growthAreas: string[];  // What you hope to learn
-  timeframe?: string;     // How long you'll give it
+  path?: string; // e.g., "startup founder", "senior IC"
+  values: string[]; // What matters to you in work
+  tradeoffs: string[]; // What you're accepting
+  growthAreas: string[]; // What you hope to learn
+  timeframe?: string; // How long you'll give it
 }
 
 /**
@@ -146,7 +146,7 @@ export interface RelationshipThesisData {
   relationshipType: 'partner' | 'family' | 'friend' | 'colleague' | 'mentor' | 'other';
   whatYouLove: string[];
   whatsChallenging: string[];
-  howYouGrow: string[];   // How this person helps you grow
+  howYouGrow: string[]; // How this person helps you grow
   boundariesSet?: string[];
   commitments?: string[];
 }
@@ -158,7 +158,7 @@ export interface HealthThesisData {
   area: 'exercise' | 'nutrition' | 'sleep' | 'mental_health' | 'substance' | 'medical' | 'other';
   currentState: string;
   targetState: string;
-  approach: string;       // The method/program
+  approach: string; // The method/program
   doctorAdvised?: boolean;
   measurables?: {
     name: string;
@@ -212,7 +212,7 @@ export interface BoundaryThesisData {
  */
 export interface CommitmentThesisData {
   commitment: string;
-  toWhom: string;         // Could be yourself
+  toWhom: string; // Could be yourself
   duration?: string;
   conditions?: string[];
   whatItCosts: string;
@@ -230,7 +230,6 @@ export interface ThesisReminder {
     currentSituation: string;
     emotionalState?: string;
   };
-  questions: string[];    // Questions to ask them
+  questions: string[]; // Questions to ask them
   encouragement: string;
 }
-

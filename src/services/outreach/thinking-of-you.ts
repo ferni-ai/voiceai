@@ -31,10 +31,7 @@ import { getAnticipatoryPresence } from '../../conversation/superhuman/anticipat
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getCognitiveDifferentiation } from '../../personas/cognitive-differentiation.js';
-import {
-  generateQuestion,
-  type QuestionContext,
-} from '../../intelligence/dynamic-questions.js';
+import { generateQuestion, type QuestionContext } from '../../intelligence/dynamic-questions.js';
 
 const log = createLogger({ module: 'ThinkingOfYou' });
 
@@ -131,7 +128,7 @@ export interface UserOutreachContext {
 
 interface PersonaVoice {
   signaturePhrases: string[];
-  openers: string[];  // For dynamic generation
+  openers: string[]; // For dynamic generation
   emojiStyle: string[];
   closingStyle: string;
   toneDescription: string;
@@ -656,7 +653,10 @@ export class ThinkingOfYouEngine {
       const voice = PERSONA_VOICES[persona];
 
       // Map trigger to question type
-      const triggerToQuestionType: Record<ThinkingOfYouTrigger, 'celebratory' | 'supportive' | 'curious' | 'checking_in'> = {
+      const triggerToQuestionType: Record<
+        ThinkingOfYouTrigger,
+        'celebratory' | 'supportive' | 'curious' | 'checking_in'
+      > = {
         random_kindness: 'checking_in',
         relevant_content: 'curious',
         anniversary: 'celebratory',
@@ -676,17 +676,18 @@ export class ThinkingOfYouEngine {
         userId: context.profile.id || 'unknown',
         sessionId: `outreach-${Date.now()}`,
         knownFacts: [
-          ...(context.profile.preferredTopics || []).map(t => `Interested in: ${t}`),
-          ...(context.profile.goals || []).map(g => `Goal: ${g.name}`),
-          ...(context.recentWins || []).map(w => `Recent win: ${w.description}`),
+          ...(context.profile.preferredTopics || []).map((t) => `Interested in: ${t}`),
+          ...(context.profile.goals || []).map((g) => `Goal: ${g.name}`),
+          ...(context.recentWins || []).map((w) => `Recent win: ${w.description}`),
         ],
         recentTopics: context.profile.preferredTopics || [],
         currentWin: context.recentWins?.[0]?.description,
         relationshipStage: context.daysSinceLastContact > 30 ? 'building' : 'established',
         conversationDepth: 5,
-        emotionalState: context.emotionalState === 'struggling'
-          ? { primary: 'processing', intensity: 0.7 }
-          : undefined,
+        emotionalState:
+          context.emotionalState === 'struggling'
+            ? { primary: 'processing', intensity: 0.7 }
+            : undefined,
         hourOfDay: new Date().getHours(),
         isWeekend: new Date().getDay() === 0 || new Date().getDay() === 6,
         turnCount: 0,
@@ -723,7 +724,10 @@ export class ThinkingOfYouEngine {
 
       return message;
     } catch (error) {
-      log.warn({ error: String(error), trigger, persona }, 'Dynamic outreach generation failed, using static');
+      log.warn(
+        { error: String(error), trigger, persona },
+        'Dynamic outreach generation failed, using static'
+      );
       return this.generateMessage(trigger, persona, context);
     }
   }

@@ -379,4 +379,3 @@ export const llmHumanization = {
   generate: generateHumanizationLLM,
   clearCache: clearHumanizationCache,
 };
-

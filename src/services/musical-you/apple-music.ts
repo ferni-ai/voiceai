@@ -287,7 +287,7 @@ export async function syncAppleMusicLibrary(
       developerToken,
       userToken
     );
-    
+
     // Heavy rotation returns different resource types, need to fetch details
     const heavyRotation: AppleMusicTrack[] = [];
     if (heavyResponse?.data) {
@@ -546,10 +546,7 @@ export function analyzeAppleMusicTaste(
  * Note: Apple Music doesn't provide preview URLs, so we need to
  * cross-reference with iTunes Search API for playable tracks
  */
-export function getAppleMusicTracksForGames(
-  userId: string,
-  count: number = 10
-): AppleMusicTrack[] {
+export function getAppleMusicTracksForGames(userId: string, count: number = 10): AppleMusicTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 
@@ -594,4 +591,3 @@ export default {
   getHeavyRotationTracks,
   getRecentlyPlayedTracks,
 };
-

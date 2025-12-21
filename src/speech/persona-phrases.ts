@@ -382,45 +382,50 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
 // ============================================================================
 
 const THINKING_FILLERS: Record<string, string[]> = {
+  // PHILOSOPHY: These are CONVERSATIONAL, not meta about thinking.
+  // They should feel like natural conversation continuation, not "AI is loading..."
   ferni: [
-    // Breath sounds that feel complete
-    `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
-    `${breakTag('250ms')}Mm.${breakTag('350ms')}`,
-    // Clear, complete processing signals
-    `${breakTag('200ms')}Let me think.${breakTag('400ms')}`,
-    `${breakTag('200ms')}Give me a moment.${breakTag('350ms')}`,
-    `${breakTag('250ms')}Let me sit with that.${breakTag('400ms')}`,
+    // Natural conversational acknowledgments
+    `${breakTag('200ms')}Yeah...${breakTag('300ms')}`,
+    `${breakTag('200ms')}So...${breakTag('300ms')}`,
+    `${breakTag('250ms')}Okay...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Right...${breakTag('300ms')}`,
+    `${breakTag('250ms')}Mm.${breakTag('300ms')}`,
   ],
   'nayan-patel': [
-    // Wise, unhurried pauses - complete thoughts
-    `${breakTag('400ms')}Hmm.${breakTag('500ms')}`,
-    `${breakTag('350ms')}Mm.${breakTag('450ms')}`,
-    `${breakTag('300ms')}Let me sit with that.${breakTag('500ms')}`,
-    `${breakTag('350ms')}Worth considering.${breakTag('450ms')}`,
+    // Wise, unhurried presence
+    `${breakTag('350ms')}Mm.${breakTag('400ms')}`,
+    `${breakTag('300ms')}Yes...${breakTag('400ms')}`,
+    `${breakTag('350ms')}...${breakTag('500ms')}`,
+    `${breakTag('300ms')}Indeed.${breakTag('400ms')}`,
   ],
   'peter-john': [
-    // Energetic but COMPLETE sounds
-    `${breakTag('200ms')}Hmm!${breakTag('350ms')}`,
-    `${breakTag('200ms')}Let me think here.${breakTag('350ms')}`,
-    `${breakTag('250ms')}Okay, let me consider this.${breakTag('400ms')}`,
+    // Engaged, curious
+    `${breakTag('200ms')}Oh!${breakTag('300ms')}`,
+    `${breakTag('200ms')}Interesting.${breakTag('300ms')}`,
+    `${breakTag('200ms')}Hm.${breakTag('250ms')}`,
+    `${breakTag('200ms')}So...${breakTag('300ms')}`,
   ],
   'maya-santos': [
-    // Warm, present thinking
-    `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
-    `${breakTag('250ms')}Let me think about this.${breakTag('400ms')}`,
-    `${breakTag('300ms')}Give me a moment.${breakTag('350ms')}`,
+    // Warm, present
+    `${breakTag('250ms')}Yeah...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Okay so...${breakTag('300ms')}`,
+    `${breakTag('250ms')}Right...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Mm.${breakTag('300ms')}`,
   ],
   'jordan-taylor': [
-    // Enthusiastic but complete
-    `${breakTag('200ms')}Hmm!${breakTag('300ms')}`,
-    `${breakTag('200ms')}Let me see.${breakTag('350ms')}`,
-    `${breakTag('250ms')}Okay, thinking.${breakTag('350ms')}`,
+    // Enthusiastic, energetic
+    `${breakTag('150ms')}Ooh!${breakTag('250ms')}`,
+    `${breakTag('150ms')}Oh!${breakTag('250ms')}`,
+    `${breakTag('200ms')}Yeah!${breakTag('300ms')}`,
+    `${breakTag('200ms')}Okay so...${breakTag('300ms')}`,
   ],
   'alex-chen': [
-    // Efficient, clear signals
-    `${breakTag('200ms')}One moment.${breakTag('350ms')}`,
-    `${breakTag('250ms')}Let me think.${breakTag('350ms')}`,
-    `${breakTag('200ms')}Mm.${breakTag('300ms')}`,
+    // Efficient, direct
+    `${breakTag('150ms')}Mm.${breakTag('250ms')}`,
+    `${breakTag('150ms')}Right...${breakTag('250ms')}`,
+    `${breakTag('200ms')}Yeah...${breakTag('300ms')}`,
+    `${breakTag('150ms')}So...${breakTag('250ms')}`,
   ],
 };
 

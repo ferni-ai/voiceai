@@ -304,7 +304,7 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'predictBehavior',
       'Predict Market Behavior',
-      "Predict how you might react to market events based on your history and patterns from similar investors. Forewarned is forearmed.",
+      'Predict how you might react to market events based on your history and patterns from similar investors. Forewarned is forearmed.',
       superhumanTools.predictBehavior,
       { tags: ['superhuman', 'behavior', 'prediction', 'coaching'] }
     ),
@@ -322,7 +322,7 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getNextLesson',
       'Get Next Lesson',
-      "Find out what financial topic you should learn next based on your goals and knowledge gaps. Personalized curriculum.",
+      'Find out what financial topic you should learn next based on your goals and knowledge gaps. Personalized curriculum.',
       superhumanTools.getNextLesson,
       { tags: ['superhuman', 'learning', 'education', 'personalization'] }
     ),
@@ -338,13 +338,17 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
     {
       id: 'explainConcept',
       name: 'Explain Financial Concept',
-      description: 'Explain any financial concept with examples and connections to related concepts. Perfect for learning.',
+      description:
+        'Explain any financial concept with examples and connections to related concepts. Perfect for learning.',
       domain: 'research',
       tags: ['knowledge', 'education', 'concepts'],
       create: (_ctx: ToolContext) => {
         return {
           description: 'Explain any financial concept with examples and connections',
-          parameters: { type: 'object', properties: { concept: { type: 'string', description: 'The concept to explain' } } },
+          parameters: {
+            type: 'object',
+            properties: { concept: { type: 'string', description: 'The concept to explain' } },
+          },
           execute: async ({ concept }: { concept: string }) => {
             const graph = getKnowledgeGraph();
             if (graph.getAllNodes().length === 0) {
@@ -359,12 +363,7 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
             const node = nodes[0];
             const related = graph.getRelatedNodes(node.id).slice(0, 3);
 
-            const lines = [
-              `📚 **${node.name}**`,
-              '',
-              `📖 ${node.definition}`,
-              '',
-            ];
+            const lines = [`📚 **${node.name}**`, '', `📖 ${node.definition}`, ''];
 
             if (node.examples && node.examples.length > 0) {
               lines.push('**Examples:**');
@@ -397,7 +396,8 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
     {
       id: 'getLearningPath',
       name: 'Get Learning Path',
-      description: 'Get a personalized learning path from basics to advanced topics based on what you already know.',
+      description:
+        'Get a personalized learning path from basics to advanced topics based on what you already know.',
       domain: 'research',
       tags: ['knowledge', 'education', 'learning-path'],
       create: (_ctx: ToolContext) => {
@@ -407,10 +407,20 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
             type: 'object',
             properties: {
               targetConcept: { type: 'string', description: 'What you want to understand' },
-              currentLevel: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'Your current level' },
+              currentLevel: {
+                type: 'string',
+                enum: ['beginner', 'intermediate', 'advanced'],
+                description: 'Your current level',
+              },
             },
           },
-          execute: async ({ targetConcept, currentLevel }: { targetConcept: string; currentLevel: 'beginner' | 'intermediate' | 'advanced' }) => {
+          execute: async ({
+            targetConcept,
+            currentLevel,
+          }: {
+            targetConcept: string;
+            currentLevel: 'beginner' | 'intermediate' | 'advanced';
+          }) => {
             const graph = getKnowledgeGraph();
             if (graph.getAllNodes().length === 0) {
               await initializeKnowledgeGraph();
@@ -433,7 +443,9 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
             ];
 
             for (const rec of recommendations.slice(0, 5)) {
-              lines.push(`  ${rec.context.difficulty === 'beginner' ? '🌱' : rec.context.difficulty === 'intermediate' ? '📈' : '🎓'} ${rec.name}`);
+              lines.push(
+                `  ${rec.context.difficulty === 'beginner' ? '🌱' : rec.context.difficulty === 'intermediate' ? '📈' : '🎓'} ${rec.name}`
+              );
             }
 
             return lines.join('\n');

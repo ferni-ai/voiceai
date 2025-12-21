@@ -149,12 +149,21 @@ export async function handleGoogleCalendarRoutes(
         try {
           const watchChannel = await createWatchChannel(userId, 'primary');
           if (watchChannel) {
-            log.info({ userId, channelId: watchChannel.id }, '📅 Google Calendar webhook watch channel created');
+            log.info(
+              { userId, channelId: watchChannel.id },
+              '📅 Google Calendar webhook watch channel created'
+            );
           } else {
-            log.warn({ userId }, '📅 Could not create Google webhook watch (webhooks may not be enabled)');
+            log.warn(
+              { userId },
+              '📅 Could not create Google webhook watch (webhooks may not be enabled)'
+            );
           }
         } catch (watchError) {
-          log.warn({ error: String(watchError), userId }, '📅 Google webhook setup failed (non-blocking)');
+          log.warn(
+            { error: String(watchError), userId },
+            '📅 Google webhook setup failed (non-blocking)'
+          );
         }
       }
 
@@ -247,7 +256,10 @@ export async function handleGoogleCalendarRoutes(
       await stopAllUserWatchChannels(userId);
       log.info({ userId }, '📅 Google Calendar webhooks stopped');
     } catch (error) {
-      log.warn({ error: String(error), userId }, '📅 Error stopping Google webhooks (non-blocking)');
+      log.warn(
+        { error: String(error), userId },
+        '📅 Error stopping Google webhooks (non-blocking)'
+      );
     }
 
     await googleCalendarService.removeTokens(userId);

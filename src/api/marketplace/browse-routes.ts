@@ -91,7 +91,10 @@ function loadMarketplaceRegistry(): MarketplaceRegistryData | null {
     log.info({ agentCount: cachedRegistry.agents.length }, 'Loaded marketplace registry');
     return cachedRegistry;
   } catch (error) {
-    log.error({ error: String(error), path: MARKETPLACE_REGISTRY_PATH }, 'Failed to load marketplace registry');
+    log.error(
+      { error: String(error), path: MARKETPLACE_REGISTRY_PATH },
+      'Failed to load marketplace registry'
+    );
     return null;
   }
 }
@@ -232,4 +235,3 @@ export async function handleBrowseRoutes(
 
   return false;
 }
-

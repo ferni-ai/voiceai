@@ -98,10 +98,7 @@ async function buildCommitmentFollowUpContext(
 
     injections.push(createHighInjection('commitment_progress', celebration, { category: 'trust' }));
 
-    log.info(
-      { userId, type: update.type },
-      '📊 BETTER-THAN-HUMAN: Commitment progress detected'
-    );
+    log.info({ userId, type: update.type }, '📊 BETTER-THAN-HUMAN: Commitment progress detected');
   }
 
   // 3. If there are follow-ups due and it's the right time
@@ -131,7 +128,11 @@ async function buildCommitmentFollowUpContext(
       void recordFollowUp(userId, followUp.id, 'neutral');
 
       log.info(
-        { userId, commitment: followUp.content.slice(0, 50), daysOld: getAgeInDays(followUp.createdAt) },
+        {
+          userId,
+          commitment: followUp.content.slice(0, 50),
+          daysOld: getAgeInDays(followUp.createdAt),
+        },
         '🔔 BETTER-THAN-HUMAN: Surfacing commitment follow-up'
       );
     }
@@ -189,4 +190,3 @@ registerContextBuilder({
 });
 
 export { buildCommitmentFollowUpContext };
-

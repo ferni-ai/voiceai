@@ -210,10 +210,7 @@ export async function initializeMemoryCallbacks(
 /**
  * Mark a callback as delivered in both systems
  */
-export function markMemoryCallbackDelivered(
-  userId: string,
-  callback: MemoryCallback
-): void {
+export function markMemoryCallbackDelivered(userId: string, callback: MemoryCallback): void {
   memoryPersonalityBridge.markDelivered(userId, callback);
 
   if (callback.sourceId) {
@@ -307,4 +304,3 @@ export const superhumanMemoryIntegration = {
 };
 
 export default superhumanMemoryIntegration;
-

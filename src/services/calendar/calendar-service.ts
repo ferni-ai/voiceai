@@ -131,7 +131,9 @@ function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: stri
 }
 
 function calendarEventToGoogleEvent(event: CreateEventInput): GoogleCalendarEvent {
-  const endTime = event.endTime || new Date(event.startTime.getTime() + (event.durationMinutes || 60) * 60 * 1000);
+  const endTime =
+    event.endTime ||
+    new Date(event.startTime.getTime() + (event.durationMinutes || 60) * 60 * 1000);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return {
@@ -432,11 +434,7 @@ export async function findFreeTimeSlots(
     calendarId?: string;
   } = {}
 ): Promise<TimeSlot[]> {
-  const {
-    minDurationMinutes = 30,
-    workDayOnly = true,
-    calendarId = DEFAULT_CALENDAR_ID,
-  } = options;
+  const { minDurationMinutes = 30, workDayOnly = true, calendarId = DEFAULT_CALENDAR_ID } = options;
 
   const events = await getEventsForDay(userId, date, calendarId);
   if (events.length === 0) {
@@ -446,11 +444,13 @@ export async function findFreeTimeSlots(
     const dayEnd = new Date(date);
     dayEnd.setHours(workDayOnly ? WORK_DAY_END_HOUR : 23, 59, 59, 999);
 
-    return [{
-      start: dayStart,
-      end: dayEnd,
-      durationMinutes: Math.floor((dayEnd.getTime() - dayStart.getTime()) / 60000),
-    }];
+    return [
+      {
+        start: dayStart,
+        end: dayEnd,
+        durationMinutes: Math.floor((dayEnd.getTime() - dayStart.getTime()) / 60000),
+      },
+    ];
   }
 
   // Sort events by start time
@@ -630,10 +630,7 @@ export async function getDayOverview(
 /**
  * Get an overview of the week
  */
-export async function getWeekOverview(
-  userId: string,
-  startDate?: Date
-): Promise<WeekOverview> {
+export async function getWeekOverview(userId: string, startDate?: Date): Promise<WeekOverview> {
   const weekStart = startDate || getStartOfWeek(new Date());
   const days: DayOverview[] = [];
   const backToBackDays: string[] = [];
@@ -700,7 +697,9 @@ function getStartOfWeek(date: Date): Date {
  * Format event for speech output
  * Accepts both old CalendarEvent and new unified CalendarEvent
  */
-export function formatEventForSpeech(event: Pick<CalendarEvent, 'title' | 'startTime' | 'endTime' | 'location' | 'attendees'>): string {
+export function formatEventForSpeech(
+  event: Pick<CalendarEvent, 'title' | 'startTime' | 'endTime' | 'location' | 'attendees'>
+): string {
   const timeOptions: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: '2-digit',
@@ -786,4 +785,3 @@ export default {
   formatEventForSpeech,
   formatDayOverviewForSpeech,
 };
-

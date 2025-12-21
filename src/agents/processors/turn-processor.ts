@@ -156,7 +156,11 @@ import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 
 // 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
 // This runs on EVERY turn to detect and respond to crisis situations
-import { detectCrisis, guardPreResponse, type CrisisDetectionResult } from '../safety/crisis-guard.js';
+import {
+  detectCrisis,
+  guardPreResponse,
+  type CrisisDetectionResult,
+} from '../safety/crisis-guard.js';
 
 // ============================================================================
 // CACHED IMPORTS - Lazy loaded once for performance
@@ -1786,7 +1790,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       voiceStrain: userData?.voiceEmotion?.confidence,
       dayOfWeek: new Date().getDay(),
       hourOfDay: new Date().getHours(),
-      turnCount: userData?.conversationState?.getFlowContext?.()?.turnCount || userData?.turnCount || 0,
+      turnCount:
+        userData?.conversationState?.getFlowContext?.()?.turnCount || userData?.turnCount || 0,
       sessionCount: services.userProfile?.totalConversations || 1,
       relationshipStage: services.userProfile?.relationshipStage,
     });
@@ -2118,9 +2123,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   ) {
     // Fire and forget - don't block the response
     services.saveProfile().catch((saveErr) => {
-      diag.warn('Periodic auto-save failed (non-fatal)', { 
+      diag.warn('Periodic auto-save failed (non-fatal)', {
         error: String(saveErr),
-        turnCount: currentTurnCount 
+        turnCount: currentTurnCount,
       });
     });
     diag.debug('Periodic auto-save triggered', { turnCount: currentTurnCount });

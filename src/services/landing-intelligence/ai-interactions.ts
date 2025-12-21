@@ -527,7 +527,7 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
     return {
       question,
       answer:
-        'Ferni is free forever - really free. If you believe in what we\'re building, you can chip in as a Founding Member ($10/mo) for unlimited access to all 6 specialists. Founding Patrons ($20/mo) get premium features and Nayan, our sage mentor.',
+        "Ferni is free forever - really free. If you believe in what we're building, you can chip in as a Founding Member ($10/mo) for unlimited access to all 6 specialists. Founding Patrons ($20/mo) get premium features and Nayan, our sage mentor.",
       relatedQuestions: ["What's included in the free tier?", 'Can I cancel anytime?'],
       confidence: 0.95,
     };

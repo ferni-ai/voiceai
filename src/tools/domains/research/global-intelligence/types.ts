@@ -29,7 +29,12 @@ export interface PeerBenchmark {
  */
 export interface BehavioralPattern {
   patternId: string;
-  patternType: 'panic_sell' | 'timing_attempt' | 'fomo_buy' | 'overconfidence' | 'analysis_paralysis';
+  patternType:
+    | 'panic_sell'
+    | 'timing_attempt'
+    | 'fomo_buy'
+    | 'overconfidence'
+    | 'analysis_paralysis';
   triggers: {
     marketConditions: {
       drawdownRange: [number, number];
@@ -125,13 +130,13 @@ export interface QuestionCluster {
 /**
  * Research type enum.
  */
-export type ResearchType = 
-  | 'company_analysis' 
-  | 'market_insight' 
-  | 'economic_data' 
-  | 'concept' 
-  | 'principle' 
-  | 'market_pattern' 
+export type ResearchType =
+  | 'company_analysis'
+  | 'market_insight'
+  | 'economic_data'
+  | 'concept'
+  | 'principle'
+  | 'market_pattern'
   | 'economic_insight';
 
 /**

@@ -108,7 +108,10 @@ export function nextWeek(): { start: Date; end: Date } {
 /**
  * Get a specific day of the current week
  */
-export function weekday(day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday', time?: string): Date {
+export function weekday(
+  day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday',
+  time?: string
+): Date {
   const dayMap = { monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5 };
   const date = new Date();
   const currentDay = date.getDay();
@@ -161,7 +164,9 @@ let eventIdCounter = 0;
 export function createTestEvent(overrides?: Partial<TestEvent>): CalendarEvent {
   const id = `test_event_${++eventIdCounter}`;
   const start = overrides?.start
-    ? (typeof overrides.start === 'string' ? new Date(overrides.start) : overrides.start)
+    ? typeof overrides.start === 'string'
+      ? new Date(overrides.start)
+      : overrides.start
     : inHours(1);
   const duration = overrides?.duration ?? 60;
   const end = new Date(start.getTime() + duration * 60 * 1000);
@@ -493,4 +498,3 @@ export default {
   BURNOUT_ENERGY_HISTORY,
   HEALTHY_ENERGY_HISTORY,
 };
-

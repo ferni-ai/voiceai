@@ -53,7 +53,10 @@ const USERS_COLLECTION = 'bogle_users';
 // INVESTMENT THESIS
 // ============================================================================
 
-export async function saveInvestmentThesis(userId: string, thesis: InvestmentThesis): Promise<void> {
+export async function saveInvestmentThesis(
+  userId: string,
+  thesis: InvestmentThesis
+): Promise<void> {
   try {
     const firestore = await getFirestore();
     const docRef = firestore
@@ -75,7 +78,10 @@ export async function saveInvestmentThesis(userId: string, thesis: InvestmentThe
   }
 }
 
-export async function loadInvestmentThesis(userId: string, symbol: string): Promise<InvestmentThesis | null> {
+export async function loadInvestmentThesis(
+  userId: string,
+  symbol: string
+): Promise<InvestmentThesis | null> {
   try {
     const firestore = await getFirestore();
     const docRef = firestore
@@ -93,10 +99,11 @@ export async function loadInvestmentThesis(userId: string, symbol: string): Prom
     return {
       ...data,
       purchaseDate: new Date(data.purchaseDate),
-      updates: data.updates?.map((u: Record<string, unknown>) => ({
-        ...u,
-        date: new Date(u.date as string),
-      })) || [],
+      updates:
+        data.updates?.map((u: Record<string, unknown>) => ({
+          ...u,
+          date: new Date(u.date as string),
+        })) || [],
       lastReviewed: new Date(data.lastReviewed),
     } as InvestmentThesis;
   } catch (error) {
@@ -119,10 +126,11 @@ export async function loadAllTheses(userId: string): Promise<InvestmentThesis[]>
       return {
         ...data,
         purchaseDate: new Date(data.purchaseDate),
-        updates: data.updates?.map((u: Record<string, unknown>) => ({
-          ...u,
-          date: new Date(u.date as string),
-        })) || [],
+        updates:
+          data.updates?.map((u: Record<string, unknown>) => ({
+            ...u,
+            date: new Date(u.date as string),
+          })) || [],
         lastReviewed: new Date(data.lastReviewed),
       } as InvestmentThesis;
     });
@@ -132,7 +140,11 @@ export async function loadAllTheses(userId: string): Promise<InvestmentThesis[]>
   }
 }
 
-export async function updateThesis(userId: string, symbol: string, update: ThesisUpdate): Promise<void> {
+export async function updateThesis(
+  userId: string,
+  symbol: string,
+  update: ThesisUpdate
+): Promise<void> {
   try {
     const thesis = await loadInvestmentThesis(userId, symbol);
     if (!thesis) {
@@ -466,10 +478,17 @@ export async function getConceptsExplained(userId: string): Promise<string[]> {
 // LEARNING PREFERENCES
 // ============================================================================
 
-export async function saveLearningPreferences(userId: string, prefs: LearningPreferences): Promise<void> {
+export async function saveLearningPreferences(
+  userId: string,
+  prefs: LearningPreferences
+): Promise<void> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('learning_preferences');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('learning_preferences');
 
     await docRef.set({
       ...prefs,
@@ -489,7 +508,11 @@ export async function saveLearningPreferences(userId: string, prefs: LearningPre
 export async function loadLearningPreferences(userId: string): Promise<LearningPreferences | null> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('learning_preferences');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('learning_preferences');
 
     const doc = await docRef.get();
     if (!doc.exists) return null;
@@ -499,10 +522,12 @@ export async function loadLearningPreferences(userId: string): Promise<LearningP
 
     return {
       ...data,
-      effectiveExplanations: (data.effectiveExplanations || []).map((e: Record<string, unknown>) => ({
-        ...e,
-        timestamp: new Date(e.timestamp as string),
-      })),
+      effectiveExplanations: (data.effectiveExplanations || []).map(
+        (e: Record<string, unknown>) => ({
+          ...e,
+          timestamp: new Date(e.timestamp as string),
+        })
+      ),
       lastUpdated: new Date(data.lastUpdated),
     } as LearningPreferences;
   } catch (error) {
@@ -518,7 +543,8 @@ export async function recordEffectiveExplanation(
   comprehensionScore: number
 ): Promise<void> {
   try {
-    const prefs = (await loadLearningPreferences(userId)) || createDefaultLearningPreferences(userId);
+    const prefs =
+      (await loadLearningPreferences(userId)) || createDefaultLearningPreferences(userId);
 
     prefs.effectiveExplanations.push({
       topic,
@@ -562,7 +588,11 @@ function createDefaultLearningPreferences(userId: string): LearningPreferences {
 export async function saveRiskEvent(userId: string, event: RiskEvent): Promise<void> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('risk_events').doc(event.id);
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('risk_events')
+      .doc(event.id);
 
     await docRef.set({
       ...event,
@@ -623,8 +653,13 @@ export async function getUserCrisisHistory(userId: string): Promise<{
     const heldCount = events.filter((e) => e.userReaction.action === 'held').length;
     const boughtMoreCount = events.filter((e) => e.userReaction.action === 'bought_more').length;
 
-    const recoveryTimes = events.filter((e) => e.outcome.recoveryTime).map((e) => e.outcome.recoveryTime!);
-    const averageRecoveryTime = recoveryTimes.length > 0 ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length : 0;
+    const recoveryTimes = events
+      .filter((e) => e.outcome.recoveryTime)
+      .map((e) => e.outcome.recoveryTime!);
+    const averageRecoveryTime =
+      recoveryTimes.length > 0
+        ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length
+        : 0;
 
     const lessonsLearned = events
       .filter((e) => e.userReaction.lessonLearned)
@@ -658,7 +693,11 @@ export async function getUserCrisisHistory(userId: string): Promise<{
 export async function saveTrustedSources(userId: string, sources: TrustedSources): Promise<void> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('trusted_sources');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('trusted_sources');
 
     await docRef.set({
       ...sources,
@@ -674,7 +713,11 @@ export async function saveTrustedSources(userId: string, sources: TrustedSources
 export async function loadTrustedSources(userId: string): Promise<TrustedSources | null> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('trusted_sources');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('trusted_sources');
 
     const doc = await docRef.get();
     if (!doc.exists) return null;
@@ -696,10 +739,17 @@ export async function loadTrustedSources(userId: string): Promise<TrustedSources
 // KNOWLEDGE GAPS
 // ============================================================================
 
-export async function saveKnowledgeProfile(userId: string, profile: KnowledgeProfile): Promise<void> {
+export async function saveKnowledgeProfile(
+  userId: string,
+  profile: KnowledgeProfile
+): Promise<void> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('knowledge');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('knowledge');
 
     await docRef.set({
       ...profile,
@@ -720,7 +770,11 @@ export async function saveKnowledgeProfile(userId: string, profile: KnowledgePro
 export async function loadKnowledgeProfile(userId: string): Promise<KnowledgeProfile | null> {
   try {
     const firestore = await getFirestore();
-    const docRef = firestore.collection(USERS_COLLECTION).doc(userId).collection('profile').doc('knowledge');
+    const docRef = firestore
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('profile')
+      .doc('knowledge');
 
     const doc = await docRef.get();
     if (!doc.exists) return null;
@@ -765,7 +819,10 @@ export async function identifyKnowledgeGap(userId: string, gap: KnowledgeGap): P
 
     log.debug({ userId, topic: gap.topic }, 'Knowledge gap identified');
   } catch (error) {
-    log.error({ error: String(error), userId, topic: gap.topic }, 'Failed to identify knowledge gap');
+    log.error(
+      { error: String(error), userId, topic: gap.topic },
+      'Failed to identify knowledge gap'
+    );
   }
 }
 
@@ -866,4 +923,3 @@ export const UserDataService = {
 };
 
 export default UserDataService;
-

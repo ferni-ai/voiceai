@@ -105,7 +105,9 @@ vi.stubGlobal('fetch', mockFetch);
 const TEST_USER_ID = 'test-user-123';
 const TEST_EVENT_ID = 'test-event-456';
 
-const createTestEvent = (overrides: Record<string, unknown> = {}): import('../types.js').CalendarEvent => ({
+const createTestEvent = (
+  overrides: Record<string, unknown> = {}
+): import('../types.js').CalendarEvent => ({
   id: TEST_EVENT_ID,
   userId: TEST_USER_ID,
   title: 'Test Meeting',
@@ -213,9 +215,7 @@ describe('Unified Calendar Store', () => {
   });
 
   it('should update an existing event', async () => {
-    const { createEvent, updateEvent, getEventById } = await import(
-      '../unified-calendar-store.js'
-    );
+    const { createEvent, updateEvent, getEventById } = await import('../unified-calendar-store.js');
 
     const event = await createEvent(TEST_USER_ID, {
       title: 'Original Title',
@@ -230,9 +230,7 @@ describe('Unified Calendar Store', () => {
   });
 
   it('should delete an event', async () => {
-    const { createEvent, deleteEvent, getEventById } = await import(
-      '../unified-calendar-store.js'
-    );
+    const { createEvent, deleteEvent, getEventById } = await import('../unified-calendar-store.js');
 
     const event = await createEvent(TEST_USER_ID, {
       title: 'To Be Deleted',
@@ -370,9 +368,8 @@ describe('Conflict Resolver', () => {
   });
 
   it('should auto-resolve conflicts using default strategy', async () => {
-    const { autoResolveConflicts, setResolutionPreference } = await import(
-      '../conflict-resolver.js'
-    );
+    const { autoResolveConflicts, setResolutionPreference } =
+      await import('../conflict-resolver.js');
 
     // Set default strategy
     await setResolutionPreference(TEST_USER_ID, 'newest-wins');
@@ -416,9 +413,8 @@ describe('Calendar Selection', () => {
   });
 
   it('should update selected calendars for sync', async () => {
-    const { updateSelectedCalendars, getSelectedCalendars } = await import(
-      '../calendar-selection.js'
-    );
+    const { updateSelectedCalendars, getSelectedCalendars } =
+      await import('../calendar-selection.js');
 
     await updateSelectedCalendars(TEST_USER_ID, 'google', ['primary', 'work']);
 
@@ -645,7 +641,9 @@ describe('Outlook Calendar Webhooks', () => {
       value: [
         {
           subscriptionId: 'subscription-123',
-          subscriptionExpirationDateTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          subscriptionExpirationDateTime: new Date(
+            Date.now() + 3 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           resource: 'me/events/event-123',
           clientState: 'test-state',
           changeType: 'updated',
@@ -699,9 +697,8 @@ describe('Apple Calendar Polling', () => {
   });
 
   it('should start and stop polling', async () => {
-    const { startPolling, stopPolling, isPollingRunning } = await import(
-      '../polling/apple-polling.js'
-    );
+    const { startPolling, stopPolling, isPollingRunning } =
+      await import('../polling/apple-polling.js');
 
     startPolling();
     expect(isPollingRunning()).toBe(true);
@@ -711,9 +708,8 @@ describe('Apple Calendar Polling', () => {
   });
 
   it('should mark user as active', async () => {
-    const { registerUser, markUserActive, getPollingStats } = await import(
-      '../polling/apple-polling.js'
-    );
+    const { registerUser, markUserActive, getPollingStats } =
+      await import('../polling/apple-polling.js');
 
     await registerUser(TEST_USER_ID);
     markUserActive(TEST_USER_ID);
@@ -808,4 +804,3 @@ describe('Provider Integration', () => {
     });
   });
 });
-

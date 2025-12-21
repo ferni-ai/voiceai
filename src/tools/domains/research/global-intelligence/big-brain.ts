@@ -78,7 +78,10 @@ export async function storeResearch(entry: ResearchEntry): Promise<void> {
       },
     });
 
-    log.debug({ id: entry.id, type: entry.type, title: entry.title }, 'Research stored in Big Brain');
+    log.debug(
+      { id: entry.id, type: entry.type, title: entry.title },
+      'Research stored in Big Brain'
+    );
   } catch (error) {
     log.error({ error: String(error), id: entry.id }, 'Failed to store research');
   }
@@ -116,13 +119,14 @@ export async function searchResearch(
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
-      
+
       // Check relevance
       const isRelevant =
         data.title?.toLowerCase().includes(queryLower) ||
         data.content?.summary?.toLowerCase().includes(queryLower) ||
         data.categories?.topics?.some((t: string) => t.toLowerCase().includes(queryLower)) ||
-        (options.symbols && data.categories?.symbols?.some((s: string) => options.symbols!.includes(s)));
+        (options.symbols &&
+          data.categories?.symbols?.some((s: string) => options.symbols!.includes(s)));
 
       if (isRelevant) {
         results.push(deserializeResearch(data));
@@ -151,7 +155,11 @@ export async function getResearchForSymbols(symbols: string[]): Promise<Research
     const firestore = await getFirestore();
     const snapshot = await firestore
       .collection(COLLECTIONS.RESEARCH)
-      .where('categories.symbols', 'array-contains-any', symbols.map(s => s.toUpperCase()))
+      .where(
+        'categories.symbols',
+        'array-contains-any',
+        symbols.map((s) => s.toUpperCase())
+      )
       .orderBy('updatedAt', 'desc')
       .limit(20)
       .get();
@@ -166,10 +174,7 @@ export async function getResearchForSymbols(symbols: string[]): Promise<Research
 /**
  * Record that research was used (for learning what's helpful)
  */
-export async function recordResearchUsage(
-  researchId: string,
-  wasHelpful: boolean
-): Promise<void> {
+export async function recordResearchUsage(researchId: string, wasHelpful: boolean): Promise<void> {
   try {
     const firestore = await getFirestore();
     const docRef = firestore.collection(COLLECTIONS.RESEARCH).doc(researchId);
@@ -205,15 +210,15 @@ function deserializeResearch(data: Record<string, unknown>): ResearchEntry {
   return {
     ...data,
     quality: {
-      confidenceScore: quality?.confidenceScore as number || 0.5,
-      timeSensitive: quality?.timeSensitive as boolean || false,
+      confidenceScore: (quality?.confidenceScore as number) || 0.5,
+      timeSensitive: (quality?.timeSensitive as boolean) || false,
       verifiedAt: quality?.verifiedAt ? new Date(quality.verifiedAt as string) : undefined,
       verificationSource: quality?.verificationSource as string | undefined,
       expiresAt: quality?.expiresAt ? new Date(quality.expiresAt as string) : undefined,
     },
     usage: {
-      timesUsed: usage?.timesUsed as number || 0,
-      helpfulnessScore: usage?.helpfulnessScore as number || 0.5,
+      timesUsed: (usage?.timesUsed as number) || 0,
+      helpfulnessScore: (usage?.helpfulnessScore as number) || 0.5,
       lastUsed: usage?.lastUsed ? new Date(usage.lastUsed as string) : undefined,
     },
     createdAt: new Date(data.createdAt as string),
@@ -233,18 +238,25 @@ export async function storeCompanyKnowledge(company: CompanyKnowledge): Promise<
     const firestore = await getFirestore();
     const docRef = firestore.collection(COLLECTIONS.COMPANIES).doc(company.symbol.toUpperCase());
 
-    await docRef.set({
-      ...company,
-      history: company.history?.map((e) => ({
-        ...e,
-        date: e.date instanceof Date ? e.date.toISOString() : e.date,
-      })) || [],
-      lastUpdated: new Date().toISOString(),
-    }, { merge: true });
+    await docRef.set(
+      {
+        ...company,
+        history:
+          company.history?.map((e) => ({
+            ...e,
+            date: e.date instanceof Date ? e.date.toISOString() : e.date,
+          })) || [],
+        lastUpdated: new Date().toISOString(),
+      },
+      { merge: true }
+    );
 
     log.debug({ symbol: company.symbol }, 'Company knowledge stored');
   } catch (error) {
-    log.error({ error: String(error), symbol: company.symbol }, 'Failed to store company knowledge');
+    log.error(
+      { error: String(error), symbol: company.symbol },
+      'Failed to store company knowledge'
+    );
   }
 }
 
@@ -262,12 +274,14 @@ export async function getCompanyKnowledge(symbol: string): Promise<CompanyKnowle
     const data = doc.data()!;
     return {
       ...data,
-      history: (data.history as Array<Record<string, unknown>> || []).map((e) => ({
+      history: ((data.history as Array<Record<string, unknown>>) || []).map((e) => ({
         date: new Date(e.date as string),
         event: e.event as string,
         significance: e.significance as string,
       })),
-      lastResearchDate: data.lastResearchDate ? new Date(data.lastResearchDate as string) : new Date(),
+      lastResearchDate: data.lastResearchDate
+        ? new Date(data.lastResearchDate as string)
+        : new Date(),
       updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
     } as CompanyKnowledge;
   } catch (error) {
@@ -279,10 +293,7 @@ export async function getCompanyKnowledge(symbol: string): Promise<CompanyKnowle
 /**
  * Record that a user asked about a company
  */
-export async function recordCompanyInterest(
-  symbol: string,
-  question?: string
-): Promise<void> {
+export async function recordCompanyInterest(symbol: string, question?: string): Promise<void> {
   try {
     const firestore = await getFirestore();
     const docRef = firestore.collection(COLLECTIONS.COMPANIES).doc(symbol.toUpperCase());
@@ -292,16 +303,19 @@ export async function recordCompanyInterest(
 
     const currentInterest = data.userInterest || { timesAskedAbout: 0, commonQuestions: [] };
 
-    await docRef.set({
-      symbol: symbol.toUpperCase(),
-      userInterest: {
-        timesAskedAbout: currentInterest.timesAskedAbout + 1,
-        commonQuestions: question
-          ? [...new Set([...currentInterest.commonQuestions, question])].slice(-20)
-          : currentInterest.commonQuestions,
+    await docRef.set(
+      {
+        symbol: symbol.toUpperCase(),
+        userInterest: {
+          timesAskedAbout: currentInterest.timesAskedAbout + 1,
+          commonQuestions: question
+            ? [...new Set([...currentInterest.commonQuestions, question])].slice(-20)
+            : currentInterest.commonQuestions,
+        },
+        lastUpdated: new Date().toISOString(),
       },
-      lastUpdated: new Date().toISOString(),
-    }, { merge: true });
+      { merge: true }
+    );
 
     log.debug({ symbol }, 'Company interest recorded');
   } catch (error) {
@@ -312,7 +326,9 @@ export async function recordCompanyInterest(
 /**
  * Get most asked about companies
  */
-export async function getPopularCompanies(limit = 20): Promise<Array<{ symbol: string; timesAsked: number }>> {
+export async function getPopularCompanies(
+  limit = 20
+): Promise<Array<{ symbol: string; timesAsked: number }>> {
   try {
     const firestore = await getFirestore();
     const snapshot = await firestore
@@ -350,7 +366,10 @@ export async function storeSectorKnowledge(sector: SectorKnowledge): Promise<voi
 
     log.debug({ sectorId: sector.sectorId }, 'Sector knowledge stored');
   } catch (error) {
-    log.error({ error: String(error), sectorId: sector.sectorId }, 'Failed to store sector knowledge');
+    log.error(
+      { error: String(error), sectorId: sector.sectorId },
+      'Failed to store sector knowledge'
+    );
   }
 }
 
@@ -369,10 +388,10 @@ export async function getSectorKnowledge(sectorId: string): Promise<SectorKnowle
     return {
       sectorId: data.sectorId as string,
       sectorName: data.sectorName as string,
-      etfs: data.etfs as string[] || [],
+      etfs: (data.etfs as string[]) || [],
       metrics: data.metrics as SectorKnowledge['metrics'],
       insights: data.insights as SectorKnowledge['insights'],
-      correlations: data.correlations as SectorKnowledge['correlations'] || [],
+      correlations: (data.correlations as SectorKnowledge['correlations']) || [],
       updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
     } as SectorKnowledge;
   } catch (error) {
@@ -394,10 +413,10 @@ export async function getAllSectors(): Promise<SectorKnowledge[]> {
       return {
         sectorId: data.sectorId as string,
         sectorName: data.sectorName as string,
-        etfs: data.etfs as string[] || [],
+        etfs: (data.etfs as string[]) || [],
         metrics: data.metrics as SectorKnowledge['metrics'],
         insights: data.insights as SectorKnowledge['insights'],
-        correlations: data.correlations as SectorKnowledge['correlations'] || [],
+        correlations: (data.correlations as SectorKnowledge['correlations']) || [],
         updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
       } as SectorKnowledge;
     });
@@ -577,7 +596,10 @@ export async function learnFromResearch(params: {
       confidenceScore: params.confidence,
       timeSensitive: params.type === 'market_pattern' || params.type === 'economic_insight',
       verifiedAt: new Date(),
-      expiresAt: params.type === 'market_pattern' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
+      expiresAt:
+        params.type === 'market_pattern'
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          : undefined,
     },
     usage: {
       timesUsed: 0,
@@ -596,11 +618,32 @@ export async function learnFromResearch(params: {
 function extractTopics(title: string, summary: string): string[] {
   const text = `${title} ${summary}`.toLowerCase();
   const topicKeywords = [
-    'valuation', 'growth', 'dividend', 'risk', 'momentum', 'value',
-    'tech', 'healthcare', 'finance', 'energy', 'consumer',
-    'inflation', 'interest rate', 'recession', 'bull', 'bear',
-    'etf', 'index', 'bond', 'stock', 'portfolio',
-    'retirement', 'fire', 'savings', 'budget', 'tax',
+    'valuation',
+    'growth',
+    'dividend',
+    'risk',
+    'momentum',
+    'value',
+    'tech',
+    'healthcare',
+    'finance',
+    'energy',
+    'consumer',
+    'inflation',
+    'interest rate',
+    'recession',
+    'bull',
+    'bear',
+    'etf',
+    'index',
+    'bond',
+    'stock',
+    'portfolio',
+    'retirement',
+    'fire',
+    'savings',
+    'budget',
+    'tax',
   ];
 
   return topicKeywords.filter((keyword) => text.includes(keyword));
@@ -609,10 +652,20 @@ function extractTopics(title: string, summary: string): string[] {
 function extractConcepts(keyPoints: string[]): string[] {
   const text = keyPoints.join(' ').toLowerCase();
   const conceptKeywords = [
-    'p/e ratio', 'peg ratio', 'dividend yield', 'market cap',
-    'beta', 'alpha', 'sharpe ratio', 'volatility',
-    'compound interest', 'dollar cost averaging', 'diversification',
-    'asset allocation', 'rebalancing', 'tax loss harvesting',
+    'p/e ratio',
+    'peg ratio',
+    'dividend yield',
+    'market cap',
+    'beta',
+    'alpha',
+    'sharpe ratio',
+    'volatility',
+    'compound interest',
+    'dollar cost averaging',
+    'diversification',
+    'asset allocation',
+    'rebalancing',
+    'tax loss harvesting',
   ];
 
   return conceptKeywords.filter((concept) => text.includes(concept));
@@ -787,4 +840,3 @@ export const BigBrain = {
 };
 
 export default BigBrain;
-

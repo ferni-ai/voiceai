@@ -60,7 +60,14 @@ const temporalCache = new EdgeCache<Partial<UserTemporalPatterns>>({
 // TIME CONTEXT
 // ============================================================================
 
-type TimeOfDay = 'early_morning' | 'morning' | 'midday' | 'afternoon' | 'evening' | 'night' | 'late_night';
+type TimeOfDay =
+  | 'early_morning'
+  | 'morning'
+  | 'midday'
+  | 'afternoon'
+  | 'evening'
+  | 'night'
+  | 'late_night';
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
@@ -90,7 +97,15 @@ function getCurrentTemporalContext(): TemporalContext {
   else if (hour >= 21 || hour < 2) timeOfDay = 'night';
   else timeOfDay = 'late_night';
 
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
   const dayOfWeek = days[day];
 
   let season: Season;
@@ -155,7 +170,10 @@ async function getUserTemporalPatterns(userId: string): Promise<Partial<UserTemp
   // Check cache first (PERFORMANCE: saves 50-100ms on hit)
   const cached = temporalCache.get(cacheKey);
   if (cached) {
-    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: true }, '⚡ Temporal cache hit');
+    log.debug(
+      { userId, durationMs: Date.now() - startTime, cacheHit: true },
+      '⚡ Temporal cache hit'
+    );
     return cached;
   }
 
@@ -177,7 +195,10 @@ async function getUserTemporalPatterns(userId: string): Promise<Partial<UserTemp
 
     // Store in cache for subsequent turns (PERFORMANCE: avoids repeated Firestore reads)
     temporalCache.set(cacheKey, result);
-    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: false }, '📊 Temporal data loaded & cached');
+    log.debug(
+      { userId, durationMs: Date.now() - startTime, cacheHit: false },
+      '📊 Temporal data loaded & cached'
+    );
 
     return result;
   } catch (err) {
@@ -252,7 +273,7 @@ function generateTemporalInsights(
   const insights: TemporalInsight[] = [];
 
   // 1. TODAY dates - highest priority
-  for (const date of upcomingDates.filter(d => d.isToday && d.wantsAcknowledgment)) {
+  for (const date of upcomingDates.filter((d) => d.isToday && d.wantsAcknowledgment)) {
     insights.push({
       type: 'date_today',
       message: `[IMPORTANT DATE TODAY] ${date.description}. This matters to them. Acknowledge it warmly at the right moment.`,
@@ -261,7 +282,9 @@ function generateTemporalInsights(
   }
 
   // 2. UPCOMING dates within 3 days - high priority
-  for (const date of upcomingDates.filter(d => !d.isToday && d.daysUntil <= 3 && d.wantsAcknowledgment)) {
+  for (const date of upcomingDates.filter(
+    (d) => !d.isToday && d.daysUntil <= 3 && d.wantsAcknowledgment
+  )) {
     insights.push({
       type: 'date_upcoming',
       message: `[UPCOMING DATE] ${date.description} is in ${date.daysUntil} day${date.daysUntil > 1 ? 's' : ''}. You might mention it if relevant.`,
@@ -288,8 +311,12 @@ function generateTemporalInsights(
   }
 
   // 5. Seasonal awareness
-  const seasonalPattern = patterns.seasonalMood?.find(s => s.season === temporal.season);
-  if (seasonalPattern && seasonalPattern.moodTrend === 'worse' && seasonalPattern.confidence > 0.6) {
+  const seasonalPattern = patterns.seasonalMood?.find((s) => s.season === temporal.season);
+  if (
+    seasonalPattern &&
+    seasonalPattern.moodTrend === 'worse' &&
+    seasonalPattern.confidence > 0.6
+  ) {
     insights.push({
       type: 'season_aware',
       message: `[SEASONAL PATTERN] They tend to have a harder time in ${temporal.season}. Be aware of potential seasonal mood shifts.`,
@@ -298,7 +325,10 @@ function generateTemporalInsights(
   }
 
   // 6. Weekend vs weekday energy
-  if (temporal.isWeekend && patterns.dayPatterns?.bestDays?.some(d => d === 'saturday' || d === 'sunday')) {
+  if (
+    temporal.isWeekend &&
+    patterns.dayPatterns?.bestDays?.some((d) => d === 'saturday' || d === 'sunday')
+  ) {
     insights.push({
       type: 'day_aware',
       message: `[WEEKEND MODE] Weekends are usually their better days. Match that energy.`,
@@ -352,14 +382,10 @@ async function buildTemporalIntelligenceContext(
   const injections: ContextInjection[] = [];
 
   // High priority insights get their own injection
-  const highPriority = insights.filter(i => i.priority === 'high');
+  const highPriority = insights.filter((i) => i.priority === 'high');
   for (const insight of highPriority) {
     injections.push(
-      createHighInjection(
-        `temporal_${insight.type}`,
-        insight.message,
-        { category: 'awareness' }
-      )
+      createHighInjection(`temporal_${insight.type}`, insight.message, { category: 'awareness' })
     );
 
     log.info(
@@ -369,15 +395,11 @@ async function buildTemporalIntelligenceContext(
   }
 
   // Bundle medium/low priority into one injection
-  const otherInsights = insights.filter(i => i.priority !== 'high');
+  const otherInsights = insights.filter((i) => i.priority !== 'high');
   if (otherInsights.length > 0) {
-    const bundledMessage = otherInsights.map(i => i.message).join('\n');
+    const bundledMessage = otherInsights.map((i) => i.message).join('\n');
     injections.push(
-      createStandardInjection(
-        'temporal_context',
-        bundledMessage,
-        { category: 'awareness' }
-      )
+      createStandardInjection('temporal_context', bundledMessage, { category: 'awareness' })
     );
   }
 
@@ -409,11 +431,11 @@ async function learnTemporalPatternInternal(
     const existingPatterns = (docData?.temporalPatterns as Record<string, unknown>) || {};
 
     const dayPatternsData = existingPatterns.dayPatterns as Record<string, unknown> | undefined;
-    const dayStats = ((dayPatternsData?.conversationsByDay as Record<string, number>) || {});
+    const dayStats = (dayPatternsData?.conversationsByDay as Record<string, number>) || {};
     dayStats[temporal.dayOfWeek] = (dayStats[temporal.dayOfWeek] || 0) + 1;
 
     // Determine most active time
-    const timeStats = ((existingPatterns.timeStats as Record<string, number>) || {});
+    const timeStats = (existingPatterns.timeStats as Record<string, number>) || {};
     timeStats[temporal.timeOfDay] = (timeStats[temporal.timeOfDay] || 0) + 1;
 
     // Find peak time
@@ -446,7 +468,10 @@ async function learnTemporalPatternInternal(
       { merge: true }
     );
 
-    log.debug({ userId, timeOfDay: temporal.timeOfDay, dayOfWeek: temporal.dayOfWeek }, 'Temporal pattern learned');
+    log.debug(
+      { userId, timeOfDay: temporal.timeOfDay, dayOfWeek: temporal.dayOfWeek },
+      'Temporal pattern learned'
+    );
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not learn temporal pattern');
   }
@@ -464,5 +489,8 @@ registerContextBuilder({
   build: buildTemporalIntelligenceContext,
 });
 
-export { buildTemporalIntelligenceContext, learnTemporalPatternInternal as learnTemporalPattern, getCurrentTemporalContext };
-
+export {
+  buildTemporalIntelligenceContext,
+  learnTemporalPatternInternal as learnTemporalPattern,
+  getCurrentTemporalContext,
+};

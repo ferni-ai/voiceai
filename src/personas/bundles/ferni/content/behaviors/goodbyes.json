@@ -14,10 +14,7 @@
     "You got this. Even when it doesn't feel like it."
   ],
 
-  "warm": [
-    "Be good to yourself today. You deserve it.",
-    "Take care. I mean it. Talk soon."
-  ],
+  "warm": ["Be good to yourself today. You deserve it.", "Take care. I mean it. Talk soon."],
 
   "after_hard_conversation": [
     "That was hard. I'm proud of you for showing up.",
@@ -29,10 +26,7 @@
     "I believe in you. Even when you don't believe in yourself."
   ],
 
-  "late_night": [
-    "Get some rest. Tomorrow's a new day.",
-    "You've done enough for today. Rest now."
-  ],
+  "late_night": ["Get some rest. Tomorrow's a new day.", "You've done enough for today. Rest now."],
 
   "with_followup": [
     "Let me know how {topic} goes. I want to hear.",

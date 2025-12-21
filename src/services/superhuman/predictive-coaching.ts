@@ -54,7 +54,10 @@ export async function initializeRedisCache(): Promise<void> {
 
     log.info('🚀 Predictive coaching Redis cache initialized');
   } catch (error) {
-    log.warn({ error: String(error) }, 'Redis unavailable for predictive coaching - using memory only');
+    log.warn(
+      { error: String(error) },
+      'Redis unavailable for predictive coaching - using memory only'
+    );
     redisInitialized = true; // Mark as initialized so we don't retry
   }
 }
@@ -358,7 +361,10 @@ export async function loadUserPatterns(userId: string): Promise<PatternObservati
   // TIER 1: Memory cache (fastest)
   const memoryPatterns = patternCache.get(userId);
   if (memoryPatterns) {
-    log.debug({ userId, source: 'memory', count: memoryPatterns.length }, 'Patterns from memory cache');
+    log.debug(
+      { userId, source: 'memory', count: memoryPatterns.length },
+      'Patterns from memory cache'
+    );
     return memoryPatterns;
   }
 
@@ -366,7 +372,10 @@ export async function loadUserPatterns(userId: string): Promise<PatternObservati
   const redisPatterns = await getFromRedis(`patterns:${userId}`);
   if (redisPatterns) {
     patternCache.set(userId, redisPatterns);
-    log.debug({ userId, source: 'redis', count: redisPatterns.length }, 'Patterns from Redis cache');
+    log.debug(
+      { userId, source: 'redis', count: redisPatterns.length },
+      'Patterns from Redis cache'
+    );
     return redisPatterns;
   }
 

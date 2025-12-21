@@ -87,17 +87,23 @@ export interface RecoverySsml {
 
 /**
  * Micro-pause durations for cushioning
- * These are imperceptible but make cuts land softer
+ *
+ * These are subtle but make cuts land softer. When speech is interrupted,
+ * having a micro-pause nearby means the cut happens in a natural gap
+ * rather than mid-syllable.
+ *
+ * Slightly longer than typical reading pauses - optimized for
+ * voice AI where cuts can happen at any moment.
  */
 export const CUSHION_TIMING = {
-  /** Pause after commas (subtle) */
-  comma: 60,
+  /** Pause after commas (subtle breath) */
+  comma: 80,
   /** Pause after periods (natural break) */
-  period: 100,
-  /** Pause after emotional words (processing) */
-  emotional: 80,
-  /** Pause at clause boundaries (thinking) */
-  clause: 70,
+  period: 120,
+  /** Pause after emotional words (processing moment) */
+  emotional: 100,
+  /** Pause at clause boundaries (thinking beat) */
+  clause: 90,
 };
 
 /**
@@ -116,38 +122,53 @@ export const TRAILING_TRIGGERS = [
 
 /**
  * Recovery prefixes based on interrupt type
+ *
+ * Design philosophy: Softer is better. When someone interrupts,
+ * they want to feel heard. A gentle, unhurried recovery shows we're
+ * truly listening, not just pausing to let them speak.
+ *
+ * Timing guidelines:
+ * - Hard interrupt: 350-450ms pause, 0.70-0.78 volume, 0.82-0.88 speed
+ * - Soft interrupt: 200-280ms pause, 0.78-0.85 volume, 0.88-0.92 speed
  */
 const RECOVERY_PREFIXES = {
-  // Hard interrupt - user said "wait" or "stop"
+  // Hard interrupt - user said "wait", "stop", "hold on"
+  // Longer pause, lower volume, slower pace = "I hear you, take your time"
   hard: [
-    '<break time="200ms"/><speed ratio="0.88"/><volume ratio="0.85"/>',
-    '<break time="180ms"/><speed ratio="0.90"/><volume ratio="0.82"/>',
-    '<break time="220ms"/><speed ratio="0.85"/><volume ratio="0.80"/>',
+    '<break time="380ms"/><speed ratio="0.85"/><volume ratio="0.72"/>',
+    '<break time="350ms"/><speed ratio="0.88"/><volume ratio="0.75"/>',
+    '<break time="420ms"/><speed ratio="0.82"/><volume ratio="0.70"/>',
   ],
-  // Soft interrupt - user just started talking
+  // Soft interrupt - user just started talking (no explicit stop words)
+  // Shorter pause but still soft = "Oh, go ahead"
   soft: [
-    '<break time="150ms"/><speed ratio="0.92"/><volume ratio="0.88"/>',
-    '<break time="120ms"/><speed ratio="0.94"/><volume ratio="0.90"/>',
-    '<break time="140ms"/><speed ratio="0.90"/><volume ratio="0.85"/>',
+    '<break time="250ms"/><speed ratio="0.90"/><volume ratio="0.80"/>',
+    '<break time="220ms"/><speed ratio="0.92"/><volume ratio="0.82"/>',
+    '<break time="280ms"/><speed ratio="0.88"/><volume ratio="0.78"/>',
   ],
 };
 
 /**
  * Verbal acknowledgments (optional, used sparingly)
+ *
+ * Design: These should feel like a friend yielding the floor,
+ * not a customer service agent saying "please continue."
+ * Most of the time, NO verbal ack is best - just the soft prosody.
  */
 const INTERRUPT_ACKNOWLEDGMENTS = {
   hard: [
-    '<emotion value="attentive"/>Sure.<break time="150ms"/>',
-    '<emotion value="calm"/>Of course.<break time="150ms"/>',
-    '<emotion value="attentive"/>Go ahead.<break time="150ms"/>',
-    '', // Often no verbal ack is best
+    '<emotion value="calm"/>Mm-hmm.<break time="120ms"/>',
+    '<emotion value="warm"/>Yeah.<break time="100ms"/>',
+    '', // No verbal ack - just soft prosody (most natural)
+    '',
+    '',
     '',
     '',
   ],
   soft: [
-    '<emotion value="calm"/>Mm.<break time="100ms"/>',
-    '<break time="80ms"/>',
-    '', // Most of the time, just continue
+    '<break time="60ms"/>',
+    '', // No verbal ack - just soft prosody
+    '',
     '',
     '',
   ],
@@ -155,12 +176,18 @@ const INTERRUPT_ACKNOWLEDGMENTS = {
 
 /**
  * Trailing-off patterns (injected when we sense interrupt)
+ *
+ * These create the natural "trailing off" effect that humans do
+ * when someone starts talking over them. The effect should be:
+ * - Quick fade (not dragging it out)
+ * - Soft volume drop
+ * - Natural punctuation (ellipsis or em-dash)
  */
 const TRAILING_SSML = [
-  '<speed ratio="0.8"/><volume ratio="0.7"/>...<break time="150ms"/>',
-  '<speed ratio="0.75"/><volume ratio="0.65"/>—<break time="120ms"/>',
-  '<speed ratio="0.82"/><volume ratio="0.72"/>...<break time="130ms"/>',
-  '<speed ratio="0.78"/><volume ratio="0.68"/>—<break time="140ms"/>',
+  '<speed ratio="0.75"/><volume ratio="0.60"/>...<break time="100ms"/>',
+  '<speed ratio="0.70"/><volume ratio="0.55"/>—<break time="80ms"/>',
+  '<speed ratio="0.78"/><volume ratio="0.62"/>...<break time="90ms"/>',
+  '<speed ratio="0.72"/><volume ratio="0.58"/>—<break time="85ms"/>',
 ];
 
 // =============================================================================
@@ -508,6 +535,19 @@ export function wrapWithInterruptAwareness(
 }
 
 // =============================================================================
+// RE-EXPORT SPEECH WRAPPER
+// =============================================================================
+
+export {
+  wrapSpeechWithInterruptAwareness,
+  createInterruptAwareTransform,
+  markRecoveryComplete,
+  isInRecoveryPhase,
+  type InterruptContext,
+  type WrappedSpeech,
+} from './speech-wrapper.js';
+
+// =============================================================================
 // EXPORTS
 // =============================================================================
 
@@ -526,8 +566,10 @@ export default {
   // Main integration
   wrapWithInterruptAwareness,
 
+  // Speech wrapper (recommended for new code)
+  // wrapSpeechWithInterruptAwareness - see speech-wrapper.ts
+
   // Constants for external use
   CUSHION_TIMING,
   TRAILING_TRIGGERS,
 };
-

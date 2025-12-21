@@ -184,10 +184,7 @@ export function logValidation(result: HumanizingResult): void {
   if (validation.valid) {
     log.debug({}, '✅ Humanizing systems validation PASSED');
   } else {
-    log.warn(
-      { issues: validation.issues },
-      '❌ Humanizing systems validation FAILED'
-    );
+    log.warn({ issues: validation.issues }, '❌ Humanizing systems validation FAILED');
   }
 }
 

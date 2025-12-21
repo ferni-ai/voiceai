@@ -403,12 +403,7 @@ async function buildCommunicationConfig(
     formalityLevel: 0.3,
     thinkingPhrases: extractThinkingSounds(behaviors.thinking_sounds),
     // "Better Than Human" Philosophy: Presence, not commands
-    listeningCues: [
-      'Mmhmm...',
-      'Mm...',
-      'Yeah...',
-      "I'm here...",
-    ],
+    listeningCues: ['Mmhmm...', 'Mm...', 'Yeah...', "I'm here..."],
     backchannels,
     silenceFillers,
     selfCorrections: [

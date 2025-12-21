@@ -35,4 +35,3 @@ export {
   PACING_MULTIPLIERS,
   PAUSE_MULTIPLIERS,
 } from '../../types/behavior-types.js';
-

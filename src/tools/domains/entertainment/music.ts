@@ -63,13 +63,13 @@ export type MusicIntent = 'ambient' | 'listening';
 
 /**
  * Detect whether the user wants ambient background music or to actually listen.
- * 
+ *
  * AMBIENT signals (iTunes DJ mode - chains previews):
  * - "Play some..." (vague/mood-based)
- * - "Put on something..." 
+ * - "Put on something..."
  * - "While we talk/chat..."
  * - Mood words: relaxing, upbeat, focus, chill, background
- * 
+ *
  * LISTENING signals (Spotify full track):
  * - "Play THE song..." (specific)
  * - "I want to hear [artist/song]"
@@ -78,30 +78,30 @@ export type MusicIntent = 'ambient' | 'listening';
  */
 export function detectMusicIntent(query: string): MusicIntent {
   const q = query.toLowerCase().trim();
-  
+
   // LISTENING intent signals - user wants a specific full song
   const listeningPatterns = [
-    /\bthe song\b/,                    // "play the song..."
-    /\bi want to hear\b/,              // "I want to hear..."
-    /\bi want to listen\b/,            // "I want to listen to..."
-    /\bon spotify\b/,                  // "...on Spotify"
-    /\bfull (song|track|version)\b/,   // "full song"
+    /\bthe song\b/, // "play the song..."
+    /\bi want to hear\b/, // "I want to hear..."
+    /\bi want to listen\b/, // "I want to listen to..."
+    /\bon spotify\b/, // "...on Spotify"
+    /\bfull (song|track|version)\b/, // "full song"
     /\bactually (play|listen|hear)\b/, // "actually play..."
-    /\bqueue\b/,                       // "queue up..."
-    /\bby .+ called\b/,                // "by Taylor Swift called..."
-    /^play .+ by .+ $/,                // "play [song] by [artist]" (specific)
+    /\bqueue\b/, // "queue up..."
+    /\bby .+ called\b/, // "by Taylor Swift called..."
+    /^play .+ by .+ $/, // "play [song] by [artist]" (specific)
   ];
-  
+
   // AMBIENT intent signals - background music for conversation
   const ambientPatterns = [
-    /\bsome\b/,                        // "play some jazz"
-    /\bsomething\b/,                   // "put on something"
-    /\bwhile we\b/,                    // "while we talk"
-    /\bbackground\b/,                  // "background music"
-    /\bambient\b/,                     // "ambient"
-    /\bmood\b/,                        // "set the mood"
-    /\bvibes?\b/,                      // "good vibes"
-    /\brelaxing\b/,                    // mood-based
+    /\bsome\b/, // "play some jazz"
+    /\bsomething\b/, // "put on something"
+    /\bwhile we\b/, // "while we talk"
+    /\bbackground\b/, // "background music"
+    /\bambient\b/, // "ambient"
+    /\bmood\b/, // "set the mood"
+    /\bvibes?\b/, // "good vibes"
+    /\brelaxing\b/, // mood-based
     /\bchill\b/,
     /\bupbeat\b/,
     /\bfocus\b/,
@@ -109,7 +109,7 @@ export function detectMusicIntent(query: string): MusicIntent {
     /\benergetic\b/,
     /\bmellow\b/,
   ];
-  
+
   // Check for explicit listening intent first
   for (const pattern of listeningPatterns) {
     if (pattern.test(q)) {
@@ -117,7 +117,7 @@ export function detectMusicIntent(query: string): MusicIntent {
       return 'listening';
     }
   }
-  
+
   // Check for ambient intent
   for (const pattern of ambientPatterns) {
     if (pattern.test(q)) {
@@ -125,14 +125,14 @@ export function detectMusicIntent(query: string): MusicIntent {
       return 'ambient';
     }
   }
-  
+
   // Default: short/vague queries → ambient, longer specific queries → listening
-  const words = q.split(/\s+/).filter(w => w.length > 2);
+  const words = q.split(/\s+/).filter((w) => w.length > 2);
   if (words.length <= 3) {
     getLogger().debug({ query, wordCount: words.length }, '🎵 Short query → AMBIENT intent');
     return 'ambient';
   }
-  
+
   getLogger().debug({ query, wordCount: words.length }, '🎵 Specific query → LISTENING intent');
   return 'listening';
 }
@@ -200,12 +200,15 @@ export function resetMusicConfig(): void {
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
   const intent = detectMusicIntent(query);
-  
-  log.info({ 
-    query, 
-    intent,
-    spotifyLinked: musicConfig.spotifyLinked,
-  }, '🎵 Playing music (intent-based routing)');
+
+  log.info(
+    {
+      query,
+      intent,
+      spotifyLinked: musicConfig.spotifyLinked,
+    },
+    '🎵 Playing music (intent-based routing)'
+  );
 
   // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
   if (intent === 'ambient') {
@@ -217,13 +220,13 @@ export async function playMusicUnified(query: string): Promise<string> {
   if (musicConfig.spotifyLinked) {
     log.info({ query }, '🎵 LISTENING mode: Trying Spotify...');
     const result = await playViaSpotify(query);
-    
+
     // Check if Spotify failed due to device issue
     if (result.includes("can't play it yet") || result.includes('no active device')) {
       log.info({ query }, '🎵 Spotify device unavailable, falling back to iTunes preview');
       return playViaItunesWithListeningFallback(query);
     }
-    
+
     return result;
   }
 
@@ -235,7 +238,7 @@ export async function playMusicUnified(query: string): Promise<string> {
 /**
  * Play ambient background music - chains iTunes previews like a DJ.
  * Perfect for conversation - 30-second segments with smooth crossfades.
- * 
+ *
  * 🎧 DJ AMBIENT MODE:
  * - Searches for multiple tracks matching the mood/genre
  * - Queues them up for continuous playback
@@ -245,50 +248,50 @@ export async function playMusicUnified(query: string): Promise<string> {
 async function playAmbientMusic(query: string): Promise<string> {
   const log = getLogger();
   log.info({ query }, '🎧 DJ Ambient Mode: Starting...');
-  
+
   // Search for multiple tracks to queue
   const searchResults = await searchItunes(query, 5);
-  
+
   if (searchResults.resultCount === 0 || !searchResults.results.length) {
     log.warn({ query }, '🎧 No tracks found for ambient mode');
     return `Couldn't find any ${query} tracks. Want to try something else?`;
   }
-  
+
   // Filter to only tracks with preview URLs
-  const tracksWithPreviews = searchResults.results.filter(t => t.previewUrl);
-  
+  const tracksWithPreviews = searchResults.results.filter((t) => t.previewUrl);
+
   if (tracksWithPreviews.length === 0) {
     log.warn({ query }, '🎧 Found tracks but none have previews');
     return `Found some ${query} tracks but none have previews available. Try a different search?`;
   }
-  
+
   // Get the music player
   const musicPlayer = getMusicPlayer();
-  
+
   if (!musicPlayer.isInitialized()) {
     log.warn('🎧 Music player not initialized for ambient mode');
     // Fall back to single track mode
     return playViaItunes(query);
   }
-  
+
   // Play the first track immediately
   const firstTrack = tracksWithPreviews[0];
   const ITUNES_PREVIEW_DURATION_MS = 30000;
-  
+
   const musicTrack: MusicTrack = {
     name: firstTrack.trackName,
     artist: firstTrack.artistName,
     previewUrl: firstTrack.previewUrl!,
     duration: ITUNES_PREVIEW_DURATION_MS,
   };
-  
+
   const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
-  
+
   if (!success) {
     log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
     return `Had trouble starting the music. Want to try again?`;
   }
-  
+
   // 🎧 DJ MODE: Queue just ONE backup track for smooth transition
   // After that, let the DJ decide whether to keep it going with personality!
   // This makes the DJ feel more alive - not just an auto-queue robot.
@@ -301,22 +304,25 @@ async function playAmbientMusic(query: string): Promise<string> {
       duration: ITUNES_PREVIEW_DURATION_MS,
     });
   }
-  
-  log.info({ 
-    firstTrack: firstTrack.trackName,
-    backupTrack: tracksWithPreviews[1]?.trackName || 'none',
-    totalTracksFound: tracksWithPreviews.length,
-  }, '🎧 DJ Mode: Playing with one backup, DJ will decide from there!');
-  
+
+  log.info(
+    {
+      firstTrack: firstTrack.trackName,
+      backupTrack: tracksWithPreviews[1]?.trackName || 'none',
+      totalTracksFound: tracksWithPreviews.length,
+    },
+    '🎧 DJ Mode: Playing with one backup, DJ will decide from there!'
+  );
+
   // Return ambient-style response (short, doesn't interrupt conversation)
   const ambientResponses = [
     "Here's some vibes...",
-    "Setting the mood...",
-    "Got something for you...",
+    'Setting the mood...',
+    'Got something for you...',
     `Some ${query} coming up...`,
-    "",  // Sometimes just play silently and let the music speak!
+    '', // Sometimes just play silently and let the music speak!
   ];
-  
+
   return ambientResponses[Math.floor(Math.random() * ambientResponses.length)];
 }
 
@@ -327,13 +333,13 @@ async function playAmbientMusic(query: string): Promise<string> {
 async function playViaItunesWithListeningFallback(query: string): Promise<string> {
   const log = getLogger();
   const result = await playViaItunes(query);
-  
+
   // If playback succeeded, add context about it being a preview
-  if (!result.includes("couldn't") && !result.includes("trouble")) {
+  if (!result.includes("couldn't") && !result.includes('trouble')) {
     // Extract track name from result if possible
     const trackMatch = result.match(/"([^"]+)"/);
     const trackName = trackMatch ? trackMatch[1] : 'that';
-    
+
     const fallbackResponses = [
       `Here's a taste of ${trackName}... open Spotify to hear the full thing!`,
       `Playing a preview... want the full song? Open Spotify and I'll queue it up.`,
@@ -341,7 +347,7 @@ async function playViaItunesWithListeningFallback(query: string): Promise<string
     ];
     return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
   }
-  
+
   return result;
 }
 
@@ -354,25 +360,28 @@ async function playViaItunesWithListeningFallback(query: string): Promise<string
 export async function playViaItunes(query: string, personaId?: string): Promise<string> {
   const log = getLogger();
   const startTime = Date.now();
-  
+
   // 🔍 DIAGNOSTIC: Log full state at tool entry
   const musicPlayer = getMusicPlayer();
   log.info(
-    { 
+    {
       timestamp: new Date().toISOString(),
-      query, 
+      query,
       personaId,
       musicPlayerInitialized: musicPlayer.isInitialized(),
       musicPlayerSessionId: musicPlayer.getSessionId(),
       musicEnabled: isMusicEnabled(),
-    }, 
+    },
     '🎵 [DIAG] playViaItunes START - checking player state'
   );
 
   // 🐛 FIX: Check if music is enabled FIRST before doing anything
   // This provides a clear error message instead of "audio system isn't ready"
   if (!isMusicEnabled()) {
-    log.warn({ query, elapsed: Date.now() - startTime }, '🎵 [DIAG] Music feature is disabled (MUSIC_ENABLED=false)');
+    log.warn(
+      { query, elapsed: Date.now() - startTime },
+      '🎵 [DIAG] Music feature is disabled (MUSIC_ENABLED=false)'
+    );
     return `I'd love to play "${query}" for you, but music playback is currently disabled. Let's keep chatting instead!`;
   }
 
@@ -438,7 +447,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     // 🔍 DIAGNOSTIC: Check if the player instance changed
     if (currentMusicPlayer !== musicPlayer) {
       log.warn(
-        { 
+        {
           timestamp: new Date().toISOString(),
           originalSessionId: musicPlayer.getSessionId(),
           currentSessionId: currentMusicPlayer.getSessionId(),
@@ -452,7 +461,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     // This properly awaits the initialization promise with a 5-second timeout
     if (!currentMusicPlayer.isInitialized()) {
       log.warn(
-        { 
+        {
           timestamp: new Date().toISOString(),
           query,
           sessionId: currentMusicPlayer.getSessionId(),
@@ -547,10 +556,10 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
 
     if (!success) {
       log.error(
-        { 
+        {
           timestamp: new Date().toISOString(),
-          track: track.name, 
-          artist: track.artist, 
+          track: track.name,
+          artist: track.artist,
           previewUrl: track.previewUrl?.slice(0, 50),
           elapsed: Date.now() - startTime,
         },

@@ -343,6 +343,104 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
 }
 
 // =============================================================================
+// THINKING SOUNDS
+// =============================================================================
+
+/**
+ * Add natural thinking sounds and pauses
+ * Maya thinks through problems with you - warm and present
+ */
+export function addThinkingSounds(text: string, _emotion: string): string {
+  let result = text;
+
+  const thinkingPatterns = [
+    { pattern: /\b(hmm)\b/gi, pause: 200, speed: 0.88 },
+    { pattern: /\b(let me think)\b/gi, pause: 180, speed: 0.9 },
+    { pattern: /\b(well)\b(?=,|\s+[a-z])/gi, pause: 150, speed: 0.9 },
+    { pattern: /\b(you know what)\b/gi, pause: 180, speed: 0.9 },
+    { pattern: /\b(okay so)\b/gi, pause: 150, speed: 0.92 },
+    { pattern: /\b(here['']s what i['']m thinking)\b/gi, pause: 200, speed: 0.88 },
+  ];
+
+  thinkingPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.92"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// ACTIVE LISTENING INJECTION
+// =============================================================================
+
+/**
+ * Add random active listening sounds before acknowledgments
+ * Makes Maya feel more present and engaged
+ */
+export function addActiveListeningInjection(text: string, emotion: string): string {
+  let result = text;
+
+  // Don't add in sad or heavy contexts
+  if (emotion === 'sad' || emotion === 'angry') {
+    return result;
+  }
+
+  const acknowledgmentPatterns = [/\b(i understand|that makes sense|i hear you|i get it)\b/gi];
+
+  acknowledgmentPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      // 20% chance to add a preceding sound
+      if (Math.random() < 0.2) {
+        const sounds = ['Yeah. ', 'Mm. ', 'Right. ', 'Okay. '];
+        const sound = sounds[Math.floor(Math.random() * sounds.length)];
+        return `${sound}<break time="100ms"/>${match}`;
+      }
+      return match;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// SOFT PRESENCE (STRUGGLE MODE)
+// =============================================================================
+
+/**
+ * Add softer presence when someone is struggling
+ * Maya meets people where they are - no toxic positivity
+ */
+export function addSoftPresence(text: string, _emotion: string): string {
+  let result = text;
+
+  const strugglePhrases = [
+    { pattern: /\b(i['']ve been there)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(this is hard)\b/gi, pause: 250, speed: 0.85, volume: 0.9 },
+    {
+      pattern: /\b(it['']s (okay|alright) to (struggle|fall|fail))\b/gi,
+      pause: 200,
+      speed: 0.88,
+      volume: 0.92,
+    },
+    { pattern: /\b(no shame in that)\b/gi, pause: 180, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(take your time)\b/gi, pause: 180, speed: 0.9, volume: 0.95 },
+    { pattern: /\b(you['']re not alone)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(we all (fall|struggle|slip))\b/gi, pause: 180, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(rock bottom|my lowest)\b/gi, pause: 250, speed: 0.85, volume: 0.9 },
+  ];
+
+  strugglePhrases.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="sympathetic"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.92"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
 // MAIN PROCESSOR
 // =============================================================================
 
@@ -351,6 +449,12 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
  *
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Maya's unique speech patterns to the text.
+ *
+ * Processing order:
+ * 1. Check for struggle content first (soft presence)
+ * 2. Apply humanization (thinking sounds, active listening)
+ * 3. Apply signature phrases and warmth
+ * 4. Add nuance and cultural elements
  *
  * @param text - The text to process
  * @param emotion - The detected emotion
@@ -366,21 +470,32 @@ export function applyMayaSantosSpeechTraits(
 ): string {
   let processedText = text;
 
-  // TIER 1: SIGNATURE PHRASES
+  // TIER 0: SOFT PRESENCE (Check first for struggle moments)
+  const isStruggleContent =
+    /\b(struggling|rock bottom|lowest|fell off|gave up|can['']t do|failed)\b/i.test(text);
+  if (isStruggleContent || emotion === 'sad' || emotion === 'sympathetic') {
+    processedText = addSoftPresence(processedText, emotion);
+  }
+
+  // TIER 1: HUMANIZATION
+  processedText = addThinkingSounds(processedText, emotion);
+  processedText = addActiveListeningInjection(processedText, emotion);
+
+  // TIER 2: SIGNATURE PHRASES
   processedText = addCatchphraseEmphasis(processedText, emotion);
   processedText = addHabitVocabulary(processedText, emotion);
 
-  // TIER 2: CONVERSATIONAL WARMTH
+  // TIER 3: CONVERSATIONAL WARMTH
   processedText = addEncouragementWarmth(processedText, emotion);
   processedText = addPracticalWisdomCadence(processedText, emotion);
   processedText = addVulnerabilityAuthenticity(processedText, emotion);
 
-  // TIER 3: ENGAGEMENT
+  // TIER 4: ENGAGEMENT
   processedText = addCuriousQuestions(processedText, emotion);
   processedText = addMetricEmphasis(processedText, emotion);
   processedText = addActiveListening(processedText, emotion);
 
-  // TIER 4: NUANCE
+  // TIER 5: NUANCE
   processedText = addGentleChallenge(processedText, emotion);
   processedText = addCulturalWarmth(processedText, emotion);
   processedText = addTransitionPhrases(processedText, emotion);
@@ -404,4 +519,8 @@ export const MAYA_SANTOS_SPEECH_CONFIG = {
   activeListeningProbability: 0.2,
   /** Whether to enable gentle challenges */
   enableGentleChallenges: true,
+  /** Whether to enable soft presence for struggle moments */
+  enableSoftPresence: true,
+  /** Whether to enable thinking sounds */
+  enableThinkingSounds: true,
 } as const;

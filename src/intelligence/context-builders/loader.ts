@@ -181,6 +181,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'anticipation',
     'social-relationships',
     'world-awareness',
+    'macos-context', // macOS menubar app desktop context
     'personal-journey',
   ],
 

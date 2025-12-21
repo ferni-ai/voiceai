@@ -164,9 +164,7 @@ function detectEnergyShift(input: NoticingInput): NoticingResult | null {
 
   // Compare arousal levels
   const currentArousal = input.voiceEmotion.arousal ?? 0.5;
-  const previousTurnsWithArousal = input.previousTurns
-    .filter((t) => t.voiceEmotion)
-    .slice(-3);
+  const previousTurnsWithArousal = input.previousTurns.filter((t) => t.voiceEmotion).slice(-3);
 
   if (previousTurnsWithArousal.length < 2) return null;
 
@@ -218,7 +216,8 @@ function detectVoiceTextMismatch(input: NoticingInput): NoticingResult | null {
     return {
       type: 'mismatch',
       observation: `Text says ${textPrimary} but voice indicates ${voicePrimary}`,
-      acknowledgment: "You said you're okay, but... <break time='200ms'/>your voice tells a different story. <break time='150ms'/>What's really going on?",
+      acknowledgment:
+        "You said you're okay, but... <break time='200ms'/>your voice tells a different story. <break time='150ms'/>What's really going on?",
       shouldAcknowledge: true,
       confidence: input.voiceEmotion.confidence,
       timing: 'gentle_delay',
@@ -237,7 +236,8 @@ function detectTopicDeflection(input: NoticingInput): NoticingResult | null {
   if (!lastTurn.topics || lastTurn.topics.length === 0) return null;
 
   // Check if topic changed during emotional moment
-  const wasEmotionalTopic = lastTurn.voiceEmotion &&
+  const wasEmotionalTopic =
+    lastTurn.voiceEmotion &&
     ['sad', 'anxious', 'stressed', 'angry', 'fearful'].includes(lastTurn.voiceEmotion);
 
   const topicChanged = !lastTurn.topics.some((t) =>
@@ -248,7 +248,8 @@ function detectTopicDeflection(input: NoticingInput): NoticingResult | null {
     return {
       type: 'topic_deflection',
       observation: 'Changed topic after emotional content',
-      acknowledgment: "We can talk about this new thing, but... <break time='200ms'/>I noticed we moved away from what you were just saying. <break time='150ms'/>We can come back to it when you're ready.",
+      acknowledgment:
+        "We can talk about this new thing, but... <break time='200ms'/>I noticed we moved away from what you were just saying. <break time='150ms'/>We can come back to it when you're ready.",
       shouldAcknowledge: Math.random() < 0.6, // Don't always call it out
       confidence: 0.6,
       timing: 'wait_for_opening',
@@ -278,7 +279,8 @@ function detectSpeechRateChange(input: NoticingInput): NoticingResult | null {
     return {
       type: 'speech_rate_change',
       observation: 'Speaking noticeably slower',
-      acknowledgment: "You're taking your time with this. <break time='150ms'/>That feels important.",
+      acknowledgment:
+        "You're taking your time with this. <break time='150ms'/>That feels important.",
       shouldAcknowledge: true,
       confidence: 0.65,
       timing: 'gentle_delay',
@@ -291,7 +293,8 @@ function detectSpeechRateChange(input: NoticingInput): NoticingResult | null {
     return {
       type: 'speech_rate_change',
       observation: 'Speaking noticeably faster',
-      acknowledgment: "I can hear the energy in your voice. <break time='150ms'/>Lot going on there.",
+      acknowledgment:
+        "I can hear the energy in your voice. <break time='150ms'/>Lot going on there.",
       shouldAcknowledge: true,
       confidence: 0.55,
       timing: 'gentle_delay',
@@ -379,17 +382,19 @@ function detectProtectiveLanguage(input: NoticingInput): NoticingResult | null {
     { pattern: /i('m| am) fine/i, response: "When you say you're fine..." },
     { pattern: /it('s| is) nothing/i, response: "You said it's nothing, but..." },
     { pattern: /doesn('t| not) matter/i, response: "You said it doesn't matter, but..." },
-    { pattern: /i('m| am) (over it|past it)/i, response: "Are you though?" },
+    { pattern: /i('m| am) (over it|past it)/i, response: 'Are you though?' },
     { pattern: /whatever/i, response: "That 'whatever'..." },
     { pattern: /i don('t| do not) care/i, response: "I hear you saying you don't care, but..." },
-    { pattern: /it('s| is) not a big deal/i, response: "Not a big deal, you said, but..." },
+    { pattern: /it('s| is) not a big deal/i, response: 'Not a big deal, you said, but...' },
   ];
 
   for (const { pattern, response } of protectivePatterns) {
     if (pattern.test(transcript)) {
       // Only call out if voice emotion contradicts
-      if (input.voiceEmotion &&
-          ['sad', 'anxious', 'stressed'].includes(input.voiceEmotion.primary.toLowerCase())) {
+      if (
+        input.voiceEmotion &&
+        ['sad', 'anxious', 'stressed'].includes(input.voiceEmotion.primary.toLowerCase())
+      ) {
         return {
           type: 'protective_language',
           observation: 'Using protective language with emotional voice',
@@ -420,9 +425,7 @@ function detectBreakthroughMoment(input: NoticingInput): NoticingResult | null {
     /wow/i,
   ];
 
-  const hasBreakthroughPhrase = breakthroughIndicators.some((p) =>
-    p.test(input.currentTranscript)
-  );
+  const hasBreakthroughPhrase = breakthroughIndicators.some((p) => p.test(input.currentTranscript));
 
   const voiceIsPositive = input.voiceEmotion.valence && input.voiceEmotion.valence > 0.3;
   const hasEnergy = input.voiceEmotion.arousal && input.voiceEmotion.arousal > 0.5;
@@ -431,7 +434,8 @@ function detectBreakthroughMoment(input: NoticingInput): NoticingResult | null {
     return {
       type: 'breakthrough_moment',
       observation: 'Positive realization or breakthrough detected',
-      acknowledgment: "I just watched something click for you. <break time='200ms'/>That's a big moment.",
+      acknowledgment:
+        "I just watched something click for you. <break time='200ms'/>That's a big moment.",
       shouldAcknowledge: true,
       confidence: 0.8,
       timing: 'immediate',
@@ -493,11 +497,7 @@ export function shouldThrottleNoticing(
 /**
  * Record that we noticed something
  */
-export function recordNoticing(
-  sessionId: string,
-  turnCount: number,
-  type: NoticingType
-): void {
+export function recordNoticing(sessionId: string, turnCount: number, type: NoticingType): void {
   let state = sessionStates.get(sessionId);
   if (!state) {
     state = {
@@ -532,4 +532,3 @@ export const realtimeNoticing = {
 };
 
 export default realtimeNoticing;
-

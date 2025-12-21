@@ -19,6 +19,12 @@ import {
   removeMemoryFromAgent,
   updateAgentVoice,
 } from '../services/custom-agent/custom-agent-persistence.service.js';
+import {
+  processVoiceUpload,
+  createVoiceClone as createCartesiaVoiceClone,
+  generateVoicePreview,
+} from '../services/custom-agent/voice-clone.service.js';
+import { uploadAudioToGcs, isGcsConfigured } from '../services/custom-agent/gcs-storage.service.js';
 import type {
   CreateCustomAgentRequest,
   CustomAgent,
@@ -42,7 +48,7 @@ async function parseBody<T>(req: IncomingMessage): Promise<T> {
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
         resolve(raw ? JSON.parse(raw) : ({} as T));
-      } catch (err) {
+      } catch {
         reject(new Error('Invalid JSON body'));
       }
     });
@@ -199,6 +205,25 @@ function extractKeywords(content: string): string[] {
 }
 
 /**
+ * Returns human-readable feedback based on voice quality score
+ */
+function getQualityFeedback(quality: string): string {
+  switch (quality) {
+    case 'excellent':
+      return 'Great audio quality! Your voice clone will sound natural.';
+    case 'good':
+      return 'Good audio quality. Consider adding more samples for better accuracy.';
+    case 'fair':
+    case 'needs_more':
+      return 'Need more audio. Please record at least 10 seconds of clear speech.';
+    case 'poor':
+      return 'Audio quality is low. Try recording in a quieter environment.';
+    default:
+      return 'Audio uploaded successfully.';
+  }
+}
+
+/**
  * Gets user ID from request headers or query params
  */
 function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
@@ -342,9 +367,8 @@ export async function handleCustomAgentRoutes(
     ) {
       const agentId = segments[0];
 
-      // Note: File uploads would need multipart parsing
-      // For now, accept base64 encoded audio in body
-      const body = await parseBody<{ audio: string; mimeType: string }>(req);
+      // Accept base64 encoded audio in body
+      const body = await parseBody<{ audio: string; mimeType: string; filename?: string }>(req);
 
       if (!body.audio) {
         sendJson(res, 400, { error: 'Audio data is required' });
@@ -358,22 +382,69 @@ export async function handleCustomAgentRoutes(
         return true;
       }
 
-      // TODO: Upload to GCS
-      const audioUrl = `gs://voiceai-custom-agents/${userId}/${agentId}/voice-sample-${Date.now()}.webm`;
+      try {
+        // Decode base64 audio
+        const audioBuffer = Buffer.from(body.audio, 'base64');
+        const mimeType = body.mimeType || 'audio/webm';
+        const filename = body.filename || `voice-sample-${Date.now()}.webm`;
 
-      // Update agent with pending status
-      await updateAgentVoice(userId, agentId, {
-        type: 'cloned',
-        audioSampleUrl: audioUrl,
-        status: 'pending',
-      });
+        // Process the upload for quality analysis
+        const uploadResult = await processVoiceUpload(
+          agentId,
+          [
+            {
+              filename,
+              buffer: audioBuffer.buffer.slice(
+                audioBuffer.byteOffset,
+                audioBuffer.byteOffset + audioBuffer.byteLength
+              ),
+              mimeType,
+            },
+          ],
+          userId
+        );
 
-      log.info({ userId, agentId, audioUrl }, 'Voice sample uploaded');
-      sendJson(res, 200, {
-        audioUrl,
-        qualityScore: 0.8,
-        feedback: 'Audio uploaded successfully',
-      });
+        // Upload to GCS if configured
+        let audioUrl: string;
+        if (isGcsConfigured()) {
+          const gcsResult = await uploadAudioToGcs(
+            audioBuffer,
+            userId,
+            agentId,
+            filename,
+            'voiceClone',
+            true
+          );
+          audioUrl = gcsResult?.publicUrl || `local://${userId}/${agentId}/${filename}`;
+        } else {
+          // Fallback URL for dev without GCS
+          audioUrl = `local://${userId}/${agentId}/${filename}`;
+          log.warn('GCS not configured, using local reference URL');
+        }
+
+        // Update agent with pending status and upload info
+        await updateAgentVoice(userId, agentId, {
+          type: 'cloned',
+          audioSampleUrl: audioUrl,
+          status: 'pending',
+        });
+
+        log.info(
+          { userId, agentId, audioUrl, quality: uploadResult.quality },
+          'Voice sample uploaded'
+        );
+        sendJson(res, 200, {
+          audioUrl,
+          uploadId: uploadResult.uploadId,
+          qualityScore: uploadResult.segments[0]?.qualityScore || 0.8,
+          quality: uploadResult.quality,
+          totalDuration: uploadResult.totalDuration,
+          feedback: getQualityFeedback(uploadResult.quality),
+        });
+      } catch (error) {
+        log.error({ error: String(error), userId, agentId }, 'Voice upload failed');
+        sendJson(res, 500, { error: 'Failed to upload voice sample' });
+      }
       return true;
     }
 
@@ -385,12 +456,8 @@ export async function handleCustomAgentRoutes(
       segments[2] === 'clone'
     ) {
       const agentId = segments[0];
-      const body = await parseBody<{ audioSampleUrl: string; userName: string }>(req);
+      const body = await parseBody<{ uploadId?: string; userName: string }>(req);
 
-      if (!body.audioSampleUrl) {
-        sendJson(res, 400, { error: 'Audio sample URL is required' });
-        return true;
-      }
       if (!body.userName) {
         sendJson(res, 400, { error: 'User name is required' });
         return true;
@@ -402,28 +469,50 @@ export async function handleCustomAgentRoutes(
         return true;
       }
 
-      // TODO: Call Cartesia API
-      const voice: CustomAgentVoice = {
-        type: 'cloned',
-        voiceId: `cartesia_clone_${agentId}_${Date.now()}`,
-        audioSampleUrl: body.audioSampleUrl,
-        status: 'ready',
-        settings: {
-          speed: 1.0,
-          stability: 0.8,
-          similarityBoost: 0.75,
-        },
-        preferences: {
-          formality: 'match_context',
-          greeting: `Hi, this is ${body.userName}.`,
-          traits: { patience: 3, assertiveness: 3, friendliness: 3 },
-        },
-      };
+      try {
+        // Call Cartesia API via our voice clone service
+        const cloneResult = await createCartesiaVoiceClone(
+          agentId,
+          userId,
+          body.uploadId || `upload_${agentId}`,
+          `${body.userName}_${agent.name}`
+        );
 
-      await updateAgentVoice(userId, agentId, voice);
+        // Build voice object with real Cartesia voice ID
+        const voice: CustomAgentVoice = {
+          type: 'cloned',
+          voiceId: cloneResult.voiceId,
+          audioSampleUrl: agent.voice?.audioSampleUrl,
+          status: 'ready',
+          settings: {
+            speed: 1.0,
+            stability: 0.8,
+            similarityBoost: 0.75,
+          },
+          preferences: {
+            formality: 'match_context',
+            greeting: `Hi, this is ${body.userName}.`,
+            traits: { patience: 3, assertiveness: 3, friendliness: 3 },
+          },
+        };
 
-      log.info({ userId, agentId, voiceId: voice.voiceId }, 'Voice clone created');
-      sendJson(res, 200, { message: 'Voice clone created', voice });
+        await updateAgentVoice(userId, agentId, voice);
+
+        log.info(
+          { userId, agentId, voiceId: voice.voiceId, isSimulated: cloneResult.isSimulated },
+          'Voice clone created'
+        );
+        sendJson(res, 200, {
+          message: cloneResult.isSimulated
+            ? 'Voice clone created (simulated)'
+            : 'Voice clone created',
+          voice,
+          isSimulated: cloneResult.isSimulated,
+        });
+      } catch (error) {
+        log.error({ error: String(error), userId, agentId }, 'Voice clone creation failed');
+        sendJson(res, 500, { error: 'Failed to create voice clone' });
+      }
       return true;
     }
 
@@ -464,6 +553,193 @@ export async function handleCustomAgentRoutes(
 
       log.info({ userId, agentId, voiceId: body.voiceId }, 'Pre-made voice selected');
       sendJson(res, 200, { message: 'Voice selected', voice });
+      return true;
+    }
+
+    // POST /api/custom-agents/:agentId/voice/preview - Generate voice preview
+    if (
+      method === 'POST' &&
+      segments.length === 3 &&
+      segments[1] === 'voice' &&
+      segments[2] === 'preview'
+    ) {
+      const agentId = segments[0];
+      const body = await parseBody<{ text?: string }>(req);
+
+      const agent = await getCustomAgent(userId, agentId);
+      if (!agent) {
+        sendJson(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      if (!agent.voice?.voiceId) {
+        sendJson(res, 400, { error: 'Agent has no voice configured' });
+        return true;
+      }
+
+      try {
+        const previewText =
+          body.text || `Hello, I'm ${agent.displayName || agent.name}. It's nice to meet you.`;
+        const preview = await generateVoicePreview(agent.voice.voiceId, previewText);
+
+        log.info({ userId, agentId, voiceId: agent.voice.voiceId }, 'Voice preview generated');
+        sendJson(res, 200, {
+          audioUrl: preview.audioUrl,
+          durationSeconds: preview.durationSeconds,
+          text: previewText,
+        });
+      } catch (error) {
+        log.error({ error: String(error), userId, agentId }, 'Voice preview generation failed');
+        sendJson(res, 500, { error: 'Failed to generate voice preview' });
+      }
+      return true;
+    }
+
+    // ========================================================================
+    // VOICE JOURNAL ROUTES (Digital Twin feature)
+    // ========================================================================
+
+    // POST /api/custom-agents/:agentId/journal/entry - Record journal entry
+    if (
+      method === 'POST' &&
+      segments.length === 3 &&
+      segments[1] === 'journal' &&
+      segments[2] === 'entry'
+    ) {
+      const agentId = segments[0];
+      const body = await parseBody<{
+        audio: string; // base64 encoded audio
+        mimeType?: string;
+        mood?: string;
+        context?: string;
+      }>(req);
+
+      if (!body.audio) {
+        sendJson(res, 400, { error: 'Audio data is required' });
+        return true;
+      }
+
+      const agent = await getCustomAgent(userId, agentId);
+      if (!agent) {
+        sendJson(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      // Only allow journal entries for Digital Twin agents
+      if (agent.type !== 'twin') {
+        sendJson(res, 400, { error: 'Voice journal is only available for Digital Twin agents' });
+        return true;
+      }
+
+      try {
+        const { uploadVoiceJournalEntry } =
+          await import('../services/custom-agent/gcs-storage.service.js');
+        const { transcribeAudioBuffer, extractMetadata } =
+          await import('../services/custom-agent/memory-capture.service.js');
+
+        // Decode base64 audio
+        const audioBuffer = Buffer.from(body.audio, 'base64');
+        const mimeType = body.mimeType || 'audio/webm';
+        const timestamp = new Date().toISOString();
+
+        // Upload to GCS
+        let audioUrl: string | null = null;
+        const entryId = `journal_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const uploadResult = await uploadVoiceJournalEntry(audioBuffer, userId, agentId, entryId);
+
+        if (uploadResult) {
+          audioUrl = uploadResult.publicUrl;
+          log.info({ audioUrl }, 'Journal audio uploaded to GCS');
+        } else {
+          log.warn('GCS upload failed, continuing without audio URL');
+        }
+
+        // Transcribe audio
+        const transcript = await transcribeAudioBuffer(
+          audioBuffer.buffer.slice(
+            audioBuffer.byteOffset,
+            audioBuffer.byteOffset + audioBuffer.byteLength
+          ),
+          mimeType
+        );
+
+        // Extract metadata from transcript
+        const metadata = await extractMetadata(transcript, 'journal_entry');
+
+        // Create journal entry
+        const journalEntry = {
+          id: entryId,
+          content: transcript,
+          audioUrl,
+          title: metadata.title || `Journal Entry - ${new Date().toLocaleDateString()}`,
+          mood: body.mood || metadata.emotions?.[0] || 'reflective',
+          context: body.context,
+          themes: metadata.themes || [],
+          emotions: metadata.emotions || [],
+          keywords: metadata.keyPhrases || [],
+          summary: metadata.summary,
+          timestamp,
+          createdAt: new Date(),
+        };
+
+        // Add to agent's journal entries
+        const updated = await addMemoryToAgent(
+          userId,
+          agentId,
+          'journalEntries' as never,
+          journalEntry
+        );
+
+        if (!updated) {
+          sendJson(res, 500, { error: 'Failed to save journal entry' });
+          return true;
+        }
+
+        log.info({ userId, agentId, entryId: journalEntry.id }, 'Journal entry created');
+        sendJson(res, 201, {
+          message: 'Journal entry recorded',
+          entry: journalEntry,
+          transcriptLength: transcript.length,
+        });
+      } catch (error) {
+        log.error({ error: String(error), userId, agentId }, 'Journal entry creation failed');
+        sendJson(res, 500, { error: 'Failed to create journal entry' });
+      }
+      return true;
+    }
+
+    // GET /api/custom-agents/:agentId/journal/entries - List journal entries
+    if (
+      method === 'GET' &&
+      segments.length === 3 &&
+      segments[1] === 'journal' &&
+      segments[2] === 'entries'
+    ) {
+      const agentId = segments[0];
+      const limit = parseInt(parsedUrl.searchParams.get('limit') || '10', 10);
+
+      const agent = await getCustomAgent(userId, agentId);
+      if (!agent) {
+        sendJson(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      const entries = (agent.memories.journalEntries || [])
+        .sort((a, b) => {
+          // Use createdAt for sorting since timestamp might not exist on all entries
+          const aEntry = a as { createdAt?: Date | string };
+          const bEntry = b as { createdAt?: Date | string };
+          const aTime = aEntry.createdAt ? new Date(aEntry.createdAt).getTime() : 0;
+          const bTime = bEntry.createdAt ? new Date(bEntry.createdAt).getTime() : 0;
+          return bTime - aTime;
+        })
+        .slice(0, limit);
+
+      sendJson(res, 200, {
+        entries,
+        total: agent.memories.journalEntries?.length || 0,
+        limit,
+      });
       return true;
     }
 

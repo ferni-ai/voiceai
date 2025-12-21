@@ -79,9 +79,7 @@ export interface ContextAssemblerInput {
  * PERF: This is now SYNCHRONOUS (uses cache instead of Firestore read)
  * Pre-warm the resonance cache at session start using prewarmResonanceCache().
  */
-export function assemblePersonalityContext(
-  input: ContextAssemblerInput
-): PersonalityContext {
+export function assemblePersonalityContext(input: ContextAssemblerInput): PersonalityContext {
   const now = new Date();
 
   // 1. TEMPORAL CONTEXT
@@ -230,9 +228,7 @@ function assembleConversationalContext(input: ContextAssemblerInput): Conversati
 
   // Detect topic shift
   const topicShiftDetected =
-    lastTopic && currentTopic
-      ? lastTopic.toLowerCase() !== currentTopic.toLowerCase()
-      : false;
+    lastTopic && currentTopic ? lastTopic.toLowerCase() !== currentTopic.toLowerCase() : false;
 
   return {
     momentum: input.momentum ?? 'cruising',
@@ -312,9 +308,7 @@ function assembleBehavioralContext(input: ContextAssemblerInput): BehavioralCont
   };
 
   return {
-    userJustShared: input.userIntent
-      ? intentToSharing[input.userIntent]
-      : undefined,
+    userJustShared: input.userIntent ? intentToSharing[input.userIntent] : undefined,
     wasPersonalSharing: input.wasPersonalSharing ?? false,
     isHeavyTopic: input.isHeavyTopic ?? false,
   };
@@ -329,4 +323,3 @@ export const personalityContextAssembler = {
 };
 
 export default personalityContextAssembler;
-

@@ -13,7 +13,6 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { ContextInjection } from '../../agents/processors/types.js';
 import { formatReferralConversationsForContext } from '../../services/outreach/conversational-calls.js';
 
 const log = getLogger().child({ module: 'referral-prompt' });
@@ -21,6 +20,16 @@ const log = getLogger().child({ module: 'referral-prompt' });
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/**
+ * Simple context injection for referral prompts.
+ * Uses numeric priority to match agents/processors interface.
+ */
+interface SimpleContextInjection {
+  category: string;
+  content: string;
+  priority: number;
+}
 
 export interface ReferralPromptContext {
   userId: string;
@@ -34,7 +43,7 @@ export interface ReferralPromptContext {
 
 export interface ReferralPromptResult {
   shouldInject: boolean;
-  injection?: ContextInjection;
+  injection?: SimpleContextInjection;
   reason?: string;
 }
 
@@ -245,7 +254,7 @@ export async function buildReferralPromptInjection(
  * For example, if the user asked Ferni to call their friend Sarah, and Ferni did,
  * this context lets Ferni naturally mention how that call went.
  */
-export function buildReferralConversationContext(): ContextInjection | null {
+export function buildReferralConversationContext(): SimpleContextInjection | null {
   const context = formatReferralConversationsForContext();
 
   if (!context) return null;
@@ -266,4 +275,3 @@ export default {
   buildReferralConversationContext,
   CONFIG,
 };
-

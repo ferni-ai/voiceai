@@ -363,7 +363,7 @@ async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarConte
       trigger: 'calendar_overload',
       urgency: 'high',
       suggestedPhrase:
-        "Your calendar looks really packed this week. Want me to get Alex to help find some breathing room?",
+        'Your calendar looks really packed this week. Want me to get Alex to help find some breathing room?',
     };
   } else if (recoveryNeeded && recoveryNeeds.some((r) => r.urgency === 'immediate')) {
     calendarHandoffSuggestion = {
@@ -461,7 +461,9 @@ function formatBriefingForInjection(briefing: CoordinatorBriefing): string[] {
             ? '🟡'
             : '🟢';
 
-    sections.push(`• Load: ${loadEmoji} ${cal.loadLevel} (${Math.round(cal.weeklyMeetingHours)}h meetings)`);
+    sections.push(
+      `• Load: ${loadEmoji} ${cal.loadLevel} (${Math.round(cal.weeklyMeetingHours)}h meetings)`
+    );
     sections.push(`• Focus time: ${cal.focusTimePercent}% available`);
 
     if (cal.recoveryNeeded) {

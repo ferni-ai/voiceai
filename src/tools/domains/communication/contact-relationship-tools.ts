@@ -43,13 +43,15 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'getContactInsights',
       name: 'Get Contact Insights',
-      description: 'Get relationship insights: who needs attention, overdue follow-ups, weakening connections.',
+      description:
+        'Get relationship insights: who needs attention, overdue follow-ups, weakening connections.',
       domain: 'communication',
       tags: ['contacts', 'relationships', 'insights'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Get relationship insights: who needs attention, overdue follow-ups, weakening connections.',
+          description:
+            'Get relationship insights: who needs attention, overdue follow-ups, weakening connections.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -90,13 +92,15 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'getContactsNeedingAttention',
       name: 'Get Contacts Needing Attention',
-      description: 'Get a list of contacts that could use some attention based on relationship strength and time since last contact.',
+      description:
+        'Get a list of contacts that could use some attention based on relationship strength and time since last contact.',
       domain: 'communication',
       tags: ['contacts', 'relationships', 'outreach'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Get contacts that need attention based on relationship strength and communication patterns.',
+          description:
+            'Get contacts that need attention based on relationship strength and communication patterns.',
           parameters: z.object({
             count: z.number().optional().describe('Maximum contacts to return (default: 5)'),
           }),
@@ -120,7 +124,8 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
               const daysSince = Math.floor(
                 (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
               );
-              const timeStr = daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+              const timeStr =
+                daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
 
               response += `${i + 1}. ${contact.name}`;
               if (contact.relationship) {
@@ -147,7 +152,8 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'getContactInfo',
       name: 'Get Contact Info',
-      description: 'Get detailed information about a specific contact including relationship history and topics.',
+      description:
+        'Get detailed information about a specific contact including relationship history and topics.',
       domain: 'communication',
       tags: ['contacts', 'lookup', 'details'],
 
@@ -196,14 +202,22 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             name: z.string().describe('Contact name'),
             email: z.string().optional().describe('Email address'),
             phone: z.string().optional().describe('Phone number'),
-            relationship: z.enum(['family', 'friend', 'colleague', 'acquaintance', 'professional', 'other']).optional(),
+            relationship: z
+              .enum(['family', 'friend', 'colleague', 'acquaintance', 'professional', 'other'])
+              .optional(),
             notes: z.string().optional().describe('Any notes about this contact'),
           }),
           execute: async (params: {
             name: string;
             email?: string;
             phone?: string;
-            relationship?: 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other';
+            relationship?:
+              | 'family'
+              | 'friend'
+              | 'colleague'
+              | 'acquaintance'
+              | 'professional'
+              | 'other';
             notes?: string;
           }) => {
             const userId = ctx.userId;
@@ -212,7 +226,8 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             }
 
             // Use email as contactId, or generate one
-            const contactId = params.email || `${params.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+            const contactId =
+              params.email || `${params.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
 
             const saved = await upsertContact(userId, {
               name: params.name,
@@ -235,7 +250,8 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'recordContactInteraction',
       name: 'Record Contact Interaction',
-      description: 'Record ANY interaction with a contact - calls, messages, in-person meetings, social media, gifts, even money lent or borrowed.',
+      description:
+        'Record ANY interaction with a contact - calls, messages, in-person meetings, social media, gifts, even money lent or borrowed.',
       domain: 'communication',
       tags: ['contacts', 'interaction', 'log', 'gift', 'social', 'meeting'],
 
@@ -251,26 +267,63 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             - Other: photo_shared, recommendation, introduction, favor_done, favor_received, other`,
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
-            type: z.enum([
-              // Digital Communication
-              'email', 'call', 'text', 'video_call', 'voice_message', 'instant_message',
-              // Social Media
-              'social_like', 'social_comment', 'social_dm', 'social_tag', 'social_share',
-              // In-Person
-              'meeting', 'hangout', 'dinner', 'party', 'activity', 'trip', 'visit',
-              // Gifts & Cards
-              'gift_given', 'gift_received', 'card_sent', 'card_received', 'thank_you_sent', 'thank_you_received',
-              // Financial
-              'money_lent', 'money_borrowed', 'money_repaid', 'split_bill',
-              // Life Events
-              'attended_event', 'milestone_shared',
-              // Other
-              'photo_shared', 'recommendation', 'introduction', 'favor_done', 'favor_received', 'other'
-            ]).describe('Type of interaction'),
-            direction: z.enum(['inbound', 'outbound']).optional().describe('Who initiated (default: outbound)'),
+            type: z
+              .enum([
+                // Digital Communication
+                'email',
+                'call',
+                'text',
+                'video_call',
+                'voice_message',
+                'instant_message',
+                // Social Media
+                'social_like',
+                'social_comment',
+                'social_dm',
+                'social_tag',
+                'social_share',
+                // In-Person
+                'meeting',
+                'hangout',
+                'dinner',
+                'party',
+                'activity',
+                'trip',
+                'visit',
+                // Gifts & Cards
+                'gift_given',
+                'gift_received',
+                'card_sent',
+                'card_received',
+                'thank_you_sent',
+                'thank_you_received',
+                // Financial
+                'money_lent',
+                'money_borrowed',
+                'money_repaid',
+                'split_bill',
+                // Life Events
+                'attended_event',
+                'milestone_shared',
+                // Other
+                'photo_shared',
+                'recommendation',
+                'introduction',
+                'favor_done',
+                'favor_received',
+                'other',
+              ])
+              .describe('Type of interaction'),
+            direction: z
+              .enum(['inbound', 'outbound'])
+              .optional()
+              .describe('Who initiated (default: outbound)'),
             summary: z.string().optional().describe('Brief summary or note about the interaction'),
             topics: z.array(z.string()).optional().describe('Topics discussed or relevant tags'),
-            sentiment: z.enum(['positive', 'neutral', 'negative']).optional().describe('How the interaction felt'),
+            sentiment: z
+              .enum(['positive', 'neutral', 'negative'])
+              .optional()
+              .describe('How the interaction felt'),
           }),
           execute: async (params: {
             contactName: string;
@@ -318,7 +371,10 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
               favor_done: `That's kind of you! I've noted the favor you did for ${contact.name}.`,
             };
 
-            return typeMessages[params.type] || `Noted. I've recorded your ${params.type.replace(/_/g, ' ')} with ${contact.name}.`;
+            return (
+              typeMessages[params.type] ||
+              `Noted. I've recorded your ${params.type.replace(/_/g, ' ')} with ${contact.name}.`
+            );
           },
         });
       },
@@ -340,8 +396,13 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
             reason: z.string().describe('Reason for follow-up'),
-            dueDate: z.string().describe('When to follow up (e.g., "next Monday", "in 3 days", "2024-12-25")'),
-            priority: z.enum(['high', 'medium', 'low']).optional().describe('Priority level (default: medium)'),
+            dueDate: z
+              .string()
+              .describe('When to follow up (e.g., "next Monday", "in 3 days", "2024-12-25")'),
+            priority: z
+              .enum(['high', 'medium', 'low'])
+              .optional()
+              .describe('Priority level (default: medium)'),
           }),
           execute: async (params: {
             contactName: string;
@@ -436,17 +497,25 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'getContactInteractionHistory',
       name: 'Get Contact Interaction History',
-      description: 'See the history of all interactions with a contact - calls, messages, gifts, meetings, everything.',
+      description:
+        'See the history of all interactions with a contact - calls, messages, gifts, meetings, everything.',
       domain: 'communication',
       tags: ['contacts', 'history', 'interactions', 'timeline'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'View the full interaction history with a contact. Shows calls, messages, gifts, meetings, social media, and more.',
+          description:
+            'View the full interaction history with a contact. Shows calls, messages, gifts, meetings, social media, and more.',
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
-            limit: z.number().optional().describe('How many recent interactions to show (default: 10)'),
-            type: z.string().optional().describe('Filter by interaction type (e.g., "gift_given", "call", "meeting")'),
+            limit: z
+              .number()
+              .optional()
+              .describe('How many recent interactions to show (default: 10)'),
+            type: z
+              .string()
+              .optional()
+              .describe('Filter by interaction type (e.g., "gift_given", "call", "meeting")'),
           }),
           execute: async (params: { contactName: string; limit?: number; type?: string }) => {
             const userId = ctx.userId;
@@ -462,7 +531,9 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             const contact = matches[0];
             const history = await getInteractionHistory(userId, contact.contactId, {
               limit: params.limit || 10,
-              type: params.type as import('../../../services/contacts/contact-relationship-service.js').InteractionType | undefined,
+              type: params.type as
+                | import('../../../services/contacts/contact-relationship-service.js').InteractionType
+                | undefined,
             });
 
             if (history.length === 0) {
@@ -476,14 +547,18 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
               const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               const typeIcon = getInteractionIcon(interaction.type);
               const direction = interaction.direction === 'inbound' ? '←' : '→';
-              
+
               response += `${i + 1}. ${typeIcon} ${dateStr} ${direction} ${interaction.type.replace(/_/g, ' ')}`;
               if (interaction.summary) {
                 response += `: ${interaction.summary}`;
               }
               if (interaction.sentiment) {
-                const sentimentEmoji = interaction.sentiment === 'positive' ? '😊' : 
-                                        interaction.sentiment === 'negative' ? '😔' : '';
+                const sentimentEmoji =
+                  interaction.sentiment === 'positive'
+                    ? '😊'
+                    : interaction.sentiment === 'negative'
+                      ? '😔'
+                      : '';
                 response += ` ${sentimentEmoji}`;
               }
               response += '\n';
@@ -501,13 +576,15 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
     {
       id: 'getContactStats',
       name: 'Get Contact Statistics',
-      description: 'Get insights about your relationship - interaction patterns, streaks, sentiment trends, and suggestions.',
+      description:
+        'Get insights about your relationship - interaction patterns, streaks, sentiment trends, and suggestions.',
       domain: 'communication',
       tags: ['contacts', 'stats', 'insights', 'streaks', 'patterns'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description: 'Get deep insights about your relationship with someone. Shows interaction patterns, streaks, how the relationship is trending, and suggestions for staying connected.',
+          description:
+            'Get deep insights about your relationship with someone. Shows interaction patterns, streaks, how the relationship is trending, and suggestions for staying connected.',
           parameters: z.object({
             contactName: z.string().describe('Name of the contact'),
           }),
@@ -539,7 +616,7 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             const sortedTypes = Object.entries(stats.byType)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 3);
-            
+
             if (sortedTypes.length > 0) {
               response += `**How you connect most:**\n`;
               sortedTypes.forEach(([type, count]) => {
@@ -554,9 +631,14 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
             }
 
             // Sentiment trend
-            const trendEmoji = stats.sentimentTrend === 'improving' ? '📈' :
-                              stats.sentimentTrend === 'declining' ? '📉' :
-                              stats.sentimentTrend === 'stable' ? '📊' : '';
+            const trendEmoji =
+              stats.sentimentTrend === 'improving'
+                ? '📈'
+                : stats.sentimentTrend === 'declining'
+                  ? '📉'
+                  : stats.sentimentTrend === 'stable'
+                    ? '📊'
+                    : '';
             response += `**Relationship trend:** ${stats.sentimentTrend} ${trendEmoji}\n\n`;
 
             // Suggestion
@@ -614,4 +696,3 @@ function getInteractionIcon(type: string): string {
 export default {
   getContactRelationshipToolDefinitions,
 };
-

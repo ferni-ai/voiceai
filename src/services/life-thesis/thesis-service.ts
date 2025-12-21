@@ -51,7 +51,7 @@ export async function saveThesis(
 ): Promise<LifeThesis> {
   const db = getFirestore();
   const thesesRef = db.collection('bogle_users').doc(userId).collection('life_theses');
-  
+
   const now = new Date();
   const thesisDoc: Omit<LifeThesis, 'id'> = {
     domain,
@@ -72,15 +72,15 @@ export async function saveThesis(
     reviewSchedule: options.reviewSchedule ?? 'on_struggle',
     domainData: options.domainData ?? {},
   };
-  
+
   const docRef = await thesesRef.add({
     ...thesisDoc,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
-  
+
   log.info({ userId, domain, thesisId: docRef.id }, 'Thesis saved');
-  
+
   return { ...thesisDoc, id: docRef.id };
 }
 
@@ -95,9 +95,9 @@ export async function getThesis(userId: string, thesisId: string): Promise<LifeT
     .collection('life_theses')
     .doc(thesisId)
     .get();
-  
+
   if (!doc.exists) return null;
-  
+
   const data = doc.data();
   return {
     ...data,
@@ -127,7 +127,7 @@ export async function getThesesByDomain(
     .where('domain', '==', domain)
     .orderBy('createdAt', 'desc')
     .get();
-  
+
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -155,7 +155,7 @@ export async function getAllTheses(userId: string): Promise<LifeThesis[]> {
     .collection('life_theses')
     .orderBy('createdAt', 'desc')
     .get();
-  
+
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -191,7 +191,7 @@ export async function updateThesis(
     .doc(userId)
     .collection('life_theses')
     .doc(thesisId);
-  
+
   const thesisUpdate: ThesisUpdate = {
     date: new Date(),
     note: update.note,
@@ -199,7 +199,7 @@ export async function updateThesis(
     newConfidence: update.newConfidence,
     trigger: update.trigger ?? 'scheduled_review',
   };
-  
+
   await thesisRef.update({
     updates: FieldValue.arrayUnion({
       ...thesisUpdate,
@@ -208,9 +208,9 @@ export async function updateThesis(
     updatedAt: FieldValue.serverTimestamp(),
     lastReviewed: FieldValue.serverTimestamp(),
   });
-  
+
   log.info({ userId, thesisId, stillValid: update.stillValid }, 'Thesis updated');
-  
+
   return getThesis(userId, thesisId);
 }
 
@@ -240,27 +240,27 @@ export async function generateReminder(
   emotionalState?: string
 ): Promise<ThesisReminder | null> {
   const theses = await getThesesByDomain(userId, domain);
-  
+
   // Find the most relevant active thesis
   const activeTheses = theses.filter((t) => {
     const lastUpdate = t.updates[t.updates.length - 1];
     return !lastUpdate || lastUpdate.stillValid;
   });
-  
+
   if (activeTheses.length === 0) return null;
-  
+
   // Use the most recent thesis (could be smarter with relevance scoring)
   const thesis = activeTheses[0];
   const daysSinceCreation = Math.floor(
     (Date.now() - thesis.createdAt.getTime()) / (1000 * 60 * 60 * 24)
   );
-  
+
   // Generate questions based on the thesis
   const questions = generateReminderQuestions(thesis, currentSituation);
-  
+
   // Generate encouragement based on their original motivation
   const encouragement = generateEncouragement(thesis, daysSinceCreation);
-  
+
   return {
     thesis,
     daysSinceCreation,
@@ -278,40 +278,40 @@ export async function generateReminder(
  */
 function generateReminderQuestions(thesis: LifeThesis, situation: string): string[] {
   const questions: string[] = [];
-  
+
   // Reference their original motivation
   questions.push(
     `When you started this ${thesis.domain}, you felt ${thesis.emotionalState.atCreation}. What's changed?`
   );
-  
+
   // Check against known challenges
   if (thesis.knownChallenges.length > 0) {
     questions.push(
       `You knew "${thesis.knownChallenges[0]}" might be challenging. Is that what you're facing now?`
     );
   }
-  
+
   // Reference expected outcomes
   if (thesis.expectedOutcomes.length > 0) {
     questions.push(
       `You hoped for: "${thesis.expectedOutcomes[0]}". Are you still moving toward that?`
     );
   }
-  
+
   // Check against success indicators
   if (thesis.successIndicators.length > 0) {
     questions.push(
       `Your success indicator was: "${thesis.successIndicators[0]}". How are you doing on that?`
     );
   }
-  
+
   // Check exit criteria
   if (thesis.exitCriteria?.conditions.length) {
     questions.push(
       `You said you'd reconsider if: "${thesis.exitCriteria.conditions[0]}". Has that happened?`
     );
   }
-  
+
   return questions;
 }
 
@@ -319,20 +319,24 @@ function generateReminderQuestions(thesis: LifeThesis, situation: string): strin
  * Generate encouragement based on their thesis and journey.
  */
 function generateEncouragement(thesis: LifeThesis, daysSinceCreation: number): string {
-  const timeContext = 
-    daysSinceCreation < 7 ? "It's early - you're still finding your rhythm." :
-    daysSinceCreation < 30 ? `You've been at this for ${daysSinceCreation} days. That's real commitment.` :
-    daysSinceCreation < 90 ? `${daysSinceCreation} days. You're building something real here.` :
-    `${Math.floor(daysSinceCreation / 30)} months in. Look how far you've come.`;
-  
+  const timeContext =
+    daysSinceCreation < 7
+      ? "It's early - you're still finding your rhythm."
+      : daysSinceCreation < 30
+        ? `You've been at this for ${daysSinceCreation} days. That's real commitment.`
+        : daysSinceCreation < 90
+          ? `${daysSinceCreation} days. You're building something real here.`
+          : `${Math.floor(daysSinceCreation / 30)} months in. Look how far you've come.`;
+
   const motivationContext = thesis.emotionalState.motivationSource
     ? `Remember why you started: ${thesis.emotionalState.motivationSource}.`
     : '';
-  
-  const confidenceContext = thesis.emotionalState.confidenceLevel >= 7
-    ? `You believed strongly in this when you started.`
-    : `Even with uncertainty, you decided this was worth trying.`;
-  
+
+  const confidenceContext =
+    thesis.emotionalState.confidenceLevel >= 7
+      ? `You believed strongly in this when you started.`
+      : `Even with uncertainty, you decided this was worth trying.`;
+
   return `${timeContext} ${confidenceContext} ${motivationContext}`.trim();
 }
 
@@ -366,13 +370,11 @@ export async function saveInvestmentThesis(
     priceTarget: options.priceTarget,
     timeHorizon: options.timeHorizon,
   };
-  
+
   return saveThesis(userId, 'investment', 'stock', thesis, {
     expectedOutcomes: options.catalysts.map((c) => `Catalyst: ${c}`),
     knownChallenges: options.risks,
-    successIndicators: options.priceTarget
-      ? [`Price reaches ${options.priceTarget}`]
-      : [],
+    successIndicators: options.priceTarget ? [`Price reaches ${options.priceTarget}`] : [],
     emotionalState: {
       atCreation: 'determined',
       confidenceLevel: options.confidence,
@@ -409,12 +411,9 @@ export async function saveHabitThesis(
     reward: options.reward,
     relatedIdentity: options.identity,
   };
-  
+
   return saveThesis(userId, 'habit', 'daily', thesis, {
-    expectedOutcomes: [
-      `Become: ${options.identity}`,
-      `Reward: ${options.reward}`,
-    ],
+    expectedOutcomes: [`Become: ${options.identity}`, `Reward: ${options.reward}`],
     knownChallenges: options.challenges,
     successIndicators: ['Completed 30 consecutive days', 'Feels automatic'],
     emotionalState: {
@@ -453,10 +452,12 @@ export async function saveGoalThesis(
     stakeholders: options.stakeholders,
     sacrifices: options.sacrifices,
   };
-  
+
   return saveThesis(userId, 'goal', 'personal', thesis, {
     expectedOutcomes: options.metric
-      ? [`${options.metric.name}: ${options.metric.current} → ${options.metric.target} ${options.metric.unit}`]
+      ? [
+          `${options.metric.name}: ${options.metric.current} → ${options.metric.target} ${options.metric.unit}`,
+        ]
       : [goalName],
     knownChallenges: options.challenges,
     successIndicators: options.metric
@@ -503,7 +504,7 @@ export async function saveCareerThesis(
     growthAreas: options.growthAreas,
     timeframe: options.timeframe,
   };
-  
+
   return saveThesis(userId, 'career', options.path ?? 'role', thesis, {
     expectedOutcomes: [
       ...options.values.map((v) => `Honor: ${v}`),
@@ -548,7 +549,7 @@ export async function saveRelationshipThesis(
     boundariesSet: options.boundaries,
     commitments: options.commitments,
   };
-  
+
   return saveThesis(userId, 'relationship', options.relationshipType, thesis, {
     expectedOutcomes: [
       ...options.whatYouLove.map((l) => `Appreciate: ${l}`),
@@ -592,12 +593,9 @@ export async function saveHealthThesis(
     doctorAdvised: options.doctorAdvised,
     measurables: options.measurables,
   };
-  
+
   return saveThesis(userId, 'health', options.area, thesis, {
-    expectedOutcomes: [
-      `From: ${options.currentState}`,
-      `To: ${options.targetState}`,
-    ],
+    expectedOutcomes: [`From: ${options.currentState}`, `To: ${options.targetState}`],
     knownChallenges: options.challenges,
     successIndicators: options.measurables
       ? options.measurables.map((m) => `${m.name}: ${m.target} ${m.unit}`)
@@ -640,13 +638,12 @@ export async function saveDecisionThesis(
     reversible: options.reversible,
     confidenceAtDecision: options.confidence,
   };
-  
+
   return saveThesis(userId, 'decision', 'major', thesis, {
     expectedOutcomes: options.pros,
     knownChallenges: options.cons,
-    exitCriteria: options.dealBreakers.length > 0
-      ? { conditions: options.dealBreakers }
-      : undefined,
+    exitCriteria:
+      options.dealBreakers.length > 0 ? { conditions: options.dealBreakers } : undefined,
     emotionalState: {
       atCreation: 'committed',
       confidenceLevel: options.confidence,
@@ -685,7 +682,7 @@ export async function saveBoundaryThesis(
     consequences: options.consequences,
     howToEnforce: options.howToEnforce,
   };
-  
+
   return saveThesis(userId, 'boundary', 'personal', thesis, {
     expectedOutcomes: [`Protected: ${options.whatYouNeed}`],
     knownChallenges: options.challenges,
@@ -728,14 +725,12 @@ export async function saveCommitmentThesis(
     whatYouGain: options.whatYouGain,
     renewalCriteria: options.renewalCriteria,
   };
-  
+
   return saveThesis(userId, 'commitment', 'promise', thesis, {
     expectedOutcomes: [options.whatYouGain],
     knownChallenges: [options.whatItCosts, ...options.challenges],
     successIndicators: ['Commitment honored', options.whatYouGain],
-    exitCriteria: options.renewalCriteria
-      ? { conditions: [options.renewalCriteria] }
-      : undefined,
+    exitCriteria: options.renewalCriteria ? { conditions: [options.renewalCriteria] } : undefined,
     emotionalState: {
       atCreation: 'committed',
       confidenceLevel: options.confidence,
@@ -745,4 +740,3 @@ export async function saveCommitmentThesis(
     domainData: domainData as unknown as Record<string, unknown>,
   });
 }
-

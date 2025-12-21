@@ -77,7 +77,8 @@ export type ToolDomain =
   | 'behavior' // Behavior control: modes, pacing, processing, presence
   | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
   | 'marketing' // Social media management: content generation, publishing, analytics
-  | 'referral'; // Viral growth via voice calls
+  | 'referral' // Viral growth via voice calls
+  | 'smart-home'; // Home Assistant, smart lights, thermostats, locks, scenes
 
 /**
  * All available tool domains
@@ -139,6 +140,8 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'developer',
   'behavior',
   'marketing',
+  'referral',
+  'smart-home',
 ] as const;
 
 // ============================================================================
@@ -219,6 +222,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
+  'smart-home': 'productivity', // Home Assistant integration for smart home control
 };
 
 // ============================================================================

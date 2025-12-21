@@ -606,6 +606,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userProfile: services.userProfile,
       subscriptionTier,
       initialTranscript: '', // Session start - no transcript yet
+      // Pass services for dev mode bypass (synced from frontend dev panel via data channel)
+      services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
     });
 
     process.stderr.write(
@@ -867,7 +869,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
 
     // =========================================================================
-    // PHONE CALL DETECTION & NOISE CANCELLATION
+    // CONNECTION TYPE DETECTION & KRISP NOISE CANCELLATION
     // =========================================================================
     const jobMetadata = ctx.job?.metadata || '';
     const isWebConnection = jobMetadata.includes('"source":"web"');
@@ -877,18 +879,31 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         participant?.identity?.includes('sip') ||
         jobMetadata.includes('"source":"phone"'));
 
-    // Start the session with phone-specific noise cancellation
+    // Enable Krisp-powered noise cancellation for ALL connections (web + phone)
+    // This dramatically improves STT accuracy by removing background noise
+    // @see https://docs.livekit.io/agents/noise-cancellation/
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let inputOptions: any = undefined;
-    if (isPhoneCall) {
-      try {
-        const { TelephonyBackgroundVoiceCancellation } =
-          await import('@livekit/noise-cancellation-node');
-        inputOptions = { noiseCancellation: TelephonyBackgroundVoiceCancellation() };
-        process.stderr.write(`[voice-agent-entry] 📞 Phone call - noise cancellation enabled\n`);
-      } catch {
-        process.stderr.write(`[voice-agent-entry] Noise cancellation not available (non-fatal)\n`);
+    try {
+      const noiseCancellation = await import('@livekit/noise-cancellation-node');
+      if (isPhoneCall) {
+        // Phone calls: Use telephony-optimized noise cancellation
+        inputOptions = {
+          noiseCancellation: noiseCancellation.TelephonyBackgroundVoiceCancellation(),
+        };
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Phone call - telephony noise cancellation enabled\n`
+        );
+      } else {
+        // Web connections: Use Krisp BVC (Background Voice Cancellation)
+        // This is the BEST option for web - removes AC, fans, keyboard, etc.
+        inputOptions = { noiseCancellation: noiseCancellation.BackgroundVoiceCancellation() };
+        process.stderr.write(
+          `[voice-agent-entry] 🔇 Web connection - Krisp BVC noise cancellation enabled\n`
+        );
       }
+    } catch (err) {
+      process.stderr.write(`[voice-agent-entry] ⚠️ Noise cancellation not available: ${err}\n`);
     }
 
     await session.start({ agent, room: ctx.room, inputOptions });
@@ -1047,6 +1062,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // DATA CHANNEL HANDLER (frontend communication)
+    // FIX BUG: Pass voiceAgentRef so UI-initiated handoffs can update LLM instructions
+    // Without this, clicking a persona in the UI changes the voice but keeps the LLM identity!
     const dataChannelResult = setupDataChannelHandler({
       room: ctx.room,
       session,
@@ -1054,7 +1071,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionPersona,
       userId,
       sessionId,
-      voiceAgentRef: undefined,
+      voiceAgentRef,
     });
     cleanupHandlers.push(dataChannelResult.cleanup);
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);

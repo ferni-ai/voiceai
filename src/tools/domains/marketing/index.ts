@@ -48,17 +48,12 @@ const generateSocialContentDef: ToolDefinition = {
     llm.tool({
       description: `Generate social media content from source material. Use this when asked to create Twitter threads, LinkedIn posts, or Instagram content. Always confirm the generated content with the user before posting.`,
       parameters: z.object({
-        source: z
-          .enum(['blog', 'topic', 'announcement'])
-          .describe('What to generate content from'),
+        source: z.enum(['blog', 'topic', 'announcement']).describe('What to generate content from'),
         blogUrl: z
           .string()
           .optional()
           .describe('URL or path to blog post (required if source is blog)'),
-        topic: z
-          .string()
-          .optional()
-          .describe('Topic to write about (required if source is topic)'),
+        topic: z.string().optional().describe('Topic to write about (required if source is topic)'),
         announcement: z
           .string()
           .optional()
@@ -73,7 +68,10 @@ const generateSocialContentDef: ToolDefinition = {
           .describe('Tone of the content'),
       }),
       execute: async (params) => {
-        log.info({ source: params.source, platforms: params.platforms }, '📝 Generating social content');
+        log.info(
+          { source: params.source, platforms: params.platforms },
+          '📝 Generating social content'
+        );
 
         try {
           const content = await generateSocialContentFromBlog({
@@ -107,7 +105,8 @@ const generateSocialContentDef: ToolDefinition = {
             response += `Caption: ${content.instagram.caption.substring(0, 100)}...\n\n`;
           }
 
-          response += "Would you like me to post any of these now, schedule them for later, or would you like to make changes?";
+          response +=
+            'Would you like me to post any of these now, schedule them for later, or would you like to make changes?';
 
           // Store draft in memory for later posting
           const storage = new MarketingStorage(ctx.userId);
@@ -146,7 +145,9 @@ const postToTwitterDef: ToolDefinition = {
       parameters: z.object({
         action: z
           .enum(['post', 'schedule', 'draft'])
-          .describe("Action to take - use 'draft' to save, 'post' to publish now, 'schedule' to post later"),
+          .describe(
+            "Action to take - use 'draft' to save, 'post' to publish now, 'schedule' to post later"
+          ),
         content: z
           .union([z.string(), z.array(z.string())])
           .describe('Tweet content (string for single tweet, array for thread)'),
@@ -154,17 +155,14 @@ const postToTwitterDef: ToolDefinition = {
           .string()
           .optional()
           .describe('When to post (ISO timestamp, required for schedule action)'),
-        useDraft: z
-          .string()
-          .optional()
-          .describe('Use a previously generated draft by ID'),
+        useDraft: z.string().optional().describe('Use a previously generated draft by ID'),
       }),
       execute: async (params) => {
         log.info({ action: params.action }, '🐦 Twitter tool called');
 
         try {
           const storage = new MarketingStorage(ctx.userId);
-          
+
           // Get content from draft if specified
           let content = params.content;
           if (params.useDraft) {
@@ -187,21 +185,21 @@ const postToTwitterDef: ToolDefinition = {
             if (!params.scheduledAt) {
               return 'When would you like me to schedule this? Give me a date and time.';
             }
-            
+
             const scheduledId = await storage.schedulePost({
               platform: 'twitter',
               content: Array.isArray(content) ? content : [content],
               scheduledAt: new Date(params.scheduledAt),
               status: 'scheduled',
             });
-            
+
             const scheduledTime = new Date(params.scheduledAt).toLocaleString();
             return `Scheduled! This will post to Twitter on ${scheduledTime}. Schedule ID: ${scheduledId}`;
           }
 
           // action === 'post'
           const client = new TwitterClient();
-          
+
           if (!client.isConfigured()) {
             return "Twitter isn't connected yet. Would you like me to help you connect your Twitter account?";
           }
@@ -238,8 +236,7 @@ const postToTwitterDef: ToolDefinition = {
 const postToLinkedInDef: ToolDefinition = {
   id: 'postToLinkedIn',
   name: 'Post to LinkedIn',
-  description:
-    'Post content directly to LinkedIn. Always confirm with user before posting.',
+  description: 'Post content directly to LinkedIn. Always confirm with user before posting.',
   domain: 'marketing',
   tags: ['marketing', 'social', 'linkedin', 'publish'],
 
@@ -249,7 +246,9 @@ const postToLinkedInDef: ToolDefinition = {
       parameters: z.object({
         action: z
           .enum(['post', 'schedule', 'draft'])
-          .describe("Action to take - use 'draft' to save, 'post' to publish now, 'schedule' to post later"),
+          .describe(
+            "Action to take - use 'draft' to save, 'post' to publish now, 'schedule' to post later"
+          ),
         content: z.string().describe('Post content'),
         visibility: z
           .enum(['public', 'connections'])
@@ -259,17 +258,14 @@ const postToLinkedInDef: ToolDefinition = {
           .string()
           .optional()
           .describe('When to post (ISO timestamp, required for schedule action)'),
-        useDraft: z
-          .string()
-          .optional()
-          .describe('Use a previously generated draft by ID'),
+        useDraft: z.string().optional().describe('Use a previously generated draft by ID'),
       }),
       execute: async (params) => {
         log.info({ action: params.action }, '💼 LinkedIn tool called');
 
         try {
           const storage = new MarketingStorage(ctx.userId);
-          
+
           // Get content from draft if specified
           let content = params.content;
           if (params.useDraft) {
@@ -292,21 +288,21 @@ const postToLinkedInDef: ToolDefinition = {
             if (!params.scheduledAt) {
               return 'When would you like me to schedule this? Give me a date and time.';
             }
-            
+
             const scheduledId = await storage.schedulePost({
               platform: 'linkedin',
               content,
               scheduledAt: new Date(params.scheduledAt),
               status: 'scheduled',
             });
-            
+
             const scheduledTime = new Date(params.scheduledAt).toLocaleString();
             return `Scheduled! This will post to LinkedIn on ${scheduledTime}. Schedule ID: ${scheduledId}`;
           }
 
           // action === 'post'
           const client = new LinkedInClient();
-          
+
           if (!client.isConfigured()) {
             return "LinkedIn isn't connected yet. Would you like me to help you connect your LinkedIn account?";
           }
@@ -363,7 +359,10 @@ const listScheduledPostsDef: ToolDefinition = {
         limit: z.number().default(10).describe('Maximum posts to return'),
       }),
       execute: async (params) => {
-        log.info({ platform: params.platform, status: params.status }, '📅 Listing scheduled posts');
+        log.info(
+          { platform: params.platform, status: params.status },
+          '📅 Listing scheduled posts'
+        );
 
         try {
           const storage = new MarketingStorage(ctx.userId);
@@ -374,23 +373,24 @@ const listScheduledPostsDef: ToolDefinition = {
           });
 
           if (posts.length === 0) {
-            return "No scheduled posts found. Would you like to create some content?";
+            return 'No scheduled posts found. Would you like to create some content?';
           }
 
           let response = `Here's what's scheduled:\n\n`;
-          
+
           for (const post of posts) {
             const time = post.scheduledAt.toLocaleString();
             const platform = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
-            const preview = typeof post.content === 'string' 
-              ? post.content.substring(0, 50) 
-              : post.content[0].substring(0, 50);
-            
+            const preview =
+              typeof post.content === 'string'
+                ? post.content.substring(0, 50)
+                : post.content[0].substring(0, 50);
+
             response += `• **${platform}** (${time}): "${preview}..." [${post.status}]\n`;
           }
 
           response += `\nWould you like to reschedule any of these or create new content?`;
-          
+
           return response;
         } catch (error) {
           log.error({ error: String(error) }, '📅 Failed to list posts');
@@ -497,4 +497,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

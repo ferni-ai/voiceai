@@ -69,6 +69,8 @@ export interface TurnHandlerContext {
     sharedVulnerabilities?: number;
     relationshipStage?: string;
     lastEmotionAnalysis?: { primary: string; intensity: number; distressLevel?: number };
+    // macOS context from menubar app (sent via data channel)
+    macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
   };
   /** Voice emotion result (optional, from voice agent) */
   voiceEmotion?: {
@@ -185,7 +187,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           const filler = getContextAwareThinkingFiller(persona.id, {
             type: 'thinking',
             weight:
-              userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.7
+              userData.lastEmotionAnalysis?.intensity &&
+              userData.lastEmotionAnalysis.intensity > 0.7
                 ? 'heavy'
                 : userData.lastEmotionAnalysis?.intensity &&
                     userData.lastEmotionAnalysis.intensity > 0.4
@@ -302,7 +305,10 @@ You are their lifeline right now. Be fully present.`,
           // Frontend should show extra attentive/concerned expression
           avatarHint: 'attentive',
         }).catch((e) => {
-          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'emotional_mismatch' });
+          diag.debug('Trust signal send failed (non-critical)', {
+            error: String(e),
+            type: 'emotional_mismatch',
+          });
         });
       }
 
@@ -312,7 +318,10 @@ You are their lifeline right now. Be fully present.`,
           // Frontend might show a subtle "remembering" indicator
           avatarHint: 'thoughtful',
         }).catch((e) => {
-          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'growth_reflection' });
+          diag.debug('Trust signal send failed (non-critical)', {
+            error: String(e),
+            type: 'growth_reflection',
+          });
         });
       }
 
@@ -322,7 +331,10 @@ You are their lifeline right now. Be fully present.`,
           // Frontend can prepare celebration animation
           avatarHint: 'joyful',
         }).catch((e) => {
-          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'celebration' });
+          diag.debug('Trust signal send failed (non-critical)', {
+            error: String(e),
+            type: 'celebration',
+          });
         });
       }
 
@@ -369,7 +381,8 @@ You are their lifeline right now. Be fully present.`,
 
       turnCtx.addMessage({
         role: 'system',
-        content: `[BEHAVIOR SYSTEM - Personality Noticing]\n\n${behaviorEventContent}\n\n` +
+        content:
+          `[BEHAVIOR SYSTEM - Personality Noticing]\n\n${behaviorEventContent}\n\n` +
           `The personality system noticed something. You may call behavior functions in response.`,
       });
     }

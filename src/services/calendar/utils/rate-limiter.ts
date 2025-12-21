@@ -215,9 +215,7 @@ export function checkCalendarRateLimit(
         'Retry-After': String(Math.ceil(result.retryAfterMs / 1000)),
       }),
     },
-    retryAfterSeconds: result.retryAfterMs
-      ? Math.ceil(result.retryAfterMs / 1000)
-      : undefined,
+    retryAfterSeconds: result.retryAfterMs ? Math.ceil(result.retryAfterMs / 1000) : undefined,
   };
 }
 
@@ -266,4 +264,3 @@ export default {
   getCalendarRateLimitStatus,
   resetCalendarRateLimits,
 };
-

@@ -260,7 +260,9 @@ describe('Behavior System E2E', () => {
       // If an intensity change event was fired, it should trigger celebration mode
       if (event && event.type === 'game_intensity_change') {
         // Wait a tick for async signal emission
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        });
 
         // Should have emitted behavior signal
         expect(sendDataMessageMock).toHaveBeenCalledWith(

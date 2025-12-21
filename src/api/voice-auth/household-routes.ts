@@ -96,9 +96,10 @@ export async function handleHouseholdRoutes(
 
     // Validate role if provided
     const validRoles = ['owner', 'adult', 'child', 'guest'] as const;
-    const validatedRole = role && validRoles.includes(role as typeof validRoles[number])
-      ? (role as typeof validRoles[number])
-      : undefined;
+    const validatedRole =
+      role && validRoles.includes(role as (typeof validRoles)[number])
+        ? (role as (typeof validRoles)[number])
+        : undefined;
 
     const member = await addHouseholdMember(deviceId, userId, displayName, validatedRole);
     if (!member) {
@@ -162,4 +163,3 @@ export async function handleHouseholdRoutes(
 
   return false;
 }
-

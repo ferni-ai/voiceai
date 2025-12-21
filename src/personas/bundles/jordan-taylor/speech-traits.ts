@@ -18,27 +18,39 @@
 
 /**
  * Add special treatment for Jordan's signature catchphrases
- * These phrases get energy and emphasis
+ * These phrases get energy and emphasis - with BREATHING ROOM
+ *
+ * Key insight: Jordan's vision moments need space to land.
+ * The pause AFTER is as important as the pause BEFORE.
  */
 export function addCatchphraseEmphasis(text: string, _emotion: string): string {
   let result = text;
 
   const catchphrases = [
-    { pattern: /\blife arc(s)?\b/gi, gravitas: 'high' },
-    { pattern: /\blife (is|isn['']t) one long thing\b/gi, gravitas: 'high' },
-    { pattern: /\bseries of chapters\b/gi, gravitas: 'high' },
-    { pattern: /\bthe bigger (picture|story)\b/gi, gravitas: 'medium' },
-    { pattern: /\bzoom out\b/gi, gravitas: 'medium' },
-    { pattern: /\bevery chapter\b/gi, gravitas: 'medium' },
-    { pattern: /\bwhat(['']s| is) your (next|current) chapter\b/gi, gravitas: 'high' },
-    { pattern: /\bstructure creates freedom\b/gi, gravitas: 'high' },
-    { pattern: /\bjoy journal\b/gi, gravitas: 'medium' },
+    // Peak moments - Jordan's philosophy deserves the biggest pauses
+    { pattern: /\blife arc(s)?\b/gi, gravitas: 'peak' },
+    { pattern: /\blife (is|isn['']t) one long thing\b/gi, gravitas: 'peak' },
+    { pattern: /\bseries of chapters\b/gi, gravitas: 'peak' },
+    { pattern: /\bwhat(['']s| is) your (next|current) chapter\b/gi, gravitas: 'peak' },
+    { pattern: /\bstructure creates freedom\b/gi, gravitas: 'peak' },
+    // High gravitas - important but not peak
+    { pattern: /\bthe bigger (picture|story)\b/gi, gravitas: 'high' },
+    { pattern: /\bzoom out\b/gi, gravitas: 'high' },
+    { pattern: /\bevery chapter\b/gi, gravitas: 'high' },
+    { pattern: /\bjoy journal\b/gi, gravitas: 'high' },
+    // Medium gravitas - warmth without full stop
+    { pattern: /\bnext chapter\b/gi, gravitas: 'medium' },
+    { pattern: /\bthis chapter\b/gi, gravitas: 'medium' },
+    { pattern: /\bwhat matters most\b/gi, gravitas: 'medium' },
   ];
 
   catchphrases.forEach(({ pattern, gravitas }) => {
     result = result.replace(pattern, (match) => {
-      if (gravitas === 'high') {
-        return `<break time="200ms"/><emotion value="excited"/><speed ratio="0.90"/>${match}<break time="150ms"/><speed ratio="0.95"/>`;
+      if (gravitas === 'peak') {
+        // Peak moments - longest pauses, slowest speed, let it LAND
+        return `<break time="350ms"/><emotion value="hopeful"/><speed ratio="0.88"/>${match}<break time="300ms"/><speed ratio="0.95"/>`;
+      } else if (gravitas === 'high') {
+        return `<break time="200ms"/><emotion value="excited"/><speed ratio="0.90"/>${match}<break time="200ms"/><speed ratio="0.95"/>`;
       } else {
         return `<speed ratio="0.92"/>${match}<speed ratio="0.95"/>`;
       }
@@ -357,6 +369,166 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
 }
 
 // =============================================================================
+// THINKING SOUNDS
+// =============================================================================
+
+/**
+ * Add natural thinking sounds and pauses
+ * Jordan thinks out loud with energy - but still needs those human pauses
+ *
+ * Key insight: Even high-energy Jordan needs moments to PROCESS.
+ * These aren't Ferni's contemplative pauses - they're Jordan gathering momentum.
+ */
+export function addThinkingSounds(text: string, _emotion: string): string {
+  let result = text;
+
+  // Processing sounds - Jordan's version has more forward energy
+  const thinkingPatterns = [
+    { pattern: /\b(hmm)\b/gi, pause: 250, speed: 0.88 },
+    { pattern: /\b(let me think)\b/gi, pause: 200, speed: 0.9 },
+    { pattern: /\b(okay so)\b/gi, pause: 150, speed: 0.92 },
+    { pattern: /\b(well)\b(?=,|\s+[a-z])/gi, pause: 180, speed: 0.9 },
+    { pattern: /\b(you know what)\b/gi, pause: 200, speed: 0.92 },
+    { pattern: /\b(here['']s the thing)\b/gi, pause: 250, speed: 0.9 },
+  ];
+
+  thinkingPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// ACTIVE LISTENING SOUNDS
+// =============================================================================
+
+/**
+ * Add active listening sounds
+ * Jordan shows engagement with vocal acknowledgments - high energy version
+ *
+ * These inject random sounds before acknowledgment phrases to feel more human.
+ * Probability-based so it doesn't happen every time.
+ */
+export function addActiveListeningSounds(text: string, emotion: string): string {
+  let result = text;
+
+  // Don't add in sad or heavy contexts - match the energy
+  if (emotion === 'sad' || emotion === 'sympathetic') {
+    return result;
+  }
+
+  const acknowledgmentPatterns = [
+    /\b(i understand|that makes sense|i hear you|i get it|got it)\b/gi,
+  ];
+
+  acknowledgmentPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      // 25% chance to add a preceding sound - slightly higher than Ferni's 20%
+      if (Math.random() < 0.25) {
+        const sounds = ['Yeah! ', 'Mm! ', 'Oh! ', 'Okay! '];
+        const sound = sounds[Math.floor(Math.random() * sounds.length)];
+        return `${sound}<break time="80ms"/>${match}`;
+      }
+      return match;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// SOFT PRESENCE (HARD CHAPTERS)
+// =============================================================================
+
+/**
+ * Add softer presence for grief, loss, and hard chapters
+ * Jordan honors hard chapters - this is NOT toxic positivity mode
+ *
+ * Key insight: Jordan's voice-guidance.md says "Grief deserves presence, not positivity."
+ * This function implements that philosophy in SSML.
+ */
+export function addSoftPresence(text: string, _emotion: string): string {
+  let result = text;
+
+  // Hard chapter phrases - slow down, soften, hold space
+  const hardChapterPhrases = [
+    { pattern: /\b(this is hard)\b/gi, pause: 300, speed: 0.85, volume: 0.9 },
+    { pattern: /\b(full stop)\b/gi, pause: 250, speed: 0.85, volume: 0.92 },
+    { pattern: /\b(i['']m (so )?sorry)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(that['']s (really )?hard)\b/gi, pause: 250, speed: 0.85, volume: 0.9 },
+    { pattern: /\b(take your time)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(no rush)\b/gi, pause: 150, speed: 0.9, volume: 0.95 },
+    { pattern: /\b(i['']m here)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(you don['']t have to)\b/gi, pause: 180, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(grief|grieving|loss|lost)\b/gi, pause: 200, speed: 0.85, volume: 0.9 },
+    { pattern: /\b(empty nest)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
+    {
+      pattern: /\b(we don['']t have to find the silver lining)\b/gi,
+      pause: 300,
+      speed: 0.85,
+      volume: 0.9,
+    },
+  ];
+
+  hardChapterPhrases.forEach(({ pattern, pause, speed, volume }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="sympathetic"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// VISION CASTING CADENCE
+// =============================================================================
+
+/**
+ * Add special pacing for vision-casting moments
+ * When Jordan helps someone SEE their future, the delivery needs to build
+ *
+ * This creates the mounting excitement pattern from voice-guidance.md
+ */
+export function addVisionCastingCadence(text: string, _emotion: string): string {
+  let result = text;
+
+  // Vision intro phrases - slow start, build to reveal
+  const visionIntros = [
+    /\b(can i tell you what i see)\b/gi,
+    /\b(here['']s what i see)\b/gi,
+    /\b(picture this)\b/gi,
+    /\b(imagine)\b/gi,
+    /\b(in (five|ten) years)\b/gi,
+  ];
+
+  visionIntros.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="300ms"/><emotion value="hopeful"/><speed ratio="0.90"/>${match}<break time="200ms"/>`;
+    });
+  });
+
+  // Vision reveals - energy builds here
+  const visionReveals = [
+    /\b(you['']re not in (chaos|a mess))\b/gi,
+    /\b(you['']re at a (transition|chapter))\b/gi,
+    /\b(that['']s actually exciting)\b/gi,
+    /\b(that['']s your next chapter)\b/gi,
+    /\b(do you hear yourself)\b/gi,
+  ];
+
+  visionReveals.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="excited"/><speed ratio="1.02"/>${match}<break time="150ms"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
 // MAIN PROCESSOR
 // =============================================================================
 
@@ -365,6 +537,13 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
  *
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Jordan's unique speech patterns to the text.
+ *
+ * Processing order matters:
+ * 1. Hard chapter handling FIRST (so we don't accidentally add celebration to grief)
+ * 2. Signature phrases (catchphrases, vocabulary)
+ * 3. Energy & celebration (only if not in hard chapter mode)
+ * 4. Thinking & active listening (humanization layer)
+ * 5. Energy modulation & transitions (final polish)
  *
  * @param text - The text to process
  * @param emotion - The detected emotion
@@ -380,6 +559,21 @@ export function applyJordanTaylorSpeechTraits(
 ): string {
   let processedText = text;
 
+  // TIER 0: HARD CHAPTERS (Check first - grief deserves presence, not positivity)
+  // This MUST come before celebration/energy to avoid toxic positivity
+  const isHardChapter =
+    /\b(grief|grieving|loss|lost|died|death|divorce|empty nest|hard chapter|this is hard)\b/i.test(
+      text
+    );
+  if (isHardChapter || emotion === 'sad' || emotion === 'sympathetic') {
+    processedText = addSoftPresence(processedText, emotion);
+    processedText = addTransitionEmpathy(processedText, emotion);
+    // Skip celebration energy for hard chapters
+    processedText = addThinkingSounds(processedText, emotion);
+    processedText = addTransitionPhrases(processedText, emotion);
+    return processedText;
+  }
+
   // TIER 1: SIGNATURE PHRASES
   processedText = addCatchphraseEmphasis(processedText, emotion);
   processedText = addLifePlanningVocabulary(processedText, emotion);
@@ -388,13 +582,18 @@ export function applyJordanTaylorSpeechTraits(
   processedText = addCelebrationEnergy(processedText, emotion);
   processedText = addForwardLookingEnergy(processedText, emotion);
   processedText = addActionOrientation(processedText, emotion);
+  processedText = addVisionCastingCadence(processedText, emotion);
 
   // TIER 3: EMPATHY & CONNECTION
   processedText = addTransitionEmpathy(processedText, emotion);
   processedText = addCuriousQuestions(processedText, emotion);
   processedText = addPersonalWarmth(processedText, emotion);
 
-  // TIER 4: NUANCE
+  // TIER 4: HUMANIZATION (thinking sounds, active listening)
+  processedText = addThinkingSounds(processedText, emotion);
+  processedText = addActiveListeningSounds(processedText, emotion);
+
+  // TIER 5: NUANCE
   processedText = addEnergyModulation(processedText, emotion);
   processedText = addTransitionPhrases(processedText, emotion);
 
@@ -421,4 +620,12 @@ export const JORDAN_TAYLOR_SPEECH_CONFIG = {
   energyBurstSpeedMultiplier: 1.08,
   /** Speed multiplier for grounding moments (0.88 = 12% slower) */
   groundingSpeedMultiplier: 0.88,
+  /** Whether to enable thinking sounds */
+  enableThinkingSounds: true,
+  /** Probability of active listening sound injection (0-1) */
+  activeListeningProbability: 0.25,
+  /** Whether to enable soft presence for hard chapters */
+  enableSoftPresence: true,
+  /** Whether to enable vision casting cadence */
+  enableVisionCasting: true,
 } as const;

@@ -27,9 +27,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var eventMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
     private var loginItemManager = LoginItemManager.shared
-    
+
+    // System Intelligence (unified manager for all macOS-native capabilities)
+    private let intelligence = SystemIntelligenceManager.shared
+
+    // Pending context for "Help me with this" feature
+    private var pendingContextSnapshot: ContextSnapshot?
+
+    // Convenience accessors for services
+    private var contextService: ContextAwarenessService { intelligence.contextService }
+    private var calendarService: CalendarService { intelligence.calendarService }
+    private var focusService: FocusModeService { intelligence.focusModeService }
+
     // User preferences
     @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
+    @AppStorage("helpMeHotkeyEnabled") private var helpMeHotkeyEnabled = true
     @AppStorage("showNotifications") private var showNotifications = true
     @AppStorage("playSounds") private var playSounds = true
     @AppStorage("defaultPersonaId") private var defaultPersonaId = "ferni"
@@ -38,10 +50,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         setupMenuBar()
         setupGlobalHotkey()
+        setupShortcutsHandlers()
         requestMicrophonePermission()
         requestNotificationPermission()
         observeStateChanges()
-        
+        observeIntelligenceChanges()
+
+        // Register Shortcuts with the system
+        ShortcutsService.registerShortcuts()
+
         // Set default persona from preferences
         voiceManager.currentPersonaId = defaultPersonaId
     }
@@ -83,19 +100,149 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
     }
     
-    // MARK: - Global Hotkey (Cmd+Shift+F)
-    
+    // MARK: - Shortcuts Integration
+
+    private func setupShortcutsHandlers() {
+        intelligence.setupShortcutHandlers(
+            onStart: { [weak self] personaId in
+                Task { @MainActor in
+                    self?.voiceManager.currentPersonaId = personaId
+                    await self?.voiceManager.start()
+                }
+            },
+            onEnd: { [weak self] in
+                Task { @MainActor in
+                    await self?.voiceManager.stop()
+                }
+            },
+            onSwitch: { [weak self] personaId in
+                Task { @MainActor in
+                    await self?.voiceManager.switchPersona(personaId)
+                }
+            },
+            onHelpMe: { [weak self] in
+                Task { @MainActor in
+                    await self?.handleHelpMeWithThis()
+                }
+            }
+        )
+    }
+
+    // MARK: - Intelligence Observation
+
+    private func observeIntelligenceChanges() {
+        // Observe upcoming meetings for proactive notifications
+        intelligence.calendarService.$upcomingEvent
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                guard let self = self, let event = event else { return }
+
+                // Notify at 15 minutes before meeting
+                if event.minutesUntilStart == 15 {
+                    self.showNotification(
+                        title: "Meeting in 15 minutes",
+                        message: event.title
+                    )
+                }
+                // Urgent notification at 5 minutes
+                else if event.minutesUntilStart == 5 {
+                    self.showNotification(
+                        title: "Meeting in 5 minutes!",
+                        message: event.title
+                    )
+                }
+            }
+            .store(in: &cancellables)
+
+        // Observe context changes for status display
+        intelligence.$contextSummary
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                // Could update menubar tooltip or other UI
+                self?.updateIcon()
+            }
+            .store(in: &cancellables)
+    }
+
+    // MARK: - Global Hotkeys
+
     private func setupGlobalHotkey() {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard self?.globalHotkeyEnabled == true else { return }
-            
-            // Cmd+Shift+F
-            if event.modifierFlags.contains([.command, .shift]) && event.keyCode == 3 {
+            guard let self = self else { return }
+
+            // Cmd+Shift+F - Toggle voice (keyCode 3 = F)
+            if self.globalHotkeyEnabled &&
+               event.modifierFlags.contains([.command, .shift]) &&
+               event.keyCode == 3 {
                 Task { @MainActor in
-                    await self?.voiceManager.toggle()
+                    await self.voiceManager.toggle()
+                }
+            }
+
+            // Cmd+Shift+H - Help me with this (keyCode 4 = H)
+            if self.helpMeHotkeyEnabled &&
+               event.modifierFlags.contains([.command, .shift]) &&
+               event.keyCode == 4 {
+                Task { @MainActor in
+                    await self.handleHelpMeWithThis()
                 }
             }
         }
+    }
+
+    // MARK: - Help Me With This
+
+    /// Captures context and starts voice session with selected text
+    @MainActor
+    private func handleHelpMeWithThis() async {
+        // Check for accessibility permission first
+        if !contextService.hasAccessibilityPermission {
+            contextService.requestAccessibilityPermission()
+            showNotification(
+                title: "Accessibility Required",
+                message: "Grant accessibility permission to use 'Help me with this'"
+            )
+            return
+        }
+
+        // Capture the current context (including selected text)
+        let snapshot = contextService.captureContextSnapshot()
+        pendingContextSnapshot = snapshot
+
+        // Log what we captured
+        if let text = snapshot.selectedText {
+            print("[HelpMe] Captured selected text: \(text.prefix(100))...")
+        } else {
+            print("[HelpMe] No text selected, using app context: \(snapshot.activeApp)")
+        }
+
+        // Show notification about what we captured
+        if let text = snapshot.selectedText, !text.isEmpty {
+            let preview = text.count > 50 ? String(text.prefix(50)) + "..." : text
+            showNotification(
+                title: "Got it!",
+                message: "Helping with: \"\(preview)\""
+            )
+        } else {
+            showNotification(
+                title: "Context Captured",
+                message: "Working in \(snapshot.activeApp): \(snapshot.windowTitle)"
+            )
+        }
+
+        // Start voice session if not already active
+        if !voiceManager.state.isActive {
+            await voiceManager.start()
+        }
+
+        // TODO: Send context to agent via data channel once connected
+    }
+
+    /// Get the pending context snapshot (for sending to agent)
+    func getPendingContext() -> ContextSnapshot? {
+        let context = pendingContextSnapshot
+        pendingContextSnapshot = nil  // Clear after retrieval
+        return context
     }
     
     // MARK: - Notification Permission
@@ -161,14 +308,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         menu.addItem(NSMenuItem.separator())
-        
-        // Shortcut hint
-        let shortcutItem = NSMenuItem(title: "Hotkey: ⌘⇧F", action: nil, keyEquivalent: "")
+
+        // System Intelligence
+        let intelligenceHeaderItem = NSMenuItem(title: "System Intelligence", action: nil, keyEquivalent: "")
+        intelligenceHeaderItem.isEnabled = false
+        menu.addItem(intelligenceHeaderItem)
+
+        let helpMeItem = NSMenuItem(
+            title: "Help Me With This",
+            action: #selector(helpMeWithThisClicked),
+            keyEquivalent: "H"
+        )
+        helpMeItem.keyEquivalentModifierMask = [.command, .shift]
+        helpMeItem.target = self
+        menu.addItem(helpMeItem)
+
+        // Show current context
+        let contextItem = NSMenuItem(
+            title: "📍 \(contextService.activeApp.isEmpty ? "No app focused" : contextService.activeApp)",
+            action: nil,
+            keyEquivalent: ""
+        )
+        contextItem.isEnabled = false
+        menu.addItem(contextItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Shortcut hints
+        let shortcutItem = NSMenuItem(title: "⌘⇧F Toggle Voice  •  ⌘⇧H Help Me", action: nil, keyEquivalent: "")
         shortcutItem.isEnabled = false
         menu.addItem(shortcutItem)
-        
+
         menu.addItem(NSMenuItem.separator())
-        
+
         // Claude Code Integration
         let claudeHeaderItem = NSMenuItem(title: "Claude Code", action: nil, keyEquivalent: "")
         claudeHeaderItem.isEnabled = false
@@ -371,6 +543,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
     
+    @objc private func helpMeWithThisClicked() {
+        Task { @MainActor in
+            await handleHelpMeWithThis()
+        }
+    }
+
     @objc private func openClaudeInTerminal() {
         VisibleTerminalBridge.openTerminalWithClaude()
         showNotification(

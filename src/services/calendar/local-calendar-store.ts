@@ -190,10 +190,7 @@ export async function getLocalEvents(
 /**
  * Get events for a specific day
  */
-export async function getLocalEventsForDay(
-  userId: string,
-  date: Date
-): Promise<CalendarEvent[]> {
+export async function getLocalEventsForDay(userId: string, date: Date): Promise<CalendarEvent[]> {
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -212,7 +209,9 @@ export async function createLocalEvent(
 ): Promise<CalendarEvent> {
   await loadUserEvents(userId);
 
-  const endTime = input.endTime || new Date(input.startTime.getTime() + (input.durationMinutes || 60) * 60 * 1000);
+  const endTime =
+    input.endTime ||
+    new Date(input.startTime.getTime() + (input.durationMinutes || 60) * 60 * 1000);
 
   const event: CalendarEvent = {
     id: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -281,10 +280,7 @@ export async function updateLocalEvent(
 /**
  * Delete a local event
  */
-export async function deleteLocalEvent(
-  userId: string,
-  eventId: string
-): Promise<boolean> {
+export async function deleteLocalEvent(userId: string, eventId: string): Promise<boolean> {
   await loadUserEvents(userId);
 
   const events = eventCache.get(userId) || [];
@@ -330,4 +326,3 @@ export default {
   hasLocalEvents,
   clearLocalCache,
 };
-

@@ -374,10 +374,7 @@ export class ResilienceMetricsService {
         'Session eviction due to capacity limit'
       );
     } else if (evictedCount > 0) {
-      log.debug(
-        { evictedCount, remainingSessions },
-        'Session eviction due to TTL expiration'
-      );
+      log.debug({ evictedCount, remainingSessions }, 'Session eviction due to TTL expiration');
     }
   }
 
@@ -431,7 +428,9 @@ export class ResilienceMetricsService {
     const lastScaling = this.scalingEvents[this.scalingEvents.length - 1];
 
     // Session eviction metrics
-    const recentEvictionEvents = this.sessionEvictionEvents.filter((e) => e.timestamp >= windowStart);
+    const recentEvictionEvents = this.sessionEvictionEvents.filter(
+      (e) => e.timestamp >= windowStart
+    );
     const evictionsByTTL = recentEvictionEvents
       .filter((e) => e.reason === 'ttl')
       .reduce((sum, e) => sum + e.evictedCount, 0);
@@ -451,7 +450,8 @@ export class ResilienceMetricsService {
       cleanupAvgMs: this.avg(cleanupTimes),
       cleanupP95Ms: this.percentile(cleanupTimes, 95),
       cleanupTimeouts,
-      cleanupSuccessRate: recentCleanupEvents.length > 0 ? cleanupSuccesses / recentCleanupEvents.length : 1,
+      cleanupSuccessRate:
+        recentCleanupEvents.length > 0 ? cleanupSuccesses / recentCleanupEvents.length : 1,
 
       // Queue health
       maxQueueDepth: Math.max(0, ...queueDepths),
@@ -465,7 +465,8 @@ export class ResilienceMetricsService {
       circuitBreakersByService: Object.fromEntries(this.circuitBreakerStates),
 
       // Health checks
-      healthCheckSuccessRate: recentHealthEvents.length > 0 ? healthSuccesses / recentHealthEvents.length : 1,
+      healthCheckSuccessRate:
+        recentHealthEvents.length > 0 ? healthSuccesses / recentHealthEvents.length : 1,
       healthCheckAvgLatencyMs: this.avg(healthLatencies),
       lastHealthCheckTime: lastHealthCheck?.timestamp ?? 0,
       lastHealthCheckHealthy: lastHealthCheck?.healthy ?? true,
@@ -541,7 +542,11 @@ export class ResilienceMetricsService {
   /**
    * Record circuit breaker state change with latency (used by TTS bulkhead)
    */
-  recordCircuitBreakerState(service: string, state: 'open' | 'closed' | 'half-open', latencyMs: number): void {
+  recordCircuitBreakerState(
+    service: string,
+    state: 'open' | 'closed' | 'half-open',
+    latencyMs: number
+  ): void {
     this.recordCircuitBreakerEvent(
       service,
       state,

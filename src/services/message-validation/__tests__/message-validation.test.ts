@@ -51,7 +51,7 @@ describe('Message Validation Service', () => {
     });
 
     it('should detect ultimatums', () => {
-      const analysis = analyzeMessage('If you don\'t fix this by Friday, I will escalate.');
+      const analysis = analyzeMessage("If you don't fix this by Friday, I will escalate.");
 
       expect(analysis.signals.some((s) => s.type === 'ultimatum')).toBe(true);
       expect(analysis.riskScore).toBeGreaterThan(25);
@@ -59,14 +59,14 @@ describe('Message Validation Service', () => {
     });
 
     it('should detect passive-aggressive patterns', () => {
-      const analysis = analyzeMessage('Fine. Do whatever you want. I guess it doesn\'t matter.');
+      const analysis = analyzeMessage("Fine. Do whatever you want. I guess it doesn't matter.");
 
       expect(analysis.signals.some((s) => s.type === 'passive-aggressive')).toBe(true);
       expect(analysis.tones).toContain('passive-aggressive');
     });
 
     it('should detect emotional words', () => {
-      const analysis = analyzeMessage('I hate that you betrayed my trust. I\'m devastated.');
+      const analysis = analyzeMessage("I hate that you betrayed my trust. I'm devastated.");
 
       expect(analysis.signals.some((s) => s.type === 'emotional-words')).toBe(true);
       expect(analysis.tones).toContain('emotional');
@@ -83,7 +83,7 @@ describe('Message Validation Service', () => {
     });
 
     it('should detect sensitive topics', () => {
-      const analysis = analyzeMessage('I\'ve spoken to my lawyer about the custody arrangement.');
+      const analysis = analyzeMessage("I've spoken to my lawyer about the custody arrangement.");
 
       expect(analysis.signals.some((s) => s.type === 'sensitive-topic')).toBe(true);
       expect(analysis.riskScore).toBeGreaterThan(20);
@@ -97,20 +97,24 @@ describe('Message Validation Service', () => {
     });
 
     it('should detect apologetic tone', () => {
-      const analysis = analyzeMessage('I\'m sorry for the confusion. It was my fault.');
+      const analysis = analyzeMessage("I'm sorry for the confusion. It was my fault.");
 
       expect(analysis.tones).toContain('apologetic');
     });
 
     it('should provide suggestions for risky messages', () => {
-      const analysis = analyzeMessage('You always ignore what I say. You never care about my opinion.');
+      const analysis = analyzeMessage(
+        'You always ignore what I say. You never care about my opinion.'
+      );
 
       expect(analysis.suggestions.length).toBeGreaterThan(0);
       expect(analysis.suggestions.some((s) => s.includes('I feel'))).toBe(true);
     });
 
     it('should calculate higher risk for multiple signals', () => {
-      const analysis = analyzeMessage('I HATE that you always do this! We\'re done if you don\'t stop.');
+      const analysis = analyzeMessage(
+        "I HATE that you always do this! We're done if you don't stop."
+      );
 
       expect(analysis.riskScore).toBeGreaterThan(60);
       expect(analysis.recommendWait).toBe(true);
@@ -136,7 +140,7 @@ describe('Message Validation Service', () => {
     it('should calculate longer wait for risky messages', async () => {
       const calmDraft = await saveDraft(testUserId, {
         recipient: 'John',
-        content: 'Hope you\'re doing well!',
+        content: "Hope you're doing well!",
       });
 
       const angryDraft = await saveDraft(testUserId, {
@@ -232,4 +236,3 @@ describe('Message Validation Service', () => {
     });
   });
 });
-

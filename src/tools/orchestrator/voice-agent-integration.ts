@@ -66,6 +66,11 @@ export interface GetToolsForAgentOptions {
   forceInclude?: string[];
   /** Exclude specific tools */
   forceExclude?: string[];
+  /**
+   * Session services for dev mode bypass.
+   * When frontend dev panel sends dev_mode_sync, this propagates bypass to handoff tools.
+   */
+  services?: { devMode?: { enabled: boolean; bypassUnlocks: boolean } };
 }
 
 export interface GetToolsResult {
@@ -348,6 +353,8 @@ async function getHandoffToolsForAgent(
       currentAgentId: options.persona.id,
       userProfile: options.userProfile,
       subscriptionTier: options.subscriptionTier || 'free',
+      // Pass services for dev mode bypass check (synced from frontend dev panel)
+      services: options.services,
     });
 
     return handoffTools as Record<string, Tool>;

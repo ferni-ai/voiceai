@@ -63,6 +63,10 @@ export interface VoiceHumanizationFlags {
   /** Enable live backchanneling during user speech at breath pauses */
   enableLiveBackchanneling: boolean;
 
+  // Phase 7: LLM-Based Backchannels (Natural variation via LLM generation)
+  /** Enable LLM-generated backchannels instead of hardcoded phrase pools */
+  enableLLMBackchannels: boolean;
+
   // Rollout controls
   /** Percentage of sessions to enable (0-100) */
   rolloutPercentage: number;
@@ -108,6 +112,9 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
 
   // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
   enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
+
+  // Phase 7: LLM-Based Backchannels - ENABLED for natural variation
+  enableLLMBackchannels: true, // Let LLM generate contextual backchannels (no repetition!)
 
   // Rollout: 100% by default
   rolloutPercentage: 100,
@@ -195,6 +202,8 @@ function applyEnvironmentOverrides(): void {
     'enableWordTimingRhythm',
     'enableResponseAnticipation',
     'useCachedResponses',
+    'enableLiveBackchanneling',
+    'enableLLMBackchannels',
     'enableVerboseLogging',
     'enableMetrics',
   ];

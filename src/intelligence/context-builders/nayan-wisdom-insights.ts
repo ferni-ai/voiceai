@@ -239,22 +239,40 @@ async function synthesizeLifeContext(userId: string): Promise<LifeSynthesis> {
     // Infer life chapter from goals
     if (goals.length > 0) {
       const goalNames = goals.map((g) => g.name.toLowerCase());
-      if (goalNames.some((n) => n.includes('retire') || n.includes('freedom') || n.includes('sabbatical'))) {
+      if (
+        goalNames.some(
+          (n) => n.includes('retire') || n.includes('freedom') || n.includes('sabbatical')
+        )
+      ) {
         synthesis.lifeChapter = 'freedom-seeking';
         synthesis.dominantTheme = 'Liberation from constraint';
-      } else if (goalNames.some((n) => n.includes('house') || n.includes('home') || n.includes('apartment'))) {
+      } else if (
+        goalNames.some((n) => n.includes('house') || n.includes('home') || n.includes('apartment'))
+      ) {
         synthesis.lifeChapter = 'nesting';
         synthesis.dominantTheme = 'Creating sanctuary';
-      } else if (goalNames.some((n) => n.includes('wedding') || n.includes('family') || n.includes('baby'))) {
+      } else if (
+        goalNames.some((n) => n.includes('wedding') || n.includes('family') || n.includes('baby'))
+      ) {
         synthesis.lifeChapter = 'partnership-building';
         synthesis.dominantTheme = 'Weaving lives together';
-      } else if (goalNames.some((n) => n.includes('emergency') || n.includes('safety') || n.includes('debt'))) {
+      } else if (
+        goalNames.some((n) => n.includes('emergency') || n.includes('safety') || n.includes('debt'))
+      ) {
         synthesis.lifeChapter = 'foundation-building';
         synthesis.dominantTheme = 'Creating solid ground';
-      } else if (goalNames.some((n) => n.includes('business') || n.includes('startup') || n.includes('launch'))) {
+      } else if (
+        goalNames.some(
+          (n) => n.includes('business') || n.includes('startup') || n.includes('launch')
+        )
+      ) {
         synthesis.lifeChapter = 'creation';
         synthesis.dominantTheme = 'Bringing something new to life';
-      } else if (goalNames.some((n) => n.includes('education') || n.includes('degree') || n.includes('learn'))) {
+      } else if (
+        goalNames.some(
+          (n) => n.includes('education') || n.includes('degree') || n.includes('learn')
+        )
+      ) {
         synthesis.lifeChapter = 'expansion';
         synthesis.dominantTheme = 'Growing into new possibilities';
       } else {
@@ -285,9 +303,14 @@ async function synthesizeLifeContext(userId: string): Promise<LifeSynthesis> {
     // Season of life
     const hour = new Date().getHours();
     const month = new Date().getMonth();
-    const seasonName = month >= 2 && month <= 4 ? 'spring' : 
-                       month >= 5 && month <= 7 ? 'summer' : 
-                       month >= 8 && month <= 10 ? 'autumn' : 'winter';
+    const seasonName =
+      month >= 2 && month <= 4
+        ? 'spring'
+        : month >= 5 && month <= 7
+          ? 'summer'
+          : month >= 8 && month <= 10
+            ? 'autumn'
+            : 'winter';
     const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
     synthesis.seasonOfLife = `${seasonName} ${timeOfDay}`;
 
@@ -325,10 +348,18 @@ async function synthesizeLifeContext(userId: string): Promise<LifeSynthesis> {
     synthesis.valuesRevealed = [...new Set(synthesis.valuesRevealed)];
 
     // Values from goals
-    if (goals.some((g) => g.name.toLowerCase().includes('vacation') || g.name.toLowerCase().includes('travel'))) {
+    if (
+      goals.some(
+        (g) => g.name.toLowerCase().includes('vacation') || g.name.toLowerCase().includes('travel')
+      )
+    ) {
       synthesis.valuesRevealed.push('Experience and adventure');
     }
-    if (goals.some((g) => g.name.toLowerCase().includes('gift') || g.name.toLowerCase().includes('charity'))) {
+    if (
+      goals.some(
+        (g) => g.name.toLowerCase().includes('gift') || g.name.toLowerCase().includes('charity')
+      )
+    ) {
       synthesis.valuesRevealed.push('Generosity');
     }
 
@@ -385,8 +416,12 @@ async function computeWisdomMetrics(
   try {
     // Life Integration: Based on compounding areas and growth pattern
     const compoundingBonus = lifeSynthesis.compoundingAreas.length * 15;
-    const patternBonus = lifeSynthesis.growthPattern === 'integrating' ? 30 :
-                         lifeSynthesis.growthPattern === 'transitioning' ? 15 : 0;
+    const patternBonus =
+      lifeSynthesis.growthPattern === 'integrating'
+        ? 30
+        : lifeSynthesis.growthPattern === 'transitioning'
+          ? 15
+          : 0;
     metrics.lifeIntegration = Math.min(100, 30 + compoundingBonus + patternBonus);
 
     // Meaning Coherence: Based on values alignment
@@ -395,9 +430,13 @@ async function computeWisdomMetrics(
     metrics.meaningCoherence = Math.min(100, 40 + coherentCount * 20 - conflictCount * 15);
 
     // Legacy Readiness: Based on time horizon and goal depth
-    const horizonBonus = lifeSynthesis.timeHorizon === 'long' ? 30 :
-                         lifeSynthesis.timeHorizon === 'medium' ? 15 : 0;
-    const chapterBonus = ['freedom-seeking', 'creation', 'partnership-building'].includes(lifeSynthesis.lifeChapter) ? 20 : 0;
+    const horizonBonus =
+      lifeSynthesis.timeHorizon === 'long' ? 30 : lifeSynthesis.timeHorizon === 'medium' ? 15 : 0;
+    const chapterBonus = ['freedom-seeking', 'creation', 'partnership-building'].includes(
+      lifeSynthesis.lifeChapter
+    )
+      ? 20
+      : 0;
     metrics.legacyReadiness = Math.min(100, 20 + horizonBonus + chapterBonus);
 
     // Inner Peace Index: Based on mood and growth pattern
@@ -412,16 +451,29 @@ async function computeWisdomMetrics(
       metrics.innerPeaceIndex = moodBonus;
     }
 
-    const patternPeaceBonus = lifeSynthesis.growthPattern === 'resting' ? 20 :
-                              lifeSynthesis.growthPattern === 'integrating' ? 15 :
-                              lifeSynthesis.growthPattern === 'striving' ? -20 : 0;
-    metrics.innerPeaceIndex = Math.max(0, Math.min(100, metrics.innerPeaceIndex + patternPeaceBonus));
+    const patternPeaceBonus =
+      lifeSynthesis.growthPattern === 'resting'
+        ? 20
+        : lifeSynthesis.growthPattern === 'integrating'
+          ? 15
+          : lifeSynthesis.growthPattern === 'striving'
+            ? -20
+            : 0;
+    metrics.innerPeaceIndex = Math.max(
+      0,
+      Math.min(100, metrics.innerPeaceIndex + patternPeaceBonus)
+    );
 
     // Growth Trajectory: Based on compounding and momentum
     const compoundingMomentum = lifeSynthesis.compoundingAreas.length * 20;
-    const patternMomentum = lifeSynthesis.growthPattern === 'integrating' ? 25 :
-                           lifeSynthesis.growthPattern === 'transitioning' ? 15 :
-                           lifeSynthesis.growthPattern === 'striving' ? 10 : 5;
+    const patternMomentum =
+      lifeSynthesis.growthPattern === 'integrating'
+        ? 25
+        : lifeSynthesis.growthPattern === 'transitioning'
+          ? 15
+          : lifeSynthesis.growthPattern === 'striving'
+            ? 10
+            : 5;
     metrics.growthTrajectory = Math.min(100, 30 + compoundingMomentum + patternMomentum);
 
     // Detect patterns
@@ -434,7 +486,7 @@ async function computeWisdomMetrics(
     if (metrics.meaningCoherence > 70) {
       metrics.patterns.push('Living their values - actions match words');
     } else if (metrics.meaningCoherence < 40) {
-      metrics.patterns.push('Values-action gap - explore what\'s blocking alignment');
+      metrics.patterns.push("Values-action gap - explore what's blocking alignment");
     }
 
     if (metrics.innerPeaceIndex > 70) {
@@ -463,10 +515,7 @@ async function computeWisdomMetrics(
 // VALUES ALIGNMENT ANALYSIS
 // ============================================================================
 
-function analyzeValuesAlignment(
-  lifeSynthesis: LifeSynthesis,
-  userId: string
-): ValuesAlignment {
+function analyzeValuesAlignment(lifeSynthesis: LifeSynthesis, userId: string): ValuesAlignment {
   const alignment: ValuesAlignment = {
     statedValues: [],
     demonstratedValues: lifeSynthesis.valuesRevealed,
@@ -483,8 +532,8 @@ function analyzeValuesAlignment(
 
     // Check for coherence
     if (lifeSynthesis.valuesRevealed.includes('Inner peace and presence')) {
-      const meditationHabit = activeHabits.find(h => 
-        h.name.toLowerCase().includes('meditat') || h.name.toLowerCase().includes('mindful')
+      const meditationHabit = activeHabits.find(
+        (h) => h.name.toLowerCase().includes('meditat') || h.name.toLowerCase().includes('mindful')
       );
       if (meditationHabit && meditationHabit.currentStreak >= 7) {
         alignment.coherentAreas.push('Inner peace value + consistent meditation practice');
@@ -494,8 +543,8 @@ function analyzeValuesAlignment(
     }
 
     if (lifeSynthesis.valuesRevealed.includes('Physical vitality')) {
-      const exerciseHabit = activeHabits.find(h => 
-        h.name.toLowerCase().includes('exercise') || h.name.toLowerCase().includes('gym')
+      const exerciseHabit = activeHabits.find(
+        (h) => h.name.toLowerCase().includes('exercise') || h.name.toLowerCase().includes('gym')
       );
       if (exerciseHabit && exerciseHabit.successRate > 0.6) {
         alignment.coherentAreas.push('Vitality value + consistent exercise');
@@ -557,9 +606,11 @@ function detectExistentialContext(
       context.spiritualOpenness = 'exploring';
     }
 
-    if (handoffBriefing.topic?.toLowerCase().includes('death') || 
-        handoffBriefing.topic?.toLowerCase().includes('mortality') ||
-        handoffBriefing.topic?.toLowerCase().includes('legacy')) {
+    if (
+      handoffBriefing.topic?.toLowerCase().includes('death') ||
+      handoffBriefing.topic?.toLowerCase().includes('mortality') ||
+      handoffBriefing.topic?.toLowerCase().includes('legacy')
+    ) {
       context.mortalityAwareness = 'present';
       context.legacyThinking = true;
     }
@@ -607,11 +658,11 @@ function buildLifeNarrative(
   // Infer past chapter from current
   const chapterProgression: Record<string, string> = {
     'foundation-building': 'survival',
-    'nesting': 'foundation-building',
+    nesting: 'foundation-building',
     'partnership-building': 'individual growth',
-    'creation': 'learning',
+    creation: 'learning',
     'freedom-seeking': 'building',
-    'expansion': 'stability',
+    expansion: 'stability',
     'active-growth': 'exploration',
   };
   narrative.pastChapter = chapterProgression[lifeSynthesis.lifeChapter] || 'previous chapter';
@@ -619,11 +670,11 @@ function buildLifeNarrative(
   // Infer emerging chapter
   const nextChapter: Record<string, string> = {
     'foundation-building': 'building toward dreams',
-    'nesting': 'creating home',
+    nesting: 'creating home',
     'partnership-building': 'shared life',
-    'creation': 'impact',
+    creation: 'impact',
     'freedom-seeking': 'freedom',
-    'expansion': 'mastery',
+    expansion: 'mastery',
     'active-growth': 'integration',
   };
   narrative.emergingChapter = nextChapter[lifeSynthesis.lifeChapter] || 'the next chapter';
@@ -705,7 +756,7 @@ async function synthesizeTeamInsights(userId: string): Promise<TeamSynthesis> {
         synthesis.crossDomainInsights.push('Daily disciplines revealing character');
       } else if (avgSuccess < 0.4 && activeHabits.length >= 4) {
         synthesis.mayaPattern = 'Striving without self-compassion - too much, too fast';
-        synthesis.crossDomainInsights.push('The body and habits speak what the mind won\'t say');
+        synthesis.crossDomainInsights.push("The body and habits speak what the mind won't say");
       } else {
         synthesis.mayaPattern = 'Learning the rhythm - patience is the teacher now';
       }
@@ -731,14 +782,17 @@ async function synthesizeTeamInsights(userId: string): Promise<TeamSynthesis> {
     const reflections = userData.weeklyReflections || [];
     if (reflections.length > 0) {
       const commChallenges = reflections
-        .flatMap(r => r.challenges || [])
-        .filter(c => c.toLowerCase().includes('conversation') || 
-                     c.toLowerCase().includes('tell') ||
-                     c.toLowerCase().includes('boundary'));
-      
+        .flatMap((r) => r.challenges || [])
+        .filter(
+          (c) =>
+            c.toLowerCase().includes('conversation') ||
+            c.toLowerCase().includes('tell') ||
+            c.toLowerCase().includes('boundary')
+        );
+
       if (commChallenges.length >= 2) {
         synthesis.alexPattern = 'Communication challenges recurring - something unsaid';
-        synthesis.crossDomainInsights.push('What we don\'t say speaks louder than what we do');
+        synthesis.crossDomainInsights.push("What we don't say speaks louder than what we do");
       }
     }
 
@@ -750,10 +804,18 @@ async function synthesizeTeamInsights(userId: string): Promise<TeamSynthesis> {
         synthesis.jordanPattern,
       ].filter(Boolean);
 
-      if (patterns.some((p) => p?.includes('sustainable') || p?.includes('solid') || p?.includes('reality'))) {
+      if (
+        patterns.some(
+          (p) => p?.includes('sustainable') || p?.includes('solid') || p?.includes('reality')
+        )
+      ) {
         synthesis.integratedWisdom =
           'The outer work mirrors inner stability. Continue compounding. Trust is being earned.';
-      } else if (patterns.some((p) => p?.includes('striving') || p?.includes('turbulence') || p?.includes('scattered'))) {
+      } else if (
+        patterns.some(
+          (p) => p?.includes('striving') || p?.includes('turbulence') || p?.includes('scattered')
+        )
+      ) {
         synthesis.integratedWisdom =
           'Before the doing, perhaps the being. Rest is not the opposite of growth - it is the soil.';
       } else {
@@ -800,8 +862,10 @@ function detectProactiveTriggers(
   }
 
   // Peace-seeking triggers
-  if (existentialContext.currentExistentialTheme?.includes('acceptance') || 
-      existentialContext.currentExistentialTheme?.includes('Letting go')) {
+  if (
+    existentialContext.currentExistentialTheme?.includes('acceptance') ||
+    existentialContext.currentExistentialTheme?.includes('Letting go')
+  ) {
     triggers.push({
       type: 'silence',
       message: 'Sometimes presence is the answer. Hold space before speaking.',
@@ -814,7 +878,7 @@ function detectProactiveTriggers(
   if (lifeSynthesis.growthPattern === 'striving') {
     triggers.push({
       type: 'reframe',
-      message: 'Striving energy present. Consider: What if you\'re already enough?',
+      message: "Striving energy present. Consider: What if you're already enough?",
       priority: 'medium',
       timing: 'when_ready',
     });
@@ -897,7 +961,7 @@ function generateDeepQuestions(
       questions.push('What would you build if you knew the foundation was solid?');
       break;
     case 'creation':
-      questions.push('What are you trying to bring into the world that doesn\'t exist yet?');
+      questions.push("What are you trying to bring into the world that doesn't exist yet?");
       questions.push('What would you create if you knew it could not fail?');
       break;
     case 'expansion':
@@ -984,7 +1048,12 @@ function analyzeHandoffForNayan(): HandoffBriefing | null {
     }
 
     // Time context
-    if (lower.includes('retire') || lower.includes('decade') || lower.includes('lifetime') || lower.includes('legacy')) {
+    if (
+      lower.includes('retire') ||
+      lower.includes('decade') ||
+      lower.includes('lifetime') ||
+      lower.includes('legacy')
+    ) {
       briefing.timeContext = 'long-term thinking';
     } else if (lower.includes('crisis') || lower.includes('urgent') || lower.includes('now')) {
       briefing.timeContext = 'present moment';
@@ -995,7 +1064,7 @@ function analyzeHandoffForNayan(): HandoffBriefing | null {
       lower.includes('death') ||
       lower.includes('mortality') ||
       lower.includes('meaning of life') ||
-      lower.includes('what\'s it all for')
+      lower.includes("what's it all for")
     ) {
       briefing.depth = 'existential';
     }
@@ -1012,7 +1081,8 @@ function analyzeHandoffForNayan(): HandoffBriefing | null {
 
   // Emotional state from handoff
   if (handoffContext.emotionalState) {
-    briefing.emotionalUndercurrent = briefing.emotionalUndercurrent || handoffContext.emotionalState;
+    briefing.emotionalUndercurrent =
+      briefing.emotionalUndercurrent || handoffContext.emotionalState;
   }
 
   return briefing;
@@ -1035,8 +1105,17 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
   const wisdomMetrics = await computeWisdomMetrics(userId, lifeSynthesis, valuesAlignment);
   const existentialContext = detectExistentialContext(lifeSynthesis, handoffBriefing);
   const lifeNarrative = buildLifeNarrative(lifeSynthesis, valuesAlignment);
-  const proactiveTriggers = detectProactiveTriggers(lifeSynthesis, wisdomMetrics, existentialContext, valuesAlignment);
-  const wisdomOpportunities = detectWisdomOpportunities(lifeSynthesis, teamSynthesis, wisdomMetrics);
+  const proactiveTriggers = detectProactiveTriggers(
+    lifeSynthesis,
+    wisdomMetrics,
+    existentialContext,
+    valuesAlignment
+  );
+  const wisdomOpportunities = detectWisdomOpportunities(
+    lifeSynthesis,
+    teamSynthesis,
+    wisdomMetrics
+  );
   const deepQuestions = generateDeepQuestions(lifeSynthesis, existentialContext, handoffBriefing);
 
   return {
@@ -1057,9 +1136,7 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
  * Build calendar context for Nayan's wisdom conversations.
  * Nayan is about depth and reflection - he needs to know when there's space for that.
  */
-async function buildCalendarWisdomContext(
-  userId: string
-): Promise<CalendarWisdomContext> {
+async function buildCalendarWisdomContext(userId: string): Promise<CalendarWisdomContext> {
   const [loadFactors, ambientContext] = await Promise.all([
     getCalendarLoadFactors(userId),
     getAmbientCalendarContext(userId),
@@ -1099,8 +1176,7 @@ async function buildCalendarWisdomContext(
     wisdomTimingSuggestion =
       'Clear calendar - excellent time for deeper exploration and meaningful questions';
   } else if (minutesToNext < 15 && minutesToNext > 0) {
-    wisdomTimingSuggestion =
-      'Meeting soon - plant a seed of thought rather than diving deep';
+    wisdomTimingSuggestion = 'Meeting soon - plant a seed of thought rather than diving deep';
   }
 
   // Generate busyness pattern insight (Nayan's perspective)
@@ -1110,11 +1186,9 @@ async function buildCalendarWisdomContext(
     busynessInsight =
       'Three or more days of meetings upon meetings - the question is not what to add, but what to release';
   } else if (loadFactors.weeklyFocusTimeRatio < 0.2) {
-    busynessInsight =
-      "Less than 20% of time unscheduled - they are 'busy' but are they present?";
+    busynessInsight = "Less than 20% of time unscheduled - they are 'busy' but are they present?";
   } else if (loadLevel === 'light' && loadFactors.weeklyMeetingHours < 10) {
-    busynessInsight =
-      'Light calendar - rare space for being rather than doing';
+    busynessInsight = 'Light calendar - rare space for being rather than doing';
   }
 
   return {
@@ -1181,7 +1255,7 @@ function detectWisdomOpportunities(
 
   if (wisdomMetrics.innerPeaceIndex > 70) {
     opportunities.push(
-      '🕊️ Inner peace present. This is rare. Name it. Honor it. It didn\'t come by accident.'
+      "🕊️ Inner peace present. This is rare. Name it. Honor it. It didn't come by accident."
     );
   }
 
@@ -1270,21 +1344,26 @@ function formatNayanBriefing(
     sections.push(`• Recurring themes: ${lifeNarrative.recurringThemes.join(', ')}`);
   }
   if (lifeNarrative.unfinishedBusiness.length > 0) {
-    sections.push(`• Unfinished business: ${lifeNarrative.unfinishedBusiness.slice(0, 2).join('; ')}`);
+    sections.push(
+      `• Unfinished business: ${lifeNarrative.unfinishedBusiness.slice(0, 2).join('; ')}`
+    );
   }
 
   // Values Alignment
-  if (briefing.valuesAlignment.coherentAreas.length > 0 || briefing.valuesAlignment.conflictAreas.length > 0) {
+  if (
+    briefing.valuesAlignment.coherentAreas.length > 0 ||
+    briefing.valuesAlignment.conflictAreas.length > 0
+  ) {
     sections.push('\n=== ⚖️ VALUES ALIGNMENT ===');
-    briefing.valuesAlignment.coherentAreas.forEach(a => sections.push(`✅ ${a}`));
-    briefing.valuesAlignment.conflictAreas.forEach(c => sections.push(`⚠️ ${c}`));
+    briefing.valuesAlignment.coherentAreas.forEach((a) => sections.push(`✅ ${a}`));
+    briefing.valuesAlignment.conflictAreas.forEach((c) => sections.push(`⚠️ ${c}`));
   }
 
   // Proactive triggers (high priority)
-  const highTriggers = briefing.proactiveTriggers.filter(t => t.priority === 'high');
+  const highTriggers = briefing.proactiveTriggers.filter((t) => t.priority === 'high');
   if (highTriggers.length > 0) {
     sections.push('\n=== ⚡ IMMEDIATE WISDOM ===');
-    highTriggers.forEach(t => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
+    highTriggers.forEach((t) => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
   }
 
   // Team synthesis
@@ -1422,13 +1501,13 @@ async function buildNayanWisdomInsightsContext(
   try {
     const briefing = await buildNayanBriefing(userId);
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
-    
+
     // Get superhuman context (narrative, values, dreams, seasonal)
     const superhumanContext = await getSuperhuman(userId, 'nayan');
     if (superhumanContext) {
       briefingLines.push('\n' + superhumanContext);
     }
-    
+
     const content = briefingLines.join('\n');
 
     if (isHandoff) {
@@ -1438,7 +1517,10 @@ async function buildNayanWisdomInsightsContext(
           confidence: 0.9,
         })
       );
-      log.info({ userId, seeking: handoffBriefing?.seekingWhat }, '🕉️ Nayan loaded with handoff briefing');
+      log.info(
+        { userId, seeking: handoffBriefing?.seekingWhat },
+        '🕉️ Nayan loaded with handoff briefing'
+      );
     } else if (turnCount === 0) {
       injections.push(
         createStandardInjection('nayan_initial_briefing', content, {
@@ -1447,7 +1529,11 @@ async function buildNayanWisdomInsightsContext(
         })
       );
       log.info(
-        { userId, chapter: briefing.lifeSynthesis.lifeChapter, peace: briefing.wisdomMetrics.innerPeaceIndex },
+        {
+          userId,
+          chapter: briefing.lifeSynthesis.lifeChapter,
+          peace: briefing.wisdomMetrics.innerPeaceIndex,
+        },
         '🕉️ Nayan loaded with wisdom briefing'
       );
     } else {

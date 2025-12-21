@@ -40,10 +40,7 @@ const cards = new Map<string, ShareableCard>();
 /**
  * Generate a Musical DNA card
  */
-export function generateMusicalDNACard(
-  userId: string,
-  dna: MusicalDNA
-): ShareableCard {
+export function generateMusicalDNACard(userId: string, dna: MusicalDNA): ShareableCard {
   const cardId = `dna-${userId}-${Date.now()}`;
 
   const data: MusicalDNACardData = {
@@ -80,10 +77,7 @@ export function generateMusicalDNACard(
 /**
  * Generate a Desert Island card
  */
-export function generateDesertIslandCard(
-  userId: string,
-  picks: DesertIslandPicks
-): ShareableCard {
+export function generateDesertIslandCard(userId: string, picks: DesertIslandPicks): ShareableCard {
   const cardId = `island-${userId}-${Date.now()}`;
 
   const data: DesertIslandCardData = {
@@ -287,20 +281,24 @@ export function generateMusicalDNASVG(data: MusicalDNACardData): string {
   <!-- Personality Type -->
   <text x="80" y="140" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="#faf6f0">${escapeXml(personalityLabel)}</text>
   <text x="80" y="190" font-family="Inter, sans-serif" font-size="18" fill="#c9beb0" width="600">
-    ${wrapText(escapeXml(personalityDescription), 60).map((line, i) => 
-      `<tspan x="80" dy="${i === 0 ? 0 : 24}">${line}</tspan>`
-    ).join('')}
+    ${wrapText(escapeXml(personalityDescription), 60)
+      .map((line, i) => `<tspan x="80" dy="${i === 0 ? 0 : 24}">${line}</tspan>`)
+      .join('')}
   </text>
   
   <!-- Top Genres -->
   <text x="80" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">TOP GENRES</text>
-  ${topGenres.map((genre, i) => `
+  ${topGenres
+    .map(
+      (genre, i) => `
     <g transform="translate(80, ${350 + i * 60})">
       <rect width="${Math.round(genre.score * 4)}" height="8" fill="url(#accentGradient)" rx="4" />
       <text y="-8" font-family="Inter, sans-serif" font-size="16" fill="#faf6f0">${escapeXml(genre.name)}</text>
       <text x="${Math.round(genre.score * 4) + 16}" y="6" font-family="Inter, sans-serif" font-size="14" fill="#8a7b6d">${genre.score}%</text>
     </g>
-  `).join('')}
+  `
+    )
+    .join('')}
   
   <!-- Stats -->
   <g transform="translate(700, 320)">
@@ -354,13 +352,18 @@ export function generateDesertIslandSVG(data: DesertIslandCardData): string {
   <text x="80" y="130" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="700" fill="#faf6f0">My 5 Essential Songs</text>
   
   <!-- Picks -->
-  ${picks.slice(0, 5).map((pick, i) => `
+  ${picks
+    .slice(0, 5)
+    .map(
+      (pick, i) => `
     <g transform="translate(80, ${180 + i * 70})">
       <text font-family="Plus Jakarta Sans, sans-serif" font-size="24" font-weight="700" fill="#d4a574">${pick.rank}</text>
       <text x="40" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="600" fill="#faf6f0">${escapeXml(truncate(pick.trackName, 30))}</text>
       <text x="40" y="28" font-family="Inter, sans-serif" font-size="14" fill="#7ab8d4">${escapeXml(truncate(pick.artistName, 35))}</text>
     </g>
-  `).join('')}
+  `
+    )
+    .join('')}
   
   <!-- Palm tree decoration -->
   <g transform="translate(1000, 350)" opacity="0.5">
@@ -402,13 +405,17 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
   <!-- Background -->
   <rect width="1200" height="630" fill="url(#bgGradient)" rx="20" />
   
-  ${isPersonalBest ? `
+  ${
+    isPersonalBest
+      ? `
   <!-- Personal Best banner -->
   <g transform="translate(850, 50)">
     <rect width="280" height="50" fill="url(#goldGradient)" rx="25" />
     <text x="140" y="32" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="700" fill="#2C2520">⭐ PERSONAL BEST!</text>
   </g>
-  ` : ''}
+  `
+      : ''
+  }
   
   <!-- Celebration sparkles -->
   <g opacity="0.6">
@@ -422,22 +429,30 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
   <text x="80" y="200" font-family="Plus Jakarta Sans, sans-serif" font-size="120" font-weight="700" fill="url(#goldGradient)">${score}</text>
   <text x="80" y="240" font-family="Inter, sans-serif" font-size="20" fill="#8a7b6d">points</text>
   
-  ${trackName ? `
+  ${
+    trackName
+      ? `
   <!-- Song info -->
   <g transform="translate(80, 320)">
     <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">I NAILED</text>
     <text y="40" font-family="Plus Jakarta Sans, sans-serif" font-size="28" font-weight="600" fill="#faf6f0">${escapeXml(truncate(trackName, 35))}</text>
     <text y="70" font-family="Inter, sans-serif" font-size="18" fill="#c9beb0">${escapeXml(truncate(artistName || '', 40))}</text>
   </g>
-  ` : ''}
+  `
+      : ''
+  }
   
-  ${guessTimeMs ? `
+  ${
+    guessTimeMs
+      ? `
   <!-- Time -->
   <g transform="translate(700, 180)">
     <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">TIME</text>
     <text y="50" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="#4a6741">${(guessTimeMs / 1000).toFixed(1)}s</text>
   </g>
-  ` : ''}
+  `
+      : ''
+  }
   
   <!-- Ferni branding -->
   <g transform="translate(80, 570)">
@@ -497,7 +512,9 @@ function generateMusicNotes(): string {
     const x = Math.random() * 1200;
     const y = Math.random() * 630;
     const size = 20 + Math.random() * 20;
-    notes.push(`<text x="${x}" y="${y}" font-size="${size}" fill="#faf6f0" transform="rotate(${Math.random() * 30 - 15}, ${x}, ${y})">♪</text>`);
+    notes.push(
+      `<text x="${x}" y="${y}" font-size="${size}" fill="#faf6f0" transform="rotate(${Math.random() * 30 - 15}, ${x}, ${y})">♪</text>`
+    );
   }
   return notes.join('');
 }
@@ -528,4 +545,3 @@ export default {
   generateDesertIslandSVG,
   generateVictorySVG,
 };
-

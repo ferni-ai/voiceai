@@ -62,6 +62,28 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 /**
+ * Category color palette - earthy, warm tones that match Ferni brand
+ * Each category has distinct colors for visual variety while staying cohesive
+ */
+const CATEGORY_COLORS: Record<string, { primary: string; secondary: string; glow: string }> = {
+  mentorship: { primary: '#3a6b73', secondary: '#2d5359', glow: 'rgba(58, 107, 115, 0.4)' }, // Teal (like Peter)
+  finance: { primary: '#4a5d8a', secondary: '#3a4d73', glow: 'rgba(74, 93, 138, 0.4)' }, // Ocean blue
+  health: { primary: '#a67a6a', secondary: '#8a635a', glow: 'rgba(166, 122, 106, 0.4)' }, // Rose (like Maya)
+  productivity: { primary: '#b89a5a', secondary: '#9a7d42', glow: 'rgba(184, 154, 90, 0.4)' }, // Amber/Gold
+  lifestyle: { primary: '#c4856a', secondary: '#a86d55', glow: 'rgba(196, 133, 106, 0.4)' }, // Coral (like Jordan)
+  education: { primary: '#5a8a6a', secondary: '#4a735a', glow: 'rgba(90, 138, 106, 0.4)' }, // Forest green
+  entertainment: { primary: '#8a6a7a', secondary: '#735a6a', glow: 'rgba(138, 106, 122, 0.4)' }, // Dusty plum
+  custom: { primary: '#8a7a6a', secondary: '#736a5a', glow: 'rgba(138, 122, 106, 0.4)' }, // Warm gray (like Nayan)
+};
+
+/**
+ * Get colors for a category - returns primary, secondary, and glow
+ */
+function getCategoryColors(category: string): { primary: string; secondary: string; glow: string } {
+  return CATEGORY_COLORS[category] || CATEGORY_COLORS.custom;
+}
+
+/**
  * Get gradient for a persona using CSS variables.
  * Applies via data-persona attribute which sets --persona-primary and --persona-secondary.
  */
@@ -76,6 +98,14 @@ function getPersonaGradient(personaId: string): string {
 }
 
 /**
+ * Get gradient for a category (marketplace agents)
+ */
+function getCategoryGradient(category: string): string {
+  const colors = getCategoryColors(category);
+  return `linear-gradient(135deg, ${colors.secondary}, ${colors.primary})`;
+}
+
+/**
  * Get glow color for avatar shadows using CSS variables.
  * External AI company brand colors are defined in design-system/tokens/colors.json
  */
@@ -86,6 +116,14 @@ function getPersonaGlow(personaId: string): string {
     return `var(--external-${personaId}-glow)`;
   }
   return 'var(--persona-glow)';
+}
+
+/**
+ * Get glow color for a category (marketplace agents)
+ */
+function getCategoryGlow(category: string): string {
+  const colors = getCategoryColors(category);
+  return colors.glow;
 }
 
 // ============================================================================
@@ -1066,9 +1104,9 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         .join('')
         .slice(0, 2)
         .toUpperCase();
-      // Use CSS variables via data-persona attribute - gradient comes from design system
-      const gradient = getPersonaGradient(agent.id);
-      const glow = getPersonaGlow(agent.id);
+      // Use category-based colors for visual variety in marketplace
+      const gradient = getCategoryGradient(agent.category);
+      const glow = getCategoryGlow(agent.category);
 
       // Determine state classes and button
       const stateClass = agent.isInstalled ? 'installed' : '';
@@ -1092,7 +1130,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       const animationDelay = (index % 6) * 0.5;
 
       return `
-    <article class="marketplace-agent discover-card ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem" style="--stagger-delay: ${animationDelay}s;">
+    <article class="marketplace-agent discover-card ${stateClass}" data-agent-id="${agent.id}" data-category="${agent.category}" role="listitem" style="--stagger-delay: ${animationDelay}s;">
       <div class="discover-avatar-container">
         <div class="discover-avatar-ring" style="--avatar-glow: ${glow};"></div>
         <div class="discover-avatar-orb" style="background: ${gradient}; --avatar-glow: ${glow};">
@@ -1101,7 +1139,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </div>
       <div class="discover-info">
         <h3 class="agent-name">${agent.name}</h3>
-        <span class="agent-category">${getCategoryLabel(agent.category)}</span>
+        <span class="agent-category" data-category="${agent.category}">${getCategoryLabel(agent.category)}</span>
         ${ratingHtml}
         ${badgeHtml}
       </div>
@@ -2757,8 +2795,42 @@ function getMarketplaceStyles(): string {
 
     .marketplace-agent.discover-card:hover {
       transform: translateY(-6px);
-      border-color: var(--persona-primary, rgba(74, 103, 65, 0.4));
+      border-color: var(--category-primary, rgba(74, 103, 65, 0.4));
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Category-specific hover borders */
+    .marketplace-agent.discover-card[data-category="mentorship"]:hover {
+      border-color: rgba(58, 107, 115, 0.5);
+      box-shadow: 0 16px 40px rgba(58, 107, 115, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="finance"]:hover {
+      border-color: rgba(74, 93, 138, 0.5);
+      box-shadow: 0 16px 40px rgba(74, 93, 138, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="health"]:hover {
+      border-color: rgba(166, 122, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(166, 122, 106, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="productivity"]:hover {
+      border-color: rgba(184, 154, 90, 0.5);
+      box-shadow: 0 16px 40px rgba(184, 154, 90, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="lifestyle"]:hover {
+      border-color: rgba(196, 133, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(196, 133, 106, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="education"]:hover {
+      border-color: rgba(90, 138, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(90, 138, 106, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="entertainment"]:hover {
+      border-color: rgba(138, 106, 122, 0.5);
+      box-shadow: 0 16px 40px rgba(138, 106, 122, 0.15);
+    }
+    .marketplace-agent.discover-card[data-category="custom"]:hover {
+      border-color: rgba(138, 122, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(138, 122, 106, 0.15);
     }
 
     .marketplace-agent.installed {
@@ -2888,10 +2960,47 @@ function getMarketplaceStyles(): string {
     .agent-category {
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.75rem;
-      font-weight: 500;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--color-warm-amber, #C4A265);
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Category-specific colors for labels - matches avatar colors */
+    .agent-category[data-category="mentorship"] {
+      color: #5a9aa5;
+      background: rgba(58, 107, 115, 0.15);
+    }
+    .agent-category[data-category="finance"] {
+      color: #6a7daa;
+      background: rgba(74, 93, 138, 0.15);
+    }
+    .agent-category[data-category="health"] {
+      color: #c49a8a;
+      background: rgba(166, 122, 106, 0.15);
+    }
+    .agent-category[data-category="productivity"] {
+      color: #d8ba7a;
+      background: rgba(184, 154, 90, 0.15);
+    }
+    .agent-category[data-category="lifestyle"] {
+      color: #e4a58a;
+      background: rgba(196, 133, 106, 0.15);
+    }
+    .agent-category[data-category="education"] {
+      color: #7aaa8a;
+      background: rgba(90, 138, 106, 0.15);
+    }
+    .agent-category[data-category="entertainment"] {
+      color: #aa8a9a;
+      background: rgba(138, 106, 122, 0.15);
+    }
+    .agent-category[data-category="custom"] {
+      color: #aa9a8a;
+      background: rgba(138, 122, 106, 0.15);
     }
 
     .agent-rating {
@@ -3620,8 +3729,42 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .marketplace-agent.discover-card:hover {
-      border-color: var(--persona-primary, rgba(74, 103, 65, 0.4));
+      border-color: var(--category-primary, rgba(74, 103, 65, 0.4));
       box-shadow: 0 16px 40px rgba(44, 37, 32, 0.12);
+    }
+
+    /* Zen theme - Category-specific hover borders */
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="mentorship"]:hover {
+      border-color: rgba(58, 107, 115, 0.5);
+      box-shadow: 0 16px 40px rgba(58, 107, 115, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="finance"]:hover {
+      border-color: rgba(74, 93, 138, 0.5);
+      box-shadow: 0 16px 40px rgba(74, 93, 138, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="health"]:hover {
+      border-color: rgba(166, 122, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(166, 122, 106, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="productivity"]:hover {
+      border-color: rgba(184, 154, 90, 0.5);
+      box-shadow: 0 16px 40px rgba(184, 154, 90, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="lifestyle"]:hover {
+      border-color: rgba(196, 133, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(196, 133, 106, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="education"]:hover {
+      border-color: rgba(90, 138, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(90, 138, 106, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="entertainment"]:hover {
+      border-color: rgba(138, 106, 122, 0.5);
+      box-shadow: 0 16px 40px rgba(138, 106, 122, 0.1);
+    }
+    [data-theme="zen"] .marketplace-agent.discover-card[data-category="custom"]:hover {
+      border-color: rgba(138, 122, 106, 0.5);
+      box-shadow: 0 16px 40px rgba(138, 122, 106, 0.1);
     }
 
     [data-theme="zen"] .discover-avatar-orb {
@@ -3674,7 +3817,42 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .agent-category {
-      color: rgba(44, 37, 32, 0.5);
+      color: rgba(44, 37, 32, 0.6);
+      background: rgba(44, 37, 32, 0.06);
+    }
+
+    /* Zen theme - Category-specific colors for labels */
+    [data-theme="zen"] .agent-category[data-category="mentorship"] {
+      color: #3a6b73;
+      background: rgba(58, 107, 115, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="finance"] {
+      color: #4a5d8a;
+      background: rgba(74, 93, 138, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="health"] {
+      color: #a67a6a;
+      background: rgba(166, 122, 106, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="productivity"] {
+      color: #9a7d42;
+      background: rgba(184, 154, 90, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="lifestyle"] {
+      color: #a86d55;
+      background: rgba(196, 133, 106, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="education"] {
+      color: #4a735a;
+      background: rgba(90, 138, 106, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="entertainment"] {
+      color: #735a6a;
+      background: rgba(138, 106, 122, 0.12);
+    }
+    [data-theme="zen"] .agent-category[data-category="custom"] {
+      color: #736a5a;
+      background: rgba(138, 122, 106, 0.12);
     }
 
     [data-theme="zen"] .agent-rating .rating-stars {

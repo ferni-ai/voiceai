@@ -78,10 +78,7 @@ ${relationshipContext}
 /**
  * Generate personality section from traits
  */
-function generatePersonalitySection(
-  traits: PersonalityTraits,
-  style: CommunicationStyle
-): string {
+function generatePersonalitySection(traits: PersonalityTraits, style: CommunicationStyle): string {
   const traitDescriptions: string[] = [];
 
   // Warmth
@@ -90,7 +87,9 @@ function generatePersonalitySection(
   } else if (traits.warmth >= 0.5) {
     traitDescriptions.push('You are warm and caring, though not overly effusive.');
   } else {
-    traitDescriptions.push('You show care through actions more than words, with a reserved warmth.');
+    traitDescriptions.push(
+      'You show care through actions more than words, with a reserved warmth.'
+    );
   }
 
   // Directness
@@ -99,7 +98,9 @@ function generatePersonalitySection(
   } else if (traits.directness >= 0.5) {
     traitDescriptions.push('You balance honesty with gentleness, wrapping truth in kindness.');
   } else {
-    traitDescriptions.push('You prefer to guide people to realizations rather than telling them directly.');
+    traitDescriptions.push(
+      'You prefer to guide people to realizations rather than telling them directly.'
+    );
   }
 
   // Humor
@@ -117,12 +118,16 @@ function generatePersonalitySection(
   } else if (traits.energy >= 0.4) {
     traitDescriptions.push('You have calm, steady energy - present without being overwhelming.');
   } else {
-    traitDescriptions.push('You speak slowly and deliberately, with a peaceful, unhurried presence.');
+    traitDescriptions.push(
+      'You speak slowly and deliberately, with a peaceful, unhurried presence.'
+    );
   }
 
   // Wisdom
   if (traits.wisdom >= 0.8) {
-    traitDescriptions.push('You have deep wisdom from a life well-lived. You see patterns others miss.');
+    traitDescriptions.push(
+      'You have deep wisdom from a life well-lived. You see patterns others miss.'
+    );
   } else if (traits.wisdom >= 0.5) {
     traitDescriptions.push('You share insights from your experiences when they might help.');
   }
@@ -192,7 +197,9 @@ function generateSpeechPatternsSection(behaviors: CustomAgentBehaviors): string 
   // Catchphrases
   if (behaviors.catchphrases.length > 0) {
     sections.push('### Things You Always Say\n');
-    sections.push("These are phrases you use naturally (don't force them, but use them when they fit):\n");
+    sections.push(
+      "These are phrases you use naturally (don't force them, but use them when they fit):\n"
+    );
     for (const phrase of behaviors.catchphrases) {
       sections.push(`- "${phrase}"`);
     }
@@ -225,16 +232,17 @@ function generateSpeechPatternsSection(behaviors: CustomAgentBehaviors): string 
     }
   }
 
-  if (behaviors.conversationPatterns.avoidTopics && behaviors.conversationPatterns.avoidTopics.length > 0) {
+  if (
+    behaviors.conversationPatterns.avoidTopics &&
+    behaviors.conversationPatterns.avoidTopics.length > 0
+  ) {
     sections.push('\n### Topics to Handle Carefully\n');
     for (const topic of behaviors.conversationPatterns.avoidTopics) {
       sections.push(`- ${topic}`);
     }
   }
 
-  return sections.length > 0
-    ? `## How You Speak\n\n${sections.join('\n')}`
-    : '';
+  return sections.length > 0 ? `## How You Speak\n\n${sections.join('\n')}` : '';
 }
 
 /**
@@ -302,10 +310,7 @@ Sayings and wisdom you've collected over the years:
 /**
  * Generate care expressions section
  */
-function generateCareSection(
-  careExpressions: string[],
-  behaviors: CustomAgentBehaviors
-): string {
+function generateCareSection(careExpressions: string[], behaviors: CustomAgentBehaviors): string {
   const sections: string[] = [];
 
   sections.push('## How You Show Care\n');
@@ -319,7 +324,10 @@ function generateCareSection(
   }
 
   // Response templates
-  if (behaviors.responseTemplates.whenUserIsSad && behaviors.responseTemplates.whenUserIsSad.length > 0) {
+  if (
+    behaviors.responseTemplates.whenUserIsSad &&
+    behaviors.responseTemplates.whenUserIsSad.length > 0
+  ) {
     sections.push('### When They Are Sad\n');
     sections.push('You might say things like:\n');
     for (const response of behaviors.responseTemplates.whenUserIsSad) {
@@ -353,10 +361,12 @@ function generateRulesSection(agent: CustomAgent): string {
   const rules: string[] = [];
 
   // Core rules
-  rules.push(`1. **You ARE ${agent.displayName}** - speak in first person, think as they would think`);
+  rules.push(
+    `1. **You ARE ${agent.displayName}** - speak in first person, think as they would think`
+  );
   rules.push('2. **Never break character** - don\'t say "as an AI" or "I\'m a language model"');
   rules.push('3. **Be authentic** - use their speech patterns, their wisdom, their warmth');
-  rules.push('4. **Listen deeply** - respond to what they\'re really saying, not just the words');
+  rules.push("4. **Listen deeply** - respond to what they're really saying, not just the words");
 
   // Type-specific rules
   if (agent.type === 'legacy') {
@@ -417,19 +427,29 @@ function getTypeDescription(type: CustomAgentType, relationship: AgentRelationsh
  */
 function getRelationshipContext(relationship: AgentRelationship): string {
   const contexts: Record<AgentRelationship, string> = {
-    grandmother: 'As a grandmother, you\'ve lived through decades and gathered wisdom. You see the long view and bring unconditional love.',
-    grandfather: 'As a grandfather, you carry stories of a different era. You offer perspective that only comes with years.',
-    parent: 'As a parent, you balance guidance with letting them find their own way. Your love is constant.',
+    grandmother:
+      "As a grandmother, you've lived through decades and gathered wisdom. You see the long view and bring unconditional love.",
+    grandfather:
+      'As a grandfather, you carry stories of a different era. You offer perspective that only comes with years.',
+    parent:
+      'As a parent, you balance guidance with letting them find their own way. Your love is constant.',
     mother: 'As a mother, you nurture and protect. Your intuition about their wellbeing runs deep.',
-    father: 'As a father, you offer stability and guidance. You believe in them even when they doubt themselves.',
-    sibling: 'As a sibling, you share history and understand their family context like no one else.',
-    brother: 'As a brother, you have a bond forged in shared childhood. You can be honest in ways others can\'t.',
-    sister: 'As a sister, you share a unique understanding. You\'ve seen them at their best and worst.',
+    father:
+      'As a father, you offer stability and guidance. You believe in them even when they doubt themselves.',
+    sibling:
+      'As a sibling, you share history and understand their family context like no one else.',
+    brother:
+      "As a brother, you have a bond forged in shared childhood. You can be honest in ways others can't.",
+    sister:
+      "As a sister, you share a unique understanding. You've seen them at their best and worst.",
     spouse: 'As a spouse, you know them intimately - their dreams, fears, and daily rhythms.',
-    partner: 'As a partner, you share a life together. You support each other\'s growth.',
-    child: 'As a child, you see them with fresh eyes. Your perspective is valuable precisely because it\'s different.',
-    friend: 'As a friend, you\'ve chosen each other. Your bond is built on shared experiences and mutual care.',
-    best_friend: 'As a best friend, you know their secrets and their heart. You can be completely honest.',
+    partner: "As a partner, you share a life together. You support each other's growth.",
+    child:
+      "As a child, you see them with fresh eyes. Your perspective is valuable precisely because it's different.",
+    friend:
+      "As a friend, you've chosen each other. Your bond is built on shared experiences and mutual care.",
+    best_friend:
+      'As a best friend, you know their secrets and their heart. You can be completely honest.',
     mentor: 'As a mentor, you guide without controlling. You believe in their potential.',
     teacher: 'As a teacher, you help them learn and grow. You see their capacity for development.',
     coach: 'As a coach, you push them toward their goals. You hold them accountable with care.',
@@ -502,9 +522,10 @@ export function generateManifest(agent: CustomAgent): Record<string, unknown> {
     },
     voice: {
       provider: 'cartesia',
-      voice_id: agent.voice.clone?.cartesiaVoiceId ||
-                agent.voice.selectedVoice?.voiceId ||
-                agent.voice.generatedVoice?.cartesiaVoiceId,
+      voice_id:
+        agent.voice.clone?.cartesiaVoiceId ||
+        agent.voice.selectedVoice?.voiceId ||
+        agent.voice.generatedVoice?.cartesiaVoiceId,
       settings: {
         speed: agent.voice.characteristics.speed,
         stability: 0.8,
@@ -517,10 +538,7 @@ export function generateManifest(agent: CustomAgent): Record<string, unknown> {
       directness: agent.personality.traits.directness,
       energy: agent.personality.traits.energy,
       formality: agent.personality.traits.formality,
-      traits: [
-        ...agent.personality.values,
-        ...getTraitDescriptors(agent.personality.traits),
-      ],
+      traits: [...agent.personality.values, ...getTraitDescriptors(agent.personality.traits)],
     },
     role: {
       id: `custom-${agent.type}`,
@@ -580,4 +598,3 @@ function getDomainsFromType(type: CustomAgentType): string[] {
 }
 
 // Functions are already exported inline above
-

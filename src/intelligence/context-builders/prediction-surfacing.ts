@@ -56,8 +56,7 @@ function getTimeBasedTrigger(
   if (dayOfWeek === 0 && hour >= 18 && hour <= 22) {
     const mondayPreds = predictions.filter(
       (p) =>
-        p.prediction.toLowerCase().includes('monday') ||
-        p.prediction.toLowerCase().includes('week')
+        p.prediction.toLowerCase().includes('monday') || p.prediction.toLowerCase().includes('week')
     );
 
     if (mondayPreds.length > 0) {
@@ -75,7 +74,7 @@ function getTimeBasedTrigger(
       type: 'day_pattern',
       urgency: 'if_relevant',
       content:
-        'It\'s Monday morning. If they mention feeling overwhelmed, acknowledge that Mondays can be heavy.',
+        "It's Monday morning. If they mention feeling overwhelmed, acknowledge that Mondays can be heavy.",
     };
   }
 
@@ -142,9 +141,8 @@ async function collectTriggers(
   const triggers: SurfacingTrigger[] = [];
 
   // Lazy import to avoid circular dependencies
-  const { generatePredictions, getDayPatterns } = await import(
-    '../../services/superhuman/predictive-coaching.js'
-  );
+  const { generatePredictions, getDayPatterns } =
+    await import('../../services/superhuman/predictive-coaching.js');
 
   // Get active predictions
   const predictions: PredictionData[] = await generatePredictions(userId);

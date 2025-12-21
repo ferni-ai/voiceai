@@ -668,7 +668,11 @@ export class ConversationOrchestrator {
     // 7. Advanced Humanization (disfluencies, self-correction)
     if (this.config.features.advancedHumanization) {
       const advResult = applyAdvancedHumanizationHelper(
-        text, ssml, input, analysis, this.getComfortLevel.bind(this)
+        text,
+        ssml,
+        input,
+        analysis,
+        this.getComfortLevel.bind(this)
       );
       text = advResult.text;
       ssml = advResult.ssml;
@@ -687,9 +691,7 @@ export class ConversationOrchestrator {
     appliedFeatures.push(...actionResult.features);
 
     // 9. Generate Additions (follow-up question, memory callback)
-    const additionsResult = generateAdditionsHelper(
-      input, analysis, this.shouldTrigger.bind(this)
-    );
+    const additionsResult = generateAdditionsHelper(input, analysis, this.shouldTrigger.bind(this));
     Object.assign(additions, additionsResult);
 
     return { text, ssml, appliedFeatures, skippedFeatures, additions };

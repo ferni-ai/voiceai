@@ -147,9 +147,8 @@ export async function uploadAudioToGcs(
     const file = bucket.file(filePath);
 
     // Convert ArrayBuffer to Buffer if needed
-    const buffer = audioBuffer instanceof Buffer 
-      ? audioBuffer 
-      : Buffer.from(new Uint8Array(audioBuffer));
+    const buffer =
+      audioBuffer instanceof Buffer ? audioBuffer : Buffer.from(new Uint8Array(audioBuffer));
 
     // Determine content type from filename
     const contentType = getContentTypeFromFilename(sanitizedFilename);
@@ -389,4 +388,3 @@ export function isGcsConfigured(): boolean {
 export function getGcsBucketName(): string {
   return GCS_BUCKET;
 }
-

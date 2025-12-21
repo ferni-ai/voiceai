@@ -118,10 +118,7 @@ export function storePreviousExpression(
 }
 
 /** Record a turn for pattern detection */
-export function recordTurnHistory(
-  sessionId: string,
-  turn: Omit<TurnHistory, 'timestamp'>
-): void {
+export function recordTurnHistory(sessionId: string, turn: Omit<TurnHistory, 'timestamp'>): void {
   let history = turnHistories.get(sessionId) || [];
   history.push({ ...turn, timestamp: Date.now() });
 
@@ -183,14 +180,7 @@ export function mapMoodToMomentum(
  */
 export function mapIntentToSharing(
   intent: string | undefined
-):
-  | 'sharing'
-  | 'asking'
-  | 'venting'
-  | 'exploring'
-  | 'celebrating'
-  | 'requesting'
-  | undefined {
+): 'sharing' | 'asking' | 'venting' | 'exploring' | 'celebrating' | 'requesting' | undefined {
   if (!intent) return undefined;
 
   const intentMap: Record<
@@ -497,4 +487,3 @@ export async function processPersonality(
   }
   return processSharedPersonality(ctx);
 }
-

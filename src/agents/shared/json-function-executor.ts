@@ -90,7 +90,10 @@ export function parseJsonFunctionCall(text: string): JsonFunctionCall | null {
         log.debug({ fn, args, rawLength: fullJson.length }, 'Parsed JSON function call');
         return { fn, args, raw: fullJson };
       } catch (parseErr) {
-        log.debug({ error: String(parseErr), text: text.slice(0, 100) }, 'JSON parse failed, trying full parse');
+        log.debug(
+          { error: String(parseErr), text: text.slice(0, 100) },
+          'JSON parse failed, trying full parse'
+        );
       }
     }
   }
@@ -233,9 +236,9 @@ async function routeToTool(
     const { getMusicPlayer } = await import('../../audio/music-player.js');
     const musicPlayer = getMusicPlayer();
     const action = (args.action as string)?.toLowerCase();
-    
+
     log.info({ action }, '🎵 Music control requested');
-    
+
     switch (action) {
       case 'pause':
         musicPlayer.pause();
@@ -267,7 +270,7 @@ async function routeToTool(
     const { getMusicPlayer } = await import('../../audio/music-player.js');
     const musicPlayer = getMusicPlayer();
     const action = (args.action as string)?.toLowerCase();
-    
+
     if (action === 'playing' || !action) {
       const state = musicPlayer.getState();
       if (state.currentTrack) {
@@ -275,7 +278,7 @@ async function routeToTool(
       }
       return 'Nothing is playing right now.';
     }
-    
+
     if (action === 'suggest') {
       const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
       const mood = args.mood as string;
@@ -284,14 +287,14 @@ async function routeToTool(
       }
       return 'What kind of mood are you in? I can suggest something fitting.';
     }
-    
+
     return 'What would you like to know about the music?';
   }
 
   if (fnLower === 'suggestmusic') {
     const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
     const mood = args.mood as string;
-    
+
     if (mood) {
       log.info({ mood }, '🎵 Suggesting music for mood');
       return suggestAndPlayMusic(mood);
@@ -331,19 +334,19 @@ async function routeToTool(
     const fact = args.fact as string;
     const category = (args.category as string) || 'personal';
     const importance = (args.importance as string) || 'medium';
-    
+
     if (!fact) {
       return 'Please specify what you want me to remember.';
     }
-    
+
     log.info({ fact, category, importance, userId: ctx.userId }, '💾 Remembering fact');
-    
+
     // Try to persist to Firestore if we have a userId
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -354,11 +357,11 @@ async function routeToTool(
             importance,
             confidence: importance === 'high' ? 0.9 : importance === 'medium' ? 0.7 : 0.5,
             extractedAt: new Date(),
-            source: 'explicit_mention'
+            source: 'explicit_mention',
           });
-        
+
         log.info({ userId: ctx.userId, fact }, '✅ Fact stored in Firestore');
-        
+
         const acknowledgments = [
           `I'll remember that.`,
           `That's important. I'm keeping that in mind.`,
@@ -370,26 +373,26 @@ async function routeToTool(
         log.warn({ error: String(err) }, 'Firestore storage failed, but captured locally');
       }
     }
-    
+
     // Return success even without Firestore - it's still in session memory
     return { stored: true, fact, category, importance, message: "I'll remember that." };
   }
 
   if (fnLower === 'recallfrommemory') {
     const topic = args.topic as string;
-    
+
     if (!topic) {
       return 'What would you like me to recall?';
     }
-    
+
     log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory');
-    
+
     // Try to search Firestore if we have a userId
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         // Search extracted_facts collection
         const factsSnapshot = await db
           .collection('bogle_users')
@@ -398,26 +401,28 @@ async function routeToTool(
           .orderBy('extractedAt', 'desc')
           .limit(10)
           .get();
-        
+
         if (!factsSnapshot.empty) {
           const topicLower = topic.toLowerCase();
           const relevantFacts = factsSnapshot.docs
-            .map(doc => doc.data())
-            .filter(fact => {
+            .map((doc) => doc.data())
+            .filter((fact) => {
               const factText = (fact.fact || fact.content || '').toLowerCase();
-              return factText.includes(topicLower) || 
-                     (fact.category && fact.category.toLowerCase().includes(topicLower));
+              return (
+                factText.includes(topicLower) ||
+                (fact.category && fact.category.toLowerCase().includes(topicLower))
+              );
             });
-          
+
           if (relevantFacts.length > 0) {
             const factsSummary = relevantFacts
               .slice(0, 3)
-              .map(f => f.fact || f.content)
+              .map((f) => f.fact || f.content)
               .join('; ');
             return `I remember: ${factsSummary}`;
           }
         }
-        
+
         // Check conversation summaries
         const summariesSnapshot = await db
           .collection('bogle_users')
@@ -426,90 +431,86 @@ async function routeToTool(
           .orderBy('timestamp', 'desc')
           .limit(5)
           .get();
-        
+
         if (!summariesSnapshot.empty) {
           const topicLower = topic.toLowerCase();
-          const relevantSummary = summariesSnapshot.docs.find(doc => {
+          const relevantSummary = summariesSnapshot.docs.find((doc) => {
             const data = doc.data();
             const text = (data.summary || data.topics?.join(' ') || '').toLowerCase();
             return text.includes(topicLower);
           });
-          
+
           if (relevantSummary) {
             const data = relevantSummary.data();
             return `From a past conversation: ${data.summary || data.topics?.join(', ')}`;
           }
         }
-        
+
         log.info({ topic }, 'No relevant memories found');
         return `I don't have specific memories about "${topic}" yet. Tell me more?`;
       } catch (err) {
         log.warn({ error: String(err), topic }, 'Memory recall from Firestore failed');
       }
     }
-    
+
     return `I don't have specific memories about that right now. Tell me more?`;
   }
 
   if (fnLower === 'updatememory') {
     const oldFact = args.oldFact as string;
     const newFact = args.newFact as string;
-    
+
     if (!oldFact || !newFact) {
       return 'Please specify both the old memory and the updated information.';
     }
-    
+
     log.info({ oldFact, newFact, userId: ctx.userId }, '✏️ Updating memory');
-    
+
     // If we have userId, try to update in Firestore
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         // Find and update the old fact
         const snapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
           .get();
-        
+
         const oldFactLower = oldFact.toLowerCase();
-        const docToUpdate = snapshot.docs.find(doc => {
+        const docToUpdate = snapshot.docs.find((doc) => {
           const data = doc.data();
           return (data.fact || data.content || '').toLowerCase().includes(oldFactLower);
         });
-        
+
         if (docToUpdate) {
           await docToUpdate.ref.update({
             fact: newFact,
             updatedAt: new Date(),
-            previousVersion: oldFact
+            previousVersion: oldFact,
           });
           log.info({ userId: ctx.userId }, '✅ Memory updated in Firestore');
         } else {
           // If no match found, store as new fact
-          await db
-            .collection('bogle_users')
-            .doc(ctx.userId)
-            .collection('extracted_facts')
-            .add({
-              fact: newFact,
-              category: 'personal',
-              importance: 'medium',
-              confidence: 0.8,
-              extractedAt: new Date(),
-              source: 'explicit_update',
-              previousVersion: oldFact
-            });
+          await db.collection('bogle_users').doc(ctx.userId).collection('extracted_facts').add({
+            fact: newFact,
+            category: 'personal',
+            importance: 'medium',
+            confidence: 0.8,
+            extractedAt: new Date(),
+            source: 'explicit_update',
+            previousVersion: oldFact,
+          });
         }
-        
+
         return `Got it, I've updated my memory. ${newFact}`;
       } catch (err) {
         log.warn({ error: String(err) }, 'Memory update in Firestore failed');
       }
     }
-    
+
     return { updated: true, oldFact, newFact, message: "Got it, I've updated that." };
   }
 
@@ -517,98 +518,98 @@ async function routeToTool(
     const topic = args.topic as string;
     const whatToForget = args.whatToForget as string;
     const target = topic || whatToForget;
-    
+
     if (!target) {
       return 'What would you like me to forget?';
     }
-    
+
     log.info({ target, userId: ctx.userId }, '🗑️ Forgetting memory');
-    
+
     // If we have userId, try to remove from Firestore
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         const snapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
           .get();
-        
+
         const targetLower = target.toLowerCase();
-        const docsToDelete = snapshot.docs.filter(doc => {
+        const docsToDelete = snapshot.docs.filter((doc) => {
           const data = doc.data();
           return (data.fact || data.content || '').toLowerCase().includes(targetLower);
         });
-        
+
         if (docsToDelete.length > 0) {
           const batch = db.batch();
-          docsToDelete.forEach(doc => batch.delete(doc.ref));
+          docsToDelete.forEach((doc) => batch.delete(doc.ref));
           await batch.commit();
-          
-          log.info({ userId: ctx.userId, deleted: docsToDelete.length }, '✅ Memories deleted from Firestore');
+
+          log.info(
+            { userId: ctx.userId, deleted: docsToDelete.length },
+            '✅ Memories deleted from Firestore'
+          );
           return `Done. I've forgotten about that. Your privacy matters.`;
         }
-        
+
         return `I didn't find specific memories about "${target}" to remove.`;
       } catch (err) {
         log.warn({ error: String(err) }, 'Memory deletion from Firestore failed');
       }
     }
-    
+
     return { forgotten: true, topic: target, message: `I'll forget about that.` };
   }
 
   if (fnLower === 'getrelationshipsummary') {
     log.info({ userId: ctx.userId }, '📊 Getting relationship summary');
-    
+
     // If we have userId, try to get real relationship data
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         // Get user profile
-        const profileDoc = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .get();
-        
+        const profileDoc = await db.collection('bogle_users').doc(ctx.userId).get();
+
         if (profileDoc.exists) {
           const profile = profileDoc.data() as Record<string, unknown> | undefined;
           if (profile) {
             const sections: string[] = [];
-            
+
             if (profile.displayName || profile.name) {
               sections.push(`I know you as ${profile.displayName || profile.name}.`);
             }
-            
+
             if (typeof profile.totalConversations === 'number' && profile.totalConversations > 1) {
               sections.push(`We've had ${profile.totalConversations} conversations together.`);
             }
-            
+
             if (profile.relationshipStage) {
               sections.push(`Our relationship is in the "${profile.relationshipStage}" stage.`);
             }
-            
+
             const topics = profile.preferredTopics as string[] | undefined;
             if (topics && topics.length > 0) {
               sections.push(`You tend to discuss: ${topics.slice(0, 3).join(', ')}.`);
             }
-            
+
             if (sections.length > 0) {
               return sections.join(' ');
             }
           }
         }
-        
+
         return "We're still getting to know each other. I'm here to listen and learn.";
       } catch (err) {
         log.warn({ error: String(err) }, 'Relationship summary from Firestore failed');
       }
     }
-    
+
     return "This is a new conversation. I'm still getting to know you.";
   }
 
@@ -620,19 +621,19 @@ async function routeToTool(
     const reason = (args.reason as string) || 'User requested handoff';
 
     log.info({ target, reason }, '🤝 Handoff requested');
-    
+
     if (ctx.onHandoff) {
       await ctx.onHandoff(target, reason);
       return { success: true, target, reason };
     }
 
     // Emit event for handoff
-    return { 
-      success: true, 
-      target, 
+    return {
+      success: true,
+      target,
       reason,
       action: 'handoff',
-      note: 'Handoff event emitted - requires session handler'
+      note: 'Handoff event emitted - requires session handler',
     };
   }
 
@@ -643,9 +644,9 @@ async function routeToTool(
     const { getCurrentWeather, getWeatherForecast } = await import('../../tools/weather.js');
     const location = (args.location as string) || 'current';
     const type = (args.type as string) || 'current';
-    
+
     log.info({ location, type }, '🌤️ Getting weather');
-    
+
     if (type === 'forecast') {
       return getWeatherForecast(location, 5);
     }
@@ -668,13 +669,14 @@ async function routeToTool(
   }
 
   if (fnLower === 'searchnews' || fnLower === 'getnews') {
-    const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } = await import('../../tools/news.js');
+    const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } =
+      await import('../../tools/news.js');
     const topic = (args.topic as string)?.toLowerCase() || 'general';
     const query = args.query as string;
     const category = args.category as string;
-    
+
     log.info({ topic, query, category }, '📰 News search requested');
-    
+
     // Route to appropriate news function based on topic
     if (topic === 'tech' || topic === 'technology') {
       return getTechNews();
@@ -738,13 +740,17 @@ async function routeToTool(
   if (fnLower === 'addtask') {
     const title = args.title as string;
     log.info({ title }, '📝 Task noted');
-    return title ? `Got it, I'll remember you want to "${title}".` : "What task would you like me to note?";
+    return title
+      ? `Got it, I'll remember you want to "${title}".`
+      : 'What task would you like me to note?';
   }
 
   if (fnLower === 'addgoal') {
     const title = args.title as string;
     log.info({ title }, '🎯 Goal noted');
-    return title ? `Great goal! "${title}" - I'll keep that in mind as we talk.` : "What goal are you working toward?";
+    return title
+      ? `Great goal! "${title}" - I'll keep that in mind as we talk.`
+      : 'What goal are you working toward?';
   }
 
   if (fnLower === 'settimer') {
@@ -769,19 +775,19 @@ async function routeToTool(
     const name = args.name as string;
     const domain = (args.domain as string) || 'selfCare';
     const cue = args.cue as string;
-    
+
     if (!name) {
-      return "What habit would you like to develop?";
+      return 'What habit would you like to develop?';
     }
-    
+
     log.info({ name, domain, userId: ctx.userId }, '✅ Creating habit');
-    
+
     // Store habit in Firestore with behavior science structure
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await db
           .collection('bogle_users')
@@ -802,7 +808,7 @@ async function routeToTool(
             createdAt: new Date(),
             updatedAt: new Date(),
           });
-        
+
         // Return behavior-science guided response
         const tinyHabitResponses = [
           `Starting "${name}" - smart choice. Let's make this so small you can't fail. What's the tiniest version of this habit? Something that takes less than 2 minutes.`,
@@ -814,25 +820,25 @@ async function routeToTool(
         log.warn({ error: String(err) }, 'Habit storage failed');
       }
     }
-    
+
     return `Great habit to build: "${name}". Let's make it stick - what's the tiniest version you could start with?`;
   }
 
   if (fnLower === 'loghabitcompletion' || fnLower === 'loghabit') {
-    const habitName = args.habitName as string || args.name as string;
-    
+    const habitName = (args.habitName as string) || (args.name as string);
+
     if (!habitName) {
-      return "Which habit did you complete?";
+      return 'Which habit did you complete?';
     }
-    
+
     log.info({ habitName, userId: ctx.userId }, '✅ Habit completion logged');
-    
+
     // Update habit tracking in Firestore
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         // Find the habit by name
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -840,36 +846,32 @@ async function routeToTool(
           .collection('habits')
           .where('isActive', '==', true)
           .get();
-        
-        const matchingHabit = habitsSnapshot.docs.find(doc => {
+
+        const matchingHabit = habitsSnapshot.docs.find((doc) => {
           const data = doc.data();
           return data.name.toLowerCase().includes(habitName.toLowerCase());
         });
-        
+
         if (matchingHabit) {
           const habitData = matchingHabit.data();
           const newStreak = (habitData.currentStreak || 0) + 1;
           const newTotal = (habitData.totalCompletions || 0) + 1;
-          
+
           await matchingHabit.ref.update({
             currentStreak: newStreak,
             totalCompletions: newTotal,
             lastCompleted: new Date(),
             updatedAt: new Date(),
           });
-          
+
           // Log completion event
-          await db
-            .collection('bogle_users')
-            .doc(ctx.userId)
-            .collection('habit_completions')
-            .add({
-              habitId: matchingHabit.id,
-              habitName: habitData.name,
-              completedAt: new Date(),
-              streak: newStreak,
-            });
-          
+          await db.collection('bogle_users').doc(ctx.userId).collection('habit_completions').add({
+            habitId: matchingHabit.id,
+            habitName: habitData.name,
+            completedAt: new Date(),
+            streak: newStreak,
+          });
+
           // Generate streak-aware celebration
           if (newStreak === 7) {
             return `🔥 One week streak on "${habitData.name}"! That's real momentum. Your brain is starting to expect this now.`;
@@ -880,7 +882,7 @@ async function routeToTool(
           } else if (newStreak >= 3 && newStreak % 7 === 0) {
             return `${newStreak} day streak on "${habitData.name}". You're building something real here.`;
           }
-          
+
           const celebrations = [
             `Nice work on "${habitData.name}"! That's ${newStreak} ${newStreak === 1 ? 'day' : 'days'} in a row.`,
             `"${habitData.name}" - done! Every rep matters. Streak: ${newStreak}.`,
@@ -892,18 +894,18 @@ async function routeToTool(
         log.warn({ error: String(err) }, 'Habit completion logging failed');
       }
     }
-    
+
     return `Nice work completing "${habitName}"! Every step counts.`;
   }
 
   if (fnLower === 'gethabits') {
     log.info({ type: args.type, userId: ctx.userId }, '📋 Habits requested');
-    
+
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         const habitsSnapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -912,9 +914,9 @@ async function routeToTool(
           .orderBy('createdAt', 'desc')
           .limit(10)
           .get();
-        
+
         if (!habitsSnapshot.empty) {
-          const habits = habitsSnapshot.docs.map(doc => {
+          const habits = habitsSnapshot.docs.map((doc) => {
             const data = doc.data();
             return `${data.name} (${data.currentStreak || 0} day streak)`;
           });
@@ -924,32 +926,33 @@ async function routeToTool(
         log.warn({ error: String(err) }, 'Habit retrieval failed');
       }
     }
-    
+
     return "You don't have any tracked habits yet. Would you like to start one? I can help you design it using behavior science.";
   }
-  
+
   if (fnLower === 'gethabitstats') {
     const habitName = args.habitName as string;
     log.info({ habitName, userId: ctx.userId }, '📊 Habit stats requested');
-    
+
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
-        
+
         const habitsSnapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('habits')
           .where('isActive', '==', true)
           .get();
-        
+
         if (!habitsSnapshot.empty) {
-          const stats = habitsSnapshot.docs.map(doc => {
+          const stats = habitsSnapshot.docs.map((doc) => {
             const data = doc.data();
-            const successRate = data.totalCompletions > 0 
-              ? Math.round((data.currentStreak / data.totalCompletions) * 100) 
-              : 0;
+            const successRate =
+              data.totalCompletions > 0
+                ? Math.round((data.currentStreak / data.totalCompletions) * 100)
+                : 0;
             return `${data.name}: ${data.currentStreak} day streak, ${data.totalCompletions} total`;
           });
           return `Your habit progress:\n${stats.join('\n')}`;
@@ -958,7 +961,7 @@ async function routeToTool(
         log.warn({ error: String(err) }, 'Habit stats failed');
       }
     }
-    
+
     return "I don't have habit stats for you yet. Let's create a habit to track!";
   }
 
@@ -980,7 +983,9 @@ async function routeToTool(
   if (fnLower === 'logmood') {
     const mood = args.mood as string;
     log.info({ mood, intensity: args.intensity }, '😊 Mood noted');
-    return mood ? `I hear you're feeling ${mood}. Thank you for sharing that with me.` : "How are you feeling right now?";
+    return mood
+      ? `I hear you're feeling ${mood}. Thank you for sharing that with me.`
+      : 'How are you feeling right now?';
   }
 
   // ========================================
@@ -992,8 +997,8 @@ async function routeToTool(
     log.info({ action: args.action }, '🤔 Paradox requested');
     const paradoxes = [
       "Here's one to sit with: The more you try to control, the less control you have. What does that bring up for you?",
-      "Consider this paradox: We must accept ourselves to change ourselves. How does that land?",
-      "A paradox to ponder: The obstacle is often the way. What might that mean in your situation?",
+      'Consider this paradox: We must accept ourselves to change ourselves. How does that land?',
+      'A paradox to ponder: The obstacle is often the way. What might that mean in your situation?',
     ];
     return paradoxes[Math.floor(Math.random() * paradoxes.length)];
   }
@@ -1001,7 +1006,7 @@ async function routeToTool(
   if (fnLower === 'questionbeneath') {
     const question = args.initialQuestion as string;
     log.info({ question }, '❓ Question beneath requested');
-    return question 
+    return question
       ? `You asked: "${question}". But let me ask you - what's the deeper question underneath that one?`
       : "What question is on your mind? I'd like to explore what might be underneath it.";
   }
@@ -1022,7 +1027,7 @@ async function routeToTool(
   if (fnLower === 'startgame' || fnLower === 'starttextgame') {
     const game = args.game as string;
     log.info({ game }, '🎮 Game started');
-    return game 
+    return game
       ? `Let's play ${game}! I'll explain the rules as we go. Ready?`
       : "I'd love to play a game with you! What sounds fun - 20 questions, word association, or something else?";
   }
@@ -1031,12 +1036,12 @@ async function routeToTool(
     log.info({ action: args.action }, '🎮 Inbox Zero Challenge');
     return "Inbox Zero Challenge! Let's tackle that email backlog together. Start by picking the 5 oldest unread emails. Ready to begin?";
   }
-  
+
   if (fnLower === 'sundayprepgame') {
     log.info({ action: args.action }, '🎮 Sunday Prep Game');
     return "Sunday Prep Game! Let's set up your week for success. First question: What's the ONE thing that would make this week feel like a win?";
   }
-  
+
   if (fnLower === 'compoundinterestgame') {
     log.info({ action: args.action }, '🎮 Compound Interest Game');
     return "Compound Interest Game! Let's explore how small consistent actions compound over time. What's one tiny habit you'd like to explore?";
@@ -1057,7 +1062,7 @@ async function routeToTool(
   if (fnLower === 'draftmessage') {
     const situation = args.situation as string;
     log.info({ situation }, '✍️ Draft message requested');
-    return situation 
+    return situation
       ? `Let's draft a message for that situation. Who are you writing to, and what's the main thing you want to convey?`
       : "I'd be happy to help you draft a message. What's the situation?";
   }
@@ -1065,9 +1070,9 @@ async function routeToTool(
   if (fnLower === 'analyzemessage') {
     const message = args.message as string;
     log.info({ hasMessage: !!message }, '🔍 Analyze message requested');
-    return message 
+    return message
       ? "Let's look at this together. What's your main concern - the tone, the clarity, or how it might be received?"
-      : "I can help analyze a message. What did you receive or want to send?";
+      : 'I can help analyze a message. What did you receive or want to send?';
   }
 
   // ========================================
@@ -1075,7 +1080,7 @@ async function routeToTool(
   // Real calendar functionality for voice-first interactions.
   // Uses natural language date parsing for conversational scheduling.
   // ========================================
-  
+
   // Schedule event using natural language
   if (fnLower === 'scheduleevent' || fnLower === 'createappointment' || fnLower === 'createevent') {
     const title = args.title as string;
@@ -1083,45 +1088,45 @@ async function routeToTool(
     const duration = (args.duration as number) || 60; // minutes
     const location = args.location as string;
     const description = args.description as string;
-    
+
     if (!ctx.userId) {
       return 'I need to know who you are to schedule events. Try saying your name first.';
     }
-    
+
     log.info({ title, when, duration, userId: ctx.userId }, '📅 Scheduling event via voice');
-    
+
     if (!title) {
-      return "What would you like to schedule?";
+      return 'What would you like to schedule?';
     }
-    
+
     if (!when) {
       return `When would you like to schedule "${title}"?`;
     }
-    
+
     try {
-      const { parseNaturalDate, isValidForScheduling, suggestClarification } = 
+      const { parseNaturalDate, isValidForScheduling, suggestClarification } =
         await import('../../services/calendar/natural-date-parser.js');
-      const { createEvent, isConnected } = 
+      const { createEvent, isConnected } =
         await import('../../services/calendar/calendar-service.js');
-      
+
       // Check if user has calendar connected
       const hasAccess = await isConnected(ctx.userId);
       if (!hasAccess) {
         return `I'd love to schedule "${title}" for ${when}, but your calendar isn't connected yet. You can connect it in settings.`;
       }
-      
+
       // Parse the natural language time
       const parsed = parseNaturalDate(when);
       if (!parsed) {
         return `I'm not sure when "${when}" is. Could you be more specific? Try something like "tomorrow at 3pm" or "next Tuesday morning".`;
       }
-      
+
       // Validate the time
       const validation = isValidForScheduling(parsed.date);
       if (!validation.valid) {
         return validation.reason || "That time doesn't work. When else works for you?";
       }
-      
+
       // Check for ambiguous times and offer clarification
       if (parsed.ambiguous) {
         const clarification = suggestClarification(parsed);
@@ -1129,7 +1134,7 @@ async function routeToTool(
           log.info({ parsed, clarification }, '📅 Time is ambiguous, confirming');
         }
       }
-      
+
       // Create the event
       const endTime = new Date(parsed.date.getTime() + duration * 60 * 1000);
       const event = await createEvent(ctx.userId, {
@@ -1139,45 +1144,51 @@ async function routeToTool(
         location,
         description,
       });
-      
+
       if (event) {
-        const timeStr = parsed.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const dateStr = parsed.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const timeStr = parsed.date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        const dateStr = parsed.date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        });
         return `Done! I've scheduled "${title}" for ${timeStr} on ${dateStr}.`;
       }
-      
+
       return `I ran into an issue scheduling "${title}". Want me to try again?`;
     } catch (err) {
       log.error({ error: String(err) }, '📅 Calendar scheduling failed');
       return `I couldn't schedule that right now. ${String(err)}`;
     }
   }
-  
+
   // Get today's schedule
   if (fnLower === 'getschedule' || fnLower === 'whatsmyschedule' || fnLower === 'todaysschedule') {
     const dateArg = (args.date || args.when) as string;
-    
+
     if (!ctx.userId) {
-      return "I need to know who you are to check your schedule.";
+      return 'I need to know who you are to check your schedule.';
     }
-    
+
     log.info({ dateArg, userId: ctx.userId }, '📅 Getting schedule via voice');
-    
+
     try {
-      const { isConnected, getEventsForDay } = 
+      const { isConnected, getEventsForDay } =
         await import('../../services/calendar/calendar-service.js');
-      const { parseNaturalDate } = 
-        await import('../../services/calendar/natural-date-parser.js');
-      
+      const { parseNaturalDate } = await import('../../services/calendar/natural-date-parser.js');
+
       const hasAccess = await isConnected(ctx.userId);
       if (!hasAccess) {
         return "Your calendar isn't connected yet. You can connect it in settings to see your schedule.";
       }
-      
+
       // Parse date or default to today
       let targetDate = new Date();
       let dateLabel = 'today';
-      
+
       if (dateArg) {
         const parsed = parseNaturalDate(dateArg);
         if (parsed) {
@@ -1185,58 +1196,64 @@ async function routeToTool(
           dateLabel = parsed.interpretation;
         }
       }
-      
+
       const events = await getEventsForDay(ctx.userId, targetDate);
-      
+
       if (!events || events.length === 0) {
         return `You have nothing scheduled ${dateLabel}. That's some nice free time!`;
       }
-      
+
       // Format events for voice
-      const eventList = events.map(e => {
-        const time = new Date(e.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        return `${time}: ${e.title}`;
-      }).join('. ');
-      
+      const eventList = events
+        .map((e) => {
+          const time = new Date(e.startTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          return `${time}: ${e.title}`;
+        })
+        .join('. ');
+
       return `${dateLabel} you have ${events.length} thing${events.length > 1 ? 's' : ''}. ${eventList}.`;
     } catch (err) {
       log.error({ error: String(err) }, '📅 Failed to get schedule');
       return "I couldn't check your calendar right now. Try again in a moment?";
     }
   }
-  
+
   // Check what's next
   if (fnLower === 'whatsnext' || fnLower === 'nextmeeting' || fnLower === 'nextappointment') {
     if (!ctx.userId) {
-      return "I need to know who you are to check your next meeting.";
+      return 'I need to know who you are to check your next meeting.';
     }
-    
+
     log.info({ userId: ctx.userId }, '📅 Checking next meeting via voice');
-    
+
     try {
-      const { getAmbientCalendarContext } = 
+      const { getAmbientCalendarContext } =
         await import('../../services/calendar/ambient-calendar-awareness.js');
-      
+
       const ambient = await getAmbientCalendarContext(ctx.userId);
-      
+
       if (!ambient.isCalendarConnected) {
         return "Your calendar isn't connected. Connect it in settings to see upcoming meetings.";
       }
-      
+
       if (ambient.currentlyInMeeting && ambient.currentMeeting) {
-        const minutesLeft = Math.max(0, Math.round(
-          (new Date(ambient.currentMeeting.endTime).getTime() - Date.now()) / 60000
-        ));
+        const minutesLeft = Math.max(
+          0,
+          Math.round((new Date(ambient.currentMeeting.endTime).getTime() - Date.now()) / 60000)
+        );
         return `You're currently in "${ambient.currentMeeting.title}". About ${minutesLeft} minutes left.`;
       }
-      
+
       if (ambient.nextMeeting.event && ambient.nextMeeting.minutesUntil !== null) {
         const next = ambient.nextMeeting;
-        const time = new Date(next.event!.startTime).toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit' 
+        const time = new Date(next.event!.startTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
         });
-        
+
         if (next.minutesUntil! <= 5) {
           return `"${next.event!.title}" starts in just ${next.minutesUntil} minutes at ${time}!`;
         } else if (next.minutesUntil! <= 60) {
@@ -1246,85 +1263,90 @@ async function routeToTool(
           return `Your next thing is "${next.event!.title}" in about ${hours} hour${hours > 1 ? 's' : ''} at ${time}.`;
         }
       }
-      
+
       return "You don't have any more meetings today. Nice!";
     } catch (err) {
       log.error({ error: String(err) }, '📅 Failed to check next meeting');
       return "I couldn't check your upcoming meetings right now.";
     }
   }
-  
+
   // Find free time
   if (fnLower === 'findfreetime' || fnLower === 'whenamifree' || fnLower === 'freetime') {
     const duration = (args.duration as number) || 30;
     const dateArg = (args.date || args.when) as string;
-    
+
     if (!ctx.userId) {
-      return "I need to know who you are to check your free time.";
+      return 'I need to know who you are to check your free time.';
     }
-    
+
     log.info({ duration, dateArg, userId: ctx.userId }, '📅 Finding free time via voice');
-    
+
     try {
-      const { isConnected, findFreeTimeSlots } = 
+      const { isConnected, findFreeTimeSlots } =
         await import('../../services/calendar/calendar-service.js');
-      const { parseNaturalDate } = 
-        await import('../../services/calendar/natural-date-parser.js');
-      
+      const { parseNaturalDate } = await import('../../services/calendar/natural-date-parser.js');
+
       const hasAccess = await isConnected(ctx.userId);
       if (!hasAccess) {
         return "I'd need access to your calendar to find free time. Connect it in settings.";
       }
-      
+
       let targetDate = new Date();
       if (dateArg) {
         const parsed = parseNaturalDate(dateArg);
         if (parsed) targetDate = parsed.date;
       }
-      
-      const slots = await findFreeTimeSlots(ctx.userId, targetDate, { minDurationMinutes: duration });
-      
+
+      const slots = await findFreeTimeSlots(ctx.userId, targetDate, {
+        minDurationMinutes: duration,
+      });
+
       if (!slots || slots.length === 0) {
         return `I couldn't find ${duration} free minutes today. Want me to check tomorrow?`;
       }
-      
+
       // Return top 2-3 slots for voice
-      const topSlots = slots.slice(0, 3).map((s: { start: Date; end: Date; durationMinutes: number }) => {
-        const time = new Date(s.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        return `${time} for ${s.durationMinutes} minutes`;
-      });
-      
+      const topSlots = slots
+        .slice(0, 3)
+        .map((s: { start: Date; end: Date; durationMinutes: number }) => {
+          const time = new Date(s.start).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          return `${time} for ${s.durationMinutes} minutes`;
+        });
+
       return `I found some free time: ${topSlots.join(', or ')}.`;
     } catch (err) {
       log.error({ error: String(err) }, '📅 Failed to find free time');
-      return "I ran into an issue checking your free time.";
+      return 'I ran into an issue checking your free time.';
     }
   }
-  
+
   // Block focus time
   if (fnLower === 'blockfocustime' || fnLower === 'schedulefocustime') {
     const duration = (args.duration as number) || 60;
     const when = (args.when || args.time) as string;
-    
+
     if (!ctx.userId) {
-      return "I need to know who you are to block focus time.";
+      return 'I need to know who you are to block focus time.';
     }
-    
+
     log.info({ duration, when, userId: ctx.userId }, '📅 Blocking focus time via voice');
-    
+
     try {
-      const { isConnected, createEvent, findFreeTimeSlots } = 
+      const { isConnected, createEvent, findFreeTimeSlots } =
         await import('../../services/calendar/calendar-service.js');
-      const { parseNaturalDate } = 
-        await import('../../services/calendar/natural-date-parser.js');
-      
+      const { parseNaturalDate } = await import('../../services/calendar/natural-date-parser.js');
+
       const hasAccess = await isConnected(ctx.userId);
       if (!hasAccess) {
-        return "Connect your calendar in settings to block focus time.";
+        return 'Connect your calendar in settings to block focus time.';
       }
-      
+
       let startTime: Date;
-      
+
       if (when) {
         const parsed = parseNaturalDate(when);
         if (parsed) {
@@ -1334,35 +1356,40 @@ async function routeToTool(
         }
       } else {
         // Find next free slot
-        const slots = await findFreeTimeSlots(ctx.userId, new Date(), { minDurationMinutes: duration });
+        const slots = await findFreeTimeSlots(ctx.userId, new Date(), {
+          minDurationMinutes: duration,
+        });
         if (slots && slots.length > 0) {
           startTime = new Date(slots[0].start);
         } else {
           return `I couldn't find ${duration} minutes free. When would you like to block time?`;
         }
       }
-      
+
       const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
-      
+
       const event = await createEvent(ctx.userId, {
         title: '🎯 Focus Time',
         startTime,
         endTime,
         description: 'Protected focus time - no interruptions!',
       });
-      
+
       if (event) {
-        const timeStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const timeStr = startTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
         return `Done! I've blocked ${duration} minutes of focus time starting at ${timeStr}. Protect that time!`;
       }
-      
+
       return "I couldn't block that time. Want me to try a different slot?";
     } catch (err) {
       log.error({ error: String(err) }, '📅 Failed to block focus time');
-      return "I ran into an issue blocking your focus time.";
+      return 'I ran into an issue blocking your focus time.';
     }
   }
-  
+
   // Legacy fallback for unconnected calendars
   if (fnLower === 'manageappointment') {
     const action = args.action as string;
@@ -1377,15 +1404,15 @@ async function routeToTool(
     const amount = args.amount as number;
     const percentage = (args.percentage as number) || 20;
     const split = (args.split as number) || 1;
-    
+
     if (!amount || amount <= 0) {
       return "What's the bill amount?";
     }
-    
+
     const tip = amount * (percentage / 100);
     const total = amount + tip;
     const perPerson = total / split;
-    
+
     if (split > 1) {
       return `On a $${amount.toFixed(2)} bill with ${percentage}% tip: The tip is $${tip.toFixed(2)}, total is $${total.toFixed(2)}. Split ${split} ways, that's $${perPerson.toFixed(2)} each.`;
     }
@@ -1445,11 +1472,11 @@ async function routeToTool(
   // UNKNOWN TOOL
   // ========================================
   log.warn({ fn, args }, '⚠️ Unknown function - no route defined');
-  return { 
-    tool: fn, 
-    args, 
-    success: false, 
-    error: `Unknown function: ${fn}` 
+  return {
+    tool: fn,
+    args,
+    success: false,
+    error: `Unknown function: ${fn}`,
   };
 }
 

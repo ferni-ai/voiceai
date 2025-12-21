@@ -12,11 +12,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isConnected, getDayOverview } from '../../services/calendar/calendar-service.js';
 import {
-  isConnected,
-  getDayOverview,
-} from '../../services/calendar/calendar-service.js';
-import { generateDailyBriefing, type DailyBriefing } from '../../services/calendar/calendar-intelligence.js';
+  generateDailyBriefing,
+  type DailyBriefing,
+} from '../../services/calendar/calendar-intelligence.js';
 import { canSendOutreach } from '../../services/outreach-intelligence.js';
 import {
   getPushNotificationsService,
@@ -52,7 +52,7 @@ async function sendCalendarBriefingNotification(
       personaId: payload.personaId,
       data: payload.data,
     };
-    
+
     const sent = await pushService.sendNotification(userId, notificationPayload);
     if (sent) {
       log.info({ userId, title: payload.title }, 'Calendar briefing notification sent');
@@ -235,10 +235,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
         sentBriefings.set(userId, new Date());
         sent++;
 
-        log.info(
-          { userId, meetings: overview.totalMeetings },
-          'Sent morning calendar briefing'
-        );
+        log.info({ userId, meetings: overview.totalMeetings }, 'Sent morning calendar briefing');
       } catch (error) {
         log.error({ userId, error: String(error) }, 'Failed to send briefing');
       }
@@ -275,7 +272,7 @@ function getCurrentHourInTimezone(timezone: string): number {
 
 /**
  * Format briefing title
- * 
+ *
  * Brand voice: Warm, supportive, human - not anxiety-inducing
  */
 function formatBriefingTitle(meetingCount: number): string {
@@ -365,4 +362,3 @@ export function getBriefingJobStatus(): {
     briefingsSentToday,
   };
 }
-

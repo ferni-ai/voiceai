@@ -73,9 +73,8 @@ describe('PredictionsWorker', () => {
 
   describe('event processing', () => {
     it('should handle prediction:observation events', async () => {
-      const { recordObservation } = await import(
-        '../../services/superhuman/predictive-coaching.js'
-      );
+      const { recordObservation } =
+        await import('../../services/superhuman/predictive-coaching.js');
 
       // Simulate processing an observation event
       // Note: In real tests we'd emit events through AsyncEvents
@@ -83,9 +82,8 @@ describe('PredictionsWorker', () => {
     });
 
     it('should handle prediction:generate events', async () => {
-      const { generatePredictions } = await import(
-        '../../services/superhuman/predictive-coaching.js'
-      );
+      const { generatePredictions } =
+        await import('../../services/superhuman/predictive-coaching.js');
 
       // Call generate predictions
       const predictions = await generatePredictions('test-user');
@@ -95,9 +93,8 @@ describe('PredictionsWorker', () => {
     });
 
     it('should handle conversation:end events', async () => {
-      const { generatePredictions } = await import(
-        '../../services/superhuman/predictive-coaching.js'
-      );
+      const { generatePredictions } =
+        await import('../../services/superhuman/predictive-coaching.js');
 
       // After conversation end, predictions should be generated
       await generatePredictions('test-user');
@@ -121,9 +118,7 @@ describe('PredictionsWorker', () => {
 
   describe('pattern caching', () => {
     it('should use loadUserPatterns for cache lookup', async () => {
-      const { loadUserPatterns } = await import(
-        '../../services/superhuman/predictive-coaching.js'
-      );
+      const { loadUserPatterns } = await import('../../services/superhuman/predictive-coaching.js');
 
       const patterns = await loadUserPatterns('test-user');
 
@@ -133,9 +128,8 @@ describe('PredictionsWorker', () => {
     });
 
     it('should clear cache when pattern updated', async () => {
-      const { clearPatternCache } = await import(
-        '../../services/superhuman/predictive-coaching.js'
-      );
+      const { clearPatternCache } =
+        await import('../../services/superhuman/predictive-coaching.js');
 
       // Clear pattern cache should work without throwing
       await clearPatternCache('test-user');
@@ -160,4 +154,3 @@ describe('PredictionsWorker', () => {
     });
   });
 });
-

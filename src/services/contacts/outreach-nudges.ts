@@ -15,7 +15,11 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { OutreachOccasion, ChannelType } from './types.js';
-import { getContacts, getContactsNeedingAttention, type ContactRelationship } from './contact-relationship-service.js';
+import {
+  getContacts,
+  getContactsNeedingAttention,
+  type ContactRelationship,
+} from './contact-relationship-service.js';
 import { getGroups } from './contact-groups.js';
 
 // Local type for important dates (matches ContactRelationship.importantDates structure)
@@ -401,7 +405,10 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
   }
 
   if (needsAttention.length > 0) {
-    summary += `You haven't talked to ${needsAttention.slice(0, 2).map((c) => c.contactName).join(' or ')} in a while. `;
+    summary += `You haven't talked to ${needsAttention
+      .slice(0, 2)
+      .map((c) => c.contactName)
+      .join(' or ')} in a while. `;
   }
 
   if (upcomingHolidays.length > 0 && upcomingHolidays[0].daysAway <= 7) {
@@ -494,9 +501,7 @@ interface FrequentContactData {
  * Identify contacts that the user communicates with frequently
  * but hasn't contacted recently
  */
-export async function getOverdueFrequentContacts(
-  userId: string
-): Promise<FrequentContactData[]> {
+export async function getOverdueFrequentContacts(userId: string): Promise<FrequentContactData[]> {
   const contacts = await getContacts(userId);
   const now = new Date();
   const overdue: FrequentContactData[] = [];
@@ -509,7 +514,10 @@ export async function getOverdueFrequentContacts(
     const lastDate = new Date(contact.lastInteraction);
 
     // Calculate average days between contacts
-    const totalDays = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalDays = Math.max(
+      1,
+      (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const avgDaysBetween = totalDays / contact.interactionCount;
 
     // How long since last contact
@@ -554,4 +562,3 @@ export const outreachNudges = {
 };
 
 export default outreachNudges;
-

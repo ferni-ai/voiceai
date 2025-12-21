@@ -51,7 +51,11 @@ export interface NotificationTiming {
  */
 const NOTIFICATION_TIMING: NotificationTiming[] = [
   // High priority: Important meetings get 60-min notice
-  { minutesBefore: 60, priority: 'high', meetingTypes: ['interview', 'board', 'client', 'presentation', 'review'] },
+  {
+    minutesBefore: 60,
+    priority: 'high',
+    meetingTypes: ['interview', 'board', 'client', 'presentation', 'review'],
+  },
   // Medium priority: Standard meetings get 15-min notice
   { minutesBefore: 15, priority: 'medium', meetingTypes: ['1:1', 'team', 'standup', 'sync'] },
   // Low priority: Quick check-ins get 5-min notice
@@ -88,7 +92,12 @@ export async function checkForPreMeetingNotification(
     }
 
     // Build notification
-    const notification = await buildPreMeetingNotification(userId, event, minutesUntil, timing.priority);
+    const notification = await buildPreMeetingNotification(
+      userId,
+      event,
+      minutesUntil,
+      timing.priority
+    );
 
     log.info(
       { userId, eventId: event.id, minutesUntil, priority: timing.priority },
@@ -350,4 +359,3 @@ export function toOutreachFormat(notification: PreMeetingNotification): {
     priority: notification.priority === 'high' ? 'high' : 'normal',
   };
 }
-

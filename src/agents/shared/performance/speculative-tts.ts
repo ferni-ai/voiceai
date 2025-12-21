@@ -100,11 +100,7 @@ const RESPONSE_STARTERS: Record<string, string[]> = {
   // Curious/exploring responses
   // Note: These are genuine follow-up questions, not backchannels.
   // They're only used when we're actually following up, not during listening.
-  curious: [
-    'What made you think of that?',
-    'How did that feel?',
-    "I'm curious about that.",
-  ],
+  curious: ['What made you think of that?', 'How did that feel?', "I'm curious about that."],
 
   // Acknowledging responses
   acknowledging: ['Right.', 'Mm-hmm.', 'I see.', 'Got it.', 'Okay.', 'Yes.'],
@@ -362,7 +358,10 @@ class SpeculativeTTSEngine {
     if (partialMatch) {
       // Return partial match while generating full
       this.generateAndCache(text, voiceId, 'high').catch((err) => {
-        log.debug({ error: String(err), text: text.slice(0, 50) }, 'Background TTS generation failed');
+        log.debug(
+          { error: String(err), text: text.slice(0, 50) },
+          'Background TTS generation failed'
+        );
       });
       return partialMatch;
     }

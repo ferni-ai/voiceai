@@ -901,12 +901,17 @@ export class DJBooth {
 
   /**
    * Schedule all the DJ moments for this track
+   * 
+   * HUMANIZATION: Reduced probabilities significantly. When someone asks for music,
+   * they usually want to LISTEN to music, not hear constant DJ commentary.
+   * Less is more - save the moments for truly special occasions.
    */
   private scheduleMoments(track: MusicTrack, duration: number): void {
     const moments: ScheduledMoment[] = [];
 
-    // 1. Mid-song "buildup" moment (55-70% through) - 30% chance
-    if (duration > TIMING.MIN_DURATION_FOR_MOMENTS_MS && Math.random() < 0.3) {
+    // 1. Mid-song "buildup" moment (55-70% through) - 8% chance (was 30%)
+    // Very rare "wait for it..." - keeps it special when it happens
+    if (duration > TIMING.MIN_DURATION_FOR_MOMENTS_MS && Math.random() < 0.08) {
       const buildupPercent = 0.55 + Math.random() * 0.15;
       const buildupTime = duration * buildupPercent;
 
@@ -921,8 +926,9 @@ export class DJBooth {
       }, buildupTime);
     }
 
-    // 2. "Drop" reaction (right after buildup, if we have one) - 20% chance
-    if (moments.find((m) => m.type === 'buildup') && Math.random() < 0.2) {
+    // 2. "Drop" reaction (right after buildup, if we have one) - 15% chance (was 20%)
+    // Only if buildup was scheduled, so overall very rare
+    if (moments.find((m) => m.type === 'buildup') && Math.random() < 0.15) {
       const dropTime = moments[0].triggerTime + 3000; // 3s after buildup
       if (dropTime < duration - TIMING.OUTRO_LEAD_TIME_MS) {
         moments.push({
@@ -937,8 +943,9 @@ export class DJBooth {
       }
     }
 
-    // 3. Appreciation comment (15-25s in for longer tracks) - 30% chance
-    if (duration > 25000 && Math.random() < 0.3) {
+    // 3. Appreciation comment (15-25s in for longer tracks) - 5% chance (was 30%)
+    // "This is a good one" type comments - very rare
+    if (duration > 25000 && Math.random() < 0.05) {
       const appreciationTime = 15000 + Math.random() * 10000;
       if (appreciationTime < duration - TIMING.OUTRO_LEAD_TIME_MS) {
         moments.push({

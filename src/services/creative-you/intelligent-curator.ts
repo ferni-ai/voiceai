@@ -202,13 +202,15 @@ export class IntelligentContentCurator {
   /**
    * Get personalized content recommendations
    */
-  async getRecommendations(options: {
-    count?: number;
-    preferVideos?: boolean;
-    preferPodcasts?: boolean;
-    maxDuration?: number; // minutes
-    includeFresh?: boolean; // Include fresh YouTube content
-  } = {}): Promise<IntelligentRecommendation[]> {
+  async getRecommendations(
+    options: {
+      count?: number;
+      preferVideos?: boolean;
+      preferPodcasts?: boolean;
+      maxDuration?: number; // minutes
+      includeFresh?: boolean; // Include fresh YouTube content
+    } = {}
+  ): Promise<IntelligentRecommendation[]> {
     const { count = 5, preferVideos, preferPodcasts, maxDuration, includeFresh = false } = options;
 
     const recommendations: IntelligentRecommendation[] = [];
@@ -233,7 +235,8 @@ export class IntelligentContentCurator {
     if (!preferPodcasts) {
       const videos = this.getPersonalizedVideos(optimalMood, relevantCategories, maxDuration);
       for (const video of videos) {
-        const { personalizedReason, connectionToConversations } = this.generatePersonalizedReasonWithMemory(video, 'video');
+        const { personalizedReason, connectionToConversations } =
+          this.generatePersonalizedReasonWithMemory(video, 'video');
         recommendations.push({
           content: video,
           contentType: 'video',
@@ -249,7 +252,8 @@ export class IntelligentContentCurator {
     if (!preferVideos) {
       const podcasts = this.getPersonalizedPodcasts(optimalMood, relevantCategories, maxDuration);
       for (const podcast of podcasts) {
-        const { personalizedReason, connectionToConversations } = this.generatePersonalizedReasonWithMemory(podcast, 'podcast');
+        const { personalizedReason, connectionToConversations } =
+          this.generatePersonalizedReasonWithMemory(podcast, 'podcast');
         recommendations.push({
           content: podcast,
           contentType: 'podcast',
@@ -381,10 +385,12 @@ export class IntelligentContentCurator {
   /**
    * Discover fresh content from YouTube API (supplements curated content)
    */
-  async discoverFreshContent(options: {
-    topics?: string[];
-    maxResults?: number;
-  } = {}): Promise<IntelligentRecommendation[]> {
+  async discoverFreshContent(
+    options: {
+      topics?: string[];
+      maxResults?: number;
+    } = {}
+  ): Promise<IntelligentRecommendation[]> {
     if (!isYouTubeApiAvailable()) {
       log.debug('YouTube API not available, using curated content only');
       return [];
@@ -394,7 +400,8 @@ export class IntelligentContentCurator {
     const recommendations: IntelligentRecommendation[] = [];
 
     // Try to discover content for each topic
-    for (const topic of topics.slice(0, 2)) { // Limit to 2 topics to control API usage
+    for (const topic of topics.slice(0, 2)) {
+      // Limit to 2 topics to control API usage
       const discovered = await discoverVideosForTopic(topic, {
         maxResults: 2,
         trustedChannelsOnly: true, // Safety first
@@ -655,7 +662,7 @@ export class IntelligentContentCurator {
     // Time-based reason (warm, not clinical)
     const { timeOfDay, conversationCount } = this.userContext;
     if (timeOfDay === 'morning' && content.mood === 'inspire') {
-      return "Something to spark your morning.";
+      return 'Something to spark your morning.';
     }
     if (timeOfDay === 'night' && content.mood === 'reflect') {
       return "It's late. Something quieter for your evening.";
@@ -664,7 +671,7 @@ export class IntelligentContentCurator {
       return "Night owl mode? I've got something good.";
     }
     if (timeOfDay === 'afternoon' && content.mood === 'chill') {
-      return "Afternoon slump? This might help.";
+      return 'Afternoon slump? This might help.';
     }
 
     // Relationship depth (Better Than Human - we track history)
@@ -679,9 +686,9 @@ export class IntelligentContentCurator {
 
     // Warm fallback - never generic
     const warmFallbacks = [
-      "Something that made me think of you.",
+      'Something that made me think of you.',
       "I found this and thought you'd appreciate it.",
-      "This landed with me. Curious what you think.",
+      'This landed with me. Curious what you think.',
     ];
     return warmFallbacks[Math.floor(Math.random() * warmFallbacks.length)];
   }
@@ -895,4 +902,3 @@ export function generateLearningTrackForUser(
 // Re-export for convenience
 export { CURATED_VIDEOS } from './youtube-integration.js';
 export { CURATED_EPISODES, CURATED_PODCASTS } from './podcast-discovery.js';
-

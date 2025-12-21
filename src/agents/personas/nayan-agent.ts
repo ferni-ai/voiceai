@@ -1,17 +1,19 @@
 /**
  * Nayan Agent - Wisdom & Long-Term Perspective
  *
+ * Extends PersonaVoiceAgent for shared TTS processing (sanitization, FinOps, interrupt handling).
  * Clean LiveKit 1.0 Implementation with direct domain imports.
  *
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 import { loadSystemPrompt } from './prompt-loader.js';
+import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
 const log = createLogger({ module: 'NayanAgent' });
 
@@ -37,14 +39,8 @@ import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // TYPES
 // ============================================================================
 
-interface NayanSessionData {
-  userId?: string;
-  userName?: string;
-  personaId?: string;
-  [key: string]: unknown;
-}
-
-type ToolSet = llm.ToolContext<NayanSessionData>;
+// NayanAgent uses PersonaVoiceAgent's session data type
+type ToolSet = llm.ToolContext<Record<string, unknown>>;
 
 // ============================================================================
 // TOOL BUILDING HELPERS
@@ -185,12 +181,13 @@ function buildHandoffTools(): ToolSet {
 /**
  * Nayan Patel - Wisdom & Long-Term Perspective
  *
+ * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/nayan-patel/identity/system-prompt.md
  */
-export class NayanAgent extends voice.Agent<NayanSessionData> {
+export class NayanAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
-  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
+  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
     const memoryTools = buildMemoryTools('nayan-patel');
     const wisdomTools = buildWisdomTools();
     const handoffTools = buildHandoffTools();
@@ -203,20 +200,21 @@ export class NayanAgent extends voice.Agent<NayanSessionData> {
       ...conversationTools,
     } as ToolSet;
 
-    super({
-      instructions: systemPrompt,
-      chatCtx,
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
       tools: allTools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
     });
 
-    process.stderr.write(`[NayanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
+    log.info({ totalTools: Object.keys(allTools).length }, 'NayanAgent initialized');
   }
 
   static async create(chatCtx?: llm.ChatContext): Promise<NayanAgent> {
     if (!NayanAgent.systemPromptCache) {
       NayanAgent.systemPromptCache = await loadSystemPrompt('nayan-patel');
     }
-    return new NayanAgent(NayanAgent.systemPromptCache, chatCtx);
+    return new NayanAgent(NayanAgent.systemPromptCache, { chatCtx });
   }
 
   /**
@@ -228,7 +226,7 @@ export class NayanAgent extends voice.Agent<NayanSessionData> {
   }
 
   async onExit(): Promise<void> {
-    process.stderr.write(`[NayanAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent');
   }
 }
 

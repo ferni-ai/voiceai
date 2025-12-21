@@ -407,7 +407,15 @@ export function recordGameResult(
   updateLeaderboardEntry('weekly', gameType, userId, displayName, score, gamesPlayed, bestStreak);
   updateLeaderboardEntry('weekly', 'overall', userId, displayName, score, gamesPlayed, bestStreak);
   updateLeaderboardEntry('all-time', gameType, userId, displayName, score, gamesPlayed, bestStreak);
-  updateLeaderboardEntry('all-time', 'overall', userId, displayName, score, gamesPlayed, bestStreak);
+  updateLeaderboardEntry(
+    'all-time',
+    'overall',
+    userId,
+    displayName,
+    score,
+    gamesPlayed,
+    bestStreak
+  );
 
   log.info({ userId, gameType, score }, '🎮 Recorded game result');
 }
@@ -419,18 +427,10 @@ export function recordGameResult(
 export type { LyricGameSession, DecadeGameSession, TriviaGameSession };
 
 // Finish the Lyric
-export {
-  getRandomLyricRound,
-  checkLyricAnswer,
-  createLyricGameSession,
-};
+export { getRandomLyricRound, checkLyricAnswer, createLyricGameSession };
 
 // Decade Challenge
-export {
-  getRandomDecadeRound,
-  checkDecadeGuess,
-  createDecadeGameSession,
-};
+export { getRandomDecadeRound, checkDecadeGuess, createDecadeGameSession };
 
 // Music Trivia
 export {
@@ -439,3 +439,36 @@ export {
   checkTriviaAnswer,
   createTriviaGameSession,
 };
+
+// ============================================================================
+// MUSIC INTELLIGENCE (consolidated from music-intelligence/)
+// ============================================================================
+
+// Memory persistence
+export {
+  connectDJBoothToPersistence,
+  flushMusicMemoryForSession,
+  initializeMusicMemoryForSession,
+  loadUserMusicPreferences,
+  musicMemoryToPreferences,
+  preferencesToMusicMemory,
+  saveUserMusicPreferences,
+} from './memory-persistence.js';
+
+// Voice-to-music bridge
+export {
+  VoiceMusicBridge,
+  getVoiceMusicBridge,
+  resetVoiceMusicBridge,
+  type VoiceMusicSuggestion,
+} from './voice-bridge.js';
+
+// ============================================================================
+// PREFERENCES & TELEMETRY (consolidated from standalone files)
+// ============================================================================
+
+// Music preferences
+export * from './preferences.js';
+
+// Music telemetry
+export * from './telemetry.js';

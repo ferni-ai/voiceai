@@ -10,12 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  MusicChallenge,
-  Leaderboard,
-  LeaderboardEntry,
-  TasteMatch,
-} from './types.js';
+import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'MusicalYouSocial' });
@@ -127,9 +122,8 @@ export function completeChallenge(
     challenge.winnerId = challenge.challengerId;
   } else if (challengeeTime && challenge.challengerTime) {
     // Tie-breaker: faster time wins
-    challenge.winnerId = challengeeTime < challenge.challengerTime
-      ? challenge.challengeeId
-      : challenge.challengerId;
+    challenge.winnerId =
+      challengeeTime < challenge.challengerTime ? challenge.challengeeId : challenge.challengerId;
   }
 
   log.info(
@@ -282,7 +276,7 @@ export function calculateTasteMatch(
   user2Name?: string
 ): TasteMatch {
   const cacheKey = [user1Id, user2Id].sort().join('-');
-  
+
   // Get genre affinities
   const user1Genres = new Set(Object.keys(user1Memory.genreAffinities || {}));
   const user2Genres = new Set(Object.keys(user2Memory.genreAffinities || {}));
@@ -441,4 +435,3 @@ export default {
   describeTasteMatch,
   getUserSocialStats,
 };
-

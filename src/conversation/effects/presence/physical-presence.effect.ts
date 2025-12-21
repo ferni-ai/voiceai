@@ -103,4 +103,3 @@ function simpleHash(str: string): number {
   }
   return hash;
 }
-

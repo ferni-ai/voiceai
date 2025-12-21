@@ -453,4 +453,3 @@ export async function warmCommonCaches(): Promise<void> {
     log.warn({ error: String(error) }, 'Cache warming failed (non-fatal)');
   }
 }
-

@@ -429,12 +429,20 @@ export function addOpeningSound(text: string, context: AliveVoiceContext): strin
  */
 export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
   ferni: {
-    get baseSpeed() { return getEmotionProfile('ferni').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('ferni').defaultSpeed;
+    },
     pauseMultiplier: 1.3, // From manifest speech_characteristics
-    get defaultEmotion() { return getEmotionProfile('ferni').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('ferni').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('ferni').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('ferni').emotionRange;
+    },
     thinkingSounds: ['Hmm...', 'Well...', 'You know...'],
-    get thinkingSoundProbability() { return getEmotionProfile('ferni').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('ferni').laughterFrequency;
+    },
     emphasisStyle: 'warm', // Slows down for emotional words
     specialPatterns: [
       // Ferni's Wyoming pauses
@@ -448,12 +456,20 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     ],
   },
   'peter-john': {
-    get baseSpeed() { return getEmotionProfile('peter-john').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('peter-john').defaultSpeed;
+    },
     pauseMultiplier: 0.9, // Faster-paced
-    get defaultEmotion() { return getEmotionProfile('peter-john').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('peter-john').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('peter-john').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('peter-john').emotionRange;
+    },
     thinkingSounds: ['Now...', 'Let me explain...', 'The thing is...', 'Ooh...'],
-    get thinkingSoundProbability() { return getEmotionProfile('peter-john').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('peter-john').laughterFrequency;
+    },
     emphasisStyle: 'deliberate', // Pauses before numbers/data
     specialPatterns: [
       // Peter's financial emphasis
@@ -465,14 +481,22 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     ],
   },
   'alex-chen': {
-    get baseSpeed() { return getEmotionProfile('alex-chen').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('alex-chen').defaultSpeed;
+    },
     // FIXED: Alex's voice guidance says "SLOWER, not faster" for anxious users
     // Previous 0.85 was too short - now giving room to breathe for calming presence
     pauseMultiplier: 1.1, // Calming pauses, room to breathe
-    get defaultEmotion() { return getEmotionProfile('alex-chen').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('alex-chen').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('alex-chen').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('alex-chen').emotionRange;
+    },
     thinkingSounds: ['Okay so...', 'Alright...', 'Hey.', 'Breathe.'],
-    get thinkingSoundProbability() { return getEmotionProfile('alex-chen').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('alex-chen').laughterFrequency;
+    },
     emphasisStyle: 'energetic', // Speeds up for action items (but default is calm)
     specialPatterns: [
       // Alex's calming presence
@@ -480,7 +504,11 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // Efficiency patterns (for wins, not rushing)
       { trigger: /\b(schedule|calendar|meeting)\b/i, speed: 0.95 },
       // Productivity wins - celebrate!
-      { trigger: /\b(done|finished|sent|scheduled|inbox zero)\b/i, emotion: 'confident', speed: 1.02 },
+      {
+        trigger: /\b(done|finished|sent|scheduled|inbox zero)\b/i,
+        emotion: 'confident',
+        speed: 1.02,
+      },
       // Dry wit moments
       { trigger: /\b(technically|actually)\b/i, emotion: 'amused' },
       // Clear is kind philosophy
@@ -490,12 +518,20 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     ],
   },
   'maya-santos': {
-    get baseSpeed() { return getEmotionProfile('maya-santos').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('maya-santos').defaultSpeed;
+    },
     pauseMultiplier: 1.15, // Nurturing pauses
-    get defaultEmotion() { return getEmotionProfile('maya-santos').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('maya-santos').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('maya-santos').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('maya-santos').emotionRange;
+    },
     thinkingSounds: ['So...', 'Okay!', "Here's the thing...", 'You know what?'],
-    get thinkingSoundProbability() { return getEmotionProfile('maya-santos').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('maya-santos').laughterFrequency;
+    },
     emphasisStyle: 'encouraging', // Adds warmth to progress mentions
     specialPatterns: [
       // Maya's habit celebrations
@@ -507,14 +543,22 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     ],
   },
   'jordan-taylor': {
-    get baseSpeed() { return getEmotionProfile('jordan-taylor').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('jordan-taylor').defaultSpeed;
+    },
     // ENHANCED: Jordan needs more pause for honoring hard chapters
     // Previous 0.8 was too rushed - balancing energy with presence
     pauseMultiplier: 1.0, // Balanced - energetic but present
-    get defaultEmotion() { return getEmotionProfile('jordan-taylor').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('jordan-taylor').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('jordan-taylor').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('jordan-taylor').emotionRange;
+    },
     thinkingSounds: ['Oh!', 'So...', 'I love this...', 'Wait—', 'Okay okay okay'],
-    get thinkingSoundProbability() { return getEmotionProfile('jordan-taylor').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('jordan-taylor').laughterFrequency;
+    },
     emphasisStyle: 'celebratory', // Energizes milestone mentions
     specialPatterns: [
       // Jordan's signature energy bursts
@@ -524,7 +568,11 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // Building momentum: "okay okay okay"
       { trigger: /\b(okay okay|wait wait)\b/i, speed: 1.1 },
       // Jordan's event excitement
-      { trigger: /\b(wedding|birthday|celebration|party|milestone)\b/i, emotion: 'excited', speed: 1.08 },
+      {
+        trigger: /\b(wedding|birthday|celebration|party|milestone)\b/i,
+        emotion: 'excited',
+        speed: 1.08,
+      },
       // First-time celebrations
       { trigger: /\bfirst\s+(time|ever)\b/i, emotion: 'excited', speed: 1.05 },
       // Dream planning
@@ -532,35 +580,77 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // Life arc philosophy
       { trigger: /\b(life arc|chapter|bigger picture)\b/i, pause: 150, emotion: 'hopeful' },
       // HONORING HARD CHAPTERS - must slow down
-      { trigger: /\b(grief|loss|hard chapter|difficult|tough)\b/i, speed: 0.85, pause: 250, emotion: 'sympathetic' },
+      {
+        trigger: /\b(grief|loss|hard chapter|difficult|tough)\b/i,
+        speed: 0.85,
+        pause: 250,
+        emotion: 'sympathetic',
+      },
       // Self-aware "I'm bouncing" moments
-      { trigger: /\b(i['']m bouncing|calm down|sam would)\b/i, speed: 0.92, emotion: 'affectionate' },
+      {
+        trigger: /\b(i['']m bouncing|calm down|sam would)\b/i,
+        speed: 0.92,
+        emotion: 'affectionate',
+      },
     ],
   },
   'nayan-patel': {
-    get baseSpeed() { return getEmotionProfile('nayan-patel').defaultSpeed; },
+    get baseSpeed() {
+      return getEmotionProfile('nayan-patel').defaultSpeed;
+    },
     // ENHANCED: Nayan should have the longest pauses - silence is teaching
     pauseMultiplier: 1.5, // Extended meditative pauses
-    get defaultEmotion() { return getEmotionProfile('nayan-patel').defaultEmotion; },
-    get emotionRange() { return getEmotionProfile('nayan-patel').emotionRange; },
+    get defaultEmotion() {
+      return getEmotionProfile('nayan-patel').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('nayan-patel').emotionRange;
+    },
     thinkingSounds: ['Hmm...', '...', 'Consider...', 'Ah...', 'You see...'],
-    get thinkingSoundProbability() { return getEmotionProfile('nayan-patel').laughterFrequency; },
+    get thinkingSoundProbability() {
+      return getEmotionProfile('nayan-patel').laughterFrequency;
+    },
     emphasisStyle: 'meditative', // Long pauses for reflection
     specialPatterns: [
       // PROFOUND PAUSES - silence as teaching (up to 1000ms per voice guidance)
-      { trigger: /\b(the truth is|here is the truth|listen carefully)\b/i, pause: 600, speed: 0.75, emotion: 'contemplative' },
+      {
+        trigger: /\b(the truth is|here is the truth|listen carefully)\b/i,
+        pause: 600,
+        speed: 0.75,
+        emotion: 'contemplative',
+      },
       // Peak wisdom moments - longest pauses
-      { trigger: /\b(the seeker is the sought|the question is the answer)\b/i, pause: 800, speed: 0.72, emotion: 'contemplative' },
+      {
+        trigger: /\b(the seeker is the sought|the question is the answer)\b/i,
+        pause: 800,
+        speed: 0.72,
+        emotion: 'contemplative',
+      },
       // Disturbing comfort
       { trigger: /\bi am here to disturb you\b/i, pause: 500, speed: 0.75 },
       // Nayan's wisdom pauses (extended)
-      { trigger: /\b(wisdom|meaning|purpose|life|death|existence)\b/i, pause: 500, speed: 0.78, emotion: 'contemplative' },
+      {
+        trigger: /\b(wisdom|meaning|purpose|life|death|existence)\b/i,
+        pause: 500,
+        speed: 0.78,
+        emotion: 'contemplative',
+      },
       // Poetry/philosophy emphasis (slower)
-      { trigger: /\b(poem|rumi|hafiz|ancient|guru|sanskrit)\b/i, speed: 0.75, pause: 300, emotion: 'contemplative' },
+      {
+        trigger: /\b(poem|rumi|hafiz|ancient|guru|sanskrit)\b/i,
+        speed: 0.75,
+        pause: 300,
+        emotion: 'contemplative',
+      },
       // Paradoxes - need space to land
       { trigger: /\b(both|neither|and yet|but also)\b/i, pause: 350, speed: 0.8 },
       // Chamundi Hills / Mount Kailash - sacred places
-      { trigger: /\b(chamundi|kailash|mysore|india)\b/i, pause: 250, emotion: 'wistful', speed: 0.82 },
+      {
+        trigger: /\b(chamundi|kailash|mysore|india)\b/i,
+        pause: 250,
+        emotion: 'wistful',
+        speed: 0.82,
+      },
       // Motorcycle/presence moments
       { trigger: /\b(motorcycle|ride|road|mountains)\b/i, speed: 0.85, emotion: 'content' },
       // Namaskaram - closing blessing

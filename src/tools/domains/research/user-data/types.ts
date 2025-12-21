@@ -88,7 +88,14 @@ export interface GoalMilestone {
 // LIFE EVENTS
 // ============================================================================
 
-export type LifeEventType = 'career' | 'family' | 'health' | 'financial' | 'education' | 'housing' | 'relationship';
+export type LifeEventType =
+  | 'career'
+  | 'family'
+  | 'health'
+  | 'financial'
+  | 'education'
+  | 'housing'
+  | 'relationship';
 
 export type LifeEventSubtype =
   // Career
@@ -172,7 +179,15 @@ export interface QuestionRecord {
 // ============================================================================
 
 export type ExplanationStyle = 'simple' | 'technical' | 'story-based' | 'data-driven' | 'visual';
-export type AnalogyType = 'sports' | 'cooking' | 'building' | 'gardening' | 'travel' | 'gaming' | 'music' | 'general';
+export type AnalogyType =
+  | 'sports'
+  | 'cooking'
+  | 'building'
+  | 'gardening'
+  | 'travel'
+  | 'gaming'
+  | 'music'
+  | 'general';
 export type AttentionSpan = 'brief' | 'moderate' | 'detailed';
 export type JargonLevel = 'none' | 'some' | 'expert';
 
@@ -351,4 +366,3 @@ export interface PeterUserProfile {
 
   lastUpdated: Date;
 }
-

@@ -68,27 +68,24 @@ export async function generateVoiceAudio(
   } = options;
 
   try {
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability,
+          similarity_boost: similarityBoost,
+          style,
+          use_speaker_boost: true,
         },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability,
-            similarity_boost: similarityBoost,
-            style,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -97,14 +94,13 @@ export async function generateVoiceAudio(
     }
 
     const audioBuffer = Buffer.from(await response.arrayBuffer());
-    
+
     // Estimate duration (rough calculation based on text length)
     const wordsPerMinute = 150;
     const wordCount = text.split(/\s+/).length;
     const duration = (wordCount / wordsPerMinute) * 60;
 
     return { audioBuffer, duration };
-
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to generate voice audio');
     return null;
@@ -178,7 +174,6 @@ export async function sendVoiceMessageMMS(
       audioUrl,
       deliveryStatus: 'sent',
     };
-
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to send voice message');
     return {
@@ -192,10 +187,7 @@ export async function sendVoiceMessageMMS(
 /**
  * Upload audio buffer to cloud storage and return URL
  */
-async function uploadAudioToStorage(
-  userId: string,
-  audioBuffer: Buffer
-): Promise<string | null> {
+async function uploadAudioToStorage(userId: string, audioBuffer: Buffer): Promise<string | null> {
   // TODO: Implement cloud storage upload (GCS or Firebase Storage)
   // For now, return null to indicate not implemented
   log.warn('Audio storage upload not implemented');
@@ -243,7 +235,6 @@ Script:`;
     });
 
     return script || `Hey ${contact.name}, just wanted to reach out and say hi. Thinking of you!`;
-
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to generate voice message script');
     return `Hey ${contact.name}, just wanted to reach out and say hi. Thinking of you!`;
@@ -265,9 +256,7 @@ export interface VoiceDeliveryOption {
 /**
  * Get available delivery options for a contact
  */
-export function getVoiceDeliveryOptions(
-  contact: ContactRelationship
-): VoiceDeliveryOption[] {
+export function getVoiceDeliveryOptions(contact: ContactRelationship): VoiceDeliveryOption[] {
   const options: VoiceDeliveryOption[] = [];
 
   // MMS (requires phone number)
@@ -350,7 +339,7 @@ export async function sendBatchVoiceMessages(
   for (const contact of request.contacts) {
     try {
       // Skip if missing required contact info
-      const hasDeliveryChannel = 
+      const hasDeliveryChannel =
         (request.deliveryMethod === 'mms' && contact.phone) ||
         (request.deliveryMethod === 'email_audio' && contact.email) ||
         request.deliveryMethod === 'link';
@@ -368,29 +357,29 @@ export async function sendBatchVoiceMessages(
       // Generate personalized message if requested
       let messageText = request.baseMessage || '';
       if (request.personalizeEach || !messageText) {
-      const contactData = {
-        id: contact.contactId,
-        userId: request.userId,
-        contactId: contact.contactId,
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone,
-        relationship: 'friend' as const,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        firstInteraction: new Date(),
-        lastInteraction: new Date(),
-        interactionCount: 0,
-        strengthScore: 50,
-        topics: [],
-        recentContext: [],
-      } as ContactRelationship;
+        const contactData = {
+          id: contact.contactId,
+          userId: request.userId,
+          contactId: contact.contactId,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          relationship: 'friend' as const,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          firstInteraction: new Date(),
+          lastInteraction: new Date(),
+          interactionCount: 0,
+          strengthScore: 50,
+          topics: [],
+          recentContext: [],
+        } as ContactRelationship;
         messageText = await generateVoiceMessageScript(contactData, request.occasion, 'warm', 30);
       }
 
       // Generate audio
       const audio = await generateVoiceAudio(messageText, { voiceId: request.voiceId });
-      
+
       if (!audio) {
         result.failed++;
         result.results.push({
@@ -409,7 +398,6 @@ export async function sendBatchVoiceMessages(
         contactName: contact.name,
         status: 'sent',
       });
-
     } catch (error) {
       result.failed++;
       result.results.push({
@@ -421,8 +409,10 @@ export async function sendBatchVoiceMessages(
     }
   }
 
-  log.info({ total: result.total, sent: result.sent, failed: result.failed }, 'Batch voice messages completed');
+  log.info(
+    { total: result.total, sent: result.sent, failed: result.failed },
+    'Batch voice messages completed'
+  );
 
   return result;
 }
-

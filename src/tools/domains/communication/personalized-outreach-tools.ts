@@ -25,10 +25,17 @@ import {
   removeFromGroup,
   getGroupsForOccasion,
 } from '../../../services/contacts/contact-groups.js';
-import { searchContacts, getContacts } from '../../../services/contacts/contact-relationship-service.js';
+import {
+  searchContacts,
+  getContacts,
+} from '../../../services/contacts/contact-relationship-service.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
-import type { OutreachOccasion, OutreachTone, PersonalizedMessage } from '../../../services/contacts/types.js';
+import type {
+  OutreachOccasion,
+  OutreachTone,
+  PersonalizedMessage,
+} from '../../../services/contacts/types.js';
 
 const log = getLogger();
 
@@ -61,15 +68,32 @@ recent conversations, and seasonal awareness to craft a message that feels genui
 personalized based on your relationship history, recent topics, and the occasion.`,
           parameters: z.object({
             contactName: z.string().describe('Name of the contact to message'),
-            occasion: z.enum([
-              'christmas', 'new_year', 'thanksgiving', 'birthday', 'anniversary',
-              'memorial', 'check_in', 'thinking_of_you', 'congratulations', 'sympathy', 'custom'
-            ]).describe('The occasion for this message'),
-            customOccasion: z.string().optional().describe('Custom occasion name if occasion is "custom"'),
-            tone: z.enum(['casual', 'warm', 'formal', 'celebratory', 'supportive', 'reflective'])
+            occasion: z
+              .enum([
+                'christmas',
+                'new_year',
+                'thanksgiving',
+                'birthday',
+                'anniversary',
+                'memorial',
+                'check_in',
+                'thinking_of_you',
+                'congratulations',
+                'sympathy',
+                'custom',
+              ])
+              .describe('The occasion for this message'),
+            customOccasion: z
+              .string()
+              .optional()
+              .describe('Custom occasion name if occasion is "custom"'),
+            tone: z
+              .enum(['casual', 'warm', 'formal', 'celebratory', 'supportive', 'reflective'])
               .optional()
               .describe('Tone for the message (default: warm)'),
-            customMessage: z.string().optional()
+            customMessage: z
+              .string()
+              .optional()
               .describe('Optional custom base message to personalize (use {name} for their name)'),
           }),
           execute: async (params: {
@@ -116,7 +140,7 @@ personalized based on your relationship history, recent topics, and the occasion
             let response = `**Here's the message for ${msg.contactName}:**\n\n`;
             response += `"${msg.message}"\n\n`;
             response += `**Sending via:** ${msg.channel} (${msg.channelValue})\n`;
-            
+
             if (msg.personalizationNotes.length > 0) {
               response += `**Personal touches:** ${msg.personalizationNotes.join(', ')}\n`;
             }
@@ -146,15 +170,27 @@ Each person receives a unique, personalized version based on your relationship w
 Each message is uniquely crafted based on your relationship with that person.`,
           parameters: z.object({
             groupName: z.string().describe('Name of the group (e.g., "family", "close friends")'),
-            occasion: z.enum([
-              'christmas', 'new_year', 'thanksgiving', 'birthday', 'anniversary',
-              'check_in', 'thinking_of_you', 'congratulations', 'custom'
-            ]).describe('The occasion for these messages'),
+            occasion: z
+              .enum([
+                'christmas',
+                'new_year',
+                'thanksgiving',
+                'birthday',
+                'anniversary',
+                'check_in',
+                'thinking_of_you',
+                'congratulations',
+                'custom',
+              ])
+              .describe('The occasion for these messages'),
             customOccasion: z.string().optional().describe('Custom occasion name'),
-            tone: z.enum(['casual', 'warm', 'formal', 'celebratory', 'supportive', 'reflective'])
+            tone: z
+              .enum(['casual', 'warm', 'formal', 'celebratory', 'supportive', 'reflective'])
               .optional()
               .describe('Overall tone (default: warm)'),
-            baseMessage: z.string().optional()
+            baseMessage: z
+              .string()
+              .optional()
               .describe('Optional base message to personalize for each person'),
           }),
           execute: async (params: {
@@ -250,7 +286,7 @@ Each message is uniquely crafted based on your relationship with that person.`,
             }
 
             if (!params.confirm) {
-              return 'No problem, I won\'t send them. Let me know if you want to make changes.';
+              return "No problem, I won't send them. Let me know if you want to make changes.";
             }
 
             // Approve all messages
@@ -314,10 +350,15 @@ Each message is uniquely crafted based on your relationship with that person.`,
               return 'No urgent outreach suggestions right now. Your relationships look well-maintained!';
             }
 
-            let response = '**Here\'s who might appreciate hearing from you:**\n\n';
+            let response = "**Here's who might appreciate hearing from you:**\n\n";
 
             for (const suggestion of suggestions) {
-              const urgencyIcon = suggestion.urgency === 'high' ? '🔴' : suggestion.urgency === 'medium' ? '🟡' : '🟢';
+              const urgencyIcon =
+                suggestion.urgency === 'high'
+                  ? '🔴'
+                  : suggestion.urgency === 'medium'
+                    ? '🟡'
+                    : '🟢';
               response += `${urgencyIcon} **${suggestion.contact.name}**: ${suggestion.reason}\n`;
             }
 
@@ -464,7 +505,8 @@ Each message is uniquely crafted based on your relationship with that person.`,
         return llm.tool({
           description: 'Check which contact groups should receive holiday/seasonal greetings.',
           parameters: z.object({
-            occasion: z.enum(['christmas', 'newYear', 'thanksgiving', 'birthdays', 'anniversaries'])
+            occasion: z
+              .enum(['christmas', 'newYear', 'thanksgiving', 'birthdays', 'anniversaries'])
               .describe('The occasion to check'),
           }),
           execute: async (params: {
@@ -503,4 +545,3 @@ Each message is uniquely crafted based on your relationship with that person.`,
 export default {
   getPersonalizedOutreachToolDefinitions,
 };
-

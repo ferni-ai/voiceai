@@ -52,7 +52,6 @@ import { analyzeChapter, resetLifeChapterAwareness } from '../intelligence/life-
 // Context builder
 import {
   buildConversationContext,
-  ensureBuildersLoaded,
   type ContextBuilderInput,
 } from '../intelligence/context-builders/index.js';
 
@@ -521,8 +520,6 @@ describe('Life Chapter Awareness', () => {
 
 describe('Deep Understanding Context Builder Integration', () => {
   it('should load and execute deep_understanding builder', async () => {
-    await ensureBuildersLoaded();
-
     const input = createTestInput(
       "I've been feeling overwhelmed lately, especially with work and my relationship with Sarah",
       5
@@ -558,8 +555,6 @@ describe('Deep Understanding Context Builder Integration', () => {
   });
 
   it('should detect repair needs when previous response was off', async () => {
-    await ensureBuildersLoaded();
-
     // Simulate first turn with AI giving advice
     const { recordResponse } =
       await import('../intelligence/context-builders/deep-understanding.js');

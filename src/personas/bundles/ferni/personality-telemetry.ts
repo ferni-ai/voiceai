@@ -157,8 +157,7 @@ function updateMetrics(sessionId: string, snapshot: TelemetrySnapshot): void {
     (existing.avgNoticingDetectionMs * n + snapshot.timing.noticingDetectionMs) / (n + 1);
   existing.avgExpressionLookupMs =
     (existing.avgExpressionLookupMs * n + snapshot.timing.expressionLookupMs) / (n + 1);
-  existing.avgTotalMs =
-    (existing.avgTotalMs * n + snapshot.timing.totalMs) / (n + 1);
+  existing.avgTotalMs = (existing.avgTotalMs * n + snapshot.timing.totalMs) / (n + 1);
 
   // Update counts
   existing.totalTurns++;
@@ -309,15 +308,11 @@ export function formatMetricsReport(sessionId: string): string {
       : 0;
 
   const noticingRate =
-    metrics.totalTurns > 0
-      ? Math.round((metrics.turnsWithNoticing / metrics.totalTurns) * 100)
-      : 0;
+    metrics.totalTurns > 0 ? Math.round((metrics.turnsWithNoticing / metrics.totalTurns) * 100) : 0;
 
   const cacheHitRate =
     metrics.cacheHits + metrics.cacheMisses > 0
-      ? Math.round(
-          (metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100
-        )
+      ? Math.round((metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100)
       : 0;
 
   return `
@@ -370,4 +365,3 @@ export const personalityTelemetry = {
 };
 
 export default personalityTelemetry;
-

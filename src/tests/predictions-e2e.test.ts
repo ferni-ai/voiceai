@@ -227,7 +227,9 @@ describe('Predictions E2E Integration', () => {
       AsyncEvents.emit('prediction:generate', {}, { userId: TEST_USER_ID });
 
       // Wait for async processing
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       console.log('📬 Events received:', eventsReceived);
 
@@ -279,7 +281,9 @@ describe('Predictions E2E Integration', () => {
         { userId: TEST_USER_ID, sessionId: TEST_SESSION_ID }
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      });
 
       expect(turnReceived).toBe(true);
       unsub();

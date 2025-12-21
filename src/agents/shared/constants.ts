@@ -40,10 +40,10 @@ export const SILENCE_THRESHOLDS = {
    * DEAD AIR FIX: If processing takes too long, acknowledge at this point
    *
    * NOTE: This MUST be > TURN_PROCESSING_SOFT_TIMEOUT to avoid duplicate fillers!
-   * turn-handler.ts fires at 2.5s - this acts as a backup fallback only.
+   * turn-handler.ts fires at 4s - this acts as a backup fallback only.
    * See turn-handler.ts:148 and session-state-handler.ts:451
    */
-  EARLY_ACKNOWLEDGMENT_SECONDS: 4.0,
+  EARLY_ACKNOWLEDGMENT_SECONDS: 5.0,
 } as const;
 
 // ============================================================================
@@ -55,14 +55,17 @@ export const PROCESSING_TIMEOUTS = {
    * Maximum time to wait for turn processing before speaking a filler (ms)
    * DEAD AIR FIX: Prevents long silences during LLM processing
    * After this timeout, we speak a thinking filler and continue processing
+   *
+   * NOTE: 2.5s was too aggressive - LLM + tool calls often take 3-4s
+   * Increased to 4s to reduce unnecessary fillers while still preventing dead air
    */
-  TURN_PROCESSING_SOFT_TIMEOUT: 2500,
+  TURN_PROCESSING_SOFT_TIMEOUT: 4000,
 
   /**
    * Hard timeout for turn processing - if exceeded, skip context building (ms)
    * This is the absolute maximum before we give up on rich context
    */
-  TURN_PROCESSING_HARD_TIMEOUT: 5000,
+  TURN_PROCESSING_HARD_TIMEOUT: 7000,
 } as const;
 
 // ============================================================================

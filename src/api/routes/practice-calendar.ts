@@ -115,7 +115,8 @@ export async function handleSchedulePractice(
       return;
     }
 
-    const practiceId = body.id || `practice_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const practiceId =
+      body.id || `practice_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const now = new Date().toISOString();
 
     const practice = {
@@ -139,9 +140,8 @@ export async function handleSchedulePractice(
 
     // Create calendar events if requested
     if (practice.scheduleInCalendar) {
-      const { createPracticeCalendarEvents } = await import(
-        '../../services/calendar/practice-calendar.js'
-      );
+      const { createPracticeCalendarEvents } =
+        await import('../../services/calendar/practice-calendar.js');
       practice.calendarEventIds = await createPracticeCalendarEvents(userId, practice);
     }
 
@@ -193,9 +193,8 @@ export async function handleDeletePracticeCalendar(
     }
 
     if (practice.calendarEventIds?.length) {
-      const { deletePracticeCalendarEvents } = await import(
-        '../../services/calendar/practice-calendar.js'
-      );
+      const { deletePracticeCalendarEvents } =
+        await import('../../services/calendar/practice-calendar.js');
       await deletePracticeCalendarEvents(userId, practice.calendarEventIds);
 
       // Update practice
@@ -208,7 +207,10 @@ export async function handleDeletePracticeCalendar(
     log.info({ userId, practiceId }, 'Practice calendar events removed');
     sendJSON(res, { success: true, practiceId });
   } catch (error) {
-    log.error({ error: String(error), userId, practiceId }, 'Failed to delete practice calendar events');
+    log.error(
+      { error: String(error), userId, practiceId },
+      'Failed to delete practice calendar events'
+    );
     sendError(res, 'Could not remove calendar events', 500);
   }
 }
@@ -231,9 +233,8 @@ export async function handlePracticeBriefings(
 
     const practices = await getAllPractices(userId);
 
-    const { getUpcomingPracticeBriefings } = await import(
-      '../../services/calendar/practice-calendar.js'
-    );
+    const { getUpcomingPracticeBriefings } =
+      await import('../../services/calendar/practice-calendar.js');
 
     const briefings = await getUpcomingPracticeBriefings(userId, practices, windowMinutes);
 
@@ -271,9 +272,8 @@ export async function handlePatternSuggestions(
   if (!userId) return;
 
   try {
-    const { suggestPracticesFromPatterns } = await import(
-      '../../services/calendar/practice-calendar.js'
-    );
+    const { suggestPracticesFromPatterns } =
+      await import('../../services/calendar/practice-calendar.js');
 
     const suggestions = await suggestPracticesFromPatterns(userId);
 
@@ -438,4 +438,3 @@ export async function handlePracticeCalendarRoutes(
 
   return false;
 }
-

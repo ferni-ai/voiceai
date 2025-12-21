@@ -22,10 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getPubSubClient, type PublishResult } from '../pubsub/pubsub-client.js';
-import type {
-  OutreachPriority,
-  OutreachTriggerType,
-} from './decision-engine.js';
+import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js';
 
 const log = createLogger({ module: 'OutreachTriggerPublisher' });
 
@@ -329,9 +326,7 @@ export async function publishThinkingOfYouTrigger(
 export async function publishOutreachTriggerBatch(
   triggers: Array<Omit<OutreachTriggerPayload, 'id' | 'createdAt'>>
 ): Promise<TriggerPublishResult[]> {
-  const results = await Promise.all(
-    triggers.map((trigger) => publishOutreachTrigger(trigger))
-  );
+  const results = await Promise.all(triggers.map((trigger) => publishOutreachTrigger(trigger)));
 
   const succeeded = results.filter((r) => r.success).length;
   const failed = results.filter((r) => !r.success).length;
@@ -345,7 +340,4 @@ export async function publishOutreachTriggerBatch(
 // EXPORTS
 // ============================================================================
 
-export {
-  generateTriggerId,
-};
-
+export { generateTriggerId };

@@ -14,7 +14,11 @@ import {
   completeEnrollment,
   startEnrollmentSession,
 } from '../../services/voice-enrollment.js';
-import { hasVoiceProfile, saveVoiceProfile, updateVoiceProfileIndex } from '../../services/voice-profile-store.js';
+import {
+  hasVoiceProfile,
+  saveVoiceProfile,
+  updateVoiceProfileIndex,
+} from '../../services/voice-profile-store.js';
 import {
   logEnrollmentComplete,
   logEnrollmentFail,
@@ -233,4 +237,3 @@ export async function handleEnrollmentRoutes(
 
   return false;
 }
-

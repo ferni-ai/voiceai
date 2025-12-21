@@ -851,6 +851,11 @@ export {
   endRecovery,
   // Main integration
   wrapWithInterruptAwareness,
+  // Speech wrapper (recommended for new code)
+  wrapSpeechWithInterruptAwareness,
+  createInterruptAwareTransform,
+  markRecoveryComplete,
+  isInRecoveryPhase,
   // Constants
   CUSHION_TIMING,
   TRAILING_TRIGGERS,
@@ -860,6 +865,8 @@ export {
   type CushionedResponse,
   type RecoveryOptions,
   type RecoverySsml,
+  type InterruptContext,
+  type WrappedSpeech,
 } from './graceful-interrupt/index.js';
 
 // ============================================================================

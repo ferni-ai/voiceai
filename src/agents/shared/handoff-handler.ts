@@ -34,9 +34,12 @@ import {
   getHandoffBanter,
   getIntelligentBanter,
   buildBanterContext,
+  getLLMDrivenBanter,
+  type LLMBanterInstructions,
 } from '../../services/team-engagement.js';
 import { getDJIntegration } from '../dj-integration.js';
 import { criticalMonitor } from '../voice-agent/critical-function-monitor.js';
+import { safeGenerateReply } from './safe-generate-reply.js';
 
 // ============================================================================
 // RE-EXPORTS FROM HANDOFF SUBMODULES (for backward compatibility)
@@ -91,6 +94,44 @@ import {
   stopProgressHeartbeat,
   getNextMessageSeq,
 } from './handoff/session-state.js';
+
+// ============================================================================
+// TIMEOUT HELPERS FOR LLM/TTS OPERATIONS
+// ============================================================================
+
+/** Max time to wait for LLM-driven banter to complete (prevents handoff hangs) */
+const BANTER_TIMEOUT_MS = 5000; // 5 seconds
+
+/**
+ * Wrap a promise with a timeout to prevent hanging.
+ * Returns true if completed, false if timed out.
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<{ completed: true; result: T } | { completed: false }> {
+  let timeoutId: NodeJS.Timeout | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    if (timeoutId) clearTimeout(timeoutId);
+    return { completed: true, result };
+  } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (String(error).includes('timed out')) {
+      getLogger().warn({ label, timeoutMs }, `⏱️ ${label} timed out - continuing handoff`);
+      return { completed: false };
+    }
+    throw error;
+  }
+}
 
 // ============================================================================
 // DIRECTION CALCULATION
@@ -266,10 +307,13 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           '🎭 BANTER: Looking up handoff banter'
         );
 
-        // INTELLIGENT BANTER: Use context-aware banter when available
-        let softOpenBanter: string | null = null;
-        let arrivingBanter: string | null = null;
-        let wasIntelligentBanter = false;
+        // LLM-DRIVEN BANTER: Let the LLM generate natural handoff banter
+        // Falls back to template-based if LLM generation fails
+        let softOpenInstructions: LLMBanterInstructions | null = null;
+        let arrivingInstructions: LLMBanterInstructions | null = null;
+        let softOpenBanter: string | null = null; // Fallback text
+        let arrivingBanter: string | null = null; // Fallback text
+        let useLLMBanter = true; // Try LLM first
 
         try {
           // Build rich context from session services
@@ -292,39 +336,39 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             relationshipStage: relationshipContext?.stage,
           });
 
-          const intelligentResult = getIntelligentBanter(
-            prevPersona.id,
-            persona.id,
-            banterContext
+          // Get LLM-driven banter instructions
+          const llmBanter = getLLMDrivenBanter(prevPersona.id, persona.id, banterContext);
+          softOpenInstructions = llmBanter.softOpen;
+          arrivingInstructions = llmBanter.arriving;
+
+          // Keep fallbacks ready
+          softOpenBanter = softOpenInstructions.fallback;
+          arrivingBanter = arrivingInstructions.fallback;
+
+          logger.debug(
+            {
+              softOpenInstructionPreview: softOpenInstructions.instructions.slice(0, 100),
+              arrivingInstructionPreview: arrivingInstructions.instructions.slice(0, 100),
+            },
+            '🎭 BANTER: LLM instructions built'
           );
-
-          softOpenBanter = intelligentResult.softOpenBanter;
-          arrivingBanter = intelligentResult.arrivingBanter;
-          wasIntelligentBanter = intelligentResult.wasIntelligent;
-
-          // Log context used for debugging
-          if (intelligentResult.contextUsed) {
-            logger.debug(
-              { contextUsed: intelligentResult.contextUsed },
-              '🎭 BANTER: Context used for generation'
-            );
-          }
         } catch (banterErr) {
           // Fallback to static banter on error
-          logger.debug({ error: String(banterErr) }, 'Intelligent banter failed, using static');
+          logger.debug({ error: String(banterErr) }, 'LLM banter setup failed, using static');
+          useLLMBanter = false;
           softOpenBanter = getHandoffBanter(prevPersona.id, persona.id);
           arrivingBanter = getArrivingBanter(persona.id, prevPersona.id);
         }
 
         logger.info(
           {
-            hasSoftOpen: !!softOpenBanter,
-            hasArriving: !!arrivingBanter,
-            softOpenPreview: softOpenBanter?.slice(0, 50),
-            arrivingPreview: arrivingBanter?.slice(0, 50),
-            wasIntelligent: wasIntelligentBanter,
+            useLLMBanter,
+            hasSoftOpen: !!softOpenInstructions || !!softOpenBanter,
+            hasArriving: !!arrivingInstructions || !!arrivingBanter,
+            softOpenFallback: softOpenBanter?.slice(0, 50),
+            arrivingFallback: arrivingBanter?.slice(0, 50),
           },
-          '🎭 BANTER: Lookup results'
+          '🎭 BANTER: Setup complete'
         );
 
         const startMessage = JSON.stringify({
@@ -386,14 +430,43 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         // ============================================================================
         // WARM HANDOFF: Soft Open (departing persona's warm sendoff)
         // Spoken BEFORE voice switch in the CURRENT persona's voice
+        // Now LLM-DRIVEN for natural, contextual banter!
         // ============================================================================
-        if (softOpenBanter && session) {
+        if ((softOpenInstructions || softOpenBanter) && session) {
           try {
-            diag.entry(`🎭 Soft open: ${prevPersona.name} introduces ${persona.name}`);
-            // FIX BUG: Await the speech to complete before switching voice
-            // Previously this was fire-and-forget with a hardcoded 1500ms delay,
-            // causing overlapping audio when soft open took longer than expected.
-            await session.say(softOpenBanter, { allowInterruptions: false }).waitForPlayout();
+            diag.entry(
+              `🎭 Soft open: ${prevPersona.name} introduces ${persona.name} (LLM: ${useLLMBanter})`
+            );
+
+            // Try LLM-driven banter first, fall back to static if needed
+            // FIX: Use safeGenerateReply to prevent native crash during handoff
+            if (useLLMBanter && softOpenInstructions) {
+              // Use safeGenerateReply - it has built-in timeout and fallback
+              const result = await safeGenerateReply(session, {
+                instructions: softOpenInstructions.instructions,
+                allowInterruptions: false,
+                fallbackMessage: softOpenBanter ?? undefined,
+                timeoutMs: BANTER_TIMEOUT_MS,
+                context: 'handoff-soft-open',
+              });
+
+              if (result.success) {
+                diag.entry('🎭 LLM-generated soft open complete');
+              } else if (result.usedFallback) {
+                diag.entry('🎭 Soft open used fallback banter');
+              } else if (result.circuitOpen) {
+                diag.warn('🎭 Soft open skipped - circuit breaker open');
+              } else {
+                diag.warn('🎭 LLM soft open failed - continuing with handoff');
+              }
+            } else if (softOpenBanter) {
+              // Use static banter with timeout
+              await withTimeout(
+                session.say(softOpenBanter, { allowInterruptions: false }).waitForPlayout(),
+                BANTER_TIMEOUT_MS,
+                'Static soft open banter'
+              );
+            }
 
             // Send soft_open_complete so UI knows to start visual transition
             const softOpenCompleteMsg = JSON.stringify({
@@ -493,7 +566,27 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         // CRITICAL FUNCTION TRACKING: Voice switch failure = user hears wrong voice
         const MAX_VOICE_SWITCH_RETRIES = 2;
         let voiceSwitchSuccess = false;
-        const effectiveVoiceIdForTracking = voiceIdFromEvent || persona.voiceId || 'unknown';
+
+        // 🐛 FIX: Extract voice ID from persona - handles both PersonaConfig and HandoffPersona formats
+        // PersonaConfig has voice.voiceId, HandoffPersona has direct voiceId
+        const personaVoiceId =
+          'voice' in persona && typeof persona.voice === 'object' && persona.voice !== null
+            ? (persona.voice as { voiceId?: string }).voiceId
+            : (persona as { voiceId?: string }).voiceId;
+
+        const effectiveVoiceIdForTracking = voiceIdFromEvent || personaVoiceId || 'unknown';
+
+        // 🔍 DEBUG: Log voice ID sources to help trace handoff issues
+        logger.info(
+          {
+            personaId: persona.id,
+            voiceIdFromEvent,
+            personaVoiceId,
+            effectiveVoiceId: effectiveVoiceIdForTracking,
+          },
+          '🎙️ Voice ID resolution for handoff'
+        );
+
         const voiceSwitchTracker = criticalMonitor.trackVoiceSwitch(
           sessionId,
           persona.id,
@@ -511,9 +604,11 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             voiceManager.switchVoice(persona.id);
 
             // Also switch the session's TTS if it supports voice switching
-            // 🐛 FIX: Use voiceIdFromEvent instead of persona.voiceId - persona.voiceId doesn't exist on PersonaConfig!
-            // The voiceId must come from the event data (extracted above), or fallback to persona.voiceId for HandoffPersona
-            const effectiveVoiceId = voiceIdFromEvent || persona.voiceId;
+            // 🐛 FIX: Use voiceIdFromEvent with fallback to personaVoiceId (extracted above)
+            // FALLBACK CHAIN:
+            // 1. voiceIdFromEvent - from top-level of HandoffEventData (preferred)
+            // 2. personaVoiceId - extracted from either persona.voice.voiceId or persona.voiceId
+            const effectiveVoiceId = voiceIdFromEvent || personaVoiceId;
             if (tts && 'switchVoice' in tts && effectiveVoiceId) {
               (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(
                 persona.id,
@@ -731,21 +826,58 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               {
                 hasPrevPersonaId: !!prevPersona?.id,
                 prevPersonaIdValue: prevPersona?.id,
+                hasArrivingInstructions: !!arrivingInstructions,
                 hasArrivingBanter: !!arrivingBanter,
+                useLLMBanter,
                 currentGreeting: finalGreeting?.slice(0, 50),
               },
               '🎭 BANTER: Checking arriving banter conditions'
             );
+
+            // ============================================================================
+            // LLM-DRIVEN ARRIVING BANTER
+            // Let the new persona greet naturally with context awareness
+            // ============================================================================
+            let usedLLMForArriving = false;
+
             if (prevPersona?.id) {
-              // Try arriving banter first (warm welcome from new persona's perspective)
-              if (arrivingBanter) {
+              // Try LLM-driven arriving banter first
+              // FIX: Use safeGenerateReply to prevent native crash during handoff
+              if (useLLMBanter && arrivingInstructions) {
+                diag.entry(`🎭 LLM arriving: ${persona.name} greets naturally`);
+                const result = await safeGenerateReply(session, {
+                  instructions: arrivingInstructions.instructions,
+                  allowInterruptions: true,
+                  fallbackMessage: arrivingBanter ?? finalGreeting ?? undefined,
+                  timeoutMs: BANTER_TIMEOUT_MS,
+                  context: 'handoff-arriving',
+                });
+
+                if (result.success) {
+                  greetingSpoken = true;
+                  usedLLMForArriving = true;
+                  diag.entry(`🎭 LLM-generated arriving greeting complete`);
+                  logger.info({ personaId: persona.id }, '🎭 BANTER: LLM arriving banter spoken!');
+                } else if (result.usedFallback) {
+                  greetingSpoken = true;
+                  usedLLMForArriving = true; // Fallback counts as "used" to prevent double-speak
+                  diag.entry(`🎭 Arriving used fallback banter`);
+                } else if (result.circuitOpen) {
+                  diag.warn(`🎭 Arriving banter skipped - circuit breaker open`);
+                } else {
+                  diag.warn(`🎭 LLM arriving banter failed - using static`);
+                }
+              }
+
+              // Fallback: Try static arriving banter
+              if (!usedLLMForArriving && arrivingBanter) {
                 finalGreeting = arrivingBanter;
                 diag.entry(`🎭 Arriving welcome: ${persona.name} acknowledges ${prevPersona.name}`);
                 logger.info(
                   { newGreeting: finalGreeting?.slice(0, 50) },
-                  '🎭 BANTER: Arriving banter applied!'
+                  '🎭 BANTER: Static arriving banter applied!'
                 );
-              } else {
+              } else if (!usedLLMForArriving) {
                 // Fallback: Try DJ integration for radio show feel
                 const shouldUseDJEntrance = Math.random() < 0.4;
                 if (shouldUseDJEntrance) {
@@ -766,10 +898,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               }
             }
 
-            // NOTE: Removed 150ms delay - voice is already switched, speak immediately!
-            session.say(finalGreeting, { allowInterruptions: true });
-            greetingSpoken = true;
-            diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);
+            // Speak the greeting if LLM didn't already handle it
+            if (!usedLLMForArriving) {
+              session.say(finalGreeting, { allowInterruptions: true });
+              greetingSpoken = true;
+              diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);
+            }
           } catch (greetingErr) {
             logger.warn(
               { error: String(greetingErr), greeting: finalGreeting },

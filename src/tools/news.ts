@@ -16,11 +16,73 @@ import { getLogger } from '../utils/safe-logger.js';
 
 import { getToolDescription } from './utils/tool-descriptions.js';
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || '';
-const _GNEWS_KEY = process.env.GNEWS_API_KEY || '';
+const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 
 // ============================================================================
 // NEWS FETCHING FUNCTIONS
 // ============================================================================
+
+/**
+ * Search news by topic using GNews API
+ * Supports any topic: "Christmas", "AI", "sports", etc.
+ */
+export async function searchNewsByTopic(topic: string): Promise<string> {
+  const logger = getLogger();
+  const startTime = Date.now();
+
+  logger.info({ topic }, '🔍 [DIAG] searchNewsByTopic START');
+
+  if (!GNEWS_KEY) {
+    logger.warn('🔍 [DIAG] No GNews API key - falling back to general news');
+    // Fallback to general news if no API key
+    return getGeneralNews();
+  }
+
+  try {
+    // GNews API endpoint for search
+    const encodedTopic = encodeURIComponent(topic);
+    const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
+
+    logger.debug({ topic }, '🔍 [DIAG] Fetching from GNews...');
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+
+    if (!response.ok) {
+      logger.warn({ status: response.status }, '🔍 [DIAG] GNews API error');
+      return `I couldn't find news about "${topic}" right now.`;
+    }
+
+    const data = (await response.json()) as {
+      totalArticles?: number;
+      articles?: Array<{
+        title?: string;
+        description?: string;
+        source?: { name?: string };
+        publishedAt?: string;
+      }>;
+    };
+
+    if (data.articles && data.articles.length > 0) {
+      const headlines = data.articles
+        .slice(0, 4)
+        .map((a) => a.title)
+        .filter(Boolean);
+
+      logger.info(
+        { topic, elapsed: Date.now() - startTime, count: headlines.length },
+        '🔍 [DIAG] searchNewsByTopic SUCCESS'
+      );
+
+      return `News about "${topic}": ${headlines.join('. ')}`;
+    }
+
+    logger.info({ topic, elapsed: Date.now() - startTime }, '🔍 [DIAG] No articles found');
+    return `I couldn't find any recent news about "${topic}".`;
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    logger.warn({ topic, error: String(error), elapsed }, '🔍 [DIAG] searchNewsByTopic FAILED');
+    return `I had trouble searching for news about "${topic}". Try again in a moment?`;
+  }
+}
 
 /**
  * Get financial news from Finnhub

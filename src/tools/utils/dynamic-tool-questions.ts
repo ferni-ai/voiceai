@@ -204,11 +204,7 @@ const QUESTION_FRAMEWORKS: Record<QuestionDomain, Record<string, string[]>> = {
   },
 
   crisis: {
-    exploration: [
-      "What's happening right now?",
-      'Are you safe?',
-      'Who can be with you?',
-    ],
+    exploration: ["What's happening right now?", 'Are you safe?', 'Who can be with you?'],
     reflection: [
       'What brought you to this point?',
       "What's worked before when things were hard?",
@@ -340,7 +336,7 @@ function generateIntro(
     meaning: "Let's explore what matters to you.",
     crisis: "I'm here. Let's focus on right now.",
     curiosity: "Let's follow your curiosity.",
-    vulnerability: "Thank you for trusting me with this.",
+    vulnerability: 'Thank you for trusting me with this.',
     presence: "Let's be here, right now.",
   };
 
@@ -384,7 +380,7 @@ function generateClosingPrompt(
       'What feels most alive in this?',
     ],
     grief: [
-      "What do you need right now?",
+      'What do you need right now?',
       'Would you like to explore any of these?',
       "I'm here—where would you like to go?",
     ],
@@ -408,11 +404,7 @@ function generateClosingPrompt(
       'Where would you like to start?',
       "What's asking to be seen?",
     ],
-    presence: [
-      "What's here right now?",
-      'What do you notice?',
-      'Where would you like to focus?',
-    ],
+    presence: ["What's here right now?", 'What do you notice?', 'Where would you like to focus?'],
   };
 
   const options = baseClosings[domain];
@@ -429,7 +421,14 @@ function generateClosingPrompt(
  * Generate contextual, persona-grounded questions for a tool
  */
 export function generateToolQuestions(context: ToolQuestionContext): GeneratedToolQuestions {
-  const { personaId, domain, focus, specificContext, emotionalTone = 'supportive', maxQuestions = 5 } = context;
+  const {
+    personaId,
+    domain,
+    focus,
+    specificContext,
+    emotionalTone = 'supportive',
+    maxQuestions = 5,
+  } = context;
 
   // Get persona's cognitive style
   const cognitiveDiff = getCognitiveDifferentiation(personaId);
@@ -499,7 +498,12 @@ export function formatQuestionsForResponse(
     boldQuestions?: boolean;
   }
 ): string {
-  const { numbered = true, includeIntro = true, includeClosing = true, boldQuestions = false } = options || {};
+  const {
+    numbered = true,
+    includeIntro = true,
+    includeClosing = true,
+    boldQuestions = false,
+  } = options || {};
 
   const parts: string[] = [];
 
@@ -550,4 +554,3 @@ export function getQuestions(
 
   return formatQuestionsForResponse(generated);
 }
-

@@ -118,6 +118,57 @@ async function loadBundleFile(personaId: string, relativePath: string): Promise<
   }
 }
 
+/**
+ * Load a file from the shared bundle directory
+ */
+async function loadSharedFile(relativePath: string): Promise<string | null> {
+  const sharedPath = join(getBundlesPath(), 'shared', relativePath);
+  try {
+    return await readFile(sharedPath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load function calling with base + specialty pattern.
+ * Base contains critical rules, specialty contains persona-specific tools.
+ */
+async function loadFunctionCallingWithBase(
+  personaId: string,
+  specialtyPath: string
+): Promise<string> {
+  // Load shared base rules (CRITICAL - contains JSON format instructions)
+  const base = await loadSharedFile('function-calling-base.md');
+
+  // Load persona-specific specialty tools
+  const specialty = await loadBundleFile(personaId, specialtyPath);
+
+  if (base && specialty) {
+    log.info(
+      { personaId, baseChars: base.length, specialtyChars: specialty.length },
+      '✅ Loaded function-calling: base + specialty'
+    );
+    return `${base}\n\n---\n\n${specialty}`;
+  }
+
+  if (base) {
+    log.warn({ personaId, baseChars: base.length }, '⚠️ No specialty file, using base only');
+    return base;
+  }
+
+  if (specialty) {
+    log.error(
+      { personaId, specialtyChars: specialty.length },
+      '❌ No base file! Tool calling may fail!'
+    );
+    return specialty;
+  }
+
+  log.error({ personaId }, '❌ No function calling files found!');
+  return '';
+}
+
 // ============================================================================
 // CORE ASSEMBLY FUNCTIONS
 // ============================================================================
@@ -141,8 +192,12 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
     // Load core modules (these are always included)
     const corePrompt =
       (await loadBundleFile(personaId, assembly.prompt_modules.core_identity)) || '';
-    const functionCalling =
-      (await loadBundleFile(personaId, assembly.prompt_modules.function_calling)) || '';
+    // CRITICAL: Use base + specialty pattern for function calling
+    // Base contains critical rules, specialty contains persona-specific tools
+    const functionCalling = await loadFunctionCallingWithBase(
+      personaId,
+      assembly.prompt_modules.function_calling
+    );
     const directorsNotes =
       (await loadBundleFile(personaId, assembly.prompt_modules.directors_notes)) || '';
     const biography = (await loadBundleFile(personaId, assembly.prompt_modules.biography)) || '';
@@ -366,7 +421,9 @@ export async function assemblePrompt(
   if (functionCalling) {
     const fcTokens = estimateTokens(functionCalling);
     // Always include function calling even if it pushes over budget - tools are critical
-    sections.push('\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling);
+    sections.push(
+      '\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling
+    );
     currentTokens += fcTokens;
     includedModules.push('function_calling');
   }

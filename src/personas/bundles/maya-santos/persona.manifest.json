@@ -29,10 +29,7 @@
         "implementationIntention",
         "weeklyHabitReview"
       ],
-      "gamification": [
-        "gamificationProfile",
-        "leaderboard"
-      ],
+      "gamification": ["gamificationProfile", "leaderboard"],
       "life_thesis": [
         "saveHabitThesis - When someone commits to a new habit, capture WHY it matters to them. Use when they're motivated so you can remind them later.",
         "remindThesis - When someone wants to quit a habit, recalls their original motivation",
@@ -54,7 +51,18 @@
     "voice_id": "${env:MAYA_SANTOS_VOICE_ID|e8e5fffb-252c-436d-b842-8879b84445b6}",
     "model": "sonic-3-latest",
     "default_emotion": "friendly",
-    "emotion_range": ["friendly", "happy", "proud", "enthusiastic", "sympathetic", "grateful", "curious", "triumphant", "amazed", "content"],
+    "emotion_range": [
+      "friendly",
+      "happy",
+      "proud",
+      "enthusiastic",
+      "sympathetic",
+      "grateful",
+      "curious",
+      "triumphant",
+      "amazed",
+      "content"
+    ],
     "default_speed": 0.95,
     "default_volume": 1.0,
     "laughter_frequency": 0.18,

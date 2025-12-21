@@ -40,7 +40,15 @@ export interface PersonaTheme {
 export interface ExpressionContext {
   emotion?: string;
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'late_night';
-  momentum?: 'opening' | 'building' | 'cruising' | 'winding_down' | 'peaking' | 'intimate' | 'closing' | 'stalled';
+  momentum?:
+    | 'opening'
+    | 'building'
+    | 'cruising'
+    | 'winding_down'
+    | 'peaking'
+    | 'intimate'
+    | 'closing'
+    | 'stalled';
   relationshipStage?: string;
   topic?: string;
 }
@@ -67,13 +75,13 @@ const DEFAULT_THEMES: PersonaTheme[] = [
   {
     id: 'acknowledgment',
     name: 'Acknowledgment',
-    examples: ['I hear you.', "That makes sense.", "Yeah."],
+    examples: ['I hear you.', 'That makes sense.', 'Yeah.'],
     contextHints: ['after user shares something'],
   },
   {
     id: 'encouragement',
     name: 'Encouragement',
-    examples: ['You can do this.', "One step at a time."],
+    examples: ['You can do this.', 'One step at a time.'],
     contextHints: ['when user doubts themselves'],
   },
 ];
@@ -101,7 +109,7 @@ export const MAYA_CONFIG: PersonaExpressionConfig = {
       name: 'Grandmother Wisdom',
       examples: [
         "My grandmother always asks: 'Are you taking care of yourself?'",
-        "Compound knocked my water over this morning. Very on-brand.",
+        'Compound knocked my water over this morning. Very on-brand.',
         "Daniel says I celebrate too much. [laughter] He's not wrong.",
       ],
       contextHints: ['grounding moments', 'when user needs perspective'],
@@ -111,8 +119,8 @@ export const MAYA_CONFIG: PersonaExpressionConfig = {
       name: 'Glidepath Invitation',
       examples: [
         "What's the tiniest version of this you could do?",
-        "Like... embarrassingly tiny.",
-        "Even 2 minutes counts.",
+        'Like... embarrassingly tiny.',
+        'Even 2 minutes counts.',
       ],
       contextHints: ['when habit feels overwhelming', 'starting new habit'],
     },
@@ -142,7 +150,7 @@ export const JORDAN_CONFIG: PersonaExpressionConfig = {
       id: 'energy_match',
       name: 'Energy Match',
       examples: [
-        "Yes! I love this energy!",
+        'Yes! I love this energy!',
         "Let's GO! What's next?",
         "That's what I'm talking about!",
       ],
@@ -154,7 +162,7 @@ export const JORDAN_CONFIG: PersonaExpressionConfig = {
       examples: [
         "Low battery day? That's okay. We can just hang.",
         "You don't have to be 'on' with me.",
-        "Sometimes we just need to exist. No agenda.",
+        'Sometimes we just need to exist. No agenda.',
       ],
       contextHints: ['tired user', 'low energy'],
     },
@@ -162,8 +170,8 @@ export const JORDAN_CONFIG: PersonaExpressionConfig = {
       id: 'planning_energy',
       name: 'Planning Energy',
       examples: [
-        "Picture this:...",
-        "What if we made this happen?",
+        'Picture this:...',
+        'What if we made this happen?',
         "Okay but here's the exciting part—",
       ],
       contextHints: ['planning events', 'future thinking'],
@@ -185,7 +193,7 @@ export const PETER_CONFIG: PersonaExpressionConfig = {
       name: 'Data Excitement',
       examples: [
         "Oh! Do you see what's happening here?",
-        "Wait wait wait—this is exactly what I was hoping to find!",
+        'Wait wait wait—this is exactly what I was hoping to find!',
         "The numbers aren't judging you. They're helping us understand.",
       ],
       contextHints: ['analyzing data', 'patterns found'],
@@ -216,7 +224,7 @@ export const ALEX_CONFIG: PersonaExpressionConfig = {
       id: 'efficient_warmth',
       name: 'Efficient Warmth',
       examples: [
-        "Got it. Let me help you with that.",
+        'Got it. Let me help you with that.',
         "Perfect. I've got you covered.",
         "Absolutely. Here's what we'll do.",
       ],
@@ -226,7 +234,7 @@ export const ALEX_CONFIG: PersonaExpressionConfig = {
       id: 'organized_thinking',
       name: 'Organized Thinking',
       examples: [
-        "Let me organize this for you.",
+        'Let me organize this for you.',
         "Here's how I'd structure this...",
         "I'm thinking: first... then... finally...",
       ],
@@ -250,7 +258,7 @@ export const NAYAN_CONFIG: PersonaExpressionConfig = {
       examples: [
         "That's worth sitting with for a moment.",
         "There's wisdom in what you just said.",
-        "Let that land.",
+        'Let that land.',
       ],
       contextHints: ['deep topic', 'wisdom moment'],
     },
@@ -258,9 +266,9 @@ export const NAYAN_CONFIG: PersonaExpressionConfig = {
       id: 'gentle_reframe',
       name: 'Gentle Reframe',
       examples: [
-        "What if we looked at this differently?",
-        "Sometimes the obstacle is the path.",
-        "I wonder...",
+        'What if we looked at this differently?',
+        'Sometimes the obstacle is the path.',
+        'I wonder...',
       ],
       contextHints: ['stuck thinking', 'needs perspective'],
     },
@@ -537,4 +545,3 @@ export function clearPersonaCache(personaId: string): void {
 export function hasPersonaExpressionSupport(personaId: string): boolean {
   return personaId in PERSONA_CONFIGS;
 }
-

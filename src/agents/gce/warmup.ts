@@ -176,9 +176,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const embeddingStart = Date.now();
-          const { initializeSpeculativeEmbeddings } = await import(
-            '../../memory/speculative-embeddings.js'
-          );
+          const { initializeSpeculativeEmbeddings } =
+            await import('../../memory/speculative-embeddings.js');
           await initializeSpeculativeEmbeddings();
           log('✅ Speculative embeddings initialized', {
             durationMs: Date.now() - embeddingStart,
@@ -224,4 +223,3 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     };
   }
 }
-

@@ -55,11 +55,11 @@ const log = getLogger();
 const WARM_ERRORS = {
   missingUserId: "Hmm, I'm not sure who you are. Try refreshing?",
   videoNotFound: "Can't find that video. It might have been removed.",
-  sessionNotFound: "Lost track of where we were. Want to start fresh?",
+  sessionNotFound: 'Lost track of where we were. Want to start fresh?',
   youtubeUnavailable: "Can't reach YouTube right now. Try the curated picks instead?",
   trackNotFound: "That learning track isn't available right now.",
   couldNotGenerateTrack: "Couldn't find enough content for those topics. Try something else?",
-  internalError: "Something went wrong on my end. Mind trying again?",
+  internalError: 'Something went wrong on my end. Mind trying again?',
 } as const;
 
 /**
@@ -300,9 +300,8 @@ export async function handleCreativeYouRoutes(
       const episode = getEpisodeById(podcastId);
       if (episode) {
         // Get discussion prompts from curated episodes
-        const { CURATED_EPISODES } = await import(
-          '../../services/creative-you/podcast-discovery.js'
-        );
+        const { CURATED_EPISODES } =
+          await import('../../services/creative-you/podcast-discovery.js');
         const curatedEpisode = CURATED_EPISODES.find((e) => e.id === podcastId);
         const discussionPrompts = curatedEpisode?.discussionPrompts || [];
 

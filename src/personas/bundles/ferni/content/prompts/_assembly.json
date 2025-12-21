@@ -1,20 +1,16 @@
 {
   "prompt_modules": {
     "core_identity": "identity/core-identity.md",
-    "function_calling": "identity/function-calling.md",
+    "function_calling": "identity/function-calling-specialty.md",
     "voice_guidance": "identity/voice-guidance.md",
     "directors_notes": "identity/directors-notes.md",
     "biography": "identity/biography.md",
     "pixar_character": "identity/pixar-character.md"
   },
-  "voice_agent_modules": [
-    "core_identity",
-    "function_calling",
-    "voice_guidance"
-  ],
+  "voice_agent_modules": ["function_calling", "core_identity", "voice_guidance"],
   "full_context_modules": [
     "core_identity",
-    "function_calling", 
+    "function_calling",
     "voice_guidance",
     "directors_notes",
     "biography"

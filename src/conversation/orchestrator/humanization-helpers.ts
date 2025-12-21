@@ -436,16 +436,18 @@ export function applyPriorityActions(
 export function generateAdditions(
   input: OrchestratorInput,
   analysis: AnalysisPhaseResult,
-  shouldTrigger: (sessionId: string, turnNumber: number, feature: string, probability: number) => boolean
+  shouldTrigger: (
+    sessionId: string,
+    turnNumber: number,
+    feature: string,
+    probability: number
+  ) => boolean
 ): ResponseAdditions {
   const additions: ResponseAdditions = {};
 
   try {
     // Memory callback (after turn 4, with probability)
-    if (
-      input.turnNumber > 4 &&
-      shouldTrigger(input.sessionId, input.turnNumber, 'memory', 0.2)
-    ) {
+    if (input.turnNumber > 4 && shouldTrigger(input.sessionId, input.turnNumber, 'memory', 0.2)) {
       const memory = getConversationalMemory();
       const callback = memory.getMemoryCallback(input.topic || 'general', input.turnNumber);
       if (callback) {
@@ -476,4 +478,3 @@ export function generateAdditions(
 
   return additions;
 }
-

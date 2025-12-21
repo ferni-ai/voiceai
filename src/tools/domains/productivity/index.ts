@@ -20,6 +20,9 @@ import { createTaskTools } from '../../tasks.js';
 import { createNotesTools } from '../../notes.js';
 import { createRoutineTools } from '../../routines.js';
 import { createShoppingTools } from '../../shopping.js';
+import { createBillTools } from '../../bills.js';
+import { createPackageTools } from '../../packages.js';
+import { createTravelTools } from '../../travel.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -159,6 +162,112 @@ function getShoppingToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// BILL TOOLS (Consolidated: 6 → 3 essential tools)
+// ============================================================================
+
+function getBillToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createBillTools();
+
+  // Consolidated: addBill creates/manages bills, payBill records payments, getBills shows status
+  return [
+    wrapLegacyTool(
+      'addBill',
+      'Add Bill',
+      'Add a recurring bill to track (rent, utilities, subscriptions, etc). Includes amount, due date, frequency, and autopay status.',
+      legacyTools.addBill,
+      ['bills', 'create', 'recurring', 'payments']
+    ),
+    wrapLegacyTool(
+      'payBill',
+      'Pay Bill',
+      'Record a bill payment. Tracks payment history and updates next due date.',
+      legacyTools.payBill,
+      ['bills', 'payment', 'record']
+    ),
+    wrapLegacyTool(
+      'getBills',
+      'Get Bills',
+      'View upcoming bills, overdue bills, or monthly bill summary. Shows amounts, due dates, and autopay status.',
+      legacyTools.getUpcomingBills,
+      ['bills', 'list', 'upcoming', 'overdue', 'summary']
+    ),
+  ];
+}
+
+// ============================================================================
+// PACKAGE TRACKING TOOLS (Consolidated: 4 → 3 essential tools)
+// ============================================================================
+
+function getPackageToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createPackageTools();
+
+  // Consolidated: trackPackage adds new, getPackages shows all, checkPackageStatus for specific
+  return [
+    wrapLegacyTool(
+      'trackPackage',
+      'Track Package',
+      'Add a package to track by providing tracking number. Auto-detects carrier (UPS, FedEx, USPS, Amazon, DHL).',
+      legacyTools.trackPackage,
+      ['packages', 'track', 'delivery', 'shipping']
+    ),
+    wrapLegacyTool(
+      'getPackages',
+      'Get Packages',
+      'View all packages being tracked. Shows status, expected delivery, and carrier for each package.',
+      legacyTools.getPackages,
+      ['packages', 'list', 'status', 'delivery']
+    ),
+    wrapLegacyTool(
+      'checkPackageStatus',
+      'Check Package Status',
+      'Check status of a specific package by tracking number or description.',
+      legacyTools.checkPackageStatus,
+      ['packages', 'status', 'tracking']
+    ),
+  ];
+}
+
+// ============================================================================
+// TRAVEL TOOLS (Consolidated: 5 → 4 essential tools)
+// ============================================================================
+
+function getTravelToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createTravelTools();
+
+  // Consolidated: searchFlights, searchHotels, planTrip, getSavedTrips
+  return [
+    wrapLegacyTool(
+      'searchFlights',
+      'Search Flights',
+      'Search for flights between cities. Specify origin, destination, dates, passengers, and cabin class.',
+      legacyTools.searchFlights,
+      ['travel', 'flights', 'search', 'booking']
+    ),
+    wrapLegacyTool(
+      'searchHotels',
+      'Search Hotels',
+      'Search for hotels in a destination. Specify city, check-in/out dates, guests, and rooms.',
+      legacyTools.searchHotels,
+      ['travel', 'hotels', 'search', 'accommodation']
+    ),
+    wrapLegacyTool(
+      'planTrip',
+      'Plan Trip',
+      'Save a trip plan with destination, dates, flight/hotel selections, and notes.',
+      legacyTools.planTrip,
+      ['travel', 'trip', 'planning', 'save']
+    ),
+    wrapLegacyTool(
+      'getSavedTrips',
+      'Get Saved Trips',
+      'View saved trips and upcoming travel plans.',
+      legacyTools.getSavedTrips,
+      ['travel', 'trips', 'list', 'upcoming']
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -167,6 +276,9 @@ const productivityTools: ToolDefinition[] = [
   ...getNotesToolDefinitions(),
   ...getRoutineToolDefinitions(),
   ...getShoppingToolDefinitions(),
+  ...getBillToolDefinitions(),
+  ...getPackageToolDefinitions(),
+  ...getTravelToolDefinitions(),
 ];
 
 // ============================================================================
@@ -184,6 +296,9 @@ export {
   getNotesToolDefinitions,
   getRoutineToolDefinitions,
   getShoppingToolDefinitions,
+  getBillToolDefinitions,
+  getPackageToolDefinitions,
+  getTravelToolDefinitions,
 };
 
 export default getToolDefinitions;

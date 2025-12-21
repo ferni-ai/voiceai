@@ -49,7 +49,7 @@ export interface RoomEventCleanup {
  */
 export function setupRoomEventHandlers(config: RoomEventHandlersConfig): RoomEventCleanup {
   const { room, sessionId, onDisconnect } = config;
-  
+
   // Track handlers for cleanup
   const handlers: Array<{ event: string; handler: (...args: unknown[]) => void }> = [];
 
@@ -111,10 +111,7 @@ export function setupRoomEventHandlers(config: RoomEventHandlersConfig): RoomEve
 /**
  * Log room connection metrics for observability
  */
-export function logRoomConnectionMetrics(
-  room: RoomLike,
-  sessionId: string
-): void {
+export function logRoomConnectionMetrics(room: RoomLike, sessionId: string): void {
   try {
     const participants = room.remoteParticipants?.size || 0;
     diag.session('📊 Room metrics', {
@@ -132,4 +129,3 @@ export default {
   logRoomConnectionMetrics,
   ConnectionState,
 };
-

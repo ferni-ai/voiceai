@@ -423,7 +423,14 @@
       "handoffToMaya",
       "handoffToJordan"
     ],
-    "optional": ["getWisdomQuote", "getBogleQuote", "getThisDayInHistory", "getCrashPerspective", "searchWeb", "getWeather"],
+    "optional": [
+      "getWisdomQuote",
+      "getBogleQuote",
+      "getThisDayInHistory",
+      "getCrashPerspective",
+      "searchWeb",
+      "getWeather"
+    ],
     "forbidden": [
       "dayTrade",
       "makeInvestment",

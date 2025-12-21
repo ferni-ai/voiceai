@@ -31,6 +31,7 @@ export {
   processMemory,
   processMemories,
   transcribeAudio,
+  transcribeAudioBuffer,
   extractMetadata,
   findRelevantMemories,
   createStory,

@@ -64,7 +64,7 @@ export class TwitterClient {
 
       for (const tweet of tweets) {
         const result = await this.postSingleTweet(tweet, replyToId);
-        
+
         if (!result.success) {
           return result;
         }
@@ -74,7 +74,7 @@ export class TwitterClient {
       }
 
       const url = `https://twitter.com/ferniAI/status/${tweetIds[0]}`;
-      
+
       log.info({ tweetIds, url }, '🐦 Thread posted successfully');
 
       return {
@@ -91,10 +91,7 @@ export class TwitterClient {
     }
   }
 
-  private async postSingleTweet(
-    text: string,
-    replyToId?: string
-  ): Promise<TwitterPostResult> {
+  private async postSingleTweet(text: string, replyToId?: string): Promise<TwitterPostResult> {
     if (!this.credentials) {
       return { success: false, error: 'Not authenticated' };
     }
@@ -117,15 +114,18 @@ export class TwitterClient {
       if (!response.ok) {
         const errorText = await response.text();
         log.error({ status: response.status, error: errorText }, '🐦 Twitter API error');
-        
+
         // Handle rate limiting
         if (response.status === 429) {
           return { success: false, error: 'Rate limited by Twitter. Try again in a few minutes.' };
         }
-        
+
         // Handle auth errors
         if (response.status === 401 || response.status === 403) {
-          return { success: false, error: 'Twitter authentication expired. Please reconnect your account.' };
+          return {
+            success: false,
+            error: 'Twitter authentication expired. Please reconnect your account.',
+          };
         }
 
         return { success: false, error: `Twitter API error: ${errorText}` };
@@ -168,7 +168,8 @@ export class TwitterClient {
   // OAuth flow helpers
   static getAuthorizationUrl(state: string): string {
     const clientId = process.env.TWITTER_CLIENT_ID;
-    const redirectUri = process.env.TWITTER_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/twitter/callback';
+    const redirectUri =
+      process.env.TWITTER_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/twitter/callback';
     const scope = 'tweet.read tweet.write users.read offline.access';
 
     const params = new URLSearchParams({
@@ -190,7 +191,8 @@ export class TwitterClient {
   ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number } | null> {
     const clientId = process.env.TWITTER_CLIENT_ID;
     const clientSecret = process.env.TWITTER_CLIENT_SECRET;
-    const redirectUri = process.env.TWITTER_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/twitter/callback';
+    const redirectUri =
+      process.env.TWITTER_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/twitter/callback';
 
     try {
       const response = await fetch('https://api.twitter.com/2/oauth2/token', {
@@ -212,7 +214,11 @@ export class TwitterClient {
         return null;
       }
 
-      const data = (await response.json()) as { access_token: string; refresh_token: string; expires_in: number };
+      const data = (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      };
       return {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
@@ -226,4 +232,3 @@ export class TwitterClient {
 }
 
 export default TwitterClient;
-
