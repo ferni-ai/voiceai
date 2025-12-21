@@ -166,7 +166,7 @@ function ensureModalExists(): HTMLElement {
 // MODAL CONTROLS
 // ============================================================================
 
-export async function openTalkToTwin(agentId: string): Promise<void> {
+export async function openTalkToTwin(agentId: string, initialPrompt?: string): Promise<void> {
   const modal = ensureModalExists();
 
   try {
@@ -175,12 +175,6 @@ export async function openTalkToTwin(agentId: string): Promise<void> {
       log.error('Agent not found:', agentId);
       const { toast } = await import('./toast.ui.js');
       toast.error('Agent not found');
-      return;
-    }
-
-    if (agent.type !== 'twin') {
-      const { toast } = await import('./toast.ui.js');
-      toast.warning('Talk to Twin is only for Digital Twin agents');
       return;
     }
 
@@ -203,6 +197,14 @@ export async function openTalkToTwin(agentId: string): Promise<void> {
     if (input) input.focus();
 
     soundUI.play('switch');
+
+    // If an initial prompt was provided (from coaching/roleplay/task mode), send it
+    if (initialPrompt) {
+      // Small delay to let the UI settle
+      setTimeout(() => {
+        sendMessage(initialPrompt);
+      }, 500);
+    }
   } catch (error) {
     log.error('Failed to open Talk to Twin:', error);
     const { toast } = await import('./toast.ui.js');
@@ -935,9 +937,5 @@ function getTwinStyles(): string {
   `;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export { openTalkToTwin, closeTalkToTwin };
+// Functions are already exported with 'export function' declarations above
 

@@ -2066,9 +2066,5 @@ function getProfileStyles(): string {
   `;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export { openTwinProfile, closeTwinProfile };
+// Functions are already exported with 'export function' declarations above
 

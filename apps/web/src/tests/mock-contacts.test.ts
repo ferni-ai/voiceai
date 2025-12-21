@@ -17,7 +17,7 @@ import {
   getMockConversationStarters,
   getMockRelationshipInsights,
   resetMockContacts,
-} from '../data/mock-contacts.js';
+} from '../data/mock-contacts';
 
 describe('Mock Contacts Data', () => {
   beforeEach(() => {
