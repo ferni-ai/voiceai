@@ -206,7 +206,7 @@ async function fetchLifeContext(userId: string): Promise<void> {
       lastTriggers = data.triggers || [];
 
       updateLifeContextDashboard({
-        overallLoad: data.snapshot.overallLoad,
+        overallLoad: data.snapshot.overallLoadScore,
         wellbeingScore: data.snapshot.wellbeingScore,
         stressIndicators: data.snapshot.stressIndicators,
         patterns: data.snapshot.patterns,
@@ -262,7 +262,7 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
         lastTriggers = event.triggers || [];
 
         updateLifeContextDashboard({
-          overallLoad: event.snapshot.overallLoad,
+          overallLoad: event.snapshot.overallLoadScore,
           wellbeingScore: event.snapshot.wellbeingScore,
           stressIndicators: event.snapshot.stressIndicators,
           patterns: event.snapshot.patterns,
@@ -278,7 +278,7 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
 
         if (lastSnapshot) {
           updateLifeContextDashboard({
-            overallLoad: lastSnapshot.overallLoad,
+            overallLoad: lastSnapshot.overallLoadScore,
             wellbeingScore: lastSnapshot.wellbeingScore,
             stressIndicators: lastSnapshot.stressIndicators,
             patterns: lastSnapshot.patterns,
