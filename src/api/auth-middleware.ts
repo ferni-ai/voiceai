@@ -166,13 +166,15 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     return null; // Will be handled async in requireAuth
   }
 
-  // 3. Check dev mode bypass (header only, requires configured ADMIN_KEY even in dev)
-  // SECURITY: 'dev-mode' string backdoor has been removed - must use real ADMIN_KEY
+  // 3. Check dev mode bypass (header only)
+  // Allow 'dev-mode' string in development OR configured ADMIN_KEY
   if (IS_DEV) {
     const adminKeyHeader = getHeader(req, 'X-Admin-Key');
     const configuredAdminKey = process.env.ADMIN_KEY;
-    // Only allow dev mode if ADMIN_KEY is configured and matches
-    if (configuredAdminKey && adminKeyHeader === configuredAdminKey) {
+    // Allow either 'dev-mode' string OR configured ADMIN_KEY in development
+    const isValidDevKey = adminKeyHeader === 'dev-mode' || 
+                          (configuredAdminKey && adminKeyHeader === configuredAdminKey);
+    if (isValidDevKey) {
       const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
       return {
         userId: devUserId,

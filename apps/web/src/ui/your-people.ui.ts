@@ -87,6 +87,7 @@ let state: YourPeopleState = {
 };
 
 let panelContainer: HTMLElement | null = null;
+let previouslyFocusedElement: HTMLElement | null = null;
 
 // ============================================================================
 // ICONS
@@ -707,11 +708,11 @@ function renderHeader(): string {
     <div class="yp-header">
       <div class="yp-header-top">
         <div class="yp-header-text">
-          <div class="yp-eyebrow">Relationships</div>
-          <h2 class="yp-title">Your People</h2>
+          <div class="yp-eyebrow" id="yp-desc">Relationships</div>
+          <h2 class="yp-title" id="yp-title">Your People</h2>
         </div>
         <div class="yp-header-actions">
-          <button class="yp-action-btn" id="yp-insights-btn" aria-label="Insights">${ICONS.chart}</button>
+          <button class="yp-action-btn" id="yp-insights-btn" aria-label="View relationship insights" title="Insights">${ICONS.chart}</button>
           <button class="yp-close" aria-label="Close">${ICONS.close}</button>
         </div>
       </div>
@@ -719,10 +720,12 @@ function renderHeader(): string {
       <div class="yp-search">
         <span class="yp-search-icon">${ICONS.search}</span>
         <input 
-          type="text" 
+          type="search" 
           class="yp-search-input" 
           placeholder="Search your people..."
           value="${escapeHtml(state.searchQuery)}"
+          aria-label="Search contacts"
+          autocomplete="off"
         />
       </div>
       
@@ -1100,6 +1103,9 @@ async function loadPeopleData(): Promise<void> {
 export async function openYourPeople(): Promise<void> {
   if (state.isOpen) return;
 
+  // Store previously focused element for restoration
+  previouslyFocusedElement = document.activeElement as HTMLElement | null;
+
   // Cleanup any existing panels
   cleanupOrphanedPanels();
   injectStyles();
@@ -1120,7 +1126,7 @@ export async function openYourPeople(): Promise<void> {
   panelContainer.className = 'your-people-overlay';
   panelContainer.innerHTML = `
     <div class="your-people-backdrop"></div>
-    <div class="your-people-panel" role="dialog" aria-modal="true" aria-label="Your People">
+    <div class="your-people-panel" role="dialog" aria-modal="true" aria-labelledby="yp-title" aria-describedby="yp-desc">
       <div class="yp-loading">Loading...</div>
     </div>
   `;
@@ -1133,6 +1139,12 @@ export async function openYourPeople(): Promise<void> {
 
   // Load data
   await loadPeopleData();
+
+  // Focus management - focus search input after render
+  setTimeout(() => {
+    const searchInput = panelContainer?.querySelector<HTMLInputElement>('.yp-search-input');
+    searchInput?.focus();
+  }, DURATION.FAST);
 
   log.info('Opened Your People panel');
 }
@@ -1150,6 +1162,12 @@ export function closeYourPeople(): void {
   setTimeout(() => {
     panelContainer?.remove();
     panelContainer = null;
+    
+    // Restore focus to previously focused element
+    if (previouslyFocusedElement && document.body.contains(previouslyFocusedElement)) {
+      previouslyFocusedElement.focus();
+    }
+    previouslyFocusedElement = null;
   }, DURATION.NORMAL);
 
   state.isOpen = false;

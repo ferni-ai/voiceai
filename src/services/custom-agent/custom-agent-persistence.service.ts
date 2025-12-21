@@ -254,15 +254,17 @@ export async function listCustomAgents(userId: string): Promise<CustomAgent[]> {
 /**
  * Deep merges two objects, preserving existing values when partial updates are made
  */
-function deepMerge<T extends Record<string, unknown>>(
+function deepMerge<T>(
   existing: T,
   updates: Partial<T>
 ): T {
-  const result = { ...existing };
+  const result = { ...existing } as Record<string, unknown>;
+  const existingRecord = existing as Record<string, unknown>;
+  const updatesRecord = updates as Record<string, unknown>;
   
-  for (const key in updates) {
-    const updateValue = updates[key];
-    const existingValue = existing[key];
+  for (const key in updatesRecord) {
+    const updateValue = updatesRecord[key];
+    const existingValue = existingRecord[key];
     
     if (updateValue === undefined) {
       continue; // Skip undefined values
@@ -282,13 +284,13 @@ function deepMerge<T extends Record<string, unknown>>(
       result[key] = deepMerge(
         existingValue as Record<string, unknown>,
         updateValue as Record<string, unknown>
-      ) as T[Extract<keyof T, string>];
+      );
     } else {
-      result[key] = updateValue as T[Extract<keyof T, string>];
+      result[key] = updateValue;
     }
   }
   
-  return result;
+  return result as T;
 }
 
 /**
@@ -325,7 +327,7 @@ export async function updateCustomAgent(
     delete (mergedData as Partial<CustomAgent>).createdAt;
 
     // Remove undefined fields for Firestore compatibility
-    const firestoreDoc = removeUndefinedFields(mergedData as Record<string, unknown>);
+    const firestoreDoc = removeUndefinedFields(mergedData as unknown as Record<string, unknown>);
 
     await docRef.set(firestoreDoc, { merge: true });
 

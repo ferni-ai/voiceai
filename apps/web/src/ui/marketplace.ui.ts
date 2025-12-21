@@ -624,7 +624,7 @@ async function renderCreationsTab(): Promise<void> {
       <div class="creations-header">
         <div class="creations-header-content">
           <h3 class="creations-title">Your Custom Agents</h3>
-          <p class="creations-subtitle">Create AI companions with custom voices and personalities</p>
+          <p class="creations-subtitle">Create companions with custom voices and personalities</p>
         </div>
         <button class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -645,7 +645,7 @@ async function renderCreationsTab(): Promise<void> {
             </svg>
           </div>
           <h4 class="creations-empty-title">No agents yet</h4>
-          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own AI companion.</p>
+          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
           <button class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -696,7 +696,7 @@ async function renderCreationsTab(): Promise<void> {
                 </svg>
               </span>
               <h5 class="creation-type-name">Custom</h5>
-              <p class="creation-type-desc">Build any AI personality from scratch</p>
+              <p class="creation-type-desc">Build any personality from scratch</p>
             </div>
           </div>
         </div>
@@ -971,7 +971,7 @@ function renderEmployeeCard(
 
 /**
  * Render the "Meet the Team" narrative section
- * The first company built by AI, run by AI.
+ * Meet your team - friends who truly understand.
  *
  * Uses CSS variables from design system tokens.css via data-persona attribute.
  * Each avatar now has a subtle ambient glow that matches its persona color.
@@ -987,8 +987,8 @@ function renderTeamNarrative(): string {
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
-        <h3 class="team-narrative-title">The first company built by AI.</h3>
-        <p class="team-narrative-subtitle">Run by AI. For humans.</p>
+        <h3 class="team-narrative-title">Meet your team.</h3>
+        <p class="team-narrative-subtitle">Friends who truly understand.</p>
       </div>
       
       <div class="team-leadership">
@@ -1059,7 +1059,7 @@ function renderTeamNarrative(): string {
  */
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
   return agents
-    .map((agent) => {
+    .map((agent, index) => {
       const initials = agent.name
         .split(' ')
         .map((n) => n[0])
@@ -1068,6 +1068,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         .toUpperCase();
       // Use CSS variables via data-persona attribute - gradient comes from design system
       const gradient = getPersonaGradient(agent.id);
+      const glow = getPersonaGlow(agent.id);
 
       // Determine state classes and button
       const stateClass = agent.isInstalled ? 'installed' : '';
@@ -1087,17 +1088,21 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
           </div>`
         : '';
 
+      // Staggered animation delay for breathing
+      const animationDelay = (index % 6) * 0.5;
+
       return `
-    <article class="marketplace-agent ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
-      <div class="agent-header">
-        <div class="agent-avatar" style="background: ${gradient};">
+    <article class="marketplace-agent discover-card ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem" style="--stagger-delay: ${animationDelay}s;">
+      <div class="discover-avatar-container">
+        <div class="discover-avatar-ring" style="--avatar-glow: ${glow};"></div>
+        <div class="discover-avatar-orb" style="background: ${gradient}; --avatar-glow: ${glow};">
           ${initials}
         </div>
-        <div class="agent-meta">
-          <h3 class="agent-name">${agent.name}</h3>
-          <span class="agent-category">${getCategoryLabel(agent.category)}</span>
-          ${ratingHtml}
-        </div>
+      </div>
+      <div class="discover-info">
+        <h3 class="agent-name">${agent.name}</h3>
+        <span class="agent-category">${getCategoryLabel(agent.category)}</span>
+        ${ratingHtml}
         ${badgeHtml}
       </div>
       <p class="agent-description">${agent.short_description}</p>
@@ -2506,6 +2511,69 @@ function getMarketplaceStyles(): string {
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    /* ========================================
+       DISCOVER AVATARS - Landing Page Style
+       Pixar-inspired breathing, floating, glowing
+       ======================================== */
+
+    /* Breathing animation - everything alive breathes (Pixar principle) */
+    @keyframes avatar-breathe {
+      0%, 100% {
+        transform: scale3d(1, 1, 1) translateY(0);
+      }
+      40% {
+        transform: scale3d(0.994, 1.012, 1) translateY(-2px);
+      }
+      50% {
+        transform: scale3d(0.994, 1.012, 1) translateY(-2px);
+      }
+      90% {
+        transform: scale3d(1, 1, 1) translateY(0);
+      }
+    }
+
+    /* Ring pulse animation - gentle glow */
+    @keyframes ring-pulse {
+      0%, 100% {
+        opacity: 0.15;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.35;
+        transform: scale(1.04);
+      }
+    }
+
+    /* Float animation - like balloons in Up */
+    @keyframes avatar-float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      25% {
+        transform: translateY(-6px) rotate(0.5deg);
+      }
+      50% {
+        transform: translateY(-10px) rotate(-0.3deg);
+      }
+      75% {
+        transform: translateY(-4px) rotate(0.3deg);
+      }
+    }
+
+    /* Glow pulse on hover */
+    @keyframes glow-pulse {
+      0%, 100% {
+        box-shadow: 
+          0 0 0 0 var(--avatar-glow, rgba(74, 103, 65, 0)),
+          0 4px 20px rgba(0, 0, 0, 0.15);
+      }
+      50% {
+        box-shadow: 
+          0 0 30px 8px var(--avatar-glow, rgba(74, 103, 65, 0.35)),
+          0 8px 32px rgba(0, 0, 0, 0.2);
+      }
     }
 
     .empty-illustration {

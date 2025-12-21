@@ -917,6 +917,5 @@ function getJournalStyles(): string {
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-export { openVoiceJournal, closeVoiceJournal };
+// Note: openVoiceJournal and closeVoiceJournal are exported inline above
 

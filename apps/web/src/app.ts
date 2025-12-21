@@ -54,11 +54,8 @@ import {
 } from './ui/spotify.ui.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
-// Relationship Management (Your People)
+// Relationship Management (Your People) - unified contact & gift management
 import { initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
-// Legacy contact management (backward compatibility)
-import { initContactsUI } from './ui/contacts.ui.js';
-import { initGiftsUI } from './ui/gifts.ui.js';
 
 // Premium UI Features
 import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
@@ -1054,9 +1051,6 @@ class VoiceAIApp {
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
     // Relationship Management - Better than human relationship support
     this.safeInit('YourPeopleUI', () => initYourPeopleUI());
-    // Legacy contact/gift UIs (backward compatibility)
-    this.safeInit('ContactsUI', () => initContactsUI());
-    this.safeInit('GiftsUI', () => initGiftsUI());
     // 📱 Mobile Delights - Tilt parallax, tap-to-look, haptics, pull-to-connect, immersive mode
     this.safeInit('MobileDelights', () =>
       initMobileDelights({
