@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-15T21:43:39.609Z",
+  "generated": "2025-12-21T15:08:06.816Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
@@ -110,6 +110,7 @@
     "AI-LANDING-GUIDELINES.md",
     "BETTER-THAN-HUMAN.md",
     "BRAND-POSITIONING-EXPLORATION.md",
+    "BRAND-SYSTEM.md",
     "BRAND-VOICE-GUIDE.md",
     "COMMUNITY-FUNDED-BRAND-STRATEGY.md",
     "COMPONENT-DECISION-TREES.md",

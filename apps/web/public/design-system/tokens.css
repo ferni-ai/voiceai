@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-15T21:43:37.856Z
+ * Build: 2025-12-21T15:08:05.693Z
  */
 
 /* ========================================
@@ -626,6 +626,24 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+}
+
+@keyframes avatarBreathe {
+  0%, 100% { transform: scale3d(1, 1, 1) translateY(0); }
+  40% { transform: scale3d(0.994, 1.012, 1) translateY(-2px); }
+  50% { transform: scale3d(0.994, 1.012, 1) translateY(-2px); }
+  90% { transform: scale3d(1, 1, 1) translateY(0); }
+}
+
+@keyframes avatarFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-4px) rotate(0.5deg); }
+  66% { transform: translateY(-2px) rotate(-0.5deg); }
+}
+
+@keyframes avatarGlowRing {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.02); }
 }
 
 @keyframes shimmer {
