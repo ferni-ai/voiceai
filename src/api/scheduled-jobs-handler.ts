@@ -238,6 +238,46 @@ async function getSuperhumanMetricsEndpoint(res: ServerResponse): Promise<void> 
 }
 
 // ============================================================================
+// CALENDAR JOBS
+// ============================================================================
+
+async function runWeeklyCalendarDigest(res: ServerResponse): Promise<void> {
+  try {
+    const { calendarJobs } = await import('../tasks/scheduled/calendar-jobs.js');
+    const result = await calendarJobs.runWeeklyDigest();
+    log.info({ result }, 'Weekly calendar digest completed');
+    sendJson(res, 200, { success: true, job: 'weeklyCalendarDigest', result });
+  } catch (error) {
+    log.error({ error }, 'Weekly calendar digest failed');
+    sendJson(res, 500, { success: false, job: 'weeklyCalendarDigest', error: String(error) });
+  }
+}
+
+async function runPreMeetingNotifications(res: ServerResponse): Promise<void> {
+  try {
+    const { calendarJobs } = await import('../tasks/scheduled/calendar-jobs.js');
+    const result = await calendarJobs.runPreMeetingNotifications();
+    log.info({ result }, 'Pre-meeting notifications completed');
+    sendJson(res, 200, { success: true, job: 'preMeetingNotifications', result });
+  } catch (error) {
+    log.error({ error }, 'Pre-meeting notifications failed');
+    sendJson(res, 500, { success: false, job: 'preMeetingNotifications', error: String(error) });
+  }
+}
+
+async function runMeetingFollowUp(res: ServerResponse): Promise<void> {
+  try {
+    const { calendarJobs } = await import('../tasks/scheduled/calendar-jobs.js');
+    const result = await calendarJobs.runMeetingFollowUp();
+    log.info({ result }, 'Meeting follow-up completed');
+    sendJson(res, 200, { success: true, job: 'meetingFollowUp', result });
+  } catch (error) {
+    log.error({ error }, 'Meeting follow-up failed');
+    sendJson(res, 500, { success: false, job: 'meetingFollowUp', error: String(error) });
+  }
+}
+
+// ============================================================================
 // MARKETPLACE BILLING JOBS
 // ============================================================================
 
@@ -457,20 +497,43 @@ export async function handleScheduledJobsRoutes(
     return true;
   }
 
+  // CALENDAR JOBS
+
+  // POST /api/jobs/weekly-calendar-digest
+  if (pathname === '/api/jobs/weekly-calendar-digest' && req.method === 'POST') {
+    await runWeeklyCalendarDigest(res);
+    return true;
+  }
+
+  // POST /api/jobs/pre-meeting-notifications
+  if (pathname === '/api/jobs/pre-meeting-notifications' && req.method === 'POST') {
+    await runPreMeetingNotifications(res);
+    return true;
+  }
+
+  // POST /api/jobs/meeting-follow-up
+  if (pathname === '/api/jobs/meeting-follow-up' && req.method === 'POST') {
+    await runMeetingFollowUp(res);
+    return true;
+  }
+
   // GET /api/jobs/status - List job configurations
   if (pathname === '/api/jobs/status' && req.method === 'GET') {
     try {
       const { wellbeingJobs } = await import('../tasks/scheduled/wellbeing-jobs.js');
       const { marketplaceBillingJobs } =
         await import('../tasks/scheduled/marketplace-billing-jobs.js');
+      const { calendarJobs } = await import('../tasks/scheduled/calendar-jobs.js');
       const wellbeingConfigsRecord = wellbeingJobs.getJobConfigs();
       const wellbeingConfigs = Object.values(wellbeingConfigsRecord);
       const marketplaceConfigs = marketplaceBillingJobs.getJobConfigs();
+      const calendarConfigs = calendarJobs.getJobConfigs();
       sendJson(res, 200, {
-        jobs: [...wellbeingConfigs, ...marketplaceConfigs],
+        jobs: [...wellbeingConfigs, ...marketplaceConfigs, ...calendarConfigs],
         categories: {
           wellbeing: wellbeingConfigs,
           marketplace: marketplaceConfigs,
+          calendar: calendarConfigs,
         },
       });
     } catch (error) {

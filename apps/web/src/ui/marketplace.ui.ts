@@ -44,6 +44,12 @@ import {
 } from './marketplace-permission-consent.ui.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
+import { 
+  listCustomAgents, 
+  deleteCustomAgent,
+  type CustomAgent 
+} from '../services/custom-agent.service.js';
+import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 
 const log = createLogger('Marketplace');
 
@@ -87,7 +93,7 @@ function getPersonaGlow(personaId: string): string {
 // ============================================================================
 
 let marketplaceModal: HTMLElement | null = null;
-let currentTab: 'browse' | 'installed' = 'browse';
+let currentTab: 'browse' | 'installed' | 'creations' = 'browse';
 let currentCategory: string | null = null;
 let searchQuery = '';
 
@@ -177,6 +183,13 @@ function ensureModalExists(): HTMLElement {
           </button>
           <button class="marketplace-tab" data-tab="installed">
             Your Team
+          </button>
+          <button class="marketplace-tab" data-tab="creations">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            My Creations
           </button>
         </div>
         
@@ -338,8 +351,10 @@ async function refreshContent(): Promise<void> {
   try {
     if (currentTab === 'browse') {
       await renderBrowseTab();
-    } else {
+    } else if (currentTab === 'installed') {
       await renderInstalledTab();
+    } else if (currentTab === 'creations') {
+      await renderCreationsTab();
     }
   } catch (err) {
     log.error('❌ Marketplace: Failed to refresh content:', err);
@@ -580,6 +595,288 @@ async function renderInstalledTab(): Promise<void> {
 
   grid.innerHTML = html;
   grid.setAttribute('style', 'display: block;');
+}
+
+/**
+ * Render the "My Creations" tab showing user's custom agents
+ */
+async function renderCreationsTab(): Promise<void> {
+  const grid = marketplaceModal?.querySelector('.marketplace-grid');
+  const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
+
+  if (!grid) return;
+  if (empty) empty.style.display = 'none';
+
+  let customAgents: CustomAgent[] = [];
+  try {
+    customAgents = await listCustomAgents();
+  } catch (err) {
+    log.debug('Failed to fetch custom agents (API may not be ready):', err);
+    // Continue with empty array - show create prompt
+  }
+
+  // Build the creations tab HTML
+  const html = `
+    <section class="creations-section">
+      <div class="creations-header">
+        <div class="creations-header-content">
+          <h3 class="creations-title">Your Custom Agents</h3>
+          <p class="creations-subtitle">Create AI companions with custom voices and personalities</p>
+        </div>
+        <button class="creations-create-btn" data-action="create-agent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create Agent
+        </button>
+      </div>
+
+      ${customAgents.length === 0 ? `
+        <div class="creations-empty">
+          <div class="creations-empty-illustration">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 12h8"></path>
+              <path d="M12 8v8"></path>
+            </svg>
+          </div>
+          <h4 class="creations-empty-title">No agents yet</h4>
+          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own AI companion.</p>
+          <button class="creations-empty-btn" data-action="create-agent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Your First Agent
+          </button>
+        </div>
+
+        <div class="creations-types-preview">
+          <h4 class="creations-types-title">What you can create</h4>
+          <div class="creations-types-grid">
+            <div class="creation-type-card">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2c.5 3.5 2 5.5 3.5 7 1.5 1.5 3.5 2.5 5.5 3-2 .5-4 1.5-5.5 3-1.5 1.5-3 3.5-3.5 7-.5-3.5-2-5.5-3.5-7-1.5-1.5-3.5-2.5-5.5-3 2-.5 4-1.5 5.5-3 1.5-1.5 3-3.5 3.5-7z"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Legacy</h5>
+              <p class="creation-type-desc">Preserve the voice and wisdom of someone you cherish</p>
+            </div>
+            <div class="creation-type-card">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22c4-3 8-6 8-11a8 8 0 0 0-16 0c0 5 4 8 8 11z"/>
+                  <circle cx="12" cy="11" r="3"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Mentor</h5>
+              <p class="creation-type-desc">Create a coach based on an inspiring figure</p>
+            </div>
+            <div class="creation-type-card">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="10" r="3"/>
+                  <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Digital Twin</h5>
+              <p class="creation-type-desc">Your personal voice journal that grows with you</p>
+            </div>
+            <div class="creation-type-card">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Custom</h5>
+              <p class="creation-type-desc">Build any AI personality from scratch</p>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div class="creations-grid">
+          ${customAgents.map(agent => renderCustomAgentCard(agent)).join('')}
+        </div>
+      `}
+    </section>
+  `;
+
+  grid.innerHTML = html;
+  grid.setAttribute('style', 'display: block;');
+
+  // Attach event listeners for create buttons
+  grid.querySelectorAll('[data-action="create-agent"]').forEach(btn => {
+    btn.addEventListener('click', handleCreateAgentClick);
+  });
+
+  // Attach listeners for agent cards
+  grid.querySelectorAll('.custom-agent-card').forEach(card => {
+    card.addEventListener('click', handleCustomAgentCardClick);
+  });
+
+  grid.querySelectorAll('[data-action="delete-agent"]').forEach(btn => {
+    btn.addEventListener('click', handleDeleteAgentClick);
+  });
+
+  // Journal button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="open-journal"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenJournalClick);
+  });
+}
+
+/**
+ * Render a custom agent card
+ */
+function renderCustomAgentCard(agent: CustomAgent): string {
+  const statusClass = agent.status === 'active' ? 'status--active' : 
+                      agent.status === 'paused' ? 'status--paused' : 'status--draft';
+  const typeLabel = agent.type === 'legacy' ? 'Legacy' :
+                    agent.type === 'mentor' ? 'Mentor' :
+                    agent.type === 'twin' ? 'Digital Twin' :
+                    agent.type === 'fictional' ? 'Fictional' :
+                    agent.type === 'professional' ? 'Professional' : 'Custom';
+  
+  const initials = (agent.displayName || agent.name)
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const primaryColor = agent.colors?.primary || 'var(--persona-primary)';
+  const gradient = agent.colors?.gradient || `linear-gradient(135deg, ${primaryColor}, ${primaryColor})`;
+
+  return `
+    <article class="custom-agent-card" data-agent-id="${agent.id}">
+      <div class="custom-agent-header">
+        <div class="custom-agent-avatar" style="background: ${gradient};">
+          ${agent.icon || initials}
+        </div>
+        <div class="custom-agent-meta">
+          <h3 class="custom-agent-name">${agent.displayName || agent.name}</h3>
+          <span class="custom-agent-type">${typeLabel}</span>
+        </div>
+        <span class="custom-agent-status ${statusClass}">${agent.status}</span>
+      </div>
+      <p class="custom-agent-description">${agent.description}</p>
+      <div class="custom-agent-stats">
+        <span class="custom-agent-stat">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          </svg>
+          ${agent.voice?.status === 'ready' ? 'Voice ready' : agent.voice?.type === 'cloned' ? 'Voice pending' : 'No voice'}
+        </span>
+        <span class="custom-agent-stat">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          ${(agent.memories?.stories?.length || 0) + (agent.memories?.wisdom?.length || 0)} memories
+        </span>
+      </div>
+      <footer class="custom-agent-footer">
+        ${agent.type === 'twin' ? `
+          <button class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            Journal
+          </button>
+        ` : ''}
+        <button class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
+          Edit
+        </button>
+        <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </footer>
+    </article>
+  `;
+}
+
+/**
+ * Handle create agent button click
+ */
+function handleCreateAgentClick(e: Event): void {
+  e.stopPropagation();
+  closeMarketplace();
+  // Small delay to let marketplace close animation complete
+  trackedTimeout(() => {
+    openCustomAgentWizard(false);
+  }, 200);
+  soundUI.play('click');
+}
+
+/**
+ * Handle custom agent card click (open for editing)
+ */
+function handleCustomAgentCardClick(e: Event): void {
+  const card = (e.currentTarget as HTMLElement);
+  const agentId = card.dataset.agentId;
+  if (agentId) {
+    log.debug('Custom agent card clicked:', agentId);
+    // TODO: Open agent editor
+    soundUI.play('click');
+  }
+}
+
+/**
+ * Handle delete agent button click
+ */
+async function handleDeleteAgentClick(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const agentId = btn.dataset.agentId;
+  
+  if (!agentId) return;
+
+  // Confirm deletion
+  const confirmed = confirm('Are you sure you want to delete this agent? This cannot be undone.');
+  if (!confirmed) return;
+
+  try {
+    await deleteCustomAgent(agentId);
+    const { toast } = await import('./toast.ui.js');
+    toast.success('Agent deleted');
+    soundUI.play('success');
+    // Refresh the tab
+    void refreshContent();
+  } catch (err) {
+    log.error('Failed to delete agent:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't delete agent. Try again?");
+  }
+}
+
+/**
+ * Handle opening the voice journal for a Digital Twin agent.
+ */
+async function handleOpenJournalClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the voice journal UI
+    const { openVoiceJournal } = await import('./voice-journal.ui.js');
+    await openVoiceJournal(agentId);
+  } catch (err) {
+    log.error('Failed to open journal:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open journal. Try again?");
+  }
 }
 
 /**
@@ -941,7 +1238,7 @@ function handleModalClick(e: Event): void {
   // Tab switching
   const tab = target.closest('[data-tab]') as HTMLElement;
   if (tab) {
-    const tabName = tab.dataset.tab as 'browse' | 'installed';
+    const tabName = tab.dataset.tab as 'browse' | 'installed' | 'creations';
     if (tabName !== currentTab) {
       currentTab = tabName;
       updateTabs();
@@ -1031,7 +1328,7 @@ function handleModalTouch(e: TouchEvent): void {
   const tab = target.closest('[data-tab]') as HTMLElement;
   if (tab) {
     e.preventDefault();
-    const tabName = tab.dataset.tab as 'browse' | 'installed';
+    const tabName = tab.dataset.tab as 'browse' | 'installed' | 'creations';
     if (tabName !== currentTab) {
       currentTab = tabName;
       updateTabs();
@@ -3720,6 +4017,492 @@ function getMarketplaceStyles(): string {
       .marketplace-tab {
         padding: 8px 10px;
         font-size: 0.75rem;
+      }
+    }
+
+    /* ========================================================================
+       MY CREATIONS TAB STYLES
+       ======================================================================== */
+    
+    .creations-section {
+      padding: var(--space-md, 16px) 0;
+    }
+
+    .creations-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-xl, 32px);
+      padding-bottom: var(--space-lg, 24px);
+      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    }
+
+    .creations-header-content {
+      flex: 1;
+    }
+
+    .creations-title {
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text, #fff);
+      margin: 0 0 var(--space-xs, 4px);
+    }
+
+    .creations-subtitle {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.9rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      margin: 0;
+    }
+
+    .creations-create-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 6px);
+      padding: var(--space-sm, 10px) var(--space-md, 18px);
+      background: var(--persona-primary, var(--color-accent-primary, #4a6741));
+      border: none;
+      border-radius: var(--radius-full, 999px);
+      color: white;
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .creations-create-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .creations-create-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Empty State */
+    .creations-empty {
+      text-align: center;
+      padding: var(--space-2xl, 48px) var(--space-lg, 24px);
+    }
+
+    .creations-empty-illustration {
+      margin-bottom: var(--space-lg, 24px);
+      color: var(--color-text-dimmed, rgba(255, 255, 255, 0.3));
+    }
+
+    .creations-empty-title {
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-text, #fff);
+      margin: 0 0 var(--space-sm, 8px);
+    }
+
+    .creations-empty-hint {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.9rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      margin: 0 0 var(--space-lg, 24px);
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
+
+    .creations-empty-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs, 6px);
+      padding: var(--space-sm, 12px) var(--space-lg, 24px);
+      background: var(--persona-primary, var(--color-accent-primary, #4a6741));
+      border: none;
+      border-radius: var(--radius-full, 999px);
+      color: white;
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .creations-empty-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    }
+
+    /* Types Preview Grid */
+    .creations-types-preview {
+      margin-top: var(--space-2xl, 48px);
+      padding-top: var(--space-xl, 32px);
+      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    }
+
+    .creations-types-title {
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 var(--space-lg, 24px);
+      text-align: center;
+    }
+
+    .creations-types-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-md, 16px);
+    }
+
+    .creation-type-card {
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-lg, 24px) var(--space-md, 16px);
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .creation-type-card:hover {
+      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      border-color: var(--color-border, rgba(255, 255, 255, 0.12));
+    }
+
+    .creation-type-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: var(--space-sm, 8px);
+      color: var(--color-accent, #4a6741);
+    }
+    
+    .creation-type-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .creation-type-name {
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-text, #fff);
+      margin: 0 0 var(--space-xs, 4px);
+    }
+
+    .creation-type-desc {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.75rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* Custom Agents Grid */
+    .creations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-md, 16px);
+    }
+
+    .custom-agent-card {
+      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+      border-radius: var(--radius-lg, 16px);
+      padding: var(--space-lg, 20px);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .custom-agent-card:hover {
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.08));
+      border-color: var(--color-border, rgba(255, 255, 255, 0.15));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-sm, 12px);
+      margin-bottom: var(--space-md, 12px);
+    }
+
+    .custom-agent-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-lg, 12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .custom-agent-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .custom-agent-name {
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text, #fff);
+      margin: 0 0 var(--space-2xs, 2px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .custom-agent-type {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.75rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    }
+
+    .custom-agent-status {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm, 4px);
+    }
+
+    .custom-agent-status.status--active {
+      background: rgba(74, 103, 65, 0.2);
+      color: var(--color-success, #4a6741);
+    }
+
+    .custom-agent-status.status--draft {
+      background: rgba(255, 193, 7, 0.15);
+      color: #ffc107;
+    }
+
+    .custom-agent-status.status--paused {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    }
+
+    .custom-agent-description {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.85rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      margin: 0 0 var(--space-md, 12px);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .custom-agent-stats {
+      display: flex;
+      gap: var(--space-md, 16px);
+      margin-bottom: var(--space-md, 12px);
+    }
+
+    .custom-agent-stat {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 4px);
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.75rem;
+      color: var(--color-text-dimmed, rgba(255, 255, 255, 0.4));
+    }
+
+    .custom-agent-footer {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm, 8px);
+      padding-top: var(--space-sm, 12px);
+      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .custom-agent-action {
+      padding: var(--space-xs, 6px) var(--space-sm, 12px);
+      border-radius: var(--radius-md, 8px);
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .custom-agent-action--edit {
+      flex: 1;
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.08));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+      color: var(--color-text, #fff);
+    }
+
+    .custom-agent-action--edit:hover {
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
+    }
+
+    .custom-agent-action--delete {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    }
+
+    .custom-agent-action--delete:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+
+    .custom-agent-action--journal {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--persona-primary, #4a6741);
+      border: 1px solid var(--persona-primary, #4a6741);
+      color: #fff;
+    }
+
+    .custom-agent-action--journal:hover {
+      background: var(--persona-secondary, #3d5a35);
+      border-color: var(--persona-secondary, #3d5a35);
+    }
+
+    .custom-agent-action--journal svg {
+      flex-shrink: 0;
+    }
+
+    /* Zen theme - Creations Tab */
+    [data-theme="zen"] .creations-header {
+      border-bottom-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .creations-title {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .creations-subtitle {
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    [data-theme="zen"] .creations-empty-title {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .creations-empty-hint {
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    [data-theme="zen"] .creations-types-preview {
+      border-top-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .creations-types-title {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .creation-type-card {
+      background: rgba(44, 37, 32, 0.03);
+      border-color: rgba(44, 37, 32, 0.08);
+    }
+
+    [data-theme="zen"] .creation-type-card:hover {
+      background: rgba(44, 37, 32, 0.05);
+    }
+
+    [data-theme="zen"] .creation-type-name {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .creation-type-desc {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .custom-agent-card {
+      background: rgba(44, 37, 32, 0.03);
+      border-color: rgba(44, 37, 32, 0.08);
+    }
+
+    [data-theme="zen"] .custom-agent-card:hover {
+      background: rgba(44, 37, 32, 0.05);
+      border-color: rgba(44, 37, 32, 0.12);
+    }
+
+    [data-theme="zen"] .custom-agent-name {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .custom-agent-type {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .custom-agent-description {
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    [data-theme="zen"] .custom-agent-stat {
+      color: rgba(44, 37, 32, 0.4);
+    }
+
+    [data-theme="zen"] .custom-agent-footer {
+      border-top-color: rgba(44, 37, 32, 0.08);
+    }
+
+    [data-theme="zen"] .custom-agent-action--edit {
+      background: rgba(44, 37, 32, 0.05);
+      border-color: rgba(44, 37, 32, 0.1);
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .custom-agent-action--delete {
+      border-color: rgba(44, 37, 32, 0.1);
+      color: rgba(44, 37, 32, 0.4);
+    }
+
+    [data-theme="zen"] .custom-agent-action--journal {
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
+      color: #fff;
+    }
+
+    [data-theme="zen"] .custom-agent-action--journal:hover {
+      background: var(--persona-secondary, #3d5a35);
+      border-color: var(--persona-secondary, #3d5a35);
+    }
+
+    /* Responsive - Creations Tab */
+    @media (max-width: 768px) {
+      .creations-header {
+        flex-direction: column;
+        gap: var(--space-md, 16px);
+        text-align: center;
+      }
+
+      .creations-types-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .creations-types-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .creations-grid {
+        grid-template-columns: 1fr;
       }
     }
   `;

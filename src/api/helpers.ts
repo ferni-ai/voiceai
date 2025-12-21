@@ -46,7 +46,7 @@ export async function parseBody<T = unknown>(req: IncomingMessage): Promise<T> {
 /**
  * Get user ID from request with proper validation.
  *
- * Checks query params and headers. Returns null if not found
+ * Checks query params, headers, and dev mode. Returns null if not found
  * (callers must handle missing userId appropriately).
  *
  * @param req - Incoming HTTP request
@@ -59,6 +59,16 @@ export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
 
   const fromHeader = req.headers['x-user-id'];
   if (typeof fromHeader === 'string' && fromHeader) return fromHeader;
+
+  // Dev mode bypass - allows testing without authentication
+  // SECURITY: Only works in development environment
+  const isDev = process.env.NODE_ENV !== 'production';
+  const adminKey = parsedUrl.searchParams.get('admin_key') || 
+                   (req.headers['x-admin-key'] as string);
+  
+  if (isDev && adminKey === 'dev-mode') {
+    return 'dev-user-123';
+  }
 
   return null;
 }

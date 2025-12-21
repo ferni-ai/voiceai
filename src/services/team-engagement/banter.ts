@@ -7,6 +7,10 @@
  * @module team-engagement/banter
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'banter' });
+
 // ============================================================================
 // CROSS-PERSONA REFERENCES - Characters talking about each other
 // NOTE: Alex uses they/them pronouns. Maya, Jordan use she/her.
@@ -344,26 +348,18 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
 export function getHandoffBanter(fromPersonaId: string, toPersonaId: string): string | null {
   const fromBanter = HANDOFF_BANTER[fromPersonaId];
   if (!fromBanter) {
-    // Log missing banter for debugging
-    console.warn(
-      `[BANTER] No soft open banter found for fromPersona: "${fromPersonaId}" (available: ${Object.keys(HANDOFF_BANTER).join(', ')})`
-    );
+    log.debug({ fromPersonaId, available: Object.keys(HANDOFF_BANTER) }, 'No soft open banter found for fromPersona');
     return null;
   }
 
   const banterOptions = fromBanter[toPersonaId];
   if (!banterOptions || banterOptions.length === 0) {
-    // Log missing target for debugging
-    console.warn(
-      `[BANTER] No soft open banter for ${fromPersonaId} -> ${toPersonaId} (available targets: ${Object.keys(fromBanter).join(', ')})`
-    );
+    log.debug({ fromPersonaId, toPersonaId, available: Object.keys(fromBanter) }, 'No soft open banter for transition');
     return null;
   }
 
   const selected = banterOptions[Math.floor(Math.random() * banterOptions.length)];
-  console.log(
-    `[BANTER] ✅ Soft open: ${fromPersonaId} introduces ${toPersonaId}: "${selected.slice(0, 50)}..."`
-  );
+  log.debug({ fromPersonaId, toPersonaId, banter: selected.slice(0, 50) }, 'Soft open banter selected');
   return selected;
 }
 
@@ -559,25 +555,17 @@ export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
 export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): string | null {
   const toBanter = ARRIVING_BANTER[toPersonaId];
   if (!toBanter) {
-    // Log missing banter for debugging
-    console.warn(
-      `[BANTER] No arriving banter found for toPersona: "${toPersonaId}" (available: ${Object.keys(ARRIVING_BANTER).join(', ')})`
-    );
+    log.debug({ toPersonaId, available: Object.keys(ARRIVING_BANTER) }, 'No arriving banter found for toPersona');
     return null;
   }
 
   const banterOptions = toBanter[fromPersonaId];
   if (!banterOptions || banterOptions.length === 0) {
-    // Log missing source for debugging
-    console.warn(
-      `[BANTER] No arriving banter for ${toPersonaId} <- ${fromPersonaId} (available sources: ${Object.keys(toBanter).join(', ')})`
-    );
+    log.debug({ toPersonaId, fromPersonaId, available: Object.keys(toBanter) }, 'No arriving banter for transition');
     return null;
   }
 
   const selected = banterOptions[Math.floor(Math.random() * banterOptions.length)];
-  console.log(
-    `[BANTER] ✅ Arriving: ${toPersonaId} welcomes from ${fromPersonaId}: "${selected.slice(0, 50)}..."`
-  );
+  log.debug({ toPersonaId, fromPersonaId, banter: selected.slice(0, 50) }, 'Arriving banter selected');
   return selected;
 }

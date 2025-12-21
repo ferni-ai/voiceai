@@ -45,7 +45,7 @@ let ritualBuilderModule: typeof import('../ui/ritual-builder.ui.js') | null = nu
 let predictionTrackerModule: typeof import('../ui/prediction-tracker.ui.js') | null = null;
 let dataExportModule: typeof import('../ui/data-export.ui.js') | null = null;
 let teamHuddleModule: typeof import('../ui/team-huddle.ui.js') | null = null;
-let relationshipProgressModule: typeof import('../ui/relationship-progress.ui.js') | null = null;
+let relationshipProgressModule: typeof import('../ui/stage-celebration.ui.js') | null = null;
 
 // First-time user flows
 let onboardingModule: typeof import('../ui/onboarding.ui.js') | null = null;
@@ -137,7 +137,7 @@ export async function loadTeamHuddle() {
 export async function loadRelationshipProgress() {
   if (!relationshipProgressModule) {
     relationshipProgressModule = await safeImport('relationship-progress',
-      () => import('../ui/relationship-progress.ui.js'));
+      () => import('../ui/stage-celebration.ui.js'));
   }
   return relationshipProgressModule;
 }

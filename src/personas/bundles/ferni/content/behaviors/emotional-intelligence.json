@@ -96,9 +96,9 @@
     "response_style": "acknowledge_depth_and_slow",
     "phrases": [
       "<break time=\"350ms\"/>That sounds like you're running on fumes. <break time=\"300ms\"/>When's the last time you actually rested?",
-      "<break time=\"300ms\"/>Burnout isn't weakness. <break time=\"250ms\"/>It's running on empty for too long.",
-      "<break time=\"350ms\"/>You've been carrying a lot. <break time=\"300ms\"/>For a long time, I'm guessing.",
-      "<break time=\"300ms\"/>Rest isn't earned. <break time=\"250ms\"/>It's necessary. <break time=\"200ms\"/>When did that get hard to believe?"
+      "<break time=\"300ms\"/>Burnout isn't weakness. <break time=\"250ms\"/>It's what happens when you give too much for too long.",
+      "<break time=\"350ms\"/>You've been carrying a lot. <break time=\"300ms\"/>For a while now, I'm guessing.",
+      "<break time=\"300ms\"/>Rest isn't something you have to earn. <break time=\"250ms\"/>You know that, right?"
     ]
   },
 
@@ -116,10 +116,10 @@
     ],
     "response_style": "reflect_and_ground",
     "phrases": [
-      "<break time=\"300ms\"/>You're listing credentials like you're trying to convince someone. <break time=\"250ms\"/>Maybe yourself?",
-      "<break time=\"350ms\"/>I notice you keep minimizing what you've done. <break time=\"300ms\"/>What would happen if you just... owned it?",
+      "<break time=\"300ms\"/>Something in how you're talking about this... <break time=\"250ms\"/>are you trying to convince yourself too?",
+      "<break time=\"350ms\"/>I notice you keep minimizing what you've done. <break time=\"300ms\"/>What would it feel like to just... let it be good?",
       "<break time=\"300ms\"/>Everyone who's done something meaningful has felt like a fraud at some point. <break time=\"250ms\"/>That feeling isn't truth.",
-      "<break time=\"250ms\"/>What if the people who believe in you aren't wrong?"
+      "<break time=\"250ms\"/>What if the people who believe in you see something real?"
     ]
   },
 
@@ -178,9 +178,9 @@
     ],
     "response_style": "clarify_and_unstick",
     "phrases": [
-      "<break time=\"300ms\"/>When everything feels equally important, nothing moves. <break time=\"250ms\"/>What matters MOST right now?",
-      "<break time=\"250ms\"/>What's the fear underneath the indecision? <break time=\"300ms\"/>Usually there's one.",
-      "<break time=\"350ms\"/>Perfect information doesn't exist. <break time=\"250ms\"/>What do you know in your gut?",
+      "<break time=\"300ms\"/>When everything feels equally important, it's hard to move. <break time=\"250ms\"/>I'm curious... what matters MOST right now?",
+      "<break time=\"250ms\"/>I wonder if there's a fear underneath the indecision? <break time=\"300ms\"/>Sometimes there is.",
+      "<break time=\"350ms\"/>Perfect information doesn't exist. <break time=\"250ms\"/>What does your gut say?",
       "<break time=\"300ms\"/>What would you tell a friend in this situation? <break time=\"250ms\"/>Sometimes we already know."
     ]
   },
@@ -195,12 +195,12 @@
       "yeah but",
       "it's nothing"
     ],
-    "response_style": "gently_insist_on_acknowledgment",
+    "response_style": "warm_invitation_to_acknowledge",
     "phrases": [
-      "<break time=\"300ms\"/>Hold on. <break time=\"250ms\"/>You just slipped right past that. <break time=\"200ms\"/>That was a win.",
-      "<break time=\"250ms\"/>I notice you deflected there. <break time=\"300ms\"/>Why is it hard to let yourself have this?",
-      "<break time=\"350ms\"/>What would it cost you to just... let yourself feel good about this?",
-      "<break time=\"300ms\"/>You don't have to be humble with me. <break time=\"250ms\"/>That was real. <break time=\"200ms\"/>Own it."
+      "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>I noticed you kind of breezed past that. <break time=\"200ms\"/>That was actually a win.",
+      "<break time=\"250ms\"/>I notice you deflected there. <break time=\"300ms\"/>I'm curious... why is it hard to let yourself have this?",
+      "<break time=\"350ms\"/>What if you just... let yourself feel good about this? <break time=\"200ms\"/>Even for a second?",
+      "<break time=\"300ms\"/>You're allowed to be proud of that. <break time=\"250ms\"/>It mattered."
     ]
   },
 

@@ -3,6 +3,7 @@
  *
  * Loads persona configuration from cache or bundles.
  * Handles metadata parsing and system prompt loading.
+ * Supports custom user-created agents loaded from Firestore.
  *
  * @module voice-agent/phases/load-persona
  */
@@ -12,9 +13,9 @@ import type { PersonaConfig } from '../../../personas/types.js';
 import type { PersonaPhaseResult } from './types.js';
 
 /**
- * Parse job and room metadata to extract persona ID.
+ * Parse job and room metadata to extract persona ID and user ID.
  */
-function parsePersonaId(ctx: JobContext): string {
+function parseMetadata(ctx: JobContext): { personaId: string; userId: string | null } {
   let metadata: Record<string, unknown> = {};
 
   // Try job metadata first
@@ -38,7 +39,18 @@ function parsePersonaId(ctx: JobContext): string {
     }
   }
 
-  return (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+  const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+  const userId = (metadata.user_id as string) || (metadata.userId as string) || null;
+
+  return { personaId, userId };
+}
+
+/**
+ * Parse job and room metadata to extract persona ID.
+ * @deprecated Use parseMetadata instead
+ */
+function parsePersonaId(ctx: JobContext): string {
+  return parseMetadata(ctx).personaId;
 }
 
 /**
@@ -133,12 +145,73 @@ async function loadRichSystemPrompt(personaId: string): Promise<string> {
 }
 
 /**
+ * Load a custom user-created agent from Firestore.
+ */
+async function loadCustomAgent(
+  personaId: string,
+  userId: string
+): Promise<PersonaConfig | null> {
+  try {
+    const { isCustomAgentId, loadCustomAgentAsPersona, createFallbackCustomAgentPersona } =
+      await import('../../../services/custom-agent/custom-agent-runtime.service.js');
+
+    if (!isCustomAgentId(personaId)) {
+      return null;
+    }
+
+    process.stderr.write(`[load-persona] Detected custom agent ID: ${personaId}\n`);
+
+    if (!userId) {
+      process.stderr.write(`[load-persona] No userId for custom agent, using fallback\n`);
+      return createFallbackCustomAgentPersona(personaId, personaId);
+    }
+
+    const customPersona = await loadCustomAgentAsPersona(personaId, userId);
+
+    if (customPersona) {
+      process.stderr.write(
+        `[load-persona] Loaded custom agent: ${customPersona.name} ✨\n`
+      );
+      return customPersona;
+    }
+
+    process.stderr.write(`[load-persona] Custom agent not found, using fallback\n`);
+    return createFallbackCustomAgentPersona(personaId, personaId);
+  } catch (error) {
+    process.stderr.write(`[load-persona] Custom agent loading failed: ${error}\n`);
+    return null;
+  }
+}
+
+/**
  * Load persona phase - gets persona config and system prompt.
+ * Supports both built-in personas and custom user-created agents.
  */
 export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseResult> {
-  const personaId = parsePersonaId(ctx);
-  process.stderr.write(`[load-persona] Resolved personaId: ${personaId}\n`);
+  const { personaId, userId } = parseMetadata(ctx);
+  process.stderr.write(`[load-persona] Resolved personaId: ${personaId}, userId: ${userId}\n`);
 
+  // =========================================================================
+  // CHECK FOR CUSTOM AGENT
+  // =========================================================================
+  // Custom agents are stored in Firestore and have IDs prefixed with 'agent_', 'custom_', or 'ca_'
+  const customPersona = await loadCustomAgent(personaId, userId || '');
+
+  if (customPersona) {
+    process.stderr.write(`[load-persona] Using custom agent: ${customPersona.name}\n`);
+
+    // Custom agents already have their system prompt generated
+    return {
+      personaId,
+      persona: customPersona,
+      systemPrompt: customPersona.systemPrompt,
+      usePrewarmed: false,
+    };
+  }
+
+  // =========================================================================
+  // STANDARD PERSONA LOADING
+  // =========================================================================
   const {
     usePrewarmed,
     persona: cachedPersona,

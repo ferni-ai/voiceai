@@ -18,6 +18,7 @@ These implementation plans have been fully completed:
 | `PERSONA-EXCELLENCE-PLAN.md` | Dec 2024 | All 6 personas at 100% with 200% capabilities |
 | `HUMAN-FIRST-2FA-INTEGRATION.md` | Dec 2024 | Integration guide, all hooks documented |
 | `FERNI-EQ-ENHANCEMENTS.md` | Dec 2024 | All Pixar principles implemented (26 emotional states) |
+| `BETTER-THAN-HUMAN-INTEGRATION-PLAN.md` | Dec 2024 | All 5 EQ capabilities fully integrated and wired |
 
 ---
 
@@ -26,6 +27,16 @@ These implementation plans have been fully completed:
 | Document | Reason for Archive |
 |----------|-------------------|
 | `INCOMPLETE-FEATURES.md` | Superseded by `CURRENT-STATE-SUMMARY.md` - many "incomplete" features are actually complete |
+
+---
+
+## Duplicate/Redundant Documents (Dec 20, 2024)
+
+| Document | Reason for Archive | Canonical Source |
+|----------|-------------------|------------------|
+| `BTH-AUDIT.md` | Duplicate file at root level | `audits/BETTER-THAN-HUMAN-AUDIT.md` |
+| `HUMANIZATION.md` | Redundant overview | `features/HUMANIZATION-ROADMAP.md` |
+| `API.md` | Auto-generated stub, now outdated | `api/API-DOCUMENTATION.md` |
 
 ---
 
@@ -38,4 +49,4 @@ If you need to reference historical decisions or implementation details, these d
 
 ---
 
-_Last updated: December 15, 2024_
+_Last updated: December 20, 2024_

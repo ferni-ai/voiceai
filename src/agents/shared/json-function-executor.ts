@@ -1071,22 +1071,303 @@ async function routeToTool(
   }
 
   // ========================================
-  // CALENDAR TOOLS (Conversational Fallbacks)
-  // Jordan's full calendar tools require Google Calendar integration.
-  // See: tools/domains/calendar for OAuth-connected implementation.
-  // These fallbacks acknowledge requests when calendar isn't connected.
+  // CALENDAR TOOLS (Full Integration)
+  // Real calendar functionality for voice-first interactions.
+  // Uses natural language date parsing for conversational scheduling.
   // ========================================
-  if (fnLower === 'createappointment') {
+  
+  // Schedule event using natural language
+  if (fnLower === 'scheduleevent' || fnLower === 'createappointment' || fnLower === 'createevent') {
     const title = args.title as string;
-    const date = args.date as string;
-    log.info({ title, date }, '📅 Appointment requested');
-    return `Calendar integration isn't available yet, but I noted your ${title || 'appointment'}${date ? ` for ${date}` : ''}. Don't forget to add it to your calendar!`;
+    const when = (args.when || args.date || args.time) as string;
+    const duration = (args.duration as number) || 60; // minutes
+    const location = args.location as string;
+    const description = args.description as string;
+    
+    if (!ctx.userId) {
+      return 'I need to know who you are to schedule events. Try saying your name first.';
+    }
+    
+    log.info({ title, when, duration, userId: ctx.userId }, '📅 Scheduling event via voice');
+    
+    if (!title) {
+      return "What would you like to schedule?";
+    }
+    
+    if (!when) {
+      return `When would you like to schedule "${title}"?`;
+    }
+    
+    try {
+      const { parseNaturalDate, isValidForScheduling, suggestClarification } = 
+        await import('../../services/calendar/natural-date-parser.js');
+      const { createEvent, isConnected } = 
+        await import('../../services/calendar/calendar-service.js');
+      
+      // Check if user has calendar connected
+      const hasAccess = await isConnected(ctx.userId);
+      if (!hasAccess) {
+        return `I'd love to schedule "${title}" for ${when}, but your calendar isn't connected yet. You can connect it in settings.`;
+      }
+      
+      // Parse the natural language time
+      const parsed = parseNaturalDate(when);
+      if (!parsed) {
+        return `I'm not sure when "${when}" is. Could you be more specific? Try something like "tomorrow at 3pm" or "next Tuesday morning".`;
+      }
+      
+      // Validate the time
+      const validation = isValidForScheduling(parsed.date);
+      if (!validation.valid) {
+        return validation.reason || "That time doesn't work. When else works for you?";
+      }
+      
+      // Check for ambiguous times and offer clarification
+      if (parsed.ambiguous) {
+        const clarification = suggestClarification(parsed);
+        if (clarification) {
+          log.info({ parsed, clarification }, '📅 Time is ambiguous, confirming');
+        }
+      }
+      
+      // Create the event
+      const endTime = new Date(parsed.date.getTime() + duration * 60 * 1000);
+      const event = await createEvent(ctx.userId, {
+        title,
+        startTime: parsed.date,
+        endTime,
+        location,
+        description,
+      });
+      
+      if (event) {
+        const timeStr = parsed.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const dateStr = parsed.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        return `Done! I've scheduled "${title}" for ${timeStr} on ${dateStr}.`;
+      }
+      
+      return `I ran into an issue scheduling "${title}". Want me to try again?`;
+    } catch (err) {
+      log.error({ error: String(err) }, '📅 Calendar scheduling failed');
+      return `I couldn't schedule that right now. ${String(err)}`;
+    }
   }
-
+  
+  // Get today's schedule
+  if (fnLower === 'getschedule' || fnLower === 'whatsmyschedule' || fnLower === 'todaysschedule') {
+    const dateArg = (args.date || args.when) as string;
+    
+    if (!ctx.userId) {
+      return "I need to know who you are to check your schedule.";
+    }
+    
+    log.info({ dateArg, userId: ctx.userId }, '📅 Getting schedule via voice');
+    
+    try {
+      const { isConnected, getEventsForDay } = 
+        await import('../../services/calendar/calendar-service.js');
+      const { parseNaturalDate } = 
+        await import('../../services/calendar/natural-date-parser.js');
+      
+      const hasAccess = await isConnected(ctx.userId);
+      if (!hasAccess) {
+        return "Your calendar isn't connected yet. You can connect it in settings to see your schedule.";
+      }
+      
+      // Parse date or default to today
+      let targetDate = new Date();
+      let dateLabel = 'today';
+      
+      if (dateArg) {
+        const parsed = parseNaturalDate(dateArg);
+        if (parsed) {
+          targetDate = parsed.date;
+          dateLabel = parsed.interpretation;
+        }
+      }
+      
+      const events = await getEventsForDay(ctx.userId, targetDate);
+      
+      if (!events || events.length === 0) {
+        return `You have nothing scheduled ${dateLabel}. That's some nice free time!`;
+      }
+      
+      // Format events for voice
+      const eventList = events.map(e => {
+        const time = new Date(e.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return `${time}: ${e.title}`;
+      }).join('. ');
+      
+      return `${dateLabel} you have ${events.length} thing${events.length > 1 ? 's' : ''}. ${eventList}.`;
+    } catch (err) {
+      log.error({ error: String(err) }, '📅 Failed to get schedule');
+      return "I couldn't check your calendar right now. Try again in a moment?";
+    }
+  }
+  
+  // Check what's next
+  if (fnLower === 'whatsnext' || fnLower === 'nextmeeting' || fnLower === 'nextappointment') {
+    if (!ctx.userId) {
+      return "I need to know who you are to check your next meeting.";
+    }
+    
+    log.info({ userId: ctx.userId }, '📅 Checking next meeting via voice');
+    
+    try {
+      const { getAmbientCalendarContext } = 
+        await import('../../services/calendar/ambient-calendar-awareness.js');
+      
+      const ambient = await getAmbientCalendarContext(ctx.userId);
+      
+      if (!ambient.isCalendarConnected) {
+        return "Your calendar isn't connected. Connect it in settings to see upcoming meetings.";
+      }
+      
+      if (ambient.currentlyInMeeting && ambient.currentMeeting) {
+        const minutesLeft = Math.max(0, Math.round(
+          (new Date(ambient.currentMeeting.endTime).getTime() - Date.now()) / 60000
+        ));
+        return `You're currently in "${ambient.currentMeeting.title}". About ${minutesLeft} minutes left.`;
+      }
+      
+      if (ambient.nextMeeting.event && ambient.nextMeeting.minutesUntil !== null) {
+        const next = ambient.nextMeeting;
+        const time = new Date(next.event!.startTime).toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        });
+        
+        if (next.minutesUntil! <= 5) {
+          return `"${next.event!.title}" starts in just ${next.minutesUntil} minutes at ${time}!`;
+        } else if (next.minutesUntil! <= 60) {
+          return `"${next.event!.title}" is coming up in ${next.minutesUntil} minutes at ${time}.`;
+        } else {
+          const hours = Math.floor(next.minutesUntil! / 60);
+          return `Your next thing is "${next.event!.title}" in about ${hours} hour${hours > 1 ? 's' : ''} at ${time}.`;
+        }
+      }
+      
+      return "You don't have any more meetings today. Nice!";
+    } catch (err) {
+      log.error({ error: String(err) }, '📅 Failed to check next meeting');
+      return "I couldn't check your upcoming meetings right now.";
+    }
+  }
+  
+  // Find free time
+  if (fnLower === 'findfreetime' || fnLower === 'whenamifree' || fnLower === 'freetime') {
+    const duration = (args.duration as number) || 30;
+    const dateArg = (args.date || args.when) as string;
+    
+    if (!ctx.userId) {
+      return "I need to know who you are to check your free time.";
+    }
+    
+    log.info({ duration, dateArg, userId: ctx.userId }, '📅 Finding free time via voice');
+    
+    try {
+      const { isConnected, findFreeTimeSlots } = 
+        await import('../../services/calendar/calendar-service.js');
+      const { parseNaturalDate } = 
+        await import('../../services/calendar/natural-date-parser.js');
+      
+      const hasAccess = await isConnected(ctx.userId);
+      if (!hasAccess) {
+        return "I'd need access to your calendar to find free time. Connect it in settings.";
+      }
+      
+      let targetDate = new Date();
+      if (dateArg) {
+        const parsed = parseNaturalDate(dateArg);
+        if (parsed) targetDate = parsed.date;
+      }
+      
+      const slots = await findFreeTimeSlots(ctx.userId, targetDate, { minDurationMinutes: duration });
+      
+      if (!slots || slots.length === 0) {
+        return `I couldn't find ${duration} free minutes today. Want me to check tomorrow?`;
+      }
+      
+      // Return top 2-3 slots for voice
+      const topSlots = slots.slice(0, 3).map((s: { start: Date; end: Date; durationMinutes: number }) => {
+        const time = new Date(s.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return `${time} for ${s.durationMinutes} minutes`;
+      });
+      
+      return `I found some free time: ${topSlots.join(', or ')}.`;
+    } catch (err) {
+      log.error({ error: String(err) }, '📅 Failed to find free time');
+      return "I ran into an issue checking your free time.";
+    }
+  }
+  
+  // Block focus time
+  if (fnLower === 'blockfocustime' || fnLower === 'schedulefocustime') {
+    const duration = (args.duration as number) || 60;
+    const when = (args.when || args.time) as string;
+    
+    if (!ctx.userId) {
+      return "I need to know who you are to block focus time.";
+    }
+    
+    log.info({ duration, when, userId: ctx.userId }, '📅 Blocking focus time via voice');
+    
+    try {
+      const { isConnected, createEvent, findFreeTimeSlots } = 
+        await import('../../services/calendar/calendar-service.js');
+      const { parseNaturalDate } = 
+        await import('../../services/calendar/natural-date-parser.js');
+      
+      const hasAccess = await isConnected(ctx.userId);
+      if (!hasAccess) {
+        return "Connect your calendar in settings to block focus time.";
+      }
+      
+      let startTime: Date;
+      
+      if (when) {
+        const parsed = parseNaturalDate(when);
+        if (parsed) {
+          startTime = parsed.date;
+        } else {
+          return `I'm not sure when "${when}" is. Try "now" or "this afternoon".`;
+        }
+      } else {
+        // Find next free slot
+        const slots = await findFreeTimeSlots(ctx.userId, new Date(), { minDurationMinutes: duration });
+        if (slots && slots.length > 0) {
+          startTime = new Date(slots[0].start);
+        } else {
+          return `I couldn't find ${duration} minutes free. When would you like to block time?`;
+        }
+      }
+      
+      const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+      
+      const event = await createEvent(ctx.userId, {
+        title: '🎯 Focus Time',
+        startTime,
+        endTime,
+        description: 'Protected focus time - no interruptions!',
+      });
+      
+      if (event) {
+        const timeStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return `Done! I've blocked ${duration} minutes of focus time starting at ${timeStr}. Protect that time!`;
+      }
+      
+      return "I couldn't block that time. Want me to try a different slot?";
+    } catch (err) {
+      log.error({ error: String(err) }, '📅 Failed to block focus time');
+      return "I ran into an issue blocking your focus time.";
+    }
+  }
+  
+  // Legacy fallback for unconnected calendars
   if (fnLower === 'manageappointment') {
     const action = args.action as string;
     log.info({ action }, '📅 Appointment management requested');
-    return `Calendar management isn't available yet. What would you like to ${action || 'do'} with your appointment?`;
+    return `What would you like to ${action || 'do'} with your appointment?`;
   }
 
   // ========================================

@@ -1468,9 +1468,9 @@ function handleBehaviorModeShift(mode: string, reason?: string): void {
     deep_listening: 'attentive',
     processing: 'thinking',
     celebration: 'excited',
-    holding_space: 'empathy',
+    holding_space: 'empathetic',  // Fixed: 'empathy' → 'empathetic'
     energy_match: 'neutral',
-    grounding: 'calm',
+    grounding: 'present',  // Fixed: 'calm' → 'present'
   };
 
   const expression = modeExpressionMap[mode];
@@ -1497,18 +1497,18 @@ function handleBehaviorExpression(expression: string): void {
 
   // Map expression types to avatar responses
   const expressionMap: Record<string, EmotionalExpression> = {
-    breath: 'calm',
-    hum: 'content',
+    breath: 'present',      // Fixed: 'calm' → 'present'
+    hum: 'pleased',         // Fixed: 'content' → 'pleased'
     nod: 'attentive',
-    sigh: 'empathy',
+    sigh: 'empathetic',     // Fixed: 'empathy' → 'empathetic'
     soft_sound: 'attentive',
     yield: 'neutral',
   };
 
   const avatarExpression = expressionMap[expression];
   if (avatarExpression) {
-    // Brief micro-expression for non-verbal presence
-    playMicroExpression(avatarExpression, { intensity: 0.6 });
+    // Brief expression for non-verbal presence (use standard expression, not micro)
+    ferniExpressions.setExpression(avatarExpression);
   }
 }
 
@@ -1519,7 +1519,7 @@ function handleBehaviorHoldSpace(duration: number, reason?: string): void {
   log.debug('Behavior hold space:', { duration, reason });
 
   // Set avatar to a gentle, present expression during hold space
-  ferniExpressions.setExpression('empathy');
+  ferniExpressions.setExpression('empathetic');
 
   // Slow down breath sync to match the contemplative moment
   setBreathSyncStrength(0.9);

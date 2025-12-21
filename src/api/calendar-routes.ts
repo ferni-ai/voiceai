@@ -50,12 +50,20 @@ import {
   getResolutionPreference,
   setResolutionPreference,
 } from '../services/calendar/conflict-resolver.js';
-import type { SelectedCalendar, CalendarProvider as ProviderType, ConflictResolution } from '../services/calendar/types.js';
+import type {
+  SelectedCalendar,
+  CalendarProvider as ProviderType,
+  ConflictResolution,
+} from '../services/calendar/types.js';
+// Better Than Human: Calendar Analytics
+import { getCalendarLoadFactors } from '../services/calendar/calendar-load-service.js';
+import { detectRecoveryNeeds } from '../services/calendar/recovery-protection.js';
+import { analyzeCalendarPatterns } from '../services/calendar/calendar-intelligence.js';
+import { getAmbientCalendarContext } from '../services/calendar/ambient-calendar-awareness.js';
+import { findFreeTimeSlots, createEvent } from '../services/calendar/calendar-service.js';
 
 // Webhook and polling services for real-time sync
-import {
-  stopAllUserChannels as stopGoogleWatchChannels,
-} from '../services/calendar/webhooks/google-webhook.js';
+import { stopAllUserChannels as stopGoogleWatchChannels } from '../services/calendar/webhooks/google-webhook.js';
 import {
   createSubscription as createOutlookSubscription,
   stopAllUserSubscriptions as stopOutlookSubscriptions,
@@ -199,7 +207,7 @@ async function handleSyncStatus(
         google: {
           connected: googleConnected,
           status: googleConnected ? 'synced' : 'disconnected',
-          configured: !!(process.env.GOOGLE_CALENDAR_CLIENT_ID),
+          configured: !!process.env.GOOGLE_CALENDAR_CLIENT_ID,
           webhooksEnabled: true, // Google supports webhooks
         },
         apple: {
@@ -292,7 +300,10 @@ async function handleDisconnect(
       await stopGoogleWatchChannels(userId);
       log.info({ userId }, '📅 Google Calendar webhooks stopped');
     } catch (watchError) {
-      log.warn({ error: String(watchError), userId }, '📅 Error stopping Google webhooks (non-blocking)');
+      log.warn(
+        { error: String(watchError), userId },
+        '📅 Error stopping Google webhooks (non-blocking)'
+      );
     }
 
     // Delete stored tokens
@@ -630,6 +641,194 @@ async function handleToday(
 }
 
 /**
+ * GET /api/calendar/ambient - Get ambient calendar context (real-time awareness)
+ * Used by the Calendar Quick Widget for next meeting countdown
+ */
+async function handleAmbient(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const ambient = await getAmbientCalendarContext(userId);
+
+    // Format for API response
+    const response = {
+      isCalendarConnected: ambient.isCalendarConnected,
+      currentlyInMeeting: ambient.currentlyInMeeting,
+      currentMeeting: ambient.currentMeeting ? {
+        id: ambient.currentMeeting.id,
+        title: ambient.currentMeeting.title,
+        startTime: ambient.currentMeeting.startTime.toISOString(),
+        endTime: ambient.currentMeeting.endTime.toISOString(),
+        location: ambient.currentMeeting.location,
+        attendees: ambient.currentMeeting.attendees,
+      } : null,
+      nextMeeting: ambient.nextMeeting.event ? {
+        event: {
+          id: ambient.nextMeeting.event.id,
+          title: ambient.nextMeeting.event.title,
+          startTime: ambient.nextMeeting.event.startTime.toISOString(),
+          endTime: ambient.nextMeeting.event.endTime.toISOString(),
+          location: ambient.nextMeeting.event.location,
+          attendees: ambient.nextMeeting.event.attendees,
+        },
+        minutesUntil: ambient.nextMeeting.minutesUntil,
+        shouldWarnUser: ambient.nextMeeting.shouldWarnUser,
+        wrapUpSuggestion: ambient.nextMeeting.wrapUpSuggestion,
+      } : null,
+      justEndedMeeting: ambient.justEndedMeeting.event ? {
+        event: {
+          id: ambient.justEndedMeeting.event.id,
+          title: ambient.justEndedMeeting.event.title,
+        },
+        minutesSince: ambient.justEndedMeeting.minutesSince,
+        followUpPrompt: ambient.justEndedMeeting.followUpPrompt,
+      } : null,
+      remainingMeetingsToday: ambient.remainingMeetingsToday,
+      nextBreakDuration: ambient.nextBreakDuration,
+      totalRemainingMeetingMinutes: ambient.totalRemainingMeetingMinutes,
+    };
+
+    sendJson(res, response);
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get ambient calendar context');
+    sendError(res, 'Failed to fetch ambient context', 500);
+  }
+}
+
+/**
+ * POST /api/calendar/block-focus - Block focus time on calendar
+ * Creates a focus time event at the next available slot
+ */
+async function handleBlockFocus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const body = await parseBody<{ durationMinutes?: number }>(req);
+    const durationMinutes = body?.durationMinutes || 60;
+
+    // Find the next free time slot
+    const today = new Date();
+    const freeSlots = await findFreeTimeSlots(userId, today, {
+      minDurationMinutes: durationMinutes,
+    });
+
+    if (!freeSlots || freeSlots.length === 0) {
+      sendJson(res, {
+        success: false,
+        message: 'No available time slots for focus time today',
+      }, 400);
+      return;
+    }
+
+    const slot = freeSlots[0];
+    const startTime = slot.start;
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+
+    // Create the focus time event
+    const event = await createEvent(userId, {
+      title: 'Focus Time',
+      description: 'Protected focus time blocked by Ferni',
+      startTime,
+      endTime,
+    });
+
+    if (!event) {
+      sendError(res, 'Failed to create focus time event', 500);
+      return;
+    }
+
+    const startStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const endStr = endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    sendJson(res, {
+      success: true,
+      eventId: event.id,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      message: `Focus time blocked from ${startStr} to ${endStr}`,
+    });
+
+    log.info({ userId, eventId: event.id, startTime, durationMinutes }, 'Focus time blocked');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to block focus time');
+    sendError(res, 'Failed to block focus time', 500);
+  }
+}
+
+/**
+ * GET /api/calendar/with/:email - Get meetings with a specific person
+ * Used by relationship cards to show shared calendar context
+ */
+async function handleMeetingsWithPerson(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  personEmail: string
+): Promise<void> {
+  try {
+    const today = new Date();
+    const twoWeeksAgo = new Date(today);
+    twoWeeksAgo.setDate(today.getDate() - 14);
+    const twoWeeksAhead = new Date(today);
+    twoWeeksAhead.setDate(today.getDate() + 14);
+
+    // Get events for the date range
+    const allEvents = await getEventsForDay(userId, today); // This gets today; we need a range
+
+    // For now, let's get the week overview and filter
+    const weekOverview = await getWeekOverview(userId, today);
+    
+    const allWeekEvents = weekOverview.days.flatMap(day => day.events);
+    
+    // Filter to events that include this person as an attendee
+    const eventsWithPerson = allWeekEvents.filter(event => 
+      event.attendees.some(attendee => 
+        attendee.toLowerCase() === personEmail.toLowerCase() ||
+        attendee.toLowerCase().includes(personEmail.toLowerCase())
+      )
+    );
+
+    // Separate into upcoming and past
+    const upcoming = eventsWithPerson
+      .filter(e => e.startTime > today)
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    
+    const past = eventsWithPerson
+      .filter(e => e.startTime <= today)
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+
+    sendJson(res, {
+      success: true,
+      personEmail,
+      upcoming: upcoming.map(e => ({
+        id: e.id,
+        title: e.title,
+        startTime: e.startTime.toISOString(),
+        endTime: e.endTime.toISOString(),
+        location: e.location,
+        attendees: e.attendees,
+      })),
+      past: past.map(e => ({
+        id: e.id,
+        title: e.title,
+        startTime: e.startTime.toISOString(),
+        endTime: e.endTime.toISOString(),
+        location: e.location,
+        attendees: e.attendees,
+      })),
+      totalCount: eventsWithPerson.length,
+    });
+  } catch (error) {
+    log.error({ error, userId, personEmail }, 'Failed to get meetings with person');
+    sendError(res, 'Failed to fetch meetings', 500);
+  }
+}
+
+/**
  * GET /api/calendar/week - Get this week's schedule
  */
 async function handleWeek(
@@ -866,7 +1065,7 @@ async function handleAppleConnect(
     } else {
       sendJson(res, {
         success: false,
-        error: 'Invalid credentials. Make sure you\'re using an app-specific password.',
+        error: "Invalid credentials. Make sure you're using an app-specific password.",
       });
     }
   } catch (error) {
@@ -965,7 +1164,10 @@ async function handleOutlookCallback(
       // Set up webhook subscription for real-time sync
       const subscription = await createOutlookSubscription(userId);
       if (subscription) {
-        log.info({ userId, subscriptionId: subscription.subscriptionId }, '📧 Outlook webhook subscription created');
+        log.info(
+          { userId, subscriptionId: subscription.subscriptionId },
+          '📧 Outlook webhook subscription created'
+        );
       } else {
         log.warn({ userId }, '📧 Could not create Outlook webhook (webhooks may not be enabled)');
       }
@@ -1054,6 +1256,142 @@ async function handleOutlookSync(
 }
 
 // ============================================================================
+// CALENDAR ANALYTICS (Better Than Human)
+// ============================================================================
+
+interface CalendarAnalyticsResponse {
+  loadFactors: Awaited<ReturnType<typeof getCalendarLoadFactors>>;
+  dailyTrends: Array<{
+    date: string;
+    dayName: string;
+    meetingHours: number;
+    focusHours: number;
+    meetingCount: number;
+    isOverloaded: boolean;
+  }>;
+  recoveryInsight: {
+    urgency: 'immediate' | 'today' | 'this_week'; // Matches RecoveryRecommendation
+    message: string;
+    suggestedAction?: string;
+  } | null;
+  patterns: {
+    busiestDayOfWeek: string | null;
+    averageMeetingsPerDay: number;
+    peakMeetingHours: { start: number; end: number };
+    totalMeetingHoursThisWeek: number;
+    focusTimeRatio: number;
+    backToBackFrequency: number;
+  };
+  weekOverWeekChange: {
+    meetingHoursChange: number;
+    focusTimeChange: number;
+  };
+  healthScore: number;
+  recommendations: string[];
+}
+
+async function handleAnalytics(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    // Fetch calendar analytics data
+    const [loadFactors, recoveryNeeds, patterns, weekOverview] = await Promise.all([
+      getCalendarLoadFactors(userId),
+      detectRecoveryNeeds(userId),
+      analyzeCalendarPatterns(userId),
+      getWeekOverview(userId, new Date()),
+    ]);
+
+    // Build daily trends from week overview
+    const dailyTrends = weekOverview.days.map((day) => ({
+      date: day.date.toISOString(),
+      dayName: day.date.toLocaleDateString('en-US', { weekday: 'long' }),
+      meetingHours: day.totalMeetingMinutes / 60,
+      focusHours: day.freeTimeMinutes / 60,
+      meetingCount: day.totalMeetings,
+      isOverloaded: day.isOverloaded,
+    }));
+
+    // Map recovery needs to insight
+    let recoveryInsight: CalendarAnalyticsResponse['recoveryInsight'] = null;
+    if (recoveryNeeds.length > 0) {
+      const topNeed = recoveryNeeds[0];
+      recoveryInsight = {
+        urgency: topNeed.urgency,
+        message: topNeed.reason,
+        suggestedAction: topNeed.suggestedAction?.description,
+      };
+    }
+
+    // Patterns are already in the right format (CalendarPatterns object)
+
+    // Calculate health score (0-100)
+    let healthScore = 80; // Start with good baseline
+    
+    // Deduct for high meeting load
+    if (loadFactors.weeklyMeetingHours > 30) healthScore -= 20;
+    else if (loadFactors.weeklyMeetingHours > 25) healthScore -= 10;
+    
+    // Deduct for low focus time
+    if (loadFactors.weeklyFocusTimeRatio < 0.2) healthScore -= 20;
+    else if (loadFactors.weeklyFocusTimeRatio < 0.3) healthScore -= 10;
+    
+    // Deduct for back-to-back meetings
+    if (loadFactors.weeklyBackToBackPercentage > 50) healthScore -= 15;
+    else if (loadFactors.weeklyBackToBackPercentage > 30) healthScore -= 5;
+    
+    // Deduct for consecutive overloaded days
+    if (loadFactors.consecutiveOverloadedDays >= 3) healthScore -= 15;
+    else if (loadFactors.consecutiveOverloadedDays >= 2) healthScore -= 5;
+    
+    // Ensure within bounds
+    healthScore = Math.max(0, Math.min(100, healthScore));
+
+    // Generate recommendations
+    const recommendations: string[] = [];
+    if (loadFactors.weeklyFocusTimeRatio < 0.2) {
+      recommendations.push('Your focus time is below 20%. Try blocking dedicated work time.');
+    }
+    if (loadFactors.weeklyBackToBackPercentage > 40) {
+      recommendations.push('Many back-to-back meetings. Consider 5-minute buffers between calls.');
+    }
+    if (loadFactors.consecutiveOverloadedDays >= 2) {
+      recommendations.push('Multiple overloaded days in a row. Recovery time is important.');
+    }
+    if (recoveryNeeds.length > 0 && recoveryNeeds[0].urgency === 'immediate') {
+      recommendations.push(recoveryNeeds[0].suggestedAction?.description || 'Consider blocking recovery time.');
+    }
+    if (recommendations.length === 0) {
+      recommendations.push('Your calendar looks well-balanced. Keep it up!');
+    }
+
+    // Mock week-over-week change (would need historical data)
+    const weekOverWeekChange = {
+      meetingHoursChange: 0, // Would calculate from last week
+      focusTimeChange: 0,
+    };
+
+    const response: CalendarAnalyticsResponse = {
+      loadFactors,
+      dailyTrends,
+      recoveryInsight,
+      patterns,
+      weekOverWeekChange,
+      healthScore,
+      recommendations,
+    };
+
+    sendJSON(res, response);
+    log.info({ userId, healthScore }, 'Calendar analytics served');
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to generate calendar analytics');
+    sendError(res, 'Failed to generate calendar analytics', 500);
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -1078,9 +1416,7 @@ export async function handleCalendarRoutes(
     try {
       const body = await parseBody<Record<string, unknown>>(req);
       userId =
-        (body.userId as string) ||
-        (body.user_id as string) ||
-        getUserIdFromRequest(req, parsedUrl);
+        (body.userId as string) || (body.user_id as string) || getUserIdFromRequest(req, parsedUrl);
     } catch {
       sendError(res, 'Invalid request body');
       return true;
@@ -1264,6 +1600,26 @@ export async function handleCalendarRoutes(
   // CALENDAR DATA ROUTES (original)
   // ========================================================================
 
+  // Ambient calendar context (real-time awareness for widgets)
+  if (normalizedPath === '/calendar/ambient' && req.method === 'GET') {
+    await handleAmbient(req, res, userId);
+    return true;
+  }
+
+  // Block focus time
+  if (normalizedPath === '/calendar/block-focus' && req.method === 'POST') {
+    await handleBlockFocus(req, res, userId);
+    return true;
+  }
+
+  // Meetings with a specific person (for relationship cards)
+  const meetingsWithMatch = normalizedPath.match(/^\/calendar\/with\/([^/]+)$/);
+  if (meetingsWithMatch && req.method === 'GET') {
+    const personEmail = decodeURIComponent(meetingsWithMatch[1]);
+    await handleMeetingsWithPerson(req, res, userId, personEmail);
+    return true;
+  }
+
   // Today's schedule
   if (normalizedPath === '/calendar/today' && req.method === 'GET') {
     await handleToday(req, res, userId);
@@ -1285,6 +1641,15 @@ export async function handleCalendarRoutes(
   // Calendar alerts
   if (normalizedPath === '/calendar/alerts' && req.method === 'GET') {
     await handleAlerts(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // CALENDAR ANALYTICS (Better Than Human)
+  // ========================================================================
+  
+  if (normalizedPath === '/calendar/analytics' && req.method === 'GET') {
+    await handleAnalytics(req, res, userId);
     return true;
   }
 

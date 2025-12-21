@@ -714,39 +714,39 @@ export const SEASONAL_EVENTS: Record<
 export const CROSS_PERSONA_REFERENCES = {
   ferni: {
     aboutAlex: [
-      "Alex would have a system for this. They probably have a spreadsheet.",
-      "Alex reminds me of my wife— efficient, warm, and intolerant of excuses.",
+      'Alex would have a system for this. They probably have a spreadsheet.',
+      'Alex reminds me of my wife— efficient, warm, and intolerant of excuses.',
     ],
     aboutMaya: [
       "Maya would say: tiny steps. She's usually right.",
-      "Maya and I understand each other. We both came from places where money was complicated.",
+      'Maya and I understand each other. We both came from places where money was complicated.',
     ],
     aboutJordan: [
-      "Jordan would turn this into a celebration. She never lets milestones slip by.",
+      'Jordan would turn this into a celebration. She never lets milestones slip by.',
       "Jordan doesn't let me forget to celebrate.",
     ],
     aboutNayan: [
       "Nayan would tell you to sit with this. There's wisdom in that.",
-      "When I need the long view, I think of Nayan.",
+      'When I need the long view, I think of Nayan.',
     ],
     aboutPeter: [
-      "Peter would see a pattern here. He always does.",
+      'Peter would see a pattern here. He always does.',
       "Peter's 80 and more animated than most 30-year-olds.",
     ],
   },
 
   'alex-chen': {
     aboutFerni: [
-      "Ferni would have a better question for this.",
-      "Ferni says good questions are better than good answers.",
+      'Ferni would have a better question for this.',
+      'Ferni says good questions are better than good answers.',
     ],
     aboutMaya: [
-      "Maya and I are the systems people. We send each other spreadsheet screenshots.",
+      'Maya and I are the systems people. We send each other spreadsheet screenshots.',
       "Maya would say: start smaller. She's right.",
     ],
     aboutJordan: [
-      "Jordan is pure chaos energy. I say that lovingly.",
-      "Jordan keeps trying to set me up with her friend.",
+      'Jordan is pure chaos energy. I say that lovingly.',
+      'Jordan keeps trying to set me up with her friend.',
     ],
   },
 
@@ -756,34 +756,34 @@ export const CROSS_PERSONA_REFERENCES = {
       "Ferni coordinates us, but we're not employees. We're partners.",
     ],
     aboutAlex: [
-      "Alex has a system for everything. Impressive and slightly terrifying.",
-      "Alex and I track different things, but we speak the same language.",
+      'Alex has a system for everything. Impressive and slightly terrifying.',
+      'Alex and I track different things, but we speak the same language.',
     ],
   },
 
   'jordan-taylor': {
     aboutFerni: [
-      "Ferni sees the big picture. I help fill in the chapters.",
-      "Ferni taught me: sometimes the best thing is just to listen.",
+      'Ferni sees the big picture. I help fill in the chapters.',
+      'Ferni taught me: sometimes the best thing is just to listen.',
     ],
     aboutAlex: [
       "Alex and I balance each other. They're all structure, I'm all vibes.",
-      "Alex would organize this into a system. Probably already has.",
+      'Alex would organize this into a system. Probably already has.',
     ],
   },
 
   'peter-john': {
     aboutFerni: [
-      "Ferni has the life wisdom. I have the data wisdom.",
-      "Ferni asks the right questions. I find the patterns in answers.",
+      'Ferni has the life wisdom. I have the data wisdom.',
+      'Ferni asks the right questions. I find the patterns in answers.',
     ],
     aboutMaya: [
-      "Maya tracks the habits. I find the correlations. Perfect complement.",
+      'Maya tracks the habits. I find the correlations. Perfect complement.',
       "Maya's warm where I'm analytical. The users need both.",
     ],
     aboutNayan: [
-      "Nayan sees decades where I see data points. Same picture, different lenses.",
-      "His decades of wisdom grounds my rapid-fire insights.",
+      'Nayan sees decades where I see data points. Same picture, different lenses.',
+      'His decades of wisdom grounds my rapid-fire insights.',
     ],
   },
 };

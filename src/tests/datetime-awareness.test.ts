@@ -33,7 +33,8 @@ describe('DateTime Awareness', () => {
       const briefing = await generatePreSessionBriefing();
 
       // Should match format like "Saturday, December 20, 2024"
-      const datePattern = /^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), \w+ \d+, \d{4}$/;
+      const datePattern =
+        /^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), \w+ \d+, \d{4}$/;
       expect(briefing.temporal.date).toMatch(datePattern);
     });
 
@@ -48,7 +49,14 @@ describe('DateTime Awareness', () => {
     it('should have valid timeOfDay value', async () => {
       const briefing = await generatePreSessionBriefing();
 
-      const validTimeOfDay = ['early_morning', 'morning', 'midday', 'afternoon', 'evening', 'late_night'];
+      const validTimeOfDay = [
+        'early_morning',
+        'morning',
+        'midday',
+        'afternoon',
+        'evening',
+        'late_night',
+      ];
       expect(validTimeOfDay).toContain(briefing.temporal.timeOfDay);
     });
 
@@ -172,7 +180,7 @@ describe('DateTime Awareness', () => {
       expect(lines[0]).toContain('202'); // Year
 
       // Should have time and vibe
-      expect(lines.some((l) => l.includes('It\'s'))).toBe(true);
+      expect(lines.some((l) => l.includes("It's"))).toBe(true);
 
       // Should have guidance to use naturally
       expect(lines.some((l) => l.toLowerCase().includes('naturally'))).toBe(true);
@@ -292,7 +300,7 @@ describe('Injection Guarantee', () => {
 
   it('should always include minimum required context', async () => {
     const briefing = await generatePreSessionBriefing();
-    const formatted = briefing.formatted;
+    const { formatted } = briefing;
 
     // These MUST always be present for the agent to be time-aware
     const requiredPatterns = [
@@ -306,4 +314,3 @@ describe('Injection Guarantee', () => {
     }
   });
 });
-

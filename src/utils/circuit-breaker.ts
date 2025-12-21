@@ -13,6 +13,7 @@
  */
 
 import { getLogger } from './safe-logger.js';
+import { resilienceMetrics } from '../services/observability/resilience-metrics.js';
 
 // ============================================================================
 // TYPES
@@ -101,7 +102,8 @@ export class CircuitBreaker {
       this.onSuccess();
       return result;
     } catch (error) {
-      this.onFailure();
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.onFailure(errorMessage);
       throw error;
     }
   }
@@ -151,10 +153,20 @@ export class CircuitBreaker {
 
     if (this.state === 'half-open') {
       if (this.successes >= this.successThreshold) {
+        const previousState = this.state;
         this.state = 'closed';
         this.failures = 0;
         this.successes = 0;
         getLogger().info({ name: this.name }, 'Circuit breaker CLOSED (service recovered)');
+
+        // Report state change to resilience metrics
+        resilienceMetrics.recordCircuitBreakerEvent(
+          this.name,
+          'closed',
+          this.failures,
+          this.successes,
+          undefined
+        );
       }
     } else {
       // Reset failure count on success in closed state
@@ -162,7 +174,7 @@ export class CircuitBreaker {
     }
   }
 
-  private onFailure(): void {
+  private onFailure(reason?: string): void {
     this.lastFailure = new Date();
     this.failures++;
     this.totalFailures++;
@@ -176,12 +188,30 @@ export class CircuitBreaker {
         { name: this.name, nextAttempt: this.nextAttempt },
         'Circuit breaker OPEN (half-open test failed)'
       );
+
+      // Report state change to resilience metrics
+      resilienceMetrics.recordCircuitBreakerEvent(
+        this.name,
+        'open',
+        this.failures,
+        this.successes,
+        reason || 'half-open test failed'
+      );
     } else if (this.failures >= this.failureThreshold) {
       this.state = 'open';
       this.nextAttempt = new Date(Date.now() + this.resetTimeout);
       getLogger().warn(
         { name: this.name, failures: this.failures, nextAttempt: this.nextAttempt },
         'Circuit breaker OPEN (failure threshold reached)'
+      );
+
+      // Report state change to resilience metrics
+      resilienceMetrics.recordCircuitBreakerEvent(
+        this.name,
+        'open',
+        this.failures,
+        this.successes,
+        reason || 'failure threshold reached'
       );
     }
   }

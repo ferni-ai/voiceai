@@ -83,7 +83,9 @@ export const unifiedHumanizingBuilder: ContextBuilder = {
           confidence: analysis.intent.confidence,
           requiresEmpathy: analysis.intent.requiresEmpathy ?? false,
           requiresAction: analysis.intent.requiresAction ?? false,
-          suggestedApproach: analysis.intent.suggestedApproach ?? 'Listen and respond naturally',
+          suggestedApproach: Array.isArray(analysis.intent.suggestedApproach)
+            ? analysis.intent.suggestedApproach[0] ?? 'Listen and respond naturally'
+            : analysis.intent.suggestedApproach ?? 'Listen and respond naturally',
           isQuestion: analysis.intent.isQuestion ?? false,
           isWrappingUp: analysis.intent.primary === 'ending_conversation',
         },

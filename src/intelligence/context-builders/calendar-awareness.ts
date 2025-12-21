@@ -8,6 +8,11 @@
  * - Overload warnings
  * - Time-sensitive context
  *
+ * NOW ENHANCED WITH "BETTER THAN HUMAN" CAPABILITIES:
+ * - Ambient calendar awareness (meeting starting soon, just ended)
+ * - Calendar load factors (burnout detection)
+ * - Recovery protection (proactive rest suggestions)
+ *
  * Only activates for Alex (Communication Specialist).
  */
 
@@ -21,9 +26,27 @@ import {
   detectCalendarAlerts,
   type CalendarAlert,
 } from '../../services/calendar/calendar-intelligence.js';
+// Better Than Human calendar services
+import {
+  getAmbientCalendarContext,
+  generateAmbientContextInjection,
+  shouldInterruptForCalendar,
+  type AmbientCalendarContext,
+} from '../../services/calendar/ambient-calendar-awareness.js';
+import {
+  getCalendarLoadFactors,
+  getCalendarLoadSummary,
+  type CalendarLoadFactors,
+} from '../../services/calendar/calendar-load-service.js';
+import {
+  detectRecoveryNeeds,
+  buildRecoveryContext,
+  type RecoveryRecommendation,
+} from '../../services/calendar/recovery-protection.js';
 import {
   registerContextBuilder,
   createStandardInjection,
+  createHighInjection,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
@@ -42,6 +65,11 @@ export interface CalendarAwarenessContext {
   alerts?: CalendarAlert[];
   nextMeetingIn?: number; // minutes
   contextInjection: string | null;
+  // Better Than Human additions
+  ambientContext?: AmbientCalendarContext;
+  loadFactors?: CalendarLoadFactors;
+  recoveryNeeds?: RecoveryRecommendation[];
+  betterThanHumanInjection?: string | null;
 }
 
 // ============================================================================
@@ -75,7 +103,10 @@ export async function buildCalendarAwarenessContext(
   personaId: string | undefined
 ): Promise<CalendarAwarenessContext> {
   // Check if this persona should have calendar awareness
-  if (!personaId || !CALENDAR_AWARE_PERSONAS.includes(personaId as typeof CALENDAR_AWARE_PERSONAS[number])) {
+  if (
+    !personaId ||
+    !CALENDAR_AWARE_PERSONAS.includes(personaId as (typeof CALENDAR_AWARE_PERSONAS)[number])
+  ) {
     return { isConnected: false, contextInjection: null };
   }
 
@@ -90,7 +121,8 @@ export async function buildCalendarAwarenessContext(
     if (personaId === ALEX_PERSONA_ID) {
       return {
         isConnected: false,
-        contextInjection: '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]',
+        contextInjection:
+          '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]',
       };
     }
     return { isConnected: false, contextInjection: null };
@@ -122,7 +154,54 @@ export async function buildCalendarAwarenessContext(
       nextMeetingIn
     );
 
-    log.debug({ userId, personaId, hasContext: !!contextInjection }, 'Calendar awareness context built');
+    // =========================================================================
+    // BETTER THAN HUMAN: Enhanced calendar awareness (only for Alex)
+    // =========================================================================
+    let ambientContext: AmbientCalendarContext | undefined;
+    let loadFactors: CalendarLoadFactors | undefined;
+    let recoveryNeeds: RecoveryRecommendation[] | undefined;
+    let betterThanHumanInjection: string | null = null;
+
+    if (personaId === ALEX_PERSONA_ID) {
+      // Get real-time ambient context (meeting starting soon, just ended, etc.)
+      ambientContext = await getAmbientCalendarContext(userId);
+
+      // Get calendar load factors for burnout awareness
+      loadFactors = await getCalendarLoadFactors(userId);
+
+      // Get recovery recommendations
+      recoveryNeeds = await detectRecoveryNeeds(userId);
+
+      // Build Better Than Human injection
+      const sections: string[] = [];
+
+      // Ambient awareness (high priority - affects conversation flow)
+      const ambientInjection = generateAmbientContextInjection(ambientContext);
+      if (ambientInjection) {
+        sections.push(ambientInjection);
+      }
+
+      // Calendar load summary
+      const loadSummary = await getCalendarLoadSummary(userId);
+      if (loadSummary) {
+        sections.push(loadSummary);
+      }
+
+      // Recovery context (proactive wellbeing)
+      const recoveryContext = await buildRecoveryContext(userId);
+      if (recoveryContext) {
+        sections.push(recoveryContext);
+      }
+
+      if (sections.length > 0) {
+        betterThanHumanInjection = sections.join('\n\n');
+      }
+    }
+
+    log.debug(
+      { userId, personaId, hasContext: !!contextInjection, hasBTH: !!betterThanHumanInjection },
+      'Calendar awareness context built'
+    );
 
     return {
       isConnected: true,
@@ -130,6 +209,11 @@ export async function buildCalendarAwarenessContext(
       alerts,
       nextMeetingIn,
       contextInjection,
+      // Better Than Human additions
+      ambientContext,
+      loadFactors,
+      recoveryNeeds,
+      betterThanHumanInjection,
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to build calendar awareness context');
@@ -170,10 +254,7 @@ function buildContextInjectionForPersona(
 /**
  * Build Jordan's calendar context (event planning focus)
  */
-function buildJordanCalendarContext(
-  overview: DayOverview,
-  alerts: CalendarAlert[]
-): string | null {
+function buildJordanCalendarContext(overview: DayOverview, alerts: CalendarAlert[]): string | null {
   const parts: string[] = [];
 
   // Jordan cares about free time for planning new events
@@ -182,7 +263,9 @@ function buildJordanCalendarContext(
   } else {
     const freeHours = Math.round(overview.freeTimeMinutes / 60);
     if (freeHours >= 2) {
-      parts.push(`[SCHEDULE: ${overview.totalMeetings} meetings but ${freeHours}h free for planning]`);
+      parts.push(
+        `[SCHEDULE: ${overview.totalMeetings} meetings but ${freeHours}h free for planning]`
+      );
     } else if (overview.isOverloaded) {
       parts.push('[SCHEDULE: Packed day - if planning events, suggest another day]');
     }
@@ -190,9 +273,10 @@ function buildJordanCalendarContext(
 
   // Jordan cares about upcoming milestones/events in alerts
   const eventAlerts = alerts.filter(
-    (a) => a.message.toLowerCase().includes('birthday') ||
-           a.message.toLowerCase().includes('anniversary') ||
-           a.message.toLowerCase().includes('event')
+    (a) =>
+      a.message.toLowerCase().includes('birthday') ||
+      a.message.toLowerCase().includes('anniversary') ||
+      a.message.toLowerCase().includes('event')
   );
   if (eventAlerts.length > 0) {
     parts.push(`[EVENT ALERT: ${eventAlerts[0].message}]`);
@@ -204,10 +288,7 @@ function buildJordanCalendarContext(
 /**
  * Build Ferni's calendar context (light awareness)
  */
-function buildFerniCalendarContext(
-  overview: DayOverview,
-  nextMeetingIn?: number
-): string | null {
+function buildFerniCalendarContext(overview: DayOverview, nextMeetingIn?: number): string | null {
   // Ferni just needs to know if user is busy/stressed or has time to chat
 
   if (overview.isOverloaded) {
@@ -237,7 +318,9 @@ function buildContextInjectionText(
 
   // Calendar snapshot
   if (overview.totalMeetings > 0) {
-    parts.push(`[CALENDAR: ${overview.totalMeetings} meeting${overview.totalMeetings !== 1 ? 's' : ''} today`);
+    parts.push(
+      `[CALENDAR: ${overview.totalMeetings} meeting${overview.totalMeetings !== 1 ? 's' : ''} today`
+    );
 
     if (overview.firstEvent) {
       const time = overview.firstEvent.startTime.toLocaleTimeString('en-US', {
@@ -249,7 +332,7 @@ function buildContextInjectionText(
     }
 
     if (overview.freeTimeMinutes > 0) {
-      const freeHours = Math.round(overview.freeTimeMinutes / 60 * 10) / 10;
+      const freeHours = Math.round((overview.freeTimeMinutes / 60) * 10) / 10;
       parts[parts.length - 1] += `. ${freeHours}h free time`;
     }
 
@@ -259,7 +342,11 @@ function buildContextInjectionText(
   }
 
   // Immediate alert if meeting coming up soon
-  if (nextMeetingIn !== undefined && nextMeetingIn <= UPCOMING_MEETING_THRESHOLD_MINUTES && nextMeetingIn > 0) {
+  if (
+    nextMeetingIn !== undefined &&
+    nextMeetingIn <= UPCOMING_MEETING_THRESHOLD_MINUTES &&
+    nextMeetingIn > 0
+  ) {
     const eventTitle = overview.firstEvent?.title || 'meeting';
     parts.push(`[HEADS UP: ${eventTitle} starts in ${nextMeetingIn} minutes]`);
   }
@@ -306,7 +393,9 @@ export function formatCalendarContextForSpeech(context: CalendarAwarenessContext
   if (todayOverview.totalMeetings === 0) {
     parts.push('Your calendar is clear today.');
   } else {
-    parts.push(`You have ${todayOverview.totalMeetings} meeting${todayOverview.totalMeetings !== 1 ? 's' : ''} today.`);
+    parts.push(
+      `You have ${todayOverview.totalMeetings} meeting${todayOverview.totalMeetings !== 1 ? 's' : ''} today.`
+    );
 
     if (nextMeetingIn !== undefined && nextMeetingIn > 0 && nextMeetingIn <= 60) {
       const eventTitle = todayOverview.firstEvent?.title || 'Your next meeting';
@@ -345,7 +434,10 @@ export const calendarAwarenessBuilder: ContextBuilder = {
     const personaId = persona?.identity?.id;
 
     // Check if this persona should have calendar awareness
-    if (!personaId || !CALENDAR_AWARE_PERSONAS.includes(personaId as typeof CALENDAR_AWARE_PERSONAS[number])) {
+    if (
+      !personaId ||
+      !CALENDAR_AWARE_PERSONAS.includes(personaId as (typeof CALENDAR_AWARE_PERSONAS)[number])
+    ) {
       return [];
     }
 
@@ -356,17 +448,43 @@ export const calendarAwarenessBuilder: ContextBuilder = {
 
     const context = await buildCalendarAwarenessContext(userId, personaId);
 
-    if (!context.contextInjection) {
-      return [];
+    const injections: ContextInjection[] = [];
+
+    // Standard calendar context
+    if (context.contextInjection) {
+      injections.push(
+        createStandardInjection('calendar_awareness', context.contextInjection, {
+          category: 'calendar',
+        })
+      );
     }
 
-    log.debug({ userId, personaId, connected: context.isConnected }, 'Calendar awareness context injected');
+    // Better Than Human calendar context (Alex only)
+    if (context.betterThanHumanInjection) {
+      // Check if we need to interrupt for urgent calendar events
+      if (context.ambientContext && shouldInterruptForCalendar(context.ambientContext)) {
+        injections.push(
+          createHighInjection('calendar_urgent', context.betterThanHumanInjection, {
+            category: 'calendar-urgent',
+          })
+        );
+      } else {
+        injections.push(
+          createStandardInjection('calendar_bth', context.betterThanHumanInjection, {
+            category: 'calendar-better-than-human',
+          })
+        );
+      }
+    }
 
-    return [
-      createStandardInjection('calendar_awareness', context.contextInjection, {
-        category: 'calendar',
-      }),
-    ];
+    if (injections.length > 0) {
+      log.debug(
+        { userId, personaId, connected: context.isConnected, injectionCount: injections.length },
+        'Calendar awareness context injected'
+      );
+    }
+
+    return injections;
   },
 };
 
@@ -374,4 +492,3 @@ export const calendarAwarenessBuilder: ContextBuilder = {
 registerContextBuilder(calendarAwarenessBuilder);
 
 export default buildCalendarAwarenessContext;
-

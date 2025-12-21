@@ -23,8 +23,22 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { resilienceMetrics } from '../observability/resilience-metrics.js';
 
 const log = createLogger({ module: 'AsyncEvents' });
+
+// ============================================================================
+// QUEUE MONITORING CONSTANTS
+// ============================================================================
+
+/** Maximum queue depth before backpressure kicks in */
+const MAX_QUEUE_DEPTH = 1000;
+
+/** Queue depth at which we start warning */
+const WARN_QUEUE_DEPTH = 500;
+
+/** Interval for reporting queue metrics (every 10 seconds) */
+const QUEUE_METRICS_INTERVAL_MS = 10_000;
 
 // ============================================================================
 // TYPES
@@ -68,7 +82,13 @@ export type EventType =
   | 'summarization:emotional-journey'
 
   // Context (for Pub/Sub workers)
-  | 'context:warmup';
+  | 'context:warmup'
+
+  // Predictions (for Pub/Sub workers)
+  | 'prediction:observation'
+  | 'prediction:pattern-update'
+  | 'prediction:generate'
+  | 'prediction:surface';
 
 export interface EventPayload {
   type: EventType;
@@ -99,11 +119,93 @@ class AsyncEventBus {
     processed: 0,
     errors: 0,
     queueHighWater: 0,
+    dropped: 0, // Events dropped due to backpressure
+    backpressureEvents: 0,
   };
+
+  // Queue monitoring
+  private metricsInterval: ReturnType<typeof setInterval> | null = null;
+  private lastMetricsTime = Date.now();
+  private lastProcessedCount = 0;
+
+  constructor() {
+    // Start queue metrics reporting
+    this.startMetricsReporting();
+  }
+
+  /**
+   * Start periodic queue metrics reporting.
+   */
+  private startMetricsReporting(): void {
+    if (this.metricsInterval) return;
+
+    this.metricsInterval = setInterval(() => {
+      this.reportQueueMetrics();
+    }, QUEUE_METRICS_INTERVAL_MS);
+
+    // Don't prevent process from exiting
+    if (this.metricsInterval.unref) {
+      this.metricsInterval.unref();
+    }
+  }
+
+  /**
+   * Stop metrics reporting (for cleanup).
+   */
+  stopMetricsReporting(): void {
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
+    }
+  }
+
+  /**
+   * Report current queue metrics to resilience monitoring.
+   */
+  private reportQueueMetrics(): void {
+    const now = Date.now();
+    const elapsed = (now - this.lastMetricsTime) / 1000; // seconds
+    const processedSinceLastReport = this.stats.processed - this.lastProcessedCount;
+    const processedPerSecond = elapsed > 0 ? processedSinceLastReport / elapsed : 0;
+
+    // Calculate oldest message age (approximate)
+    const oldestMessageAgeMs =
+      this.queue.length > 0 ? now - (this.queue[0]?.timestamp ?? now) : 0;
+
+    // Check if backpressure is active
+    const backpressureActive = this.queue.length >= WARN_QUEUE_DEPTH;
+
+    // Report to resilience metrics
+    resilienceMetrics.recordQueueMetric(
+      'async-events',
+      this.queue.length,
+      oldestMessageAgeMs,
+      processedPerSecond,
+      backpressureActive
+    );
+
+    // Update tracking
+    this.lastMetricsTime = now;
+    this.lastProcessedCount = this.stats.processed;
+
+    // Log warning if queue is backing up
+    if (this.queue.length >= WARN_QUEUE_DEPTH) {
+      log.warn(
+        {
+          queueLength: this.queue.length,
+          processedPerSecond: processedPerSecond.toFixed(1),
+          oldestMessageAgeMs,
+        },
+        'AsyncEvents queue backing up'
+      );
+    }
+  }
 
   /**
    * Emit an event (fire-and-forget).
    * Returns immediately - processing happens async.
+   *
+   * @returns true if event was queued, false if dropped due to backpressure
    */
   emit(
     type: EventType,
@@ -113,7 +215,27 @@ class AsyncEventBus {
       userId?: string;
       personaId?: string;
     }
-  ): void {
+  ): boolean {
+    // Backpressure: drop events if queue is too deep
+    if (this.queue.length >= MAX_QUEUE_DEPTH) {
+      this.stats.dropped++;
+      this.stats.backpressureEvents++;
+
+      // Log every 100th dropped event to avoid log spam
+      if (this.stats.dropped % 100 === 1) {
+        log.error(
+          {
+            type,
+            queueLength: this.queue.length,
+            totalDropped: this.stats.dropped,
+          },
+          'AsyncEvents backpressure - dropping event'
+        );
+      }
+
+      return false;
+    }
+
     const payload: EventPayload = {
       type,
       timestamp: Date.now(),
@@ -131,8 +253,10 @@ class AsyncEventBus {
 
     // Start processing if not already
     if (!this.processing) {
-      this.processQueue();
+      void this.processQueue();
     }
+
+    return true;
   }
 
   /**
@@ -183,6 +307,11 @@ class AsyncEventBus {
       'summarization:topic-threading',
       'summarization:emotional-journey',
       'context:warmup',
+      // Prediction worker events
+      'prediction:observation',
+      'prediction:pattern-update',
+      'prediction:generate',
+      'prediction:surface',
     ];
 
     for (const type of types) {

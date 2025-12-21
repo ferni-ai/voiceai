@@ -1,4 +1,20 @@
 /**
+ * @deprecated ARCHIVED - DO NOT USE OR IMPORT
+ *
+ * This legacy voice agent has been superseded by the modular implementation at:
+ * - src/agents/voice-agent/index.ts (main entry)
+ * - src/agents/voice-agent/phases/ (lifecycle phases)
+ * - src/agents/voice-agent/*-handler.ts (event handlers)
+ *
+ * This file is kept for reference only. It will be deleted in a future release.
+ *
+ * Migration completed: December 2024
+ * Reason: Monolithic 3900+ line file was unmaintainable and violated clean architecture
+ *
+ * ---
+ *
+ * Original documentation:
+ *
  * Generic Voice Agent
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."

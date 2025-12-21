@@ -161,8 +161,8 @@ export class PatternAnalyzer {
           optimizationPersistence.bufferSession(session);
         })
         .catch((err) => {
-          // Persistence failure is non-critical - log at debug for troubleshooting
-          log.debug({ error: String(err) }, 'Session persistence failed (non-critical)');
+          // Persistence failure is non-critical but logged for production monitoring
+          log.warn({ error: String(err) }, 'Session persistence failed (non-critical)');
         });
 
       // Keep only last 1000 sessions in memory

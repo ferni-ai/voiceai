@@ -61,7 +61,7 @@ interface LearningTrack {
   title: string;
   description: string;
   totalDuration: number;
-  episodes: Array<{ id: string; title: string }>;
+  episodes: Array<{ id: string; title: string; podcastTitle?: string; duration?: number }>;
 }
 
 interface IntelligentRecommendation {
@@ -111,7 +111,12 @@ const MOOD_LABELS: Record<string, string> = {
 export class CreativeYouDashboard {
   private container: HTMLElement | null = null;
   private isOpen = false;
-  private userId: string;
+  private _userId: string;
+
+  /** Get the user ID for this dashboard instance */
+  get userId(): string {
+    return this._userId;
+  }
 
   // State
   private dailyVideo: VideoRecommendation | null = null;
@@ -122,7 +127,7 @@ export class CreativeYouDashboard {
   private personalizedTrackAvailable = false;
 
   constructor(userId: string, options?: { topics?: string[] }) {
-    this.userId = userId;
+    this._userId = userId;
     this.userTopics = options?.topics || [];
   }
 
@@ -939,7 +944,7 @@ export class CreativeYouDashboard {
               <div class="episode-number">${i + 1}</div>
               <div class="episode-info">
                 <h4>${ep.title}</h4>
-                <p>${ep.podcastTitle} • ${Math.round(ep.duration / 60)} min</p>
+                <p>${ep.podcastTitle || 'Episode'}${ep.duration ? ` • ${Math.round(ep.duration / 60)} min` : ''}</p>
               </div>
               <button class="play-episode-btn" aria-label="Play episode">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -1703,7 +1708,7 @@ export function getCreativeYouDashboard(
   userId: string,
   options?: { topics?: string[] }
 ): CreativeYouDashboard {
-  if (!instance || (instance as CreativeYouDashboard & { userId: string }).userId !== userId) {
+  if (!instance || instance.userId !== userId) {
     instance = new CreativeYouDashboard(userId, options);
   } else if (options?.topics) {
     // Update topics on existing instance

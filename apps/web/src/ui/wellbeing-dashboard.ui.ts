@@ -552,6 +552,18 @@ const styles = `
     transform: translateY(-1px);
   }
   
+  .wellbeing-btn--secondary {
+    background: transparent;
+    color: var(--color-ferni, #4a6741);
+    border: 1px solid var(--color-ferni, #4a6741);
+    margin-top: var(--space-4, 16px);
+  }
+  
+  .wellbeing-btn--secondary:hover {
+    background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+    transform: translateY(-1px);
+  }
+  
   @media (prefers-reduced-motion: reduce) {
     .wellbeing-modal-overlay,
     .wellbeing-modal,
@@ -645,6 +657,16 @@ const styles = `
 
   [data-theme="midnight"] .wellbeing-btn:hover {
     background: var(--color-accent-secondary-hover, #8dc47c);
+  }
+
+  [data-theme="midnight"] .wellbeing-btn--secondary {
+    background: transparent;
+    color: var(--color-accent-secondary, #7cb36b);
+    border-color: var(--color-accent-secondary, #7cb36b);
+  }
+
+  [data-theme="midnight"] .wellbeing-btn--secondary:hover {
+    background: var(--persona-tint, rgba(124, 179, 107, 0.15));
   }
 
   [data-theme="midnight"] .wellbeing-score-trend--improving {
@@ -1051,8 +1073,17 @@ export async function showWellbeingDashboard(): Promise<void> {
  * Hide the wellbeing dashboard.
  */
 export function hideWellbeingDashboard(): void {
-  modal?.classList.remove('visible');
+  if (!modal) return;
+  
+  modal.classList.remove('visible');
   document.body.style.overflow = '';
+  
+  // Remove modal after animation completes to free memory
+  setTimeout(() => {
+    modal?.remove();
+    modal = null;
+    data = null;
+  }, 300); // Match --duration-slow
 }
 
 function createModal(): void {
@@ -1066,7 +1097,7 @@ function createModal(): void {
     <div class="wellbeing-modal-backdrop"></div>
     <div class="wellbeing-modal">
       <header class="wellbeing-modal__header">
-        <p class="wellbeing-modal__eyebrow">Your Journey</p>
+        <p class="wellbeing-modal__eyebrow">Your Wellbeing</p>
         <h2 id="wellbeing-title" class="wellbeing-modal__title">State of Me</h2>
         <p class="wellbeing-modal__subtitle">How you've been feeling lately</p>
         <button class="wellbeing-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -1129,8 +1160,17 @@ function renderContent(): void {
       <div class="wellbeing-empty">
         <div class="wellbeing-empty__icon">${ICONS.heart}</div>
         <p>Not enough data yet. Keep chatting with Ferni to build your wellbeing profile!</p>
+        <button class="wellbeing-btn wellbeing-btn--secondary" data-action="start-conversation">
+          Start a Conversation
+        </button>
       </div>
     `;
+    // Wire up CTA button
+    content.querySelector('[data-action="start-conversation"]')?.addEventListener('click', () => {
+      hideWellbeingDashboard();
+      // Dispatch event to start a conversation
+      window.dispatchEvent(new CustomEvent('ferni:request-connect'));
+    });
     return;
   }
 
@@ -1249,13 +1289,27 @@ function renderSparkline(data: number[], color: string): string {
   const height = 40;
   const padding = 4;
 
+  // Handle edge case of single data point
+  if (data.length === 0) return '';
+  if (data.length === 1) {
+    // Single point: draw a horizontal line at that value
+    const y = height / 2;
+    return `
+      <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+        <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}"
+          stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+      </svg>
+    `;
+  }
+
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
 
+  const divisor = data.length - 1; // Safe: we know data.length >= 2 here
   const points = data
     .map((value, index) => {
-      const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+      const x = padding + (index / divisor) * (width - 2 * padding);
       const y = height - padding - ((value - min) / range) * (height - 2 * padding);
       return `${x},${y}`;
     })

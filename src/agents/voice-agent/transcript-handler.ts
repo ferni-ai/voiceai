@@ -691,6 +691,57 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
   // Update context with last user message
   silenceContext.lastUserMessage = event.transcript;
 
+  // ===============================================
+  // SYNC SILENCE CONTEXT WITH CONVERSATION STATE
+  // This enables dynamic, context-aware silence responses
+  // instead of generic repeated questions
+  // ===============================================
+
+  // Sync topics discussed from userData
+  if (userData.recentTopics && userData.recentTopics.length > 0) {
+    silenceContext.topicsDiscussed = [...userData.recentTopics];
+  } else if (userData.lastTopic && !silenceContext.topicsDiscussed.includes(userData.lastTopic)) {
+    silenceContext.topicsDiscussed = [
+      userData.lastTopic,
+      ...silenceContext.topicsDiscussed.slice(0, 9), // Keep last 10 topics
+    ];
+  }
+
+  // Sync current topic being discussed
+  if (userData.lastTopic) {
+    silenceContext.wasDiscussingTopic = userData.lastTopic;
+  }
+
+  // Sync emotional tone from emotion analysis
+  if (userData.lastEmotionAnalysis) {
+    const { primary, intensity, distressLevel } = userData.lastEmotionAnalysis;
+
+    // Determine emotional tone: heavy if distressed/intense, light if positive, neutral otherwise
+    if ((distressLevel ?? 0) > 0.4 || (intensity ?? 0) > 0.7) {
+      silenceContext.recentEmotionalTone = 'heavy';
+    } else if (
+      primary === 'happy' ||
+      primary === 'excited' ||
+      primary === 'joyful' ||
+      primary === 'amused'
+    ) {
+      silenceContext.recentEmotionalTone = 'light';
+    } else {
+      silenceContext.recentEmotionalTone = 'neutral';
+    }
+  }
+
+  // Sync last agent message for context
+  if (userData.lastAgentResponse) {
+    silenceContext.lastAgentMessage = userData.lastAgentResponse;
+  }
+
+  diag.state('Silence context synced', {
+    topicsDiscussed: silenceContext.topicsDiscussed.slice(0, 3),
+    emotionalTone: silenceContext.recentEmotionalTone,
+    wasDiscussingTopic: silenceContext.wasDiscussingTopic,
+  });
+
   // Process game topic change detection
   processGameTopicChange(event.transcript, silenceContext, sessionId);
 

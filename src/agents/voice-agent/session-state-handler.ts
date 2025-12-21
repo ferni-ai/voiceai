@@ -11,7 +11,8 @@
  */
 
 import { log, voice } from '@livekit/agents';
-import { checkForAccentChange } from '../../api/session-accent-routes.js';
+// FIX AUDIT: Import from service layer instead of API routes (clean architecture)
+import { checkForAccentChange } from '../../services/session/index.js';
 import { getDJBooth } from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { getActiveListeningEngine } from '../../conversation/active-listening.js';
@@ -688,6 +689,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         silenceContext.silenceDurationSeconds = silenceDurationSec;
         silenceContext.turnCount = userData.turnCount || 0;
         silenceContext.userName = userData.name;
+        silenceContext.silenceResponseCount = silenceResponseCount; // Sync for deduplication
 
         // Get meaningful silence response
         const silenceResponse = getMeaningfulSilenceResponse(sessionPersona, silenceContext);

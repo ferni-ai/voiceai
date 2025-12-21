@@ -15,6 +15,7 @@ import { loadNetwork } from '../superhuman/relationship-network.js';
 import { sendEmail, sendSMS } from '../communication-service.js';
 import { getContacts, getContact, recordInteraction } from './contact-relationship-service.js';
 import { getGroup, getGroups } from './contact-groups.js';
+import { callLLM } from '../llm-utils.js';
 import type {
   EnhancedContact,
   OutreachContext,
@@ -497,6 +498,116 @@ function mapSentiment(
  * - Relationship depth
  * - Tone preferences
  */
+/**
+ * Generate a personalized message using LLM
+ *
+ * This is the "Better Than Human" approach - uses AI to craft
+ * genuinely personalized messages based on relationship context.
+ * Falls back to template if LLM unavailable.
+ */
+export async function generatePersonalizedMessageLLM(
+  context: OutreachContext
+): Promise<string> {
+  const log = createLogger({ module: 'personalized-outreach' });
+
+  // Build the LLM prompt with all available context
+  const prompt = buildMessagePrompt(context);
+
+  try {
+    const llmResponse = await callLLM(prompt, {
+      maxTokens: 300,
+      temperature: 0.7,
+      timeout: 5000,
+    });
+
+    if (llmResponse && llmResponse.length > 20) {
+      log.debug({ contactName: context.contact.name }, 'Generated message via LLM');
+      return cleanLLMMessage(llmResponse);
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'LLM message generation failed, using template');
+  }
+
+  // Fall back to template
+  return generatePersonalizedMessage(context);
+}
+
+/**
+ * Build the prompt for LLM message generation
+ */
+function buildMessagePrompt(context: OutreachContext): string {
+  const relationshipContext = [];
+
+  if (context.theirInterests.length > 0) {
+    relationshipContext.push(`Their interests: ${context.theirInterests.slice(0, 3).join(', ')}`);
+  }
+
+  if (context.recentTopicsDiscussed.length > 0) {
+    relationshipContext.push(`Recent topics you discussed: ${context.recentTopicsDiscussed.slice(0, 3).join(', ')}`);
+  }
+
+  if (context.sharedExperiences.length > 0) {
+    relationshipContext.push(`Shared experiences: ${context.sharedExperiences.slice(0, 2).join(', ')}`);
+  }
+
+  if (context.lastContactedDays > 0) {
+    relationshipContext.push(`Days since last contact: ${context.lastContactedDays}`);
+  }
+
+  if (context.contact.relationship) {
+    relationshipContext.push(`Relationship: ${context.contact.relationship}`);
+  }
+
+  const occasionDescriptions: Record<OutreachOccasion, string> = {
+    birthday: 'a warm, personal birthday message',
+    christmas: 'a heartfelt Christmas greeting (no emojis)',
+    new_year: 'a thoughtful New Year message with hopes for them',
+    thanksgiving: 'a grateful Thanksgiving message',
+    anniversary: 'a sincere anniversary congratulations',
+    check_in: 'a genuine check-in to reconnect',
+    thinking_of_you: 'a heartfelt "thinking of you" note',
+    sympathy: 'a compassionate, supportive message',
+    congratulations: 'an enthusiastic congratulations',
+    memorial: 'a thoughtful, sensitive memorial message',
+    custom: 'a personalized message',
+  };
+
+  return `Write ${occasionDescriptions[context.occasion]} for ${context.contact.name}.
+
+CONTEXT:
+${relationshipContext.length > 0 ? relationshipContext.join('\n') : 'First-time message, keep it warm but not too familiar.'}
+
+TONE: ${context.tone} (${context.tone === 'warm' ? 'friendly, personal' : context.tone === 'casual' ? 'relaxed, conversational' : 'respectful, sincere'})
+
+RULES:
+- NO emojis (this is a Ferni brand requirement)
+- Keep it genuine and personal, not generic
+- 2-4 sentences max
+- Reference their interests or recent topics if relevant
+- Sound like a real person, not a template
+- Don't be overly formal or stiff
+
+Write the message directly, no quotes or labels:`;
+}
+
+/**
+ * Clean LLM response - remove any artifacts
+ */
+function cleanLLMMessage(message: string): string {
+  return message
+    .replace(/^["']|["']$/g, '') // Remove surrounding quotes
+    .replace(/^\*+|\*+$/g, '') // Remove markdown asterisks
+    .replace(/^Subject:.*\n/i, '') // Remove any subject lines
+    .replace(/^Message:\s*/i, '') // Remove "Message:" prefix
+    .trim();
+}
+
+/**
+ * Template-based message generation (fallback)
+ *
+ * Used when LLM is unavailable. Still personalizes based on context
+ * but uses pre-written phrases.
+ */
 export function generatePersonalizedMessage(context: OutreachContext): string {
   const template = OCCASION_TEMPLATES[context.occasion];
   const style = TONE_STYLES[context.tone];
@@ -548,19 +659,8 @@ export function generatePersonalizedMessage(context: OutreachContext): string {
     parts.push('Would love to hear how you\'ve been.');
   }
 
-  // Join and format
-  let message = parts.join(' ');
-
-  // Adjust based on style
-  if (style.useEmoji && context.occasion === 'birthday') {
-    message += ' 🎂';
-  } else if (style.useEmoji && context.occasion === 'christmas') {
-    message += ' 🎄';
-  } else if (style.useEmoji && context.occasion === 'new_year') {
-    message += ' 🎉';
-  }
-
-  return message;
+  // Join and format (NO EMOJIS - brand requirement)
+  return parts.join(' ');
 }
 
 function pickRandom<T>(arr: T[]): T {

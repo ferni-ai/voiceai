@@ -187,8 +187,8 @@ export async function persistTurn(
           turnCount: FieldValue.increment(1),
         })
         .catch((err) => {
-          // Non-critical - log at debug for troubleshooting
-          log.debug({ error: String(err) }, 'Turn count increment failed (non-critical)');
+          // Non-critical - log for production monitoring
+          log.warn({ error: String(err) }, 'Turn count increment failed (non-critical)');
         });
     }
 

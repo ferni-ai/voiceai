@@ -234,9 +234,9 @@ export function getReadinessState(): ReadinessState {
 
   // Ready when we have at least one worker ready
   // The signalWorkerAcceptingJobs() call marks workers as ready when LiveKit is accepting jobs
-  // Fallback: if uptime > 90 seconds, assume ready (typical cold start is 60-90s)
-  const FALLBACK_READY_UPTIME_MS = 90 * 1000; // 90 seconds
-  const ready = readyWorkerCount > 0 || uptime > FALLBACK_READY_UPTIME_MS;
+  // NOTE: We removed the 90-second fallback (SET-13) - workers MUST signal ready properly
+  // This prevents routing traffic to workers that aren't actually ready
+  const ready = readyWorkerCount > 0;
 
   // Estimate time to ready based on typical startup times
   let estimatedTimeToReady = 0;
@@ -244,6 +244,19 @@ export function getReadinessState(): ReadinessState {
     // Typical cold start is 60-120 seconds
     const typicalStartupMs = 90_000;
     estimatedTimeToReady = Math.max(0, typicalStartupMs - uptime);
+
+    // Log warning if we've been starting for a long time
+    if (uptime > 120_000) {
+      log.warn(
+        {
+          uptime,
+          readyWorkerCount,
+          startupComplete,
+          livekitConnected: livekitActuallyConnected,
+        },
+        '⚠️ Workers have not signaled ready after 2 minutes - check worker initialization'
+      );
+    }
   }
 
   // Build status message

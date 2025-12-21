@@ -59,6 +59,9 @@ import { getFinancialStore } from '../../services/financial-store.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
 import { getSuperhuman } from './superhuman-integration.js';
+// Better Than Human: Calendar awareness for reflection timing
+import { getCalendarLoadFactors } from '../../services/calendar/calendar-load-service.js';
+import { getAmbientCalendarContext } from '../../services/calendar/ambient-calendar-awareness.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
@@ -85,6 +88,26 @@ interface NayanInsightBriefing {
   proactiveTriggers: WisdomTrigger[];
   /** Life narrative summary */
   lifeNarrative: LifeNarrative;
+  /** Better Than Human: Calendar context for reflection timing */
+  calendarContext: CalendarWisdomContext | null;
+}
+
+/** Calendar context for Nayan's wisdom conversations */
+interface CalendarWisdomContext {
+  /** Current calendar intensity */
+  loadLevel: 'light' | 'moderate' | 'heavy' | 'overloaded';
+  /** Is this a good time for deep reflection? */
+  isGoodTimeForReflection: boolean;
+  /** Best day for deeper conversations */
+  bestDayForDepth: string | null;
+  /** Timing suggestion for wisdom delivery */
+  wisdomTimingSuggestion: string | null;
+  /** Busyness pattern insight */
+  busynessInsight: string | null;
+  /** User just came from a meeting? */
+  justFromMeeting: boolean;
+  /** Meeting-free time available */
+  quietTimeAvailable: boolean;
 }
 
 interface LifeSynthesis {
@@ -1002,9 +1025,10 @@ function analyzeHandoffForNayan(): HandoffBriefing | null {
 async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing> {
   const handoffBriefing = analyzeHandoffForNayan();
 
-  const [lifeSynthesis, teamSynthesis] = await Promise.all([
+  const [lifeSynthesis, teamSynthesis, calendarContext] = await Promise.all([
     synthesizeLifeContext(userId),
     synthesizeTeamInsights(userId),
+    buildCalendarWisdomContext(userId).catch(() => null),
   ]);
 
   const valuesAlignment = analyzeValuesAlignment(lifeSynthesis, userId);
@@ -1025,6 +1049,82 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
     existentialContext,
     proactiveTriggers,
     lifeNarrative,
+    calendarContext,
+  };
+}
+
+/**
+ * Build calendar context for Nayan's wisdom conversations.
+ * Nayan is about depth and reflection - he needs to know when there's space for that.
+ */
+async function buildCalendarWisdomContext(
+  userId: string
+): Promise<CalendarWisdomContext> {
+  const [loadFactors, ambientContext] = await Promise.all([
+    getCalendarLoadFactors(userId),
+    getAmbientCalendarContext(userId),
+  ]);
+
+  // Determine load level
+  let loadLevel: CalendarWisdomContext['loadLevel'] = 'light';
+  if (loadFactors.weeklyMeetingHours >= 35) {
+    loadLevel = 'overloaded';
+  } else if (loadFactors.weeklyMeetingHours >= 25) {
+    loadLevel = 'heavy';
+  } else if (loadFactors.weeklyMeetingHours >= 15) {
+    loadLevel = 'moderate';
+  }
+
+  // Is now a good time for deep reflection?
+  const nextMeeting = ambientContext.nextMeeting;
+  const justEnded = ambientContext.justEndedMeeting;
+  const minutesToNext = nextMeeting.minutesUntil ?? Infinity;
+  const justFromMeeting = justEnded.event !== null;
+  const hasSpace = minutesToNext > 30;
+  const isQuietTime = loadLevel === 'light' || (loadLevel === 'moderate' && hasSpace);
+
+  // Don't push deep reflection right after a meeting
+  const isGoodTimeForReflection = !justFromMeeting && hasSpace && loadLevel !== 'overloaded';
+
+  // Generate wisdom timing suggestion
+  let wisdomTimingSuggestion: string | null = null;
+
+  if (justFromMeeting) {
+    wisdomTimingSuggestion =
+      'User just emerged from a meeting - ease into conversation, let them decompress before depth';
+  } else if (loadLevel === 'overloaded') {
+    wisdomTimingSuggestion =
+      'Heavy calendar week - keep wisdom practical and grounded, save philosophical depth for lighter times';
+  } else if (isGoodTimeForReflection && loadLevel === 'light') {
+    wisdomTimingSuggestion =
+      'Clear calendar - excellent time for deeper exploration and meaningful questions';
+  } else if (minutesToNext < 15 && minutesToNext > 0) {
+    wisdomTimingSuggestion =
+      'Meeting soon - plant a seed of thought rather than diving deep';
+  }
+
+  // Generate busyness pattern insight (Nayan's perspective)
+  let busynessInsight: string | null = null;
+
+  if (loadLevel === 'overloaded' && loadFactors.consecutiveOverloadedDays >= 3) {
+    busynessInsight =
+      'Three or more days of meetings upon meetings - the question is not what to add, but what to release';
+  } else if (loadFactors.weeklyFocusTimeRatio < 0.2) {
+    busynessInsight =
+      "Less than 20% of time unscheduled - they are 'busy' but are they present?";
+  } else if (loadLevel === 'light' && loadFactors.weeklyMeetingHours < 10) {
+    busynessInsight =
+      'Light calendar - rare space for being rather than doing';
+  }
+
+  return {
+    loadLevel,
+    isGoodTimeForReflection,
+    bestDayForDepth: loadFactors.lightestDayThisWeek,
+    wisdomTimingSuggestion,
+    busynessInsight,
+    justFromMeeting,
+    quietTimeAvailable: isQuietTime,
   };
 }
 
@@ -1216,6 +1316,49 @@ function formatNayanBriefing(
   if (briefing.deepQuestions.length > 0) {
     sections.push('\n=== ❓ QUESTIONS TO HOLD ===');
     briefing.deepQuestions.forEach((q) => sections.push(`• ${q}`));
+  }
+
+  // Better Than Human: Calendar context for reflection timing
+  if (briefing.calendarContext) {
+    const cal = briefing.calendarContext;
+    sections.push('\n=== 📅 FROM ALEX (Calendar Awareness) ===');
+
+    // Load level with Nayan's perspective
+    const loadEmoji =
+      cal.loadLevel === 'overloaded'
+        ? '🔴'
+        : cal.loadLevel === 'heavy'
+          ? '🟠'
+          : cal.loadLevel === 'moderate'
+            ? '🟡'
+            : '🟢';
+    sections.push(`• Calendar intensity: ${loadEmoji} ${cal.loadLevel}`);
+
+    // Reflection timing
+    if (cal.isGoodTimeForReflection) {
+      sections.push('• ✨ Good space for depth and reflection');
+    } else {
+      sections.push('• ⏳ Limited space right now - plant seeds, defer depth');
+    }
+
+    if (cal.bestDayForDepth) {
+      sections.push(`• Best day for deeper exploration: ${cal.bestDayForDepth}`);
+    }
+
+    // Wisdom timing suggestion
+    if (cal.wisdomTimingSuggestion) {
+      sections.push(`• 💡 ${cal.wisdomTimingSuggestion}`);
+    }
+
+    // Busyness insight (Nayan's perspective)
+    if (cal.busynessInsight) {
+      sections.push(`• 🕉️ ${cal.busynessInsight}`);
+    }
+
+    // Just from meeting
+    if (cal.justFromMeeting) {
+      sections.push('• They just emerged from a meeting - give them a moment to land');
+    }
   }
 
   // Nayan's approach (first turn only)

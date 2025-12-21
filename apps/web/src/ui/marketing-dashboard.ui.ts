@@ -11,7 +11,7 @@
  * - Quick actions (generate content, post)
  */
 
-import { createLogger } from '../services/logger.js';
+import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('MarketingDashboard');

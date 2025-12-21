@@ -117,7 +117,7 @@ export function recordConversationTopics(
       const persistence = getCreativeYouPersistence();
       await persistence.saveTopicHistory(userId, topics, sessionId);
     } catch (error) {
-      log.debug({ error: String(error) }, 'Topic history persistence failed (non-critical)');
+      log.warn({ error: String(error) }, 'Topic history persistence failed (non-critical)');
     }
   })();
 }

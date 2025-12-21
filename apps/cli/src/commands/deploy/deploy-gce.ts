@@ -40,9 +40,15 @@ const CONFIG = {
   region: process.env.GCP_REGION || 'us-central1',
   zone: process.env.GCP_ZONE || 'us-central1-a',
 
-  // GCE Instance
+  // GCE Instance (legacy single-VM mode)
   instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',
   instanceIp: process.env.GCE_IP || '34.134.186.63',
+
+  // Managed Instance Group (auto-scaling mode)
+  migName: 'voiceai-agent-mig',
+  migTemplatePrefix: 'voiceai-agent-template',
+  migMinInstances: 2,
+  migMaxInstances: 5,
 
   // Container settings
   imageName: 'gcr.io/johnb-2025/voiceai-agent',
@@ -556,6 +562,172 @@ EOF'`, { silent: true });
   }
 
   return result;
+}
+
+// ============================================================================
+// MANAGED INSTANCE GROUP (MIG) DEPLOYMENT
+// ============================================================================
+
+/**
+ * Deploy to Managed Instance Group with rolling update
+ * This is the preferred method for auto-scaling deployments
+ */
+async function deployToMig(image: string, secrets: Record<string, string>): Promise<void> {
+  log.step('Deploying to Managed Instance Group');
+
+  const timestamp = Date.now();
+  const templateName = `${CONFIG.migTemplatePrefix}-${timestamp}`;
+
+  // Build environment variables for container template
+  const envVarsArray: string[] = [];
+  for (const [key, value] of Object.entries(secrets)) {
+    envVarsArray.push(`${key}=${value}`);
+  }
+  // Add standard env vars
+  envVarsArray.push('NODE_ENV=production');
+  envVarsArray.push(`GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}`);
+  envVarsArray.push(`FIREBASE_PROJECT_ID=${CONFIG.projectId}`);
+  envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
+  envVarsArray.push('PUBSUB_ENABLED=true');
+  envVarsArray.push('PORT=8080');
+
+  const envVarsString = envVarsArray.join(',');
+
+  // Step 1: Create new instance template with the new image
+  log.substep(`Creating new instance template: ${templateName}`);
+  exec(`gcloud compute instance-templates create-with-container ${templateName} \
+    --machine-type=e2-standard-4 \
+    --container-image=${image} \
+    --container-restart-policy=always \
+    --container-env="${envVarsString}" \
+    --tags=voiceai-agent \
+    --service-account=1031920444452-compute@developer.gserviceaccount.com \
+    --scopes=cloud-platform \
+    --metadata=google-logging-enabled=true \
+    --network=default \
+    --project=${CONFIG.projectId} \
+    --quiet 2>&1`, { silent: true });
+
+  log.success(`Instance template created: ${templateName}`);
+
+  // Step 2: Start rolling update
+  log.substep('Starting rolling update...');
+  exec(`gcloud compute instance-groups managed rolling-action start-update ${CONFIG.migName} \
+    --version=template=${templateName} \
+    --zone=${CONFIG.zone} \
+    --project=${CONFIG.projectId} \
+    --max-surge=1 \
+    --max-unavailable=0 \
+    --quiet`);
+
+  log.success('Rolling update initiated');
+
+  // Step 3: Wait for rolling update to complete
+  log.substep('Waiting for rolling update to complete...');
+  let completed = false;
+  const maxAttempts = 60; // 10 minutes max
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const status = exec(
+        `gcloud compute instance-groups managed describe ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="value(status.isStable)"`,
+        { silent: true }
+      ).trim();
+
+      if (status === 'True') {
+        completed = true;
+        break;
+      }
+
+      // Get current status
+      const instanceList = exec(
+        `gcloud compute instance-groups managed list-instances ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="table(name,status,healthState,currentAction)" 2>/dev/null || true`,
+        { silent: true }
+      );
+
+      log.substep(`Update in progress (attempt ${attempt}/${maxAttempts})...`);
+      console.log(instanceList.trim());
+    } catch {
+      // Continue waiting
+    }
+
+    await sleep(10000); // Check every 10 seconds
+  }
+
+  if (!completed) {
+    log.error('Rolling update did not complete in time');
+    throw new Error('Rolling update timeout');
+  }
+
+  log.success('Rolling update completed successfully');
+
+  // Step 4: Clean up old templates (keep last 3)
+  log.substep('Cleaning up old instance templates...');
+  try {
+    const templates = exec(
+      `gcloud compute instance-templates list \
+        --filter="name~'^${CONFIG.migTemplatePrefix}'" \
+        --format="value(name)" \
+        --sort-by=~creationTimestamp \
+        --project=${CONFIG.projectId}`,
+      { silent: true }
+    )
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+
+    // Keep the 3 most recent templates
+    const templatesToDelete = templates.slice(3);
+    for (const template of templatesToDelete) {
+      log.substep(`Deleting old template: ${template}`);
+      exec(`gcloud compute instance-templates delete ${template} --project=${CONFIG.projectId} --quiet`, {
+        silent: true,
+      });
+    }
+
+    if (templatesToDelete.length > 0) {
+      log.success(`Deleted ${templatesToDelete.length} old template(s)`);
+    }
+  } catch {
+    log.warn('Could not clean up old templates');
+  }
+}
+
+/**
+ * Get current MIG status
+ */
+function getMigStatus(): { healthy: number; total: number; isStable: boolean } {
+  try {
+    const result = exec(
+      `gcloud compute instance-groups managed list-instances ${CONFIG.migName} \
+        --zone=${CONFIG.zone} \
+        --project=${CONFIG.projectId} \
+        --format="csv[no-heading](healthState)"`,
+      { silent: true }
+    );
+
+    const healthStates = result.trim().split('\n').filter(Boolean);
+    const healthy = healthStates.filter((s) => s === 'HEALTHY').length;
+
+    const isStable =
+      exec(
+        `gcloud compute instance-groups managed describe ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="value(status.isStable)"`,
+        { silent: true }
+      ).trim() === 'True';
+
+    return { healthy, total: healthStates.length, isStable };
+  } catch {
+    return { healthy: 0, total: 0, isStable: false };
+  }
 }
 
 function rollback(): void {

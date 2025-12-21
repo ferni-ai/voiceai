@@ -257,8 +257,8 @@ function setupSpeakerChangeDetection(
           ),
           { reliable: true }
         )
-        .catch(() => {
-          /* ignore publish errors */
+        .catch((e) => {
+          diag.debug('Speaker change publish failed (non-critical)', { error: String(e) });
         });
 
       // Trigger identity re-evaluation on speaker change

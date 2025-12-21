@@ -240,7 +240,7 @@ class CalendarSettingsUI {
             outlook: {
               provider: 'outlook',
               connected: false,
-              configured: !!providersResponse.data?.outlookConfigured,
+              configured: !!((providersResponse.data as Record<string, unknown>)?.outlookConfigured),
             },
           };
         }
@@ -807,7 +807,7 @@ class CalendarSettingsUI {
         app_password: appPassword,
       });
 
-      if (response.success) {
+      if (response.ok) {
         this.showingAppleSetup = false;
         await this.loadStatus();
       } else {

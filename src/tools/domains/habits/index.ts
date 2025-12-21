@@ -27,8 +27,8 @@ import { createGamificationToolsV2 } from './gamification-v2.js';
 // Also import new unified definitions (will be used in future)
 import { habitToolDefinitions as unifiedHabitTools } from './unified-habits.js';
 
-// Import Maya's voice-first tools
-import { mayaVoiceTools } from './maya-voice-tools.js';
+// Import voice-first habit tools
+import { habitVoiceTools } from './habit-voice-tools.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -159,7 +159,7 @@ const habitsTools: ToolDefinition[] = [
   ...getCoreHabitToolDefinitions(),
   ...getCoachingToolDefinitions(),
   ...getGamificationToolDefinitions(),
-  ...mayaVoiceTools, // Voice-first tools for natural conversation
+  ...habitVoiceTools, // Voice-first tools for natural conversation
 ];
 
 // ============================================================================
@@ -173,8 +173,8 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 export { getCoreHabitToolDefinitions, getCoachingToolDefinitions, getGamificationToolDefinitions };
 
-// Export Maya's voice-first tools
-export { mayaVoiceTools } from './maya-voice-tools.js';
+// Export voice-first habit tools
+export { habitVoiceTools } from './habit-voice-tools.js';
 
 // Re-export legacy tool creators for direct use by persona agents
 export { createHabitTools } from './habits.js';

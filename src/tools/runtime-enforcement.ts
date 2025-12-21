@@ -145,8 +145,16 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'planFollowUp',
     // Enhanced Calendar Tools
     'getPreMeetingBriefing',
-    // NOTE: parseNaturalDate, confirmEventDetails, suggestPostMeetingFollowUp, suggestRecurringEvents
-    // are PLANNED Phase 2-3 tools (not yet implemented). They will be added when those tools are created.
+    'getPostMeetingFollowUp',
+    'recordMeetingOutcome',
+    'checkConflicts',
+    'smartReschedule',
+    'findBestTime',
+    // Better Than Human - Recovery & Wellbeing
+    'detectRecoveryNeeds',
+    'findRecoveryOpportunities',
+    'blockRecoveryTime',
+    'getCalendarLoadSummary',
   ],
   // Jordan owns event/milestone/goal planning tools (from life-planning domain)
   // See: src/tools/domains/life-planning/index.ts

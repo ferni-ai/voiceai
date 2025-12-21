@@ -6,7 +6,8 @@
  * @module voice-agent/phases/types
  */
 
-import type { JobContext, voice as voiceType } from '@livekit/agents';
+import type { JobContext, voice as voiceType, llm, tts } from '@livekit/agents';
+import type { BundleRuntimeEngine } from '../../../personas/bundles/runtime.js';
 import type { PersonaConfig } from '../../../personas/types.js';
 import type { SessionServices } from '../../../services/index.js';
 import type { UserData } from '../../shared/types.js';
@@ -56,12 +57,12 @@ export interface SessionInitPhaseResult {
 // ============================================================================
 
 export interface SessionCreationPhaseResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  session: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  agent: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tts: any;
+  /** LiveKit AgentSession for voice pipeline management */
+  session: voiceType.AgentSession<UserData>;
+  /** LiveKit Agent with persona instructions and tools */
+  agent: voiceType.Agent<UserData>;
+  /** Text-to-speech engine (Cartesia or other provider) */
+  tts: tts.TTS;
   effectiveVoiceId: string;
   isLocalizedVoice: boolean;
   isPhoneCall: boolean;
@@ -75,8 +76,8 @@ export interface HandlerSetupPhaseResult {
   cleanupHandlers: Array<() => void | Promise<void>>;
   musicResult: { initialized: boolean; clearTimers: () => void };
   voiceHumanization: { cleanup: () => void } | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bundleRuntime: any | undefined;
+  /** Persona bundle runtime engine for rich content and behaviors */
+  bundleRuntime: BundleRuntimeEngine | undefined;
 }
 
 // ============================================================================
@@ -96,6 +97,8 @@ export interface PhaseContext {
 // TOOL SET TYPE
 // ============================================================================
 
-// ToolSet matches the ToolContext type expected by voice.Agent
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ToolSet = Record<string, any>;
+/**
+ * ToolSet matches the ToolContext type expected by voice.Agent
+ * Uses the proper llm.ToolContext type from LiveKit agents
+ */
+export type ToolSet = llm.ToolContext<UserData>;

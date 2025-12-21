@@ -256,7 +256,10 @@ export async function callWithPersonaVoice(
     const ssmlOptions: OutboundSsmlOptions = typeof options?.ssml === 'object' ? options.ssml : {};
     ssmlOptions.personaId = personaId;
     enhancedMessage = enhanceOutboundMessage(message, ssmlOptions);
-    logger.debug({ original: message.length, enhanced: enhancedMessage.length }, '🎤 Applied SSML enhancement');
+    logger.debug(
+      { original: message.length, enhanced: enhancedMessage.length },
+      '🎤 Applied SSML enhancement'
+    );
   }
 
   // Try to generate persona's voice

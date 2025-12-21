@@ -308,7 +308,7 @@ export {
   relationshipProgressUI,
   showProgressPanel as showRelationshipProgress,
   toggleProgressPanel as toggleRelationshipProgress,
-} from './relationship-progress.ui.js';
+} from './stage-celebration.ui.js';
 
 // Trust Journey UI - "Better Than Human" relationship visualization
 export {
@@ -462,11 +462,12 @@ export type {
 // ============================================================================
 
 // Stage Celebration Modal - Full celebration with confetti on relationship stage-up
+// NOTE: Renamed from relationship-progress.ui.ts - exports use legacy names for compatibility
 export {
-  initStageCelebration,
-  showStageCelebration,
-  hideStageCelebration,
-  stageCelebration,
+  initRelationshipProgressUI as initStageCelebration,
+  showCelebration as showStageCelebration,
+  hideProgressPanel as hideStageCelebration,
+  relationshipProgressUI as stageCelebration,
 } from './stage-celebration.ui.js';
 
 // Trust Signal Cards - "Ferni noticed..." moments from trust systems

@@ -678,7 +678,7 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
   const approachingLimit = false;
 
   // ============== SOFT CAP CALCULATIONS (FinOps) ==============
-  const softConversationCap = config.softConversationCap;
+  const { softConversationCap } = config;
   const conversationsUsed = usage.conversationCount;
 
   // Check soft cap status (only for tiers with a cap)

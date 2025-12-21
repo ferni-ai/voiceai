@@ -354,7 +354,7 @@ export class AliveOrchestrator {
         });
       }
     } catch (error) {
-      log.debug({ error: String(error) }, 'Failed to get our songs (non-critical)');
+      log.warn({ error: String(error) }, 'Failed to get our songs (non-critical)');
     }
 
     return null;

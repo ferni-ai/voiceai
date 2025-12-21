@@ -199,7 +199,7 @@ export function initializeLiveBackchanneling<T>(
           '🎤 Live backchannel emitted during breath pause'
         );
       } catch (err) {
-        log.debug({ error: String(err) }, 'Live backchannel emission failed (non-critical)');
+        log.warn({ error: String(err) }, 'Live backchannel emission failed (non-critical)');
       }
     }
   };

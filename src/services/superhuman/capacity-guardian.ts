@@ -11,6 +11,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  getCalendarLoadFactors,
+  getCalendarBurnoutRiskFactors,
+  getCalendarLoadSummary,
+  type CalendarLoadFactors,
+  type CalendarBurnoutFactor,
+} from '../calendar/calendar-load-service.js';
 
 const log = createLogger({ module: 'capacity-guardian' });
 
@@ -333,6 +340,41 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
     });
   }
 
+  // ============================================================================
+  // CALENDAR-BASED BURNOUT FACTORS (Better Than Human Integration)
+  // ============================================================================
+  try {
+    const calendarFactors = await getCalendarBurnoutRiskFactors(userId);
+
+    for (const calFactor of calendarFactors) {
+      riskScore += calFactor.riskContribution;
+      factors.push({
+        factor: calFactor.name,
+        weight: calFactor.weight,
+        description: calFactor.description,
+      });
+    }
+
+    // Add calendar load summary to factors if significant
+    const loadFactors = await getCalendarLoadFactors(userId);
+
+    // Check for combined signals (low energy + heavy calendar)
+    if (readings.length > 0) {
+      const recentAvg = readings.slice(0, 3).reduce((sum, r) => sum + r.energyScore, 0) / 3;
+      if (recentAvg < 50 && loadFactors.weeklyMeetingHours >= 25) {
+        riskScore += 20;
+        factors.push({
+          factor: 'Energy-Calendar Mismatch',
+          weight: 0.2,
+          description: `Low energy (${Math.round(recentAvg)}/100) + heavy calendar (${loadFactors.weeklyMeetingHours}h meetings)`,
+        });
+      }
+    }
+  } catch (error) {
+    // Calendar integration is optional - don't fail burnout assessment
+    log.warn({ error: String(error), userId }, 'Calendar factors unavailable for burnout assessment');
+  }
+
   // Determine risk level
   let risk: BurnoutRisk;
   if (riskScore >= 70) risk = 'critical';
@@ -341,12 +383,20 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
   else if (riskScore >= 15) risk = 'moderate';
   else risk = 'low';
 
-  // Generate recommendations
+  // Generate recommendations (now calendar-aware)
   const recommendations: string[] = [];
   if (risk === 'critical' || risk === 'high') {
     recommendations.push('Consider clearing your calendar for the next few days.');
     recommendations.push('What can you delegate or postpone?');
     recommendations.push('Sleep should be non-negotiable right now.');
+
+    // Add calendar-specific recommendations
+    const hasCalendarFactors = factors.some((f) =>
+      ['Heavy Meeting Load', 'Extreme Meeting Load', 'No Focus Time', 'Back-to-Back Overload'].includes(f.factor)
+    );
+    if (hasCalendarFactors) {
+      recommendations.push('Block "Do Not Schedule" time for the next few days.');
+    }
   } else if (risk === 'elevated') {
     recommendations.push('Build in more recovery time this week.');
     recommendations.push('Say no to at least one thing today.');
@@ -375,12 +425,14 @@ export async function buildCapacityContext(userId: string): Promise<string> {
   const assessment = await assessBurnoutRisk(userId);
   const readings = await loadEnergyHistory(userId, 7);
 
-  if (readings.length === 0) {
+  // Even without readings, we may have calendar data
+  const hasData = readings.length > 0 || assessment.factors.length > 0;
+  if (!hasData) {
     return '';
   }
 
   const sections: string[] = ['[CAPACITY GUARDIAN - Better Than Human Energy Tracking]'];
-  sections.push('You track their energy like no human can. Protect them from themselves.');
+  sections.push('You track their energy AND calendar like no human can. Protect them from themselves.');
 
   // Current assessment
   const riskEmoji: Record<BurnoutRisk, string> = {
@@ -402,12 +454,22 @@ export async function buildCapacityContext(userId: string): Promise<string> {
     }
   }
 
-  // Recent trend
+  // Recent trend (if we have readings)
   if (readings.length >= 3) {
     const avgScore = Math.round(
       readings.slice(0, 3).reduce((sum, r) => sum + r.energyScore, 0) / 3
     );
     sections.push(`\n**Recent Energy Average:** ${avgScore}/100`);
+  }
+
+  // Calendar load summary (Better Than Human integration)
+  try {
+    const calendarSummary = await getCalendarLoadSummary(userId);
+    if (calendarSummary) {
+      sections.push(`\n**Calendar Load:**\n${calendarSummary}`);
+    }
+  } catch {
+    // Calendar summary is optional
   }
 
   // Recommendations

@@ -73,6 +73,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'therapeutic-frameworks': () => import('./therapeutic-frameworks.js'),
   'behavioral-economics': () => import('./behavioral-economics.js'),
   methodology: () => import('./methodology.js'),
+  'prediction-surfacing': () => import('./prediction-surfacing.js'), // Proactive prediction surfacing
 
   // COGNITIVE
   awareness: () => import('./awareness.js'),

@@ -149,7 +149,11 @@ async function setCash(amount: number): Promise<void> {
   });
 }
 
-async function syncMRRFromStripe(): Promise<{ mrr: number; subscriptionCount: number; success: boolean }> {
+async function syncMRRFromStripe(): Promise<{
+  mrr: number;
+  subscriptionCount: number;
+  success: boolean;
+}> {
   const adminKey = localStorage.getItem('admin_key') || 'dev-mode';
   const response = await fetch(`/api/finops/sync-mrr?admin_key=${adminKey}`, {
     method: 'POST',
@@ -185,13 +189,16 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function getHealthStatus(margin: number, alerts: FinOpsSnapshot['alerts']): { class: string; text: string } {
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
-  
+function getHealthStatus(
+  margin: number,
+  alerts: FinOpsSnapshot['alerts']
+): { class: string; text: string } {
+  const criticalAlerts = alerts.filter((a) => a.severity === 'critical').length;
+
   if (criticalAlerts > 0 || margin < 0) {
     return { class: 'status-critical', text: 'Critical' };
   }
-  if (margin < 0.2 || alerts.some(a => a.severity === 'warning')) {
+  if (margin < 0.2 || alerts.some((a) => a.severity === 'warning')) {
     return { class: 'status-warning', text: 'Warning' };
   }
   return { class: 'status-healthy', text: 'Healthy' };
@@ -199,15 +206,19 @@ function getHealthStatus(margin: number, alerts: FinOpsSnapshot['alerts']): { cl
 
 function getSeverityClass(severity: string): string {
   switch (severity) {
-    case 'critical': return 'alert-critical';
-    case 'warning': return 'alert-warning';
-    default: return 'alert-info';
+    case 'critical':
+      return 'alert-critical';
+    case 'warning':
+      return 'alert-warning';
+    default:
+      return 'alert-info';
   }
 }
 
 function getAlertIcon(severity: string): string {
   // Using Lucide-style SVG icons (24x24, 2px stroke)
-  const attrs = 'width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  const attrs =
+    'width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
   switch (severity) {
     case 'critical':
       // X Circle icon
@@ -1054,7 +1065,7 @@ export async function setupEvents(): Promise<void> {
     const originalText = btn.textContent;
     btn.textContent = 'Syncing...';
     btn.disabled = true;
-    
+
     try {
       const result = await syncMRRFromStripe();
       if (result.success) {
@@ -1129,12 +1140,16 @@ function updateUI(): void {
   // Alerts
   const alertsContainer = document.getElementById('finops-alerts');
   if (alertsContainer) {
-    alertsContainer.innerHTML = snapshot.alerts.map(alert => `
+    alertsContainer.innerHTML = snapshot.alerts
+      .map(
+        (alert) => `
       <div class="alert-item ${getSeverityClass(alert.severity)}">
         <span class="alert-icon">${getAlertIcon(alert.severity)}</span>
         <span class="alert-message">${alert.message}</span>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   // Key metrics
@@ -1143,7 +1158,10 @@ function updateUI(): void {
   setText('metric-mrr', formatCurrency(snapshot.monthlyRecurringRevenue));
   setText('metric-margin', `Margin: ${formatPercent(snapshot.grossMargin)}`);
   setText('metric-cost-per-convo', formatCurrency(snapshot.avgCostPerConversation, 3));
-  setText('metric-runway', snapshot.runwayMonths ? `${snapshot.runwayMonths.toFixed(1)} mo` : 'N/A');
+  setText(
+    'metric-runway',
+    snapshot.runwayMonths ? `${snapshot.runwayMonths.toFixed(1)} mo` : 'N/A'
+  );
 
   // Unit economics - Free tier
   setText('free-cost', formatCurrency(snapshot.costByTier.free.cost));
@@ -1173,19 +1191,25 @@ function updateUI(): void {
       { name: 'Infra', key: 'infra' },
     ];
 
-    serviceBreakdown.innerHTML = services.map(({ name, key }) => {
-      const cost = snapshot.costByService[key as keyof typeof snapshot.costByService];
-      const percent = (cost / total) * 100;
-      return `
-        <div class="service-row">
-          <span class="service-name">${name}</span>
-          <div class="service-bar-container">
-            <div class="service-bar" style="width: ${percent}%"></div>
+    if (snapshot) {
+      const currentSnapshot = snapshot; // Local reference for closure
+      serviceBreakdown.innerHTML = services
+        .map(({ name, key }) => {
+          const cost =
+            currentSnapshot.costByService[key as keyof typeof currentSnapshot.costByService];
+          const percent = (cost / total) * 100;
+          return `
+          <div class="service-row">
+            <span class="service-name">${name}</span>
+            <div class="service-bar-container">
+              <div class="service-bar" style="width: ${percent}%"></div>
+            </div>
+            <span class="service-value">${formatCurrency(cost)}</span>
           </div>
-          <span class="service-value">${formatCurrency(cost)}</span>
-        </div>
-      `;
-    }).join('');
+        `;
+        })
+        .join('');
+    }
   }
 
   // Config inputs
@@ -1202,15 +1226,26 @@ function updateUI(): void {
         { key: 'maxCostPerFreeSession', label: 'Max Free Session Cost', format: formatCurrency },
         { key: 'maxMonthlyBurn', label: 'Max Monthly Burn', format: formatCurrency },
         { key: 'minGrossMargin', label: 'Min Gross Margin', format: formatPercent },
-        { key: 'maxUnprofitableUsers', label: 'Max Unprofitable Users', format: (v: number) => String(v) },
+        {
+          key: 'maxUnprofitableUsers',
+          label: 'Max Unprofitable Users',
+          format: (v: number) => String(v),
+        },
       ];
 
-      thresholdGrid.innerHTML = items.map(({ key, label, format }) => `
-        <div class="config-item">
-          <label>${label}</label>
-          <span class="threshold-value">${format(thresholds[key as keyof Thresholds])}</span>
-        </div>
-      `).join('');
+      if (thresholds) {
+        const currentThresholds = thresholds; // Local reference for closure
+        thresholdGrid.innerHTML = items
+          .map(
+            ({ key, label, format }) => `
+          <div class="config-item">
+            <label>${label}</label>
+            <span class="threshold-value">${format(currentThresholds[key as keyof Thresholds])}</span>
+          </div>
+        `
+          )
+          .join('');
+      }
     }
   }
 
@@ -1256,9 +1291,9 @@ function updateUI(): void {
     const users = snapshot.powerUsers;
 
     // Summary counts
-    const whales = users.filter(u => u.tier === 'free' && u.costEquivalentTier === 'whale');
-    const converts = users.filter(u => u.tier === 'free' && u.costEquivalentTier !== 'whale');
-    const unprofitable = users.filter(u => u.isUnprofitable);
+    const whales = users.filter((u) => u.tier === 'free' && u.costEquivalentTier === 'whale');
+    const converts = users.filter((u) => u.tier === 'free' && u.costEquivalentTier !== 'whale');
+    const unprofitable = users.filter((u) => u.isUnprofitable);
 
     setText('pu-whales', String(whales.length));
     setText('pu-convert', String(converts.length));
@@ -1270,19 +1305,21 @@ function updateUI(): void {
       if (users.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5">No power users detected yet</td></tr>';
       } else {
-        tbody.innerHTML = users.slice(0, 10).map(user => {
-          let statusBadge = '';
-          if (user.tier === 'free' && user.costEquivalentTier === 'whale') {
-            statusBadge = '<span class="status-badge whale">High-Cost</span>';
-          } else if (user.tier === 'free') {
-            statusBadge = '<span class="status-badge convert">Convert</span>';
-          } else if (user.isUnprofitable) {
-            statusBadge = '<span class="status-badge unprofitable">Unprofitable</span>';
-          } else {
-            statusBadge = '<span class="status-badge profitable">Profitable</span>';
-          }
+        tbody.innerHTML = users
+          .slice(0, 10)
+          .map((user) => {
+            let statusBadge = '';
+            if (user.tier === 'free' && user.costEquivalentTier === 'whale') {
+              statusBadge = '<span class="status-badge whale">High-Cost</span>';
+            } else if (user.tier === 'free') {
+              statusBadge = '<span class="status-badge convert">Convert</span>';
+            } else if (user.isUnprofitable) {
+              statusBadge = '<span class="status-badge unprofitable">Unprofitable</span>';
+            } else {
+              statusBadge = '<span class="status-badge profitable">Profitable</span>';
+            }
 
-          return `
+            return `
             <tr>
               <td title="${user.userId}">${truncateUserId(user.userId)}</td>
               <td>${user.tier}</td>
@@ -1291,7 +1328,8 @@ function updateUI(): void {
               <td>${statusBadge}</td>
             </tr>
           `;
-        }).join('');
+          })
+          .join('');
       }
     }
   }
@@ -1302,7 +1340,10 @@ function updateUI(): void {
     setText('ue-free-session', formatCurrency(ue.costPerFreeSession, 3));
     setText('ue-paid-session', formatCurrency(ue.costPerPaidSession, 3));
     setText('ue-margin-session', formatCurrency(ue.marginPerPaidSession, 3));
-    setText('ue-breakeven', ue.breakEvenSessionsToConvert > 0 ? String(Math.round(ue.breakEvenSessionsToConvert)) : '--');
+    setText(
+      'ue-breakeven',
+      ue.breakEvenSessionsToConvert > 0 ? String(Math.round(ue.breakEvenSessionsToConvert)) : '--'
+    );
   }
 
   // Free tier cost percent
@@ -1325,4 +1366,3 @@ export function cleanup(): void {
     refreshInterval = null;
   }
 }
-

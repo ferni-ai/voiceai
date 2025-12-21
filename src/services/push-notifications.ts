@@ -52,6 +52,8 @@ export type NotificationType =
   | 'team_huddle'
   | 'ferni_checkin'
   | 'engagement'
+  | 'calendar_reminder'
+  | 'calendar_digest'
   | 'general';
 
 export interface PushSubscription {
@@ -96,6 +98,8 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, { icon: string }> = {
   team_huddle: { icon: '/icons/team-192.png' },
   ferni_checkin: { icon: '/icons/ferni-192.png' },
   engagement: { icon: '/icons/engagement-192.png' },
+  calendar_reminder: { icon: '/icons/calendar-192.png' },
+  calendar_digest: { icon: '/icons/calendar-192.png' },
   general: { icon: '/icons/icon-192.png' },
 };
 

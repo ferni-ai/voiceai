@@ -5,6 +5,7 @@
 ## Overview
 
 The "U" Persona lets users clone their own voice and have Ferni make calls AS them. This is powerful for:
+
 - Calling businesses on hold (Ferni waits, you don't)
 - Making awkward calls (cancellations, complaints, difficult conversations)
 - Delegating routine calls (appointment confirmations, RSVPs)
@@ -40,12 +41,14 @@ The "U" Persona lets users clone their own voice and have Ferni make calls AS th
 ```
 
 **UI Components Needed:**
+
 - `VoiceRecorder` - Handles MediaRecorder API, shows waveform
 - `VoicePlayback` - Plays back recording for approval
 - `VoiceCloneProgress` - Shows cloning progress with friendly messages
 - `VoiceCloneSettings` - Configuration after clone is created
 
 **Recording Requirements:**
+
 - Minimum 10 seconds of speech
 - Clear audio (warn if background noise detected)
 - Prompt user with text to read (ensures varied phonemes)
@@ -53,12 +56,14 @@ The "U" Persona lets users clone their own voice and have Ferni make calls AS th
 - Format: WAV or MP3
 
 **Sample Script to Read:**
+
 ```
 "Hi, this is [name]. I'm calling to check on my appointment.
-The weather today is beautiful, isn't it? 
+The weather today is beautiful, isn't it?
 I really appreciate you taking the time to help me with this.
 Looking forward to speaking with you soon!"
 ```
+
 (~10 seconds, covers various phonemes and natural speech patterns)
 
 ### 1.2 Voice Upload API
@@ -107,7 +112,7 @@ async function createVoiceClone(params: {
   audioUrl: string;
 }): Promise<VoiceCloneResult> {
   const client = new CartesiaClient({ apiKey: CARTESIA_API_KEY });
-  
+
   // Cartesia Voice Clone API
   const voice = await client.voices.clone({
     name: `ferni_user_${params.userId}`,
@@ -115,7 +120,7 @@ async function createVoiceClone(params: {
     // Audio file URL or base64
     enhance: true, // Improve audio quality
   });
-  
+
   return {
     voiceId: voice.id,
     name: voice.name,
@@ -126,6 +131,7 @@ async function createVoiceClone(params: {
 ```
 
 **Cartesia API Notes:**
+
 - Voice cloning endpoint: `POST /voices/clone`
 - Requires: audio file (10+ seconds recommended)
 - Returns: voice ID that can be used with TTS
@@ -138,7 +144,7 @@ async function createVoiceClone(params: {
 ```typescript
 interface UserProfile {
   // ... existing fields
-  
+
   voiceClone?: {
     voiceId: string;
     cartesiaVoiceId: string;
@@ -146,21 +152,21 @@ interface UserProfile {
     createdAt: Date;
     lastUsedAt?: Date;
     status: 'active' | 'disabled' | 'expired';
-    
+
     // User preferences for their clone
     preferences: {
       // How formal should the clone sound?
       formality: 'casual' | 'professional' | 'match_context';
-      
+
       // Default greeting style
       greeting: string; // e.g., "Hi, this is Sarah calling"
-      
+
       // Signature phrases to use
       signaturePhrases?: string[];
-      
+
       // Things to never say
       avoidPhrases?: string[];
-      
+
       // Default persona traits when acting as user
       traits: {
         patience: 1-5;      // How patient on hold
@@ -263,33 +269,40 @@ u-persona/
 ```
 
 **System Prompt Template:**
+
 ```markdown
 # You Are Acting As {userName}
 
-You are making a call ON BEHALF of {userName}. You should speak AS them, 
+You are making a call ON BEHALF of {userName}. You should speak AS them,
 using their voice and their personality.
 
 ## Your Identity for This Call
+
 - Name: {userName}
 - Calling about: {callPurpose}
 - Phone number to reference: {userPhone}
 
 ## How {userName} Speaks
+
 {userStyleNotes}
 
 ## {userName}'s Preferences
+
 - Greeting: "{greeting}"
 - Patience level: {patienceLevel}/5
 - Assertiveness: {assertiveness}/5
 - Friendliness: {friendliness}/5
 
 ## Signature Phrases to Use
+
 {signaturePhrases}
 
 ## Never Say
+
 {avoidPhrases}
 
 ## Important Rules
+
 1. You ARE {userName} for this call - use first person
 2. If asked to verify identity, use the info provided
 3. Stay on task - accomplish the call purpose
@@ -298,9 +311,11 @@ using their voice and their personality.
 6. End with a clear confirmation of what was accomplished
 
 ## Call Purpose
+
 {callPurpose}
 
 ## Context
+
 {additionalContext}
 ```
 
@@ -312,26 +327,25 @@ using their voice and their personality.
 interface UPersonaVoiceConfig {
   // Dynamically loaded per-user
   cartesiaVoiceId: string;
-  
+
   // Emotion settings (more neutral than Ferni)
   defaultEmotion: 'neutral' | 'friendly' | 'professional';
-  
+
   // Speed (match user's natural pace if known)
   defaultSpeed: number; // 0.9-1.1
 }
 
 async function getUPersonaVoiceConfig(userId: string): Promise<UPersonaVoiceConfig> {
   const profile = await getUserProfile(userId);
-  
+
   if (!profile.voiceClone?.cartesiaVoiceId) {
     throw new Error('User has not created a voice clone');
   }
-  
+
   return {
     cartesiaVoiceId: profile.voiceClone.cartesiaVoiceId,
-    defaultEmotion: profile.voiceClone.preferences.formality === 'professional' 
-      ? 'professional' 
-      : 'friendly',
+    defaultEmotion:
+      profile.voiceClone.preferences.formality === 'professional' ? 'professional' : 'friendly',
     defaultSpeed: 1.0,
   };
 }
@@ -350,16 +364,14 @@ Examples:
 - "Call the dentist and cancel my appointment"
 - "Can you call Comcast and complain about my bill?"
 - "Wait on hold with the airline for me"`,
-  
+
   parameters: z.object({
     phoneNumber: z.string().describe('Phone number to call'),
     purpose: z.string().describe('What the call is about'),
-    specificRequests: z.array(z.string()).optional()
-      .describe('Specific things to accomplish'),
-    context: z.string().optional()
-      .describe('Additional context (account numbers, dates, etc.)'),
+    specificRequests: z.array(z.string()).optional().describe('Specific things to accomplish'),
+    context: z.string().optional().describe('Additional context (account numbers, dates, etc.)'),
   }),
-  
+
   execute: async ({ phoneNumber, purpose, specificRequests, context }) => {
     // 1. Check if user has voice clone
     // 2. Load U persona with user's config
@@ -382,7 +394,7 @@ Ferni: "I'll call them as you. What's the number?"
 
 User: "555-123-4567"
 
-Ferni: "Got it. I'll call, introduce myself as you, and reschedule. 
+Ferni: "Got it. I'll call, introduce myself as you, and reschedule.
        What dates work for you?"
 
 User: "Anytime next week except Tuesday"
@@ -391,13 +403,13 @@ Ferni: "Perfect. I'll call now and text you when I'm done."
 
 [Ferni makes call using user's cloned voice]
 
-"Hi, this is Sarah Johnson calling. I need to reschedule my 
-dental cleaning... Yes, anytime next week except Tuesday works... 
+"Hi, this is Sarah Johnson calling. I need to reschedule my
+dental cleaning... Yes, anytime next week except Tuesday works...
 Thursday at 2pm? That's perfect. Thank you so much!"
 
 [Call ends]
 
-Ferni: "Done! Rescheduled your cleaning for Thursday at 2pm. 
+Ferni: "Done! Rescheduled your cleaning for Thursday at 2pm.
        I'll add it to your calendar."
 ```
 
@@ -408,8 +420,8 @@ Ferni: "Done! Rescheduled your cleaning for Thursday at 2pm.
 ```typescript
 // Special logic for when U persona is on hold
 interface HoldHandlerConfig {
-  maxWaitMinutes: number;      // Default: 30
-  checkInIntervalSeconds: 60;  // Notify user every 60 seconds
+  maxWaitMinutes: number; // Default: 30
+  checkInIntervalSeconds: 60; // Notify user every 60 seconds
   abandonAfterMinutes?: number; // Optional auto-hang-up
 }
 
@@ -427,11 +439,12 @@ After call completes, report back to user:
 ```typescript
 interface CallAsUserResult {
   success: boolean;
-  summary: string;           // What was accomplished
-  duration: number;          // How long the call took
-  holdTime?: number;         // Time spent on hold
-  nextSteps?: string[];      // Follow-up actions needed
-  calendarEvent?: {          // If appointment was made
+  summary: string; // What was accomplished
+  duration: number; // How long the call took
+  holdTime?: number; // Time spent on hold
+  nextSteps?: string[]; // Follow-up actions needed
+  calendarEvent?: {
+    // If appointment was made
     title: string;
     date: Date;
     location?: string;
@@ -446,6 +459,7 @@ interface CallAsUserResult {
 ### 5.1 Consent & Disclosure
 
 **Recording Consent:**
+
 - User explicitly consents when recording voice
 - Terms explain voice will be used to make calls
 - User can delete voice clone at any time
@@ -453,6 +467,7 @@ interface CallAsUserResult {
 **Call Disclosure (Important!):**
 Some jurisdictions require disclosure that a call is AI-generated.
 Options:
+
 1. **Opt-in disclosure:** "By the way, I'm using an AI assistant to make this call"
 2. **On-request only:** Only disclose if asked "Is this an AI?"
 3. **No disclosure:** User preference (with legal disclaimer)
@@ -471,9 +486,9 @@ const CALL_LIMITS = {
 
 // Blocked number types
 const BLOCKED_DESTINATIONS = [
-  /^911$/,           // Emergency
-  /^988$/,           // Suicide hotline
-  /^1-800-/,         // Some toll-free patterns
+  /^911$/, // Emergency
+  /^988$/, // Suicide hotline
+  /^1-800-/, // Some toll-free patterns
   // ... other sensitive numbers
 ];
 
@@ -502,12 +517,12 @@ const BLOCKED_DESTINATIONS = [
 
 ### 6.1 Feature Tiers
 
-| Feature | Free | Friend ($9.99) | Partner ($19.99) |
-|---------|------|----------------|------------------|
-| Voice Clone | ❌ | ✅ | ✅ |
-| Calls/month | 0 | 10 | 50 |
-| Hold waiting | ❌ | 15 min max | 60 min max |
-| Priority queue | ❌ | ❌ | ✅ |
+| Feature        | Free | Friend ($9.99) | Partner ($19.99) |
+| -------------- | ---- | -------------- | ---------------- |
+| Voice Clone    | ❌   | ✅             | ✅               |
+| Calls/month    | 0    | 10             | 50               |
+| Hold waiting   | ❌   | 15 min max     | 60 min max       |
+| Priority queue | ❌   | ❌             | ✅               |
 
 ### 6.2 Usage Tracking
 
@@ -526,6 +541,7 @@ interface VoiceCloneUsage {
 ## Implementation Roadmap
 
 ### Sprint 1: Voice Recording & Cloning (1 week)
+
 - [ ] Voice recording UI component
 - [ ] Audio quality validation
 - [ ] Cartesia voice clone API integration
@@ -533,24 +549,28 @@ interface VoiceCloneUsage {
 - [ ] Basic test call functionality
 
 ### Sprint 2: U Persona Configuration (1 week)
+
 - [ ] Configuration UI
 - [ ] Settings API endpoints
 - [ ] U persona bundle structure
 - [ ] Dynamic system prompt loading
 
 ### Sprint 3: Call Integration (1 week)
+
 - [ ] `callAsUser` tool implementation
 - [ ] Voice config loading from user profile
 - [ ] Call result reporting
 - [ ] Calendar integration for appointments
 
 ### Sprint 4: Hold Handling & Polish (1 week)
+
 - [ ] Hold music detection
 - [ ] Status updates during hold
 - [ ] User notifications
 - [ ] Edge cases and error handling
 
 ### Sprint 5: Safety & Launch (1 week)
+
 - [ ] Rate limiting
 - [ ] Content filtering
 - [ ] Legal disclosures
@@ -562,21 +582,25 @@ interface VoiceCloneUsage {
 ## Technical Requirements
 
 ### Cartesia API
+
 - Voice cloning endpoint access (may require special tier)
 - Estimated cost: ~$0.10-0.50 per voice clone
 - TTS cost: ~$0.01 per 1000 characters
 
 ### Frontend
+
 - MediaRecorder API support
 - Web Audio API for waveform visualization
 - File upload handling
 
 ### Backend
+
 - GCS bucket for temporary audio storage
 - Firestore for voice clone metadata
 - Rate limiting middleware
 
 ### Voice Agent
+
 - Dynamic voice loading per-call
 - U persona context injection
 - Hold state management
@@ -619,12 +643,12 @@ User: "Sure"
 Ferni: "Great! When you're ready, read this sentence clearly:
        'Hi, this is [your name] calling to check on my appointment.
        The weather today is beautiful. Thank you for your help.'
-       
+
        Ready? [Start Recording]"
 
 [User records]
 
-Ferni: "Perfect! Let me create your voice... 
+Ferni: "Perfect! Let me create your voice...
        [Creating voice...]
        Done! Would you like to hear how it sounds?"
 
@@ -659,4 +683,3 @@ Ferni: "Done! Good news - they agreed to credit $50 to your next bill.
 
 User: "Amazing, thank you!"
 ```
-

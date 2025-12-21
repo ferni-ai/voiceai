@@ -524,6 +524,13 @@ class CommandsPanelUI {
         visibility: visible;
       }
 
+      /* Hide settings trigger when commands panel is open */
+      .ferni-commands--visible ~ .settings-trigger,
+      body:has(.ferni-commands--visible) .settings-trigger {
+        opacity: 0;
+        pointer-events: none;
+      }
+
       .ferni-commands__backdrop {
         position: absolute;
         inset: 0;

@@ -207,7 +207,7 @@ class AnalyticsDashboardUI {
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Progress</h2>
+        <h2 class="analytics__title">Your Journey</h2>
         <div class="analytics__actions">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -237,7 +237,7 @@ class AnalyticsDashboardUI {
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Progress</h2>
+        <h2 class="analytics__title">Your Journey</h2>
         <div class="analytics__actions">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -314,7 +314,7 @@ class AnalyticsDashboardUI {
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Progress</h2>
+        <h2 class="analytics__title">Your Journey</h2>
         <div class="analytics__actions">
           <button class="analytics__export" aria-label="${t('accessibility.exportData')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

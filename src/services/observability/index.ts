@@ -56,3 +56,13 @@ export {
   type PersonaUsageEvent,
 } from './persona-health.js';
 export { observabilityHub, type ObservabilitySnapshot, type Alert } from './hub.js';
+export {
+  resilienceMetrics,
+  type ResilienceSnapshot,
+  type WorkerEvent,
+  type CleanupEvent,
+  type QueueMetric,
+  type CircuitBreakerEvent,
+  type HealthCheckEvent,
+  type ScalingEvent,
+} from './resilience-metrics.js';

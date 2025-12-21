@@ -561,11 +561,9 @@ You choose the channel: email, text, or voice.`,
 
             // If no custom message, generate one
             if (!message && context) {
-              message = await generatePersonalizedMessage(
-                context,
-                params.purpose,
-                'casual'
-              );
+              // Add purpose to context for better message generation
+              const contextWithPurpose = { ...context, occasion: params.purpose as OutreachOccasion };
+              message = generatePersonalizedMessage(contextWithPurpose);
             }
 
             if (!message) {

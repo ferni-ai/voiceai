@@ -769,7 +769,10 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
   }
 
   // After any subscription-related event, sync MRR to FinOps
-  if (event.type.startsWith('customer.subscription.') || event.type.startsWith('checkout.session.')) {
+  if (
+    event.type.startsWith('customer.subscription.') ||
+    event.type.startsWith('checkout.session.')
+  ) {
     try {
       await syncMRRToFinOps();
     } catch (err) {
@@ -804,16 +807,16 @@ export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCoun
     expand: ['data.items.data.price'],
   })) {
     subscriptionCount++;
-    
+
     // Sum up the MRR from subscription items
     for (const item of subscription.items.data) {
-      const price = item.price;
+      const { price } = item;
       if (price && price.unit_amount) {
         // Convert to monthly amount
         if (price.recurring?.interval === 'month') {
-          mrr += (price.unit_amount / 100); // Stripe stores in cents
+          mrr += price.unit_amount / 100; // Stripe stores in cents
         } else if (price.recurring?.interval === 'year') {
-          mrr += (price.unit_amount / 100) / 12; // Convert annual to monthly
+          mrr += price.unit_amount / 100 / 12; // Convert annual to monthly
         }
       }
     }
@@ -831,7 +834,7 @@ export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCoun
 
   // Update FinOps with the calculated MRR
   finops.setMonthlyRevenue(mrr);
-  
+
   log.info({ mrr, subscriptionCount }, 'Synced MRR to FinOps');
   return { mrr, subscriptionCount };
 }

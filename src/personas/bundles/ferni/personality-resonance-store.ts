@@ -268,7 +268,7 @@ export async function loadResonanceProfile(
           }
         }
       } catch (firestoreError) {
-        log.debug({ error: String(firestoreError), userId }, 'Firestore load failed (non-critical)');
+        log.warn({ error: String(firestoreError), userId }, 'Firestore load failed (non-critical)');
       }
     }
 

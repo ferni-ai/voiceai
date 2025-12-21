@@ -686,23 +686,22 @@ export async function handleLandingIntelligenceRoutes(
     // ============================================================================
     if (pathname === '/api/landing/ai/personalized-hero' && method === 'POST') {
       const body = await parseBody<PersonalizedHeroRequest>(req);
-      
+
       const hour = body.hour ?? new Date().getHours();
       const isReturning = body.isReturning ?? false;
       const visitCount = body.visitCount ?? 1;
-      
+
       // Determine time block and visitor type for cache lookup
       const timeBlock = getTimeBlock(hour);
       const visitorType = visitCount > 5 ? 'loyal' : isReturning ? 'returning' : 'new';
-      
+
       // Try to get cached content first (cost optimization)
       try {
-        const { getCachedHero, getCacheControlHeader } = await import(
-          '../services/landing-intelligence/content-cache.js'
-        );
-        
+        const { getCachedHero, getCacheControlHeader } =
+          await import('../services/landing-intelligence/content-cache.js');
+
         const cached = await getCachedHero(timeBlock, visitorType);
-        
+
         if (cached) {
           // Return cached content with edge cache headers
           res.writeHead(200, {
@@ -711,21 +710,23 @@ export async function handleLandingIntelligenceRoutes(
             'Access-Control-Allow-Origin': '*',
             'X-Cache-Status': 'HIT',
           });
-          res.end(JSON.stringify({
-            personalized: true,
-            eyebrow: cached.eyebrow,
-            headline: cached.headline,
-            tagline: cached.subhead,
-            cta: cached.cta,
-            cached: true,
-            cacheKey: `${timeBlock}-${visitorType}`,
-          }));
+          res.end(
+            JSON.stringify({
+              personalized: true,
+              eyebrow: cached.eyebrow,
+              headline: cached.headline,
+              tagline: cached.subhead,
+              cta: cached.cta,
+              cached: true,
+              cacheKey: `${timeBlock}-${visitorType}`,
+            })
+          );
           return true;
         }
       } catch (cacheError) {
         log.debug({ error: String(cacheError) }, 'Cache lookup failed, falling back to real-time');
       }
-      
+
       // Fall back to real-time generation (more expensive)
       const result = await generatePersonalizedHero({
         hour,
@@ -736,7 +737,7 @@ export async function handleLandingIntelligenceRoutes(
         sentiment: body.sentiment,
         topSectionsViewed: body.topSectionsViewed,
       });
-      
+
       // Return with shorter cache (real-time content)
       res.writeHead(200, {
         'Content-Type': 'application/json',
@@ -747,7 +748,7 @@ export async function handleLandingIntelligenceRoutes(
       res.end(JSON.stringify(result));
       return true;
     }
-    
+
     // Helper function for time block
     function getTimeBlock(hour: number): string {
       if (hour >= 0 && hour < 5) return 'lateNight';
@@ -767,12 +768,11 @@ export async function handleLandingIntelligenceRoutes(
 
       // Try to get cached content first
       try {
-        const { getCachedSocialProof, getCacheControlHeader } = await import(
-          '../services/landing-intelligence/content-cache.js'
-        );
-        
+        const { getCachedSocialProof, getCacheControlHeader } =
+          await import('../services/landing-intelligence/content-cache.js');
+
         const cached = await getCachedSocialProof(count);
-        
+
         if (cached && cached.length > 0) {
           res.writeHead(200, {
             'Content-Type': 'application/json',
@@ -780,10 +780,12 @@ export async function handleLandingIntelligenceRoutes(
             'Access-Control-Allow-Origin': '*',
             'X-Cache-Status': 'HIT',
           });
-          res.end(JSON.stringify({
-            messages: cached.map(m => m.text),
-            cached: true,
-          }));
+          res.end(
+            JSON.stringify({
+              messages: cached.map((m) => m.text),
+              cached: true,
+            })
+          );
           return true;
         }
       } catch (cacheError) {
@@ -813,7 +815,7 @@ export async function handleLandingIntelligenceRoutes(
 
       const hour = body.hour ?? new Date().getHours();
       const isReturning = body.isReturning ?? false;
-      
+
       // Generate an AI late-night scenario
       const prompt = `Generate a single intrusive thought that someone might have at 3am when they can't sleep.
       
@@ -827,7 +829,7 @@ export async function handleLandingIntelligenceRoutes(
       
       Return ONLY a JSON object like:
       {"thought": "the intrusive thought without quotes", "time": "3:XX AM", "category": "category-name"}`;
-      
+
       try {
         const text = await generateText(prompt);
         if (text) {
@@ -842,13 +844,13 @@ export async function handleLandingIntelligenceRoutes(
       } catch (err) {
         log.warn('AI late-night scenario generation failed', { error: String(err) });
       }
-      
+
       // Fallback scenarios
       const fallbacks = [
-        { thought: "What if they never forgive me?", time: "3:27 AM", category: "relationship" },
-        { thought: "Am I wasting my potential?", time: "2:54 AM", category: "existential" },
-        { thought: "Why can't I just be normal?", time: "4:11 AM", category: "self-doubt" },
-        { thought: "What if I made the wrong choice?", time: "3:38 AM", category: "decisions" },
+        { thought: 'What if they never forgive me?', time: '3:27 AM', category: 'relationship' },
+        { thought: 'Am I wasting my potential?', time: '2:54 AM', category: 'existential' },
+        { thought: "Why can't I just be normal?", time: '4:11 AM', category: 'self-doubt' },
+        { thought: 'What if I made the wrong choice?', time: '3:38 AM', category: 'decisions' },
       ];
       sendJSON(res, fallbacks[Math.floor(Math.random() * fallbacks.length)]);
       return true;
@@ -924,10 +926,10 @@ export async function handleLandingIntelligenceRoutes(
 
       const personaId = body.personaId || 'ferni';
       const personaName = getPersonaDisplayName(personaId);
-      
+
       // Apply SSML humanization to make the voice sound natural
       const humanizedText = humanizeTextForTTS(body.text, personaId);
-      
+
       log.info(
         { personaId, personaName, textLength: body.text.length, ssmlLength: humanizedText.length },
         '🎤 Landing TTS request (with SSML humanization)'
@@ -952,11 +954,8 @@ export async function handleLandingIntelligenceRoutes(
           'X-Persona-Name': personaName,
         });
         res.end(audioBuffer);
-        
-        log.info(
-          { personaId, audioSize: audioBuffer.length },
-          '✅ Landing TTS audio delivered'
-        );
+
+        log.info({ personaId, audioSize: audioBuffer.length }, '✅ Landing TTS audio delivered');
         return true;
       } catch (error) {
         log.error({ error, personaId }, 'TTS generation error');
@@ -997,31 +996,31 @@ export async function handleLandingIntelligenceRoutes(
         includeHeroes?: boolean;
         includeSocialProof?: boolean;
       }>(req);
-      
+
       log.info({ action: body.action }, 'Starting batch content generation');
-      
+
       try {
-        const { runBatchGeneration } = await import(
-          '../services/landing-intelligence/content-cache.js'
-        );
-        
+        const { runBatchGeneration } =
+          await import('../services/landing-intelligence/content-cache.js');
+
         const result = await runBatchGeneration();
-        
+
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         });
-        res.end(JSON.stringify({
-          success: true,
-          generated: {
-            heroes: result.heroes,
-            socialProof: result.socialProof,
-          },
-          estimatedCost: result.totalCost,
-          generatedAt: new Date().toISOString(),
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            generated: {
+              heroes: result.heroes,
+              socialProof: result.socialProof,
+            },
+            estimatedCost: result.totalCost,
+            generatedAt: new Date().toISOString(),
+          })
+        );
         return true;
-        
       } catch (genError) {
         log.error({ error: String(genError) }, 'Batch content generation failed');
         sendError(res, 'Content generation failed', 500);

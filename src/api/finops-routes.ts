@@ -8,8 +8,27 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
 import { finops } from '../services/observability/finops.js';
+
+// ============================================================================
+// VALIDATION SCHEMAS (Zod)
+// ============================================================================
+
+const RevenueSchema = z.object({
+  mrr: z.number().nonnegative({ message: 'MRR must be non-negative' }),
+});
+
+const CashSchema = z.object({
+  amount: z.number().nonnegative({ message: 'Amount must be non-negative' }),
+});
+
+const LtvCacConfigSchema = z.object({
+  cac: z.number().optional(),
+  lifetimeMonths: z.number().optional(),
+  churnRate: z.number().optional(),
+});
 
 const log = createLogger({ module: 'FinOpsRoutes' });
 
@@ -96,26 +115,26 @@ export async function handleFinOpsRoutes(
     // PUT /api/finops/revenue
     if (pathname === '/api/finops/revenue' && req.method === 'PUT') {
       const body = await parseBody(req);
-      const mrr = body.mrr as number;
-      if (typeof mrr !== 'number' || mrr < 0) {
-        sendJSON(res, { error: 'Invalid MRR value' }, 400);
+      const result = RevenueSchema.safeParse(body);
+      if (!result.success) {
+        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid MRR value' }, 400);
         return true;
       }
-      finops.setMonthlyRevenue(mrr);
-      sendJSON(res, { success: true, mrr });
+      finops.setMonthlyRevenue(result.data.mrr);
+      sendJSON(res, { success: true, mrr: result.data.mrr });
       return true;
     }
 
     // PUT /api/finops/cash
     if (pathname === '/api/finops/cash' && req.method === 'PUT') {
       const body = await parseBody(req);
-      const amount = body.amount as number;
-      if (typeof amount !== 'number' || amount < 0) {
-        sendJSON(res, { error: 'Invalid cash amount' }, 400);
+      const result = CashSchema.safeParse(body);
+      if (!result.success) {
+        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid cash amount' }, 400);
         return true;
       }
-      finops.setCashReserve(amount);
-      sendJSON(res, { success: true, amount });
+      finops.setCashReserve(result.data.amount);
+      sendJSON(res, { success: true, amount: result.data.amount });
       return true;
     }
 
@@ -187,16 +206,16 @@ export async function handleFinOpsRoutes(
     // PUT /api/finops/ltv-cac
     if (pathname === '/api/finops/ltv-cac' && req.method === 'PUT') {
       const body = await parseBody(req);
+      const result = LtvCacConfigSchema.safeParse(body);
+      if (!result.success) {
+        sendJSON(res, { error: result.error.errors[0]?.message || 'Invalid LTV/CAC config' }, 400);
+        return true;
+      }
+      const { cac, lifetimeMonths, churnRate } = result.data;
 
-      if (typeof body.cac === 'number') {
-        finops.setCAC(body.cac);
-      }
-      if (typeof body.lifetimeMonths === 'number') {
-        finops.setCustomerLifetime(body.lifetimeMonths);
-      }
-      if (typeof body.churnRate === 'number') {
-        finops.setChurnRate(body.churnRate);
-      }
+      if (cac !== undefined) finops.setCAC(cac);
+      if (lifetimeMonths !== undefined) finops.setCustomerLifetime(lifetimeMonths);
+      if (churnRate !== undefined) finops.setChurnRate(churnRate);
 
       sendJSON(res, {
         success: true,
@@ -275,12 +294,12 @@ export async function handleFinOpsRoutes(
       sendJSON(res, {
         status,
         metrics: {
-          grossMargin: (snapshot.grossMargin * 100).toFixed(1) + '%',
+          grossMargin: `${(snapshot.grossMargin * 100).toFixed(1)}%`,
           ltvCacRatio: snapshot.ltvCac.ltvCACRatio.toFixed(2),
           runwayMonths: snapshot.runwayMonths?.toFixed(1) || 'N/A',
-          freeTierCostPercent: (snapshot.freeTierCostPercent * 100).toFixed(0) + '%',
-          burnRatePerHour: '$' + snapshot.currentBurnRatePerHour.toFixed(2),
-          projectedMonthCost: '$' + snapshot.projectedMonthCost.toFixed(0),
+          freeTierCostPercent: `${(snapshot.freeTierCostPercent * 100).toFixed(0)}%`,
+          burnRatePerHour: `$${snapshot.currentBurnRatePerHour.toFixed(2)}`,
+          projectedMonthCost: `$${snapshot.projectedMonthCost.toFixed(0)}`,
         },
         alerts: {
           critical: criticalAlerts.length,
@@ -304,11 +323,15 @@ export async function handleFinOpsRoutes(
           message: `Synced MRR from ${result.subscriptionCount} subscriptions`,
         });
       } catch (err) {
-        sendJSON(res, {
-          success: false,
-          error: String(err),
-          message: 'Failed to sync MRR - check Stripe configuration',
-        }, 500);
+        sendJSON(
+          res,
+          {
+            success: false,
+            error: String(err),
+            message: 'Failed to sync MRR - check Stripe configuration',
+          },
+          500
+        );
       }
       return true;
     }
@@ -413,4 +436,3 @@ function generateRecommendations(snapshot: FinOpsSnapshotLike): string[] {
 }
 
 export default handleFinOpsRoutes;
-

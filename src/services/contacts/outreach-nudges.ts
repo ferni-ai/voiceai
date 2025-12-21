@@ -14,16 +14,16 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import type {
-  EnhancedContact,
-  ContactImportantDate,
-  OutreachOccasion,
-  ChannelType,
-} from './types.js';
-import { getContacts, getContactsNeedingAttention } from './contact-relationship-service.js';
+import type { OutreachOccasion, ChannelType } from './types.js';
+import { getContacts, getContactsNeedingAttention, type ContactRelationship } from './contact-relationship-service.js';
 import { getGroups } from './contact-groups.js';
-import { getTimingRecommendation } from './optimal-timing.js';
+
+// Local type for important dates (matches ContactRelationship.importantDates structure)
+interface ImportantDate {
+  date: string; // MM-DD or YYYY-MM-DD
+  type: 'birthday' | 'anniversary' | 'memorial' | 'custom';
+  label?: string;
+}
 
 const log = createLogger({ module: 'outreach-nudges' });
 
@@ -230,7 +230,7 @@ export async function generateNudges(userId: string): Promise<OutreachNudge[]> {
 
 function createDateNudge(
   contact: { id: string; name: string; relationship?: string; preferredChannel?: string },
-  date: ContactImportantDate,
+  date: ImportantDate,
   daysUntil: number
 ): OutreachNudge | null {
   const now = new Date();

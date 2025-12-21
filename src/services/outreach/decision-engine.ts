@@ -387,8 +387,8 @@ class OutreachDecisionEngine extends EventEmitter {
       userStateStore.set(userId, state);
 
       // Async load from Firestore to hydrate (fire and forget)
-      this.loadUserStateFromFirestore(userId).catch(() => {
-        // Silent - will use defaults until loaded
+      this.loadUserStateFromFirestore(userId).catch((e) => {
+        log.debug({ error: String(e), userId }, 'Firestore state load failed (using defaults)');
       });
     }
     return state;

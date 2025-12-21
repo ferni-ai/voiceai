@@ -16,6 +16,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 
 const log = createLogger('ContactSettingsUI');
 
@@ -828,11 +829,13 @@ function handleEscape(e: KeyboardEvent): void {
 
 async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
-  const userId = localStorage.getItem('ferni_user_id') || 'default';
 
   try {
+    // Get authenticated headers (includes Firebase Bearer token)
+    const headers = await getApiHeadersAsync();
+
     // Load contact info
-    const response = await fetch(`/api/outreach/context?userId=${userId}`);
+    const response = await fetch('/api/outreach/context', { headers });
     const data = await response.json();
 
     if (data.success && data.context?.personal) {
@@ -847,7 +850,7 @@ async function loadContactInfo(): Promise<void> {
     
     // Load user preferences (timezone, quiet hours)
     try {
-      const prefsResponse = await fetch(`/api/user/preferences?userId=${userId}`);
+      const prefsResponse = await fetch('/api/user/preferences', { headers });
       const prefsData = await prefsResponse.json();
       
       if (prefsData.success && prefsData.preferences) {
@@ -880,7 +883,6 @@ async function handleSave(): Promise<void> {
   state.success = undefined;
   render();
 
-  const userId = localStorage.getItem('ferni_user_id') || 'default';
   const phoneInput = modalContainer?.querySelector('#phone-input') as HTMLInputElement;
   const emailInput = modalContainer?.querySelector('#email-input') as HTMLInputElement;
   const nameInput = modalContainer?.querySelector('#name-input') as HTMLInputElement;
@@ -895,15 +897,14 @@ async function handleSave(): Promise<void> {
   const quietHoursEnabled = state.contactInfo.quietHoursEnabled !== false;
 
   try {
+    // Get authenticated headers (includes Firebase Bearer token)
+    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
+
     // Save contact info
     const personalResponse = await fetch('/api/user/contact', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
+      headers,
       body: JSON.stringify({
-        userId,
         phone,
         email,
         preferredName,
@@ -912,19 +913,17 @@ async function handleSave(): Promise<void> {
     });
 
     if (!personalResponse.ok) {
-      throw new Error('Failed to save contact info');
+      const errorData = await personalResponse.json().catch(() => ({}));
+      log.error({ status: personalResponse.status, errorData }, 'Failed to save contact info');
+      throw new Error(errorData.error || 'Failed to save contact info');
     }
 
     // Save quiet hours preferences (only if enabled)
     if (quietHoursEnabled) {
       const prefsResponse = await fetch('/api/user/preferences', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-User-Id': userId,
-        },
+        headers,
         body: JSON.stringify({
-          userId,
           timezone: state.contactInfo.timezone || getUserTimezone(),
           quietHoursStart,
           quietHoursEnd,
@@ -974,9 +973,10 @@ async function handleSendVerification(): Promise<void> {
   render();
 
   try {
+    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch('/api/outreach/verify-phone', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ phone }),
     });
 
@@ -996,9 +996,10 @@ async function handleSendVerification(): Promise<void> {
 
 async function handleVerifyCode(code: string): Promise<void> {
   try {
+    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch('/api/outreach/verify-phone/confirm', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         phone: state.pendingPhone,
         code,

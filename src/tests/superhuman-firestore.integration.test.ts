@@ -39,9 +39,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should record and retrieve a commitment', async () => {
-      const { recordCommitment, getCommitments } = await import(
-        '../services/superhuman/commitment-keeper.js'
-      );
+      const { recordCommitment, getCommitments } =
+        await import('../services/superhuman/commitment-keeper.js');
 
       // Record a commitment
       await recordCommitment(TEST_USER_ID, {
@@ -59,9 +58,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build commitment context string', async () => {
-      const { buildCommitmentContext } = await import(
-        '../services/superhuman/commitment-keeper.js'
-      );
+      const { buildCommitmentContext } =
+        await import('../services/superhuman/commitment-keeper.js');
 
       const context = await buildCommitmentContext(TEST_USER_ID);
 
@@ -75,26 +73,56 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
   // ============================================================================
 
   describe('Predictive Coaching', () => {
-    it('should record a pattern', async () => {
-      const { recordPattern, getPatterns } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+    it('should record an observation/pattern', async () => {
+      const { recordObservation, loadUserPatterns } =
+        await import('../services/superhuman/predictive-coaching.js');
 
-      await recordPattern(TEST_USER_ID, {
-        category: 'stress',
-        pattern: 'Sunday evening anxiety about Monday',
-        triggers: ['weekend ending', 'work week starting'],
-        frequency: 'weekly',
+      // Record observations that build into a pattern
+      await recordObservation(TEST_USER_ID, {
+        type: 'temporal',
+        trigger: 'Sunday evening',
+        outcome: 'anxiety about Monday',
+        emotion: 'stressed',
+        dayOfWeek: 0, // Sunday
+        hour: 20, // 8 PM
       });
 
-      const patterns = await getPatterns(TEST_USER_ID);
+      // Record a few more to build confidence
+      await recordObservation(TEST_USER_ID, {
+        type: 'temporal',
+        trigger: 'Sunday evening',
+        outcome: 'anxiety about Monday',
+        emotion: 'stressed',
+        dayOfWeek: 0,
+        hour: 19,
+      });
+
+      const patterns = await loadUserPatterns(TEST_USER_ID);
       expect(Array.isArray(patterns)).toBe(true);
     });
 
+    it('should generate predictions from patterns', async () => {
+      const { recordObservation, generatePredictions } =
+        await import('../services/superhuman/predictive-coaching.js');
+
+      // Build up a high-confidence pattern (need 5+ observations)
+      for (let i = 0; i < 6; i++) {
+        await recordObservation(TEST_USER_ID, {
+          type: 'emotional',
+          trigger: 'work deadline',
+          outcome: 'stress and overwhelm',
+          emotion: 'anxious',
+        });
+      }
+
+      const predictions = await generatePredictions(TEST_USER_ID);
+      expect(Array.isArray(predictions)).toBe(true);
+      // May have predictions if pattern reached high confidence
+    });
+
     it('should build predictive context', async () => {
-      const { buildPredictiveContextString } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { buildPredictiveContextString } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       const context = await buildPredictiveContextString(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -107,9 +135,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Life Narrative', () => {
     it('should record a chapter', async () => {
-      const { recordChapter, getNarrative } = await import(
-        '../services/superhuman/life-narrative.js'
-      );
+      const { recordChapter, getNarrative } =
+        await import('../services/superhuman/life-narrative.js');
 
       await recordChapter(TEST_USER_ID, {
         title: 'Career Transition',
@@ -123,9 +150,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build narrative context', async () => {
-      const { buildNarrativeContextString } = await import(
-        '../services/superhuman/life-narrative.js'
-      );
+      const { buildNarrativeContextString } =
+        await import('../services/superhuman/life-narrative.js');
 
       const context = await buildNarrativeContextString(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -138,9 +164,7 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Values Alignment', () => {
     it('should record a stated value', async () => {
-      const { recordValue, getValues } = await import(
-        '../services/superhuman/values-alignment.js'
-      );
+      const { recordValue, getValues } = await import('../services/superhuman/values-alignment.js');
 
       await recordValue(TEST_USER_ID, {
         value: 'health',
@@ -153,9 +177,7 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build values context', async () => {
-      const { buildValuesContext } = await import(
-        '../services/superhuman/values-alignment.js'
-      );
+      const { buildValuesContext } = await import('../services/superhuman/values-alignment.js');
 
       const context = await buildValuesContext(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -181,9 +203,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build first aid context when crisis detected', async () => {
-      const { buildFirstAidContext, detectCrisis } = await import(
-        '../services/superhuman/emotional-first-aid.js'
-      );
+      const { buildFirstAidContext, detectCrisis } =
+        await import('../services/superhuman/emotional-first-aid.js');
 
       const crisis = detectCrisis("I'm having a really hard time and feel like giving up");
       if (crisis) {
@@ -200,9 +221,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Relationship Network', () => {
     it('should record a relationship mention', async () => {
-      const { recordRelationship, getNetwork } = await import(
-        '../services/superhuman/relationship-network.js'
-      );
+      const { recordRelationship, getNetwork } =
+        await import('../services/superhuman/relationship-network.js');
 
       await recordRelationship(TEST_USER_ID, {
         name: 'Sarah',
@@ -216,9 +236,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build network context', async () => {
-      const { buildNetworkContext } = await import(
-        '../services/superhuman/relationship-network.js'
-      );
+      const { buildNetworkContext } =
+        await import('../services/superhuman/relationship-network.js');
 
       const context = await buildNetworkContext(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -231,9 +250,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Capacity Guardian', () => {
     it('should record energy level', async () => {
-      const { recordEnergyCheck, getCapacity } = await import(
-        '../services/superhuman/capacity-guardian.js'
-      );
+      const { recordEnergyCheck, getCapacity } =
+        await import('../services/superhuman/capacity-guardian.js');
 
       await recordEnergyCheck(TEST_USER_ID, {
         level: 6,
@@ -246,9 +264,7 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should build capacity context', async () => {
-      const { buildCapacityContext } = await import(
-        '../services/superhuman/capacity-guardian.js'
-      );
+      const { buildCapacityContext } = await import('../services/superhuman/capacity-guardian.js');
 
       const context = await buildCapacityContext(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -288,9 +304,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Relationship Milestones', () => {
     it('should build milestone context with stats', async () => {
-      const { buildMilestoneContext } = await import(
-        '../services/superhuman/relationship-milestones.js'
-      );
+      const { buildMilestoneContext } =
+        await import('../services/superhuman/relationship-milestones.js');
 
       const stats = {
         totalConversations: 50,
@@ -311,9 +326,7 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Seasonal Awareness', () => {
     it('should build seasonal context', async () => {
-      const { buildSeasonalContext } = await import(
-        '../services/superhuman/seasonal-awareness.js'
-      );
+      const { buildSeasonalContext } = await import('../services/superhuman/seasonal-awareness.js');
 
       const context = await buildSeasonalContext(TEST_USER_ID);
       expect(typeof context).toBe('string');
@@ -321,9 +334,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
     });
 
     it('should record personal dates', async () => {
-      const { recordPersonalDate, getPersonalDates } = await import(
-        '../services/superhuman/seasonal-awareness.js'
-      );
+      const { recordPersonalDate, getPersonalDates } =
+        await import('../services/superhuman/seasonal-awareness.js');
 
       await recordPersonalDate(TEST_USER_ID, {
         type: 'birthday',
@@ -342,9 +354,8 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
 
   describe('Unified Superhuman Context', () => {
     it('should build complete superhuman context', async () => {
-      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } = await import(
-        '../services/superhuman/index.js'
-      );
+      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } =
+        await import('../services/superhuman/index.js');
 
       const context = await buildSuperhumanContext(TEST_USER_ID, {
         relationshipStats: {
@@ -431,4 +442,3 @@ describe('Test Instructions', () => {
     expect(true).toBe(true);
   });
 });
-

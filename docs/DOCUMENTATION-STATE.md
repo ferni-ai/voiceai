@@ -1,6 +1,6 @@
 # Documentation State & Cleanup Plan
 
-> Last Updated: December 13, 2024
+> Last Updated: December 20, 2024
 
 ## Executive Summary
 
@@ -25,8 +25,14 @@ Major consolidation work completed Dec 13, 2024:
 | Category | Files | Notes |
 |----------|-------|-------|
 | **Root docs** | 9 | CLAUDE.md, README.md, ONBOARDING.md, etc. |
-| **CLAUDE.md files** | 7 | Root + 6 subdirectory contexts |
-| **docs/ directory** | 100+ | Architecture, guides, features, plans |
+| **CLAUDE.md files** | 11 | Root + 10 subdirectory contexts |
+| **docs/architecture/** | 49 | System design and ADRs |
+| **docs/audits/** | 45 | Quality audits |
+| **docs/plans/** | 28 | Active implementation plans |
+| **docs/guides/** | 22 | How-to guides |
+| **docs/features/** | 20 | Feature specs |
+| **docs/research/** | 3 | Research and academic analysis |
+| **docs/archive/** | 10 | Completed/outdated plans |
 | **design-system/brand/** | 19 | All brand documentation (canonical) |
 | **brand/** | ~70 assets | Logos, icons, favicons (NO docs) |
 | **marketplace-agents/** | 70+ | Agent knowledge bases |
@@ -72,14 +78,18 @@ voiceai/
 │   ├── social/                # Social media graphics
 │   └── ferni-design-tokens.css
 │
-├── CLAUDE.md Files            # AI Context Hierarchy
+├── CLAUDE.md Files            # AI Context Hierarchy (11 files)
 │   ├── ./CLAUDE.md            # Root (main context)
-│   ├── apps/web/CLAUDE.md
-│   ├── src/tools/CLAUDE.md
-│   ├── src/personas/CLAUDE.md
-│   ├── src/speech/CLAUDE.md
-│   ├── src/intelligence/context-builders/CLAUDE.md
-│   └── src/tools/habit-coaching/CLAUDE.md
+│   ├── apps/web/CLAUDE.md     # Frontend design standards
+│   ├── src/tools/CLAUDE.md    # Tool development
+│   ├── src/tools/habit-coaching/CLAUDE.md  # Module example
+│   ├── src/personas/CLAUDE.md # Persona development
+│   ├── src/speech/CLAUDE.md   # Speech processing
+│   ├── src/ssml/CLAUDE.md     # SSML generation
+│   ├── src/intelligence/context-builders/CLAUDE.md  # Context builders
+│   ├── src/services/CLAUDE.md # Services layer (NEW Dec 20)
+│   ├── src/agents/CLAUDE.md   # Voice agent development (NEW Dec 20)
+│   └── src/memory/CLAUDE.md   # Memory system (NEW Dec 20)
 │
 ├── marketplace-agents/        # Agent Marketplace
 │
@@ -212,6 +222,33 @@ CLAUDE.md (root) - 26KB
 ---
 
 ## Metrics
+
+### After Cleanup (Dec 20, 2024)
+
+**New CLAUDE.md files added:**
+- `src/services/CLAUDE.md` - Services layer guide
+- `src/agents/CLAUDE.md` - Voice agent development guide
+- `src/memory/CLAUDE.md` - Memory system guide
+
+**Files archived (duplicates/redundant):**
+- `docs/BTH-AUDIT.md` → `docs/archive/` (duplicate of `audits/BETTER-THAN-HUMAN-AUDIT.md`)
+- `docs/features/HUMANIZATION.md` → `docs/archive/` (redundant with `HUMANIZATION-ROADMAP.md`)
+- `docs/api/API.md` → `docs/archive/` (redundant with `API-DOCUMENTATION.md`)
+
+**Files moved:**
+- `docs/features/VOICE-HUMANIZATION-RESEARCH.md` → `docs/research/` (proper location for research)
+
+**Cross-references added:**
+- `src/services/outreach/README.md` - Added "Related Documentation" section linking to vision, architecture, plans, audits, webhooks
+- `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` - Added cross-references to related intelligence docs
+- `docs/architecture/SUPERHUMAN-INTELLIGENCE.md` - Added cross-references to related intelligence docs
+- `docs/architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md` - Added cross-references to related intelligence docs
+
+**Updated counts:**
+- CLAUDE.md files: 8 → 11 (added 3 new)
+- Duplicate files removed: 3 more
+- Created `docs/research/` directory
+- Documentation cross-references: 4 files enhanced with navigation links
 
 ### After Consolidation (Dec 13, 2024)
 

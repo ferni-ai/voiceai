@@ -60,21 +60,10 @@ export interface RoadmapSuggestion {
   updatedAt: Date;
 }
 
-export interface UserSeeds {
-  userId: string;
-  balance: number;
-  lifetimePlanted: number;
-  lifetimeEarned: number;
-  featuresUnlocked: string[];
-  earnedFrom: {
-    conversations: number;
-    streaks: number;
-    referrals: number;
-    feedback: number;
-    suggestionsAccepted: number;
-    featuresBloomed: number;
-  };
-}
+// Import UserSeeds from service layer (clean architecture)
+// Re-export for backward compatibility
+import { type UserSeeds } from '../services/seed-economy.js';
+export type { UserSeeds };
 
 export interface FeatureStats {
   featureId: string;
@@ -1058,81 +1047,10 @@ export async function handleRoadmapRoutes(
 }
 
 // =============================================================================
-// SEED EARNING (Called from session cleanup)
+// SEED EARNING - Re-exported from service layer (clean architecture)
 // =============================================================================
 
-/**
- * Award seeds to a user for completing a conversation.
- * Called from the voice agent cleanup handler.
- *
- * @param userId - User to award seeds to
- * @param seedsToAward - Number of seeds to award (default: 1)
- * @param source - Source of seed earning (for analytics)
- */
-export async function awardSeedsForConversation(
-  userId: string,
-  seedsToAward = 1,
-  source: 'conversation' | 'streak' | 'referral' = 'conversation'
-): Promise<{ success: boolean; newBalance?: number; error?: string }> {
-  if (!userId) {
-    return { success: false, error: 'User ID required' };
-  }
-
-  try {
-    const db = getFirestore();
-    if (!db) {
-      log.warn({ userId }, 'Firestore not initialized, skipping seed award');
-      return { success: false, error: 'Database not available' };
-    }
-    const userSeedsRef = db.collection('user_seeds').doc(userId);
-
-    let newBalance = 0;
-
-    await db.runTransaction(async (transaction) => {
-      const userSeedsDoc = await transaction.get(userSeedsRef);
-      const userSeeds = userSeedsDoc.exists
-        ? (userSeedsDoc.data() as UserSeeds)
-        : {
-            userId,
-            balance: 10, // New users start with 10 seeds
-            lifetimePlanted: 0,
-            lifetimeEarned: 10,
-            featuresUnlocked: [],
-            earnedFrom: {
-              conversations: 0,
-              streaks: 0,
-              referrals: 0,
-              feedback: 0,
-              suggestionsAccepted: 0,
-              featuresBloomed: 0,
-            },
-          };
-
-      // Update balance and tracking
-      userSeeds.balance += seedsToAward;
-      userSeeds.lifetimeEarned += seedsToAward;
-
-      // Track source of earning
-      if (source === 'conversation') {
-        userSeeds.earnedFrom.conversations += seedsToAward;
-      } else if (source === 'streak') {
-        userSeeds.earnedFrom.streaks += seedsToAward;
-      } else if (source === 'referral') {
-        userSeeds.earnedFrom.referrals += seedsToAward;
-      }
-
-      newBalance = userSeeds.balance;
-
-      transaction.set(userSeedsRef, userSeeds, { merge: true });
-    });
-
-    log.info({ userId, seedsToAward, source, newBalance }, 'Seeds awarded');
-
-    return { success: true, newBalance };
-  } catch (error) {
-    log.error({ error, userId }, 'Failed to award seeds');
-    return { success: false, error: 'Database error' };
-  }
-}
+// Re-export for backward compatibility - callers should import from services/seed-economy.js directly
+export { awardSeedsForConversation } from '../services/seed-economy.js';
 
 export default handleRoadmapRoutes;

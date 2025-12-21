@@ -14,10 +14,17 @@
  */
 
 import { createHash } from 'crypto';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { DISTRESS } from '../distress-levels.js';
+
+// Import types for local use in this module
+import type {
+  ConversationAnalysis,
+  ContextBuilder,
+  ContextBuilderInput,
+  ContextInjection,
+  ContextPriority,
+} from './types.js';
 import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
 import {
   checkPerformanceIssues,
@@ -187,181 +194,31 @@ export function clearContextOutputCache(): void {
 }
 
 // ============================================================================
-// TYPES
+// TYPES - Re-exported from types.ts (single source of truth)
 // ============================================================================
 
-export interface ConversationAnalysis {
-  emotion: {
-    primary: string;
-    intensity: number;
-    secondaryEmotions?: string[];
-    needsSupport?: boolean;
-    isVenting?: boolean;
-    isProcessing?: boolean;
-    mentalHealthSignals?: string[];
-    confidence?: number;
-    distressLevel?: number;
-    valence?: 'positive' | 'negative' | 'neutral';
-    markers?: string[];
-    suggestedTone?: string;
-  };
-  intent: {
-    primary: string;
-    confidence: number;
-    entities?: Record<string, unknown>;
-    isQuestion?: boolean;
-    isFollowUp?: boolean;
-    requiresEmpathy?: boolean;
-    requiresAction?: boolean;
-    suggestedApproach?: string;
-  };
-  topics: {
-    detected: string[];
-    primary?: string | null;
-    trending?: string[];
-    sentiment?: Record<string, number>;
-    isTopicShift?: boolean;
-  };
-  state: {
-    phase: string;
-    trustLevel?: number;
-    engagementLevel?: number;
-    distressLevel?: number;
-    currentMood?: string;
-  };
-}
-
-/**
- * Minimal SessionServices interface for context builders.
- *
- * This is a SUBSET of the full SessionServices from services/index.ts.
- * Context builders only need these fields to operate. The full SessionServices
- * interface is structurally compatible with this, so passing the real
- * SessionServices object works due to TypeScript's structural typing.
- *
- * @see services/index.ts for the full SessionServices interface
- */
-export interface SessionServices {
-  sessionId: string;
-  userId?: string;
-  sessionStartTime: number;
-  userProfile: UserProfile | null;
-
-  // Methods used by context builders
-  searchKnowledge?: (query: string) => Promise<string | null>;
-  searchPastConversations?: (query: string) => Promise<string | null>;
-  getEnhancedPromptContext?: () => string;
-  trackResponseQuality?: (response: string, reaction: 'positive' | 'neutral' | 'negative') => void;
-
-  // Learning engine access (for memory context builder)
-  learningEngine?: {
-    getProactiveInsight: (profile: UserProfile | null, turnCount: number) => string | null;
-  };
-
-  // History tracker (for memory context builder)
-  historyTracker?: {
-    getSimpleTurns: () => Array<{ role: string; content: string }>;
-    getTurnCount: () => number;
-  };
-
-  // Current persona ID (for persona memory context builder)
-  personaId?: string;
-}
-
-export interface VoiceEmotionResult {
-  emotion: string;
-  confidence: number;
-  speechRate?: number;
-  pitch?: number;
-}
-
-export interface SessionRecoveryState {
-  wasDisconnected?: boolean;
-  disconnectedAt?: Date | null; // Match conversation-quality.ts definition
-  recoveryGreeting?: string;
-}
-
-export interface ExtractedDetail {
-  type:
-    | 'user_name'
-    | 'person_name'
-    | 'pet_name'
-    | 'place'
-    | 'company'
-    | 'date'
-    | 'amount'
-    | 'other';
-  value: string;
-}
-
-export interface ContextUserData {
-  userName?: string;
-  name?: string;
-  isReturningUser?: boolean;
-  sessionDurationMs?: number;
-  turnCount?: number;
-  lastTopic?: string;
-  recentTopics?: string[];
-  currentPersona?: string;
-  keyMoments?: Array<{ summary: string; timestamp: Date }>;
-  lastPacingScore?: number;
-  sessionRecoveryState?: SessionRecoveryState;
-  storiesShared?: string[];
-  lastPhysicalNote?: string;
-  extractedDetails?: ExtractedDetail[];
-  lastNameUsed?: number;
-  /** Memory references already made this session (prevents repetition) */
-  referencedMemories?: string[];
-  /** Whether we've already referenced the last conversation topic */
-  hasReferencedLastConversation?: boolean;
-}
-
-export interface ContextBuilderInput {
-  userText: string;
-  analysis: ConversationAnalysis;
-  services: SessionServices;
-  userData: ContextUserData;
-  userProfile: UserProfile | null;
-  persona: PersonaConfig;
-  voiceEmotion?: VoiceEmotionResult;
-  /** Bundle runtime for accessing rich persona content (quirks, inner world, etc.) */
-  bundleRuntime?: import('../../personas/bundles/runtime.js').BundleRuntimeEngine;
-}
-
-export type ContextPriority = 'critical' | 'high' | 'standard' | 'hint';
-
-export interface ContextInjection {
-  id: string;
-  source: string;
-  content: string;
-  priority: ContextPriority;
-  category?: string;
-  confidence?: number;
-}
-
-export interface ContextBuilder {
-  name: string;
-  description: string;
-  priority: number;
-  /** Optional category for organization */
-  category?: BuilderCategory;
-  /** Optional dependencies - builders that must run before this one */
-  dependsOn?: string[];
-  /** The build function */
-  build: (input: ContextBuilderInput) => Promise<ContextInjection[]>;
-}
-
-export interface ContextBuilderMetrics {
-  name: string;
-  callCount: number;
-  totalDurationMs: number;
-  avgDurationMs: number;
-  injectionsProduced: number;
-  lastCallTimestamp?: number;
-}
-
-// Re-export imported types
-export type { PersonaConfig, UserProfile };
+// All context builder types are defined in types.ts and re-exported here
+// for backward compatibility. See types.ts for documentation.
+export type {
+  ConversationAnalysis,
+  ConversationStateAnalysis,
+  ContextBuilder,
+  ContextBuilderInput,
+  ContextBuilderMetrics,
+  ContextInjection,
+  ContextPriority,
+  ContextUserData,
+  EmotionAnalysis,
+  EmotionValence,
+  ExtractedDetail,
+  IntentAnalysis,
+  SessionRecoveryState,
+  SessionServices,
+  TopicsAnalysis,
+  VoiceEmotionResult,
+  PersonaConfig,
+  UserProfile,
+} from './types.js';
 
 // Re-export categories and metrics
 export {

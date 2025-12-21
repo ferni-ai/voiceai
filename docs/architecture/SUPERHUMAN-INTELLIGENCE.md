@@ -6,6 +6,17 @@ This document describes the complete Superhuman Intelligence system that makes F
 
 ---
 
+## Related Documentation
+
+| Document | Focus |
+|----------|-------|
+| **This document** | 12 "better than human" capabilities |
+| [CROSS-PERSONA-INTELLIGENCE.md](./CROSS-PERSONA-INTELLIGENCE.md) | Team collaboration, handoffs, shared insights |
+| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](./COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | Individual persona thinking styles |
+| [src/services/superhuman/README.md](../../src/services/superhuman/README.md) | 10 superhuman services implementation |
+
+---
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)

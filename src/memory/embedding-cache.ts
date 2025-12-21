@@ -44,6 +44,10 @@ export interface EmbeddingCacheConfig {
   persistentCache: boolean;
   /** Minimum text length to cache (short texts may not be worth caching) */
   minTextLength: number;
+  /** Redis URL for persistent cache (optional) */
+  redisUrl?: string;
+  /** Firestore collection for persistent cache (optional) */
+  firestoreCollection?: string;
 }
 
 export interface CacheStats {
@@ -54,6 +58,9 @@ export interface CacheStats {
   hitRate: number;
   evictions: number;
   totalBytesEstimate: number;
+  persistentCacheEnabled: boolean;
+  persistentHits: number;
+  persistentMisses: number;
 }
 
 // ============================================================================
@@ -67,7 +74,14 @@ export class EmbeddingCache {
     hits: 0,
     misses: 0,
     evictions: 0,
+    persistentHits: 0,
+    persistentMisses: 0,
   };
+
+  // Redis client (lazy-loaded)
+  private redisClient: unknown = null;
+  private redisInitPromise: Promise<boolean> | null = null;
+  private readonly REDIS_PREFIX = 'emb:';
 
   constructor(config?: Partial<EmbeddingCacheConfig>) {
     this.config = {
@@ -77,23 +91,123 @@ export class EmbeddingCache {
       minTextLength: 10,
       ...config,
     };
+
+    // Initialize Redis if persistent cache is enabled
+    if (this.config.persistentCache && this.config.redisUrl) {
+      this.initRedis().catch((err) => {
+        log.warn({ error: String(err) }, 'Failed to initialize Redis for embedding cache');
+      });
+    }
+  }
+
+  /**
+   * Initialize Redis connection for persistent caching
+   */
+  private async initRedis(): Promise<boolean> {
+    if (this.redisInitPromise) return this.redisInitPromise;
+
+    this.redisInitPromise = (async () => {
+      try {
+        // Dynamic import to avoid loading redis unless needed
+        const moduleName = 'ioredis';
+        const importFn = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
+        const redisModule = (await importFn(moduleName).catch(() => null)) as {
+          default?: new (url: string) => unknown;
+        } | null;
+
+        if (!redisModule?.default) {
+          log.warn('ioredis module not available for persistent cache');
+          return false;
+        }
+
+        const Redis = redisModule.default;
+        this.redisClient = new Redis(this.config.redisUrl!);
+
+        // Test connection
+        const client = this.redisClient as { ping: () => Promise<string> };
+        await client.ping();
+
+        log.info('Redis connected for persistent embedding cache');
+        return true;
+      } catch (error) {
+        log.warn({ error: String(error) }, 'Redis connection failed for embedding cache');
+        this.redisClient = null;
+        return false;
+      }
+    })();
+
+    return this.redisInitPromise;
+  }
+
+  /**
+   * Get embedding from Redis (persistent cache)
+   */
+  private async getFromRedis(hash: string): Promise<CachedEmbedding | null> {
+    if (!this.redisClient) return null;
+
+    try {
+      const client = this.redisClient as { get: (key: string) => Promise<string | null> };
+      const data = await client.get(this.REDIS_PREFIX + hash);
+
+      if (data) {
+        const cached = JSON.parse(data) as CachedEmbedding;
+        this.stats.persistentHits++;
+        return cached;
+      }
+      this.stats.persistentMisses++;
+      return null;
+    } catch (error) {
+      log.debug({ error: String(error), hash }, 'Redis get failed');
+      return null;
+    }
+  }
+
+  /**
+   * Store embedding in Redis (persistent cache)
+   */
+  private async setInRedis(hash: string, cached: CachedEmbedding): Promise<void> {
+    if (!this.redisClient) return;
+
+    try {
+      const client = this.redisClient as {
+        set: (key: string, value: string, mode: string, ttl: number) => Promise<unknown>;
+      };
+      const ttlSeconds = Math.floor(this.config.ttlMs / 1000);
+      await client.set(this.REDIS_PREFIX + hash, JSON.stringify(cached), 'EX', ttlSeconds);
+    } catch (error) {
+      log.debug({ error: String(error), hash }, 'Redis set failed');
+    }
   }
 
   /**
    * Get embedding with cache-first strategy
+   * Checks: in-memory cache → Redis cache → generate new
    */
   async get(text: string): Promise<Result<number[], MemoryError>> {
     const hash = this.hashText(text);
 
-    // Check cache
+    // Check in-memory cache first (fastest)
     const cached = this.cache.get(hash);
     if (cached && !this.isExpired(cached)) {
       this.stats.hits++;
       recordCacheHit(CACHE_NAME); // Performance metrics
       cached.accessedAt = Date.now();
       cached.accessCount++;
-      log.debug(`Embedding cache hit: ${hash.slice(0, 8)}...`);
+      log.debug(`Embedding cache hit (memory): ${hash.slice(0, 8)}...`);
       return ok(cached.embedding);
+    }
+
+    // Check Redis persistent cache (if enabled)
+    if (this.config.persistentCache && this.redisClient) {
+      const redisCached = await this.getFromRedis(hash);
+      if (redisCached && !this.isExpired(redisCached)) {
+        // Promote to in-memory cache
+        this.setInMemory(hash, redisCached);
+        this.stats.hits++;
+        recordCacheHit(CACHE_NAME);
+        log.debug(`Embedding cache hit (Redis): ${hash.slice(0, 8)}...`);
+        return ok(redisCached.embedding);
+      }
     }
 
     // Cache miss - generate embedding
@@ -106,7 +220,7 @@ export class EmbeddingCache {
 
       // Cache if text is long enough
       if (text.length >= this.config.minTextLength) {
-        this.set(hash, embedding, text.length);
+        await this.set(hash, embedding, text.length);
       }
 
       return ok(embedding);
@@ -222,7 +336,7 @@ export class EmbeddingCache {
    */
   clear(): void {
     this.cache.clear();
-    this.stats = { hits: 0, misses: 0, evictions: 0 };
+    this.stats = { hits: 0, misses: 0, evictions: 0, persistentHits: 0, persistentMisses: 0 };
     log.info('Embedding cache cleared');
   }
 
@@ -246,7 +360,26 @@ export class EmbeddingCache {
       hitRate: totalAccesses > 0 ? this.stats.hits / totalAccesses : 0,
       evictions: this.stats.evictions,
       totalBytesEstimate: totalBytes,
+      persistentCacheEnabled: this.config.persistentCache && !!this.redisClient,
+      persistentHits: this.stats.persistentHits,
+      persistentMisses: this.stats.persistentMisses,
     };
+  }
+
+  /**
+   * Close Redis connection (call on shutdown)
+   */
+  async close(): Promise<void> {
+    if (this.redisClient) {
+      try {
+        const client = this.redisClient as { quit: () => Promise<void> };
+        await client.quit();
+        log.info('Embedding cache Redis connection closed');
+      } catch (error) {
+        log.warn({ error: String(error) }, 'Failed to close Redis connection');
+      }
+      this.redisClient = null;
+    }
   }
 
   /**
@@ -265,17 +398,12 @@ export class EmbeddingCache {
   // ============================================================================
 
   /**
-   * Set a cached embedding
+   * Set a cached embedding (both in-memory and Redis)
    */
-  private set(hash: string, embedding: number[], textLength: number): void {
-    // Evict if at capacity
-    if (this.cache.size >= this.config.maxSize) {
-      this.evictLRU();
-    }
-
+  private async set(hash: string, embedding: number[], textLength: number): Promise<void> {
     const provider = getEmbeddingProvider();
 
-    this.cache.set(hash, {
+    const cached: CachedEmbedding = {
       embedding,
       hash,
       createdAt: Date.now(),
@@ -283,7 +411,29 @@ export class EmbeddingCache {
       accessCount: 1,
       model: provider.model,
       textLength,
-    });
+    };
+
+    // Store in memory
+    this.setInMemory(hash, cached);
+
+    // Store in Redis (non-blocking)
+    if (this.config.persistentCache && this.redisClient) {
+      this.setInRedis(hash, cached).catch((err) => {
+        log.debug({ error: String(err), hash }, 'Failed to persist embedding to Redis');
+      });
+    }
+  }
+
+  /**
+   * Set embedding in in-memory cache only
+   */
+  private setInMemory(hash: string, cached: CachedEmbedding): void {
+    // Evict if at capacity
+    if (this.cache.size >= this.config.maxSize) {
+      this.evictLRU();
+    }
+
+    this.cache.set(hash, cached);
   }
 
   /**

@@ -87,16 +87,22 @@ export async function handleHealthRoutes(
       const totalCached = Object.values(stats).reduce((sum, s) => sum + s.cached, 0);
       const totalDirty = Object.values(stats).reduce((sum, s) => sum + s.dirty, 0);
 
-      // Attempt a quick Firestore connectivity check
+      // Attempt a quick Firestore connectivity check with 5s timeout
+      // Without timeout, a hung Firestore connection blocks health checks indefinitely
       let firestoreConnected = false;
+      const FIRESTORE_HEALTH_TIMEOUT_MS = 5000;
       try {
         const { Firestore } = await import('@google-cloud/firestore');
         const db = new Firestore({
           projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
           databaseId: process.env.FIRESTORE_DATABASE || '(default)',
         });
-        // Quick check - list collections limit 1
-        await db.listCollections().then((cols) => cols.slice(0, 1));
+        // Quick check with timeout - list collections limit 1
+        const firestoreCheck = db.listCollections().then((cols) => cols.slice(0, 1));
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Firestore health check timeout')), FIRESTORE_HEALTH_TIMEOUT_MS)
+        );
+        await Promise.race([firestoreCheck, timeoutPromise]);
         firestoreConnected = true;
       } catch (err) {
         log.warn({ error: (err as Error).message }, 'Firestore connectivity check failed');

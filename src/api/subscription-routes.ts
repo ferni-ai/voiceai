@@ -32,9 +32,10 @@ import {
 } from '../services/subscription-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 
-// Initialize subscription metrics on module load
-initializeSubscriptionMetrics().catch(() => {
-  // Non-fatal initialization - metrics will work on first request
+// Initialize subscription metrics on module load (fire-and-forget)
+// Logger isn't available yet at module level, so we use process.stderr for init errors
+initializeSubscriptionMetrics().catch((e) => {
+  process.stderr.write(`[SubscriptionAPI] Metrics init failed (non-fatal): ${e}\n`);
 });
 
 const log = createLogger({ module: 'SubscriptionAPI' });

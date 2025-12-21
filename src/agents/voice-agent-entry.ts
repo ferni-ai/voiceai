@@ -453,11 +453,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Start FinOps cost tracking for this session
     // Determine tier from user profile subscription
     const userSubTier = services.userProfile?.subscription?.tier || 'free';
-    const finopsTier = userSubTier === 'partner'
-      ? 'partner'
-      : userSubTier === 'friend'
-        ? 'friend'
-        : 'free';
+    const finopsTier =
+      userSubTier === 'partner' ? 'partner' : userSubTier === 'friend' ? 'friend' : 'free';
     finops.startSession({
       sessionId,
       userId,
@@ -988,11 +985,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (evt.isFinal) {
         process.stderr.write(`\n[STT] FINAL: "${evt.transcript}"\n`);
-        
+
         // FinOps: Estimate STT duration from word count (~150 WPM average)
         // This is an approximation; actual duration would require audio timestamps
         if (evt.transcript) {
-          const wordCount = evt.transcript.split(/\s+/).filter(w => w.length > 0).length;
+          const wordCount = evt.transcript.split(/\s+/).filter((w) => w.length > 0).length;
           const estimatedDurationSeconds = (wordCount / 150) * 60; // 150 WPM = 2.5 words/sec
           finops.recordSTTCost({
             durationSeconds: Math.max(1, estimatedDurationSeconds), // Minimum 1 second

@@ -861,3 +861,27 @@ export {
   type RecoveryOptions,
   type RecoverySsml,
 } from './graceful-interrupt/index.js';
+
+// ============================================================================
+// TTS BULKHEAD (Session isolation for voice synthesis - SET-17)
+// ============================================================================
+
+export {
+  // Main class
+  TTSBulkhead,
+  TimeoutError,
+  // Singleton access
+  getTTSBulkhead,
+  resetTTSBulkhead,
+  // Convenience functions
+  executeWithBulkhead,
+  canAcceptTTSRequest,
+  isTTSUnderPressure,
+  getTTSBulkheadStats,
+  cleanupTTSSession,
+  // Types
+  type TTSBulkheadConfig,
+  type TTSRequest,
+  type TTSBulkheadResult,
+  type TTSBulkheadStats,
+} from './tts-bulkhead.js';

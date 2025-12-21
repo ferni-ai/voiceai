@@ -3,15 +3,26 @@
  *
  * Helps track gifts received, thank-you notes sent, and registry management
  * for any life milestone celebration.
+ *
+ * NOW INTEGRATED with Firestore-backed gift-tracking-service for persistence!
  */
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger, generateId } from './utils/tool-helpers.js';
-
 import { getToolDescription } from './utils/tool-descriptions.js';
+import {
+  recordGift as persistGift,
+  getGiftHistory,
+  getAllGifts,
+  generateGiftSuggestions as getAISuggestions,
+  getUpcomingGiftOccasions,
+  type Gift as GiftRecord,
+} from '../services/contacts/gift-tracking-service.js';
+import { searchContacts } from '../services/contacts/contact-relationship-service.js';
+
 // ============================================================================
-// TYPES
+// TYPES (kept for backward compatibility with registry features)
 // ============================================================================
 
 export interface Gift {
@@ -48,10 +59,9 @@ export interface Registry {
 }
 
 // ============================================================================
-// STORAGE
+// STORAGE (registries only - gifts now use Firestore)
 // ============================================================================
 
-const gifts = new Map<string, Gift>();
 const registries = new Map<string, Registry>();
 
 // ============================================================================
@@ -179,30 +189,75 @@ export const THANK_YOU_TEMPLATES = {
 
 export function createGiftRegistryTools() {
   return {
-    // ========== LOG A GIFT ==========
+    // ========== LOG A GIFT RECEIVED ==========
     logGiftReceived: llm.tool({
       description: getToolDescription('logGiftReceived'),
       parameters: z.object({
         from: z.string().describe('Who gave the gift'),
         description: z.string().describe('What the gift was'),
-        eventName: z.string().optional().describe('What event it was for'),
-        estimatedValue: z.number().optional().describe('Approximate value'),
+        eventName: z.string().optional().describe('What event it was for (e.g., birthday, Christmas)'),
+        estimatedValue: z.number().optional().describe('Approximate value in dollars'),
         notes: z.string().optional().describe('Any notes about the gift'),
       }),
-      execute: async ({ from, description, eventName, estimatedValue, notes }) => {
-        const gift: Gift = {
-          id: generateId('gift'),
-          from,
-          description,
-          estimatedValue,
-          receivedDate: new Date(),
-          thankYouSent: false,
-          notes,
-        };
+      execute: async ({ from, description, eventName, estimatedValue, notes }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
 
-        gifts.set(gift.id, gift);
+        // Try to find contact to link the gift
+        const matches = await searchContacts(userId, from);
+        const contactId = matches.length > 0 ? matches[0].contactId : `unknown_${from.toLowerCase().replace(/\s+/g, '_')}`;
+
+        // Persist to Firestore
+        await persistGift(userId, {
+          contactId,
+          contactName: from,
+          direction: 'received',
+          item: description,
+          description: notes,
+          occasion: eventName || 'general',
+          date: new Date(),
+          price: estimatedValue,
+        });
 
         return `🎁 Gift logged!\n\n**From:** ${from}\n**Gift:** ${description}${estimatedValue ? `\n**Value:** ~$${estimatedValue}` : ''}\n\n📝 Don't forget to send a thank-you note! I'll remind you.`;
+      },
+    }),
+
+    // ========== LOG A GIFT GIVEN ==========
+    logGiftGiven: llm.tool({
+      description: 'Log a gift that you gave to someone. Helps track gift-giving patterns and avoid repeats.',
+      parameters: z.object({
+        to: z.string().describe('Who you gave the gift to'),
+        description: z.string().describe('What the gift was'),
+        occasion: z.string().optional().describe('What occasion it was for (birthday, Christmas, etc.)'),
+        price: z.number().optional().describe('How much you spent'),
+        reaction: z.enum(['loved', 'liked', 'neutral', 'disliked']).optional().describe('How they reacted'),
+        notes: z.string().optional().describe('Any notes about the gift'),
+      }),
+      execute: async ({ to, description, occasion, price, reaction, notes }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
+
+        // Try to find contact to link the gift
+        const matches = await searchContacts(userId, to);
+        const contactId = matches.length > 0 ? matches[0].contactId : `unknown_${to.toLowerCase().replace(/\s+/g, '_')}`;
+
+        // Persist to Firestore
+        await persistGift(userId, {
+          contactId,
+          contactName: to,
+          direction: 'given',
+          item: description,
+          description: notes,
+          occasion: occasion || 'general',
+          date: new Date(),
+          price,
+          reaction,
+        });
+
+        const reactionEmoji = reaction === 'loved' ? '😍' : reaction === 'liked' ? '😊' : reaction === 'neutral' ? '😐' : reaction === 'disliked' ? '😬' : '';
+
+        return `🎁 Gift recorded!\n\n**To:** ${to}\n**Gift:** ${description}${price ? `\n**Spent:** $${price}` : ''}${reaction ? `\n**Their reaction:** ${reactionEmoji} ${reaction}` : ''}\n\nI'll remember this so we don't accidentally repeat it!`;
       },
     }),
 
@@ -212,45 +267,163 @@ export function createGiftRegistryTools() {
       parameters: z.object({
         giftFrom: z.string().describe('Who the gift was from'),
       }),
-      execute: async ({ giftFrom }) => {
-        const gift = Array.from(gifts.values()).find(
-          (g) => g.from.toLowerCase().includes(giftFrom.toLowerCase()) && !g.thankYouSent
-        );
+      execute: async ({ giftFrom }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
 
-        if (!gift) {
-          return `Couldn't find an unsent thank-you for a gift from "${giftFrom}".`;
+        // Record the thank-you as an interaction
+        const matches = await searchContacts(userId, giftFrom);
+        if (matches.length === 0) {
+          return `I don't have "${giftFrom}" in your contacts. I can still note this - would you like me to add them first?`;
         }
 
-        gift.thankYouSent = true;
-        gift.thankYouSentDate = new Date();
-        gifts.set(gift.id, gift);
+        const contact = matches[0];
+        const { recordInteraction } = await import('../services/contacts/contact-relationship-service.js');
+        
+        await recordInteraction(userId, {
+          contactId: contact.contactId,
+          userId,
+          date: new Date(),
+          type: 'thank_you_sent',
+          direction: 'outbound',
+          summary: `Thank-you note sent for gift`,
+        });
 
-        return `✅ Thank-you marked as sent to ${gift.from} for the ${gift.description}!\n\nGreat job keeping up with your thank-you notes!`;
+        return `✅ Thank-you marked as sent to ${contact.name}!\n\nGreat job keeping up with your thank-you notes!`;
       },
     }),
 
-    // ========== GET PENDING THANK YOUS ==========
-    getPendingThankYous: llm.tool({
-      description: getToolDescription('getPendingThankYous'),
-      parameters: z.object({}),
-      execute: async () => {
-        const pending = Array.from(gifts.values()).filter((g) => !g.thankYouSent);
+    // ========== GET GIFT HISTORY FOR A PERSON ==========
+    getGiftHistoryForPerson: llm.tool({
+      description: 'See all gifts exchanged with a specific person - what you gave them and what they gave you.',
+      parameters: z.object({
+        personName: z.string().describe('The person to see gift history for'),
+      }),
+      execute: async ({ personName }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
 
-        if (pending.length === 0) {
-          return `🎉 All thank-you notes sent! You're on top of it!`;
+        // Find contact
+        const matches = await searchContacts(userId, personName);
+        if (matches.length === 0) {
+          return `I don't have "${personName}" in your contacts.`;
         }
 
-        let response = `📝 **Pending Thank-You Notes (${pending.length})**\n\n`;
+        const contact = matches[0];
+        const history = await getGiftHistory(userId, contact.contactId);
 
-        pending.forEach((gift) => {
-          const daysSince = Math.floor(
-            (Date.now() - gift.receivedDate.getTime()) / (1000 * 60 * 60 * 24)
+        if (history.given.length === 0 && history.received.length === 0) {
+          return `No gift history recorded with ${contact.name} yet.`;
+        }
+
+        let response = `🎁 **Gift History with ${contact.name}**\n\n`;
+
+        if (history.given.length > 0) {
+          response += `**Gifts you've given (${history.given.length}):**\n`;
+          history.given.slice(0, 5).forEach((gift) => {
+            const date = new Date(gift.date).toLocaleDateString();
+            const reaction = gift.reaction ? ` - they ${gift.reaction} it` : '';
+            response += `• ${gift.item} (${gift.occasion}, ${date})${reaction}\n`;
+          });
+          response += '\n';
+        }
+
+        if (history.received.length > 0) {
+          response += `**Gifts they've given you (${history.received.length}):**\n`;
+          history.received.slice(0, 5).forEach((gift) => {
+            const date = new Date(gift.date).toLocaleDateString();
+            response += `• ${gift.item} (${gift.occasion}, ${date})\n`;
+          });
+        }
+
+        return response;
+      },
+    }),
+
+    // ========== AI GIFT SUGGESTIONS ==========
+    suggestGiftIdeas: llm.tool({
+      description: 'Get AI-powered gift suggestions for someone based on their interests, past gifts, and your relationship.',
+      parameters: z.object({
+        personName: z.string().describe('Who you need a gift for'),
+        occasion: z.string().optional().describe('The occasion (birthday, Christmas, anniversary, etc.)'),
+        budget: z.number().optional().describe('Your budget in dollars'),
+        mood: z.enum(['thoughtful', 'fun', 'practical', 'luxurious']).optional().describe('The vibe you want'),
+      }),
+      execute: async ({ personName, occasion, budget, mood }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
+
+        // Find contact
+        const matches = await searchContacts(userId, personName);
+        if (matches.length === 0) {
+          return `I don't have "${personName}" in your contacts. Can you tell me more about them?`;
+        }
+
+        const contact = matches[0];
+
+        try {
+          const suggestions = await getAISuggestions(
+            userId,
+            contact.contactId,
+            occasion || 'general',
+            budget ? { min: budget * 0.5, max: budget * 1.5 } : { min: 20, max: 200 }
           );
-          const urgency = daysSince > 14 ? '🔴' : daysSince > 7 ? '🟡' : '🟢';
-          response += `${urgency} **${gift.from}** - ${gift.description} (${daysSince} days ago)\n`;
-        });
 
-        response += `\n**Tip:** Try to send thank-you notes within 2 weeks!`;
+          if (suggestions.length === 0) {
+            return `I need to know more about ${contact.name} to suggest good gifts. Tell me about their interests!`;
+          }
+
+          let response = `🎁 **Gift Ideas for ${contact.name}**`;
+          if (occasion) response += ` (${occasion})`;
+          response += '\n\n';
+
+          suggestions.forEach((suggestion, i) => {
+            const confidence = suggestion.confidence === 'high' ? '⭐' : suggestion.confidence === 'medium' ? '✓' : '';
+            response += `${i + 1}. ${confidence} **${suggestion.idea}** (${suggestion.priceRange})\n`;
+            response += `   ${suggestion.reasoning}\n\n`;
+          });
+
+          // Add what to avoid if any
+          const avoid = suggestions.filter(s => s.avoidReason);
+          if (avoid.length > 0) {
+            response += `\n**Things to avoid:**\n`;
+            avoid.forEach(s => {
+              response += `• ${s.avoidReason}\n`;
+            });
+          }
+
+          return response;
+        } catch (error) {
+          return `I'd love to suggest gifts, but I need more context about ${contact.name}. What are their interests?`;
+        }
+      },
+    }),
+
+    // ========== UPCOMING GIFT OCCASIONS ==========
+    getUpcomingGiftOccasions: llm.tool({
+      description: 'See upcoming occasions where you might want to give gifts - birthdays, anniversaries, holidays.',
+      parameters: z.object({
+        daysAhead: z.number().optional().describe('How many days ahead to look (default: 30)'),
+      }),
+      execute: async ({ daysAhead }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'default';
+
+        const occasions = await getUpcomingGiftOccasions(userId, daysAhead || 30);
+
+        if (occasions.length === 0) {
+          return `No upcoming gift occasions in the next ${daysAhead || 30} days.`;
+        }
+
+        let response = `📅 **Upcoming Gift Occasions**\n\n`;
+
+        occasions.forEach((occasion) => {
+          const daysUntil = Math.ceil((new Date(occasion.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          const urgency = daysUntil <= 3 ? '🔴' : daysUntil <= 7 ? '🟡' : '🟢';
+          
+          response += `${urgency} **${occasion.contactName}** - ${occasion.occasion}`;
+          response += ` (${daysUntil === 0 ? 'TODAY!' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`})\n`;
+        });
 
         return response;
       },

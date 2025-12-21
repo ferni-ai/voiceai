@@ -11,11 +11,28 @@
  * - Automatic alerting on degradation
  */
 
+import { resilienceMetrics } from '../observability/resilience-metrics.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 
 const log = createLogger({ module: 'health-monitors' });
+
+// ============================================================================
+// MONITORING CONFIGURATION
+// ============================================================================
+
+/** Default health check interval (30 seconds) */
+const DEFAULT_INTERVAL_MS = 30_000;
+
+/** Critical services get more frequent checks (15 seconds) */
+const CRITICAL_INTERVAL_MS = 15_000;
+
+/** Max consecutive failures before alerting */
+const ALERT_THRESHOLD = 3;
+
+// Track consecutive failures for alerting
+const consecutiveFailures = new Map<string, number>();
 
 // ============================================================================
 // TYPES
@@ -516,6 +533,7 @@ export async function checkServiceHealth(serviceName: string): Promise<HealthChe
   }
 
   const circuit = getHealthCircuit(serviceName);
+  const startTime = Date.now();
 
   try {
     const result = await circuit.execute(async () => monitor.check());
@@ -524,18 +542,64 @@ export async function checkServiceHealth(serviceName: string): Promise<HealthChe
     recordLatency(`health:${serviceName}`, result.latencyMs);
     recordSuccessRate(`health:${serviceName}`, result.healthy ? 100 : 0);
 
+    // Record to resilience metrics
+    resilienceMetrics.recordHealthCheck(
+      serviceName,
+      result.healthy,
+      result.latencyMs,
+      undefined,
+      result.healthy,
+      result.error
+    );
+
+    // Track consecutive failures for alerting
+    if (result.healthy) {
+      consecutiveFailures.set(serviceName, 0);
+    } else {
+      const failures = (consecutiveFailures.get(serviceName) || 0) + 1;
+      consecutiveFailures.set(serviceName, failures);
+
+      if (failures >= ALERT_THRESHOLD) {
+        log.error(
+          {
+            serviceName,
+            consecutiveFailures: failures,
+            criticalFor: monitor.criticalFor,
+            error: result.error,
+          },
+          `🚨 ALERT: ${monitor.displayName} has failed ${failures} consecutive health checks`
+        );
+      }
+    }
+
     // Cache result
     monitor.lastResult = result;
     monitor.lastCheck = Date.now();
 
     return result;
   } catch (error) {
+    const latencyMs = Date.now() - startTime;
+
     // Circuit is open or check failed
     const result: HealthCheckResult = {
       healthy: false,
-      latencyMs: 0,
+      latencyMs,
       error: error instanceof Error ? error.message : 'Health check circuit open',
     };
+
+    // Record failure to resilience metrics
+    resilienceMetrics.recordHealthCheck(
+      serviceName,
+      false,
+      latencyMs,
+      undefined,
+      false,
+      result.error
+    );
+
+    // Track consecutive failures
+    const failures = (consecutiveFailures.get(serviceName) || 0) + 1;
+    consecutiveFailures.set(serviceName, failures);
 
     monitor.lastResult = result;
     monitor.lastCheck = Date.now();
@@ -682,28 +746,75 @@ export function getMonitors(): readonly HealthMonitor[] {
 // ============================================================================
 
 let monitoringInterval: ReturnType<typeof setInterval> | null = null;
+let criticalMonitoringInterval: ReturnType<typeof setInterval> | null = null;
+
+/** Critical services that get more frequent health checks */
+const CRITICAL_SERVICES = ['livekit', 'gemini', 'firestore'];
+
+/**
+ * Run health checks for critical services only
+ */
+async function runCriticalHealthChecks(): Promise<void> {
+  const results = await Promise.allSettled(
+    CRITICAL_SERVICES.map((service) => checkServiceHealth(service))
+  );
+
+  // Log any failures immediately
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'fulfilled' && result.value && !result.value.healthy) {
+      log.warn(
+        {
+          service: CRITICAL_SERVICES[i],
+          error: result.value.error,
+        },
+        'Critical service health check failed'
+      );
+    }
+  }
+}
 
 /**
  * Start background health monitoring
+ * @param intervalMs - Interval for standard checks (default 30s)
+ * @param criticalIntervalMs - Interval for critical service checks (default 15s)
  */
-export function startHealthMonitoring(intervalMs: number = 60000): void {
+export function startHealthMonitoring(
+  intervalMs: number = DEFAULT_INTERVAL_MS,
+  criticalIntervalMs: number = CRITICAL_INTERVAL_MS
+): void {
   if (monitoringInterval) {
     return; // Already running
   }
 
-  log.info({ intervalMs }, 'Starting health monitoring');
+  log.info({ intervalMs, criticalIntervalMs }, 'Starting health monitoring');
 
   // Run initial check
   runAllHealthChecks().catch((error) => {
-    log.error({ error }, 'Initial health check failed');
+    log.error({ error: String(error) }, 'Initial health check failed');
   });
 
-  // Schedule periodic checks
+  // Schedule periodic checks for all services
   monitoringInterval = setInterval(() => {
     runAllHealthChecks().catch((error) => {
-      log.error({ error }, 'Periodic health check failed');
+      log.error({ error: String(error) }, 'Periodic health check failed');
     });
   }, intervalMs);
+
+  // Schedule more frequent checks for critical services
+  criticalMonitoringInterval = setInterval(() => {
+    runCriticalHealthChecks().catch((error) => {
+      log.error({ error: String(error) }, 'Critical health check failed');
+    });
+  }, criticalIntervalMs);
+
+  // Don't prevent process from exiting
+  if (monitoringInterval.unref) {
+    monitoringInterval.unref();
+  }
+  if (criticalMonitoringInterval.unref) {
+    criticalMonitoringInterval.unref();
+  }
 }
 
 /**
@@ -713,8 +824,12 @@ export function stopHealthMonitoring(): void {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
     monitoringInterval = null;
-    log.info('Stopped health monitoring');
   }
+  if (criticalMonitoringInterval) {
+    clearInterval(criticalMonitoringInterval);
+    criticalMonitoringInterval = null;
+  }
+  log.info('Stopped health monitoring');
 }
 
 /**
@@ -722,4 +837,11 @@ export function stopHealthMonitoring(): void {
  */
 export function isMonitoringActive(): boolean {
   return monitoringInterval !== null;
+}
+
+/**
+ * Get consecutive failure count for a service
+ */
+export function getConsecutiveFailures(serviceName: string): number {
+  return consecutiveFailures.get(serviceName) || 0;
 }

@@ -301,8 +301,8 @@ You are their lifeline right now. Be fully present.`,
           type: 'emotional_mismatch_detected',
           // Frontend should show extra attentive/concerned expression
           avatarHint: 'attentive',
-        }).catch(() => {
-          // Non-critical
+        }).catch((e) => {
+          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'emotional_mismatch' });
         });
       }
 
@@ -311,8 +311,8 @@ You are their lifeline right now. Be fully present.`,
           type: 'growth_reflection_available',
           // Frontend might show a subtle "remembering" indicator
           avatarHint: 'thoughtful',
-        }).catch(() => {
-          // Non-critical
+        }).catch((e) => {
+          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'growth_reflection' });
         });
       }
 
@@ -321,8 +321,8 @@ You are their lifeline right now. Be fully present.`,
           type: 'celebration_opportunity',
           // Frontend can prepare celebration animation
           avatarHint: 'joyful',
-        }).catch(() => {
-          // Non-critical
+        }).catch((e) => {
+          diag.debug('Trust signal send failed (non-critical)', { error: String(e), type: 'celebration' });
         });
       }
 

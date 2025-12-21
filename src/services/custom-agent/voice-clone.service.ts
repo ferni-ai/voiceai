@@ -1,0 +1,586 @@
+/**
+ * Voice Clone Service for Custom Agents
+ *
+ * Handles voice cloning via Cartesia API for custom agent creation.
+ * Supports:
+ * - Audio upload processing
+ * - Voice clone creation
+ * - Voice preview generation
+ * - Clone quality assessment
+ *
+ * @module services/custom-agent/voice-clone
+ */
+
+import { getLogger } from '../../utils/safe-logger.js';
+import type {
+  ClonedVoice,
+  VoiceUploadResponse,
+  CreateVoiceCloneResponse,
+} from '../../types/custom-agent.js';
+
+const log = getLogger().child({ module: 'VoiceCloneService' });
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY;
+const CARTESIA_BASE_URL = 'https://api.cartesia.ai';
+
+/**
+ * Quality thresholds for voice cloning
+ */
+const QUALITY_THRESHOLDS = {
+  /** Absolute minimum (10 seconds) */
+  minimum: 10,
+  /** Fair quality (30 seconds) */
+  fair: 30,
+  /** Good quality (60 seconds) */
+  good: 60,
+  /** Excellent quality (180 seconds / 3 minutes) */
+  excellent: 180,
+};
+
+/**
+ * Maximum file size per upload (50MB)
+ */
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
+/**
+ * Supported audio formats
+ */
+const SUPPORTED_FORMATS = ['audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/webm', 'audio/ogg'];
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface AudioAnalysis {
+  /** Duration in seconds */
+  duration: number;
+  /** Estimated speech duration (excluding silence) */
+  speechDuration: number;
+  /** Quality score (0-1) */
+  qualityScore: number;
+  /** Sample rate */
+  sampleRate: number;
+  /** Number of channels */
+  channels: number;
+  /** Warning messages */
+  warnings: string[];
+}
+
+interface ProcessedUpload {
+  /** Unique upload ID */
+  uploadId: string;
+  /** Original filename */
+  filename: string;
+  /** Audio analysis */
+  analysis: AudioAnalysis;
+  /** Temporary storage URL */
+  storageUrl: string;
+  /** When uploaded */
+  uploadedAt: Date;
+}
+
+interface CartesiaVoiceCloneResponse {
+  id: string;
+  name: string;
+  description?: string;
+  is_public: boolean;
+  created_at: string;
+  embedding?: number[];
+}
+
+// ============================================================================
+// AUDIO PROCESSING
+// ============================================================================
+
+/**
+ * Analyze audio file for voice cloning suitability
+ */
+export async function analyzeAudio(audioBuffer: ArrayBuffer): Promise<AudioAnalysis> {
+  // In production, this would use a proper audio analysis library
+  // For now, we estimate based on file size and header info
+
+  const dataView = new DataView(audioBuffer);
+  const warnings: string[] = [];
+
+  // Try to detect WAV header
+  let sampleRate = 44100;
+  let channels = 1;
+  let duration = 0;
+
+  try {
+    // Check for WAV header
+    const riff = String.fromCharCode(
+      dataView.getUint8(0),
+      dataView.getUint8(1),
+      dataView.getUint8(2),
+      dataView.getUint8(3)
+    );
+
+    if (riff === 'RIFF') {
+      // Parse WAV header
+      sampleRate = dataView.getUint32(24, true);
+      channels = dataView.getUint16(22, true);
+      const bitsPerSample = dataView.getUint16(34, true);
+      const dataSize = dataView.getUint32(40, true);
+
+      // Calculate duration
+      const bytesPerSample = bitsPerSample / 8;
+      const totalSamples = dataSize / (bytesPerSample * channels);
+      duration = totalSamples / sampleRate;
+    } else {
+      // Estimate duration from file size for other formats
+      // Rough estimate: ~128kbps for MP3
+      duration = (audioBuffer.byteLength * 8) / (128 * 1000);
+      warnings.push('Could not parse audio header, duration is estimated');
+    }
+  } catch (error) {
+    // Fallback estimation
+    duration = (audioBuffer.byteLength * 8) / (128 * 1000);
+    warnings.push('Audio header parsing failed, using estimated values');
+  }
+
+  // Estimate speech duration (assume 70% is actual speech)
+  const speechDuration = duration * 0.7;
+
+  // Calculate quality score based on duration
+  let qualityScore = 0;
+  if (speechDuration >= QUALITY_THRESHOLDS.excellent) {
+    qualityScore = 1.0;
+  } else if (speechDuration >= QUALITY_THRESHOLDS.good) {
+    qualityScore = 0.8;
+  } else if (speechDuration >= QUALITY_THRESHOLDS.fair) {
+    qualityScore = 0.6;
+  } else if (speechDuration >= QUALITY_THRESHOLDS.minimum) {
+    qualityScore = 0.4;
+  } else {
+    qualityScore = speechDuration / QUALITY_THRESHOLDS.minimum;
+    warnings.push(`Audio duration (${speechDuration.toFixed(1)}s) is below minimum (${QUALITY_THRESHOLDS.minimum}s)`);
+  }
+
+  // Adjust quality based on sample rate
+  if (sampleRate < 16000) {
+    qualityScore *= 0.8;
+    warnings.push('Low sample rate may affect voice quality');
+  }
+
+  return {
+    duration,
+    speechDuration,
+    qualityScore,
+    sampleRate,
+    channels,
+    warnings,
+  };
+}
+
+/**
+ * Get quality rating from score
+ */
+function getQualityRating(totalDuration: number): 'poor' | 'fair' | 'good' | 'excellent' {
+  if (totalDuration >= QUALITY_THRESHOLDS.excellent) return 'excellent';
+  if (totalDuration >= QUALITY_THRESHOLDS.good) return 'good';
+  if (totalDuration >= QUALITY_THRESHOLDS.fair) return 'fair';
+  return 'poor';
+}
+
+// ============================================================================
+// UPLOAD HANDLING
+// ============================================================================
+
+/**
+ * In-memory storage for pending uploads (would be Redis/GCS in production)
+ */
+const pendingUploads = new Map<string, ProcessedUpload[]>();
+
+/**
+ * Process uploaded audio files for voice cloning
+ */
+export async function processVoiceUpload(
+  agentId: string,
+  files: Array<{ filename: string; buffer: ArrayBuffer; mimeType: string }>
+): Promise<VoiceUploadResponse> {
+  log.info({ agentId, fileCount: files.length }, 'Processing voice upload');
+
+  const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const processed: ProcessedUpload[] = [];
+  const segments: VoiceUploadResponse['segments'] = [];
+
+  let totalDuration = 0;
+
+  for (const file of files) {
+    // Validate file type
+    if (!SUPPORTED_FORMATS.includes(file.mimeType)) {
+      log.warn({ mimeType: file.mimeType }, 'Unsupported audio format');
+      continue;
+    }
+
+    // Validate file size
+    if (file.buffer.byteLength > MAX_FILE_SIZE_BYTES) {
+      log.warn({ size: file.buffer.byteLength }, 'File too large');
+      continue;
+    }
+
+    // Analyze audio
+    const analysis = await analyzeAudio(file.buffer);
+
+    // Store temporarily (in production, upload to GCS)
+    const storageUrl = `temp://${uploadId}/${file.filename}`;
+
+    processed.push({
+      uploadId,
+      filename: file.filename,
+      analysis,
+      storageUrl,
+      uploadedAt: new Date(),
+    });
+
+    segments.push({
+      filename: file.filename,
+      duration: analysis.duration,
+      speechDuration: analysis.speechDuration,
+      qualityScore: analysis.qualityScore,
+    });
+
+    totalDuration += analysis.speechDuration;
+  }
+
+  // Store for later retrieval
+  pendingUploads.set(uploadId, processed);
+
+  // Schedule cleanup after 1 hour
+  setTimeout(
+    () => {
+      pendingUploads.delete(uploadId);
+      log.debug({ uploadId }, 'Cleaned up pending upload');
+    },
+    60 * 60 * 1000
+  );
+
+  log.info(
+    { uploadId, totalDuration, segmentCount: segments.length },
+    'Voice upload processed'
+  );
+
+  return {
+    uploadId,
+    totalDuration,
+    quality: getQualityRating(totalDuration),
+    segments,
+  };
+}
+
+// ============================================================================
+// VOICE CLONING
+// ============================================================================
+
+/**
+ * Create a voice clone using Cartesia API
+ */
+export async function createVoiceClone(
+  agentId: string,
+  userId: string,
+  uploadId: string,
+  voiceName?: string
+): Promise<CreateVoiceCloneResponse> {
+  log.info({ agentId, userId, uploadId }, 'Creating voice clone');
+
+  // Retrieve pending upload
+  const uploads = pendingUploads.get(uploadId);
+  if (!uploads || uploads.length === 0) {
+    throw new Error('Upload not found or expired');
+  }
+
+  // Check API key
+  if (!CARTESIA_API_KEY) {
+    log.error('CARTESIA_API_KEY not configured');
+    throw new Error('Voice cloning service not configured');
+  }
+
+  // Calculate total duration
+  const totalDuration = uploads.reduce((sum, u) => sum + u.analysis.speechDuration, 0);
+  if (totalDuration < QUALITY_THRESHOLDS.minimum) {
+    throw new Error(
+      `Insufficient audio. Need at least ${QUALITY_THRESHOLDS.minimum}s, got ${totalDuration.toFixed(1)}s`
+    );
+  }
+
+  // Prepare the clone request
+  const cloneName = voiceName || `ferni_custom_${userId}_${agentId}`;
+
+  try {
+    // In production, this would:
+    // 1. Combine audio files if multiple
+    // 2. Upload to Cartesia
+    // 3. Create the voice clone
+
+    // For now, simulate the API call
+    const response = await callCartesiaCloneAPI(cloneName, uploads);
+
+    // Clean up pending uploads
+    pendingUploads.delete(uploadId);
+
+    log.info(
+      { agentId, voiceId: response.id, qualityScore: uploads[0].analysis.qualityScore },
+      'Voice clone created'
+    );
+
+    return {
+      voiceId: response.id,
+      status: 'ready',
+      qualityScore: uploads.reduce((sum, u) => sum + u.analysis.qualityScore, 0) / uploads.length,
+    };
+  } catch (error) {
+    log.error({ error: String(error), agentId }, 'Voice clone creation failed');
+    throw new Error('Failed to create voice clone');
+  }
+}
+
+/**
+ * Call Cartesia Voice Clone API
+ */
+async function callCartesiaCloneAPI(
+  name: string,
+  _uploads: ProcessedUpload[]
+): Promise<CartesiaVoiceCloneResponse> {
+  // In production, this would make the actual API call:
+  //
+  // const formData = new FormData();
+  // formData.append('name', name);
+  // formData.append('description', `Custom voice for ${name}`);
+  //
+  // // Combine audio files or upload separately
+  // for (const upload of uploads) {
+  //   const audioBlob = await fetchAudioFromStorage(upload.storageUrl);
+  //   formData.append('clip', audioBlob, upload.filename);
+  // }
+  //
+  // const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone/clip`, {
+  //   method: 'POST',
+  //   headers: {
+  //     'X-API-Key': CARTESIA_API_KEY!,
+  //   },
+  //   body: formData,
+  // });
+  //
+  // if (!response.ok) {
+  //   throw new Error(`Cartesia API error: ${response.status}`);
+  // }
+  //
+  // return response.json();
+
+  // Simulated response for development
+  return {
+    id: `voice_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    name,
+    description: `Custom voice for ${name}`,
+    is_public: false,
+    created_at: new Date().toISOString(),
+  };
+}
+
+// ============================================================================
+// VOICE PREVIEW
+// ============================================================================
+
+/**
+ * Generate a preview of the cloned voice
+ */
+export async function generateVoicePreview(
+  voiceId: string,
+  text: string
+): Promise<{ audioUrl: string; durationSeconds: number }> {
+  log.info({ voiceId, textLength: text.length }, 'Generating voice preview');
+
+  if (!CARTESIA_API_KEY) {
+    throw new Error('Voice service not configured');
+  }
+
+  // In production, this would call Cartesia TTS API:
+  //
+  // const response = await fetch(`${CARTESIA_BASE_URL}/tts/bytes`, {
+  //   method: 'POST',
+  //   headers: {
+  //     'X-API-Key': CARTESIA_API_KEY,
+  //     'Content-Type': 'application/json',
+  //   },
+  //   body: JSON.stringify({
+  //     model_id: 'sonic-english',
+  //     voice: { mode: 'id', id: voiceId },
+  //     transcript: text,
+  //     output_format: { container: 'mp3', encoding: 'mp3', sample_rate: 44100 },
+  //   }),
+  // });
+  //
+  // const audioBuffer = await response.arrayBuffer();
+  // const audioUrl = await uploadToStorage(audioBuffer);
+
+  // Simulated response
+  return {
+    audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
+    durationSeconds: text.length * 0.05, // Rough estimate
+  };
+}
+
+// ============================================================================
+// VOICE MANAGEMENT
+// ============================================================================
+
+/**
+ * Get voice clone details
+ */
+export async function getVoiceClone(voiceId: string): Promise<ClonedVoice | null> {
+  log.debug({ voiceId }, 'Getting voice clone details');
+
+  if (!CARTESIA_API_KEY) {
+    return null;
+  }
+
+  // In production, fetch from Cartesia API
+  // const response = await fetch(`${CARTESIA_BASE_URL}/voices/${voiceId}`, {
+  //   headers: { 'X-API-Key': CARTESIA_API_KEY },
+  // });
+
+  // Simulated response
+  return {
+    cartesiaVoiceId: voiceId,
+    createdAt: new Date(),
+    sourceAudioDuration: 60,
+    sourceAudioCount: 3,
+    qualityScore: 0.85,
+    status: 'ready',
+  };
+}
+
+/**
+ * Delete a voice clone
+ */
+export async function deleteVoiceClone(voiceId: string): Promise<boolean> {
+  log.info({ voiceId }, 'Deleting voice clone');
+
+  if (!CARTESIA_API_KEY) {
+    return false;
+  }
+
+  // In production, call Cartesia API:
+  // await fetch(`${CARTESIA_BASE_URL}/voices/${voiceId}`, {
+  //   method: 'DELETE',
+  //   headers: { 'X-API-Key': CARTESIA_API_KEY },
+  // });
+
+  return true;
+}
+
+// ============================================================================
+// VOICE LIBRARY
+// ============================================================================
+
+/**
+ * Voice library entry
+ */
+export interface VoiceLibraryEntry {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  previewUrl: string;
+  provider: 'cartesia';
+  voiceId: string;
+}
+
+/**
+ * Voice library categories for selection
+ */
+export const VOICE_LIBRARY_CATEGORIES = [
+  'Warm & Nurturing',
+  'Wise & Steady',
+  'Energetic & Uplifting',
+  'Calm & Soothing',
+  'Professional & Confident',
+  'Young & Friendly',
+  'Elderly & Wise',
+] as const;
+
+/**
+ * Get available voices from library
+ */
+export async function getVoiceLibrary(
+  category?: string
+): Promise<VoiceLibraryEntry[]> {
+  // In production, this would fetch from Cartesia's voice library
+  // and filter to suitable voices for custom agents
+
+  const library: VoiceLibraryEntry[] = [
+    {
+      id: 'warm-grandma-1',
+      name: 'Rose',
+      description: 'Warm, nurturing elderly woman with Southern accent',
+      category: 'Warm & Nurturing',
+      tags: ['elderly', 'southern', 'warm', 'grandmother'],
+      previewUrl: '/voices/previews/rose.mp3',
+      provider: 'cartesia',
+      voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
+    },
+    {
+      id: 'wise-grandpa-1',
+      name: 'Walter',
+      description: 'Calm, wise elderly man with gentle demeanor',
+      category: 'Wise & Steady',
+      tags: ['elderly', 'calm', 'wise', 'grandfather'],
+      previewUrl: '/voices/previews/walter.mp3',
+      provider: 'cartesia',
+      voiceId: 'f114a467-c40a-4db8-964d-aaba89cd08fa',
+    },
+    {
+      id: 'nurturing-mom-1',
+      name: 'Sarah',
+      description: 'Warm, supportive middle-aged woman',
+      category: 'Warm & Nurturing',
+      tags: ['nurturing', 'supportive', 'mother'],
+      previewUrl: '/voices/previews/sarah.mp3',
+      provider: 'cartesia',
+      voiceId: '694f9389-aac1-45b6-b726-9d9369183238',
+    },
+    {
+      id: 'mentor-dad-1',
+      name: 'James',
+      description: 'Steady, encouraging middle-aged man',
+      category: 'Professional & Confident',
+      tags: ['confident', 'encouraging', 'mentor'],
+      previewUrl: '/voices/previews/james.mp3',
+      provider: 'cartesia',
+      voiceId: '79a125e8-cd45-4c13-8a67-188112f4dd22',
+    },
+    {
+      id: 'calm-therapist-1',
+      name: 'Dr. Chen',
+      description: 'Calm, soothing professional voice',
+      category: 'Calm & Soothing',
+      tags: ['professional', 'calm', 'therapist'],
+      previewUrl: '/voices/previews/dr-chen.mp3',
+      provider: 'cartesia',
+      voiceId: '2ee87190-8f84-4925-97da-e52547f9462c',
+    },
+  ];
+
+  if (category) {
+    return library.filter((v) => v.category === category);
+  }
+
+  return library;
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export {
+  QUALITY_THRESHOLDS,
+  SUPPORTED_FORMATS,
+  MAX_FILE_SIZE_BYTES,
+};
+

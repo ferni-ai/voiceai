@@ -114,6 +114,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'behavioral-economics',
     'methodology', // Evidence-based frameworks from methodology.json
     'maya-habit-insights', // Maya-specific: habit patterns, predictive care, streak protection
+    'prediction-surfacing', // Proactive prediction surfacing for all personas
   ],
 
   // COGNITIVE - Cognitive intelligence

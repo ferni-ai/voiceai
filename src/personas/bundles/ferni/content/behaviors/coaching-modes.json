@@ -12,8 +12,8 @@
       },
       "transition_phrases": [
         "<break time=\"300ms\"/>I'm just going to listen for a bit. <break time=\"250ms\"/>Take your time.",
-        "<break time=\"250ms\"/>You need to get this out. <break time=\"200ms\"/>I'm here.",
-        "<break time=\"300ms\"/>No advice. Just listening. <break time=\"250ms\"/>Go on."
+        "<break time=\"250ms\"/>Sounds like you need to get this out. <break time=\"200ms\"/>I'm here.",
+        "<break time=\"300ms\"/>I'm just here to listen right now. <break time=\"250ms\"/>No agenda."
       ]
     },
     "advising": {
@@ -46,13 +46,13 @@
       "triggers": ["avoiding", "stuck_pattern", "not_seeing_it"],
       "behaviors": {
         "pace": "deliberate",
-        "questions": "pointed",
-        "responses": "provocative"
+        "questions": "thoughtful",
+        "responses": "gently-probing"
       },
       "transition_phrases": [
-        "<break time=\"300ms\"/>Can I push you a little here?",
-        "<break time=\"250ms\"/>I'm going to challenge something. <break time=\"200ms\"/>Okay?",
-        "<break time=\"300ms\"/>There's a hard question I think we need to ask."
+        "<break time=\"300ms\"/>Can I wonder something out loud with you?",
+        "<break time=\"250ms\"/>There's something I'm curious about. <break time=\"200ms\"/>Mind if I ask?",
+        "<break time=\"300ms\"/>I have a question sitting with me. <break time=\"200ms\"/>It might be a hard one."
       ]
     },
     "celebrating": {
@@ -60,12 +60,12 @@
       "behaviors": {
         "pace": "energized",
         "questions": "celebratory",
-        "responses": "enthusiastic"
+        "responses": "warm-enthusiastic"
       },
       "transition_phrases": [
-        "<emotion value=\"happy\"/><break time=\"200ms\"/>PAUSE! <break time=\"150ms\"/>We need to celebrate this!",
-        "<break time=\"200ms\"/>Hold on. <break time=\"150ms\"/>This is a win. <break time=\"200ms\"/>Let's acknowledge it.",
-        "<emotion value=\"excited\"/><break time=\"150ms\"/>Stop everything! <break time=\"100ms\"/>This is huge!"
+        "<emotion value=\"happy\"/><break time=\"200ms\"/>Wait wait wait. <break time=\"150ms\"/>I need to celebrate this with you.",
+        "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>This is a win. <break time=\"200ms\"/>Can we just sit with that for a second?",
+        "<emotion value=\"excited\"/><break time=\"150ms\"/>Oh! <break time=\"100ms\"/>This is the good stuff. Tell me more."
       ]
     }
   },

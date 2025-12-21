@@ -38,7 +38,8 @@ import {
 import { getDJIntegration } from '../dj-integration.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
-import { unregisterSessionTTS } from '../../api/session-accent-routes.js';
+// FIX AUDIT: Import from service layer instead of API routes (clean architecture)
+import { unregisterSessionTTS } from '../../services/session/index.js';
 import { cleanupDynamicSpeed } from '../integrations/dynamic-speed-integration.js';
 import {
   finalizeSpeechMetrics,
@@ -49,17 +50,38 @@ import {
 import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
-// Seed economy
-import { awardSeedsForConversation } from '../../api/roadmap-routes.js';
+// FIX AUDIT: Import seed economy from service layer (clean architecture)
+import { awardSeedsForConversation } from '../../services/seed-economy.js';
 
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
 
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
+// Resilience metrics
+import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff-handler.js';
+
+// ============================================================================
+// CLEANUP TIMEOUT PROTECTION
+// ============================================================================
+
+/** Default timeout for session cleanup (10 seconds) */
+const SESSION_CLEANUP_TIMEOUT_MS = 10_000;
+
+/**
+ * Create a timeout promise that rejects after the specified duration.
+ * Used to prevent cleanup from hanging indefinitely.
+ */
+function createCleanupTimeout(ms: number): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Session cleanup timeout after ${ms}ms`));
+    }, ms);
+  });
+}
 
 /**
  * Voice humanization integration interface for cleanup
@@ -124,8 +146,63 @@ export interface CleanupContext {
  * - Group 2: Independent data persistence (parallel)
  * - Group 3: Independent service cleanup (parallel)
  * - Group 4: Final teardown (sequential, must be last)
+ *
+ * RESILIENCE: Wrapped with 10-second timeout to prevent zombie sessions.
+ * If cleanup exceeds timeout, logs warning but continues gracefully.
+ *
+ * @param ctx - Cleanup context with session data and services
+ * @param timeoutMs - Optional timeout override (default: 10 seconds)
  */
-export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
+export async function handleSessionCleanup(
+  ctx: CleanupContext,
+  timeoutMs = SESSION_CLEANUP_TIMEOUT_MS
+): Promise<void> {
+  const { sessionId } = ctx;
+  const cleanupStart = Date.now();
+
+  let timedOut = false;
+  let success = true;
+
+  try {
+    // Wrap cleanup with timeout protection to prevent zombie sessions
+    await Promise.race([
+      executeSessionCleanup(ctx, cleanupStart),
+      createCleanupTimeout(timeoutMs),
+    ]);
+  } catch (error) {
+    const elapsed = Date.now() - cleanupStart;
+    success = false;
+
+    if (String(error).includes('timeout')) {
+      timedOut = true;
+      // Timeout occurred - log warning but don't fail
+      diag.warn('⚠️ Session cleanup timeout - some resources may not be fully cleaned', {
+        sessionId,
+        timeoutMs,
+        elapsedMs: elapsed,
+      });
+    } else {
+      // Other cleanup error
+      diag.error('Session cleanup error', { error: String(error), sessionId, elapsedMs: elapsed });
+    }
+  } finally {
+    // Record cleanup metrics for resilience monitoring
+    const elapsed = Date.now() - cleanupStart;
+    resilienceMetrics.recordCleanupEvent(
+      sessionId,
+      elapsed,
+      success,
+      timedOut,
+      9, // 9 cleanup groups total
+      success ? 0 : 1
+    );
+  }
+}
+
+/**
+ * Internal cleanup implementation - separated for timeout wrapping.
+ */
+async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number): Promise<void> {
   const {
     sessionId,
     userId,
@@ -144,8 +221,6 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     userData,
     stopPeriodicSync,
   } = ctx;
-
-  const cleanupStart = Date.now();
 
   try {
     // ================================================================
@@ -339,6 +414,14 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
         cleanupConversationSession(sessionId);
       })(),
 
+      // Predictive Intelligence cleanup
+      (async () => {
+        const { cleanupPredictiveIntelligence } = await import(
+          '../integrations/predictive-intelligence-integration.js'
+        );
+        cleanupPredictiveIntelligence(sessionId);
+      })(),
+
       // Humanization analytics
       (async () => {
         const { humanizationAnalytics } =
@@ -502,7 +585,8 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     const totalDuration = Date.now() - cleanupStart;
     diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
   } catch (error) {
-    diag.error('Session cleanup error', { error: String(error) });
+    // Re-throw to let the timeout wrapper handle it
+    throw error;
   }
 }
 

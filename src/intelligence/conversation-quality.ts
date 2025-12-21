@@ -288,11 +288,35 @@ export function extractSmallDetails(text: string): SmallDetail[] {
     'Free',
   ]);
 
+  // CRITICAL: Never confuse persona names with user names!
+  // When user says "Hi Maya" after Maya introduces herself, that's NOT the user's name
+  const personaNames = new Set([
+    'Ferni',
+    'Maya',
+    'Peter',
+    'Alex',
+    'Jordan',
+    'Nayan',
+    // Full names too
+    'Santos',
+    'Chen',
+    'Taylor',
+    'John',
+    'Patel',
+  ]);
+
   for (const pattern of userNamePatterns) {
     const matches = text.matchAll(pattern);
     for (const match of matches) {
       const name = match[1];
-      if (name && !notNames.has(name) && name.length >= 2 && name.length <= 15) {
+      // Skip common words AND persona names (critical: don't confuse "Hi Maya" as user name)
+      if (
+        name &&
+        !notNames.has(name) &&
+        !personaNames.has(name) &&
+        name.length >= 2 &&
+        name.length <= 15
+      ) {
         details.push({
           type: 'user_name',
           value: name,

@@ -102,6 +102,35 @@ export {
   outreachNudges,
 } from './outreach-nudges.js';
 
+// Google Contacts Import
+export {
+  importGoogleContacts,
+  syncGoogleContacts,
+  getGoogleContactsAuthUrl,
+  exchangeGoogleContactsCode,
+} from './google-contacts-import.js';
+
+// Voice Message Service
+export {
+  generateVoiceAudio,
+  sendVoiceMessageMMS,
+  generateVoiceMessageScript,
+  getVoiceDeliveryOptions,
+  sendBatchVoiceMessages,
+} from './voice-message-service.js';
+
+// Gift Tracking Service
+export {
+  recordGift,
+  getGiftHistory,
+  getAllGifts,
+  updateGiftReaction,
+  generateGiftSuggestions,
+  getUpcomingGiftOccasions,
+  getGiftAnalytics,
+  clearGiftCache,
+} from './gift-tracking-service.js';
+
 // Default export for convenient importing
 import contactRelationshipService from './contact-relationship-service.js';
 import contactGroups from './contact-groups.js';

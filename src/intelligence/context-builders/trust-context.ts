@@ -102,8 +102,8 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   try {
     processContextForSignals(trustContext, personaId);
   } catch (signalError) {
-    // Non-critical - log and continue
-    log.debug({ error: String(signalError) }, 'Trust signal emission failed (non-critical)');
+    // Non-critical - log for production monitoring
+    log.warn({ error: String(signalError) }, 'Trust signal emission failed (non-critical)');
   }
 
   // ============================================================================

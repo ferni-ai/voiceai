@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { latencyLogger } from './latency-logger.service.js';
 
 const log = createLogger('SpeechEventDispatcher');
 
@@ -90,6 +91,9 @@ export function dispatchUserSpeechEnd(): void {
   // Start tracking potential pause
   state.pauseStartTime = Date.now();
   
+  // ⏱️ Latency tracking: Mark user speech end for response timing
+  latencyLogger.markUserSpeechEnd();
+  
   document.dispatchEvent(new CustomEvent('ferni:user-speech-end'));
   log.debug('🎤 User speech ended');
 }
@@ -122,6 +126,9 @@ export function dispatchAgentSpeechStart(): void {
   
   state.agentSpeaking = true;
   state.lastAgentSpeechTime = Date.now();
+  
+  // ⏱️ Latency tracking: Mark agent speech start for response timing
+  latencyLogger.markAgentSpeechStart();
   
   document.dispatchEvent(new CustomEvent('ferni:agent-speech-start'));
   log.debug('🔊 Agent speech started');

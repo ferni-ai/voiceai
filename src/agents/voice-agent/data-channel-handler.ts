@@ -230,10 +230,13 @@ async function handleHandoffRequest(
   // Helper to send failure message to frontend
   const sendFailure = async (errorMsg: string) => {
     try {
+      const currentAgent = getCurrentAgent();
       const failureMessage = JSON.stringify({
         type: 'handoff_failed',
         newAgent: targetPersona,
-        previousAgent: getCurrentAgent(),
+        previousAgent: currentAgent,
+        // rollbackTo is needed by frontend for UI recovery (restore previous persona state)
+        rollbackTo: currentAgent,
         error: errorMsg,
         timestamp: Date.now(),
       });

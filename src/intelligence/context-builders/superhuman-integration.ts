@@ -28,13 +28,7 @@ const log = createLogger({ module: 'context:superhuman-integration' });
 // TYPES
 // ============================================================================
 
-export type PersonaSuperhuman =
-  | 'ferni'
-  | 'peter'
-  | 'maya'
-  | 'jordan'
-  | 'alex'
-  | 'nayan';
+export type PersonaSuperhuman = 'ferni' | 'peter' | 'maya' | 'jordan' | 'alex' | 'nayan';
 
 interface SuperhumanSelectors {
   /** Which capabilities this persona should use */
@@ -116,10 +110,10 @@ interface CachedSuperhuman {
 }
 
 interface TieredCache {
-  stable: Map<string, { value: string; timestamp: number }>;   // 5 min TTL
-  normal: Map<string, { value: string; timestamp: number }>;   // 2 min TTL
-  fresh: Map<string, { value: string; timestamp: number }>;    // 30s TTL
-  full: Map<string, CachedSuperhuman>;                         // Full context cache
+  stable: Map<string, { value: string; timestamp: number }>; // 5 min TTL
+  normal: Map<string, { value: string; timestamp: number }>; // 2 min TTL
+  fresh: Map<string, { value: string; timestamp: number }>; // 30s TTL
+  full: Map<string, CachedSuperhuman>; // Full context cache
 }
 
 const tieredCache: TieredCache = {
@@ -130,10 +124,10 @@ const tieredCache: TieredCache = {
 };
 
 const CACHE_TTL = {
-  STABLE: 5 * 60 * 1000,   // 5 minutes for seasonal, narrative, values
-  NORMAL: 2 * 60 * 1000,   // 2 minutes for network, dreams, milestones
-  FRESH: 30 * 1000,        // 30 seconds for commitments, predictions, capacity
-  FULL: 60 * 1000,         // 1 minute for complete context
+  STABLE: 5 * 60 * 1000, // 5 minutes for seasonal, narrative, values
+  NORMAL: 2 * 60 * 1000, // 2 minutes for network, dreams, milestones
+  FRESH: 30 * 1000, // 30 seconds for commitments, predictions, capacity
+  FULL: 60 * 1000, // 1 minute for complete context
 } as const;
 
 // Map capabilities to their cache tier
@@ -154,24 +148,21 @@ function getCacheKey(userId: string, capability?: string): string {
   return capability ? `superhuman:${userId}:${capability}` : `superhuman:${userId}`;
 }
 
-function getTieredValue(
-  userId: string,
-  capability: keyof SuperhumanCapabilities
-): string | null {
+function getTieredValue(userId: string, capability: keyof SuperhumanCapabilities): string | null {
   const tier = CAPABILITY_TIERS[capability];
   const cacheMap = tieredCache[tier];
   const key = getCacheKey(userId, capability);
   const cached = cacheMap.get(key);
-  
+
   if (!cached) return null;
-  
-  const ttl = tier === 'stable' ? CACHE_TTL.STABLE : 
-              tier === 'normal' ? CACHE_TTL.NORMAL : CACHE_TTL.FRESH;
-  
+
+  const ttl =
+    tier === 'stable' ? CACHE_TTL.STABLE : tier === 'normal' ? CACHE_TTL.NORMAL : CACHE_TTL.FRESH;
+
   if (Date.now() - cached.timestamp < ttl) {
     return cached.value;
   }
-  
+
   cacheMap.delete(key);
   return null;
 }
@@ -201,9 +192,12 @@ function setCachedContext(userId: string, context: SuperhumanCapabilities): void
     timestamp: Date.now(),
     userId,
   });
-  
+
   // Also populate tiered caches for individual capabilities
-  for (const [key, value] of Object.entries(context) as [keyof SuperhumanCapabilities, string | null][]) {
+  for (const [key, value] of Object.entries(context) as [
+    keyof SuperhumanCapabilities,
+    string | null,
+  ][]) {
     if (value && typeof value === 'string') {
       setTieredValue(userId, key, value);
     }
@@ -216,14 +210,14 @@ function setCachedContext(userId: string, context: SuperhumanCapabilities): void
  */
 function getPartialCachedContext(userId: string): Partial<SuperhumanCapabilities> {
   const partial: Partial<SuperhumanCapabilities> = {};
-  
+
   for (const capability of Object.keys(CAPABILITY_TIERS) as (keyof SuperhumanCapabilities)[]) {
     const cached = getTieredValue(userId, capability);
     if (cached !== null) {
       partial[capability] = cached;
     }
   }
-  
+
   return partial;
 }
 
@@ -259,16 +253,17 @@ export async function getSuperhuman(
         timestamp: Date.now(),
         cacheHit: true,
       });
-      log.debug({ persona, userId, cached: true, durationMs: duration }, 'Using cached superhuman context');
+      log.debug(
+        { persona, userId, cached: true, durationMs: duration },
+        'Using cached superhuman context'
+      );
       return formatForPersona(cached, persona);
     }
   }
 
   try {
     // Lazy import to avoid circular dependencies and reduce cold start
-    const {
-      buildSuperhumanContext,
-    } = await import('../../services/superhuman/index.js');
+    const { buildSuperhumanContext } = await import('../../services/superhuman/index.js');
 
     const context = await buildSuperhumanContext(userId, {
       crisisSignal: options?.crisisSignal
@@ -302,20 +297,19 @@ export async function getSuperhuman(
       timestamp: Date.now(),
       cacheHit: false,
     });
-    log.warn({ error, persona, userId, durationMs: duration }, 'Failed to build superhuman context');
+    log.warn(
+      { error, persona, userId, durationMs: duration },
+      'Failed to build superhuman context'
+    );
     return '';
   }
 }
-
 
 /**
  * Format superhuman context for a specific persona.
  * Filters to only relevant capabilities and respects token limits.
  */
-function formatForPersona(
-  context: SuperhumanCapabilities,
-  persona: PersonaSuperhuman
-): string {
+function formatForPersona(context: SuperhumanCapabilities, persona: PersonaSuperhuman): string {
   const config = PERSONA_SUPERHUMAN_MAP[persona];
   if (!config) {
     return '';
@@ -358,9 +352,8 @@ function formatForPersona(
  */
 export async function getCommitmentContext(userId: string): Promise<string> {
   try {
-    const { buildCommitmentContext } = await import(
-      '../../services/superhuman/commitment-keeper.js'
-    );
+    const { buildCommitmentContext } =
+      await import('../../services/superhuman/commitment-keeper.js');
     return await buildCommitmentContext(userId);
   } catch {
     return '';
@@ -369,16 +362,60 @@ export async function getCommitmentContext(userId: string): Promise<string> {
 
 /**
  * Get predictive coaching context (useful for Peter, Maya)
+ *
+ * This now integrates THREE systems:
+ * 1. Predictive coaching (temporal/emotional patterns)
+ * 2. Coaching patterns (linguistic patterns)
+ * 3. Superhuman observations ("only I would notice" insights)
  */
-export async function getPredictiveContext(userId: string): Promise<string> {
+export async function getPredictiveContext(userId: string, sessionId?: string): Promise<string> {
+  const sections: string[] = [];
+
   try {
-    const { buildPredictiveContextString } = await import(
-      '../../services/superhuman/predictive-coaching.js'
-    );
-    return await buildPredictiveContextString(userId);
+    // 1. Core predictive coaching context
+    const { buildPredictiveContextString } =
+      await import('../../services/superhuman/predictive-coaching.js');
+    const predictiveContext = await buildPredictiveContextString(userId);
+    if (predictiveContext) {
+      sections.push(predictiveContext);
+    }
   } catch {
-    return '';
+    // Non-fatal
   }
+
+  try {
+    // 2. Enhanced predictive intelligence context (if session available)
+    if (sessionId) {
+      const { getPredictiveContextForTurn } =
+        await import('../../agents/integrations/predictive-intelligence-integration.js');
+      const intelligenceContext = await getPredictiveContextForTurn(userId, sessionId);
+      if (intelligenceContext) {
+        sections.push(intelligenceContext);
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  try {
+    // 3. Coaching patterns ready to surface
+    const { getPatternsToSurface, generatePatternSurfacingQuestion } =
+      await import('../coaching-patterns.js');
+    const patternsToSurface = await getPatternsToSurface(userId);
+    if (patternsToSurface.length > 0) {
+      sections.push('\n[COACHING PATTERNS READY TO SURFACE]');
+      sections.push('These patterns have reached confidence threshold:');
+      for (const pattern of patternsToSurface.slice(0, 2)) {
+        const question = generatePatternSurfacingQuestion(pattern);
+        sections.push(`• ${pattern.pattern} (seen ${pattern.occurrences}x)`);
+        sections.push(`  → Ask: "${question}"`);
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  return sections.join('\n');
 }
 
 /**
@@ -386,9 +423,8 @@ export async function getPredictiveContext(userId: string): Promise<string> {
  */
 export async function getNarrativeContext(userId: string): Promise<string> {
   try {
-    const { buildNarrativeContextString } = await import(
-      '../../services/superhuman/life-narrative.js'
-    );
+    const { buildNarrativeContextString } =
+      await import('../../services/superhuman/life-narrative.js');
     return await buildNarrativeContextString(userId);
   } catch {
     return '';
@@ -400,9 +436,7 @@ export async function getNarrativeContext(userId: string): Promise<string> {
  */
 export async function getValuesContext(userId: string): Promise<string> {
   try {
-    const { buildValuesContext } = await import(
-      '../../services/superhuman/values-alignment.js'
-    );
+    const { buildValuesContext } = await import('../../services/superhuman/values-alignment.js');
     return await buildValuesContext(userId);
   } catch {
     return '';
@@ -414,9 +448,7 @@ export async function getValuesContext(userId: string): Promise<string> {
  */
 export async function getCapacityContext(userId: string): Promise<string> {
   try {
-    const { buildCapacityContext } = await import(
-      '../../services/superhuman/capacity-guardian.js'
-    );
+    const { buildCapacityContext } = await import('../../services/superhuman/capacity-guardian.js');
     return await buildCapacityContext(userId);
   } catch {
     return '';
@@ -440,9 +472,8 @@ export async function getDreamContext(userId: string): Promise<string> {
  */
 export async function getNetworkContext(userId: string): Promise<string> {
   try {
-    const { buildNetworkContext } = await import(
-      '../../services/superhuman/relationship-network.js'
-    );
+    const { buildNetworkContext } =
+      await import('../../services/superhuman/relationship-network.js');
     return await buildNetworkContext(userId);
   } catch {
     return '';
@@ -454,9 +485,8 @@ export async function getNetworkContext(userId: string): Promise<string> {
  */
 export async function getSeasonalContext(userId: string): Promise<string> {
   try {
-    const { buildSeasonalContext } = await import(
-      '../../services/superhuman/seasonal-awareness.js'
-    );
+    const { buildSeasonalContext } =
+      await import('../../services/superhuman/seasonal-awareness.js');
     return await buildSeasonalContext(userId);
   } catch {
     return '';
@@ -472,7 +502,7 @@ export async function getSeasonalContext(userId: string): Promise<string> {
  */
 export function clearSuperhumanCache(userId: string): void {
   tieredCache.full.delete(getCacheKey(userId));
-  
+
   // Clear all tiered caches for this user
   for (const capability of Object.keys(CAPABILITY_TIERS) as (keyof SuperhumanCapabilities)[]) {
     const key = getCacheKey(userId, capability);
@@ -500,17 +530,15 @@ export async function warmupSuperhumanCache(userId: string): Promise<void> {
   try {
     // Don't block - run in background
     const start = Date.now();
-    
-    const {
-      buildSuperhumanContext,
-    } = await import('../../services/superhuman/index.js');
-    
+
+    const { buildSuperhumanContext } = await import('../../services/superhuman/index.js');
+
     const context = await buildSuperhumanContext(userId);
     setCachedContext(userId, context);
-    
+
     log.info({ userId, durationMs: Date.now() - start }, '🔥 Warmed superhuman cache');
   } catch (error) {
-    log.debug({ error, userId }, 'Cache warmup failed (non-critical)');
+    log.warn({ error, userId }, 'Cache warmup failed (non-critical)');
   }
 }
 
@@ -552,7 +580,7 @@ const MAX_PERFORMANCE_ENTRIES = 100;
  */
 function recordPerformance(entry: PerformanceEntry): void {
   performanceLog.push(entry);
-  
+
   // Keep only last N entries
   if (performanceLog.length > MAX_PERFORMANCE_ENTRIES) {
     performanceLog.shift();
@@ -560,10 +588,7 @@ function recordPerformance(entry: PerformanceEntry): void {
 
   // Log slow operations
   if (entry.durationMs > 200) {
-    log.warn(
-      { ...entry },
-      `Slow superhuman context build: ${entry.durationMs}ms`
-    );
+    log.warn({ ...entry }, `Slow superhuman context build: ${entry.durationMs}ms`);
   }
 }
 
@@ -620,7 +645,7 @@ export function withPerformanceTracking<T>(
   meta: { userId: string; persona: PersonaSuperhuman; cacheHit?: boolean }
 ): Promise<T> {
   const startTime = Date.now();
-  
+
   return fn().finally(() => {
     const duration = Date.now() - startTime;
     recordPerformance({
@@ -639,4 +664,3 @@ export function withPerformanceTracking<T>(
 // ============================================================================
 
 export { PERSONA_SUPERHUMAN_MAP };
-

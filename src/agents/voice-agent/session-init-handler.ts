@@ -255,6 +255,21 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
         }
       })(),
+
+      // Predictive Intelligence - initialize pattern tracking for predictions
+      (async () => {
+        try {
+          const { initializePredictiveIntelligence } = await import(
+            '../integrations/predictive-intelligence-integration.js'
+          );
+          initializePredictiveIntelligence(sessionId, userId);
+          diag.session('🔮 Predictive intelligence initialized', { userId });
+        } catch (predictiveErr) {
+          diag.warn('Predictive intelligence init failed (non-fatal)', {
+            error: String(predictiveErr),
+          });
+        }
+      })(),
     ];
 
     // Wait for all profile loads to complete

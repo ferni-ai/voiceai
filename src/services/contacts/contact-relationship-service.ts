@@ -52,6 +52,13 @@ export interface ContactRelationship {
   topics: ContactTopic[];
   recentContext: string[]; // Last 5 interaction summaries
 
+  // Important dates (birthdays, anniversaries, etc.)
+  importantDates?: Array<{
+    date: string; // MM-DD or YYYY-MM-DD
+    type: 'birthday' | 'anniversary' | 'memorial' | 'custom';
+    label?: string;
+  }>;
+
   // Follow-up tracking
   pendingFollowUp?: FollowUpReminder;
   lastFollowUpDate?: Date;
@@ -76,17 +83,84 @@ export interface FollowUpReminder {
   completed: boolean;
 }
 
+/**
+ * Comprehensive interaction types for "Better Than Human" tracking
+ * 
+ * We track EVERYTHING - no human can remember all this!
+ */
+export type InteractionType =
+  // Digital Communication
+  | 'email'
+  | 'call'
+  | 'text'
+  | 'video_call'       // Zoom, FaceTime, Google Meet
+  | 'voice_message'
+  | 'instant_message'  // WhatsApp, Messenger, etc.
+  
+  // Social Media
+  | 'social_like'
+  | 'social_comment'
+  | 'social_dm'
+  | 'social_tag'
+  | 'social_share'
+  
+  // In-Person
+  | 'meeting'
+  | 'hangout'          // Coffee, lunch, casual
+  | 'dinner'
+  | 'party'
+  | 'activity'         // Sports, concert, movie
+  | 'trip'             // Travel together
+  | 'visit'            // Visited their home or they visited
+  
+  // Gifts & Cards
+  | 'gift_given'
+  | 'gift_received'
+  | 'card_sent'
+  | 'card_received'
+  | 'thank_you_sent'
+  | 'thank_you_received'
+  
+  // Financial
+  | 'money_lent'
+  | 'money_borrowed'
+  | 'money_repaid'
+  | 'split_bill'
+  
+  // Life Events
+  | 'attended_event'   // Their wedding, graduation, etc.
+  | 'milestone_shared' // They shared a milestone with you
+  
+  // Other
+  | 'photo_shared'
+  | 'recommendation'   // Recommended something to them
+  | 'introduction'     // Introduced them to someone
+  | 'favor_done'
+  | 'favor_received'
+  | 'other';
+
 export interface InteractionRecord {
   id: string;
   contactId: string;
   userId: string;
   date: Date;
-  type: 'email' | 'call' | 'text' | 'meeting' | 'other';
-  direction: 'inbound' | 'outbound';
+  type: InteractionType;
+  direction: 'inbound' | 'outbound' | 'mutual';  // Added 'mutual' for activities together
   summary?: string;
   topics?: string[];
   sentiment?: 'positive' | 'neutral' | 'negative';
   responseTimeHours?: number;
+  
+  // Extended fields for richer tracking
+  duration?: number;           // Duration in minutes (for calls, meetings, hangouts)
+  location?: string;           // Where it happened
+  platform?: string;           // Which app/platform (Zoom, Instagram, etc.)
+  mediaUrl?: string;           // Photo or voice message URL
+  amount?: number;             // For financial interactions
+  linkedGiftId?: string;       // Link to gift if this is a gift interaction
+  participantNames?: string[]; // Other people involved (for group activities)
+  isStreak?: boolean;          // Part of a streak (e.g., weekly call)
+  streakCount?: number;        // How many in a row
 }
 
 export interface ContactInsight {
@@ -198,6 +272,10 @@ export async function upsertContact(
       lastInteraction: contact.lastInteraction || now,
       interactionCount: contact.interactionCount || 0,
       strengthScore: contact.strengthScore || 50,
+      preferredChannel: contact.preferredChannel,
+      bestTimeToReach: contact.bestTimeToReach,
+      avgResponseTimeHours: contact.avgResponseTimeHours,
+      importantDates: contact.importantDates || [],
       topics: contact.topics || [],
       recentContext: contact.recentContext || [],
       createdAt: now,
@@ -214,32 +292,141 @@ export async function upsertContact(
 }
 
 /**
+ * Interaction type weights for relationship strength
+ * Higher weight = bigger impact on relationship score
+ */
+const INTERACTION_WEIGHTS: Partial<Record<InteractionType, number>> = {
+  // High impact - meaningful time together
+  trip: 15,
+  visit: 12,
+  dinner: 10,
+  hangout: 10,
+  activity: 10,
+  attended_event: 15,
+  
+  // Medium-high impact - direct communication
+  video_call: 8,
+  call: 7,
+  meeting: 7,
+  
+  // Medium impact
+  text: 5,
+  voice_message: 5,
+  instant_message: 4,
+  email: 4,
+  gift_given: 10,
+  gift_received: 8,
+  card_sent: 8,
+  favor_done: 8,
+  
+  // Lower impact - still counts!
+  social_comment: 3,
+  social_dm: 3,
+  social_like: 1,
+  social_tag: 2,
+  thank_you_sent: 5,
+  introduction: 6,
+  recommendation: 4,
+  photo_shared: 3,
+  
+  // Default
+  other: 3,
+};
+
+/**
+ * Detect if this interaction is part of a streak
+ */
+async function detectStreak(
+  userId: string,
+  contactId: string,
+  interactionType: InteractionType
+): Promise<{ isStreak: boolean; streakCount: number }> {
+  const firestore = await getFirestore();
+  if (!firestore) return { isStreak: false, streakCount: 0 };
+  
+  try {
+    // Get recent interactions of the same type
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
+    
+    const snapshot = await firestore
+      .collection(INTERACTIONS_COLLECTION)
+      .where('userId', '==', userId)
+      .where('contactId', '==', contactId)
+      .where('type', '==', interactionType)
+      .orderBy('date', 'desc')
+      .limit(20)
+      .get();
+    
+    if (snapshot.empty) return { isStreak: false, streakCount: 1 };
+    
+    const interactions = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { date: data.date?.toDate?.() || new Date(data.date) };
+    });
+    
+    // Check for weekly streak (interactions within 10 days of each other)
+    let streakCount = 1;
+    let lastDate = new Date();
+    
+    for (const int of interactions) {
+      const daysDiff = Math.floor((lastDate.getTime() - int.date.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff <= 10) {
+        streakCount++;
+        lastDate = int.date;
+      } else {
+        break;
+      }
+    }
+    
+    return { isStreak: streakCount >= 3, streakCount };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to detect streak');
+    return { isStreak: false, streakCount: 0 };
+  }
+}
+
+/**
  * Record an interaction with a contact
+ * 
+ * "Better Than Human" - We track EVERYTHING and detect patterns
  */
 export async function recordInteraction(
   userId: string,
   interaction: Omit<InteractionRecord, 'id'>
-): Promise<void> {
+): Promise<InteractionRecord> {
   const contact = await getContact(userId, interaction.contactId);
+  const now = new Date();
+  
+  // Detect streak before recording
+  const streakInfo = await detectStreak(userId, interaction.contactId, interaction.type);
 
   if (contact) {
     // Update contact stats
-    const now = new Date();
     contact.lastInteraction = now;
     contact.interactionCount++;
 
-    // Update strength score (decay over time, boost on interaction)
-    contact.strengthScore = Math.min(100, contact.strengthScore + 5);
+    // Update strength score based on interaction type weight
+    const weight = INTERACTION_WEIGHTS[interaction.type] || 3;
+    contact.strengthScore = Math.min(100, contact.strengthScore + weight);
+    
+    // Decay prevention - recent interactions slow decay
+    if (contact.strengthScore < 30) {
+      contact.strengthScore = Math.min(50, contact.strengthScore + 5); // Boost weak relationships more
+    }
 
-    // Add to recent context
+    // Add to recent context with more detail
     if (interaction.summary) {
+      const contextEntry = interaction.location 
+        ? `${interaction.summary} (at ${interaction.location})`
+        : interaction.summary;
       contact.recentContext = [
-        interaction.summary,
+        contextEntry,
         ...contact.recentContext.slice(0, 4)
       ];
     }
 
-    // Track topics
+    // Track topics with sentiment
     if (interaction.topics) {
       for (const topic of interaction.topics) {
         const existingTopic = contact.topics.find(
@@ -248,12 +435,17 @@ export async function recordInteraction(
         if (existingTopic) {
           existingTopic.lastMentioned = now;
           existingTopic.mentionCount++;
+          // Update sentiment if provided
+          if (interaction.sentiment) {
+            existingTopic.sentiment = interaction.sentiment;
+          }
         } else {
           contact.topics.push({
             topic,
             firstMentioned: now,
             lastMentioned: now,
             mentionCount: 1,
+            sentiment: interaction.sentiment,
           });
         }
       }
@@ -274,10 +466,29 @@ export async function recordInteraction(
     await persistContact(contact);
   }
 
-  // Also persist the interaction record
-  await persistInteraction({ ...interaction, id: `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}` });
+  // Create the full interaction record with streak info
+  const fullInteraction: InteractionRecord = {
+    ...interaction,
+    id: `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    isStreak: streakInfo.isStreak,
+    streakCount: streakInfo.streakCount,
+  };
 
-  log.debug({ userId, contactId: interaction.contactId }, 'Interaction recorded');
+  // Persist the interaction record
+  await persistInteraction(fullInteraction);
+
+  log.info(
+    { 
+      userId, 
+      contactId: interaction.contactId, 
+      type: interaction.type,
+      isStreak: streakInfo.isStreak,
+      streakCount: streakInfo.streakCount,
+    }, 
+    '📝 Interaction recorded'
+  );
+  
+  return fullInteraction;
 }
 
 /**
@@ -507,6 +718,203 @@ export async function getContactContext(
 }
 
 // ============================================================================
+// INTERACTION HISTORY - "Better Than Human" Memory
+// ============================================================================
+
+/**
+ * Get full interaction history for a contact
+ */
+export async function getInteractionHistory(
+  userId: string,
+  contactId: string,
+  options: {
+    limit?: number;
+    type?: InteractionType;
+    since?: Date;
+  } = {}
+): Promise<InteractionRecord[]> {
+  const firestore = await getFirestore();
+  if (!firestore) return [];
+
+  try {
+    let query = firestore
+      .collection(INTERACTIONS_COLLECTION)
+      .where('userId', '==', userId)
+      .where('contactId', '==', contactId);
+
+    if (options.type) {
+      query = query.where('type', '==', options.type);
+    }
+    
+    if (options.since) {
+      query = query.where('date', '>=', options.since);
+    }
+
+    query = query.orderBy('date', 'desc');
+    
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    const snapshot = await query.get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        date: data.date?.toDate?.() || new Date(data.date),
+      } as InteractionRecord;
+    });
+  } catch (error) {
+    log.warn({ error: String(error), userId, contactId }, 'Failed to get interaction history');
+    return [];
+  }
+}
+
+/**
+ * Get interaction statistics for a contact
+ * 
+ * "Better Than Human" - Perfect pattern recognition
+ */
+export async function getInteractionStats(
+  userId: string,
+  contactId: string
+): Promise<{
+  totalInteractions: number;
+  byType: Record<string, number>;
+  avgPerMonth: number;
+  longestStreak: { type: InteractionType; count: number } | null;
+  lastByType: Record<string, Date>;
+  sentimentTrend: 'improving' | 'stable' | 'declining' | 'unknown';
+  suggestedNextInteraction: InteractionType;
+}> {
+  const history = await getInteractionHistory(userId, contactId, { limit: 100 });
+  
+  if (history.length === 0) {
+    return {
+      totalInteractions: 0,
+      byType: {},
+      avgPerMonth: 0,
+      longestStreak: null,
+      lastByType: {},
+      sentimentTrend: 'unknown',
+      suggestedNextInteraction: 'text',
+    };
+  }
+
+  // Count by type
+  const byType: Record<string, number> = {};
+  const lastByType: Record<string, Date> = {};
+  let longestStreak: { type: InteractionType; count: number } | null = null;
+  
+  for (const int of history) {
+    byType[int.type] = (byType[int.type] || 0) + 1;
+    
+    if (!lastByType[int.type] || int.date > lastByType[int.type]) {
+      lastByType[int.type] = int.date;
+    }
+    
+    if (int.isStreak && int.streakCount) {
+      if (!longestStreak || int.streakCount > longestStreak.count) {
+        longestStreak = { type: int.type, count: int.streakCount };
+      }
+    }
+  }
+
+  // Calculate avg per month
+  const firstInteraction = history[history.length - 1]?.date || new Date();
+  const monthsSpan = Math.max(1, Math.ceil(
+    (Date.now() - firstInteraction.getTime()) / (1000 * 60 * 60 * 24 * 30)
+  ));
+  const avgPerMonth = Math.round((history.length / monthsSpan) * 10) / 10;
+
+  // Sentiment trend (last 10 vs previous 10)
+  const recent = history.slice(0, 10);
+  const previous = history.slice(10, 20);
+  const recentPositive = recent.filter(i => i.sentiment === 'positive').length;
+  const previousPositive = previous.filter(i => i.sentiment === 'positive').length;
+  
+  let sentimentTrend: 'improving' | 'stable' | 'declining' | 'unknown' = 'unknown';
+  if (previous.length >= 5) {
+    if (recentPositive > previousPositive + 2) sentimentTrend = 'improving';
+    else if (recentPositive < previousPositive - 2) sentimentTrend = 'declining';
+    else sentimentTrend = 'stable';
+  }
+
+  // Suggest next interaction based on patterns
+  const mostCommon = Object.entries(byType).sort((a, b) => b[1] - a[1])[0];
+  let suggestedNextInteraction: InteractionType = 'text';
+  
+  // If they mostly text, suggest a call for variety
+  if (mostCommon?.[0] === 'text' && byType['call'] < byType['text'] / 3) {
+    suggestedNextInteraction = 'call';
+  } else if (mostCommon?.[0] === 'call' && !byType['hangout']) {
+    suggestedNextInteraction = 'hangout';
+  } else {
+    suggestedNextInteraction = mostCommon?.[0] as InteractionType || 'text';
+  }
+
+  return {
+    totalInteractions: history.length,
+    byType,
+    avgPerMonth,
+    longestStreak,
+    lastByType,
+    sentimentTrend,
+    suggestedNextInteraction,
+  };
+}
+
+/**
+ * Get conversation topics to bring up
+ * 
+ * "Better Than Human" - Perfect recall of what they care about
+ */
+export async function getTopicsToDiscuss(
+  userId: string,
+  contactId: string
+): Promise<Array<{
+  topic: string;
+  lastDiscussed: Date;
+  sentiment: string;
+  suggestion: string;
+}>> {
+  const contact = await getContact(userId, contactId);
+  if (!contact || contact.topics.length === 0) return [];
+
+  const now = new Date();
+  
+  return contact.topics
+    .filter(t => t.mentionCount >= 2) // Topics they've mentioned multiple times
+    .sort((a, b) => b.mentionCount - a.mentionCount)
+    .slice(0, 5)
+    .map(topic => {
+      const daysSince = Math.floor(
+        (now.getTime() - topic.lastMentioned.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      let suggestion = '';
+      if (daysSince > 30) {
+        suggestion = `It's been a while since you discussed ${topic.topic}. Ask how it's going!`;
+      } else if (topic.sentiment === 'negative') {
+        suggestion = `Check in on ${topic.topic} - they seemed stressed about it.`;
+      } else if (topic.sentiment === 'positive') {
+        suggestion = `They were excited about ${topic.topic} - celebrate their progress!`;
+      } else {
+        suggestion = `${topic.topic} comes up often. Show you remember!`;
+      }
+      
+      return {
+        topic: topic.topic,
+        lastDiscussed: topic.lastMentioned,
+        sentiment: topic.sentiment || 'neutral',
+        suggestion,
+      };
+    });
+}
+
+// ============================================================================
 // PERSISTENCE
 // ============================================================================
 
@@ -606,6 +1014,9 @@ export default {
   getContactsNeedingAttention,
   searchContacts,
   getContactContext,
+  getInteractionHistory,
+  getInteractionStats,
+  getTopicsToDiscuss,
   clearCache,
 };
 

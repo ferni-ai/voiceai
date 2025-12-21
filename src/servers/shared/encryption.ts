@@ -13,12 +13,22 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 /**
  * Get encryption key from environment
  * Derives 32-byte key using SHA-256
+ *
+ * SECURITY: In production, OAUTH_ENCRYPTION_KEY is required.
+ * OAuth tokens will not be stored without encryption in production.
  */
 function getEncryptionKey(): Buffer | null {
   const key = process.env.OAUTH_ENCRYPTION_KEY || process.env.LOG_HASH_SECRET;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (!key) {
-    log.warn('SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption');
+    if (isProduction) {
+      log.error('SECURITY CRITICAL: OAUTH_ENCRYPTION_KEY must be set in production!');
+      log.error('OAuth tokens cannot be stored without encryption. Generate with: openssl rand -hex 32');
+      // In production, throw to prevent insecure token storage
+      throw new Error('OAUTH_ENCRYPTION_KEY is required in production');
+    }
+    log.warn('SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption (dev only)');
     return null;
   }
 

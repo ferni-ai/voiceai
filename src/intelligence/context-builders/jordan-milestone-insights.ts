@@ -82,6 +82,8 @@ import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
 import { getSuperhuman } from './superhuman-integration.js';
 import { getMemoryOrchestrator } from '../../memory/orchestrator.js';
+// Better Than Human: Milestone Calendar Sync
+import { buildMilestoneCalendarContext } from '../../services/milestones/milestone-calendar-sync.js';
 
 const log = createLogger({ module: 'context:jordan-milestone-insights' });
 
@@ -112,6 +114,8 @@ interface JordanInsightBriefing {
   proactiveDiscoveries: string[];
   /** Seasonal awareness */
   seasonalContext: SeasonalContext;
+  /** Better Than Human: Milestone calendar sync from Alex */
+  milestoneCalendarSync: string | null;
 }
 
 interface GoalsOverview {
@@ -639,7 +643,10 @@ function computePlanningMetrics(
   // Event Success Predictor (0-100)
   // Composite of all factors
   const eventSuccessPredictor = Math.round(
-    planningVelocity * 0.3 + celebrationReadiness * 0.3 + lifeStageMomentum * 0.2 + mayaInsights.momentumScore * 0.2
+    planningVelocity * 0.3 +
+      celebrationReadiness * 0.3 +
+      lifeStageMomentum * 0.2 +
+      mayaInsights.momentumScore * 0.2
   );
 
   // Detect cross-domain patterns
@@ -718,7 +725,9 @@ function analyzeLifeStageContext(
 
   // Add family context from memories
   if (memoryInsights.familyContext.length > 0) {
-    context.upcomingTransitions.push('Family milestones may be coming - stay tuned to their mentions');
+    context.upcomingTransitions.push(
+      'Family milestones may be coming - stay tuned to their mentions'
+    );
   }
 
   // General stage advice
@@ -751,7 +760,9 @@ function analyzeSeasonalContext(): SeasonalContext {
     context.seasonalOpportunities.push(
       '🎓 GRADUATION SEASON! I cry at graduations. Any graduations. Happy tears.'
     );
-    context.seasonalOpportunities.push('Great time for: milestone celebrations, fresh start planning');
+    context.seasonalOpportunities.push(
+      'Great time for: milestone celebrations, fresh start planning'
+    );
   } else if (month >= 5 && month <= 9) {
     context.currentSeason = 'wedding-season';
     context.seasonalOpportunities.push(
@@ -768,16 +779,12 @@ function analyzeSeasonalContext(): SeasonalContext {
     context.seasonalOpportunities.push('Perfect for: annual planning, big picture dreaming');
   } else if (month >= 1 && month <= 3) {
     context.currentSeason = 'planning-season';
-    context.seasonalOpportunities.push(
-      '📋 Peak planning season - summer event prep begins now'
-    );
+    context.seasonalOpportunities.push('📋 Peak planning season - summer event prep begins now');
   }
 
   // Time-based planning windows
   if (dayOfWeek === 0) {
-    context.planningWindows.push(
-      'Sunday planning energy! Good day for big picture thinking.'
-    );
+    context.planningWindows.push('Sunday planning energy! Good day for big picture thinking.');
   } else if (dayOfWeek === 1) {
     context.planningWindows.push('Monday fresh start! High motivation for new plans.');
   }
@@ -899,13 +906,9 @@ function generateProactiveDiscoveries(
 
   // Mood-based discoveries
   if (briefing.moodPatterns.celebrationReadiness === 'high') {
-    discoveries.push(
-      '🎉 Emotional readiness is HIGH - perfect time for celebration planning!'
-    );
+    discoveries.push('🎉 Emotional readiness is HIGH - perfect time for celebration planning!');
   } else if (briefing.moodPatterns.recentMoodTrend === 'declining') {
-    discoveries.push(
-      '💙 Mood trend declining - approach with extra care, honor where they are'
-    );
+    discoveries.push('💙 Mood trend declining - approach with extra care, honor where they are');
   }
 
   // Memory-based discoveries
@@ -966,9 +969,7 @@ function generateTimelineAlerts(
   // Upcoming deadlines
   for (const milestone of goalsOverview.milestoneDates) {
     if (milestone.daysAway <= 14) {
-      alerts.push(
-        `🚨 "${milestone.name}" deadline in ${milestone.daysAway} days - crunch time!`
-      );
+      alerts.push(`🚨 "${milestone.name}" deadline in ${milestone.daysAway} days - crunch time!`);
     }
   }
 
@@ -1012,7 +1013,9 @@ function analyzeHandoffForJordan(): HandoffBriefing | null {
     // From Nayan - wisdom context
     if (lower.includes('values') || lower.includes('purpose') || lower.includes('meaning')) {
       briefing.planningContext = 'values-aligned-planning';
-      briefing.actionItems.push(`Nayan explored values around "${topic}" - align milestones to meaning`);
+      briefing.actionItems.push(
+        `Nayan explored values around "${topic}" - align milestones to meaning`
+      );
     }
 
     // Exciting topics
@@ -1071,14 +1074,22 @@ function analyzeHandoffForJordan(): HandoffBriefing | null {
 
 async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefing> {
   // Parallel fetch from all data sources
-  const [goalsOverview, peterInsights, mayaInsights, moodPatterns, memoryInsights] =
-    await Promise.all([
-      analyzeGoalsOverview(userId),
-      getPeterFinancialInsights(userId),
-      getMayaHabitInsights(userId),
-      getMoodPatterns(userId),
-      getMemoryOrchestratorInsights(userId),
-    ]);
+  const [
+    goalsOverview,
+    peterInsights,
+    mayaInsights,
+    moodPatterns,
+    memoryInsights,
+    milestoneCalendarSync,
+  ] = await Promise.all([
+    analyzeGoalsOverview(userId),
+    getPeterFinancialInsights(userId),
+    getMayaHabitInsights(userId),
+    getMoodPatterns(userId),
+    getMemoryOrchestratorInsights(userId),
+    // Better Than Human: Milestone calendar sync
+    buildMilestoneCalendarContext(userId).catch(() => null),
+  ]);
 
   // Compute planning metrics
   const planningMetrics = computePlanningMetrics(
@@ -1112,6 +1123,7 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
     timelineAlerts,
     lifeStageContext,
     seasonalContext,
+    milestoneCalendarSync,
   };
 
   // Generate proactive discoveries
@@ -1156,9 +1168,7 @@ function formatJordanBriefing(
       sections.push(`Team handoff notes: ${handoffBriefing.actionItems.join('; ')}`);
     }
     if (handoffBriefing.previousPersonaInsights.length > 0) {
-      briefing.peterInsights.financialReadiness.forEach((insight) =>
-        sections.push(`• ${insight}`)
-      );
+      briefing.peterInsights.financialReadiness.forEach((insight) => sections.push(`• ${insight}`));
     }
     if (handoffBriefing.emotionalWeight > 0.5) {
       sections.push(
@@ -1203,9 +1213,9 @@ function formatJordanBriefing(
   if (briefing.lifeStageContext.currentStage !== 'active-planning') {
     sections.push('\n=== LIFE STAGE CONTEXT ===');
     sections.push(`🌟 Current stage: ${briefing.lifeStageContext.currentStage}`);
-    briefing.lifeStageContext.stageSpecificAdvice.slice(0, 2).forEach((advice) =>
-      sections.push(`• ${advice}`)
-    );
+    briefing.lifeStageContext.stageSpecificAdvice
+      .slice(0, 2)
+      .forEach((advice) => sections.push(`• ${advice}`));
     briefing.lifeStageContext.transitionSignals.forEach((signal) =>
       sections.push(`• 🔄 ${signal}`)
     );
@@ -1217,11 +1227,13 @@ function formatJordanBriefing(
     sections.push(`• Budget health: ${briefing.peterInsights.budgetHealth}`);
     sections.push(`• Savings velocity: ${briefing.peterInsights.savingsVelocity}`);
     if (briefing.peterInsights.monthsToGoalCompletion) {
-      sections.push(`• Months to goal completion: ~${briefing.peterInsights.monthsToGoalCompletion}`);
+      sections.push(
+        `• Months to goal completion: ~${briefing.peterInsights.monthsToGoalCompletion}`
+      );
     }
-    briefing.peterInsights.financialReadiness.slice(0, 2).forEach((insight) =>
-      sections.push(`• ${insight}`)
-    );
+    briefing.peterInsights.financialReadiness
+      .slice(0, 2)
+      .forEach((insight) => sections.push(`• ${insight}`));
   }
 
   // FROM MAYA (Habit Momentum)
@@ -1234,7 +1246,9 @@ function formatJordanBriefing(
       sections.push(`• 🌟 Keystone habits: ${briefing.mayaInsights.keystoneHabits.join(', ')}`);
     }
     if (briefing.mayaInsights.planningRelatedHabits.length > 0) {
-      sections.push(`• 📋 Planning habits: ${briefing.mayaInsights.planningRelatedHabits.join(', ')}`);
+      sections.push(
+        `• 📋 Planning habits: ${briefing.mayaInsights.planningRelatedHabits.join(', ')}`
+      );
     }
     if (briefing.mayaInsights.currentStreaks.length > 0) {
       const streakStr = briefing.mayaInsights.currentStreaks
@@ -1262,10 +1276,14 @@ function formatJordanBriefing(
     sections.push('\n=== FROM FERNI (Memory Context) ===');
     sections.push(`• Relationship depth: ${briefing.memoryInsights.totalMemories} memories`);
     if (briefing.memoryInsights.milestoneMentions.length > 0) {
-      sections.push(`• Past milestone discussions: ${briefing.memoryInsights.milestoneMentions.slice(0, 2).join(', ')}`);
+      sections.push(
+        `• Past milestone discussions: ${briefing.memoryInsights.milestoneMentions.slice(0, 2).join(', ')}`
+      );
     }
     if (briefing.memoryInsights.familyContext.length > 0) {
-      sections.push(`• Family context available: ${briefing.memoryInsights.familyContext.slice(0, 2).join(', ')}`);
+      sections.push(
+        `• Family context available: ${briefing.memoryInsights.familyContext.slice(0, 2).join(', ')}`
+      );
     }
   }
 
@@ -1286,9 +1304,9 @@ function formatJordanBriefing(
   if (briefing.seasonalContext.currentSeason) {
     sections.push('\n=== 📅 SEASONAL AWARENESS ===');
     sections.push(`• Season: ${briefing.seasonalContext.currentSeason}`);
-    briefing.seasonalContext.seasonalOpportunities.slice(0, 2).forEach((opp) =>
-      sections.push(`• ${opp}`)
-    );
+    briefing.seasonalContext.seasonalOpportunities
+      .slice(0, 2)
+      .forEach((opp) => sections.push(`• ${opp}`));
     if (briefing.seasonalContext.upcomingDates.length > 0) {
       const upcoming = briefing.seasonalContext.upcomingDates
         .slice(0, 2)
@@ -1298,12 +1316,18 @@ function formatJordanBriefing(
     }
   }
 
+  // Better Than Human: Milestone Calendar Sync (from Alex's calendar data)
+  if (briefing.milestoneCalendarSync) {
+    sections.push('\n=== 📅 FROM ALEX (Milestone Calendar Sync) ===');
+    sections.push(briefing.milestoneCalendarSync);
+  }
+
   // Proactive discoveries (top priority)
   if (briefing.proactiveDiscoveries.length > 0) {
     sections.push('\n=== 🎯 PROACTIVE OPPORTUNITIES ===');
-    briefing.proactiveDiscoveries.slice(0, 5).forEach((discovery) =>
-      sections.push(`• ${discovery}`)
-    );
+    briefing.proactiveDiscoveries
+      .slice(0, 5)
+      .forEach((discovery) => sections.push(`• ${discovery}`));
   }
 
   // Jordan's planning frameworks (on first turns)
@@ -1366,13 +1390,13 @@ async function buildJordanMilestoneInsightsContext(
   try {
     const briefing = await buildJordanBriefing(userId);
     const briefingLines = formatJordanBriefing(briefing, handoffBriefing, turnCount);
-    
+
     // Get superhuman context (dreams, milestones, narrative, seasonal)
     const superhumanContext = await getSuperhuman(userId, 'jordan');
     if (superhumanContext) {
-      briefingLines.push('\n' + superhumanContext);
+      briefingLines.push(`\n${superhumanContext}`);
     }
-    
+
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

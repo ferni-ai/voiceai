@@ -32,6 +32,12 @@ import {
   type CrossPersonaInsight,
   type TeamStatusSummary,
 } from '../../services/cross-persona-insights.js';
+// Better Than Human: Calendar awareness for smart handoffs
+import {
+  getCalendarLoadFactors,
+  type CalendarLoadFactors,
+} from '../../services/calendar/calendar-load-service.js';
+import { detectRecoveryNeeds } from '../../services/calendar/recovery-protection.js';
 
 const log = createLogger({ module: 'context:ferni-coordinator' });
 
@@ -56,6 +62,23 @@ interface CoordinatorBriefing {
   patternsToSurface: string[];
   /** Team members with urgent insights */
   urgentFromTeam: string[];
+  /** Better Than Human: Calendar load for smart handoff timing */
+  calendarContext: CalendarContext | null;
+}
+
+interface CalendarContext {
+  /** Current load level */
+  loadLevel: 'light' | 'moderate' | 'heavy' | 'overloaded';
+  /** Weekly meeting hours */
+  weeklyMeetingHours: number;
+  /** Focus time available */
+  focusTimePercent: number;
+  /** Should suggest Alex for scheduling help? */
+  needsSchedulingHelp: boolean;
+  /** Recovery recommendations if any */
+  recoveryNeeded: boolean;
+  /** Specific handoff suggestion if calendar-driven */
+  calendarHandoffSuggestion: HandoffSuggestion | null;
 }
 
 // ============================================================================
@@ -255,6 +278,7 @@ function getPersonaDisplayName(personaId: string): string {
 async function buildCoordinatorBriefing(userId: string): Promise<CoordinatorBriefing> {
   let teamStatus: TeamStatusSummary | null = null;
   let insights: CrossPersonaInsight[] = [];
+  let calendarContext: CalendarContext | null = null;
 
   try {
     teamStatus = await generateTeamStatus(userId);
@@ -276,7 +300,20 @@ async function buildCoordinatorBriefing(userId: string): Promise<CoordinatorBrie
     log.debug({ error: String(err) }, 'Could not get insights');
   }
 
+  // Better Than Human: Get calendar context for smart handoff timing
+  try {
+    calendarContext = await analyzeCalendarForHandoffs(userId);
+  } catch (err) {
+    log.debug({ error: String(err) }, 'Could not get calendar context');
+  }
+
   const handoffSuggestions = analyzeInsightsForHandoffs(insights, teamStatus);
+
+  // Add calendar-driven handoff suggestion if needed
+  if (calendarContext?.calendarHandoffSuggestion) {
+    handoffSuggestions.unshift(calendarContext.calendarHandoffSuggestion);
+  }
+
   const patternsToSurface = identifyPatternsToSurface(insights, teamStatus);
   const urgentFromTeam = identifyUrgentTeamMembers(insights);
 
@@ -285,6 +322,76 @@ async function buildCoordinatorBriefing(userId: string): Promise<CoordinatorBrie
     handoffSuggestions,
     patternsToSurface,
     urgentFromTeam,
+    calendarContext,
+  };
+}
+
+/**
+ * Analyze calendar load to inform smart handoff suggestions.
+ * This is "better than human" because Ferni knows when to suggest Alex for scheduling help.
+ */
+async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarContext> {
+  const loadFactors = await getCalendarLoadFactors(userId);
+  const recoveryNeeds = await detectRecoveryNeeds(userId);
+
+  // Determine load level
+  let loadLevel: CalendarContext['loadLevel'] = 'light';
+  if (loadFactors.weeklyMeetingHours >= 35) {
+    loadLevel = 'overloaded';
+  } else if (loadFactors.weeklyMeetingHours >= 25) {
+    loadLevel = 'heavy';
+  } else if (loadFactors.weeklyMeetingHours >= 15) {
+    loadLevel = 'moderate';
+  }
+
+  const focusTimePercent = Math.round(loadFactors.weeklyFocusTimeRatio * 100);
+  const needsSchedulingHelp =
+    loadLevel === 'overloaded' ||
+    loadLevel === 'heavy' ||
+    focusTimePercent < 20 ||
+    loadFactors.consecutiveOverloadedDays >= 2;
+
+  const recoveryNeeded = recoveryNeeds.length > 0;
+
+  // Generate calendar-driven handoff suggestion
+  let calendarHandoffSuggestion: HandoffSuggestion | null = null;
+
+  if (loadLevel === 'overloaded') {
+    calendarHandoffSuggestion = {
+      targetPersona: 'alex',
+      reason: `Calendar overload: ${Math.round(loadFactors.weeklyMeetingHours)}h of meetings this week`,
+      trigger: 'calendar_overload',
+      urgency: 'high',
+      suggestedPhrase:
+        "Your calendar looks really packed this week. Want me to get Alex to help find some breathing room?",
+    };
+  } else if (recoveryNeeded && recoveryNeeds.some((r) => r.urgency === 'immediate')) {
+    calendarHandoffSuggestion = {
+      targetPersona: 'alex',
+      reason: 'Immediate recovery needed based on calendar patterns',
+      trigger: 'recovery_urgent',
+      urgency: 'urgent',
+      suggestedPhrase:
+        "I'm noticing your schedule has been intense. Alex could help protect some recovery time - want me to bring them in?",
+    };
+  } else if (focusTimePercent < 15) {
+    calendarHandoffSuggestion = {
+      targetPersona: 'alex',
+      reason: `Only ${focusTimePercent}% focus time available`,
+      trigger: 'low_focus_time',
+      urgency: 'normal',
+      suggestedPhrase:
+        "You don't have much unscheduled time this week. Alex could help create some space if you'd like.",
+    };
+  }
+
+  return {
+    loadLevel,
+    weeklyMeetingHours: loadFactors.weeklyMeetingHours,
+    focusTimePercent,
+    needsSchedulingHelp,
+    recoveryNeeded,
+    calendarHandoffSuggestion,
   };
 }
 
@@ -338,6 +445,32 @@ function formatBriefingForInjection(briefing: CoordinatorBriefing): string[] {
     sections.push(
       `• Budget: ${ts.financialHealth.budgetUsedPercent < 90 && ts.financialHealth.savingsOnTrack ? '✅ On track' : '⚠️ Needs attention'}`
     );
+  }
+
+  // Better Than Human: Calendar awareness
+  if (briefing.calendarContext) {
+    const cal = briefing.calendarContext;
+    sections.push('\n--- 📅 CALENDAR AWARENESS (Better Than Human) ---');
+
+    const loadEmoji =
+      cal.loadLevel === 'overloaded'
+        ? '🔴'
+        : cal.loadLevel === 'heavy'
+          ? '🟠'
+          : cal.loadLevel === 'moderate'
+            ? '🟡'
+            : '🟢';
+
+    sections.push(`• Load: ${loadEmoji} ${cal.loadLevel} (${Math.round(cal.weeklyMeetingHours)}h meetings)`);
+    sections.push(`• Focus time: ${cal.focusTimePercent}% available`);
+
+    if (cal.recoveryNeeded) {
+      sections.push('• ⚠️ Recovery time recommended');
+    }
+
+    if (cal.needsSchedulingHelp) {
+      sections.push('• 💡 Consider offering Alex for scheduling help');
+    }
   }
 
   sections.push(

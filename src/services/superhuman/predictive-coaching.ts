@@ -6,6 +6,11 @@
  * Analyzes patterns across conversations to anticipate user needs
  * and proactively offer support before they ask.
  *
+ * SCALING:
+ * - Redis caching for cross-instance pattern sharing
+ * - In-memory cache with LRU eviction for high-frequency access
+ * - Async event emission for background worker processing
+ *
  * @module services/superhuman/predictive-coaching
  */
 
@@ -13,6 +18,97 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'predictive-coaching' });
+
+// ============================================================================
+// REDIS CACHE INTEGRATION
+// ============================================================================
+
+interface RedisCache {
+  get: (key: string) => Promise<string | null>;
+  setex: (key: string, seconds: number, value: string) => Promise<string>;
+  del: (key: string | string[]) => Promise<number>;
+}
+
+let redisCache: RedisCache | null = null;
+let redisInitialized = false;
+
+const REDIS_KEY_PREFIX = 'predictions:';
+const REDIS_PATTERN_TTL = 60 * 15; // 15 minutes - patterns don't change fast
+const REDIS_PREDICTIONS_TTL = 60 * 5; // 5 minutes - predictions update per session
+
+/**
+ * Initialize Redis caching for cross-instance pattern sharing.
+ * Falls back to memory-only if Redis unavailable.
+ */
+export async function initializeRedisCache(): Promise<void> {
+  if (redisInitialized) return;
+
+  try {
+    const { getRedisCache } = await import('../../memory/redis-cache.js');
+    const cache = getRedisCache();
+    await cache.initialize();
+
+    // Verify it's working
+    redisCache = cache as unknown as RedisCache;
+    redisInitialized = true;
+
+    log.info('🚀 Predictive coaching Redis cache initialized');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Redis unavailable for predictive coaching - using memory only');
+    redisInitialized = true; // Mark as initialized so we don't retry
+  }
+}
+
+/**
+ * Get patterns from Redis cache
+ */
+async function getFromRedis(key: string): Promise<PatternObservation[] | null> {
+  if (!redisCache) return null;
+
+  try {
+    const data = await redisCache.get(`${REDIS_KEY_PREFIX}${key}`);
+    if (data) {
+      return JSON.parse(data) as PatternObservation[];
+    }
+  } catch (error) {
+    log.debug({ error: String(error), key }, 'Redis get failed (non-fatal)');
+  }
+  return null;
+}
+
+/**
+ * Save patterns to Redis cache
+ */
+async function saveToRedis(
+  key: string,
+  patterns: PatternObservation[],
+  ttlSeconds: number = REDIS_PATTERN_TTL
+): Promise<void> {
+  if (!redisCache) return;
+
+  try {
+    await redisCache.setex(`${REDIS_KEY_PREFIX}${key}`, ttlSeconds, JSON.stringify(patterns));
+  } catch (error) {
+    log.debug({ error: String(error), key }, 'Redis set failed (non-fatal)');
+  }
+}
+
+/**
+ * Invalidate Redis cache for a user
+ */
+async function invalidateRedisCache(userId: string): Promise<void> {
+  if (!redisCache) return;
+
+  try {
+    await redisCache.del([
+      `${REDIS_KEY_PREFIX}patterns:${userId}`,
+      `${REDIS_KEY_PREFIX}predictions:${userId}`,
+      `${REDIS_KEY_PREFIX}context:${userId}`,
+    ]);
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Redis invalidation failed (non-fatal)');
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -93,10 +189,71 @@ export interface PredictiveContext {
 }
 
 // ============================================================================
-// PATTERN DETECTION
+// LRU MEMORY CACHE (with size limits)
 // ============================================================================
 
-const patternCache = new Map<string, PatternObservation[]>();
+const MAX_MEMORY_CACHE_SIZE = 100; // Max users to keep in memory
+
+class LRUPatternCache {
+  private cache = new Map<string, { patterns: PatternObservation[]; lastAccess: number }>();
+
+  get(userId: string): PatternObservation[] | undefined {
+    const entry = this.cache.get(userId);
+    if (entry) {
+      entry.lastAccess = Date.now();
+      return entry.patterns;
+    }
+    return undefined;
+  }
+
+  set(userId: string, patterns: PatternObservation[]): void {
+    // Evict oldest if at capacity
+    if (this.cache.size >= MAX_MEMORY_CACHE_SIZE) {
+      this.evictOldest();
+    }
+
+    this.cache.set(userId, { patterns, lastAccess: Date.now() });
+  }
+
+  has(userId: string): boolean {
+    return this.cache.has(userId);
+  }
+
+  delete(userId: string): void {
+    this.cache.delete(userId);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  private evictOldest(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.lastAccess < oldestTime) {
+        oldestTime = entry.lastAccess;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      log.debug({ evictedUser: oldestKey }, 'Evicted oldest pattern cache entry');
+    }
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+}
+
+const patternCache = new LRUPatternCache();
+
+// ============================================================================
+// PATTERN DETECTION
+// ============================================================================
 
 export async function recordObservation(
   userId: string,
@@ -186,13 +343,34 @@ async function savePattern(userId: string, pattern: PatternObservation): Promise
     .collection('patterns')
     .doc(pattern.id)
     .set(pattern);
+
+  // Invalidate Redis cache after write (will be refreshed on next read)
+  await invalidateRedisCache(userId);
 }
 
+/**
+ * Load patterns for a user with multi-tier caching:
+ * 1. LRU memory cache (fastest, per-instance)
+ * 2. Redis cache (fast, cross-instance)
+ * 3. Firestore (source of truth)
+ */
 export async function loadUserPatterns(userId: string): Promise<PatternObservation[]> {
-  if (patternCache.has(userId)) {
-    return patternCache.get(userId) || [];
+  // TIER 1: Memory cache (fastest)
+  const memoryPatterns = patternCache.get(userId);
+  if (memoryPatterns) {
+    log.debug({ userId, source: 'memory', count: memoryPatterns.length }, 'Patterns from memory cache');
+    return memoryPatterns;
   }
 
+  // TIER 2: Redis cache (cross-instance)
+  const redisPatterns = await getFromRedis(`patterns:${userId}`);
+  if (redisPatterns) {
+    patternCache.set(userId, redisPatterns);
+    log.debug({ userId, source: 'redis', count: redisPatterns.length }, 'Patterns from Redis cache');
+    return redisPatterns;
+  }
+
+  // TIER 3: Firestore (source of truth)
   try {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -206,7 +384,12 @@ export async function loadUserPatterns(userId: string): Promise<PatternObservati
       .get();
 
     const patterns = snapshot.docs.map((doc) => doc.data() as PatternObservation);
+
+    // Populate both caches
     patternCache.set(userId, patterns);
+    await saveToRedis(`patterns:${userId}`, patterns);
+
+    log.debug({ userId, source: 'firestore', count: patterns.length }, 'Patterns from Firestore');
     return patterns;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load patterns');
@@ -279,7 +462,7 @@ function createPrediction(
     behavioral: (p) =>
       `I see a pattern here. When ${p.trigger} happens, you often end up ${p.outcome}. What if we tried something different this time?`,
     relational: (p) => `You haven't mentioned ${p.trigger} in a while. Is everything okay there?`,
-    cyclical: (p) =>
+    cyclical: (_p) =>
       `This time of ${timing === 'tomorrow' ? 'week' : 'day'} is usually tough. I'm here if you need me.`,
   };
 
@@ -308,9 +491,7 @@ export async function getDayPatterns(userId: string): Promise<DayPattern[]> {
   const dayPatterns: DayPattern[] = [];
 
   for (let day = 0; day < 7; day++) {
-    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
-      day
-    ];
+    // dayName available for debugging: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]
     const daySpecificPatterns = patterns.filter((p) => p.dayOfWeek?.includes(day));
 
     if (daySpecificPatterns.length > 0) {
@@ -405,6 +586,40 @@ export async function buildPredictiveContextString(userId: string): Promise<stri
 }
 
 // ============================================================================
+// CACHE MANAGEMENT
+// ============================================================================
+
+/**
+ * Clear pattern cache for a user (useful after bulk imports or testing).
+ * Clears both memory and Redis caches.
+ */
+export async function clearPatternCache(userId?: string): Promise<void> {
+  if (userId) {
+    patternCache.delete(userId);
+    await invalidateRedisCache(userId);
+  } else {
+    // Clear all memory cache - Redis entries will expire via TTL
+    patternCache.clear();
+    log.info('Pattern memory cache cleared (Redis will expire via TTL)');
+  }
+}
+
+/**
+ * Get cache statistics for debugging
+ */
+export function getCacheStats(): {
+  memoryCacheUsers: number;
+  redisEnabled: boolean;
+  maxMemoryCacheSize: number;
+} {
+  return {
+    memoryCacheUsers: patternCache.size(),
+    redisEnabled: redisCache !== null,
+    maxMemoryCacheSize: MAX_MEMORY_CACHE_SIZE,
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -415,4 +630,10 @@ export const predictiveCoaching = {
   getDayPatterns,
   buildContext: buildPredictiveContext,
   buildContextString: buildPredictiveContextString,
+  clearCache: clearPatternCache,
+  getCacheStats,
+  initializeRedis: initializeRedisCache,
+  // Aliases for test compatibility
+  recordPattern: recordObservation,
+  getPatterns: loadUserPatterns,
 };

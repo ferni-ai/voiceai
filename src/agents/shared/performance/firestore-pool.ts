@@ -15,9 +15,30 @@
  */
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { resilienceMetrics } from '../../../services/observability/resilience-metrics.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FirestorePool' });
+
+// ============================================================================
+// BACKPRESSURE ERROR
+// ============================================================================
+
+/**
+ * Error thrown when the Firestore pool is under backpressure.
+ * Callers should handle this by retrying later or degrading gracefully.
+ */
+export class BackpressureError extends Error {
+  readonly queueDepth: number;
+  readonly maxQueueSize: number;
+
+  constructor(message: string, queueDepth: number, maxQueueSize: number) {
+    super(message);
+    this.name = 'BackpressureError';
+    this.queueDepth = queueDepth;
+    this.maxQueueSize = maxQueueSize;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -55,6 +76,8 @@ export interface PoolMetrics {
   p95LatencyMs: number;
   p99LatencyMs: number;
   connectionHealthy: boolean;
+  backpressureActive: boolean;
+  backpressureEvents: number;
 }
 
 interface QueuedRequest<T> {
@@ -90,9 +113,16 @@ class FirestorePool {
     p95LatencyMs: 0,
     p99LatencyMs: 0,
     connectionHealthy: false,
+    backpressureActive: false,
+    backpressureEvents: 0,
   };
   private latencies: number[] = [];
   private readonly MAX_LATENCY_SAMPLES = 1000;
+
+  // Backpressure thresholds
+  private readonly BACKPRESSURE_WARN_THRESHOLD = 0.7; // 70% of max queue
+  private readonly METRICS_INTERVAL_MS = 10_000; // Report metrics every 10s
+  private metricsInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: FirestorePoolConfig = {}) {
     this.config = {
@@ -109,6 +139,86 @@ class FirestorePool {
         maxDelayMs: config.retry?.maxDelayMs ?? 5000,
       },
     };
+
+    // Start periodic metrics reporting
+    this.startMetricsReporting();
+  }
+
+  /**
+   * Check if the pool can accept a new request without queueing.
+   * Use this before making a request to avoid backpressure errors.
+   */
+  canAcceptRequest(): boolean {
+    return this.currentConcurrent < this.config.maxConcurrent;
+  }
+
+  /**
+   * Check if the pool is under backpressure (queue is filling up).
+   * Returns true when queue depth exceeds warning threshold.
+   */
+  isUnderPressure(): boolean {
+    const threshold = this.config.maxQueueSize * this.BACKPRESSURE_WARN_THRESHOLD;
+    return this.requestQueue.length >= threshold;
+  }
+
+  /**
+   * Get the current queue depth for monitoring.
+   */
+  getQueueDepth(): number {
+    return this.requestQueue.length;
+  }
+
+  /**
+   * Start periodic metrics reporting to resilience metrics.
+   */
+  private startMetricsReporting(): void {
+    if (this.metricsInterval) return;
+
+    this.metricsInterval = setInterval(() => {
+      this.reportMetrics();
+    }, this.METRICS_INTERVAL_MS);
+
+    // Don't prevent process from exiting
+    if (this.metricsInterval.unref) {
+      this.metricsInterval.unref();
+    }
+  }
+
+  /**
+   * Stop metrics reporting (for cleanup).
+   */
+  stopMetricsReporting(): void {
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
+    }
+  }
+
+  /**
+   * Report current metrics to resilience monitoring.
+   */
+  private reportMetrics(): void {
+    const backpressureActive = this.isUnderPressure();
+    this.metrics.backpressureActive = backpressureActive;
+
+    resilienceMetrics.recordQueueMetric(
+      'firestore-pool',
+      this.requestQueue.length,
+      0, // oldest message age not tracked for Firestore
+      this.metrics.successfulRequests / (this.METRICS_INTERVAL_MS / 1000), // rough rate
+      backpressureActive
+    );
+
+    if (backpressureActive) {
+      log.warn(
+        {
+          queueDepth: this.requestQueue.length,
+          maxQueueSize: this.config.maxQueueSize,
+          currentConcurrent: this.currentConcurrent,
+        },
+        'Firestore pool under backpressure'
+      );
+    }
   }
 
   /**
@@ -161,7 +271,8 @@ class FirestorePool {
   }
 
   /**
-   * Execute an operation with connection pooling and retry
+   * Execute an operation with connection pooling and retry.
+   * Throws BackpressureError if the queue is full.
    */
   async execute<T>(operation: (db: FirestoreType) => Promise<T>): Promise<T | null> {
     this.metrics.totalRequests++;
@@ -172,12 +283,29 @@ class FirestorePool {
       if (this.currentConcurrent >= this.config.maxConcurrent) {
         if (!this.config.enableQueueing) {
           this.metrics.failedRequests++;
-          throw new Error('Max concurrent operations reached');
+          this.metrics.backpressureEvents++;
+          throw new BackpressureError(
+            'Max concurrent operations reached - queueing disabled',
+            0,
+            this.config.maxQueueSize
+          );
         }
 
         if (this.requestQueue.length >= this.config.maxQueueSize) {
           this.metrics.failedRequests++;
-          throw new Error('Request queue full');
+          this.metrics.backpressureEvents++;
+          log.error(
+            {
+              queueDepth: this.requestQueue.length,
+              maxQueueSize: this.config.maxQueueSize,
+            },
+            'Firestore pool backpressure - rejecting request'
+          );
+          throw new BackpressureError(
+            `Request queue full (${this.requestQueue.length}/${this.config.maxQueueSize})`,
+            this.requestQueue.length,
+            this.config.maxQueueSize
+          );
         }
 
         // Queue the request
@@ -356,6 +484,9 @@ class FirestorePool {
    * Close connections (for shutdown)
    */
   async close(): Promise<void> {
+    // Stop metrics reporting
+    this.stopMetricsReporting();
+
     if (this.db) {
       await this.db.terminate();
       this.db = null;

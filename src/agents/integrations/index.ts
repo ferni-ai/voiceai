@@ -60,3 +60,14 @@ export {
   quickSetupVoiceHumanization,
   type IntegrationResult as VoiceHumanizationIntegration,
 } from './voice-humanization-integration.js';
+
+// Predictive Intelligence Integration
+export {
+  initializePredictiveIntelligence,
+  cleanupPredictiveIntelligence,
+  processForPredictiveIntelligence,
+  getPredictiveContextForTurn,
+  predictiveIntelligence,
+  type TurnObservation,
+  type PredictiveIntelligenceResult,
+} from './predictive-intelligence-integration.js';

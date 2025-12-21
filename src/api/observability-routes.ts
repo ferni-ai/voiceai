@@ -15,6 +15,7 @@
  * - GET /api/observability/alerts - Recent alerts
  * - GET /api/observability/self-healing - Self-healing dashboard (circuits, anomalies, restarts)
  * - GET /api/observability/intelligence - Collective learning & intelligence metrics
+ * - GET /api/observability/resilience - Resilience metrics (workers, cleanup, queues, circuits)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -31,6 +32,7 @@ import {
   memoryMetrics,
   observabilityHub,
   personaMetrics,
+  resilienceMetrics,
   uxQualityMetrics,
 } from '../services/observability/index.js';
 import {
@@ -333,6 +335,13 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/intelligence' && req.method === 'GET') {
       const intelligenceData = getIntelligenceMetrics();
       sendJSON(res, intelligenceData);
+      return true;
+    }
+
+    // GET /api/observability/resilience - Resilience metrics (workers, cleanup, queues, circuit breakers)
+    if (pathname === '/api/observability/resilience' && req.method === 'GET') {
+      const snapshot = resilienceMetrics.getSnapshot();
+      sendJSON(res, snapshot);
       return true;
     }
 

@@ -74,6 +74,9 @@ import { getGamificationStore } from '../../services/gamification-store.js';
 import { getMemoryOrchestrator } from '../../memory/orchestrator.js';
 import { detectProactiveTriggers, type ProactiveTrigger } from '../../tools/proactive-coaching.js';
 import { getSuperhuman } from './superhuman-integration.js';
+// Better Than Human: Calendar awareness for research timing
+import { getCalendarLoadFactors } from '../../services/calendar/calendar-load-service.js';
+import { getAmbientCalendarContext } from '../../services/calendar/ambient-calendar-awareness.js';
 
 const log = createLogger({ module: 'context:peter-research-insights' });
 
@@ -100,6 +103,24 @@ interface UserInsightBriefing {
   moodPatterns: MoodInsights;
   /** Behavioral research metrics */
   behavioralMetrics: BehavioralMetrics;
+  /** Better Than Human: Calendar context for research timing */
+  calendarContext: CalendarResearchContext | null;
+}
+
+/** Calendar context relevant to Peter's research insights */
+interface CalendarResearchContext {
+  /** Is there a research-heavy day coming up? */
+  bestDayForDeepWork: string | null;
+  /** Current meeting load level */
+  loadLevel: 'light' | 'moderate' | 'heavy' | 'overloaded';
+  /** Hours of focus time available this week */
+  focusTimeHours: number;
+  /** Timing suggestion for research delivery */
+  timingSuggestion: string | null;
+  /** Just finished a meeting? */
+  justEndedMeeting: boolean;
+  /** About to have a meeting? */
+  upcomingMeetingSoon: boolean;
 }
 
 /** Computed behavioral research metrics */
@@ -880,14 +901,15 @@ async function buildInsightBriefing(
   userId: string,
   _isHandoff: boolean
 ): Promise<UserInsightBriefing> {
-  // Parallel fetch from all data sources
-  const [spendingInsights, goalInsights, mayaInsights, moodPatterns, memoryInsights] =
+  // Parallel fetch from all data sources + calendar context
+  const [spendingInsights, goalInsights, mayaInsights, moodPatterns, memoryInsights, calendarContext] =
     await Promise.all([
       analyzeSpendingPatterns(userId),
       analyzeGoalTrajectory(userId),
       getMayaHabitInsights(userId),
       getMoodPatterns(userId),
       getMemoryOrchestratorInsights(userId),
+      buildCalendarResearchContext(userId).catch(() => null),
     ]);
 
   const crossDomainPatterns = generateCrossDomainPatterns();
@@ -990,7 +1012,76 @@ async function buildInsightBriefing(
     mayaInsights,
     moodPatterns,
     behavioralMetrics,
+    calendarContext,
   };
+}
+
+/**
+ * Build calendar context for Peter's research timing.
+ * This helps Peter know when to deliver deep insights vs. quick updates.
+ */
+async function buildCalendarResearchContext(
+  userId: string
+): Promise<CalendarResearchContext | null> {
+  try {
+    const [loadFactors, ambientContext] = await Promise.all([
+      getCalendarLoadFactors(userId),
+      getAmbientCalendarContext(userId),
+    ]);
+
+    // Determine load level
+    let loadLevel: CalendarResearchContext['loadLevel'] = 'light';
+    if (loadFactors.weeklyMeetingHours >= 35) {
+      loadLevel = 'overloaded';
+    } else if (loadFactors.weeklyMeetingHours >= 25) {
+      loadLevel = 'heavy';
+    } else if (loadFactors.weeklyMeetingHours >= 15) {
+      loadLevel = 'moderate';
+    }
+
+    // Calculate focus time available
+    const totalHoursInWeek = 40; // Assuming a 40-hour work week
+    const focusTimeHours = Math.round(totalHoursInWeek * loadFactors.weeklyFocusTimeRatio);
+
+    // Timing suggestion based on context
+    let timingSuggestion: string | null = null;
+    const nextMeeting = ambientContext.nextMeeting;
+    const justEnded = ambientContext.justEndedMeeting;
+
+    if (nextMeeting.event && nextMeeting.minutesUntil !== null) {
+      if (nextMeeting.minutesUntil < 10) {
+        timingSuggestion = 'Meeting starting soon - keep insights brief and actionable';
+      } else if (nextMeeting.minutesUntil < 30) {
+        timingSuggestion = 'Limited time before next meeting - prioritize key insights';
+      }
+    }
+
+    if (justEnded.event !== null) {
+      timingSuggestion =
+        'Just finished a meeting - good time for a quick debrief or reflection, not deep analysis';
+    }
+
+    if (loadLevel === 'overloaded') {
+      timingSuggestion =
+        timingSuggestion || 'Calendar overloaded this week - focus on quick wins, save deep dives';
+    } else if (loadLevel === 'light' && focusTimeHours > 20) {
+      timingSuggestion =
+        timingSuggestion || 'Light calendar week - great time for deep research discussions';
+    }
+
+    return {
+      bestDayForDeepWork: loadFactors.lightestDayThisWeek,
+      loadLevel,
+      focusTimeHours,
+      timingSuggestion,
+      justEndedMeeting: justEnded.event !== null,
+      upcomingMeetingSoon:
+        nextMeeting.event !== null && (nextMeeting.minutesUntil ?? Infinity) < 30,
+    };
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Could not build calendar research context');
+    return null;
+  }
 }
 
 // ============================================================================
@@ -1131,6 +1222,40 @@ function formatBriefingForInjection(
     timePatterns.slice(0, 1).forEach((pattern) => {
       sections.push(`• ${pattern}`);
     });
+  }
+
+  // Better Than Human: Calendar awareness for research timing
+  if (briefing.calendarContext) {
+    const cal = briefing.calendarContext;
+    sections.push('\n=== 📅 FROM ALEX (Calendar Awareness) ===');
+
+    // Load indicator
+    const loadEmoji =
+      cal.loadLevel === 'overloaded'
+        ? '🔴'
+        : cal.loadLevel === 'heavy'
+          ? '🟠'
+          : cal.loadLevel === 'moderate'
+            ? '🟡'
+            : '🟢';
+    sections.push(`• Calendar load: ${loadEmoji} ${cal.loadLevel}`);
+    sections.push(`• Focus time this week: ${cal.focusTimeHours}h available`);
+
+    if (cal.bestDayForDeepWork) {
+      sections.push(`• Best day for deep research: ${cal.bestDayForDeepWork}`);
+    }
+
+    if (cal.timingSuggestion) {
+      sections.push(`• 💡 Timing: ${cal.timingSuggestion}`);
+    }
+
+    // Immediate context
+    if (cal.justEndedMeeting) {
+      sections.push('• ⏰ User just finished a meeting - they may need a moment');
+    }
+    if (cal.upcomingMeetingSoon) {
+      sections.push('• ⏰ Meeting coming up soon - keep insights focused');
+    }
   }
 
   // Proactive discoveries (top priority items)

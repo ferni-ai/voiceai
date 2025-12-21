@@ -29,12 +29,12 @@ const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
 import { createCommunicationCoachingTools } from './communication-coaching.js';
 import { createCommunicationTools } from '../../communication.js';
 import { proactiveOutreachTools } from '../../proactive-outreach.js';
-// Gmail tools for Alex
-import { getAlexGmailToolDefinitions } from './alex-gmail-tools.js';
-// Contact relationship tools for Alex
-import { getAlexContactToolDefinitions } from './alex-contact-tools.js';
-// Message validation tools for Alex ("Sleep on it")
-import { getAlexMessageValidationToolDefinitions } from './alex-message-validation-tools.js';
+// Gmail tools
+import { getGmailToolDefinitions } from './gmail-tools.js';
+// Contact relationship tools
+import { getContactRelationshipToolDefinitions } from './contact-relationship-tools.js';
+// Message validation tools ("Sleep on it")
+import { getMessageValidationToolDefinitions } from './message-validation-tools.js';
 // Personalized outreach tools (batch messaging, groups, seasonal)
 import { getPersonalizedOutreachToolDefinitions } from './personalized-outreach-tools.js';
 // Enhanced outreach tools (voice messages, rich email, gifts, optimal timing)
@@ -350,9 +350,9 @@ const communicationTools: ToolDefinition[] = [
   ...getCommunicationToolDefinitions(),
   ...getProactiveOutreachToolDefinitions(),
   ...getCoachingToolDefinitions(),
-  ...getAlexGmailToolDefinitions(),
-  ...getAlexContactToolDefinitions(),
-  ...getAlexMessageValidationToolDefinitions(),
+  ...getGmailToolDefinitions(),
+  ...getContactRelationshipToolDefinitions(),
+  ...getMessageValidationToolDefinitions(),
   ...getPersonalizedOutreachToolDefinitions(),
   ...getEnhancedOutreachToolDefinitions(),
 ];
@@ -370,9 +370,9 @@ export {
   getCoachingToolDefinitions,
   getCommunicationToolDefinitions,
   getProactiveOutreachToolDefinitions,
-  getAlexGmailToolDefinitions,
-  getAlexContactToolDefinitions,
-  getAlexMessageValidationToolDefinitions,
+  getGmailToolDefinitions,
+  getContactRelationshipToolDefinitions,
+  getMessageValidationToolDefinitions,
   getPersonalizedOutreachToolDefinitions,
   getEnhancedOutreachToolDefinitions,
 };

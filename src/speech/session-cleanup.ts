@@ -120,6 +120,9 @@ import { resetAnticipationPipeline } from './anticipation/index.js';
 // Graceful interrupt handling
 import { resetInterruptState } from './graceful-interrupt/index.js';
 
+// TTS Bulkhead (session isolation for voice synthesis)
+import { cleanupTTSSession } from './tts-bulkhead.js';
+
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
 // ============================================================================
@@ -308,6 +311,12 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('gracefulInterrupt', () => resetInterruptState(sessionId));
+
+  // ============================================================================
+  // TTS BULKHEAD (Session isolation for voice synthesis)
+  // ============================================================================
+
+  safeCleanup('ttsBulkhead', () => cleanupTTSSession(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);

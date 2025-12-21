@@ -394,7 +394,7 @@ export class EngagementUI {
     return `
       <section class="engagement-card engagement-card--stats">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">Your Progress</span>
+          <span class="engagement-section-label">Your Journey</span>
         </div>
         <div class="engagement-stats">
           ${statsHtml}

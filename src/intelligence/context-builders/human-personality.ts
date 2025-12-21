@@ -185,8 +185,8 @@ async function buildHumanPersonalityContext(
     topics: detectedTopics,
     context: userText.slice(0, 100),
   }).catch((err) => {
-    // Non-blocking persistence - log at debug level for troubleshooting
-    log.debug({ error: String(err) }, 'Emotional data persistence failed (non-critical)');
+    // Non-blocking persistence - log for production monitoring
+    log.warn({ error: String(err) }, 'Emotional data persistence failed (non-critical)');
   });
 
   // ============================================================================

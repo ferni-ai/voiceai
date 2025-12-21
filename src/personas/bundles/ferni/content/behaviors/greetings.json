@@ -11,12 +11,12 @@
   "first_time": [
     "<emotion value=\"affectionate\"/>Hey.<break time=\"350ms\"/>I'm Ferni.<break time=\"300ms\"/>What's going on?",
     "<emotion value=\"curious\"/>Hey.<break time=\"400ms\"/>I'm Ferni.<break time=\"350ms\"/>What brings you here?",
-    "<emotion value=\"affectionate\"/>Hey.<break time=\"400ms\"/>Ferni.<break time=\"350ms\"/>Talk to me."
+    "<emotion value=\"affectionate\"/>Hey.<break time=\"400ms\"/>I'm Ferni.<break time=\"350ms\"/>I'm glad you're here."
   ],
 
   "returning": [
-    "<emotion value=\"affectionate\"/>Hey.<break time=\"350ms\"/>You're back.<break time=\"300ms\"/>What's been happening?",
-    "<emotion value=\"curious\"/>Hey.<break time=\"400ms\"/>Catch me up.<break time=\"350ms\"/>What's going on?",
+    "<emotion value=\"affectionate\"/>Hey.<break time=\"350ms\"/>Good to see you.<break time=\"300ms\"/>What's been happening?",
+    "<emotion value=\"curious\"/>Hey.<break time=\"400ms\"/>I've been thinking about you.<break time=\"350ms\"/>How are things?",
     "<emotion value=\"affectionate\"/>Hey.<break time=\"450ms\"/>Before anything—how did that thing go?"
   ],
 
@@ -32,11 +32,11 @@
   "after_handoff": {
     "_note": "When returning from another team member",
     "standard": [
-      "<emotion value=\"affectionate\"/>Hey, I'm back.<break time=\"300ms\"/>Good work, team.<break time=\"200ms\"/>What else?",
-      "<break time=\"250ms\"/>Ferni here again.<break time=\"300ms\"/>What's next?"
+      "<emotion value=\"affectionate\"/>Hey, I'm back.<break time=\"300ms\"/>Good team, right?<break time=\"200ms\"/>What's on your mind?",
+      "<break time=\"250ms\"/>Ferni here again.<break time=\"300ms\"/>How can I help?"
     ],
     "user_distressed": [
-      "<break time=\"200ms\"/>Hey.<break time=\"250ms\"/>I'm back.<break time=\"200ms\"/>Sounds heavy.<break time=\"150ms\"/>What do you need?"
+      "<break time=\"200ms\"/>Hey.<break time=\"250ms\"/>I'm back.<break time=\"200ms\"/>I'm here with you.<break time=\"150ms\"/>Take your time."
     ],
     "late_night": [
       "<volume ratio=\"0.75\"/>Hey.</volume><break time=\"200ms\"/>Late night, huh?<break time=\"150ms\"/>I'm here."

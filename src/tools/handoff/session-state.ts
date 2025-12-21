@@ -22,6 +22,7 @@ import { EventEmitter } from 'events';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import type { AgentId } from '../../services/agent-bus.js';
+import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { HandoffContext, HandoffRecord } from './types.js';
 
@@ -179,9 +180,15 @@ export function clearHandoffSessionState(sessionId: string): void {
 function evictStaleSessions(): void {
   const now = Date.now();
   let evictedCount = 0;
+  let oldestSessionAge = 0;
 
   for (const [sessionId, meta] of sessionStates.entries()) {
-    if (now - meta.lastActivity > SESSION_TTL_MS) {
+    const sessionAge = now - meta.lastActivity;
+    if (sessionAge > SESSION_TTL_MS) {
+      // Track oldest session age for metrics
+      if (sessionAge > oldestSessionAge) {
+        oldestSessionAge = sessionAge;
+      }
       // Clean up event listeners
       meta.state.events.removeAllListeners();
       sessionStates.delete(sessionId);
@@ -195,6 +202,14 @@ function evictStaleSessions(): void {
     getLogger().info(
       { evictedCount, remainingSessions: sessionStates.size },
       'Evicted stale sessions based on TTL'
+    );
+
+    // Record eviction metrics
+    resilienceMetrics.recordSessionEviction(
+      evictedCount,
+      sessionStates.size,
+      'ttl',
+      oldestSessionAge
     );
   }
 }
@@ -249,6 +264,7 @@ export function getSessionState(sessionId: string): HandoffSessionState {
         }
       }
       if (oldestKey) {
+        const oldestSessionAgeMs = now - oldestActivity;
         const oldMeta = sessionStates.get(oldestKey);
         if (oldMeta) {
           oldMeta.state.events.removeAllListeners();
@@ -258,6 +274,14 @@ export function getSessionState(sessionId: string): HandoffSessionState {
         getLogger().debug(
           { evictedSession: oldestKey, reason: 'capacity' },
           'Evicted oldest session state'
+        );
+
+        // Record capacity-based eviction metrics
+        resilienceMetrics.recordSessionEviction(
+          1,
+          sessionStates.size,
+          'capacity',
+          oldestSessionAgeMs
         );
       }
     }
@@ -580,4 +604,5 @@ export function getSessionAnalytics(state: HandoffSessionState): {
     avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
   };
 }
+
 

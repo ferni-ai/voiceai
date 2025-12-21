@@ -34,7 +34,7 @@ function sendOk(res: ServerResponse): void {
   res.end();
 }
 
-function sendError(res: ServerResponse, status: number = 400): void {
+function sendError(res: ServerResponse, status = 400): void {
   res.writeHead(status);
   res.end();
 }
@@ -47,10 +47,7 @@ function sendError(res: ServerResponse, status: number = 400): void {
  * Handle Google Calendar webhook
  * Google sends specific headers with notification info
  */
-async function handleGoogleWebhook(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleGoogleWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Extract Google notification headers
   const channelId = req.headers['x-goog-channel-id'] as string;
   const resourceId = req.headers['x-goog-resource-id'] as string;
@@ -103,10 +100,7 @@ async function handleGoogleWebhook(
  * Handle Microsoft Outlook webhook
  * Microsoft uses JSON body with validation token for subscription verification
  */
-async function handleOutlookWebhook(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleOutlookWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Collect body
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
@@ -188,4 +182,3 @@ export async function handleCalendarWebhookRoutes(
 }
 
 export default handleCalendarWebhookRoutes;
-

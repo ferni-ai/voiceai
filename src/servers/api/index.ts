@@ -95,6 +95,8 @@ import { handlePredictiveInsightsRequest } from '../../api/predictive-insights-r
 import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs-handler.js';
 import { handleEvalOpsRoutes } from '../../api/evalops-handler.js';
 import { handleHouseholdRoutes } from '../../api/household-routes.js';
+import { handleContactsRoutes } from '../../api/contacts-routes.js';
+import { handleGiftRoutes } from '../../api/gift-routes.js';
 import { handleStoryJourneyRoutes } from '../../api/story-journey-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
@@ -124,9 +126,11 @@ import {
   shutdownInsightsWebSocket,
 } from '../../services/insights-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
+import { handleCustomAgentRoutes } from '../../api/custom-agent-handler.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
+import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 
@@ -233,6 +237,11 @@ const server = http.createServer(async (req, res) => {
     if (engagementHandled) return;
   } catch (err) {
     log.error({ error: String(err) }, 'Engagement route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -256,6 +265,13 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Musical You routes (DNA, Challenges, Leaderboards, Cards, Spotify)
+    if (pathname.startsWith('/api/musical')) {
+      const query = new URLSearchParams(parsedUrl.search || '');
+      const handled = await handleMusicalYouRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+
     // Social routes (Challenges, Leaderboards, Taste Match)
     if (pathname.startsWith('/api/social')) {
       const query = new URLSearchParams(parsedUrl.search || '');
@@ -275,6 +291,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Share route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -285,6 +306,26 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Marketplace route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  try {
+    // Custom agent routes (user-created agents)
+    if (pathname.startsWith('/api/custom-agents')) {
+      const handled = await handleCustomAgentRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Custom agent route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -297,6 +338,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Marketplace admin route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -305,6 +351,11 @@ const server = http.createServer(async (req, res) => {
     if (diagnosticsHandled) return;
   } catch (err) {
     log.error({ error: String(err) }, 'Diagnostics route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -315,6 +366,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'API v1 route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -325,6 +381,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Migration route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -335,6 +396,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Account route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -345,6 +411,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Session accent route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -355,6 +426,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Auth monitoring route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   try {
@@ -596,6 +672,18 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Contacts routes (contact management, groups, nudges)
+    if (pathname.startsWith('/api/contacts')) {
+      const handled = await handleContactsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Gift tracking routes (gifts given/received, suggestions, analytics)
+    if (pathname.startsWith('/api/gifts')) {
+      const handled = await handleGiftRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Story journey routes
     if (pathname.startsWith('/api/story-journey')) {
       const handled = await handleStoryJourneyRoutes(req, res, pathname);
@@ -718,6 +806,11 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'API route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
   }
 
   // ============================================================================

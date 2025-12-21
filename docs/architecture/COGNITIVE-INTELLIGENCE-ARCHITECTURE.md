@@ -2,6 +2,19 @@
 
 > Making each persona think differently, adapt to users, and learn over time.
 
+---
+
+## Related Documentation
+
+| Document | Focus |
+|----------|-------|
+| **This document** | Individual persona thinking styles |
+| [CROSS-PERSONA-INTELLIGENCE.md](./CROSS-PERSONA-INTELLIGENCE.md) | Team collaboration, handoffs, shared insights |
+| [SUPERHUMAN-INTELLIGENCE.md](./SUPERHUMAN-INTELLIGENCE.md) | 12 "better than human" capabilities |
+| [src/services/superhuman/README.md](../../src/services/superhuman/README.md) | 10 superhuman services implementation |
+
+---
+
 ## Overview
 
 The Cognitive Intelligence System gives each Ferni persona a unique **cognitive style** - how they think, reason, and process information. This creates differentiation beyond just "what they say" to "how they think."

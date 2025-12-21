@@ -81,6 +81,12 @@ import { getProductivityStore } from '../../services/productivity-store.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
 import { getSuperhuman } from './superhuman-integration.js';
+// Better Than Human: Habit-Calendar Integration
+import {
+  getHabitCalendarContextForBuilder,
+  getTomorrowHabitRecommendations,
+  type HabitCalendarInsight,
+} from '../../services/habits/habit-calendar-integration.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
 
@@ -109,6 +115,8 @@ interface MayaInsightBriefing {
   strugglesToAddress: string[];
   /** Memory insights from past conversations */
   memoryInsights: MemoryInsights;
+  /** Better Than Human: Calendar-habit correlations from Alex */
+  calendarInsights: string | null;
 }
 
 interface HabitHealthSummary {
@@ -241,7 +249,8 @@ function analyzeHabitHealth(userId: string): HabitHealthSummary {
     summary.keystoneHabits = activeHabits
       .filter((h) => h.isKeystone && h.keystoneScore && h.keystoneScore > 0.6)
       .map((h) => h.name);
-    summary.keystoneActive = summary.keystoneHabits.length > 0 &&
+    summary.keystoneActive =
+      summary.keystoneHabits.length > 0 &&
       activeHabits.some((h) => h.isKeystone && h.currentStreak > 0);
 
     // Find at-risk habits (had streak, now broken)
@@ -303,9 +312,8 @@ function computeCoachingMetrics(
 
   // Consistency Index: Based on success rate and streak maintenance
   const successWeight = habitHealth.averageSuccessRate * 60;
-  const streakRatio = habitHealth.activeHabits > 0
-    ? (habitHealth.totalStreaks / habitHealth.activeHabits) * 40
-    : 0;
+  const streakRatio =
+    habitHealth.activeHabits > 0 ? (habitHealth.totalStreaks / habitHealth.activeHabits) * 40 : 0;
   metrics.consistencyIndex = Math.round(successWeight + streakRatio);
 
   // Cascade Potential: Based on keystone habits and habit stacks
@@ -315,15 +323,18 @@ function computeCoachingMetrics(
   metrics.cascadePotential = Math.round(keystoneBonus + stackBonus + categoryDiversity);
 
   // Recovery Speed: Based on at-risk ratio and past recovery patterns
-  const atRiskRatio = habitHealth.activeHabits > 0
-    ? 1 - (habitHealth.atRiskCount / habitHealth.activeHabits)
-    : 1;
+  const atRiskRatio =
+    habitHealth.activeHabits > 0 ? 1 - habitHealth.atRiskCount / habitHealth.activeHabits : 1;
   const reflectionBonus = habitHealth.weeklyReflectionSummary ? 20 : 0;
   metrics.recoverySpeed = Math.round(atRiskRatio * 80 + reflectionBonus);
 
   // Momentum Score: Based on trends and energy
-  const trendBonus = moodIntelligence.recentMoodTrend === 'improving' ? 30 :
-    moodIntelligence.recentMoodTrend === 'stable' ? 15 : 0;
+  const trendBonus =
+    moodIntelligence.recentMoodTrend === 'improving'
+      ? 30
+      : moodIntelligence.recentMoodTrend === 'stable'
+        ? 15
+        : 0;
   const energyBonus = Math.round(moodIntelligence.averageEnergy * 10);
   const completionBonus = Math.min(habitHealth.totalCompletions / 10, 30);
   metrics.momentumScore = Math.round(trendBonus + energyBonus + completionBonus);
@@ -396,8 +407,7 @@ async function analyzeMoodIntelligence(userId: string): Promise<MoodIntelligence
 
     // Average energy (normalize 1-10 to 1-5)
     const energyValues = moodLogs.map((m) => m.energy / 2);
-    intelligence.averageEnergy =
-      energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
+    intelligence.averageEnergy = energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
 
     // Mood trend
     const midpoint = Math.floor(moodLogs.length / 2);
@@ -604,19 +614,15 @@ async function getPeterPatternInsights(userId: string): Promise<string[]> {
     if (budget) {
       const percentUsed = (budget.spent / budget.monthlyLimit) * 100;
       if (percentUsed > 100) {
-        insights.push(
-          'Peter flagged over-budget spending. Often correlates with habit struggles.'
-        );
+        insights.push('Peter flagged over-budget spending. Often correlates with habit struggles.');
       } else if (percentUsed < 50) {
-        insights.push(
-          'Peter notes strong budget discipline - financial habits are working!'
-        );
+        insights.push('Peter notes strong budget discipline - financial habits are working!');
       }
     }
 
     // Savings velocity
     const goals = store.getActiveSavingsGoals(userId);
-    const progressingGoals = goals.filter(g => g.currentAmount / g.targetAmount > 0.3);
+    const progressingGoals = goals.filter((g) => g.currentAmount / g.targetAmount > 0.3);
     if (progressingGoals.length > 0) {
       insights.push(
         `${progressingGoals.length} savings goal(s) progressing - financial habits building`
@@ -671,11 +677,12 @@ function getJordanGoalInsights(userId: string): string[] {
     }
 
     // Life stage transitions
-    const transitionGoals = goals.filter(g => 
-      g.name.toLowerCase().includes('wedding') ||
-      g.name.toLowerCase().includes('baby') ||
-      g.name.toLowerCase().includes('house') ||
-      g.name.toLowerCase().includes('move')
+    const transitionGoals = goals.filter(
+      (g) =>
+        g.name.toLowerCase().includes('wedding') ||
+        g.name.toLowerCase().includes('baby') ||
+        g.name.toLowerCase().includes('house') ||
+        g.name.toLowerCase().includes('move')
     );
 
     if (transitionGoals.length > 0) {
@@ -835,14 +842,22 @@ function analyzeHandoffForMaya(): HandoffBriefing | null {
 // ============================================================================
 
 async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
-  const [habitHealth, moodIntelligence, peterInsights, jordanInsights, memoryInsights] = 
-    await Promise.all([
-      Promise.resolve(analyzeHabitHealth(userId)),
-      analyzeMoodIntelligence(userId),
-      getPeterPatternInsights(userId),
-      Promise.resolve(getJordanGoalInsights(userId)),
-      Promise.resolve(getMemoryInsights(userId)),
-    ]);
+  const [
+    habitHealth,
+    moodIntelligence,
+    peterInsights,
+    jordanInsights,
+    memoryInsights,
+    calendarInsights,
+  ] = await Promise.all([
+    Promise.resolve(analyzeHabitHealth(userId)),
+    analyzeMoodIntelligence(userId),
+    getPeterPatternInsights(userId),
+    Promise.resolve(getJordanGoalInsights(userId)),
+    Promise.resolve(getMemoryInsights(userId)),
+    // Better Than Human: Calendar-habit correlation
+    getHabitCalendarContextForBuilder(userId).catch(() => null),
+  ]);
 
   const coachingMetrics = computeCoachingMetrics(habitHealth, moodIntelligence);
   const proactiveTriggers = detectProactiveTriggers(habitHealth, coachingMetrics, moodIntelligence);
@@ -886,6 +901,7 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
     winsToCelebrate,
     strugglesToAddress,
     memoryInsights,
+    calendarInsights,
   };
 }
 
@@ -916,7 +932,9 @@ function formatMayaBriefing(
       sections.push(`Emotional state: ${handoffBriefing.emotionalContext} - lead with warmth`);
     }
     if (handoffBriefing.actionItems.length > 0) {
-      sections.push(`Action items:\n${handoffBriefing.actionItems.map(a => `  • ${a}`).join('\n')}`);
+      sections.push(
+        `Action items:\n${handoffBriefing.actionItems.map((a) => `  • ${a}`).join('\n')}`
+      );
     }
   }
 
@@ -956,7 +974,9 @@ function formatMayaBriefing(
   if (moodIntelligence.currentState || moodIntelligence.recentMoodTrend !== 'unknown') {
     sections.push('\n=== 🧠 MOOD INTELLIGENCE ===');
     if (moodIntelligence.currentState) {
-      sections.push(`• Current: ${moodIntelligence.currentState.mood} mood, ${moodIntelligence.currentState.energy} energy`);
+      sections.push(
+        `• Current: ${moodIntelligence.currentState.mood} mood, ${moodIntelligence.currentState.energy} energy`
+      );
     }
     sections.push(`• Trend: ${moodIntelligence.recentMoodTrend}`);
     if (moodIntelligence.optimalCoachingTime) {
@@ -971,26 +991,27 @@ function formatMayaBriefing(
   if (briefing.tendencyType) {
     sections.push('\n=== 🎯 COACHING APPROACH ===');
     const approaches: Record<FourTendency, string> = {
-      upholder: 'UPHOLDER: Clear rules and schedules work. Set expectations and they\'ll meet them.',
+      upholder: "UPHOLDER: Clear rules and schedules work. Set expectations and they'll meet them.",
       questioner: 'QUESTIONER: Explain the WHY. They need logical reasons to commit.',
       obliger: 'OBLIGER: External accountability is key. Check-ins, partners, public commitments.',
-      rebel: 'REBEL: Frame as choice and identity. "You\'re the kind of person who..." works better than rules.',
+      rebel:
+        'REBEL: Frame as choice and identity. "You\'re the kind of person who..." works better than rules.',
     };
     sections.push(approaches[briefing.tendencyType]);
   }
 
   // Proactive Triggers (high priority first)
-  const highPriority = briefing.proactiveTriggers.filter(t => t.priority === 'high');
-  const otherTriggers = briefing.proactiveTriggers.filter(t => t.priority !== 'high');
-  
+  const highPriority = briefing.proactiveTriggers.filter((t) => t.priority === 'high');
+  const otherTriggers = briefing.proactiveTriggers.filter((t) => t.priority !== 'high');
+
   if (highPriority.length > 0) {
     sections.push('\n=== ⚡ IMMEDIATE ACTIONS ===');
-    highPriority.forEach(t => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
+    highPriority.forEach((t) => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
   }
 
   if (otherTriggers.length > 0) {
     sections.push('\n=== 💡 COACHING OPPORTUNITIES ===');
-    otherTriggers.slice(0, 4).forEach(t => sections.push(`• [${t.type}] ${t.message}`));
+    otherTriggers.slice(0, 4).forEach((t) => sections.push(`• [${t.type}] ${t.message}`));
   }
 
   // Wins to celebrate
@@ -1015,6 +1036,12 @@ function formatMayaBriefing(
   if (briefing.jordanInsights.length > 0) {
     sections.push('\n=== FROM JORDAN (Goals) ===');
     briefing.jordanInsights.forEach((insight) => sections.push(`• ${insight}`));
+  }
+
+  // Better Than Human: Calendar-Habit Correlation (from Alex's calendar data)
+  if (briefing.calendarInsights) {
+    sections.push('\n=== 📅 FROM ALEX (Calendar-Habit Correlation) ===');
+    sections.push(briefing.calendarInsights);
   }
 
   // Memory context
@@ -1085,13 +1112,13 @@ async function buildMayaCoachingInsightsContext(
   try {
     const briefing = await buildMayaBriefing(userId);
     const briefingLines = formatMayaBriefing(briefing, handoffBriefing, turnCount);
-    
+
     // Get superhuman context (commitments, capacity, predictions)
     const superhumanContext = await getSuperhuman(userId, 'maya');
     if (superhumanContext) {
-      briefingLines.push('\n' + superhumanContext);
+      briefingLines.push(`\n${superhumanContext}`);
     }
-    
+
     const content = briefingLines.join('\n');
 
     if (isHandoff) {
@@ -1101,7 +1128,10 @@ async function buildMayaCoachingInsightsContext(
           confidence: 0.9,
         })
       );
-      log.info({ userId, urgency: handoffBriefing?.urgency }, '🌱 Maya loaded with handoff briefing');
+      log.info(
+        { userId, urgency: handoffBriefing?.urgency },
+        '🌱 Maya loaded with handoff briefing'
+      );
     } else if (turnCount === 0) {
       injections.push(
         createStandardInjection('maya_initial_briefing', content, {
@@ -1110,7 +1140,11 @@ async function buildMayaCoachingInsightsContext(
         })
       );
       log.info(
-        { userId, habits: briefing.habitHealth.activeHabits, momentum: briefing.coachingMetrics.momentumScore },
+        {
+          userId,
+          habits: briefing.habitHealth.activeHabits,
+          momentum: briefing.coachingMetrics.momentumScore,
+        },
         '🌱 Maya loaded with coaching briefing'
       );
     } else {

@@ -12,6 +12,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  validateCommitmentFeasibility,
+  createCalendarBlocksForCommitment,
+  buildCommitmentCalendarContext,
+  type CommitmentFeasibility,
+} from './commitment-calendar-integration.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -49,6 +55,7 @@ export interface Commitment {
   // What they committed to
   statement: string; // Original words
   summary: string; // Condensed version
+  text: string; // Alias for summary (for calendar integration)
   type: CommitmentType;
 
   // Context
@@ -69,6 +76,13 @@ export interface Commitment {
 
   // Learning
   userReactionToFollowUp?: 'appreciated' | 'annoyed' | 'neutral';
+
+  // Calendar integration (Better Than Human)
+  calendarEventIds?: string[]; // Events created for this commitment
+  feasibilityScore?: number; // 0-100, how feasible given calendar
+  duration?: number; // Duration in minutes for recurring commitments
+  frequency?: { times: number; period: string }; // e.g., { times: 3, period: 'week' }
+  preferredTime?: string; // 'morning', 'afternoon', 'evening'
 }
 
 export interface CommitmentFollowUp {
@@ -204,6 +218,7 @@ export function detectCommitment(
       userId,
       statement,
       summary,
+      text: summary, // Alias for calendar integration
       type: bestMatch.type,
       topic: context?.topic,
       emotionalWeight,
@@ -219,17 +234,44 @@ export function detectCommitment(
 
 const commitmentCache = new Map<string, Commitment[]>();
 
-export async function saveCommitment(commitment: Omit<Commitment, 'id'>): Promise<Commitment> {
+export async function saveCommitment(
+  commitment: Omit<Commitment, 'id'>,
+  options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
+): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility }> {
   const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const fullCommitment: Commitment = {
     ...commitment,
     id,
+    text: commitment.summary, // Alias for calendar integration
     createdAt: Date.now(),
     lastMentioned: Date.now(),
     followUpAfter: commitment.targetDate || Date.now() + 3 * 24 * 60 * 60 * 1000, // Default 3 days
     status: 'active',
     followUpCount: 0,
   };
+
+  // Better Than Human: Validate against calendar
+  let feasibility: CommitmentFeasibility | undefined;
+  if (options?.validateCalendar !== false) {
+    try {
+      feasibility = await validateCommitmentFeasibility(commitment.userId, fullCommitment);
+      fullCommitment.feasibilityScore = feasibility.score;
+
+      if (!feasibility.feasible) {
+        log.info(
+          {
+            userId: commitment.userId,
+            commitment: commitment.summary,
+            score: feasibility.score,
+            conflicts: feasibility.conflicts,
+          },
+          '⚠️ Commitment may not be feasible given calendar'
+        );
+      }
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Calendar feasibility check failed (non-blocking)');
+    }
+  }
 
   try {
     const db = getFirestoreDb();
@@ -242,6 +284,42 @@ export async function saveCommitment(commitment: Omit<Commitment, 'id'>): Promis
         .set(fullCommitment);
     }
 
+    // Better Than Human: Create calendar blocks for the commitment
+    if (options?.createCalendarBlocks && feasibility?.suggestedSlots?.length) {
+      try {
+        const blocks = await createCalendarBlocksForCommitment(
+          commitment.userId,
+          fullCommitment,
+          feasibility.suggestedSlots
+        );
+
+        if (blocks.eventIds.length > 0) {
+          fullCommitment.calendarEventIds = blocks.eventIds;
+
+          // Update Firestore with calendar event IDs
+          if (db) {
+            await db
+              .collection('bogle_users')
+              .doc(commitment.userId)
+              .collection('commitments')
+              .doc(id)
+              .update({ calendarEventIds: blocks.eventIds });
+          }
+
+          log.info(
+            {
+              userId: commitment.userId,
+              commitmentId: id,
+              blocksCreated: blocks.eventIds.length,
+            },
+            '📅 Calendar blocks created for commitment'
+          );
+        }
+      } catch (error) {
+        log.warn({ error: String(error) }, 'Failed to create calendar blocks (non-blocking)');
+      }
+    }
+
     // Update cache
     const userCommitments = commitmentCache.get(commitment.userId) || [];
     userCommitments.push(fullCommitment);
@@ -252,7 +330,7 @@ export async function saveCommitment(commitment: Omit<Commitment, 'id'>): Promis
       '📝 Commitment saved'
     );
 
-    return fullCommitment;
+    return { commitment: fullCommitment, feasibility };
   } catch (error) {
     log.error({ error: String(error), userId: commitment.userId }, 'Failed to save commitment');
     throw error;
@@ -467,7 +545,7 @@ export async function getFollowUpsForUser(userId: string): Promise<CommitmentFol
 // CONTEXT INJECTION
 // ============================================================================
 
-export async function buildCommitmentContext(userId: string): Promise<string> {
+export async function buildCommitmentContextForLLM(userId: string): Promise<string> {
   const commitments = await loadUserCommitments(userId);
   const followUps = await getFollowUpsForUser(userId);
 
@@ -484,7 +562,13 @@ export async function buildCommitmentContext(userId: string): Promise<string> {
     sections.push('\n**Active Commitments:**');
     for (const c of active.slice(0, 5)) {
       const daysAgo = Math.floor((Date.now() - c.createdAt) / (24 * 60 * 60 * 1000));
-      sections.push(`• "${c.summary}" (${c.type}, ${daysAgo} days ago)`);
+      const calendarNote =
+        c.feasibilityScore !== undefined && c.feasibilityScore < 50
+          ? ' ⚠️ calendar-constrained'
+          : c.calendarEventIds?.length
+            ? ' 📅 time blocked'
+            : '';
+      sections.push(`• "${c.summary}" (${c.type}, ${daysAgo} days ago${calendarNote})`);
     }
   }
 
@@ -497,8 +581,24 @@ export async function buildCommitmentContext(userId: string): Promise<string> {
     sections.push('\nFollow up NATURALLY, not mechanically. Weave it in. Be caring, not nagging.');
   }
 
+  // Calendar-based warnings for commitments at risk
+  const atRiskCommitments = active.filter(
+    (c) => c.feasibilityScore !== undefined && c.feasibilityScore < 40
+  );
+  if (atRiskCommitments.length > 0) {
+    sections.push('\n**⚠️ Calendar Conflicts:**');
+    for (const c of atRiskCommitments) {
+      sections.push(
+        `• "${c.summary}" may be hard to fit in - consider helping them rescope or find time`
+      );
+    }
+  }
+
   return sections.join('\n');
 }
+
+// Keep old function name as alias for backward compatibility
+export const buildCommitmentContext = buildCommitmentContextForLLM;
 
 // ============================================================================
 // EXPORTS
@@ -511,4 +611,8 @@ export const commitmentKeeper = {
   updateStatus: updateCommitmentStatus,
   getFollowUps: getFollowUpsForUser,
   buildContext: buildCommitmentContext,
+  // Calendar integration (Better Than Human)
+  validateFeasibility: validateCommitmentFeasibility,
+  createCalendarBlocks: createCalendarBlocksForCommitment,
+  buildCalendarContext: buildCommitmentCalendarContext,
 };
