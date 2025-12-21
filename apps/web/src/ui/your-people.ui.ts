@@ -19,7 +19,7 @@ import { openAddPerson } from './add-person.ui.js';
 import { openRelationshipInsights } from './relationship-insights.ui.js';
 import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
-import { getAllMockContacts, MOCK_NUDGES, addMockContact } from '../data/mock-contacts';
+import { getAllMockContacts, MOCK_NUDGES, addMockContact } from '../data/mock-contacts.ts';
 
 const log = createLogger('YourPeopleUI');
 

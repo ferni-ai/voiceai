@@ -24,7 +24,7 @@ import { openSendMessage } from './send-message.ui.js';
 import { openGiftSuggestions } from './gift-suggestions.ui.js';
 import { openConversationStarters } from './conversation-starters.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
-import { getMockContact, getMockInteractions, getMockGifts } from '../data/mock-contacts';
+import { getMockContact, getMockInteractions, getMockGifts } from '../data/mock-contacts.ts';
 
 const log = createLogger('RelationshipCard');
 

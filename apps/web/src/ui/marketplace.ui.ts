@@ -784,6 +784,9 @@ async function renderCreationsTab(): Promise<void> {
   grid.querySelectorAll('[data-action="open-stories"]').forEach(btn => {
     btn.addEventListener('click', handleOpenStoriesClick);
   });
+  grid.querySelectorAll('[data-action="record-voice"]').forEach(btn => {
+    btn.addEventListener('click', handleRecordVoiceClick);
+  });
   grid.querySelectorAll('[data-action="talk-to-legacy"]').forEach(btn => {
     btn.addEventListener('click', handleTalkToAgentClick);
   });
@@ -864,6 +867,10 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         <button class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
           ${icons.stories}
           Stories
+        </button>
+        <button class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          Voice
         </button>
         <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1136,6 +1143,27 @@ async function handleOpenStoriesClick(e: Event): Promise<void> {
     log.error('Failed to open Legacy Stories:', err);
     const { toast } = await import('./toast.ui.js');
     toast.error("Couldn't open stories. Try again?");
+  }
+}
+
+/**
+ * Handle opening Voice Clone Recorder for Legacy agents
+ */
+async function handleRecordVoiceClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openVoiceCloneRecorder } = await import('./voice-clone-recorder.ui.js');
+    await openVoiceCloneRecorder(agentId);
+  } catch (err) {
+    log.error('Failed to open Voice Recorder:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open voice recorder. Try again?");
   }
 }
 

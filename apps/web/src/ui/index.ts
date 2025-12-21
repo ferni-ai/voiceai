@@ -238,6 +238,24 @@ export type {
   StreakTrend,
 } from './analytics-dashboard.ui.js';
 
+// Life Context Dashboard UI (Phase 6 Cross-Domain Synthesis)
+export {
+  getLifeContextState,
+  hideLifeContextDashboard,
+  initLifeContextDashboard,
+  setLifeContextError,
+  setLifeContextLoading,
+  showLifeContextDashboard,
+  updateLifeContextDashboard,
+} from './life-context-dashboard.ui.js';
+export type {
+  CrossDomainPattern,
+  DomainStressIndicator,
+  LifeContextDashboardState,
+  LifeContextSnapshot,
+  SynthesisTrigger,
+} from './life-context-dashboard.ui.js';
+
 // Onboarding UI
 export {
   getOnboardingUI,

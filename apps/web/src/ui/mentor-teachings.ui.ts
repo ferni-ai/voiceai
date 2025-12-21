@@ -35,7 +35,7 @@ const STYLES = `
   .mentor-teachings-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.6);
+    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -265,6 +265,81 @@ const STYLES = `
     color: var(--color-text-primary);
     line-height: 1.6;
   }
+
+  .mentor-card-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .mentor-action-btn {
+    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .mentor-action-btn:hover {
+    background: var(--color-background-hover);
+    color: var(--color-text-primary);
+  }
+
+  .mentor-action-btn--delete:hover {
+    background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
+    color: var(--color-semantic-error, #ef4444);
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 640px) {
+    .mentor-teachings-overlay {
+      padding: 0;
+    }
+
+    .mentor-teachings-modal {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
+    .mentor-teachings-header {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .mentor-teachings-content {
+      padding: var(--space-4);
+    }
+
+    .mentor-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .mentor-add-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .mentor-card-actions {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mentor-teachings-modal {
+      transition: none;
+    }
+  }
 `;
 
 // ============================================================================
@@ -325,9 +400,19 @@ function render(): string {
                 <h4 class="mentor-empty-title">No principles yet</h4>
                 <p class="mentor-empty-text">Add the core principles that define this mentor's philosophy.</p>
               </div>
-            ` : principles.map(p => `
-              <div class="mentor-principle-card">
+            ` : principles.map((p, i) => `
+              <div class="mentor-principle-card" data-index="${i}">
                 <h4 class="mentor-principle-title">${p}</h4>
+                <div class="mentor-card-actions">
+                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             `).join('')}
           </section>
@@ -361,10 +446,20 @@ function render(): string {
                 <h4 class="mentor-empty-title">No quotes yet</h4>
                 <p class="mentor-empty-text">Capture their most impactful and memorable sayings.</p>
               </div>
-            ` : quotes.map(q => `
-              <div class="mentor-quote-card">
+            ` : quotes.map((q, i) => `
+              <div class="mentor-quote-card" data-index="${i}">
                 <p class="mentor-quote-text">${q.quote}</p>
                 ${q.source ? `<span class="mentor-quote-source">— ${q.source}</span>` : ''}
+                <div class="mentor-card-actions">
+                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             `).join('')}
           </section>
@@ -496,6 +591,36 @@ function attachListeners(): void {
 
   // Add quote button
   teachingsModal.querySelector('[data-action="add-quote"]')?.addEventListener('click', handleAddQuote);
+
+  // Edit/Delete principle buttons
+  teachingsModal.querySelectorAll('[data-action="edit-principle"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleEditPrinciple(index);
+    });
+  });
+
+  teachingsModal.querySelectorAll('[data-action="delete-principle"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeletePrinciple(index);
+    });
+  });
+
+  // Edit/Delete quote buttons
+  teachingsModal.querySelectorAll('[data-action="edit-quote"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleEditQuote(index);
+    });
+  });
+
+  teachingsModal.querySelectorAll('[data-action="delete-quote"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteQuote(index);
+    });
+  });
 }
 
 async function handleAddPrinciple(): Promise<void> {
@@ -549,6 +674,102 @@ async function handleAddQuote(): Promise<void> {
   } catch (err) {
     log.error('Failed to add quote:', err);
     toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleEditPrinciple(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  const principles = (currentAgent.personality?.values || []) as string[];
+  const item = principles[index];
+  if (!item) return;
+
+  const newPrinciple = prompt("Edit this principle:", item);
+  if (!newPrinciple) return;
+
+  try {
+    const updatedPrinciples = [...principles];
+    updatedPrinciples[index] = newPrinciple;
+
+    await updateCustomAgent(currentAgent.id, {
+      personality: { ...currentAgent.personality, values: updatedPrinciples }
+    });
+    toast.success('Updated!');
+    await openMentorTeachings(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit principle:', err);
+    toast.error("Couldn't update. Try again?");
+  }
+}
+
+async function handleDeletePrinciple(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Delete this principle?')) return;
+
+  try {
+    const principles = (currentAgent.personality?.values || []) as string[];
+    const updatedPrinciples = principles.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      personality: { ...currentAgent.personality, values: updatedPrinciples }
+    });
+    toast.success('Deleted');
+    await openMentorTeachings(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete principle:', err);
+    toast.error("Couldn't delete. Try again?");
+  }
+}
+
+async function handleEditQuote(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  const quotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
+  const item = quotes[index];
+  if (!item) return;
+
+  const newQuote = prompt("Edit this quote:", item.quote);
+  if (!newQuote) return;
+
+  const newSource = prompt("Source (book, talk, etc.) - optional:", item.source || '') || undefined;
+
+  try {
+    const updatedQuotes = [...quotes];
+    updatedQuotes[index] = { quote: newQuote, source: newSource };
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, wisdom: updatedQuotes }
+    });
+    toast.success('Updated!');
+    await openMentorTeachings(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit quote:', err);
+    toast.error("Couldn't update. Try again?");
+  }
+}
+
+async function handleDeleteQuote(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Delete this quote?')) return;
+
+  try {
+    const quotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
+    const updatedQuotes = quotes.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, wisdom: updatedQuotes }
+    });
+    toast.success('Deleted');
+    await openMentorTeachings(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete quote:', err);
+    toast.error("Couldn't delete. Try again?");
   }
 }
 

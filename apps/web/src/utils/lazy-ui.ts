@@ -46,6 +46,7 @@ let predictionTrackerModule: typeof import('../ui/prediction-tracker.ui.js') | n
 let dataExportModule: typeof import('../ui/data-export.ui.js') | null = null;
 let teamHuddleModule: typeof import('../ui/team-huddle.ui.js') | null = null;
 let relationshipProgressModule: typeof import('../ui/stage-celebration.ui.js') | null = null;
+let lifeContextDashboardModule: typeof import('../ui/life-context-dashboard.ui.js') | null = null;
 
 // First-time user flows
 let onboardingModule: typeof import('../ui/onboarding.ui.js') | null = null;
@@ -140,6 +141,14 @@ export async function loadRelationshipProgress() {
       () => import('../ui/stage-celebration.ui.js'));
   }
   return relationshipProgressModule;
+}
+
+export async function loadLifeContextDashboard() {
+  if (!lifeContextDashboardModule) {
+    lifeContextDashboardModule = await safeImport('life-context-dashboard',
+      () => import('../ui/life-context-dashboard.ui.js'));
+  }
+  return lifeContextDashboardModule;
 }
 
 // ============================================================================

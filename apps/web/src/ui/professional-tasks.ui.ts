@@ -35,7 +35,7 @@ const STYLES = `
   .professional-tasks-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.6);
+    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -203,7 +203,7 @@ const STYLES = `
     border: 1px solid var(--color-border);
     display: flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
 
   .professional-skill-tag svg {
@@ -212,12 +212,48 @@ const STYLES = `
     color: var(--color-accent);
   }
 
+  .professional-skill-tag .skill-actions {
+    display: flex;
+    gap: var(--space-1);
+    margin-left: var(--space-1);
+  }
+
+  .professional-skill-tag .skill-action-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .professional-skill-tag .skill-action-btn:hover {
+    background: var(--color-background-hover);
+    color: var(--color-text-primary);
+  }
+
+  .professional-skill-tag .skill-action-btn.delete:hover {
+    color: var(--color-semantic-error);
+  }
+
   .professional-domain-card {
     background: var(--color-background-subtle);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
     margin-bottom: var(--space-3);
     border-left: 4px solid var(--color-accent);
+    position: relative;
+  }
+
+  .professional-domain-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .professional-domain-title {
@@ -231,6 +267,31 @@ const STYLES = `
     font-size: 0.9rem;
     color: var(--color-text-muted);
     margin: 0;
+  }
+
+  .professional-domain-actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  .professional-domain-action-btn {
+    background: none;
+    border: none;
+    padding: var(--space-1);
+    cursor: pointer;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .professional-domain-action-btn:hover {
+    background: var(--color-background-hover);
+    color: var(--color-text-primary);
+  }
+
+  .professional-domain-action-btn.delete:hover {
+    color: var(--color-semantic-error);
   }
 
   .professional-task-card {
@@ -320,6 +381,52 @@ const STYLES = `
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--color-text-primary);
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 640px) {
+    .professional-tasks-overlay {
+      padding: 0;
+    }
+
+    .professional-tasks-modal {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
+    .professional-tasks-header {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .professional-tasks-content {
+      padding: var(--space-4);
+    }
+
+    .professional-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .professional-add-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .professional-quick-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .professional-skills-grid {
+      gap: var(--space-2);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .professional-tasks-modal {
+      transition: none;
+    }
   }
 `;
 
@@ -454,12 +561,26 @@ function render(): string {
               </div>
             ` : `
               <div class="professional-skills-grid">
-                ${skills.map(s => `
+                ${skills.map((s, idx) => `
                   <span class="professional-skill-tag">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                     ${s}
+                    <span class="skill-actions">
+                      <button class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </span>
                   </span>
                 `).join('')}
               </div>
@@ -496,9 +617,25 @@ function render(): string {
                 <h4 class="professional-empty-title">No domain knowledge</h4>
                 <p class="professional-empty-text">Define the areas this assistant has expertise in.</p>
               </div>
-            ` : domains.map(d => `
+            ` : domains.map((d, idx) => `
               <div class="professional-domain-card">
-                <h4 class="professional-domain-title">${d.name}</h4>
+                <div class="professional-domain-header">
+                  <h4 class="professional-domain-title">${d.name}</h4>
+                  <div class="professional-domain-actions">
+                    <button class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    <button class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 ${d.description ? `<p class="professional-domain-description">${d.description}</p>` : ''}
               </div>
             `).join('')}
@@ -653,6 +790,22 @@ function attachListeners(): void {
   tasksModal.querySelector('[data-action="add-skill"]')?.addEventListener('click', handleAddSkill);
   tasksModal.querySelector('[data-action="add-domain"]')?.addEventListener('click', handleAddDomain);
 
+  // Skill edit/delete
+  tasksModal.querySelectorAll('[data-action="edit-skill"]').forEach(btn => {
+    btn.addEventListener('click', handleEditSkill);
+  });
+  tasksModal.querySelectorAll('[data-action="delete-skill"]').forEach(btn => {
+    btn.addEventListener('click', handleDeleteSkill);
+  });
+
+  // Domain edit/delete
+  tasksModal.querySelectorAll('[data-action="edit-domain"]').forEach(btn => {
+    btn.addEventListener('click', handleEditDomain);
+  });
+  tasksModal.querySelectorAll('[data-action="delete-domain"]').forEach(btn => {
+    btn.addEventListener('click', handleDeleteDomain);
+  });
+
   // Quick actions
   tasksModal.querySelectorAll('[data-action="start-task"]').forEach(btn => {
     btn.addEventListener('click', handleStartTask);
@@ -711,6 +864,138 @@ async function handleAddDomain(): Promise<void> {
   } catch (err) {
     log.error('Failed to add domain:', err);
     toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleEditSkill(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const index = parseInt(btn.dataset.index || '0', 10);
+  
+  if (!currentAgent) return;
+
+  const { toast } = await import('./toast.ui.js');
+  const skills = (currentAgent.personality?.values || []) as string[];
+  const currentSkill = skills[index];
+
+  const newSkill = prompt('Edit this skill:', currentSkill);
+  if (!newSkill || newSkill === currentSkill) return;
+
+  try {
+    const updatedSkills = [...skills];
+    updatedSkills[index] = newSkill;
+
+    const updates = {
+      personality: {
+        ...currentAgent.personality,
+        values: updatedSkills
+      }
+    };
+
+    await updateCustomAgent(currentAgent.id, updates);
+    toast.success('Skill updated!');
+    await openProfessionalTasks(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit skill:', err);
+    toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleDeleteSkill(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const index = parseInt(btn.dataset.index || '0', 10);
+  
+  if (!currentAgent) return;
+
+  const { toast } = await import('./toast.ui.js');
+  const skills = (currentAgent.personality?.values || []) as string[];
+
+  if (!confirm(`Remove skill "${skills[index]}"?`)) return;
+
+  try {
+    const updatedSkills = skills.filter((_, i) => i !== index);
+
+    const updates = {
+      personality: {
+        ...currentAgent.personality,
+        values: updatedSkills
+      }
+    };
+
+    await updateCustomAgent(currentAgent.id, updates);
+    toast.success('Skill removed');
+    await openProfessionalTasks(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete skill:', err);
+    toast.error("Couldn't remove. Try again?");
+  }
+}
+
+async function handleEditDomain(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const index = parseInt(btn.dataset.index || '0', 10);
+  
+  if (!currentAgent) return;
+
+  const { toast } = await import('./toast.ui.js');
+  const domains = (currentAgent.memories?.wisdom || []) as Array<{ name: string; description: string }>;
+  const currentDomain = domains[index];
+
+  const newName = prompt('Domain name:', currentDomain.name);
+  if (!newName) return;
+
+  const newDescription = prompt('Description:', currentDomain.description || '') || '';
+
+  try {
+    const updatedDomains = [...domains];
+    updatedDomains[index] = { name: newName, description: newDescription };
+
+    const updates = {
+      memories: {
+        ...currentAgent.memories,
+        wisdom: updatedDomains
+      }
+    };
+
+    await updateCustomAgent(currentAgent.id, updates);
+    toast.success('Domain updated!');
+    await openProfessionalTasks(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit domain:', err);
+    toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleDeleteDomain(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const index = parseInt(btn.dataset.index || '0', 10);
+  
+  if (!currentAgent) return;
+
+  const { toast } = await import('./toast.ui.js');
+  const domains = (currentAgent.memories?.wisdom || []) as Array<{ name: string; description: string }>;
+
+  if (!confirm(`Remove domain "${domains[index].name}"?`)) return;
+
+  try {
+    const updatedDomains = domains.filter((_, i) => i !== index);
+
+    const updates = {
+      memories: {
+        ...currentAgent.memories,
+        wisdom: updatedDomains
+      }
+    };
+
+    await updateCustomAgent(currentAgent.id, updates);
+    toast.success('Domain removed');
+    await openProfessionalTasks(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete domain:', err);
+    toast.error("Couldn't remove. Try again?");
   }
 }
 

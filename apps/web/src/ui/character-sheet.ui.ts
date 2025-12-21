@@ -35,7 +35,7 @@ const STYLES = `
   .character-sheet-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.6);
+    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -297,6 +297,106 @@ const STYLES = `
     color: var(--color-text-primary);
     margin: 0;
   }
+
+  .character-item-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .character-item-btn {
+    font-size: 0.7rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .character-item-btn:hover {
+    background: var(--color-background-hover);
+    color: var(--color-text-primary);
+  }
+
+  .character-item-btn--delete:hover {
+    background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
+    color: var(--color-semantic-error, #ef4444);
+  }
+
+  .character-quirk-tag {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .character-quirk-delete {
+    opacity: 0;
+    margin-left: var(--space-1);
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .character-quirk-tag:hover .character-quirk-delete {
+    opacity: 1;
+  }
+
+  .character-quirk-delete:hover {
+    color: var(--color-semantic-error, #ef4444);
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 640px) {
+    .character-sheet-overlay {
+      padding: 0;
+    }
+
+    .character-sheet-modal {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
+    .character-sheet-header {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .character-sheet-content {
+      padding: var(--space-4);
+    }
+
+    .character-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .character-add-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .character-quirks-grid {
+      gap: var(--space-2);
+    }
+
+    .character-catchphrases-list {
+      gap: var(--space-2);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .character-sheet-modal {
+      transition: none;
+    }
+  }
 `;
 
 // ============================================================================
@@ -431,7 +531,12 @@ function render(): string {
               </div>
             ` : `
               <div class="character-quirks-list">
-                ${quirks.map(q => `<span class="character-quirk-tag">${q}</span>`).join('')}
+                ${quirks.map((q, i) => `
+                  <span class="character-quirk-tag" data-index="${i}">
+                    ${q}
+                    <button class="character-quirk-delete" data-action="delete-quirk" data-index="${i}" aria-label="Delete quirk">×</button>
+                  </span>
+                `).join('')}
               </div>
             `}
           </section>
@@ -463,9 +568,19 @@ function render(): string {
                 <h4 class="character-empty-title">No catchphrases yet</h4>
                 <p class="character-empty-text">What does this character always say?</p>
               </div>
-            ` : catchphrases.map(c => `
-              <div class="character-catchphrase-card">
+            ` : catchphrases.map((c, i) => `
+              <div class="character-catchphrase-card" data-index="${i}">
                 <p class="character-catchphrase-text">"${c}"</p>
+                <div class="character-item-actions">
+                  <button class="character-item-btn" data-action="edit-catchphrase" data-index="${i}">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="character-item-btn character-item-btn--delete" data-action="delete-catchphrase" data-index="${i}">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             `).join('')}
           </section>
@@ -503,8 +618,8 @@ function render(): string {
               </div>
             ` : `
               <div class="character-relationships-list">
-                ${relationships.map(r => `
-                  <div class="character-relationship-card">
+                ${relationships.map((r, i) => `
+                  <div class="character-relationship-card" data-index="${i}">
                     <div class="character-relationship-icon">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="8" r="5"/>
@@ -514,6 +629,12 @@ function render(): string {
                     <div class="character-relationship-info">
                       <p class="character-relationship-name">${r.personName}</p>
                       <p class="character-relationship-type">${r.relationship}</p>
+                      <div class="character-item-actions">
+                        <button class="character-item-btn character-item-btn--delete" data-action="delete-relationship" data-index="${i}">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                 `).join('')}
@@ -616,6 +737,38 @@ function attachListeners(): void {
   characterModal.querySelector('[data-action="add-quirk"]')?.addEventListener('click', handleAddQuirk);
   characterModal.querySelector('[data-action="add-catchphrase"]')?.addEventListener('click', handleAddCatchphrase);
   characterModal.querySelector('[data-action="add-relationship"]')?.addEventListener('click', handleAddRelationship);
+
+  // Delete quirks
+  characterModal.querySelectorAll('[data-action="delete-quirk"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteQuirk(index);
+    });
+  });
+
+  // Edit/Delete catchphrases
+  characterModal.querySelectorAll('[data-action="edit-catchphrase"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleEditCatchphrase(index);
+    });
+  });
+
+  characterModal.querySelectorAll('[data-action="delete-catchphrase"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteCatchphrase(index);
+    });
+  });
+
+  // Delete relationships
+  characterModal.querySelectorAll('[data-action="delete-relationship"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteRelationship(index);
+    });
+  });
 }
 
 async function handleEditBackstory(): Promise<void> {
@@ -712,6 +865,93 @@ async function handleAddRelationship(): Promise<void> {
   } catch (err) {
     log.error('Failed to add relationship:', err);
     toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleDeleteQuirk(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  try {
+    const quirks = (currentAgent.behaviors?.quirks as string[]) || [];
+    const updatedQuirks = quirks.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      behaviors: { ...currentAgent.behaviors, quirks: updatedQuirks }
+    });
+    toast.success('Removed');
+    await openCharacterSheet(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete quirk:', err);
+    toast.error("Couldn't delete. Try again?");
+  }
+}
+
+async function handleEditCatchphrase(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  const catchphrases = (currentAgent.behaviors?.catchphrases as string[]) || [];
+  const item = catchphrases[index];
+  if (!item) return;
+
+  const newCatchphrase = prompt("Edit this catchphrase:", item);
+  if (!newCatchphrase) return;
+
+  try {
+    const updatedCatchphrases = [...catchphrases];
+    updatedCatchphrases[index] = newCatchphrase;
+
+    await updateCustomAgent(currentAgent.id, {
+      behaviors: { ...currentAgent.behaviors, catchphrases: updatedCatchphrases }
+    });
+    toast.success('Updated!');
+    await openCharacterSheet(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit catchphrase:', err);
+    toast.error("Couldn't update. Try again?");
+  }
+}
+
+async function handleDeleteCatchphrase(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Delete this catchphrase?')) return;
+
+  try {
+    const catchphrases = (currentAgent.behaviors?.catchphrases as string[]) || [];
+    const updatedCatchphrases = catchphrases.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      behaviors: { ...currentAgent.behaviors, catchphrases: updatedCatchphrases }
+    });
+    toast.success('Deleted');
+    await openCharacterSheet(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete catchphrase:', err);
+    toast.error("Couldn't delete. Try again?");
+  }
+}
+
+async function handleDeleteRelationship(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Remove this relationship?')) return;
+
+  try {
+    const relationships = (currentAgent.memories?.relationships || []) as Array<{ personName: string; relationship: string }>;
+    const updatedRelationships = relationships.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, relationships: updatedRelationships }
+    });
+    toast.success('Removed');
+    await openCharacterSheet(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete relationship:', err);
+    toast.error("Couldn't delete. Try again?");
   }
 }
 

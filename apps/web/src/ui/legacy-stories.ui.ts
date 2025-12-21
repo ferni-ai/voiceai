@@ -35,7 +35,7 @@ const STYLES = `
   .legacy-stories-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.6);
+    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -230,6 +230,141 @@ const STYLES = `
     font-size: 0.8rem;
     color: var(--color-text-muted);
   }
+
+  .legacy-card-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .legacy-action-btn {
+    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .legacy-action-btn:hover {
+    background: var(--color-background-hover);
+    color: var(--color-text-primary);
+  }
+
+  .legacy-action-btn--delete:hover {
+    background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
+    color: var(--color-semantic-error, #ef4444);
+  }
+
+  .legacy-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .legacy-edit-input,
+  .legacy-edit-textarea {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--color-background-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+  }
+
+  .legacy-edit-input:focus,
+  .legacy-edit-textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .legacy-edit-textarea {
+    min-height: 80px;
+  }
+
+  .legacy-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  .legacy-edit-btn {
+    font-size: 0.8rem;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all ${DURATION.FAST}ms ease;
+  }
+
+  .legacy-edit-btn--cancel {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+  }
+
+  .legacy-edit-btn--save {
+    background: var(--color-accent);
+    border: none;
+    color: white;
+  }
+
+  .legacy-edit-btn--save:hover {
+    filter: brightness(1.1);
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 640px) {
+    .legacy-stories-overlay {
+      padding: 0;
+    }
+
+    .legacy-stories-modal {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
+    .legacy-stories-header {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .legacy-stories-content {
+      padding: var(--space-4);
+    }
+
+    .legacy-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .legacy-add-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .legacy-card-actions {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .legacy-stories-modal {
+      transition: none;
+    }
+  }
 `;
 
 // ============================================================================
@@ -287,10 +422,20 @@ function render(): string {
                 <h4 class="legacy-empty-title">No sayings yet</h4>
                 <p class="legacy-empty-text">Capture their favorite phrases, advice, and words of wisdom.</p>
               </div>
-            ` : wisdom.map(w => `
-              <div class="legacy-wisdom-card">
+            ` : wisdom.map((w, i) => `
+              <div class="legacy-wisdom-card" data-index="${i}">
                 <p class="legacy-wisdom-quote">"${w.quote}"</p>
                 ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
+                <div class="legacy-card-actions">
+                  <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             `).join('')}
           </section>
@@ -324,10 +469,20 @@ function render(): string {
                 <h4 class="legacy-empty-title">No stories yet</h4>
                 <p class="legacy-empty-text">Record the stories they loved to tell - the ones that made everyone laugh or cry.</p>
               </div>
-            ` : stories.map(s => `
-              <div class="legacy-story-card">
+            ` : stories.map((s, i) => `
+              <div class="legacy-story-card" data-index="${i}">
                 <p class="legacy-story-content">${s.content}</p>
                 ${s.date ? `<span class="legacy-story-meta">${new Date(s.date).toLocaleDateString()}</span>` : ''}
+                <div class="legacy-card-actions">
+                  <button class="legacy-action-btn" data-action="edit-story" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             `).join('')}
           </section>
@@ -423,6 +578,36 @@ function attachListeners(): void {
 
   // Add story button
   storiesModal.querySelector('[data-action="add-story"]')?.addEventListener('click', handleAddStory);
+
+  // Edit/Delete wisdom buttons
+  storiesModal.querySelectorAll('[data-action="edit-wisdom"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleEditWisdom(index);
+    });
+  });
+
+  storiesModal.querySelectorAll('[data-action="delete-wisdom"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteWisdom(index);
+    });
+  });
+
+  // Edit/Delete story buttons
+  storiesModal.querySelectorAll('[data-action="edit-story"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleEditStory(index);
+    });
+  });
+
+  storiesModal.querySelectorAll('[data-action="delete-story"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt((btn as HTMLElement).dataset.index || '0');
+      void handleDeleteStory(index);
+    });
+  });
 }
 
 async function handleAddWisdom(): Promise<void> {
@@ -477,6 +662,102 @@ async function handleAddStory(): Promise<void> {
   } catch (err) {
     log.error('Failed to add story:', err);
     toast.error("Couldn't save. Try again?");
+  }
+}
+
+async function handleEditWisdom(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  const wisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+  const item = wisdom[index];
+  if (!item) return;
+
+  const newQuote = prompt("Edit this saying:", item.quote);
+  if (!newQuote) return;
+
+  const newContext = prompt("When would they say this? (optional)", item.context || '') || undefined;
+
+  try {
+    const updatedWisdom = [...wisdom];
+    updatedWisdom[index] = { quote: newQuote, context: newContext };
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, wisdom: updatedWisdom }
+    });
+    toast.success('Updated!');
+    await openLegacyStories(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit wisdom:', err);
+    toast.error("Couldn't update. Try again?");
+  }
+}
+
+async function handleDeleteWisdom(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Delete this saying?')) return;
+
+  try {
+    const wisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+    const updatedWisdom = wisdom.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, wisdom: updatedWisdom }
+    });
+    toast.success('Deleted');
+    await openLegacyStories(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete wisdom:', err);
+    toast.error("Couldn't delete. Try again?");
+  }
+}
+
+async function handleEditStory(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  const stories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
+  const item = stories[index];
+  if (!item) return;
+
+  const newContent = prompt("Edit this story:", item.content);
+  if (!newContent) return;
+
+  try {
+    const updatedStories = [...stories];
+    updatedStories[index] = { ...item, content: newContent };
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, stories: updatedStories }
+    });
+    toast.success('Updated!');
+    await openLegacyStories(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to edit story:', err);
+    toast.error("Couldn't update. Try again?");
+  }
+}
+
+async function handleDeleteStory(index: number): Promise<void> {
+  const { toast } = await import('./toast.ui.js');
+  if (!currentAgent) return;
+
+  if (!confirm('Delete this story?')) return;
+
+  try {
+    const stories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
+    const updatedStories = stories.filter((_, i) => i !== index);
+
+    await updateCustomAgent(currentAgent.id, {
+      memories: { ...currentAgent.memories, stories: updatedStories }
+    });
+    toast.success('Deleted');
+    await openLegacyStories(currentAgent.id);
+  } catch (err) {
+    log.error('Failed to delete story:', err);
+    toast.error("Couldn't delete. Try again?");
   }
 }
 
