@@ -225,7 +225,7 @@ ferni-speaker/
 
 # ===================
 
-data/
+# Note: data/ exclusion removed - apps/web/src/data/ needs to be included
 # scripts/ - now allowing for build-fast.ts
 # !scripts/patch-livekit-timeout.js
 _.tgz
