@@ -75,9 +75,6 @@ __tests__/
 # Misc
 .DS_Store
 *.log
-# Ignore root-level data directory, but NOT src/data directories
-/data
-!**/src/data/
 # Allow needed scripts
 # scripts/ - not ignoring anymore, need build-fast.ts and patch-livekit-timeout.js
 marketplace-agents/
