@@ -40,7 +40,15 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
   }
 
   const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
-  const userId = (metadata.user_id as string) || (metadata.userId as string) || null;
+  
+  // Priority: firebase_uid (cryptographically secure) > user_id > userId
+  // This ensures Firebase-authenticated users get their Firebase UID as the profile key
+  const userId = 
+    (metadata.firebase_uid as string) ||
+    (metadata.firebaseUid as string) ||
+    (metadata.user_id as string) || 
+    (metadata.userId as string) || 
+    null;
 
   return { personaId, userId };
 }
