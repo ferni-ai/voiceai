@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     resolve: {
+      // Allow .js imports to resolve to .ts files (Node-style ESM imports)
+      extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
       alias: {
         '@': resolve(__dirname, './src'),
         // Design system - specific file alias first, then directory
