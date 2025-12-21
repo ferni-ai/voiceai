@@ -1,19 +1,40 @@
 #!/usr/bin/env npx tsx
 /**
- * GCE Blue-Green Deployment Script
+ * GCE Deployment Script
  *
  * RECOMMENDED: Use the Ferni CLI instead of calling this directly:
- *   ferni deploy gce           # Deploy to production GCE
+ *   ferni deploy gce           # Deploy to single VM (legacy)
+ *   ferni deploy gce --mig     # Deploy to Managed Instance Group (auto-scaling)
  *   ferni deploy gce --dry-run # Preview what would happen
  *
- * Deploys the voice agent to GCE with zero-downtime blue-green strategy.
+ * Deploys the voice agent to GCE with zero-downtime strategy.
  *
  * Why GCE instead of Cloud Run?
  * - WebRTC requires UDP for real-time voice (Cloud Run only supports TCP)
  * - LiveKit workers need persistent connections
  * - Better audio quality with direct UDP transport
  *
- * Blue-Green Strategy:
+ * DEPLOYMENT MODES:
+ *
+ * 1. Managed Instance Group (--mig) - RECOMMENDED for production:
+ *    - Auto-scaling: 2-5 instances based on CPU utilization
+ *    - Rolling updates with health checks
+ *    - Automatic instance replacement on failure
+ *    - Zero-downtime deployments
+ *
+ * 2. Single VM Blue-Green (default) - Legacy mode:
+ *    - Single VM with blue-green container swap
+ *    - Manual scaling only
+ *    - Good for development/testing
+ *
+ * MIG Deployment Flow:
+ * 1. Build and push Docker image
+ * 2. Create new instance template with new image
+ * 3. Trigger rolling update on MIG
+ * 4. Wait for all instances to be healthy
+ * 5. Clean up old templates
+ *
+ * Blue-Green Strategy (legacy):
  * 1. Build and push Docker image
  * 2. SSH to GCE VM
  * 3. Pull new image
@@ -777,17 +798,20 @@ function rollback(): void {
 // ============================================================================
 
 async function main(): Promise<void> {
-  console.log(`
-${colors.bold}${colors.magenta}╔═══════════════════════════════════════════════════════════╗
-║           GCE BLUE-GREEN DEPLOYMENT                       ║
-╚═══════════════════════════════════════════════════════════╝${colors.reset}
-`);
-
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
   const isRollback = args.includes('--rollback');
   const forceCloudBuild = args.includes('--cloud-build');
-  
+  const useMig = args.includes('--mig');
+
+  const headerText = useMig ? 'GCE MANAGED INSTANCE GROUP DEPLOYMENT' : 'GCE BLUE-GREEN DEPLOYMENT';
+
+  console.log(`
+${colors.bold}${colors.magenta}╔═══════════════════════════════════════════════════════════╗
+║           ${headerText.padEnd(43)}║
+╚═══════════════════════════════════════════════════════════╝${colors.reset}
+`);
+
   // Auto-detect if local Docker is available
   let useCloudBuild = forceCloudBuild;
   if (!useCloudBuild) {
@@ -809,7 +833,13 @@ ${colors.bold}${colors.magenta}╔═══════════════�
 
   // Show configuration
   log.info(`Project: ${CONFIG.projectId}`);
-  log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
+  if (useMig) {
+    log.info(`MIG: ${CONFIG.migName} (${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances)`);
+    const migStatus = getMigStatus();
+    log.info(`Current status: ${migStatus.healthy}/${migStatus.total} healthy, stable: ${migStatus.isStable}`);
+  } else {
+    log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
+  }
   log.info(`Zone: ${CONFIG.zone}`);
 
   if (isRollback) {
@@ -820,6 +850,55 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     rollback();
     return;
   }
+
+  // Fetch secrets
+  const secrets = getSecrets();
+  if (Object.keys(secrets).length === 0) {
+    log.error('No secrets found - cannot deploy');
+    process.exit(1);
+  }
+  log.success(`Loaded ${Object.keys(secrets).length} secrets`);
+
+  // =========================================================================
+  // MIG DEPLOYMENT PATH
+  // =========================================================================
+  if (useMig) {
+    if (isDryRun) {
+      log.info(`Would build image using ${useCloudBuild ? 'Cloud Build' : 'local Docker'}`);
+      log.info(`Would create new instance template`);
+      log.info(`Would trigger rolling update on ${CONFIG.migName}`);
+      log.info('Would wait for all instances to be healthy');
+      log.info('Would clean up old instance templates');
+      return;
+    }
+
+    // Build and push
+    const image = buildAndPush(useCloudBuild);
+
+    // Deploy to MIG with rolling update
+    await deployToMig(image, secrets);
+
+    // Get final status
+    const finalStatus = getMigStatus();
+
+    console.log(`
+${colors.bold}${colors.green}╔═══════════════════════════════════════════════════════════╗
+║           MIG DEPLOYMENT COMPLETE                          ║
+╚═══════════════════════════════════════════════════════════╝${colors.reset}
+
+  ${colors.cyan}Service:${colors.reset}      ${CONFIG.containerName}
+  ${colors.cyan}MIG:${colors.reset}          ${CONFIG.migName}
+  ${colors.cyan}Image:${colors.reset}        ${image}
+  ${colors.cyan}Instances:${colors.reset}    ${finalStatus.healthy}/${finalStatus.total} healthy
+  ${colors.cyan}Auto-scale:${colors.reset}   ${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances
+  ${colors.cyan}Status:${colors.reset}       ${finalStatus.isStable ? colors.green + 'STABLE' : colors.yellow + 'UPDATING'}${colors.reset}
+`);
+    return;
+  }
+
+  // =========================================================================
+  // SINGLE VM BLUE-GREEN DEPLOYMENT PATH (Legacy)
+  // =========================================================================
 
   // Determine deployment slot
   const currentSlot = getCurrentSlot();
@@ -838,14 +917,6 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     log.info('Would perform disk cleanup (remove old images, truncate logs)');
     return;
   }
-
-  // Fetch secrets
-  const secrets = getSecrets();
-  if (Object.keys(secrets).length === 0) {
-    log.error('No secrets found - cannot deploy');
-    process.exit(1);
-  }
-  log.success(`Loaded ${Object.keys(secrets).length} secrets`);
 
   // Ensure Redis sidecar is running
   await ensureRedisRunning();

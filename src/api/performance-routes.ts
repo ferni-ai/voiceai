@@ -17,6 +17,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
@@ -24,6 +25,17 @@ import { perfInstrumentation } from '../services/performance-instrumentation.js'
 import { getLoadedDomains, isDomainLoaded } from '../tools/index.js';
 
 const log = createLogger({ module: 'PerformanceRoutes' });
+
+// ============================================================================
+// VALIDATION SCHEMAS (Zod)
+// ============================================================================
+
+const PerformanceConfigSchema = z.object({
+  warningThresholdMB: z.number().optional(),
+  criticalThresholdMB: z.number().optional(),
+  checkIntervalMs: z.number().optional(),
+  enableAutoCheck: z.boolean().optional(),
+});
 
 // Base path for these routes
 const BASE_PATH = '/api/performance';
@@ -156,22 +168,23 @@ export async function handlePerformanceRoutes(
     // ========================================================================
     if (subPath === '/config' && method === 'POST') {
       const body = await parseBody<Record<string, unknown>>(req);
+      const result = PerformanceConfigSchema.safeParse(body);
+      if (!result.success) {
+        sendError(res, result.error.issues[0]?.message || 'Invalid config', 400);
+        return true;
+      }
+
+      const { warningThresholdMB, criticalThresholdMB, checkIntervalMs, enableAutoCheck } =
+        result.data;
 
       const config: Record<string, unknown> = {};
-      if (typeof body.warningThresholdMB === 'number') {
-        config.warningThresholdMB = body.warningThresholdMB;
-      }
-      if (typeof body.criticalThresholdMB === 'number') {
-        config.criticalThresholdMB = body.criticalThresholdMB;
-      }
-      if (typeof body.checkIntervalMs === 'number') {
-        config.checkIntervalMs = body.checkIntervalMs;
-      }
-      if (typeof body.enableAutoCheck === 'boolean') {
-        config.enableAutoCheck = body.enableAutoCheck;
-
+      if (warningThresholdMB !== undefined) config.warningThresholdMB = warningThresholdMB;
+      if (criticalThresholdMB !== undefined) config.criticalThresholdMB = criticalThresholdMB;
+      if (checkIntervalMs !== undefined) config.checkIntervalMs = checkIntervalMs;
+      if (enableAutoCheck !== undefined) {
+        config.enableAutoCheck = enableAutoCheck;
         // Start/stop auto monitoring based on setting
-        if (body.enableAutoCheck) {
+        if (enableAutoCheck) {
           perfInstrumentation.startAutoMonitoring();
         } else {
           perfInstrumentation.stopAutoMonitoring();

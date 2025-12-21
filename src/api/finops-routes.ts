@@ -208,7 +208,7 @@ export async function handleFinOpsRoutes(
       const body = await parseBody(req);
       const result = LtvCacConfigSchema.safeParse(body);
       if (!result.success) {
-        sendJSON(res, { error: result.error.errors[0]?.message || 'Invalid LTV/CAC config' }, 400);
+        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid LTV/CAC config' }, 400);
         return true;
       }
       const { cac, lifetimeMonths, churnRate } = result.data;

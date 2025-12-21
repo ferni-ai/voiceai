@@ -252,6 +252,46 @@ export async function listCustomAgents(userId: string): Promise<CustomAgent[]> {
 }
 
 /**
+ * Deep merges two objects, preserving existing values when partial updates are made
+ */
+function deepMerge<T extends Record<string, unknown>>(
+  existing: T,
+  updates: Partial<T>
+): T {
+  const result = { ...existing };
+  
+  for (const key in updates) {
+    const updateValue = updates[key];
+    const existingValue = existing[key];
+    
+    if (updateValue === undefined) {
+      continue; // Skip undefined values
+    }
+    
+    // If both are objects (not arrays, not null), deep merge
+    if (
+      existingValue !== null &&
+      updateValue !== null &&
+      typeof existingValue === 'object' &&
+      typeof updateValue === 'object' &&
+      !Array.isArray(existingValue) &&
+      !Array.isArray(updateValue) &&
+      !(existingValue instanceof Date) &&
+      !(updateValue instanceof Date)
+    ) {
+      result[key] = deepMerge(
+        existingValue as Record<string, unknown>,
+        updateValue as Record<string, unknown>
+      ) as T[Extract<keyof T, string>];
+    } else {
+      result[key] = updateValue as T[Extract<keyof T, string>];
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Updates a custom agent
  */
 export async function updateCustomAgent(
@@ -272,21 +312,22 @@ export async function updateCustomAgent(
       return null;
     }
 
-    // Prepare update data
-    const updateData = {
-      ...data,
-      updatedAt: new Date(),
-    };
+    // Get existing data
+    const existingData = existing.data() as CustomAgent;
+
+    // Deep merge the updates with existing data
+    const mergedData = deepMerge(existingData, data);
+    mergedData.updatedAt = new Date();
 
     // Remove fields that shouldn't be updated directly
-    delete (updateData as Partial<CustomAgent>).id;
-    delete (updateData as Partial<CustomAgent>).userId;
-    delete (updateData as Partial<CustomAgent>).createdAt;
+    delete (mergedData as Partial<CustomAgent>).id;
+    delete (mergedData as Partial<CustomAgent>).userId;
+    delete (mergedData as Partial<CustomAgent>).createdAt;
 
     // Remove undefined fields for Firestore compatibility
-    const firestoreDoc = removeUndefinedFields(updateData as Record<string, unknown>);
+    const firestoreDoc = removeUndefinedFields(mergedData as Record<string, unknown>);
 
-    await docRef.update(firestoreDoc);
+    await docRef.set(firestoreDoc, { merge: true });
 
     // Fetch and return updated document
     const updated = await docRef.get();

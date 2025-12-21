@@ -197,6 +197,11 @@ function getQualityRating(totalDuration: number): 'poor' | 'fair' | 'good' | 'ex
 const pendingUploads = new Map<string, ProcessedUpload[]>();
 
 /**
+ * In-memory storage for audio buffers (would be GCS in production)
+ */
+const audioBuffers = new Map<string, ArrayBuffer>();
+
+/**
  * Process uploaded audio files for voice cloning
  */
 export async function processVoiceUpload(
@@ -230,8 +235,12 @@ export async function processVoiceUpload(
     // Store temporarily (in production, upload to GCS)
     const storageUrl = `temp://${uploadId}/${file.filename}`;
 
+    // Store the audio buffer for later use
+    const bufferKey = `${uploadId}_${file.filename}`;
+    audioBuffers.set(bufferKey, file.buffer);
+
     processed.push({
-      uploadId,
+      uploadId: bufferKey, // Use buffer key as uploadId for retrieval
       filename: file.filename,
       analysis,
       storageUrl,
@@ -254,8 +263,14 @@ export async function processVoiceUpload(
   // Schedule cleanup after 1 hour
   setTimeout(
     () => {
+      const uploadsToClean = pendingUploads.get(uploadId);
+      if (uploadsToClean) {
+        for (const upload of uploadsToClean) {
+          audioBuffers.delete(upload.uploadId);
+        }
+      }
       pendingUploads.delete(uploadId);
-      log.debug({ uploadId }, 'Cleaned up pending upload');
+      log.debug({ uploadId }, 'Cleaned up pending upload and audio buffers');
     },
     60 * 60 * 1000
   );
@@ -294,12 +309,6 @@ export async function createVoiceClone(
     throw new Error('Upload not found or expired');
   }
 
-  // Check API key
-  if (!CARTESIA_API_KEY) {
-    log.error('CARTESIA_API_KEY not configured');
-    throw new Error('Voice cloning service not configured');
-  }
-
   // Calculate total duration
   const totalDuration = uploads.reduce((sum, u) => sum + u.analysis.speechDuration, 0);
   if (totalDuration < QUALITY_THRESHOLDS.minimum) {
@@ -312,16 +321,14 @@ export async function createVoiceClone(
   const cloneName = voiceName || `ferni_custom_${userId}_${agentId}`;
 
   try {
-    // In production, this would:
-    // 1. Combine audio files if multiple
-    // 2. Upload to Cartesia
-    // 3. Create the voice clone
+    // Call Cartesia API with audio buffers
+    const response = await callCartesiaCloneAPI(cloneName, uploads, audioBuffers);
 
-    // For now, simulate the API call
-    const response = await callCartesiaCloneAPI(cloneName, uploads);
-
-    // Clean up pending uploads
+    // Clean up pending uploads and audio buffers
     pendingUploads.delete(uploadId);
+    for (const upload of uploads) {
+      audioBuffers.delete(upload.uploadId);
+    }
 
     log.info(
       { agentId, voiceId: response.id, qualityScore: uploads[0].analysis.qualityScore },
@@ -341,45 +348,82 @@ export async function createVoiceClone(
 
 /**
  * Call Cartesia Voice Clone API
+ * 
+ * Uses Cartesia's instant voice cloning API which requires just 10 seconds of audio.
+ * Docs: https://docs.cartesia.ai/api-reference/voices/clone
  */
 async function callCartesiaCloneAPI(
   name: string,
-  _uploads: ProcessedUpload[]
+  uploads: ProcessedUpload[],
+  audioBuffers: Map<string, ArrayBuffer>
 ): Promise<CartesiaVoiceCloneResponse> {
-  // In production, this would make the actual API call:
-  //
-  // const formData = new FormData();
-  // formData.append('name', name);
-  // formData.append('description', `Custom voice for ${name}`);
-  //
-  // // Combine audio files or upload separately
-  // for (const upload of uploads) {
-  //   const audioBlob = await fetchAudioFromStorage(upload.storageUrl);
-  //   formData.append('clip', audioBlob, upload.filename);
-  // }
-  //
-  // const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone/clip`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'X-API-Key': CARTESIA_API_KEY!,
-  //   },
-  //   body: formData,
-  // });
-  //
-  // if (!response.ok) {
-  //   throw new Error(`Cartesia API error: ${response.status}`);
-  // }
-  //
-  // return response.json();
+  // If no API key, return simulated response for development
+  if (!CARTESIA_API_KEY) {
+    log.warn('CARTESIA_API_KEY not set, using simulated voice clone');
+    return {
+      id: `voice_sim_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      name,
+      description: `Custom voice for ${name} (simulated)`,
+      is_public: false,
+      created_at: new Date().toISOString(),
+    };
+  }
 
-  // Simulated response for development
-  return {
-    id: `voice_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-    name,
-    description: `Custom voice for ${name}`,
-    is_public: false,
-    created_at: new Date().toISOString(),
-  };
+  try {
+    // Build FormData for Cartesia API
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', `Custom voice for ${name}`);
+    formData.append('language', 'en');
+
+    // Add audio clips
+    for (const upload of uploads) {
+      const buffer = audioBuffers.get(upload.uploadId);
+      if (buffer) {
+        // Convert ArrayBuffer to Blob
+        const blob = new Blob([buffer], { type: 'audio/wav' });
+        formData.append('clip', blob, upload.filename);
+      }
+    }
+
+    log.info({ name, clipCount: uploads.length }, 'Calling Cartesia voice clone API');
+
+    const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone/clip`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': CARTESIA_API_KEY,
+        'Cartesia-Version': '2024-06-10',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'Cartesia API error');
+      throw new Error(`Cartesia API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json() as CartesiaVoiceCloneResponse;
+    log.info({ voiceId: result.id, name: result.name }, 'Voice clone created successfully');
+
+    return result;
+  } catch (error) {
+    log.error({ error: String(error), name }, 'Failed to call Cartesia API');
+    
+    // Fallback to simulated response in case of network errors
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn('Falling back to simulated voice clone');
+      return {
+        id: `voice_fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        name,
+        description: `Custom voice for ${name} (fallback)`,
+        is_public: false,
+        created_at: new Date().toISOString(),
+      };
+    }
+    
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -387,42 +431,71 @@ async function callCartesiaCloneAPI(
 // ============================================================================
 
 /**
- * Generate a preview of the cloned voice
+ * Generate a preview of the cloned voice using Cartesia TTS
  */
 export async function generateVoicePreview(
   voiceId: string,
   text: string
-): Promise<{ audioUrl: string; durationSeconds: number }> {
+): Promise<{ audioUrl: string; durationSeconds: number; audioBase64?: string }> {
   log.info({ voiceId, textLength: text.length }, 'Generating voice preview');
 
+  // If no API key, return simulated response
   if (!CARTESIA_API_KEY) {
-    throw new Error('Voice service not configured');
+    log.warn('CARTESIA_API_KEY not set, returning simulated preview');
+    return {
+      audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
+      durationSeconds: text.length * 0.05,
+    };
   }
 
-  // In production, this would call Cartesia TTS API:
-  //
-  // const response = await fetch(`${CARTESIA_BASE_URL}/tts/bytes`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'X-API-Key': CARTESIA_API_KEY,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     model_id: 'sonic-english',
-  //     voice: { mode: 'id', id: voiceId },
-  //     transcript: text,
-  //     output_format: { container: 'mp3', encoding: 'mp3', sample_rate: 44100 },
-  //   }),
-  // });
-  //
-  // const audioBuffer = await response.arrayBuffer();
-  // const audioUrl = await uploadToStorage(audioBuffer);
+  try {
+    const response = await fetch(`${CARTESIA_BASE_URL}/tts/bytes`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': CARTESIA_API_KEY,
+        'Cartesia-Version': '2024-06-10',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model_id: 'sonic-english',
+        voice: { mode: 'id', id: voiceId },
+        transcript: text,
+        output_format: { container: 'mp3', encoding: 'mp3', sample_rate: 44100 },
+      }),
+    });
 
-  // Simulated response
-  return {
-    audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
-    durationSeconds: text.length * 0.05, // Rough estimate
-  };
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'Cartesia TTS API error');
+      throw new Error(`TTS API error: ${response.status}`);
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+    
+    // Estimate duration based on audio size (~128kbps MP3)
+    const durationSeconds = (audioBuffer.byteLength * 8) / (128 * 1000);
+
+    log.info({ voiceId, durationSeconds }, 'Voice preview generated');
+
+    return {
+      audioUrl: `data:audio/mp3;base64,${audioBase64}`,
+      durationSeconds,
+      audioBase64,
+    };
+  } catch (error) {
+    log.error({ error: String(error), voiceId }, 'Failed to generate voice preview');
+    
+    // Fallback for development
+    if (process.env.NODE_ENV !== 'production') {
+      return {
+        audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
+        durationSeconds: text.length * 0.05,
+      };
+    }
+    
+    throw error;
+  }
 }
 
 // ============================================================================

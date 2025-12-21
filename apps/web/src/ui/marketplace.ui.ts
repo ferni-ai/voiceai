@@ -298,6 +298,9 @@ export async function openMarketplace(): Promise<void> {
   searchQuery = '';
   currentCategory = null;
 
+  // Reset tab UI to match state (fixes bug where tab shows wrong selection)
+  updateTabs();
+
   // Show modal
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
