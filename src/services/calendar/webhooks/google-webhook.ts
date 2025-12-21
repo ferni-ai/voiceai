@@ -113,7 +113,7 @@ export async function createWatchChannel(
 
   try {
     // Get OAuth tokens
-    const { getUserTokens } = await import('../../google-calendar-oauth.js');
+    const { getUserTokens } = await import('../../identity/google-calendar-oauth.js');
     const tokens = await getUserTokens(userId);
 
     if (!tokens?.access_token) {
@@ -195,7 +195,7 @@ export async function stopWatchChannel(channelId: string, resourceId: string): P
       return false;
     }
 
-    const { getUserTokens } = await import('../../google-calendar-oauth.js');
+    const { getUserTokens } = await import('../../identity/google-calendar-oauth.js');
     const tokens = await getUserTokens(channel.userId);
 
     if (!tokens?.access_token) {

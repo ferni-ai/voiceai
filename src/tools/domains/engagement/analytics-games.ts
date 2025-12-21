@@ -138,7 +138,8 @@ export const weeklyPredictionDef: ToolDefinition = {
         ];
 
         // Lazy import to avoid circular deps
-        const { getEngagementStore } = await import('../../../services/engagement-store.js');
+        const { getEngagementStore } =
+          await import('../../../services/engagement/engagement-store.js');
         const { getEngagementDataSender } =
           await import('../../../services/engagement-data-sender.js');
 

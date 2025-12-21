@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getProductivityStore } from '../productivity-store.js';
+import { getProductivityStore } from '../stores/productivity-store.js';
 import { publishOutreachTrigger, type OutreachTriggerPayload } from './trigger-publisher.js';
 import type { OutreachPriority } from './decision-engine.js';
 

@@ -20,8 +20,8 @@ import { endConversation as endConversationState } from '../../services/conversa
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
-import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
-import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
+import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
+import { recordSessionEnd } from '../../services/voice/voice-humanization-metrics.js';
 // 🎤 Speech module cleanup - single source of truth for 30+ session-scoped services
 import {
   cleanupProsodyBridge,
@@ -47,7 +47,7 @@ import {
 } from '../integrations/speech-metrics-integration.js';
 
 // Better-than-human API services cleanup
-import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
+import { clearEmotionalArc } from '../../intelligence/context-builders/emotional/advanced-voice-emotion.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
@@ -724,10 +724,11 @@ async function cleanupMusic(): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
     if (isMusicEnabled()) {
-      const { shutdownSpotify } = await import('../../tools/spotify.js');
+      const { shutdownSpotify } = await import('../../tools/domains/entertainment/spotify.js');
       shutdownSpotify();
       const { resetMusicPlayer } = await import('../../audio/index.js');
-      resetMusicPlayer();
+      // 🐛 FIX: Await the async resetMusicPlayer to prevent race conditions
+      await resetMusicPlayer();
       diag.session('Spotify and music player reset');
     }
   } catch (e) {
@@ -811,7 +812,7 @@ function cleanupAdvancedEmotionServices(sessionId: string): void {
 async function cleanupDeepHumanization(sessionId: string): Promise<void> {
   try {
     const { cleanupDeepHumanization: cleanup } =
-      await import('../../intelligence/context-builders/deep-humanization.js');
+      await import('../../intelligence/context-builders/humanization/deep-humanization.js');
     cleanup(sessionId);
     diag.session('🎭 Deep humanization session cleaned up');
   } catch (deepHumanCleanupErr) {

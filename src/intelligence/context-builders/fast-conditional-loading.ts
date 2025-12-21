@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { BuilderCategory as BC, getBuilderCategory } from './categories.js';
+import { BuilderCategory as BC, getBuilderCategory } from './core/categories.js';
 import { DISTRESS } from '../distress-levels.js';
 import type { ContextBuilderInput, ContextBuilder, ConversationAnalysis } from './index.js';
 

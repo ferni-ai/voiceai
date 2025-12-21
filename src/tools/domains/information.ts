@@ -9,8 +9,12 @@
  * - Wisdom (quotes, history)
  */
 
-export { createNewsTools } from '../news.js';
-export { createSportsTools } from '../sports.js';
-export { createWeatherTools, getCurrentWeather, getWeatherForecast } from '../weather.js';
-export { createSearchTools } from '../search.js';
+export { createNewsTools } from './information/news.js';
+export { createSportsTools } from './information/sports.js';
+export {
+  createWeatherTools,
+  getCurrentWeather,
+  getWeatherForecast,
+} from './information/weather.js';
+export { createSearchTools } from './information/search.js';
 export { createWisdomTools } from './wisdom/wisdom.js';

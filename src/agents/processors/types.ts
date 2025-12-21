@@ -304,7 +304,7 @@ type ShouldUseHighEmotionModeFn = (analysis: any) => boolean;
  * Easter egg result type (matches EasterEggResult from personas/easter-eggs.ts)
  * NOTE: response is optional, triggered indicates if an egg was activated
  */
-interface EasterEggResultType {
+export interface EasterEggResultType {
   type: string;
   response?: string;
   triggered: boolean;

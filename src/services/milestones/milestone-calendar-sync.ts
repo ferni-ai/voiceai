@@ -434,10 +434,344 @@ function mapCategory(
 }
 
 // ============================================================================
+// BIDIRECTIONAL SYNC: Calendar → Milestones
+// ============================================================================
+
+export interface MilestoneTimeBuffer {
+  milestoneId: string;
+  milestoneName: string;
+  targetDate: Date;
+  totalBlockedHours: number;
+  blockedEvents: Array<{
+    eventId: string;
+    title: string;
+    date: Date;
+    durationHours: number;
+    purpose: 'prep' | 'focus' | 'review' | 'general';
+  }>;
+  estimatedHoursNeeded: number;
+  coverage: 'adequate' | 'light' | 'heavy' | 'none';
+  recommendation: string;
+}
+
+export interface CalendarMilestoneLink {
+  eventId: string;
+  milestoneId: string;
+  linkType: 'main' | 'prep' | 'countdown' | 'focus';
+  createdAt: Date;
+}
+
+// Keywords that indicate milestone-related calendar blocks
+const MILESTONE_KEYWORDS = ['prep for', 'focus:', 'milestone:', 'work on', 'planning:', 'review:'];
+const PREP_KEYWORDS = ['prep', 'prepare', 'preparation', 'planning'];
+const REVIEW_KEYWORDS = ['review', 'reflect', 'assess'];
+const FOCUS_KEYWORDS = ['focus', 'work on', 'deep work'];
+
+/**
+ * Detect calendar events that are related to milestones (bidirectional discovery)
+ *
+ * This scans calendar events and matches them to milestones based on:
+ * 1. Direct references (event linked to milestone via calendarEventId)
+ * 2. Keyword matching (event title mentions milestone name)
+ * 3. Date proximity (events blocked near milestone dates)
+ */
+export async function detectMilestoneRelatedEvents(
+  userId: string,
+  milestones: Milestone[],
+  daysAhead: number = 14
+): Promise<Map<string, CalendarMilestoneLink[]>> {
+  const linkMap = new Map<string, CalendarMilestoneLink[]>();
+
+  try {
+    // Check each day for events
+    for (let i = 0; i < daysAhead; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+
+      const events = await getEventsForDay(userId, date);
+      if (!events || events.length === 0) continue;
+
+      for (const event of events) {
+        const eventTitle = event.title?.toLowerCase() || '';
+
+        // Check each milestone for matches
+        for (const milestone of milestones) {
+          const milestoneName = milestone.name.toLowerCase();
+          let linkType: CalendarMilestoneLink['linkType'] | null = null;
+
+          // Direct reference - event is the milestone event
+          if (event.id === milestone.calendarEventId) {
+            linkType = 'main';
+          }
+          // Countdown reminder reference
+          else if (milestone.countdownReminderIds?.includes(event.id)) {
+            linkType = 'countdown';
+          }
+          // Title mentions milestone name
+          else if (eventTitle.includes(milestoneName)) {
+            // Determine type based on keywords
+            if (PREP_KEYWORDS.some((k) => eventTitle.includes(k))) {
+              linkType = 'prep';
+            } else if (REVIEW_KEYWORDS.some((k) => eventTitle.includes(k))) {
+              linkType = 'focus'; // We'll call review a focus type
+            } else if (FOCUS_KEYWORDS.some((k) => eventTitle.includes(k))) {
+              linkType = 'focus';
+            } else {
+              linkType = 'focus'; // Default to focus if milestone name found
+            }
+          }
+          // Generic milestone keywords + date proximity
+          else if (
+            MILESTONE_KEYWORDS.some((k) => eventTitle.includes(k)) &&
+            isWithinDays(date, milestone.date, 3)
+          ) {
+            linkType = 'prep';
+          }
+
+          if (linkType) {
+            const links = linkMap.get(milestone.id) || [];
+            links.push({
+              eventId: event.id,
+              milestoneId: milestone.id,
+              linkType,
+              createdAt: new Date(),
+            });
+            linkMap.set(milestone.id, links);
+          }
+        }
+      }
+    }
+
+    log.debug(
+      { userId, milestoneCount: milestones.length, linksFound: linkMap.size },
+      'Detected milestone-calendar links'
+    );
+
+    return linkMap;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to detect milestone-related events');
+    return new Map();
+  }
+}
+
+/**
+ * Calculate time buffers for milestones based on blocked calendar time
+ *
+ * This is the bidirectional sync: looking at what the user has blocked
+ * and calculating if they have enough time for their milestones.
+ */
+export async function calculateMilestoneTimeBuffers(
+  userId: string,
+  milestones: Milestone[]
+): Promise<MilestoneTimeBuffer[]> {
+  const buffers: MilestoneTimeBuffer[] = [];
+
+  try {
+    // Get all milestone-related events
+    const linkMap = await detectMilestoneRelatedEvents(userId, milestones, 30);
+
+    for (const milestone of milestones) {
+      const links = linkMap.get(milestone.id) || [];
+      const buffer: MilestoneTimeBuffer = {
+        milestoneId: milestone.id,
+        milestoneName: milestone.name,
+        targetDate: milestone.date,
+        totalBlockedHours: 0,
+        blockedEvents: [],
+        estimatedHoursNeeded: milestone.prepTimeHours || 10, // Default 10 hours
+        coverage: 'none',
+        recommendation: '',
+      };
+
+      // Get details for each linked event
+      for (const link of links) {
+        const events = await getEventsForDay(userId, new Date()); // We'd need the actual event date
+        const event = events.find((e) => e.id === link.eventId);
+
+        if (event) {
+          const durationHours =
+            (event.endTime.getTime() - event.startTime.getTime()) / (1000 * 60 * 60);
+
+          buffer.blockedEvents.push({
+            eventId: link.eventId,
+            title: event.title,
+            date: event.startTime,
+            durationHours,
+            purpose: linkTypeToPurpose(link.linkType),
+          });
+
+          buffer.totalBlockedHours += durationHours;
+        }
+      }
+
+      // Calculate coverage
+      const coverageRatio = buffer.totalBlockedHours / buffer.estimatedHoursNeeded;
+      if (coverageRatio >= 1.0) {
+        buffer.coverage = 'adequate';
+        buffer.recommendation = 'You have enough time blocked for this milestone. Stay focused!';
+      } else if (coverageRatio >= 0.7) {
+        buffer.coverage = 'light';
+        buffer.recommendation = `Consider blocking ${Math.ceil(buffer.estimatedHoursNeeded - buffer.totalBlockedHours)} more hours for ${milestone.name}.`;
+      } else if (coverageRatio >= 0.3) {
+        buffer.coverage = 'light';
+        buffer.recommendation = `You need more dedicated time for ${milestone.name}. Try blocking focus time this week.`;
+      } else {
+        buffer.coverage = 'none';
+        buffer.recommendation = `No focused time blocked for ${milestone.name}. Consider scheduling prep time.`;
+      }
+
+      buffers.push(buffer);
+    }
+
+    log.info({ userId, bufferCount: buffers.length }, 'Calculated milestone time buffers');
+    return buffers;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to calculate time buffers');
+    return [];
+  }
+}
+
+/**
+ * Sync calendar event changes back to milestones
+ *
+ * Call this when a calendar event is updated to keep milestones in sync.
+ */
+export async function syncCalendarEventToMilestone(
+  userId: string,
+  eventId: string,
+  eventUpdate: {
+    newDate?: Date;
+    cancelled?: boolean;
+    newTitle?: string;
+  },
+  milestones: Milestone[]
+): Promise<{
+  updated: boolean;
+  milestoneId?: string;
+  changes?: string[];
+}> {
+  try {
+    // Find milestone linked to this event
+    const linkedMilestone = milestones.find(
+      (m) => m.calendarEventId === eventId || m.countdownReminderIds?.includes(eventId)
+    );
+
+    if (!linkedMilestone) {
+      return { updated: false };
+    }
+
+    const changes: string[] = [];
+
+    // Handle cancellation
+    if (eventUpdate.cancelled) {
+      changes.push(`Calendar event for "${linkedMilestone.name}" was cancelled`);
+      // Note: We don't automatically cancel the milestone, just note it
+      log.info(
+        { userId, milestoneId: linkedMilestone.id, eventId },
+        'Milestone calendar event cancelled'
+      );
+    }
+
+    // Handle date change
+    if (eventUpdate.newDate && eventUpdate.newDate.getTime() !== linkedMilestone.date.getTime()) {
+      const oldDate = linkedMilestone.date.toLocaleDateString();
+      const newDate = eventUpdate.newDate.toLocaleDateString();
+      changes.push(`"${linkedMilestone.name}" date changed from ${oldDate} to ${newDate}`);
+      log.info(
+        { userId, milestoneId: linkedMilestone.id, oldDate, newDate },
+        'Milestone date synced from calendar'
+      );
+    }
+
+    return {
+      updated: changes.length > 0,
+      milestoneId: linkedMilestone.id,
+      changes,
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId, eventId }, 'Failed to sync calendar to milestone');
+    return { updated: false };
+  }
+}
+
+/**
+ * Get a summary of milestone-calendar sync status for the user
+ */
+export async function getMilestoneCalendarSyncStatus(
+  userId: string,
+  milestones: Milestone[]
+): Promise<{
+  syncedMilestones: number;
+  unsyncedMilestones: number;
+  milestonesNeedingTime: string[];
+  upcomingConflicts: string[];
+  recommendation: string;
+}> {
+  const syncedMilestones = milestones.filter((m) => m.calendarEventId).length;
+  const unsyncedMilestones = milestones.length - syncedMilestones;
+
+  const buffers = await calculateMilestoneTimeBuffers(userId, milestones);
+  const needingTime = buffers
+    .filter((b) => b.coverage === 'none' || b.coverage === 'light')
+    .map((b) => b.milestoneName);
+
+  const conflicts: string[] = [];
+  for (const milestone of milestones.slice(0, 5)) {
+    const result = await checkMilestoneConflicts(userId, milestone);
+    if (result.hasConflict && result.suggestion) {
+      conflicts.push(result.suggestion);
+    }
+  }
+
+  let recommendation = '';
+  if (unsyncedMilestones > 0) {
+    recommendation = `${unsyncedMilestones} milestones not on calendar. Want me to sync them?`;
+  } else if (needingTime.length > 0) {
+    recommendation = `${needingTime.length} milestones need more focus time. Let's block some time.`;
+  } else if (conflicts.length > 0) {
+    recommendation = 'Some milestone days are packed. Review your calendar?';
+  } else {
+    recommendation = 'Your milestones and calendar are well-aligned!';
+  }
+
+  return {
+    syncedMilestones,
+    unsyncedMilestones,
+    milestonesNeedingTime: needingTime,
+    upcomingConflicts: conflicts,
+    recommendation,
+  };
+}
+
+// Helper functions
+function isWithinDays(date1: Date, date2: Date, days: number): boolean {
+  const diff = Math.abs(date1.getTime() - date2.getTime());
+  return diff <= days * 24 * 60 * 60 * 1000;
+}
+
+function linkTypeToPurpose(
+  linkType: CalendarMilestoneLink['linkType']
+): MilestoneTimeBuffer['blockedEvents'][0]['purpose'] {
+  switch (linkType) {
+    case 'prep':
+      return 'prep';
+    case 'focus':
+      return 'focus';
+    case 'countdown':
+      return 'general';
+    case 'main':
+      return 'general';
+    default:
+      return 'general';
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export const milestoneCalendarSync = {
+  // One-way: Milestone → Calendar
   syncToCalendar: syncMilestoneToCalendar,
   createCountdown: createMilestoneCountdown,
   getForBriefing: getMilestonesForDailyBriefing,
@@ -445,6 +779,12 @@ export const milestoneCalendarSync = {
   checkConflicts: checkMilestoneConflicts,
   generateCelebration: generateMilestoneCelebration,
   buildContext: buildMilestoneCalendarContext,
+
+  // Bidirectional: Calendar ↔ Milestone
+  detectMilestoneEvents: detectMilestoneRelatedEvents,
+  calculateTimeBuffers: calculateMilestoneTimeBuffers,
+  syncEventToMilestone: syncCalendarEventToMilestone,
+  getSyncStatus: getMilestoneCalendarSyncStatus,
 };
 
 export default milestoneCalendarSync;

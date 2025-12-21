@@ -86,7 +86,9 @@
       "supportFerni": "支持Ferni",
       "takeTour": "開始導覽",
       "language": "語言",
-      "whatsGrowing": "成長中"
+      "whatsGrowing": "成長中",
+      "billingPortal": "帳單與訂閱",
+      "outreachSchedule": "聯繫計劃"
     },
     "pinItem": "固定到頂部",
     "unpinItem": "取消固定",

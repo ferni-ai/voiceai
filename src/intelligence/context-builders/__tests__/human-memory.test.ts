@@ -16,7 +16,7 @@ import {
   isWithinDays,
   isToday,
   getDaysUntil,
-} from '../human-memory.js';
+} from '../memory/human-memory.js';
 import type { HumanMemory, ImportantDate } from '../../../types/human-memory.js';
 
 // ============================================================================

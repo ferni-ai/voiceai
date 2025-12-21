@@ -47,6 +47,8 @@ import { autoOptimizer } from '../../tools/auto-optimizer.js';
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
+// Note: LLM content pre-warming now happens in token.ts (before session starts)
+
 // Tool Orchestrator for dynamic tool refresh
 import {
   isOrchestratorInitialized,
@@ -255,6 +257,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
         }
       })(),
+
+      // Note: LLM content pre-warming moved to token.ts (happens 1-2s earlier)
 
       // Predictive Intelligence - initialize pattern tracking for predictions
       (async () => {

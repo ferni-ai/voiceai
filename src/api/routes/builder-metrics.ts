@@ -12,7 +12,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { BUILDER_CATEGORIES } from '../../intelligence/context-builders/categories.js';
+import { BUILDER_CATEGORIES } from '../../intelligence/context-builders/core/categories.js';
 import { getRegisteredBuilders } from '../../intelligence/context-builders/index.js';
 import {
   checkPerformanceIssues,

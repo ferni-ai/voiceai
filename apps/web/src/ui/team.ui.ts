@@ -263,8 +263,13 @@ export function initTeamUI(): void {
 
     // FIX BUG #57: Announce handoff failures
     // FIX BUG: Also clear visual switching states when handoff fails
-    const unsubFailed = handoffService.onHandoffFailed((error, targetPersona) => {
-      announceToScreenReader(`Switch failed. ${error}`);
+    // FIX AUDIT GAP: Now receives rollbackTo for more accurate screen reader announcements
+    const unsubFailed = handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+      const rollbackPersonaName = rollbackTo ? getPersona(rollbackTo).name : undefined;
+      const announcement = rollbackPersonaName
+        ? `Switch failed. ${error}. Staying with ${rollbackPersonaName}.`
+        : `Switch failed. ${error}`;
+      announceToScreenReader(announcement);
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubFailed);

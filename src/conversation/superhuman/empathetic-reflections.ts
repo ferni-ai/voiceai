@@ -15,6 +15,11 @@
  * @module @ferni/superhuman/empathetic-reflections
  */
 
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'EmpatheticReflections' });
@@ -304,6 +309,7 @@ function selectUnusedReflection(options: string[], state: SessionReflectionState
 
 /**
  * Generate an empathetic reflection based on context
+ * Now LLM-powered with template fallback!
  */
 export function generateReflection(context: ReflectionContext): Reflection | null {
   const state = getSessionState(context.message); // Use message as pseudo-session-id for simplicity
@@ -326,6 +332,39 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
   const availableTypes = types.filter((t) => t !== state.lastReflectionType);
   const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
 
+  // Try LLM-generated reflection first (from cache)
+  const llmContext: ContentContext = {
+    contentType: 'empathetic_reflection',
+    emotion: context.emotion,
+    userMessage: context.message,
+    topic: context.topics[0],
+    metadata: {
+      intensity,
+      reflectionType: selectedType,
+      isPersonalSharing: context.isPersonalSharing,
+    },
+  };
+
+  const llmContent = getContentWithFallback(llmContext);
+  if (llmContent.source === 'llm' && llmContent.content) {
+    // Track usage
+    state.reflectionsUsed.push(llmContent.content);
+    state.lastReflectionType = selectedType;
+
+    logger.debug(
+      { emotion: context.emotion, type: selectedType, intensity, source: 'llm' },
+      '💭 Generated LLM reflection'
+    );
+
+    return {
+      text: llmContent.content,
+      type: selectedType,
+      intensity,
+      ssml: llmContent.ssml || `<break time="200ms"/>${llmContent.content}`,
+    };
+  }
+
+  // Fallback to template-based generation
   let reflection: string | null = null;
 
   switch (selectedType) {
@@ -378,7 +417,7 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
   state.lastReflectionType = selectedType;
 
   logger.debug(
-    { emotion: context.emotion, type: selectedType, intensity },
+    { emotion: context.emotion, type: selectedType, intensity, source: 'template' },
     '💭 Generated reflection'
   );
 
@@ -388,6 +427,64 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
     intensity,
     ssml: `<break time="200ms"/>${reflection}`,
   };
+}
+
+/**
+ * Generate an empathetic reflection asynchronously
+ * Use this when you can afford to wait for LLM
+ */
+export async function generateReflectionAsync(
+  context: ReflectionContext
+): Promise<Reflection | null> {
+  const state = getSessionState(context.message);
+  state.turnCount++;
+
+  if (state.turnCount <= 1) return null;
+  if (state.reflectionsUsed.length > 5) return null;
+
+  const intensity = selectIntensity(
+    context.emotion,
+    context.isPersonalSharing,
+    context.relationshipStage
+  );
+
+  const types: ReflectionType[] = ['feeling', 'validation', 'experience', 'need', 'strength'];
+  const availableTypes = types.filter((t) => t !== state.lastReflectionType);
+  const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+
+  // Try LLM generation (waits for result)
+  const llmContext: ContentContext = {
+    contentType: 'empathetic_reflection',
+    emotion: context.emotion,
+    userMessage: context.message,
+    topic: context.topics[0],
+    metadata: {
+      intensity,
+      reflectionType: selectedType,
+      isPersonalSharing: context.isPersonalSharing,
+    },
+  };
+
+  const llmContent = await generateContent(llmContext);
+  if (llmContent && llmContent.content) {
+    state.reflectionsUsed.push(llmContent.content);
+    state.lastReflectionType = selectedType;
+
+    logger.debug(
+      { emotion: context.emotion, type: selectedType, source: 'llm-async' },
+      '💭 Generated async LLM reflection'
+    );
+
+    return {
+      text: llmContent.content,
+      type: selectedType,
+      intensity,
+      ssml: llmContent.ssml || `<break time="200ms"/>${llmContent.content}`,
+    };
+  }
+
+  // Fallback to sync version
+  return generateReflection(context);
 }
 
 /**

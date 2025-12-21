@@ -6,5 +6,5 @@
  * - Music playback
  */
 
-export { createSpotifyTools } from '../spotify.js';
+export { createSpotifyTools } from './entertainment/spotify.js';
 export { default as createMusicTools } from './entertainment/music.js';

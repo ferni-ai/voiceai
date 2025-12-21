@@ -18,7 +18,7 @@ import {
   getProductivityStore,
   type HabitData,
   type HabitLogData,
-} from '../../../services/productivity-store.js';
+} from '../../../services/stores/productivity-store.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';

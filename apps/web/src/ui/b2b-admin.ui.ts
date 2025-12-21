@@ -119,7 +119,7 @@ const styles = `
 
 .b2b-admin-card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   width: calc(100% - 48px);
   max-width: 900px;
@@ -155,7 +155,7 @@ const styles = `
 .b2b-admin-logo {
   width: 40px;
   height: 40px;
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   border-radius: var(--radius-md, 8px);
   display: flex;
   align-items: center;
@@ -223,7 +223,7 @@ const styles = `
 }
 
 .b2b-admin-nav-btn.active {
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
 }
 
@@ -270,7 +270,7 @@ const styles = `
 
 .b2b-admin-stat-change {
   font-size: 0.8rem;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-primary);
   margin-top: var(--space-1, 4px);
 }
 
@@ -307,7 +307,7 @@ const styles = `
 .b2b-admin-section-title svg {
   width: 20px;
   height: 20px;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-primary);
 }
 
 .b2b-admin-section-content {
@@ -338,7 +338,7 @@ const styles = `
 }
 
 .b2b-admin-roi-value.positive {
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-primary);
 }
 
 .b2b-admin-roi-value.investment {
@@ -375,7 +375,7 @@ const styles = `
 }
 
 .b2b-admin-checklist-icon.completed {
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
 }
 
@@ -460,7 +460,7 @@ const styles = `
 
 .b2b-admin-team-badge.admin {
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-primary);
 }
 
 .b2b-admin-team-badge.member {
@@ -485,8 +485,8 @@ const styles = `
 }
 
 .b2b-admin-team-action-btn:hover {
-  border-color: var(--persona-primary, #4a6741);
-  color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary);
+  color: var(--persona-primary);
 }
 
 .b2b-admin-team-action-btn.danger:hover {
@@ -511,7 +511,7 @@ const styles = `
 
 .b2b-admin-invite-input:focus {
   outline: none;
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary);
 }
 
 .b2b-admin-invite-select {
@@ -525,7 +525,7 @@ const styles = `
 
 .b2b-admin-invite-btn {
   padding: var(--space-3, 12px) var(--space-5, 20px);
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -536,7 +536,7 @@ const styles = `
 }
 
 .b2b-admin-invite-btn:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary);
 }
 
 /* Settings Form */
@@ -580,12 +580,12 @@ const styles = `
 .b2b-admin-form-input:focus,
 .b2b-admin-form-textarea:focus {
   outline: none;
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary);
 }
 
 .b2b-admin-save-btn {
   padding: var(--space-3, 12px) var(--space-6, 24px);
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -596,7 +596,7 @@ const styles = `
 }
 
 .b2b-admin-save-btn:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary);
 }
 
 /* Topic Tags */
@@ -609,7 +609,7 @@ const styles = `
 .b2b-admin-topic-tag {
   padding: var(--space-1, 4px) var(--space-3, 12px);
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-primary);
   border-radius: var(--radius-full, 9999px);
   font-size: 0.85rem;
 }

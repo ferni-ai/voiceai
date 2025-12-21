@@ -22,12 +22,84 @@ import {
 } from '../../services/context-awareness/location-calendar.js';
 import {
   registerContextBuilder,
+  createHighInjection,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { loadPersonaContent } from '../../services/persona-content-loader.js';
+import {
+  checkDynamicTriggers,
+  calculateProbabilityBoost,
+  shouldSkipDueToNeverWhen,
+  buildTriggerContext,
+  type ProactiveTrigger,
+} from './dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'context:anticipation' });
+
+// ============================================================================
+// TYPES FOR ANTICIPATION JSON
+// ============================================================================
+
+interface AnticipationContent {
+  schema_version?: number;
+  description?: string;
+  looking_forward_to_topic?: string[];
+  session_anticipation?: {
+    opening_warmth?: string[];
+    between_sessions?: string[];
+    returning_after_time?: string[];
+  };
+  future_looking?: {
+    curiosity_about_outcome?: string[];
+    planting_seeds?: string[];
+    expressing_hope?: string[];
+  };
+  pending_items?: {
+    goal_tracking?: string[];
+    person_mentioned?: string[];
+    decision_pending?: string[];
+  };
+  continuity_markers?: {
+    referencing_growth?: string[];
+    acknowledging_journey?: string[];
+  };
+  proactive_triggers?: Record<string, ProactiveTrigger>;
+  usage_rules?: {
+    opening_anticipation_probability?: number;
+    topic_callback_probability?: number;
+    future_looking_probability?: number;
+    requires_previous_session_data?: boolean;
+    more_likely_when?: string[];
+    never_when?: string[];
+  };
+}
+
+// Cache for anticipation content per persona
+const anticipationCache = new Map<string, AnticipationContent | null>();
+
+/**
+ * Load anticipation content for a persona
+ */
+async function loadAnticipationContent(personaId: string): Promise<AnticipationContent | null> {
+  if (anticipationCache.has(personaId)) {
+    return anticipationCache.get(personaId) || null;
+  }
+
+  try {
+    const content = await loadPersonaContent<AnticipationContent>(personaId, 'anticipation');
+    anticipationCache.set(personaId, content);
+    if (content) {
+      log.debug({ personaId }, 'Loaded anticipation content');
+    }
+    return content;
+  } catch (error) {
+    log.debug({ personaId, error: String(error) }, 'Could not load anticipation content');
+    anticipationCache.set(personaId, null);
+    return null;
+  }
+}
 
 // Track superhuman moments to avoid repetition
 const recentMoments = new Map<string, number>();
@@ -44,17 +116,70 @@ export const anticipationBuilder: ContextBuilder = {
   priority: 40,
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { services, userData } = input;
+    const { services, userData, persona, userText, analysis } = input;
     const userId = services.userId;
+    const personaId = persona?.id || 'ferni';
 
     if (!userId) return [];
 
-    // Check if user has calendar connected
-    if (!hasCalendarConnected(userId)) {
-      return [];
+    const injections: ContextInjection[] = [];
+
+    // ============================================================================
+    // DYNAMIC TRIGGERS - Check proactive_triggers from anticipation.json
+    // Better Than Human: Define CONDITIONS for when to act
+    // ============================================================================
+    const anticipationContent = await loadAnticipationContent(personaId);
+
+    if (anticipationContent?.proactive_triggers) {
+      const triggerContext = buildTriggerContext(userText || '', analysis, userData as Record<string, unknown>);
+      const usageRules = anticipationContent.usage_rules;
+
+      // Check never_when conditions
+      if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
+        const matchedTrigger = checkDynamicTriggers(anticipationContent.proactive_triggers, triggerContext);
+
+        if (matchedTrigger) {
+          // Calculate probability boost
+          const probabilityBoost = calculateProbabilityBoost(
+            usageRules?.more_likely_when,
+            triggerContext,
+            matchedTrigger
+          );
+
+          // Apply probability (base varies by persona, capped at 50%)
+          const baseProbability = usageRules?.opening_anticipation_probability ?? 0.3;
+          const adjustedProbability = Math.min(baseProbability * probabilityBoost, 0.5);
+
+          if (Math.random() < adjustedProbability) {
+            injections.push(
+              createHighInjection(
+                'anticipation_dynamic_trigger',
+                `[🔮 BETTER-THAN-HUMAN ANTICIPATION: ${matchedTrigger.triggerName}]\n\n` +
+                  `Condition detected: ${matchedTrigger.trigger}\n\n` +
+                  `Suggested behavior: ${matchedTrigger.behavior}\n\n` +
+                  `You can see around corners. Use this anticipation naturally.`,
+                { category: 'anticipation', confidence: matchedTrigger.confidence }
+              )
+            );
+
+            log.info(
+              {
+                userId,
+                personaId,
+                triggerName: matchedTrigger.triggerName,
+                confidence: matchedTrigger.confidence,
+              },
+              '🔮 BETTER-THAN-HUMAN: Anticipation dynamic trigger activated'
+            );
+          }
+        }
+      }
     }
 
-    const injections: ContextInjection[] = [];
+    // Check if user has calendar connected for calendar-based insights
+    if (!hasCalendarConnected(userId)) {
+      return injections; // Return any dynamic trigger injections even without calendar
+    }
 
     try {
       // Generate anticipation insights

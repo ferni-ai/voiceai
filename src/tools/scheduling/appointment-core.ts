@@ -6,7 +6,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
-import { getAppointmentFollowUpService } from '../../services/appointment-followup.js';
+import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
 import type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
 
 // Twilio credentials

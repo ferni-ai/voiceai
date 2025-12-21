@@ -27,7 +27,7 @@ import {
   getProductivityStore,
   type HabitData,
   type HabitLogData,
-} from '../../../services/productivity-store.js';
+} from '../../../services/stores/productivity-store.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { generateWeeklyReviewData } from '../../../services/outreach/maya-habit-outreach.js';
 

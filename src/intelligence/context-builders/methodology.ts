@@ -23,7 +23,7 @@
 
 import { loadBundleById } from '../../personas/bundles/loader.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { BuilderCategory } from './categories.js';
+import { BuilderCategory } from './core/categories.js';
 import {
   createHintInjection,
   createStandardInjection,

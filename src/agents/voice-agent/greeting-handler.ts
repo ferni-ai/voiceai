@@ -20,7 +20,7 @@ import { isMusicEnabled } from '../../config/environment.js';
 import {
   getPersonaMemories,
   normalizePersonaId,
-} from '../../intelligence/context-builders/persona-memory.js';
+} from '../../intelligence/context-builders/personas/persona-memory.js';
 import { generateAliveGreeting } from '../../personas/alive-greetings.js';
 import { generateAliveIntro } from '../../personas/alive-intros.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';

@@ -24,79 +24,86 @@ Level 10:  config/, utils/, types/
 
 ```
 processors/
-├── turn-processor.ts          # Main turn orchestration (needs splitting)
+├── turn-processor.ts          # Main turn orchestration (~1400 lines)
 ├── types.ts                   # Shared type definitions
 ├── injection-builders.ts      # Context injection builders
 ├── injection-filter.ts        # Smart injection filtering
+├── message-analyzer.ts        # Message analysis
+├── cached-modules.ts          # Lazy-loaded module caching
+├── conversation-dynamics.ts   # Narrative arc, engagement, rhythm
+├── easter-egg-handler.ts      # Easter egg detection
+├── emotional-state-builder.ts # Emotional state with mismatch detection
+├── response-guidance-builder.ts # Response length, pacing, stories
+├── identity-context-builder.ts  # Post-handoff identity reinforcement
+├── humanizing-context-builder.ts # Voice emotion, inner world, mood
+├── bundle-runtime-processor.ts  # Modes, situational responses
+├── advanced-humanization.ts     # 10 deep humanization capabilities
 ├── index.ts                   # Public exports
+├── __tests__/                 # Test files
 └── CLAUDE.md                  # This file
 ```
 
 ---
 
-## Refactoring Plan: turn-processor.ts
+## Module Responsibilities
 
-**Current state:** 2,386 lines - too large for maintainability
+### Core Orchestration (turn-processor.ts)
+The main orchestrator that coordinates all processing:
+- `processTurn()` - Main entry point
+- `buildContextInjections()` - Builds LLM context
+- `injectTurnContext()` - Injects context into LLM
+- `getCelebrationEvents()` - Detects celebration moments
 
-**Target:** Split into focused modules following existing patterns (`injection-builders.ts`, `injection-filter.ts`)
+### Extracted Modules
 
-### Phase 1: Analysis (extract)
-- [ ] `message-analyzer.ts` - `analyzeMessage()`, `updateConversationState()`
-  - Lines: ~150
-  - Dependencies: services.analyze, userData updates
+| Module | Purpose | Key Functions |
+|--------|---------|---------------|
+| `message-analyzer.ts` | Analyze user messages | `analyzeMessage()`, `updateConversationState()` |
+| `cached-modules.ts` | Lazy-load performance-critical modules | `getContextBuilders()`, `getTaskManagerCached()` |
+| `conversation-dynamics.ts` | Track conversation flow | `processConversationDynamics()` |
+| `easter-egg-handler.ts` | Handle special moments | `checkEasterEggs()` |
+| `emotional-state-builder.ts` | Build emotional context | `buildEmotionalState()` |
+| `response-guidance-builder.ts` | Response shaping | `buildResponseGuidance()` |
+| `identity-context-builder.ts` | Post-handoff identity | `buildIdentityContext()` |
+| `humanizing-context-builder.ts` | Human-like responses | `buildHumanizingContextForTurn()` |
+| `bundle-runtime-processor.ts` | Persona behaviors | `processBundleRuntime()` |
+| `advanced-humanization.ts` | Deep capabilities | `processAdvancedHumanization()` |
 
-### Phase 2: State Building (extract)
-- [ ] `emotional-state-builder.ts` - `buildEmotionalState()`
-  - Lines: ~50
-  - Dependencies: analysis, userData
+### Injection Builders (injection-builders.ts)
+Builds specific context injections:
+- Safety injections
+- Trust system injections
+- Life coaching injections
+- Health awareness injections
+- Cross-persona insights
 
-- [ ] `response-guidance-builder.ts` - `buildResponseGuidance()`
-  - Lines: ~100
-  - Dependencies: analysis, emotional state, persona
-
-- [ ] `identity-context-builder.ts` - `buildIdentityContext()`
-  - Lines: ~90
-  - Dependencies: persona, bundleRuntime
-
-### Phase 3: Context Building (extract)
-- [ ] `context-builder-orchestrator.ts` - `buildContextInjections()`
-  - Lines: ~600
-  - Dependencies: all builders, filtering logic
-  - Note: This is the largest function, may need sub-splitting
-
-### Phase 4: Advanced Processing (extract)
-- [ ] `humanization-processor.ts` - `buildHumanizingContextForTurn()`, `processBundleRuntime()`
-  - Lines: ~250
-  - Dependencies: conversation engines, bundle runtime
-
-- [ ] `advanced-humanization.ts` - `processAdvancedHumanization()`
-  - Lines: ~100
-  - Dependencies: context builders, dynamics
-
-### Phase 5: Main Orchestration (keep in turn-processor.ts)
-- `processTurn()` - ~500 lines (orchestrates all the above)
-- `injectTurnContext()` - ~50 lines (helper)
-- `getCelebrationEvents()` - ~50 lines (helper)
+### Injection Filter (injection-filter.ts)
+Smart filtering to prevent prompt bloat:
+- `filterInjections()` - Prioritize and limit injections
+- `detectConversationMode()` - Adapt to conversation type
 
 ---
 
 ## Extraction Pattern
 
-Follow the existing `injection-builders.ts` pattern:
+Each extracted module follows this pattern:
 
 ```typescript
 // new-module.ts
-import type { TurnContext, ... } from './types.js';
+import type { TurnContext, TurnAnalysisResult } from './types.js';
 
-export function myExtractedFunction(ctx: TurnContext): ResultType {
-  // Implementation moved here
+export function myExtractedFunction(
+  ctx: TurnContext,
+  analysisResult: TurnAnalysisResult
+): ResultType {
+  // Implementation
 }
 
 // turn-processor.ts
 import { myExtractedFunction } from './new-module.js';
 
-// Call in processTurn()
-const result = myExtractedFunction(ctx);
+// In processTurn():
+const result = myExtractedFunction(ctx, analysisResult);
 ```
 
 ---
@@ -106,14 +113,14 @@ const result = myExtractedFunction(ctx);
 ```typescript
 // From index.ts
 export { processTurn, injectTurnContext, getCelebrationEvents } from './turn-processor.js';
-export type { TurnContext, TurnProcessorResult, ... } from './types.js';
+export type { TurnContext, TurnProcessorResult, EmotionalState, ... } from './types.js';
 ```
 
 ---
 
 ## Testing
 
-Each extracted module should have its own test file:
+Each module has corresponding tests:
 ```
 __tests__/
 ├── turn-processor.test.ts       # Orchestration tests
@@ -122,7 +129,12 @@ __tests__/
 └── ...
 ```
 
+Run tests:
+```bash
+pnpm vitest run src/agents/processors/__tests__/
+```
+
 ---
 
 *Created: December 2024*
-*Status: Refactoring in progress*
+*Status: Refactoring complete (2277 → 1433 lines)*

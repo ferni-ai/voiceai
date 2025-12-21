@@ -1,20 +1,13 @@
 /**
  * Tool Orchestration Module
  *
- * Provides coordination between tools for human-level conversation:
- * - Tool composition (chaining tools together)
- * - Context sharing between tools
- * - Emotional awareness
- * - Conversation flow management
+ * @deprecated This module has been consolidated into orchestrator/
+ * Import from '../orchestrator/index.js' instead.
  *
- * USAGE:
- *   import { createToolComposer, TOOL_CHAINS } from './orchestration/index.js';
- *
- *   const composer = createToolComposer(sessionId, userId);
- *   const result = composer.compose('logHabit', habitResult);
- *   console.log(result.suggestedNext); // ['awardXP', 'checkStreakMilestone']
+ * This file remains for backward compatibility.
  */
 
+// Re-export from consolidated location
 export {
   // Main composer
   ToolComposer,
@@ -27,7 +20,7 @@ export {
   type ComposedResult,
   type ToolChain,
   type ComposeOptions,
-} from './tool-composer.js';
+} from '../orchestrator/tool-composer.js';
 
 // Re-export conversation state for convenience
 export {
@@ -48,7 +41,7 @@ export {
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 
-import { createToolComposer, type ComposedResult } from './tool-composer.js';
+import { createToolComposer, type ComposedResult } from '../orchestrator/tool-composer.js';
 import { getConversationState } from '../../services/conversation-state.js';
 
 /**

@@ -70,7 +70,11 @@ export type HandoffStartCallback = (
   banter?: HandoffBanter
 ) => void;
 export type HandoffCompleteCallback = (toPersona: PersonaId) => void;
-export type HandoffFailedCallback = (error: string, targetPersona: PersonaId) => void;
+export type HandoffFailedCallback = (
+  error: string,
+  targetPersona: PersonaId,
+  rollbackTo?: PersonaId
+) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
 export type HandoffAcknowledgedCallback = (
   target: PersonaId,
@@ -543,7 +547,11 @@ class HandoffService {
 
       // Handoff failed - recover gracefully
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
-      log.error('Handoff failed:', errorMsg);
+      // FIX AUDIT GAP #1: Extract rollbackTo for UI state recovery
+      const rollbackTo = (event as HandoffEvent & { rollbackTo?: string }).rollbackTo;
+      const rollbackPersona = rollbackTo ? normalizeAgentId(rollbackTo) : undefined;
+
+      log.error('Handoff failed:', { errorMsg, rollbackTo: rollbackPersona });
 
       // FIX BUG #38: If we already played a handoff sound, play recovery sound
       // so the user knows the transition failed (auditory feedback)
@@ -563,10 +571,16 @@ class HandoffService {
       this._targetPersona = null;
       this._handoffPhase = 'failed';
 
-      // Notify failure callbacks
+      // FIX AUDIT GAP #1: Restore UI to previous persona if rollbackTo provided
+      if (rollbackPersona) {
+        log.info('Rolling back UI state to:', rollbackPersona);
+        setActivePersona(rollbackPersona);
+      }
+
+      // Notify failure callbacks (now includes rollbackTo)
       for (const callback of this.failedCallbacks) {
         try {
-          callback(errorMsg, toPersona);
+          callback(errorMsg, toPersona, rollbackPersona);
         } catch (error) {
           log.error('Handoff failed callback error:', error);
         }
@@ -644,19 +658,24 @@ class HandoffService {
    * FIX BUG: Start a timeout for handoff transitions.
    * If backend doesn't respond within timeout, reset state to prevent stuck UI.
    * Also restores the UI to the previous state.
+   *
+   * FIX AUDIT GAP #2: Store fromPersona at timeout start for reliable rollback.
+   * The timeout captures the "from" persona at the moment the handoff starts,
+   * ensuring we always have accurate rollback info even if state changes during transition.
    */
   private startHandoffTimeout(targetPersona: PersonaId): void {
     // Clear any existing timeout
     this.clearHandoffTimeout();
 
     // Store the current persona before transition for recovery
-    const previousPersona = appState.get('activePersona').id;
+    // FIX AUDIT GAP #2: Capture at the EXACT moment handoff starts for reliable rollback
+    const fromPersona = appState.get('activePersona').id;
 
     this._handoffTimeoutId = setTimeout(() => {
       log.warn('Handoff timeout - restoring UI:', {
         targetPersona,
         timeoutMs: this.HANDOFF_TIMEOUT_MS,
-        previousPersona,
+        fromPersona,
       });
 
       // Reset transition state
@@ -665,14 +684,15 @@ class HandoffService {
       this._handoffPhase = 'idle';
       this._soundPlayedForCurrentHandoff = false;
 
-      // FIX BUG: Restore the UI to the previous active persona
+      // FIX AUDIT GAP #2: Restore the UI to the "from" persona captured at start
       // This ensures the button moves back to the correct position
-      setActivePersona(previousPersona);
+      setActivePersona(fromPersona);
 
-      // Notify failed callbacks with timeout error
+      // FIX AUDIT GAP #2: Notify failed callbacks with timeout error AND rollback info
+      // This allows app.ts handlers to also update waveform/avatar persona
       for (const callback of this.failedCallbacks) {
         try {
-          callback('Connection timeout - please try again', targetPersona);
+          callback('Connection timeout - please try again', targetPersona, fromPersona);
         } catch (err) {
           log.error('Handoff timeout callback error:', err);
         }
@@ -761,23 +781,56 @@ class HandoffService {
       }
     }
 
-    // Optionally notify backend (if it supports cancellation)
-    void import('./connection.service.js')
-      .then(({ connectionService }) => {
+    // FIX AUDIT GAP #4: Notify backend with better error handling and retry logic
+    // Use IIFE to properly handle async errors without losing the cancel result
+    (async () => {
+      try {
+        const { connectionService } = await import('./connection.service.js');
         const room = connectionService.getRoom();
-        if (room?.localParticipant && this.currentHandoffId) {
-          const message = JSON.stringify({
-            type: 'handoff_cancel',
-            handoffId: this.currentHandoffId,
-            reason: 'User cancelled',
-            timestamp: Date.now(),
-          });
-          room.localParticipant
-            .publishData(new TextEncoder().encode(message), { reliable: true })
-            .catch((err) => log.warn('Failed to notify backend of cancellation:', err));
+
+        if (!room?.localParticipant) {
+          log.debug('No room/participant available to send cancel - likely already disconnected');
+          return;
         }
-      })
-      .catch((err) => log.warn('Failed to import connection service for cancellation:', err));
+
+        // Include target persona for backend state cleanup
+        const message = JSON.stringify({
+          type: 'handoff_cancel',
+          handoffId: this.currentHandoffId,
+          targetPersona: cancelledTarget,
+          reason: 'User cancelled',
+          timestamp: Date.now(),
+        });
+
+        // Retry once if first send fails
+        let sendAttempt = 0;
+        const maxAttempts = 2;
+
+        while (sendAttempt < maxAttempts) {
+          try {
+            await room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            log.debug('Backend notified of cancellation:', { handoffId: this.currentHandoffId });
+            return;
+          } catch (sendErr) {
+            sendAttempt++;
+            if (sendAttempt >= maxAttempts) {
+              log.warn('Failed to notify backend of cancellation after retries:', {
+                error: String(sendErr),
+                attempts: maxAttempts,
+              });
+            } else {
+              // Brief delay before retry
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+        }
+      } catch (importErr) {
+        // Module import failed - connection service not available
+        log.warn('Could not load connection service for cancellation:', String(importErr));
+      }
+    })();
 
     return true;
   }

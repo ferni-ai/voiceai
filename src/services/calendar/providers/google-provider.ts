@@ -18,7 +18,7 @@ import {
   deleteEvent as deleteGoogleEvent,
   deleteUserTokens,
   type CalendarEvent as GoogleCalendarEvent,
-} from '../../google-calendar-oauth.js';
+} from '../../identity/google-calendar-oauth.js';
 
 const log = getLogger();
 

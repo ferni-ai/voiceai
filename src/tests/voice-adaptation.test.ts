@@ -38,7 +38,7 @@ import {
   insertThinkingSound,
   insertFiller,
   type VoiceModifiers,
-} from '../services/voice-adaptation.js';
+} from '../services/voice/voice-adaptation.js';
 import type { EmotionResult } from '../services/emotion-detection.js';
 
 describe('Voice Adaptation Service', () => {

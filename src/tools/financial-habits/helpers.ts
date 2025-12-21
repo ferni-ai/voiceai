@@ -5,7 +5,7 @@
  * Extracted from financial-habits.ts for clean architecture.
  */
 
-import { getFinancialStore, type BudgetData } from '../../services/financial-store.js';
+import { getFinancialStore, type BudgetData } from '../../services/stores/financial-store.js';
 import type { SpendingCategory } from './types.js';
 
 // ============================================================================

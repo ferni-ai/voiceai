@@ -113,7 +113,7 @@ const styles = `
     width: 95%;
     max-width: 720px;
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
+    background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 24px);
     box-shadow: var(--shadow-2xl);
     overflow: hidden;
@@ -139,7 +139,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -147,13 +147,13 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 28px;
     font-weight: 700;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
   
   .wellbeing-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin-top: var(--space-1, 4px);
   }
   
@@ -170,13 +170,13 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     transition: all var(--duration-fast, 100ms) ease;
   }
   
   .wellbeing-modal__close:hover {
     background: var(--color-background-hover, rgba(112, 96, 90, 0.1));
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
   }
   
   .wellbeing-modal__content {
@@ -229,13 +229,13 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 48px;
     font-weight: 700;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     line-height: 1;
   }
   
   .wellbeing-score-ring__label {
     font-size: 12px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin-top: var(--space-1, 4px);
   }
   
@@ -249,15 +249,15 @@ const styles = `
   }
   
   .wellbeing-score-trend--improving {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni);
   }
   
   .wellbeing-score-trend--stable {
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
   }
   
   .wellbeing-score-trend--declining {
-    color: var(--color-maya, #a67a6a);
+    color: var(--color-maya);
   }
   
   /* Dimension Cards */
@@ -290,7 +290,7 @@ const styles = `
   .wellbeing-dimension-card__name {
     font-weight: 600;
     font-size: 15px;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
   }
   
   .wellbeing-dimension-card__score {
@@ -308,17 +308,17 @@ const styles = `
   
   .wellbeing-dimension-card__trend--up {
     background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni);
   }
   
   .wellbeing-dimension-card__trend--stable {
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.1));
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
   }
   
   .wellbeing-dimension-card__trend--down {
     background: var(--color-maya-tint, rgba(166, 122, 106, 0.1));
-    color: var(--color-maya, #a67a6a);
+    color: var(--color-maya);
   }
   
   .wellbeing-dimension-card__sparkline {
@@ -328,7 +328,7 @@ const styles = `
   
   .wellbeing-dimension-card__insight {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     line-height: 1.4;
   }
   
@@ -342,7 +342,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--color-text-muted, #a89a94);
+    color: var(--color-text-muted);
     margin-bottom: var(--space-3, 12px);
   }
   
@@ -355,7 +355,7 @@ const styles = `
   .wellbeing-calendar__day-label {
     font-size: 10px;
     text-align: center;
-    color: var(--color-text-muted, #a89a94);
+    color: var(--color-text-muted);
     padding: var(--space-1, 4px) 0;
   }
   
@@ -415,7 +415,7 @@ const styles = `
     display: inline-flex;
     width: 16px;
     height: 16px;
-    color: var(--persona-primary, #4a6741);
+    color: var(--persona-primary);
   }
 
   .wellbeing-achievement__icon svg {
@@ -426,7 +426,7 @@ const styles = `
   .wellbeing-achievement__title {
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
   }
   
   /* Prediction */
@@ -440,7 +440,7 @@ const styles = `
   .wellbeing-prediction__forecast {
     font-size: 16px;
     font-weight: 500;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin-bottom: var(--space-4, 16px);
   }
   
@@ -460,11 +460,11 @@ const styles = `
   }
   
   .wellbeing-prediction__factor-title--risk {
-    color: var(--color-maya, #a67a6a);
+    color: var(--color-maya);
   }
   
   .wellbeing-prediction__factor-title--protective {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni);
   }
   
   .wellbeing-prediction__factor-list {
@@ -475,7 +475,7 @@ const styles = `
   
   .wellbeing-prediction__factor-item {
     padding: var(--space-1, 4px) 0;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
   }
   
   /* Loading */
@@ -491,7 +491,7 @@ const styles = `
     width: 40px;
     height: 40px;
     border: 4px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
-    border-top-color: var(--color-ferni, #4a6741);
+    border-top-color: var(--color-ferni);
     border-radius: 50%;
     animation: wellbeing-spin var(--duration-entrance, 1000ms) linear infinite;
   }
@@ -504,7 +504,7 @@ const styles = `
   .wellbeing-empty {
     text-align: center;
     padding: var(--space-12, 48px) var(--space-4, 16px);
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
   }
   
   .wellbeing-empty__icon {
@@ -512,7 +512,7 @@ const styles = `
     height: 48px;
     margin-bottom: var(--space-3, 12px);
     opacity: 0.5;
-    color: var(--color-text-muted, #70605a);
+    color: var(--color-text-muted);
   }
 
   .wellbeing-empty__icon svg {
@@ -532,7 +532,7 @@ const styles = `
   
   .wellbeing-modal__footer-info {
     font-size: 12px;
-    color: var(--color-text-muted, #a89a94);
+    color: var(--color-text-muted);
   }
   
   .wellbeing-btn {
@@ -543,19 +543,19 @@ const styles = `
     cursor: pointer;
     transition: all var(--duration-fast, 100ms) ease;
     border: none;
-    background: var(--color-ferni, #4a6741);
+    background: var(--color-ferni);
     color: white;
   }
   
   .wellbeing-btn:hover {
-    background: var(--color-ferni-dark, #3d5a35);
+    background: var(--color-ferni-dark);
     transform: translateY(-1px);
   }
   
   .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-ferni, #4a6741);
-    border: 1px solid var(--color-ferni, #4a6741);
+    color: var(--color-ferni);
+    border: 1px solid var(--color-ferni);
     margin-top: var(--space-4, 16px);
   }
   
@@ -582,7 +582,7 @@ const styles = `
      DARK THEME - WCAG AA Compliant
      ======================================================================== */
   [data-theme="midnight"] .wellbeing-modal {
-    background: var(--color-background-elevated, #70605a);
+    background: var(--color-background-elevated);
   }
 
   [data-theme="midnight"] .wellbeing-modal__header {
@@ -590,7 +590,7 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-modal__eyebrow {
-    color: var(--color-accent-secondary, #7cb36b);
+    color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-modal__title,
@@ -598,35 +598,35 @@ const styles = `
   [data-theme="midnight"] .wellbeing-dimension-card__name,
   [data-theme="midnight"] .wellbeing-achievement__title,
   [data-theme="midnight"] .wellbeing-prediction__forecast {
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary);
   }
 
   [data-theme="midnight"] .wellbeing-modal__subtitle,
   [data-theme="midnight"] .wellbeing-score-ring__label,
   [data-theme="midnight"] .wellbeing-dimension-card__insight,
   [data-theme="midnight"] .wellbeing-prediction__factor-item {
-    color: var(--color-text-secondary, #f0ebe4);
+    color: var(--color-text-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-section-title,
   [data-theme="midnight"] .wellbeing-calendar__day-label,
   [data-theme="midnight"] .wellbeing-modal__footer-info {
-    color: var(--color-text-muted, #e8e2da);
+    color: var(--color-text-muted);
   }
 
   [data-theme="midnight"] .wellbeing-modal__close {
-    background: var(--color-background-tertiary, #685852);
-    color: var(--color-text-secondary, #f0ebe4);
+    background: var(--color-background-tertiary);
+    color: var(--color-text-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-modal__close:hover {
-    background: var(--color-background-secondary, #60504a);
-    color: var(--color-text-primary, #faf6f0);
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card,
   [data-theme="midnight"] .wellbeing-achievement {
-    background: var(--color-background-secondary, #60504a);
+    background: var(--color-background-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card:hover {
@@ -639,11 +639,11 @@ const styles = `
 
   [data-theme="midnight"] .wellbeing-spinner {
     border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-    border-top-color: var(--color-accent-secondary, #7cb36b);
+    border-top-color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-empty {
-    color: var(--color-text-secondary, #f0ebe4);
+    color: var(--color-text-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-modal__footer {
@@ -651,18 +651,18 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-btn {
-    background: var(--color-accent-secondary, #7cb36b);
-    color: var(--color-text-primary-dark, #2c2520);
+    background: var(--color-accent-secondary);
+    color: var(--color-text-primary-dark);
   }
 
   [data-theme="midnight"] .wellbeing-btn:hover {
-    background: var(--color-accent-secondary-hover, #8dc47c);
+    background: var(--color-accent-secondary-hover);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-accent-secondary, #7cb36b);
-    border-color: var(--color-accent-secondary, #7cb36b);
+    color: var(--color-accent-secondary);
+    border-color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary:hover {
@@ -670,21 +670,21 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-score-trend--improving {
-    color: var(--color-accent-secondary, #7cb36b);
+    color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-score-trend--declining {
-    color: var(--color-semantic-warning, #c9a255);
+    color: var(--color-semantic-warning);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card__trend--up {
     background: var(--persona-tint, rgba(124, 179, 107, 0.15));
-    color: var(--color-accent-secondary, #7cb36b);
+    color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card__trend--down {
     background: var(--color-maya-tint, rgba(201, 162, 85, 0.15));
-    color: var(--color-semantic-warning, #c9a255);
+    color: var(--color-semantic-warning);
   }
 
   [data-theme="midnight"] .wellbeing-prediction {
@@ -693,11 +693,11 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-prediction__factor-title--risk {
-    color: var(--color-semantic-warning, #c9a255);
+    color: var(--color-semantic-warning);
   }
 
   [data-theme="midnight"] .wellbeing-prediction__factor-title--protective {
-    color: var(--color-accent-secondary, #7cb36b);
+    color: var(--color-accent-secondary);
   }
 
   /* Dark theme calendar cells */
@@ -801,12 +801,12 @@ interface ApiTrendsResponse {
 
 /** Color mapping for dimensions */
 const DIMENSION_COLORS: Record<string, string> = {
-  mood: 'var(--color-ferni, #4a6741)',
-  energy: 'var(--color-jack, #9a7b5a)',
-  anxiety: 'var(--color-maya, #a67a6a)',
-  connection: 'var(--color-peter, #3a6b73)',
-  purpose: 'var(--color-nayan, #b8956a)',
-  sleep: 'var(--color-alex, #5a6b8a)',
+  mood: 'var(--color-ferni)',
+  energy: 'var(--color-jack)',
+  anxiety: 'var(--color-maya)',
+  connection: 'var(--color-peter)',
+  purpose: 'var(--color-nayan)',
+  sleep: 'var(--color-alex)',
 };
 
 /** Get insight message for a dimension based on score */
@@ -1206,10 +1206,10 @@ function renderScoreSection(overall: WellbeingData): string {
 
   const color =
     overall.overallScore >= 70
-      ? 'var(--color-ferni, #4a6741)'
+      ? 'var(--color-ferni)'
       : overall.overallScore >= 50
-        ? 'var(--color-jack, #9a7b5a)'
-        : 'var(--color-maya, #a67a6a)';
+        ? 'var(--color-jack)'
+        : 'var(--color-maya)';
 
   const trendIcon =
     overall.trend === 'improving'

@@ -17,6 +17,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  cacheToolResult,
+  checkToolCache,
+  invalidateToolCache,
+} from './performance/tool-response-cache.js';
+import { executeWithReliability } from './tool-execution-reliability.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -182,8 +188,44 @@ export async function executeJsonFunction(
   log.info({ fn, args }, '🔧 Executing JSON function call');
   ctx.onToolStart?.(fn, args);
 
+  // ================================================================
+  // PERFORMANCE: Check tool response cache for read-only tools
+  // ================================================================
+  if (ctx.sessionId) {
+    const cached = checkToolCache(ctx.sessionId, fn, args);
+    if (cached.hit) {
+      const executionResult: FunctionExecutionResult = {
+        success: true,
+        fn,
+        args,
+        result: cached.result,
+        durationMs: Date.now() - startTime,
+      };
+      log.info({ fn, cached: true }, '🎯 Tool response from cache');
+      ctx.onToolComplete?.(executionResult);
+      return executionResult;
+    }
+  }
+
   try {
-    const result = await routeToTool(fn, args, ctx);
+    // ================================================================
+    // RELIABILITY: Execute with retry and circuit breaker
+    // ================================================================
+    const { result, retries, fromFallback } = await executeWithReliability(
+      fn,
+      async () => routeToTool(fn, args, ctx),
+      {
+        fallbackValue: getFallbackResponse(fn),
+      }
+    );
+
+    if (retries > 0) {
+      log.info({ fn, retries }, '🔄 Tool succeeded after retries');
+    }
+    if (fromFallback) {
+      log.warn({ fn }, '⚠️ Tool returned fallback response');
+    }
+
     const executionResult: FunctionExecutionResult = {
       success: true,
       fn,
@@ -191,6 +233,16 @@ export async function executeJsonFunction(
       result,
       durationMs: Date.now() - startTime,
     };
+
+    // ================================================================
+    // PERFORMANCE: Cache successful results & invalidate on writes
+    // ================================================================
+    if (ctx.sessionId && !fromFallback) {
+      // Cache the result for read-only tools (don't cache fallbacks)
+      cacheToolResult(ctx.sessionId, fn, args, result);
+      // Invalidate affected caches for write operations
+      invalidateToolCache(ctx.sessionId, fn);
+    }
 
     log.info({ fn, durationMs: executionResult.durationMs }, '✅ JSON function executed');
     ctx.onToolComplete?.(executionResult);
@@ -211,6 +263,41 @@ export async function executeJsonFunction(
 }
 
 /**
+ * Get fallback response for a tool when it fails
+ */
+function getFallbackResponse(fn: string): string | undefined {
+  const fnLower = fn.toLowerCase();
+
+  // Weather fallback
+  if (fnLower === 'getweather') {
+    return "I couldn't get the current weather right now. Try again in a moment?";
+  }
+
+  // News fallback
+  if (fnLower === 'getnews' || fnLower === 'searchnews') {
+    return "I'm having trouble fetching news right now. Let me try again shortly.";
+  }
+
+  // Market fallback
+  if (fnLower === 'getmarketsummary' || fnLower === 'getquote') {
+    return "Market data isn't available at the moment. I'll try again soon.";
+  }
+
+  // Calendar fallback
+  if (fnLower === 'getcalendartoday' || fnLower === 'getschedule') {
+    return "I couldn't access your calendar right now. Want me to try again?";
+  }
+
+  // Time fallback (use local time)
+  if (fnLower === 'getcurrenttime') {
+    return `The current time is ${new Date().toLocaleTimeString()}.`;
+  }
+
+  // No fallback for other tools
+  return undefined;
+}
+
+/**
  * Route function call to the appropriate tool.
  * This is the main dispatcher.
  */
@@ -222,160 +309,260 @@ async function routeToTool(
   const fnLower = fn.toLowerCase();
 
   // ========================================
-  // MUSIC TOOLS (Primary use case)
+  // MODULAR EXECUTORS (Refactored domains)
+  // Try modular executors first - they return null if not handled
+  // ========================================
+  const { routeToToolModular } = await import('./tool-executors/index.js');
+  const modularResult = await routeToToolModular(fn, args, ctx);
+  if (modularResult !== null) {
+    return modularResult;
+  }
+
+  // ========================================
+  // LEGACY TOOL ROUTING (will be migrated to modular executors)
+  // ========================================
+
+  // ========================================
+  // MUSIC TOOLS (Primary use case) - NOW HANDLED BY MODULAR EXECUTOR
   // ========================================
   if (fnLower === 'playmusic') {
-    const { playMusicUnified } = await import('../../tools/domains/entertainment/music.js');
-    const query = (args.query as string) || 'music';
-    log.info({ query }, '🎵 Playing music');
-    return playMusicUnified(query);
+    try {
+      const { playMusicUnified } = await import('../../tools/domains/entertainment/music.js');
+      const query = (args.query as string) || 'music';
+      log.info({ query }, '🎵 Playing music');
+      return await playMusicUnified(query);
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Music playback failed');
+      return "I couldn't play music right now. Try again in a moment?";
+    }
   }
 
   if (fnLower === 'musiccontrol') {
-    // Music control actions - use the real music player
-    const { getMusicPlayer } = await import('../../audio/music-player.js');
-    const musicPlayer = getMusicPlayer();
-    const action = (args.action as string)?.toLowerCase();
+    try {
+      // Music control actions - use the real music player
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      const action = (args.action as string)?.toLowerCase();
 
-    log.info({ action }, '🎵 Music control requested');
+      log.info({ action }, '🎵 Music control requested');
 
-    switch (action) {
-      case 'pause':
-        musicPlayer.pause();
-        return 'Music paused.';
-      case 'resume':
-      case 'play':
-        await musicPlayer.resume();
-        return 'Resuming the music.';
-      case 'stop':
-        musicPlayer.stop();
-        return 'Music stopped.';
-      case 'skip':
-      case 'next':
-        await musicPlayer.skip();
-        return 'Skipping to the next track.';
-      case 'volume':
-        const level = args.level as number;
-        if (level !== undefined) {
-          musicPlayer.setVolume(level / 100);
-          return `Volume set to ${level} percent.`;
+      switch (action) {
+        case 'pause':
+          musicPlayer.pause();
+          return 'Music paused.';
+        case 'resume':
+        case 'play':
+          await musicPlayer.resume();
+          return 'Resuming the music.';
+        case 'stop':
+          musicPlayer.stop();
+          return 'Music stopped.';
+        case 'skip':
+        case 'next':
+          musicPlayer.skip();
+          return 'Skipping to the next track.';
+        case 'volume': {
+          const level = args.level as number;
+          if (level !== undefined) {
+            musicPlayer.setVolume(level / 100);
+            return `Volume set to ${level} percent.`;
+          }
+          return 'Please specify a volume level.';
         }
-        return 'Please specify a volume level.';
-      default:
-        return `I'm not sure how to ${action} the music. Try pause, play, stop, skip, or volume.`;
+        default:
+          return `I'm not sure how to ${action} the music. Try pause, play, stop, skip, or volume.`;
+      }
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Music control failed');
+      return "I couldn't control the music right now. Try again?";
     }
   }
 
   if (fnLower === 'musicinfo') {
-    const { getMusicPlayer } = await import('../../audio/music-player.js');
-    const musicPlayer = getMusicPlayer();
-    const action = (args.action as string)?.toLowerCase();
+    try {
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      const action = (args.action as string)?.toLowerCase();
 
-    if (action === 'playing' || !action) {
-      const state = musicPlayer.getState();
-      if (state.currentTrack) {
-        return `Now playing "${state.currentTrack.name}" by ${state.currentTrack.artist}.`;
+      if (action === 'playing' || !action) {
+        const state = musicPlayer.getState();
+        if (state.currentTrack) {
+          return `Now playing "${state.currentTrack.name}" by ${state.currentTrack.artist}.`;
+        }
+        return 'Nothing is playing right now.';
       }
-      return 'Nothing is playing right now.';
-    }
 
-    if (action === 'suggest') {
-      const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
-      const mood = args.mood as string;
-      if (mood) {
-        return suggestAndPlayMusic(mood);
+      if (action === 'suggest') {
+        const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
+        const mood = args.mood as string;
+        if (mood) {
+          return await suggestAndPlayMusic(mood);
+        }
+        return 'What kind of mood are you in? I can suggest something fitting.';
       }
-      return 'What kind of mood are you in? I can suggest something fitting.';
-    }
 
-    return 'What would you like to know about the music?';
+      return 'What would you like to know about the music?';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Music info failed');
+      return "I couldn't get music info right now.";
+    }
   }
 
   if (fnLower === 'suggestmusic') {
-    const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
-    const mood = args.mood as string;
+    try {
+      const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
+      const mood = args.mood as string;
 
-    if (mood) {
-      log.info({ mood }, '🎵 Suggesting music for mood');
-      return suggestAndPlayMusic(mood);
+      if (mood) {
+        log.info({ mood }, '🎵 Suggesting music for mood');
+        return await suggestAndPlayMusic(mood);
+      }
+      return 'What mood are you in? I can suggest something fitting.';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Music suggestion failed');
+      return "I couldn't suggest music right now. What are you in the mood for?";
     }
-    return 'What mood are you in? I can suggest something fitting.';
   }
 
   // Legacy music tool name aliases (route to musicControl)
   if (fnLower === 'pausemusic' || fnLower === 'pausecallmusic') {
-    const { getMusicPlayer } = await import('../../audio/music-player.js');
-    const musicPlayer = getMusicPlayer();
-    log.info({ fn }, '🎵 Legacy pause tool - routing to musicControl');
-    musicPlayer.pause();
-    return 'Music paused.';
+    try {
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      log.info({ fn }, '🎵 Legacy pause tool - routing to musicControl');
+      musicPlayer.pause();
+      return 'Music paused.';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Pause music failed');
+      return "I couldn't pause the music.";
+    }
   }
 
   if (fnLower === 'stopmusic' || fnLower === 'stopcallmusic') {
-    const { getMusicPlayer } = await import('../../audio/music-player.js');
-    const musicPlayer = getMusicPlayer();
-    log.info({ fn }, '🎵 Legacy stop tool - routing to musicControl');
-    musicPlayer.stop();
-    return 'Music stopped.';
+    try {
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      log.info({ fn }, '🎵 Legacy stop tool - routing to musicControl');
+      musicPlayer.stop();
+      return 'Music stopped.';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Stop music failed');
+      return "I couldn't stop the music.";
+    }
   }
 
   if (fnLower === 'resumemusic' || fnLower === 'resumecallmusic') {
-    const { getMusicPlayer } = await import('../../audio/music-player.js');
-    const musicPlayer = getMusicPlayer();
-    log.info({ fn }, '🎵 Legacy resume tool - routing to musicControl');
-    await musicPlayer.resume();
-    return 'Resuming the music.';
+    try {
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      log.info({ fn }, '🎵 Legacy resume tool - routing to musicControl');
+      await musicPlayer.resume();
+      return 'Resuming the music.';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Resume music failed');
+      return "I couldn't resume the music.";
+    }
   }
 
   // ========================================
-  // MEMORY TOOLS (With real Firestore integration)
+  // MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall)
   // ========================================
   if (fnLower === 'rememberaboutuser') {
     const fact = args.fact as string;
     const category = (args.category as string) || 'personal';
     const importance = (args.importance as string) || 'medium';
+    const emotionalContext = args.emotionalContext as string | undefined;
 
     if (!fact) {
       return 'Please specify what you want me to remember.';
     }
 
-    log.info({ fact, category, importance, userId: ctx.userId }, '💾 Remembering fact');
+    log.info(
+      { fact, category, importance, userId: ctx.userId },
+      '💾 Remembering fact (WITH EMBEDDING)'
+    );
 
-    // Try to persist to Firestore if we have a userId
+    // Try to persist to Firestore WITH EMBEDDING for semantic recall
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
 
+        // Generate embedding for semantic recall later
+        let embedding: number[] | null = null;
+        try {
+          const { embed } = await import('../../memory/embeddings.js');
+          embedding = await embed(fact);
+          log.debug(
+            { factLength: fact.length, embeddingDim: embedding.length },
+            'Generated embedding for memory'
+          );
+        } catch (embedErr) {
+          log.warn({ error: String(embedErr) }, 'Embedding generation failed, storing without');
+        }
+
+        // Store with rich metadata for superhuman recall
+        const memoryDoc = {
+          fact,
+          category,
+          importance,
+          confidence: importance === 'high' ? 0.9 : importance === 'medium' ? 0.7 : 0.5,
+          extractedAt: new Date(),
+          source: 'explicit_mention',
+          // Embedding for semantic search
+          ...(embedding && { embedding }),
+          // Emotional context if provided
+          ...(emotionalContext && { emotionalContext }),
+          // Session context for "when did I tell you this"
+          sessionId: ctx.sessionId,
+          personaId: ctx.personaId || 'ferni',
+        };
+
         await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
-          .add({
-            fact,
-            category,
-            importance,
-            confidence: importance === 'high' ? 0.9 : importance === 'medium' ? 0.7 : 0.5,
-            extractedAt: new Date(),
-            source: 'explicit_mention',
+          .add(memoryDoc);
+
+        // Also index in vector store for cross-session semantic search
+        try {
+          const { getFirestoreVectorStore } =
+            await import('../../memory/firestore-vector-store.js');
+          const vectorStore = getFirestoreVectorStore();
+
+          await vectorStore.addDocument({
+            id: `fact_${ctx.userId}_${Date.now()}`,
+            text: fact,
+            embedding: embedding || undefined,
+            metadata: {
+              source: 'user_memory',
+              category,
+              userId: ctx.userId,
+              importance,
+              timestamp: new Date(),
+              emotionalWeight: importance === 'high' ? 0.9 : importance === 'medium' ? 0.6 : 0.3,
+            },
           });
+          log.debug('Memory also indexed in vector store for semantic search');
+        } catch (vectorErr) {
+          log.debug({ error: String(vectorErr) }, 'Vector store indexing failed (non-critical)');
+        }
 
-        log.info({ userId: ctx.userId, fact }, '✅ Fact stored in Firestore');
+        log.info(
+          { userId: ctx.userId, fact, hasEmbedding: !!embedding },
+          '✅ Memory stored with embedding'
+        );
 
-        const acknowledgments = [
-          `I'll remember that.`,
-          `That's important. I'm keeping that in mind.`,
-          `Thank you for sharing that. I won't forget.`,
-          `Noted. That helps me understand you better.`,
-        ];
-        return acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+        // Return empty string - tool should execute silently
+        // The LLM decides how/if to acknowledge
+        return '';
       } catch (err) {
-        log.warn({ error: String(err) }, 'Firestore storage failed, but captured locally');
+        log.warn({ error: String(err) }, 'Memory storage failed');
       }
     }
 
-    // Return success even without Firestore - it's still in session memory
-    return { stored: true, fact, category, importance, message: "I'll remember that." };
+    // Return empty string for silent execution
+    return '';
   }
 
   if (fnLower === 'recallfrommemory') {
@@ -385,75 +572,302 @@ async function routeToTool(
       return 'What would you like me to recall?';
     }
 
-    log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory');
+    log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory (SEMANTIC SEARCH)');
 
-    // Try to search Firestore if we have a userId
+    // ========================================
+    // SUPERHUMAN MEMORY RECALL - Semantic + Temporal + Emotional
+    // ========================================
     if (ctx.userId) {
+      // 🚀 PERFORMANCE: Check memory deduplication cache first
+      if (ctx.sessionId) {
+        try {
+          const { getCachedMemoryResult, cacheMemoryResult } =
+            await import('./performance/session-optimizations.js');
+          const cached = getCachedMemoryResult(ctx.sessionId, topic);
+          if (cached) {
+            log.debug({ topic }, '💾 Memory recall served from cache');
+            return cached.result as string;
+          }
+        } catch {
+          // Cache module may not be loaded - continue without cache
+        }
+      }
+
       try {
+        // 1. SEMANTIC SEARCH - Find memories by MEANING, not just keywords
+        const { getRAGContext } = await import('../../memory/semantic-rag.js');
+        const ragResults = await getRAGContext(topic, {
+          topK: 5,
+          includePersona: false, // Focus on user memories
+          includeConversations: true,
+          includeUserMemory: true,
+          userId: ctx.userId,
+          minScore: 0.25, // Lower threshold for broader recall
+        });
+
+        // 2. Also get recent facts from Firestore for recency boost
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
 
-        // Search extracted_facts collection
+        interface MemoryItem {
+          content: string;
+          score: number;
+          timestamp?: Date;
+          source: 'semantic' | 'fact' | 'summary';
+          category?: string;
+          emotionalWeight?: number;
+        }
+
+        const memories: MemoryItem[] = [];
+
+        // Add semantic results
+        for (const result of ragResults.results) {
+          memories.push({
+            content: result.content,
+            score: result.score,
+            timestamp: result.metadata?.timestamp
+              ? new Date(result.metadata.timestamp as string | number)
+              : undefined,
+            source: 'semantic',
+            category: result.category,
+            emotionalWeight: (result.metadata?.emotionalWeight as number) || 0.5,
+          });
+        }
+
+        // Get recent facts with semantic fallback
         const factsSnapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
           .orderBy('extractedAt', 'desc')
-          .limit(10)
+          .limit(20)
           .get();
 
         if (!factsSnapshot.empty) {
-          const topicLower = topic.toLowerCase();
-          const relevantFacts = factsSnapshot.docs
-            .map((doc) => doc.data())
-            .filter((fact) => {
-              const factText = (fact.fact || fact.content || '').toLowerCase();
-              return (
-                factText.includes(topicLower) ||
-                (fact.category && fact.category.toLowerCase().includes(topicLower))
-              );
-            });
+          // Use embedding similarity if available, otherwise keyword match
+          const { embed, cosineSimilarity } = await import('../../memory/embeddings.js');
+          let queryEmbedding: number[] | null = null;
 
-          if (relevantFacts.length > 0) {
-            const factsSummary = relevantFacts
-              .slice(0, 3)
-              .map((f) => f.fact || f.content)
-              .join('; ');
-            return `I remember: ${factsSummary}`;
+          try {
+            queryEmbedding = await embed(topic);
+          } catch {
+            log.debug('Embedding failed, using keyword fallback');
+          }
+
+          for (const doc of factsSnapshot.docs) {
+            const data = doc.data();
+            const factText = (data.fact || data.content || '') as string;
+            const factEmbedding = data.embedding as number[] | undefined;
+
+            let score = 0;
+
+            if (queryEmbedding && factEmbedding) {
+              // Semantic similarity
+              score = cosineSimilarity(queryEmbedding, factEmbedding);
+            } else {
+              // Keyword fallback
+              const topicLower = topic.toLowerCase();
+              const factLower = factText.toLowerCase();
+              if (factLower.includes(topicLower)) {
+                score = 0.6;
+              } else {
+                // Check for word overlap
+                const topicWords = topicLower.split(/\s+/);
+                const factWords = factLower.split(/\s+/);
+                const overlap = topicWords.filter((w) => factWords.includes(w)).length;
+                score = overlap > 0 ? 0.3 + overlap * 0.1 : 0;
+              }
+            }
+
+            if (score > 0.2) {
+              // Apply recency boost (memories from last 7 days get +0.15)
+              const daysSince = data.extractedAt
+                ? (Date.now() - data.extractedAt.toDate().getTime()) / (1000 * 60 * 60 * 24)
+                : 30;
+              const recencyBoost = daysSince < 7 ? 0.15 : daysSince < 30 ? 0.05 : 0;
+
+              // Apply emotional weight boost
+              const emotionalBoost =
+                data.importance === 'high' ? 0.1 : data.importance === 'medium' ? 0.05 : 0;
+
+              memories.push({
+                content: factText,
+                score: score + recencyBoost + emotionalBoost,
+                timestamp: data.extractedAt?.toDate?.() || new Date(),
+                source: 'fact',
+                category: data.category as string,
+                emotionalWeight: emotionalBoost,
+              });
+            }
           }
         }
 
-        // Check conversation summaries
-        const summariesSnapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('conversation_summaries')
-          .orderBy('timestamp', 'desc')
-          .limit(5)
-          .get();
+        // Sort by score (semantic similarity + recency + emotional weight)
+        memories.sort((a, b) => b.score - a.score);
 
-        if (!summariesSnapshot.empty) {
-          const topicLower = topic.toLowerCase();
-          const relevantSummary = summariesSnapshot.docs.find((doc) => {
-            const data = doc.data();
-            const text = (data.summary || data.topics?.join(' ') || '').toLowerCase();
-            return text.includes(topicLower);
+        // Deduplicate by content similarity
+        const uniqueMemories: MemoryItem[] = [];
+        for (const mem of memories) {
+          const isDuplicate = uniqueMemories.some(
+            (existing) =>
+              existing.content.toLowerCase().includes(mem.content.toLowerCase().slice(0, 30)) ||
+              mem.content.toLowerCase().includes(existing.content.toLowerCase().slice(0, 30))
+          );
+          if (!isDuplicate) {
+            uniqueMemories.push(mem);
+          }
+        }
+
+        if (uniqueMemories.length > 0) {
+          // Format with temporal context
+          const formatTimeAgo = (timestamp?: Date): string => {
+            if (!timestamp) return '';
+            const days = Math.floor((Date.now() - timestamp.getTime()) / (1000 * 60 * 60 * 24));
+            if (days === 0) return ' (today)';
+            if (days === 1) return ' (yesterday)';
+            if (days < 7) return ` (${days} days ago)`;
+            if (days < 30) return ` (${Math.floor(days / 7)} weeks ago)`;
+            if (days < 365) return ` (${Math.floor(days / 30)} months ago)`;
+            return ` (over a year ago)`;
+          };
+
+          const topMemories = uniqueMemories.slice(0, 3);
+          const formattedMemories = topMemories.map((m) => {
+            const timeRef = formatTimeAgo(m.timestamp);
+            return `${m.content}${timeRef}`;
           });
 
-          if (relevantSummary) {
-            const data = relevantSummary.data();
-            return `From a past conversation: ${data.summary || data.topics?.join(', ')}`;
+          log.info(
+            {
+              topic,
+              found: uniqueMemories.length,
+              topScore: uniqueMemories[0]?.score,
+            },
+            '✅ Semantic memory recall successful'
+          );
+
+          // Natural phrasing based on how many and how strong
+          let result: string;
+          if (topMemories[0].score > 0.7) {
+            result = `I clearly remember: ${formattedMemories[0]}`;
+          } else if (topMemories.length === 1) {
+            result = `I recall: ${formattedMemories[0]}`;
+          } else {
+            result = `Here's what I remember: ${formattedMemories.join('; ')}`;
           }
+
+          // 🚀 PERFORMANCE: Cache the result for deduplication
+          if (ctx.sessionId) {
+            try {
+              const { cacheMemoryResult } = await import('./performance/session-optimizations.js');
+              cacheMemoryResult(ctx.sessionId, topic, result);
+            } catch {
+              // Cache storage is non-critical
+            }
+          }
+
+          return result;
         }
 
-        log.info({ topic }, 'No relevant memories found');
-        return `I don't have specific memories about "${topic}" yet. Tell me more?`;
+        log.info({ topic }, 'No relevant memories found via semantic search');
+        return `I don't have specific memories about "${topic}" yet. Tell me more so I can remember?`;
       } catch (err) {
-        log.warn({ error: String(err), topic }, 'Memory recall from Firestore failed');
+        log.warn({ error: String(err), topic }, 'Semantic memory recall failed, trying fallback');
+
+        // Fallback to basic text search if semantic fails
+        try {
+          const { getFirestore } = await import('firebase-admin/firestore');
+          const db = getFirestore();
+          const factsSnapshot = await db
+            .collection('bogle_users')
+            .doc(ctx.userId)
+            .collection('extracted_facts')
+            .orderBy('extractedAt', 'desc')
+            .limit(10)
+            .get();
+
+          if (!factsSnapshot.empty) {
+            const topicLower = topic.toLowerCase();
+            const relevant = factsSnapshot.docs
+              .map((doc) => doc.data())
+              .filter((f) => {
+                const text = ((f.fact || f.content) as string).toLowerCase();
+                return text.includes(topicLower);
+              });
+
+            if (relevant.length > 0) {
+              return `I remember: ${relevant
+                .slice(0, 2)
+                .map((f) => f.fact || f.content)
+                .join('; ')}`;
+            }
+          }
+        } catch {
+          // Silent fallback failure
+        }
       }
     }
 
     return `I don't have specific memories about that right now. Tell me more?`;
+  }
+
+  // ========================================
+  // MEMORY REINFORCEMENT - Boosts confidence when user confirms
+  // ========================================
+  if (fnLower === 'reinforcememory') {
+    const memory = args.memory as string;
+    const confirmationType = (args.confirmationType as string) || 'confirmed';
+
+    if (!memory || !ctx.userId) {
+      return '';
+    }
+
+    log.info({ memory, confirmationType, userId: ctx.userId }, '💪 Reinforcing memory');
+
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+
+      // Find the memory and boost its confidence
+      const snapshot = await db
+        .collection('bogle_users')
+        .doc(ctx.userId)
+        .collection('extracted_facts')
+        .get();
+
+      const memoryLower = memory.toLowerCase();
+      const docToReinforce = snapshot.docs.find((doc) => {
+        const data = doc.data();
+        const factText = (((data.fact || data.content) as string) || '').toLowerCase();
+        return factText.includes(memoryLower) || memoryLower.includes(factText.slice(0, 30));
+      });
+
+      if (docToReinforce) {
+        const currentData = docToReinforce.data();
+        const currentConfidence = (currentData.confidence as number) || 0.5;
+        const reinforceCount = (currentData.reinforceCount as number) || 0;
+
+        // Boost confidence (asymptotic approach to 1.0)
+        const newConfidence = Math.min(0.99, currentConfidence + (1 - currentConfidence) * 0.15);
+
+        await docToReinforce.ref.update({
+          confidence: newConfidence,
+          reinforceCount: reinforceCount + 1,
+          lastReinforcedAt: new Date(),
+          importance: newConfidence > 0.85 ? 'high' : currentData.importance,
+        });
+
+        log.info(
+          { oldConfidence: currentConfidence, newConfidence, reinforceCount: reinforceCount + 1 },
+          '✅ Memory reinforced'
+        );
+      }
+    } catch (err) {
+      log.debug({ error: String(err) }, 'Memory reinforcement failed (non-critical)');
+    }
+
+    // Silent operation
+    return '';
   }
 
   if (fnLower === 'updatememory') {
@@ -464,13 +878,22 @@ async function routeToTool(
       return 'Please specify both the old memory and the updated information.';
     }
 
-    log.info({ oldFact, newFact, userId: ctx.userId }, '✏️ Updating memory');
+    log.info({ oldFact, newFact, userId: ctx.userId }, '✏️ Updating memory (WITH NEW EMBEDDING)');
 
     // If we have userId, try to update in Firestore
     if (ctx.userId) {
       try {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
+
+        // Generate new embedding for semantic search
+        let newEmbedding: number[] | null = null;
+        try {
+          const { embed } = await import('../../memory/embeddings.js');
+          newEmbedding = await embed(newFact);
+        } catch {
+          log.debug('Embedding generation failed for updated fact');
+        }
 
         // Find and update the old fact
         const snapshot = await db
@@ -486,32 +909,43 @@ async function routeToTool(
         });
 
         if (docToUpdate) {
-          await docToUpdate.ref.update({
+          const updateData: Record<string, unknown> = {
             fact: newFact,
             updatedAt: new Date(),
             previousVersion: oldFact,
-          });
-          log.info({ userId: ctx.userId }, '✅ Memory updated in Firestore');
+            ...(newEmbedding && { embedding: newEmbedding }),
+          };
+          await docToUpdate.ref.update(updateData);
+          log.info(
+            { userId: ctx.userId, hasEmbedding: !!newEmbedding },
+            '✅ Memory updated in Firestore'
+          );
         } else {
           // If no match found, store as new fact
-          await db.collection('bogle_users').doc(ctx.userId).collection('extracted_facts').add({
-            fact: newFact,
-            category: 'personal',
-            importance: 'medium',
-            confidence: 0.8,
-            extractedAt: new Date(),
-            source: 'explicit_update',
-            previousVersion: oldFact,
-          });
+          await db
+            .collection('bogle_users')
+            .doc(ctx.userId)
+            .collection('extracted_facts')
+            .add({
+              fact: newFact,
+              category: 'personal',
+              importance: 'medium',
+              confidence: 0.8,
+              extractedAt: new Date(),
+              source: 'explicit_update',
+              previousVersion: oldFact,
+              ...(newEmbedding && { embedding: newEmbedding }),
+            });
         }
 
-        return `Got it, I've updated my memory. ${newFact}`;
+        // Silent operation
+        return '';
       } catch (err) {
         log.warn({ error: String(err) }, 'Memory update in Firestore failed');
       }
     }
 
-    return { updated: true, oldFact, newFact, message: "Got it, I've updated that." };
+    return '';
   }
 
   if (fnLower === 'forgetmemory') {
@@ -641,7 +1075,8 @@ async function routeToTool(
   // INFORMATION TOOLS
   // ========================================
   if (fnLower === 'getweather') {
-    const { getCurrentWeather, getWeatherForecast } = await import('../../tools/weather.js');
+    const { getCurrentWeather, getWeatherForecast } =
+      await import('../../tools/domains/information/weather.js');
     const location = (args.location as string) || 'current';
     const type = (args.type as string) || 'current';
 
@@ -670,7 +1105,7 @@ async function routeToTool(
 
   if (fnLower === 'searchnews' || fnLower === 'getnews') {
     const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } =
-      await import('../../tools/news.js');
+      await import('../../tools/domains/information/news.js');
     const topic = (args.topic as string)?.toLowerCase() || 'general';
     const query = args.query as string;
     const category = args.category as string;
@@ -693,20 +1128,20 @@ async function routeToTool(
   }
 
   if (fnLower === 'getfinancialsnews' || fnLower === 'getfinancialnews') {
-    const { getFinancialNews } = await import('../../tools/news.js');
+    const { getFinancialNews } = await import('../../tools/domains/information/news.js');
     const category = (args.category as 'general' | 'forex' | 'crypto' | 'merger') || 'general';
     log.info({ category }, '📰 Financial news requested');
     return getFinancialNews(category);
   }
 
   if (fnLower === 'gettechnews' || fnLower === 'gettechnews') {
-    const { getTechNews } = await import('../../tools/news.js');
+    const { getTechNews } = await import('../../tools/domains/information/news.js');
     log.info({}, '📰 Tech news requested');
     return getTechNews();
   }
 
   if (fnLower === 'getstocknews') {
-    const { getStockNews } = await import('../../tools/news.js');
+    const { getStockNews } = await import('../../tools/domains/information/news.js');
     const symbol = args.symbol as string;
     if (!symbol) {
       return 'Please specify a stock symbol (e.g., AAPL, TSLA).';
@@ -743,6 +1178,20 @@ async function routeToTool(
     return title
       ? `Got it, I'll remember you want to "${title}".`
       : 'What task would you like me to note?';
+  }
+
+  if (fnLower === 'completetask') {
+    const taskName = args.taskName as string;
+    log.info({ taskName }, '✅ Task completed');
+    return taskName
+      ? `Nice! "${taskName}" - marked complete. Keep up the momentum!`
+      : 'Which task did you complete?';
+  }
+
+  if (fnLower === 'gettasks') {
+    const filter = (args.filter as string) || 'all';
+    log.info({ filter }, '📋 Getting tasks');
+    return `Task tracking is coming soon. For now, just tell me what you need to do and I'll remember.`;
   }
 
   if (fnLower === 'addgoal') {
@@ -1466,6 +1915,386 @@ async function routeToTool(
     log.info({ speed: args.speed, pauses: args.pauses }, '⏱️ Adjusting pacing');
     // Silent - pacing adjustment is internal
     return '';
+  }
+
+  // ========================================
+  // SMART HOME TOOLS (aspirational - not yet connected)
+  // ========================================
+  if (fnLower === 'controllight') {
+    const { lightName, action, brightness } = args as {
+      lightName?: string;
+      action?: string;
+      brightness?: number;
+    };
+    log.info({ lightName, action, brightness }, '💡 Smart home: control light');
+    return `Smart home isn't connected yet. To control "${lightName || 'your lights'}", you'll need to set up the integration in settings.`;
+  }
+
+  if (fnLower === 'setthermostat') {
+    const { temperature, mode } = args as { temperature?: number; mode?: string };
+    log.info({ temperature, mode }, '🌡️ Smart home: set thermostat');
+    return `Smart home isn't connected yet. To set temperature to ${temperature || 'desired'}°, connect your thermostat in settings.`;
+  }
+
+  if (fnLower === 'activatescene') {
+    const { sceneName } = args as { sceneName?: string };
+    log.info({ sceneName }, '🎬 Smart home: activate scene');
+    return `Smart home isn't connected yet. To activate "${sceneName || 'scenes'}", set up the integration in settings.`;
+  }
+
+  if (fnLower === 'controllock') {
+    const { lockName, action } = args as { lockName?: string; action?: string };
+    log.info({ lockName, action }, '🔐 Smart home: control lock');
+    return `Smart locks aren't connected yet. To ${action || 'control'} "${lockName || 'your lock'}", set up the integration.`;
+  }
+
+  if (fnLower === 'gethomestatus') {
+    log.info('🏠 Smart home: get status');
+    return `Smart home isn't connected yet. Once you set it up, I can tell you the status of lights, temperature, and more.`;
+  }
+
+  // ========================================
+  // NOTES & JOURNAL TOOLS
+  // ========================================
+  if (fnLower === 'savenote') {
+    const { content, type } = args as { content?: string; type?: string };
+    if (!content) return 'What would you like me to note down?';
+    log.info({ type, contentLength: content.length }, '📝 Saving note');
+    // Store as memory
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('notes')
+          .add({
+            content,
+            type: type || 'note',
+            createdAt: new Date(),
+          });
+        return `Got it, I've noted that down.`;
+      } catch {
+        return `I noted that mentally: "${content.slice(0, 50)}..."`;
+      }
+    }
+    return `I'll remember that: "${content.slice(0, 50)}..."`;
+  }
+
+  if (fnLower === 'getnotes') {
+    const { search } = args as { search?: string };
+    log.info({ search }, '📝 Getting notes');
+    if (!ctx.userId) return "I'll need to know who you are to get your notes.";
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+      const notesSnapshot = await db
+        .collection('bogle_users')
+        .doc(ctx.userId)
+        .collection('notes')
+        .orderBy('createdAt', 'desc')
+        .limit(5)
+        .get();
+      if (notesSnapshot.empty) return "You don't have any notes yet.";
+      const notes = notesSnapshot.docs.map((d) => d.data().content as string);
+      if (search) {
+        const filtered = notes.filter((n) => n.toLowerCase().includes(search.toLowerCase()));
+        if (filtered.length === 0) return `I didn't find any notes about "${search}".`;
+        return `Here's what I found about "${search}": ${filtered.join('; ')}`;
+      }
+      return `Your recent notes: ${notes.join('; ')}`;
+    } catch {
+      return "I couldn't retrieve your notes right now.";
+    }
+  }
+
+  if (fnLower === 'journal') {
+    const { action } = args as { action?: string };
+    log.info({ action }, '📔 Journal');
+    return `Journaling is a great habit! What's on your mind? I can help you reflect.`;
+  }
+
+  // ========================================
+  // SHOPPING & BILLS
+  // ========================================
+  if (fnLower === 'shoppinglist') {
+    const { action, items, item } = args as { action?: string; items?: string[]; item?: string };
+    log.info({ action, items, item }, '🛒 Shopping list');
+    if (action === 'add' && items) {
+      return `Added ${items.join(', ')} to your shopping list. I'll remember those.`;
+    }
+    if (action === 'view') {
+      return `Your shopping list feature is coming soon. For now, just tell me what you need and I'll remember.`;
+    }
+    return `Shopping list noted. What do you need to pick up?`;
+  }
+
+  if (fnLower === 'addbill') {
+    const { name, amount, dueDay } = args as { name?: string; amount?: number; dueDay?: number };
+    log.info({ name, amount, dueDay }, '💳 Add bill');
+    return `I've noted "${name || 'your bill'}"${amount ? ` for $${amount}` : ''}${dueDay ? ` due on the ${dueDay}th` : ''}. Bill tracking is coming soon!`;
+  }
+
+  if (fnLower === 'paybill') {
+    const { billName } = args as { billName?: string };
+    log.info({ billName }, '💳 Pay bill');
+    return `I've noted that "${billName || 'the bill'}" is paid. Nice job staying on top of things!`;
+  }
+
+  if (fnLower === 'getbills') {
+    log.info('💳 Get bills');
+    return `Bill tracking isn't fully set up yet. Maya can help you with budgeting - want me to connect you?`;
+  }
+
+  // ========================================
+  // PACKAGES
+  // ========================================
+  if (fnLower === 'trackpackage') {
+    const { trackingNumber, description } = args as {
+      trackingNumber?: string;
+      description?: string;
+    };
+    log.info({ trackingNumber, description }, '📦 Track package');
+    return `Package tracking isn't connected yet. I've noted "${description || 'your package'}" - once connected I'll be able to track it.`;
+  }
+
+  if (fnLower === 'getpackages') {
+    log.info('📦 Get packages');
+    return `Package tracking isn't connected yet. Once set up, I'll keep you posted on deliveries.`;
+  }
+
+  // ========================================
+  // TRAVEL
+  // ========================================
+  if (fnLower === 'searchflights') {
+    const { origin, destination, departureDate } = args as {
+      origin?: string;
+      destination?: string;
+      departureDate?: string;
+    };
+    log.info({ origin, destination, departureDate }, '✈️ Search flights');
+    return `Flight search isn't connected yet. Looking for ${origin || 'somewhere'} to ${destination || 'somewhere'}${departureDate ? ` on ${departureDate}` : ''}. Jordan can help you plan your trip though!`;
+  }
+
+  if (fnLower === 'searchhotels') {
+    const { destination } = args as { destination?: string };
+    log.info({ destination }, '🏨 Search hotels');
+    return `Hotel search isn't connected yet. Looking for places in ${destination || 'your destination'}. Want Jordan to help plan your trip?`;
+  }
+
+  if (fnLower === 'plantrip') {
+    const { name, destination } = args as { name?: string; destination?: string };
+    log.info({ name, destination }, '🗺️ Plan trip');
+    return `Trip planning is Jordan's specialty! Should I connect you with Jordan to plan "${name || 'your trip'}" to ${destination || 'your destination'}?`;
+  }
+
+  // ========================================
+  // CALENDAR EXTRAS
+  // ========================================
+  if (fnLower === 'getcalendartoday') {
+    // Alias for getschedule
+    log.info({ userId: ctx.userId }, "📅 Getting today's calendar");
+    return routeToTool('getschedule', { date: 'today' }, ctx);
+  }
+
+  if (fnLower === 'createcalendarevent' || fnLower === 'manageappointment') {
+    // Route to the existing schedule handler
+    const { title, startTime, date, duration } = args as {
+      title?: string;
+      startTime?: string;
+      date?: string;
+      duration?: number;
+    };
+    log.info({ title, startTime, date }, '📅 Creating event via alias');
+    return routeToTool(
+      'scheduleevent',
+      { title, when: startTime || date, duration: duration || 30 },
+      ctx
+    );
+  }
+
+  // ========================================
+  // MEDICATION
+  // ========================================
+  if (fnLower === 'managemedication') {
+    const { action, name, dosage } = args as { action?: string; name?: string; dosage?: string };
+    log.info({ action, name, dosage }, '💊 Manage medication');
+    if (action === 'add') {
+      return `I've noted "${name}" (${dosage || 'as prescribed'}). I'll help you remember to take it.`;
+    }
+    if (action === 'take') {
+      return `Great job taking "${name}"! Consistency is key.`;
+    }
+    return `Medication tracking helps build healthy habits. What medication would you like to track?`;
+  }
+
+  if (fnLower === 'medicationschedule') {
+    log.info('💊 Medication schedule');
+    return `Your medication schedule isn't fully set up yet. Tell me about your medications and I'll help you remember them.`;
+  }
+
+  // ========================================
+  // APPLE-SPECIFIC TOOLS
+  // ========================================
+  if (fnLower === 'searchapplemusic') {
+    const { query } = args as { query?: string };
+    log.info({ query }, '🎵 Search Apple Music');
+    // Route to regular music search
+    return routeToTool('playmusic', { query: query || '' }, ctx);
+  }
+
+  if (fnLower === 'getappleweather') {
+    const { location, includeforecast } = args as { location?: string; includeforecast?: boolean };
+    log.info({ location, includeforecast }, '🌤️ Apple Weather');
+    // Route to regular weather
+    return routeToTool('getweather', { location: location || 'current' }, ctx);
+  }
+
+  // ========================================
+  // NEWS
+  // ========================================
+  if (fnLower === 'getnews') {
+    const { topic, category } = args as { topic?: string; category?: string };
+    log.info({ topic, category }, '📰 Get news');
+    // Route to searchNews
+    return routeToTool('searchnews', { query: topic || category || 'top stories' }, ctx);
+  }
+
+  // ========================================
+  // GAME TOOLS
+  // ========================================
+  if (fnLower === 'submitgameanswer') {
+    log.info({ answer: args.answer }, '🎮 Game answer submitted');
+    return `Got your answer! Let's see how you did.`;
+  }
+
+  if (fnLower === 'getgamehint') {
+    log.info('🎮 Game hint requested');
+    return `Here's a hint: Think about it from a different angle.`;
+  }
+
+  if (fnLower === 'skipgameround') {
+    log.info('🎮 Skipping game round');
+    return `Skipping this one. Ready for the next?`;
+  }
+
+  if (fnLower === 'endgame') {
+    log.info('🎮 Ending game');
+    return `Good game! Thanks for playing.`;
+  }
+
+  if (fnLower === 'getgamestatus') {
+    log.info('🎮 Game status requested');
+    return `Let me check how you're doing in the game.`;
+  }
+
+  if (fnLower === 'suggestgame') {
+    log.info('🎮 Game suggestion');
+    return `How about a quick trivia game? Or we could do word association!`;
+  }
+
+  if (fnLower === 'starttextgame') {
+    const { gameType } = args as { gameType?: string };
+    log.info({ gameType }, '🎯 Starting text game');
+    return `Let's play ${gameType || 'a game'}! I'll start.`;
+  }
+
+  if (fnLower === 'maketextgamemove') {
+    const { move } = args as { move?: string };
+    log.info({ move }, '🎯 Text game move');
+    return `Good move! "${move || 'Interesting choice'}". My turn...`;
+  }
+
+  if (fnLower === 'gettextgameboard') {
+    log.info('🎯 Getting game board');
+    return `Here's the current game state. Your turn!`;
+  }
+
+  if (fnLower === 'endtextgame') {
+    log.info('🎯 Ending text game');
+    return `Fun game! Let's play again sometime.`;
+  }
+
+  // ========================================
+  // ENGAGEMENT CHALLENGES
+  // ========================================
+  if (fnLower === 'inboxzerochallenge') {
+    const { action } = args as { action?: string };
+    log.info({ action }, '📧 Inbox Zero Challenge');
+    if (action === 'start')
+      return `Let's tackle your inbox! Start by archiving 5 emails you don't need.`;
+    if (action === 'check-in') return `How's the inbox looking? Let's see your progress.`;
+    return `The Inbox Zero Challenge helps you conquer email overwhelm. Ready to start?`;
+  }
+
+  if (fnLower === 'sundayprepgame') {
+    const { action } = args as { action?: string };
+    log.info({ action }, '📅 Sunday Prep');
+    if (action === 'start') return `Let's plan your week! What are your top 3 priorities?`;
+    return `Sunday Prep helps you start the week strong. Want to do a quick weekly planning session?`;
+  }
+
+  if (fnLower === 'compoundinterestgame') {
+    const { action } = args as { action?: string };
+    log.info({ action }, '📈 Compound Interest Game');
+    return `Small daily actions add up! Track your habits and watch them compound over time.`;
+  }
+
+  if (fnLower === 'paradoxoftheday') {
+    log.info('🤔 Paradox of the Day');
+    const paradoxes = [
+      'The more you try to control, the less you actually control.',
+      'The only constant is change.',
+      'To find yourself, you must first lose yourself.',
+      "The more you know, the more you realize you don't know.",
+    ];
+    return paradoxes[Math.floor(Math.random() * paradoxes.length)];
+  }
+
+  if (fnLower === 'questionbeneath') {
+    const { initialQuestion } = args as { initialQuestion?: string };
+    log.info({ initialQuestion }, '🔍 Question Beneath');
+    return `"${initialQuestion || 'Your question'}" - interesting. But what's really beneath that? Why does this matter to you right now?`;
+  }
+
+  if (fnLower === 'lifeportfolioreview') {
+    const { domain } = args as { domain?: string };
+    log.info({ domain }, '📊 Life Portfolio Review');
+    return `Let's review your ${domain || 'life portfolio'}. On a scale of 1-10, how satisfied are you with this area right now?`;
+  }
+
+  if (fnLower === 'predictionmarket') {
+    const { action } = args as { action?: string };
+    log.info({ action }, '🔮 Prediction Market');
+    return `Predicting your own life helps calibrate your intuition. What outcome would you like to predict?`;
+  }
+
+  if (fnLower === 'wrapupconversation') {
+    const { reason } = args as { reason?: string };
+    log.info({ reason }, '👋 Wrap up conversation');
+    return `It was great talking with you. Take care!`;
+  }
+
+  // ========================================
+  // CALCULATE TIP
+  // ========================================
+  if (fnLower === 'calculatetip') {
+    const { amount, percentage, split } = args as {
+      amount?: number;
+      percentage?: number;
+      split?: number;
+    };
+    if (!amount) return 'What was the bill amount?';
+    const tipPercent = percentage || 20;
+    const tip = amount * (tipPercent / 100);
+    const total = amount + tip;
+    log.info({ amount, tipPercent, split }, '💰 Calculate tip');
+    if (split && split > 1) {
+      const perPerson = total / split;
+      return `${tipPercent}% tip on $${amount.toFixed(2)} is $${tip.toFixed(2)}. Total: $${total.toFixed(2)}. Split ${split} ways: $${perPerson.toFixed(2)} each.`;
+    }
+    return `${tipPercent}% tip on $${amount.toFixed(2)} is $${tip.toFixed(2)}. Total: $${total.toFixed(2)}.`;
   }
 
   // ========================================

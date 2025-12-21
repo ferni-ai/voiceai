@@ -253,10 +253,7 @@ export class FrontendPublisher {
         // Don't retry if connection is already closed - bail out immediately
         if (errorStr.includes('closed') || errorStr.includes('disconnect')) {
           if (this.config.verbose) {
-            this.logger.debug(
-              { type: message.type },
-              'Send skipped - connection closed'
-            );
+            this.logger.debug({ type: message.type }, 'Send skipped - connection closed');
           }
           return false;
         }

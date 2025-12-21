@@ -41,7 +41,10 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkTrialStatus } from '../../services/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
-import { recordCacheAttempt, recordLatency } from '../../services/voice-humanization-metrics.js';
+import {
+  recordCacheAttempt,
+  recordLatency,
+} from '../../services/voice/voice-humanization-metrics.js';
 import { getHumanListeningPipeline } from '../../speech/human-listening-pipeline.js';
 import { getResponseAnticipationService } from '../../speech/response-anticipation.js';
 import {
@@ -72,7 +75,7 @@ import {
 import {
   detectTeamHuddleRequest,
   createTeamHuddleTrigger,
-} from '../../services/engagement-conversation-triggers.js';
+} from '../../services/engagement/engagement-conversation-triggers.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // ============================================================================
@@ -292,6 +295,29 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         });
       } catch {
         // Sesame processing is non-critical
+      }
+
+      // ===============================================
+      // 🚀 SPECULATIVE CONTEXT PREFETCH
+      // Start building context while user is still speaking
+      // Saves ~150ms on final response
+      // ===============================================
+      if (event.transcript.length > 20 && userId) {
+        // Use .then() to avoid await in non-async context
+        import('../shared/performance/session-optimizations.js')
+          .then(({ startSpeculativePrefetch }) => {
+            startSpeculativePrefetch(sessionId, event.transcript, async (text) => {
+              const { getRAGContext } = await import('../../memory/semantic-rag.js');
+              return getRAGContext(text, {
+                topK: 3,
+                userId,
+                minScore: 0.3,
+              });
+            });
+          })
+          .catch(() => {
+            // Prefetch is non-critical
+          });
       }
     }
 

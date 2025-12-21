@@ -20,7 +20,7 @@ import {
   recordActivity as recordActivityToStore,
   type ActivityEvent,
 } from '../../../services/admin-activity.js';
-import { getBetterThanHumanTelemetry } from '../../../services/better-than-human-telemetry.js';
+import { getBetterThanHumanTelemetry } from '../../../services/analytics/better-than-human-telemetry.js';
 import { calculatePeriodAnalytics } from '../../../services/outreach/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
@@ -285,7 +285,7 @@ async function getSystemStats(): Promise<{
   activeSessions: number;
 }> {
   try {
-    const { getAverageLatency } = await import('../../../services/latency-tracker.js');
+    const { getAverageLatency } = await import('../../../services/analytics/latency-tracker.js');
     const avgLatency = getAverageLatency();
 
     // Get recent user events to estimate active sessions
@@ -318,7 +318,7 @@ async function getHealthSummary(): Promise<{
   timestamp: string;
 }> {
   try {
-    const { getLatencySummary } = await import('../../../services/latency-tracker.js');
+    const { getLatencySummary } = await import('../../../services/analytics/latency-tracker.js');
     const latencySummary = getLatencySummary();
 
     // Map to the expected format

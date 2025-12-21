@@ -29,7 +29,7 @@
 import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { callWithPersonaVoice } from '../../../services/voice-call.js';
+import { callWithPersonaVoice } from '../../../services/voice/voice-call.js';
 import {
   makeConversationalCall,
   isConversationalCallsConfigured,

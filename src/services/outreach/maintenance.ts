@@ -220,8 +220,8 @@ export async function syncAllCalendars(): Promise<{
   try {
     // Dynamic import to avoid circular dependencies
     const { isCalendarConfigured, getAllCalendarUsers } =
-      await import('../google-calendar-oauth.js');
-    const { syncCalendarToOutreach } = await import('../calendar-busy-detection.js');
+      await import('../identity/google-calendar-oauth.js');
+    const { syncCalendarToOutreach } = await import('../scheduling/calendar-busy-detection.js');
 
     // Get all users with connected calendars
     let userIds: string[];

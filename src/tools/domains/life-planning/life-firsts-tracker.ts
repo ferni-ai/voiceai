@@ -15,7 +15,7 @@ import { z } from 'zod';
 import {
   getLifeDataStore,
   type LifeMilestone as StoredMilestone,
-} from '../../../services/life-data-store.js';
+} from '../../../services/stores/life-data-store.js';
 import { sanitizePlainText, parseAmount, isValidAmount } from '../../validation.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 

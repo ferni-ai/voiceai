@@ -135,11 +135,12 @@ export {
   type VulnerabilityState,
 } from './vulnerability-matching.js';
 
-// Empathetic Reflections - Structured empathy
+// Empathetic Reflections - Structured empathy (now LLM-powered!)
 export {
   clearReflectionStates,
   formatReflectionGuidance,
   generateReflection,
+  generateReflectionAsync,
   type Reflection,
   type ReflectionContext,
   type ReflectionType,

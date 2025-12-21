@@ -23,7 +23,7 @@ import {
   parseNaturalTime,
   sendVoiceMessage,
   type ReminderDeliveryMethod,
-} from '../../../services/reminder-scheduler.js';
+} from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   sanitizeEmailForLog,

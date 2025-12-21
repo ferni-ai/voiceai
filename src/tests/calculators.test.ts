@@ -14,7 +14,7 @@ import {
   calculateEmergencyFund,
   calculateSavingsRate,
   calculateYearsToDouble,
-} from '../tools/calculators.js';
+} from '../tools/domains/finance/calculators.js';
 
 describe('Calculator E2E Tests', () => {
   describe('calculateCompoundGrowth', () => {

@@ -61,7 +61,7 @@ vi.mock('../utils/safe-logger.js', () => ({
   createLogger: vi.fn(() => mockLogger),
 }));
 
-import { buildEmotionalContext } from '../intelligence/context-builders/emotional.js';
+import { buildEmotionalContext } from '../intelligence/context-builders/emotional/emotional.js';
 import type { ContextBuilderInput } from '../intelligence/context-builders/index.js';
 
 // ============================================================================

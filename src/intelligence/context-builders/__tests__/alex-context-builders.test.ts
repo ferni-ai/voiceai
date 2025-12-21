@@ -61,7 +61,7 @@ vi.mock('../../../services/message-validation/message-validation-service.js', ()
 }));
 
 // Import after mocks
-import { buildCalendarAwarenessContext } from '../calendar-awareness.js';
+import { buildCalendarAwarenessContext } from '../awareness/calendar-awareness.js';
 
 // ============================================================================
 // TEST HELPERS

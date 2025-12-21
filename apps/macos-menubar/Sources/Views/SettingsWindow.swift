@@ -383,28 +383,6 @@ struct SettingsView: View {
     private var advancedTab: some View {
         Form {
             Section {
-                Picker("Backend", selection: $voiceManager.backendMode) {
-                    ForEach(VoiceBackendMode.allCases) { mode in
-                        HStack {
-                            Image(systemName: mode.icon)
-                            VStack(alignment: .leading) {
-                                Text(mode.displayName)
-                            }
-                        }
-                        .tag(mode)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-                .help("Native SDK: Lower latency, better performance. CLI: Easier debugging.")
-                
-                Text(voiceManager.backendMode.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } header: {
-                Text("Voice Backend")
-            }
-            
-            Section {
                 Toggle(voiceManager.useCloudMode ? "Cloud Mode (app.ferni.ai)" : "Local Mode (localhost)", isOn: Binding(
                     get: { voiceManager.useCloudMode },
                     set: { voiceManager.useCloudMode = $0 }

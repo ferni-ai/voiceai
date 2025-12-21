@@ -28,12 +28,12 @@ import {
   getStockNews,
   getTechNews,
   searchNewsByTopic,
-} from '../../news.js';
-import { getSportScores, getTeamScore } from '../../sports.js';
+} from './news.js';
+import { getSportScores, getTeamScore } from './sports.js';
 
 // Import legacy tool creators for simple wrapping
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
-import { createWeatherTools } from '../../weather.js';
+import { createWeatherTools } from './weather.js';
 
 // Import Apple WeatherKit tools
 import { appleWeatherTools } from './apple-weather-tools.js';

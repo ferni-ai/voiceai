@@ -21,7 +21,7 @@ import {
   getDashboardData,
   getMetricsJson,
   resetMetrics,
-} from '../services/voice-humanization-metrics.js';
+} from '../services/voice/voice-humanization-metrics.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded } from './helpers.js';

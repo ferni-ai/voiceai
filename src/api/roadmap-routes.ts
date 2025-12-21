@@ -472,27 +472,23 @@ async function handleVote(
         return { success: false, error: 'Insufficient seeds', balance: currentBalance };
       }
 
-      // Check if user already voted on this feature
-      const existingVoteQuery = await db
-        .collection('roadmap_votes')
-        .where('userId', '==', userId)
-        .where('featureId', '==', featureId)
-        .limit(1)
-        .get();
+      // Check if user already voted on this feature (using deterministic ID)
+      const voteId = `${userId}_${featureId}`;
+      const existingVoteRef = db.collection('feature_votes').doc(voteId);
+      const existingVoteDoc = await transaction.get(existingVoteRef);
 
-      if (!existingVoteQuery.empty) {
+      if (existingVoteDoc.exists) {
         // Update existing vote
-        const existingVoteDoc = existingVoteQuery.docs[0];
-        const existingSeeds = existingVoteDoc.data().seedsPlanted || 0;
+        const existingSeeds = existingVoteDoc.data()?.seedsPlanted || 0;
         const additionalSeeds = seeds;
 
         if (currentBalance < additionalSeeds) {
           return { success: false, error: 'Insufficient seeds', balance: currentBalance };
         }
 
-        transaction.update(existingVoteDoc.ref, {
+        transaction.update(existingVoteRef, {
           seedsPlanted: admin.firestore.FieldValue.increment(additionalSeeds),
-          reason: reason || existingVoteDoc.data().reason,
+          reason: reason || existingVoteDoc.data()?.reason,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -533,15 +529,14 @@ async function handleVote(
 
         return {
           success: true,
-          voteId: existingVoteDoc.id,
+          voteId,
           totalSeedsPlanted: existingSeeds + additionalSeeds,
           newBalance: currentBalance - additionalSeeds,
         };
       }
 
-      // Create new vote
-      const voteRef = db.collection('roadmap_votes').doc();
-      transaction.set(voteRef, {
+      // Create new vote (using deterministic ID)
+      transaction.set(existingVoteRef, {
         userId,
         featureId,
         seedsPlanted: seeds,
@@ -588,7 +583,7 @@ async function handleVote(
 
       return {
         success: true,
-        voteId: voteRef.id,
+        voteId,
         totalSeedsPlanted: seeds,
         newBalance: currentBalance - seeds,
       };
@@ -625,24 +620,20 @@ async function handleUnvote(
     }
 
     const result = await db.runTransaction(async (transaction) => {
-      // Find user's vote for this feature
-      const voteQuery = await db
-        .collection('roadmap_votes')
-        .where('userId', '==', userId)
-        .where('featureId', '==', featureId)
-        .limit(1)
-        .get();
+      // Find user's vote for this feature (using deterministic ID)
+      const voteId = `${userId}_${featureId}`;
+      const voteRef = db.collection('feature_votes').doc(voteId);
+      const voteDoc = await transaction.get(voteRef);
 
-      if (voteQuery.empty) {
+      if (!voteDoc.exists) {
         return { success: false, error: 'Vote not found' };
       }
 
-      const voteDoc = voteQuery.docs[0];
-      const seedsPlanted = voteDoc.data().seedsPlanted || 0;
+      const seedsPlanted = voteDoc.data()?.seedsPlanted || 0;
       const refund = Math.floor(seedsPlanted * UNVOTE_REFUND_PERCENT);
 
       // Delete vote
-      transaction.delete(voteDoc.ref);
+      transaction.delete(voteRef);
 
       // Refund seeds
       const userSeedsRef = db.collection('user_seeds').doc(userId);
@@ -694,8 +685,10 @@ async function handleGetUserVotes(
       return;
     }
 
+    // Query feature_votes using a prefix scan on the deterministic ID pattern
+    // IDs are formatted as `${userId}_${featureId}`, so we can filter by prefix
     const votesSnapshot = await db
-      .collection('roadmap_votes')
+      .collection('feature_votes')
       .where('userId', '==', userId)
       .orderBy('createdAt', 'desc')
       .get();

@@ -28,7 +28,7 @@ import {
   getTeamEngagementService,
   resetTeamEngagementService,
   type TeamEngagementService,
-} from '../services/team-engagement.js';
+} from '../services/engagement/team-engagement.js';
 
 // ============================================================================
 // DAILY RITUALS TESTS

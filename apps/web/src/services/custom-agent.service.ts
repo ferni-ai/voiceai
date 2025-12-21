@@ -73,6 +73,16 @@ export interface CustomAgentMemory {
   mood?: string;
   createdAt: string;
   updatedAt: string;
+  /** Source of the memory: 'manual' (user recorded), 'auto-capture' (from conversation) */
+  source?: 'manual' | 'auto-capture';
+  /** For auto-captured moments, the type of moment detected */
+  momentType?: string;
+  /** For auto-captured moments, the intensity/significance (0-1) */
+  intensity?: number;
+  /** For auto-captured moments, which conversation it came from */
+  conversationId?: string;
+  /** For auto-captured moments, which persona captured it */
+  personaId?: string;
 }
 
 export interface CustomAgentBehaviors {
@@ -338,6 +348,104 @@ export async function selectPreMadeVoice(
     }
   );
   return result.voice;
+}
+
+/**
+ * Polls voice clone status
+ */
+export interface VoiceCloneStatus {
+  status: VoiceStatus;
+  type: 'cloned' | 'selected' | 'none';
+  voiceId: string | null;
+  hasAudioSample: boolean;
+  isReady: boolean;
+  settings: Record<string, unknown>;
+}
+
+export async function getVoiceCloneStatus(agentId: string): Promise<VoiceCloneStatus> {
+  return apiRequest<VoiceCloneStatus>(`/${agentId}/voice/status`);
+}
+
+/**
+ * Polls voice clone status until ready or failed
+ * Returns when status changes to 'ready' or 'failed'
+ */
+export async function waitForVoiceClone(
+  agentId: string,
+  options: {
+    maxAttempts?: number;
+    intervalMs?: number;
+    onProgress?: (status: VoiceCloneStatus) => void;
+  } = {}
+): Promise<VoiceCloneStatus> {
+  const { maxAttempts = 30, intervalMs = 2000, onProgress } = options;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const status = await getVoiceCloneStatus(agentId);
+    
+    if (onProgress) {
+      onProgress(status);
+    }
+    
+    if (status.isReady || status.status === 'ready') {
+      return status;
+    }
+    
+    if (status.status === 'failed') {
+      throw new Error('Voice clone failed');
+    }
+    
+    // Wait before next attempt
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  
+  throw new Error('Voice clone timed out');
+}
+
+// ============================================================================
+// AGENT STATUS OPERATIONS
+// ============================================================================
+
+/**
+ * Changes agent status (active/paused/draft)
+ */
+export async function setAgentStatus(
+  agentId: string,
+  status: CustomAgentStatus
+): Promise<{ message: string; status: CustomAgentStatus }> {
+  log.info('Setting agent status:', agentId, status);
+  return apiRequest<{ message: string; status: CustomAgentStatus }>(
+    `/${agentId}/status`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }
+  );
+}
+
+/**
+ * Activates an agent (validates it's ready first)
+ */
+export async function activateAgent(
+  agentId: string
+): Promise<{ message: string; status: CustomAgentStatus }> {
+  log.info('Activating agent:', agentId);
+  return apiRequest<{ message: string; status: CustomAgentStatus }>(
+    `/${agentId}/activate`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+/**
+ * Pauses an agent
+ */
+export async function pauseAgent(
+  agentId: string
+): Promise<{ message: string; status: CustomAgentStatus }> {
+  log.info('Pausing agent:', agentId);
+  return setAgentStatus(agentId, 'paused');
 }
 
 // ============================================================================

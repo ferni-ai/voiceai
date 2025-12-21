@@ -235,6 +235,19 @@ export { getToolDefinitions as getMarketingToolDefinitions } from './marketing/i
 export { getToolDefinitions as getReferralToolDefinitions } from './referral/index.js';
 
 // ============================================================================
+// MEDIA DISCOVERY DOMAINS
+// ============================================================================
+
+// Podcasts domain - podcast discovery and recommendations
+export { getToolDefinitions as getPodcastsToolDefinitions } from './podcasts/index.js';
+
+// Video domain - YouTube video discovery
+export { getToolDefinitions as getVideoToolDefinitions } from './video/index.js';
+
+// Books domain - book discovery and reading lists
+export { getToolDefinitions as getBooksToolDefinitions } from './books/index.js';
+
+// ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
 // ============================================================================
@@ -331,6 +344,10 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./marketing/index.js').then(async (m) => m.getToolDefinitions()),
     // Referral domain - viral growth via voice calls
     import('./referral/index.js').then(async (m) => m.getToolDefinitions()),
+    // Media Discovery domains
+    import('./podcasts/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./video/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./books/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -685,6 +702,25 @@ export const DOMAIN_METADATA = {
     description:
       'Viral growth via voice calls - Ferni personally calls friends to introduce herself',
     icon: '📞',
+    status: 'active',
+  },
+  // Media Discovery Domains
+  podcasts: {
+    name: 'Podcasts',
+    description: 'Podcast discovery, search, and recommendations via iTunes',
+    icon: '🎙️',
+    status: 'active',
+  },
+  video: {
+    name: 'Video',
+    description: 'YouTube video discovery, search, and trending content',
+    icon: '📺',
+    status: 'active',
+  },
+  books: {
+    name: 'Books',
+    description: 'Book discovery, reading lists, and progress tracking via Google Books',
+    icon: '📖',
     status: 'active',
   },
 } as const;

@@ -13,7 +13,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
 import { registerTeamHandler } from '../index.js';
 import type { TeamHandlerDefinition } from '../types.js';
-import { getLifeDataStore } from '../../life-data-store.js';
+import { getLifeDataStore } from '../../stores/life-data-store.js';
 
 // ============================================================================
 // INSIGHT HANDLERS

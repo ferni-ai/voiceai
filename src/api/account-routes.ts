@@ -11,7 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
-import { deleteFirebaseUser, getFirebaseUser } from '../services/firebase-auth.js';
+import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';

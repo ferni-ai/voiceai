@@ -491,7 +491,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
         const formatted = formatVoiceMessage(personaId, item.message, formatContext);
 
         // Use the voice call service with persona's Cartesia voice
-        const { callWithPersonaVoice } = await import('../voice-call.js');
+        const { callWithPersonaVoice } = await import('../voice/voice-call.js');
         const result = await callWithPersonaVoice(phone, formatted.message, personaId, {
           fallbackToTwilioVoice: true,
           customGreeting: formatted.opening,

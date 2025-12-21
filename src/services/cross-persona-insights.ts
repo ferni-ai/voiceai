@@ -26,8 +26,8 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { getFinancialStore } from './financial-store.js';
-import { getProductivityStore } from './productivity-store.js';
+import { getFinancialStore } from './stores/financial-store.js';
+import { getProductivityStore } from './stores/productivity-store.js';
 import { insightsBroadcast } from './insights-broadcast.js';
 
 const log = createLogger({ module: 'cross-persona-insights' });

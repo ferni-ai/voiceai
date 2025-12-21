@@ -24,7 +24,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/firebase-auth.js';
+import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,

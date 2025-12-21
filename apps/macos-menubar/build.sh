@@ -177,6 +177,10 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Ferni Voice needs microphone access to enable voice conversations with Ferni.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Ferni Voice may use camera for future video features.</string>
+    <key>NSCameraUseContinuityCameraDeviceType</key>
+    <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
@@ -198,6 +202,8 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <string>Ferni uses location to provide context-aware suggestions and location-based reminders.</string>
     <key>NSScreenCaptureUsageDescription</key>
     <string>Ferni can analyze your screen to help with errors and provide context-aware assistance.</string>
+    <key>NSFocusStatusUsageDescription</key>
+    <string>Ferni respects your Focus modes to avoid interruptions and adjust behavior based on whether you're in Do Not Disturb, Work, or Personal focus.</string>
     <!-- Siri / Shortcuts Integration -->
     <key>INIntentsSupported</key>
     <array>

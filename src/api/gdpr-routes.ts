@@ -570,7 +570,7 @@ async function handleAccountDeletion(
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
-        const { deleteFirebaseUser } = await import('../services/firebase-auth.js');
+        const { deleteFirebaseUser } = await import('../services/identity/firebase-auth.js');
         firebaseDeleted = await deleteFirebaseUser(userId);
         if (firebaseDeleted) {
           log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');

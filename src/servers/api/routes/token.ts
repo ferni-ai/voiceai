@@ -8,9 +8,36 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import * as demoSessions from '../services/demo-sessions.js';
+import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
+
+/**
+ * Pre-warm LLM content cache for a persona (fire-and-forget)
+ * Called when user requests a token, BEFORE session starts
+ */
+function prewarmLLMContentForPersona(personaId: string, userId?: string): void {
+  const contentTypes: ContentType[] = [
+    'thinking_phrase',
+    'greeting',
+    'empathetic_reflection',
+    'active_listening',
+    'encouragement',
+    'celebration',
+  ];
+
+  const contexts = contentTypes.map((contentType) => ({
+    contentType,
+    personaId,
+    metadata: { userId, prewarmSource: 'token_request' },
+  }));
+
+  // Fire-and-forget - don't await, just log success/failure
+  prewarmContent(contexts)
+    .then(() => log.debug({ personaId, types: contentTypes.length }, '🔥 LLM cache pre-warmed'))
+    .catch((err) => log.debug({ error: String(err) }, 'LLM pre-warm failed (non-fatal)'));
+}
 
 // Configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -220,6 +247,9 @@ export async function handleTokenRoutes(
       // Record the session for rate limiting
       recordDemoSession(ip);
 
+      // Pre-warm LLM content cache for demo (fire-and-forget)
+      prewarmLLMContentForPersona('ferni');
+
       // Generate token
       const token = await createToken(roomName, username);
 
@@ -400,7 +430,8 @@ export async function handleTokenRoutes(
       const authHeader = req.headers['authorization'];
       if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
         try {
-          const { verifyFirebaseToken } = await import('../../../services/firebase-auth.js');
+          const { verifyFirebaseToken } =
+            await import('../../../services/identity/firebase-auth.js');
           const firebaseToken = authHeader.slice(7);
           const verified = await verifyFirebaseToken(firebaseToken);
           if (verified) {
@@ -450,7 +481,8 @@ export async function handleTokenRoutes(
       };
 
       try {
-        const { detectGeoFromRequest } = await import('../../../services/geo-detection.js');
+        const { detectGeoFromRequest } =
+          await import('../../../services/identity/geo-detection.js');
         const geo = await detectGeoFromRequest(req, {
           enableIpLookup: true,
           ipLookupTimeout: 2000,
@@ -470,6 +502,9 @@ export async function handleTokenRoutes(
         { username, room, persona: selectedPersona, accent: geoData.detectedAccent },
         'Generated token'
       );
+
+      // Pre-warm LLM content cache (fire-and-forget, before session starts)
+      prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
 
       // Dispatch agent
       try {

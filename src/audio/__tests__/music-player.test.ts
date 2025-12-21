@@ -243,7 +243,7 @@ describe('Music Player Singleton', () => {
     const { getMusicPlayer, resetMusicPlayer } = await import('../music-player.js');
 
     const player1 = getMusicPlayer();
-    resetMusicPlayer();
+    await resetMusicPlayer();
     const player2 = getMusicPlayer();
 
     expect(player1).not.toBe(player2);

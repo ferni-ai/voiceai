@@ -216,7 +216,7 @@ describe('Builder Metrics Integration', () => {
 describe('Builder Categories Integration', () => {
   it('should have all expected categories', async () => {
     const { BuilderCategory, BUILDER_CATEGORIES, getCategoryMetadata } =
-      await import('../intelligence/context-builders/categories.js');
+      await import('../intelligence/context-builders/index.js');
 
     // Check core categories exist
     expect(BuilderCategory.SAFETY).toBeDefined();
@@ -247,7 +247,7 @@ describe('Builder Categories Integration', () => {
 
   it('should validate builder priorities', async () => {
     const { validateBuilderPriorities } =
-      await import('../intelligence/context-builders/categories.js');
+      await import('../intelligence/context-builders/index.js');
 
     // validateBuilderPriorities returns string[] of warnings
     // 'crisis' is a known SAFETY builder with priority range 0-20
@@ -275,7 +275,7 @@ describe('Builder Categories Integration', () => {
 describe('Builder Loader Integration', () => {
   it('should have builder manifest with categorized builders', async () => {
     const { BUILDER_MANIFEST, getAllBuilderModules, getBuilderModulesByCategory } =
-      await import('../intelligence/context-builders/loader.js');
+      await import('../intelligence/context-builders/index.js');
 
     expect(BUILDER_MANIFEST).toBeDefined();
     expect(BUILDER_MANIFEST.safety).toBeDefined();
@@ -291,7 +291,7 @@ describe('Builder Loader Integration', () => {
 
   it('should load builders on demand', async () => {
     const { ensureBuildersLoaded, areBuildersLoaded, getLoadingStatus } =
-      await import('../intelligence/context-builders/loader.js');
+      await import('../intelligence/context-builders/index.js');
 
     // May or may not be loaded depending on test order
     await ensureBuildersLoaded();

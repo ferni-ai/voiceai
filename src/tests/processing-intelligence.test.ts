@@ -2,13 +2,20 @@
  * Processing Intelligence Tests
  *
  * Tests the unified context-aware processing phrase composition system.
- * This validates that processing phrases are dynamically composed based on:
- * - Processing type (thinking, emotional, tool_call, memory_recall)
- * - Processing weight (light, medium, heavy)
- * - Emotional state
- * - Relationship stage
- * - Time of day
- * - Persona
+ *
+ * IMPORTANT: The phrase pools have been deprecated in favor of LLM behavioral guidance.
+ * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ *
+ * The new architecture:
+ * - Processing phrases are intentionally empty
+ * - The LLM generates natural speech based on behavioral guidance
+ * - Pauses and avatar expressions still work as expected
+ *
+ * These tests validate:
+ * - Processing type and weight handling
+ * - Pause calculations based on time/relationship
+ * - SSML formatting
+ * - Avatar expression mapping
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -40,9 +47,11 @@ describe('ProcessingIntelligence', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.phrase).toBeTruthy();
+      // Phrase is now intentionally empty - LLM generates speech from behavioral guidance
+      expect(typeof result.phrase).toBe('string');
       expect(result.prePause).toBeGreaterThanOrEqual(0);
       expect(result.postPause).toBeGreaterThanOrEqual(0);
+      expect(result.avatarExpression).toBe('thinking');
     });
 
     it('should vary phrase by weight', () => {
@@ -71,9 +80,11 @@ describe('ProcessingIntelligence', () => {
         },
       });
 
-      expect(result.phrase).toBeTruthy();
+      // Phrase is empty by design - LLM generates natural speech
+      expect(typeof result.phrase).toBe('string');
       // Heavy emotional processing should have longer pauses
       expect(result.prePause).toBeGreaterThanOrEqual(200);
+      expect(result.avatarExpression).toBe('empathy');
     });
 
     it('should handle tool_call processing type', () => {
@@ -82,7 +93,8 @@ describe('ProcessingIntelligence', () => {
         weight: 'medium',
       });
 
-      expect(result.phrase).toBeTruthy();
+      expect(typeof result.phrase).toBe('string');
+      expect(result.avatarExpression).toBe('processing');
     });
 
     it('should handle memory_recall processing type', () => {
@@ -91,7 +103,8 @@ describe('ProcessingIntelligence', () => {
         weight: 'medium',
       });
 
-      expect(result.phrase).toBeTruthy();
+      expect(typeof result.phrase).toBe('string');
+      expect(result.avatarExpression).toBe('remembering');
     });
 
     it('should adjust pauses for late night', () => {
@@ -135,7 +148,9 @@ describe('ProcessingIntelligence', () => {
         personaId: 'ferni',
       });
 
-      expect(ferniResult.phrase).toBeTruthy();
+      // Phrase is empty by design - persona-specific speech is now LLM-generated
+      expect(typeof ferniResult.phrase).toBe('string');
+      expect(ferniResult).toBeDefined();
     });
   });
 
@@ -168,14 +183,14 @@ describe('ProcessingIntelligence', () => {
   });
 
   describe('getProcessingPhrase', () => {
-    it('should return a phrase for each type and weight combination', () => {
+    it('should return a string for each type and weight combination', () => {
       const types = ['thinking', 'emotional', 'tool_call', 'memory_recall'] as const;
       const weights = ['light', 'medium', 'heavy'] as const;
 
       for (const type of types) {
         for (const weight of weights) {
           const phrase = getProcessingPhrase(type, weight);
-          expect(phrase, `Missing phrase for ${type}/${weight}`).toBeTruthy();
+          // Phrases are now intentionally empty - LLM generates natural speech
           expect(typeof phrase).toBe('string');
         }
       }
@@ -194,7 +209,7 @@ describe('ProcessingIntelligence', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.phrase).toBeTruthy();
+      expect(typeof result.phrase).toBe('string');
     });
 
     it('should handle unknown persona gracefully', () => {
@@ -205,7 +220,7 @@ describe('ProcessingIntelligence', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.phrase).toBeTruthy();
+      expect(typeof result.phrase).toBe('string');
     });
 
     it('should handle edge hour values', () => {
@@ -228,7 +243,11 @@ describe('ProcessingIntelligence', () => {
   });
 
   describe('phrase quality', () => {
-    it('should not return empty phrases', () => {
+    it('should return empty phrases (LLM generates speech from behavioral guidance)', () => {
+      // This test documents the new architecture:
+      // - Phrase pools are deprecated
+      // - LLM generates natural speech from dynamic-speech-guidance.ts context builder
+      // - Empty phrases are intentional and expected
       const types = ['thinking', 'emotional', 'tool_call', 'memory_recall'] as const;
       const weights = ['light', 'medium', 'heavy'] as const;
 
@@ -238,7 +257,8 @@ describe('ProcessingIntelligence', () => {
             trigger: type,
             weight,
           });
-          expect(result.phrase.trim().length).toBeGreaterThan(0);
+          // Phrases are now empty by design
+          expect(result.phrase).toBe('');
         }
       }
     });
@@ -253,10 +273,32 @@ describe('ProcessingIntelligence', () => {
             trigger: type,
             weight,
           });
+          // Now empty, but should never contain robotic language
           expect(result.phrase.toLowerCase()).not.toContain('executing');
           expect(result.phrase.toLowerCase()).not.toContain('processing');
           expect(result.phrase.toLowerCase()).not.toContain('querying');
         }
+      }
+    });
+  });
+
+  describe('avatar expressions', () => {
+    it('should return correct avatar expressions for each processing type', () => {
+      const expectations = {
+        thinking: 'thinking',
+        emotional: 'empathy',
+        tool_call: 'processing',
+        memory_recall: 'remembering',
+        after_tool_result: 'interested',
+        context_loading: 'processing',
+      } as const;
+
+      for (const [type, expectedAvatar] of Object.entries(expectations)) {
+        const result = composeProcessingExpression({
+          trigger: type as keyof typeof expectations,
+          weight: 'medium',
+        });
+        expect(result.avatarExpression).toBe(expectedAvatar);
       }
     });
   });

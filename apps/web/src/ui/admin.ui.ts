@@ -403,9 +403,9 @@ interface TTSStatsResponse {
 
 function renderTTSStatsContent(stats: TTSStatsResponse): string {
   const statusColors: Record<string, string> = {
-    healthy: 'var(--color-semantic-success, #48bb78)',
-    warning: 'var(--color-semantic-warning, #ed8936)',
-    critical: 'var(--color-semantic-error, #fc8181)',
+    healthy: 'var(--color-semantic-success)',
+    warning: 'var(--color-semantic-warning)',
+    critical: 'var(--color-semantic-error)',
   };
 
   const statusLabels: Record<string, string> = {
@@ -1377,13 +1377,13 @@ export function injectAdminStyles(): void {
     }
 
     .admin-btn--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       border-color: var(--color-text-secondary);
     }
 
     .admin-btn--danger {
-      background: var(--color-semantic-error, #c53030);
-      border-color: var(--color-semantic-error, #c53030);
+      background: var(--color-semantic-error);
+      border-color: var(--color-semantic-error);
     }
 
     .admin-btn--small {
@@ -1441,7 +1441,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-agent-card--coordinator {
-      border-color: var(--agent-primary, var(--persona-primary, #4a6741));
+      border-color: var(--agent-primary, var(--persona-primary));
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
     }
 
@@ -1531,7 +1531,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-toggle input:checked + .admin-toggle-slider {
-      background: var(--color-semantic-success, #48bb78);
+      background: var(--color-semantic-success);
     }
 
     .admin-toggle input:checked + .admin-toggle-slider::before {
@@ -1557,7 +1557,7 @@ export function injectAdminStyles(): void {
     .admin-template-icon {
       width: 32px;
       height: 32px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .admin-template-icon svg {
@@ -1569,7 +1569,7 @@ export function injectAdminStyles(): void {
       display: inline-flex;
       width: 16px;
       height: 16px;
-      color: var(--color-text-secondary, #6b5b4f);
+      color: var(--color-text-secondary);
     }
 
     .admin-edit-icon svg {
@@ -1583,7 +1583,7 @@ export function injectAdminStyles(): void {
       height: 20px;
       vertical-align: middle;
       margin-right: var(--space-2, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .admin-sparkles-icon svg {
@@ -1655,7 +1655,7 @@ export function injectAdminStyles(): void {
       position: relative;
       width: 400px;
       max-width: 90vw;
-      background: var(--color-background-elevated, #1a1a2e);
+      background: var(--color-background-elevated);
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.3s var(--ease-standard, ease);
@@ -1801,7 +1801,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-error h2 {
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     /* TTS Monitoring Section */
@@ -1813,7 +1813,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-tts-monitoring h2 {
-      color: var(--color-accent-primary, #3b82f6);
+      color: var(--color-accent-primary);
     }
 
     .admin-tts-stats {
@@ -1829,7 +1829,7 @@ export function injectAdminStyles(): void {
     .admin-tts-error {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
       background: rgba(252, 129, 129, 0.1);
       border-radius: 8px;
     }
@@ -1905,7 +1905,7 @@ export function injectAdminStyles(): void {
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
       font-size: 0.8rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     .admin-tts-pattern-list .count {
@@ -1924,7 +1924,7 @@ export function injectAdminStyles(): void {
     .admin-tts-last-issue h4 {
       margin: 0 0 0.5rem;
       font-size: 0.875rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     .admin-tts-issue-info {
@@ -1950,7 +1950,7 @@ export function injectAdminStyles(): void {
     .admin-tts-no-issues {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-success, #48bb78);
+      color: var(--color-semantic-success);
       background: rgba(72, 187, 120, 0.1);
       border-radius: 8px;
       margin-top: 1rem;
@@ -1971,7 +1971,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-lab h2 {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     /* Live Avatar Preview */
@@ -2040,7 +2040,7 @@ export function injectAdminStyles(): void {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      background: linear-gradient(180deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(180deg, var(--persona-primary), var(--persona-secondary));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2148,7 +2148,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-preview-status .status-value {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
       font-weight: 600;
     }
 
@@ -2219,7 +2219,7 @@ export function injectAdminStyles(): void {
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       cursor: pointer;
       transition: transform 0.2s;
     }

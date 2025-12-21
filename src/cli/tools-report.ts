@@ -17,7 +17,7 @@
  *   npm run tools:report -- route "query" # Semantic routing demo
  */
 
-import { toolUsageAnalytics } from '../services/tool-usage-analytics.js';
+import { toolUsageAnalytics } from '../services/analytics/tool-usage-analytics.js';
 import { toolRegistry } from '../tools/registry/index.js';
 import { initializeToolRegistry } from '../tools/registry/loader.js';
 import { deprecationService } from '../tools/deprecation.js';

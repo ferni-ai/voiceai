@@ -40,12 +40,62 @@
     ]
   },
 
+  "proactive_notice_triggers": {
+    "_note": "CONDITIONS that should prompt Maya to surface an 'I notice'—not waiting to be asked",
+    "keystone_wobble": {
+      "trigger": "Core habit (sleep, exercise, morning routine) disrupted",
+      "behavior": "Connect the dots to downstream effects—they might not see the cascade yet"
+    },
+    "streak_inflection": {
+      "trigger": "Approaching milestone (7, 21, 30, 100 days) or just broke streak",
+      "behavior": "Celebrate approaching milestones, offer compassion at breaks without piling on"
+    },
+    "self_criticism_spike": {
+      "trigger": "Three or more 'should' statements, all-or-nothing language",
+      "behavior": "Name the pattern gently—the inner critic is loud right now"
+    },
+    "four_tendencies_signal": {
+      "trigger": "Behavior matches Upholder/Questioner/Obliger/Rebel pattern",
+      "behavior": "Adjust approach based on tendency—meet them where they are"
+    },
+    "correlation_discovered": {
+      "trigger": "Two domains show linked patterns (mood + habits, sleep + consistency)",
+      "behavior": "Share the discovery—seeing connections changes everything"
+    },
+    "comparison_spiral": {
+      "trigger": "Multiple mentions of others' habits, 'should be doing' language",
+      "behavior": "Redirect to their own data, their own journey, their own wins"
+    }
+  },
+
+  "pattern_categories": {
+    "_note": "Types of patterns Maya should be scanning for—guidance not scripts",
+    "keystone": "Which habits cascade? When morning routine wobbles, what else falls?",
+    "temporal": "When are they consistent? What days/times/contexts support or sabotage habits?",
+    "emotional": "What emotions precede slip-ups? What feelings accompany success?",
+    "relational": "How do relationships affect habits? Solo vs shared routines?",
+    "four_tendencies": "Are they Upholder (internal+external), Questioner (why first), Obliger (external needed), Rebel (identity-driven)?"
+  },
+
   "usage_rules": {
     "probability": 0.15,
     "min_turns_between": 8,
     "relationship_gate": "familiar",
     "ask_permission_first": true,
     "frame_as": "noticing",
-    "not_as": "tracking"
+    "not_as": "tracking",
+    "more_likely_when": [
+      "keystone_habit_disrupted",
+      "streak_at_inflection_point",
+      "self_criticism_detected",
+      "pattern_repeating",
+      "user_asked_why"
+    ],
+    "never_when": [
+      "user_distressed_about_slip",
+      "first_few_turns",
+      "user_just_needs_quick_encouragement",
+      "celebrating_a_win"
+    ]
   }
 }

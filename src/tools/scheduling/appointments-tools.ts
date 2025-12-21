@@ -10,14 +10,14 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
-import { parseNaturalTime, createReminder } from '../../services/reminder-scheduler.js';
+import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
 import {
   searchRestaurants,
   bookReservation,
   isReservationServiceConfigured,
   formatRestaurantForSpeech,
 } from '../../services/restaurant-reservations.js';
-import { getAppointmentFollowUpService } from '../../services/appointment-followup.js';
+import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,

@@ -23,8 +23,8 @@ import {
   getGlobalAnalytics,
   generateSummaryReport,
   getOptimizationRecommendations,
-} from './outreach-analytics.js';
-import { getPendingReminders, cancelReminder } from './reminder-scheduler.js';
+} from './analytics/outreach-analytics.js';
+import { getPendingReminders, cancelReminder } from './scheduling/reminder-scheduler.js';
 
 // ============================================================================
 // TYPES

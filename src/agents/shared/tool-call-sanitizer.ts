@@ -44,6 +44,11 @@ const TOOL_NAME_PATTERNS = [
   'search music',
   'Searching music',
   'searching music',
+  'musicControl',
+  'music control',
+  'musicInfo',
+  'music info',
+  'searchAppleMusic',
   'pauseMusic',
   'pause music',
   'Pausing music',
@@ -62,17 +67,22 @@ const TOOL_NAME_PATTERNS = [
   'recall from memory',
   'forgetMemory',
   'updateMemory',
+  'getRelationshipSummary',
+  'get relationship summary',
+  'reinforceMemory',
+  'reinforce memory',
 
   // Information tools
   'getWeather',
   'get weather',
   'getWeatherForecast',
+  'getAppleWeather',
   'searchNews',
   'search news',
   'getNews',
   'getCurrentTime',
   'get current time',
-  // searchWeb removed - using Gemini's built-in Google Search instead
+  'getMarketSummary',
 
   // Handoff tools
   'handoffTo',
@@ -101,11 +111,14 @@ const TOOL_NAME_PATTERNS = [
   // Habit/Productivity tools
   'addHabit',
   'add habit',
+  'createHabit',
   'trackHabit',
+  'logHabitCompletion',
   'completeHabit',
   'skipHabit',
   'deleteHabit',
   'updateHabit',
+  'getHabits',
   'getHabitStats',
   'getHabitStreak',
   'setTimer',
@@ -116,9 +129,19 @@ const TOOL_NAME_PATTERNS = [
   'getTasks',
   'completeTask',
 
+  // Notes/Journal tools
+  'saveNote',
+  'getNotes',
+  'journal',
+
   // Calendar/Scheduling tools
   'scheduleEvent',
   'schedule event',
+  'scheduleReminder',
+  'getCalendarToday',
+  'createCalendarEvent',
+  'createAppointment',
+  'manageAppointment',
   'getEvents',
   'cancelEvent',
   'updateEvent',
@@ -129,6 +152,7 @@ const TOOL_NAME_PATTERNS = [
   'send message',
   'sendEmail',
   'send email',
+  'draftMessage',
   'analyzeMessage',
 
   // Finance tools
@@ -138,6 +162,8 @@ const TOOL_NAME_PATTERNS = [
   'trackExpense',
   'payBill',
   'addBill',
+  'getBills',
+  'calculateTip',
 
   // Goal/Planning tools
   'addGoal',
@@ -145,6 +171,53 @@ const TOOL_NAME_PATTERNS = [
   'getGoals',
   'addGoalMilestone',
   'setFinancialGoal',
+  'lifePortfolioReview',
+  'predictionMarket',
+
+  // Shopping/Packages tools
+  'shoppingList',
+  'trackPackage',
+  'getPackages',
+
+  // Travel tools
+  'searchFlights',
+  'searchHotels',
+  'planTrip',
+
+  // Medication tools
+  'manageMedication',
+  'medicationSchedule',
+
+  // Smart Home tools
+  'controlLight',
+  'setThermostat',
+  'activateScene',
+  'controlLock',
+  'getHomeStatus',
+
+  // Game tools
+  'startGame',
+  'submitGameAnswer',
+  'getGameHint',
+  'skipGameRound',
+  'endGame',
+  'getGameStatus',
+  'suggestGame',
+  'startTextGame',
+  'makeTextGameMove',
+  'getTextGameBoard',
+  'endTextGame',
+  'inboxZeroChallenge',
+  'sundayPrepGame',
+  'compoundInterestGame',
+  'paradoxOfTheDay',
+  'questionBeneath',
+
+  // Presence/Mode tools
+  'shiftMode',
+  'processing',
+  'holdSpace',
+  'wrapUpConversation',
 
   // Conversation tools
   'noteEmotionalState',
@@ -347,6 +420,12 @@ function checkIntentionPatterns(text: string): LeakageDetection | null {
   const intentionPatterns = [
     /i(?:'ll| will) (?:play|find|search for|look up|get|fetch) (?:some )?(.+?) (?:for you|now)/i,
     /let me (?:play|find|search for|look up|get|fetch) (?:some )?(.+?) (?:for you)?/i,
+    // Memory-related announcements (CRITICAL - these leak frequently)
+    /i(?:'ll| will| want to| need to) (?:store|save|remember|note|record) (?:that|this|a memory|the memory)/i,
+    /let me (?:store|save|remember|note|record) (?:that|this|a memory|the memory)/i,
+    /i(?:'m| am) going to (?:store|save|remember|note|record) (?:that|this)/i,
+    /(?:storing|saving|remembering|noting|recording) (?:that|this|a memory)/i,
+    /i want to (?:store|save|remember) (?:that|this|a memory|the fact)/i,
   ];
 
   for (const pattern of intentionPatterns) {
@@ -619,6 +698,14 @@ const PARTIAL_TOOL_PREFIXES = [
   'noteEmotional',
   'gracefulExit',
   'endConversation',
+  // Memory-related prefixes (catch "store a memory", "save this")
+  'store',
+  'save',
+  'I want to store',
+  'I want to save',
+  'I want to remember',
+  "I'll store",
+  "I'll save",
 ];
 
 /**
@@ -1254,7 +1341,10 @@ export function createSanitizerWithMusicFallback(
         const musicQuery = extractMusicQuery(buffer);
         if (musicQuery && detection.toolName?.toLowerCase().includes('music')) {
           // Fire off the music fallback (don't await - it runs in background)
-          void tryMusicFallback(musicQuery);
+          // 🐛 FIX: Add catch to prevent silent failures
+          void tryMusicFallback(musicQuery).catch((e) => {
+            log.debug({ error: String(e), musicQuery }, '🎵 Music fallback failed (non-critical)');
+          });
         }
 
         const replacement = getReplacementText(detection);
@@ -1279,7 +1369,13 @@ export function createSanitizerWithMusicFallback(
           // Check for music fallback
           const musicQuery = extractMusicQuery(buffer);
           if (musicQuery && recheckDetection.toolName?.toLowerCase().includes('music')) {
-            void tryMusicFallback(musicQuery);
+            // 🐛 FIX: Add catch to prevent silent failures
+            void tryMusicFallback(musicQuery).catch((e) => {
+              log.debug(
+                { error: String(e), musicQuery },
+                '🎵 Music fallback failed (non-critical)'
+              );
+            });
           }
 
           const replacement = getReplacementText(recheckDetection);
@@ -1311,7 +1407,13 @@ export function createSanitizerWithMusicFallback(
           // Check for music fallback
           const musicQuery = extractMusicQuery(buffer);
           if (musicQuery && finalCheck.toolName?.toLowerCase().includes('music')) {
-            void tryMusicFallback(musicQuery);
+            // 🐛 FIX: Add catch to prevent silent failures
+            void tryMusicFallback(musicQuery).catch((e) => {
+              log.debug(
+                { error: String(e), musicQuery },
+                '🎵 Music fallback failed (non-critical)'
+              );
+            });
           }
 
           const replacement = getReplacementText(finalCheck);

@@ -525,7 +525,7 @@ export async function recordDailyCheckIn(
   try {
     // Import the services
     const { getDailyRitualsService } = await import('../../services/daily-rituals.js');
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
 
     const service = getDailyRitualsService();
     const store = await getEngagementStore();

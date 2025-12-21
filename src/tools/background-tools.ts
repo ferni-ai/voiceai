@@ -20,7 +20,7 @@ import {
   type PendingAction,
   type ScheduledJob,
   type Delegation,
-} from '../services/background-tasks.js';
+} from '../services/scheduling/background-tasks.js';
 
 // ============================================================================
 // BACKGROUND TASK TOOLS

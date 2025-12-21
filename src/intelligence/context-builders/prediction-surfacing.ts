@@ -17,7 +17,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { BuilderCategory } from './categories.js';
+import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:prediction-surfacing' });

@@ -157,14 +157,14 @@ describe('Superhuman Services Integration', () => {
   describe('getSuperhuman()', () => {
     it('should return empty string for non-existent user', async () => {
       const { getSuperhuman } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
       const result = await getSuperhuman('non-existent-user', 'ferni');
       expect(typeof result).toBe('string');
     });
 
     it('should cache results for subsequent calls', async () => {
       const { getSuperhuman, clearSuperhumanCache } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       clearSuperhumanCache();
 
@@ -178,7 +178,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should return different content for different personas', async () => {
       const { getSuperhuman, clearSuperhumanCache } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       clearSuperhumanCache();
 
@@ -194,7 +194,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should include persona identifier in output when content exists', async () => {
       const { getSuperhuman } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const userId = `test-user-${Date.now()}`;
       const result = await getSuperhuman(userId, 'ferni');
@@ -209,7 +209,7 @@ describe('Superhuman Services Integration', () => {
   describe('Persona-Specific Helpers', () => {
     it('should provide commitment context', async () => {
       const { getCommitmentContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getCommitmentContext('test-user');
       expect(typeof result).toBe('string');
@@ -217,7 +217,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide predictive context', async () => {
       const { getPredictiveContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getPredictiveContext('test-user');
       expect(typeof result).toBe('string');
@@ -225,7 +225,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide narrative context', async () => {
       const { getNarrativeContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getNarrativeContext('test-user');
       expect(typeof result).toBe('string');
@@ -233,7 +233,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide values context', async () => {
       const { getValuesContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getValuesContext('test-user');
       expect(typeof result).toBe('string');
@@ -241,7 +241,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide capacity context', async () => {
       const { getCapacityContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getCapacityContext('test-user');
       expect(typeof result).toBe('string');
@@ -249,7 +249,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide dream context', async () => {
       const { getDreamContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getDreamContext('test-user');
       expect(typeof result).toBe('string');
@@ -257,7 +257,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide network context', async () => {
       const { getNetworkContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getNetworkContext('test-user');
       expect(typeof result).toBe('string');
@@ -265,7 +265,7 @@ describe('Superhuman Services Integration', () => {
 
     it('should provide seasonal context', async () => {
       const { getSeasonalContext } =
-        await import('../intelligence/context-builders/superhuman-integration.js');
+        await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
       const result = await getSeasonalContext('test-user');
       expect(typeof result).toBe('string');
@@ -359,7 +359,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Peter Research Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildPeterResearchInsightsContext } =
-        await import('../intelligence/context-builders/peter-research-insights.js');
+        await import('../intelligence/context-builders/personas/peter-research-insights.js');
 
       const input = createMockInput('peter-john', `peter-test-${Date.now()}`);
       const result = await buildPeterResearchInsightsContext(input as never);
@@ -375,7 +375,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Maya Coaching Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildMayaCoachingInsightsContext } =
-        await import('../intelligence/context-builders/maya-coaching-insights.js');
+        await import('../intelligence/context-builders/personas/maya-coaching-insights.js');
 
       const input = createMockInput('maya-santos', `maya-test-${Date.now()}`);
       const result = await buildMayaCoachingInsightsContext(input as never);
@@ -390,7 +390,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Jordan Milestone Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildJordanMilestoneInsightsContext } =
-        await import('../intelligence/context-builders/jordan-milestone-insights.js');
+        await import('../intelligence/context-builders/personas/jordan-milestone-insights.js');
 
       const input = createMockInput('jordan-taylor', `jordan-test-${Date.now()}`);
       const result = await buildJordanMilestoneInsightsContext(input as never);
@@ -405,7 +405,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Alex Communication Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildAlexCommunicationInsightsContext } =
-        await import('../intelligence/context-builders/alex-communication-insights.js');
+        await import('../intelligence/context-builders/personas/alex-communication-insights.js');
 
       const input = createMockInput('alex-chen', `alex-test-${Date.now()}`);
       const result = await buildAlexCommunicationInsightsContext(input as never);
@@ -420,7 +420,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Nayan Wisdom Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildNayanWisdomInsightsContext } =
-        await import('../intelligence/context-builders/nayan-wisdom-insights.js');
+        await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
 
       const input = createMockInput('nayan-patel', `nayan-test-${Date.now()}`);
       const result = await buildNayanWisdomInsightsContext(input as never);
@@ -442,7 +442,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Peter context within time limit', async () => {
     const { buildPeterResearchInsightsContext } =
-      await import('../intelligence/context-builders/peter-research-insights.js');
+      await import('../intelligence/context-builders/personas/peter-research-insights.js');
 
     const input = {
       services: { personaId: 'peter-john', userId: 'perf-test', sessionId: 'perf-session' },
@@ -461,7 +461,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Maya context within time limit', async () => {
     const { buildMayaCoachingInsightsContext } =
-      await import('../intelligence/context-builders/maya-coaching-insights.js');
+      await import('../intelligence/context-builders/personas/maya-coaching-insights.js');
 
     const input = {
       services: { personaId: 'maya-santos', userId: 'perf-test', sessionId: 'perf-session' },
@@ -480,7 +480,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Nayan context within time limit', async () => {
     const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
+      await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
 
     const input = {
       services: { personaId: 'nayan-patel', userId: 'perf-test', sessionId: 'perf-session' },
@@ -499,7 +499,7 @@ describe('Performance Benchmarks', () => {
 
   it('should get superhuman context within time limit', async () => {
     const { getSuperhuman, clearSuperhumanCache } =
-      await import('../intelligence/context-builders/superhuman-integration.js');
+      await import('../intelligence/context-builders/superhuman/superhuman-integration.js');
 
     clearSuperhumanCache();
 
@@ -522,7 +522,7 @@ describe('Shared Types', () => {
       createDefaultHabitInsights,
       createDefaultMemoryInsights,
       createDefaultCrossTeamData,
-    } = await import('../intelligence/context-builders/shared-types.js');
+    } = await import('../intelligence/context-builders/core/shared-types.js');
 
     const mood = createDefaultMoodInsights();
     expect(mood).toHaveProperty('recentTrend', 'unknown');
@@ -550,7 +550,7 @@ describe('Shared Types', () => {
 describe('Ferni Coordinator Intelligence', () => {
   it('should build coordinator context', async () => {
     const { buildFerniCoordinatorIntelligenceContext } =
-      await import('../intelligence/context-builders/ferni-coordinator-intelligence.js');
+      await import('../intelligence/context-builders/personas/ferni-coordinator-intelligence.js');
 
     const input = {
       services: { personaId: 'ferni', userId: 'coord-test', sessionId: 'coord-session' },

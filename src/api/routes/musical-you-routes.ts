@@ -93,7 +93,7 @@ const WARM_ERRORS = {
 
 async function getUserGameMemory(userId: string): Promise<GameMemory | null> {
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
     return (profile as { gameMemory?: GameMemory } | null)?.gameMemory || null;

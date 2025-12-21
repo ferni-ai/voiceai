@@ -75,6 +75,14 @@ import { personaIntro } from '../ui/persona-intro.ui.js';
 import { addMemberToRoster, type TeamMemberId } from '../services/roster-preferences.service.js';
 // 🌟 Winter Solstice - Cinematic holiday experience
 import { winterSolsticeMoment, type SolsticeContext } from '../ui/winter-solstice.ui.js';
+// 📔 Journal Capture - Auto-capture meaningful moments
+import { 
+  isCaptureEnabled, 
+  mightContainMoment, 
+  queueMoment,
+  estimateMomentType,
+  type CapturedMoment,
+} from '../services/journal-capture.service.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -218,11 +226,12 @@ export function handleDataMessage(message: DataMessage): void {
     case 'user_transcript':
       // Track user message for conversation history
       if (typeof message['text'] === 'string') {
-        conversationTracker.addMessage('user', message['text']);
+        const userText = message['text'];
+        conversationTracker.addMessage('user', userText);
 
         // 🚀 Ferni EQ: Trigger micro-expressions based on user transcript content
         // This enables subliminal trust-building through authentic reactions
-        const microParams = analyzeForMicroExpression(message['text']);
+        const microParams = analyzeForMicroExpression(userText);
         ferni.detectAndTriggerMicroExpression(microParams);
         log.debug('🚀 Micro-expression analysis', {
           tone: microParams.tone,
@@ -231,7 +240,27 @@ export function handleDataMessage(message: DataMessage): void {
 
         // 🌱 Smart Vote Prompts: Analyze user text for feature recommendations
         // This tracks mentions of keywords related to upcoming features
-        smartPromptTracker.analyzeText(message['text']);
+        smartPromptTracker.analyzeText(userText);
+
+        // 📔 Journal Capture: Detect meaningful moments for auto-journaling
+        // Only runs if user has enabled auto-capture
+        if (isCaptureEnabled() && mightContainMoment(userText)) {
+          const momentType = estimateMomentType(userText);
+          if (momentType) {
+            const moment: CapturedMoment = {
+              id: `moment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              type: momentType,
+              content: userText,
+              themes: [], // Backend will analyze for themes
+              intensity: microParams.intensity ?? 0.7,
+              timestamp: new Date().toISOString(),
+              conversationId: message['conversationId'] as string | undefined,
+              personaId: message['personaId'] as string | undefined,
+            };
+            queueMoment(moment);
+            log.info('📔 Meaningful moment detected', { type: momentType });
+          }
+        }
       }
       break;
 

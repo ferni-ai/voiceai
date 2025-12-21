@@ -17,7 +17,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
 // Import legacy tool creator
-import { createTelephonyTools } from '../../telephony.js';
+import { createTelephonyTools } from './telephony.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

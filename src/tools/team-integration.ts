@@ -36,8 +36,8 @@ import {
   type TeamHandoff,
   type TeamMember,
   type TeamProject,
-} from '../services/life-data-store.js';
-import { getProactiveScheduler } from '../services/proactive-scheduler.js';
+} from '../services/stores/life-data-store.js';
+import { getProactiveScheduler } from '../services/scheduling/proactive-scheduler.js';
 import { sanitizePlainText, parseAmount, isValidAmount } from './validation.js';
 
 import { getToolDescription } from './utils/tool-descriptions.js';

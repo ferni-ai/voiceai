@@ -13,18 +13,18 @@ import {
   addEnrollmentSample,
   completeEnrollment,
   startEnrollmentSession,
-} from '../../services/voice-enrollment.js';
+} from '../../services/voice/voice-enrollment.js';
 import {
   hasVoiceProfile,
   saveVoiceProfile,
   updateVoiceProfileIndex,
-} from '../../services/voice-profile-store.js';
+} from '../../services/voice/voice-profile-store.js';
 import {
   logEnrollmentComplete,
   logEnrollmentFail,
   logEnrollmentSample,
   logEnrollmentStart,
-} from '../../services/voice-audit-log.js';
+} from '../../services/voice/voice-audit-log.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { SECURITY_CONFIG } from './types.js';
 import {

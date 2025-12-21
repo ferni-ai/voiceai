@@ -11,7 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/firebase-auth.js';
+import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import {
   getMigratedUid,
   isAlreadyMigrated,

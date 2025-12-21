@@ -279,7 +279,7 @@ export async function startup(): Promise<AppConfig> {
         }),
 
       // Tool usage analytics - not needed for first greeting
-      import('./services/tool-usage-analytics.js')
+      import('./services/analytics/tool-usage-analytics.js')
         .then(({ toolUsageAnalytics }) => toolUsageAnalytics.initialize())
         .then(() => {
           logger.debug('✓ Tool usage analytics ready (deferred)');
@@ -388,7 +388,7 @@ export async function shutdown(): Promise<void> {
     // Flush tool usage analytics before shutdown
     logger.info('Flushing tool usage analytics...');
     try {
-      const { toolUsageAnalytics } = await import('./services/tool-usage-analytics.js');
+      const { toolUsageAnalytics } = await import('./services/analytics/tool-usage-analytics.js');
       await toolUsageAnalytics.shutdown();
       logger.info('✓ Tool usage analytics flushed');
     } catch (error) {

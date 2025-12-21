@@ -62,7 +62,7 @@ import {
   type PeterMemory,
   type MayaMemory,
   type JordanMemory,
-} from '../services/persona-memories.js';
+} from '../services/memory/persona-memories.js';
 
 // ============================================================================
 // JACKIE (COACH) MEMORY TOOLS

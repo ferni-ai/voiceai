@@ -21,12 +21,12 @@ import {
   type LifeMilestone,
   type LifeGoal,
   type RetirementPlan,
-} from '../services/life-data-store.js';
+} from '../services/stores/life-data-store.js';
 
 import {
   getProactiveScheduler,
   type ProactiveNotification,
-} from '../services/proactive-scheduler.js';
+} from '../services/scheduling/proactive-scheduler.js';
 
 describe('Team Services', () => {
   describe('Agent Bus', () => {

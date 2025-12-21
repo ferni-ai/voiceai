@@ -292,7 +292,7 @@ async function getMilestoneProgressData(
   }
 
   try {
-    const lifeDataStore = await import('../../services/life-data-store.js');
+    const lifeDataStore = await import('../../services/stores/life-data-store.js');
     const store = lifeDataStore.getLifeDataStore();
 
     // Get user's milestones from the data store
@@ -417,7 +417,7 @@ async function updateGoalRecord(
   if (!userId) return;
 
   try {
-    const lifeDataStore = await import('../../services/life-data-store.js');
+    const lifeDataStore = await import('../../services/stores/life-data-store.js');
     const store = lifeDataStore.getLifeDataStore();
 
     const goal = await store.getGoal(userId, goalId);

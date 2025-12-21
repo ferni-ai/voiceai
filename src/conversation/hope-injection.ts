@@ -16,6 +16,10 @@
  * @module @ferni/hope-injection
  */
 
+import {
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'HopeInjection' });
@@ -586,6 +590,27 @@ export class HopeInjectionEngine {
           confidence: 0.75,
         };
       }
+    }
+
+    // Try LLM-generated encouragement first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'encouragement',
+      emotion: context,
+      metadata: {
+        hopeType: type,
+        hopeContext: context,
+        shouldBeSubtle: true,
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      return {
+        type,
+        phrase: llmContent.content,
+        placement: 'suffix',
+        confidence: 0.8,
+      };
     }
 
     // Get phrases for this type and context

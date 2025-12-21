@@ -35,7 +35,7 @@ import {
 
 // Banking - lazy imports to avoid circular deps
 const getBankingServices = async () => {
-  const plaid = await import('../../../tools/plaid.js');
+  const plaid = await import('../../../tools/domains/finance/plaid.js');
   const prediction = await import('../../../services/finance/prediction.js');
   return { ...plaid, ...prediction };
 };
@@ -47,7 +47,7 @@ const getCalendarServices = async () => {
 
 // Calendar OAuth - direct import for token exchange
 const getCalendarOAuthServices = async () => {
-  return import('../../../services/google-calendar-oauth.js');
+  return import('../../../services/identity/google-calendar-oauth.js');
 };
 
 // Social Graph - lazy imports

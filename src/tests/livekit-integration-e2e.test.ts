@@ -166,7 +166,7 @@ describe('Intelligence Context Builders', () => {
 
   describe('Emotional Context', () => {
     it('should have emotional context builder', async () => {
-      const module = await import('../intelligence/context-builders/emotional.js');
+      const module = await import('../intelligence/context-builders/emotional/emotional.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -202,7 +202,7 @@ describe('Intelligence Context Builders', () => {
 
   describe('Persona Identity', () => {
     it('should have persona identity context builder', async () => {
-      const module = await import('../intelligence/context-builders/persona-identity.js');
+      const module = await import('../intelligence/context-builders/personas/persona-identity.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -247,14 +247,14 @@ describe('Tool Integration', () => {
     });
 
     it('should have travel tools', async () => {
-      const module = await import('../tools/travel.js');
+      const module = await import('../tools/domains/travel/travel.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
     });
 
     it('should have spotify tools', async () => {
-      const module = await import('../tools/spotify.js');
+      const module = await import('../tools/domains/entertainment/spotify.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -315,7 +315,7 @@ describe('Tool Integration', () => {
 describe('Voice Authentication Integration', () => {
   describe('Voice Liveness', () => {
     it('should have voice liveness detection', async () => {
-      const module = await import('../services/voice-liveness.js');
+      const module = await import('../services/voice/voice-liveness.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -324,7 +324,7 @@ describe('Voice Authentication Integration', () => {
 
   describe('Voice Anti-Spoofing', () => {
     it('should have voice anti-spoofing', async () => {
-      const module = await import('../services/voice-antispoofing.js');
+      const module = await import('../services/voice/voice-antispoofing.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -333,7 +333,7 @@ describe('Voice Authentication Integration', () => {
 
   describe('Voice Rate Limiting', () => {
     it('should have voice rate limiting', async () => {
-      const module = await import('../services/voice-rate-limit.js');
+      const module = await import('../services/voice/voice-rate-limit.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -342,7 +342,7 @@ describe('Voice Authentication Integration', () => {
 
   describe('Voice Speaker Change', () => {
     it('should have speaker change detection', async () => {
-      const module = await import('../services/voice-speaker-change.js');
+      const module = await import('../services/voice/voice-speaker-change.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -351,7 +351,7 @@ describe('Voice Authentication Integration', () => {
 
   describe('Voice Household', () => {
     it('should have voice household management', async () => {
-      const module = await import('../services/voice-household.js');
+      const module = await import('../services/voice/voice-household.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -366,7 +366,7 @@ describe('Voice Authentication Integration', () => {
 describe('Voice Memory Integration', () => {
   describe('Conversation Memory', () => {
     it('should have voice conversation memory', async () => {
-      const module = await import('../services/voice-conversation-memory.js');
+      const module = await import('../services/memory/voice-conversation-memory.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -384,7 +384,7 @@ describe('Voice Memory Integration', () => {
 
   describe('Emotion Correlation', () => {
     it('should have voice emotion correlation', async () => {
-      const module = await import('../services/voice-emotion-correlation.js');
+      const module = await import('../services/voice/voice-emotion-correlation.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
@@ -393,7 +393,7 @@ describe('Voice Memory Integration', () => {
 
   describe('Voice Audit Log', () => {
     it('should have voice audit logging', async () => {
-      const module = await import('../services/voice-audit-log.js');
+      const module = await import('../services/voice/voice-audit-log.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);

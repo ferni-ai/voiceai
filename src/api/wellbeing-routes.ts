@@ -1,6 +1,6 @@
 /**
  * @deprecated This Express Router is NOT MOUNTED in production.
- * Use handleWellbeingRoutes from './wellbeing-handler.js' instead.
+ * Use handleWellbeingRoutes from './wellbeing.routes.js' instead.
  *
  * Wellbeing API Routes (DEPRECATED)
  *

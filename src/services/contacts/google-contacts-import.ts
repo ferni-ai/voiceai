@@ -157,9 +157,7 @@ export async function importGoogleContacts(
       };
       people: (config: { version: string; auth: unknown }) => {
         contactGroups: {
-          list: (opts: {
-            pageSize: number;
-          }) => Promise<{
+          list: (opts: { pageSize: number }) => Promise<{
             data: {
               contactGroups?: Array<{ resourceName?: string; name?: string; groupType?: string }>;
             };

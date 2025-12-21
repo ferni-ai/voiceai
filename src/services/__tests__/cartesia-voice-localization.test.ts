@@ -9,7 +9,7 @@ import {
   getLocalizedVoiceId,
   getLocalizedVoiceIdSync,
   isVoiceCached,
-} from '../cartesia-voice-localization.js';
+} from '../voice/cartesia-voice-localization.js';
 
 // Mock fetch for Cartesia API calls
 const mockFetch = vi.fn();

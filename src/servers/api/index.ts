@@ -66,7 +66,7 @@ import { handleDORARoutes } from '../../api/dora-routes.js';
 import { handleObservabilityRoutes } from '../../api/observability-routes.js';
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
-import { handleOutreachRoutes } from '../../api/outreach-handler.js';
+import { handleOutreachRoutes } from '../../api/outreach.routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
 import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
@@ -82,14 +82,14 @@ import { relationshipHealthRoutes } from '../../api/routes/relationship-health-r
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
 import { handleSpeechMetricsRoutes } from '../../api/speech-metrics-routes.js';
-import { handleVoiceAuthRoutes } from '../../api/voice-auth-handler.js';
+import { handleVoiceAuthRoutes } from '../../api/voice-auth.routes.js';
 import { handleUserRoutes } from '../../api/user-routes.js';
 import { handleWaitlistRoutes } from '../../api/waitlist-routes.js';
 import { handleHabitRoutes } from '../../api/habit-routes.js';
-import { handleWellbeingRoutes } from '../../api/wellbeing-handler.js';
+import { handleWellbeingRoutes } from '../../api/wellbeing.routes.js';
 import { handlePredictiveInsightsRequest } from '../../api/predictive-insights-routes.js';
-import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs-handler.js';
-import { handleEvalOpsRoutes } from '../../api/evalops-handler.js';
+import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs.routes.js';
+import { handleEvalOpsRoutes } from '../../api/evalops.routes.js';
 import { handleHouseholdRoutes } from '../../api/household-routes.js';
 import { handleContactsRoutes } from '../../api/contacts-routes.js';
 import { handleGiftRoutes } from '../../api/gift-routes.js';
@@ -105,11 +105,12 @@ import handleMigrationRoutes from '../../api/migration-routes.js';
 import handleAccountRoutes from '../../api/account-routes.js';
 import handleAuthMonitoringRoutes from '../../api/auth-monitoring-routes.js';
 import handleSessionAccentRoutes from '../../api/session-accent-routes.js';
-import { handleLandingIntelligenceRoutes } from '../../api/landing-intelligence-handler.js';
-import { handleLandingOptimizationRoutes } from '../../api/landing-optimization-handler.js';
+import { handleLandingIntelligenceRoutes } from '../../api/landing-intelligence.routes.js';
+import { handleLandingOptimizationRoutes } from '../../api/landing-optimization.routes.js';
 import { handleCameoAnalyticsRoutes } from '../../api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
+import { handleCrashReportRoutes } from '../../api/crash-report-routes.js';
 import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
@@ -123,7 +124,7 @@ import {
   shutdownInsightsWebSocket,
 } from '../../services/insights-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
-import { handleCustomAgentRoutes } from '../../api/custom-agent-handler.js';
+import { handleCustomAgentRoutes } from '../../api/custom-agent.routes.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
@@ -623,6 +624,12 @@ const server = http.createServer(async (req, res) => {
     // Roadmap routes (What's Growing - feature voting, suggestions, seed economy)
     if (pathname.startsWith('/api/roadmap')) {
       const handled = await handleRoadmapRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Crash report routes (frontend crash analytics)
+    if (pathname.startsWith('/api/crash-report')) {
+      const handled = await handleCrashReportRoutes(req, res);
       if (handled) return;
     }
 

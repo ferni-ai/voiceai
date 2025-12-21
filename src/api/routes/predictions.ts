@@ -29,7 +29,7 @@ export async function handleGetPredictions(
     const limitParam = parsedUrl.searchParams.get('limit');
     const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || 20), 100) : 20;
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     let predictions = (await store.getRecentPredictions(userId, limit)) as unknown as AnyRecord[];
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
@@ -90,7 +90,7 @@ export async function handleUpdatePredictionActuals(
     const userId = body.userId || requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const result = await store.updatePredictionActuals(userId, predictionId, body.actuals);
 

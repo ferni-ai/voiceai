@@ -9,7 +9,7 @@ import {
   extractCloudGeoHeaders,
   getClientIP,
   parseAcceptLanguage,
-} from '../geo-detection.js';
+} from '../identity/geo-detection.js';
 
 // Helper to create mock request
 function createMockRequest(

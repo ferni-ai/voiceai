@@ -164,6 +164,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const lightweightResilience = await import('./shared/lightweight-resilience.js');
   const { withResilience, humanizeError } = lightweightResilience;
 
+  // Import crash analytics for session tracking
+  const crashAnalyticsModule = await import('./shared/crash-analytics.js');
+  const { registerSession, updateSessionState, unregisterSession, recordCrash, recordConnectionDrop, markOperationPending } = crashAnalyticsModule;
+
+  // Register session immediately for crash tracking
+  registerSession(sessionId, {
+    sessionId,
+    roomName,
+    userId: undefined, // Will be updated when metadata is parsed
+    personaId: undefined, // Will be updated when persona is loaded
+  });
+
   let currentPhase:
     | 'deps'
     | 'persona'
@@ -412,6 +424,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionId,
     });
 
+    // Update crash analytics with user context
+    updateSessionState(sessionId, {
+      state: 'active',
+    });
+    // Store userId/personaId for crash context (these are simple values, not SessionSnapshot fields)
+    registerSession(sessionId, {
+      sessionId,
+      roomName,
+      userId: userId || undefined,
+      personaId: sessionPersona.id,
+    });
+
     // Initialize session services (trust profiles, trial status, etc.)
     const {
       services,
@@ -542,7 +566,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // 🌍 For non-American accents, get a localized voice
     if (userAccent && userAccent !== 'american') {
       try {
-        const { getLocalizedVoiceId } = await import('../services/cartesia-voice-localization.js');
+        const { getLocalizedVoiceId } =
+          await import('../services/voice/cartesia-voice-localization.js');
         const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent);
         effectiveVoiceId = localizationResult.voiceId;
         isLocalizedVoice = localizationResult.isLocalized;
@@ -1362,10 +1387,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.off('reconnected', reconnectedHandler);
     });
 
-    // Wait for disconnect
+    // Wait for disconnect - capture the reason for crash analytics
     await new Promise<void>((resolve) => {
-      ctx.room.on('disconnected', () => {
-        process.stderr.write(`[voice-agent-entry] 🔌 Disconnected\n`);
+      ctx.room.on('disconnected', (reason?: unknown) => {
+        const disconnectReason = String(reason || 'unknown');
+        const sessionDurationMs = Date.now() - startTime;
+        process.stderr.write(
+          `[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`
+        );
+
+        // 🚨 CRASH-ANALYTICS: Log disconnect with full context
+        void (async () => {
+          try {
+            const { recordConnectionDrop } = await import('./shared/crash-analytics.js');
+            // Determine if this was a graceful disconnect
+            const isGraceful = disconnectReason === 'client_left' || disconnectReason === 'participant_left';
+            recordConnectionDrop(sessionId, disconnectReason, isGraceful);
+          } catch (e) {
+            process.stderr.write(`[voice-agent-entry] Failed to capture disconnect event: ${e}\n`);
+          }
+        })();
+
         resolve();
       });
     });
@@ -1425,10 +1467,19 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     process.stderr.write(`[voice-agent-entry] Session ended cleanly.\n`);
+
+    // Unregister session from crash analytics (clean exit)
+    unregisterSession(sessionId, 'clean_exit');
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
+
+    // Record crash in crash analytics
+    recordCrash('uncaught_exception', errObj, sessionId, {
+      roomName,
+      connectionState: currentPhase,
+    });
 
     // Try AI diagnosis
     try {
@@ -1490,5 +1541,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     } catch {
       /* ignore */
     }
+
+    // Unregister session from crash analytics (crash exit)
+    unregisterSession(sessionId, `crash_in_${currentPhase}`);
   }
 }

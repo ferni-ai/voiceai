@@ -314,8 +314,11 @@ export class GameEngine implements IGameEngine {
       this.gameMemory = recordGuess(this.gameMemory, songName, guessTimeMs, result.correct);
 
       // 🔴 PERSISTENCE: Update musical DNA in storage
+      // 🐛 FIX: Add catch to prevent silent failures
       if (this.userId) {
-        void this.persistMusicalDNA(songName, guessTimeMs, result.correct);
+        void this.persistMusicalDNA(songName, guessTimeMs, result.correct).catch((e) => {
+          log.debug({ error: String(e) }, '🎮 Musical DNA persist failed (non-critical)');
+        });
       }
     }
 
@@ -477,8 +480,15 @@ export class GameEngine implements IGameEngine {
     }
 
     // 🔴 PERSISTENCE: Save game memory to Firestore
+    // 🐛 FIX: Add catch to prevent silent failures
     if (this.gameMemory && this.userId) {
-      void this.persistGameCompletion(session);
+      void this.persistGameCompletion(session).catch((e) => {
+        trackGameError('persistence_failed', e, {
+          userId: this.userId,
+          gameType: session.gameType,
+          action: 'save_session_fire_and_forget',
+        });
+      });
     }
 
     // Reset state

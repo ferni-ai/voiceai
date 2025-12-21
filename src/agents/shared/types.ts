@@ -5,7 +5,10 @@
  */
 
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
-import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
+import type {
+  MoodState,
+  PersonaMood,
+} from '../../intelligence/context-builders/personas/persona-mood.js';
 import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';

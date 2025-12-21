@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { toolHumanizationBuilder } from '../tool-humanization.js';
+import { toolHumanizationBuilder } from '../humanization/tool-humanization.js';
 import type { ContextBuilderInput } from '../index.js';
 
 // Mock the cognitive-tool-interpretation module

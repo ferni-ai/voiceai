@@ -238,8 +238,8 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
     ensureFirebaseInitialized();
     const db = getFirestore();
 
-    // Increment vote count atomically
-    const featureRef = db.collection('roadmap_votes').doc(featureId);
+    // Increment vote count atomically (using feature stats collection)
+    const featureRef = db.collection('roadmap_feature_stats').doc(featureId);
 
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(featureRef);
@@ -313,7 +313,7 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
     ensureFirebaseInitialized();
     const db = getFirestore();
 
-    const doc = await db.collection('roadmap_votes').doc(featureId).get();
+    const doc = await db.collection('roadmap_feature_stats').doc(featureId).get();
     const votes = doc.exists ? doc.data()?.votes || 0 : 0;
 
     sendJson(res, 200, { featureId, votes });

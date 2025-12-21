@@ -132,6 +132,7 @@
       "musicalYou": "Musical You",
       "creativeYou": "Creative You",
       "discoverAgents": "Discover Agents",
+      "journaling": "Journaling",
       "connections": "Connections & Wearables",
       "personalize": "Personalize",
       "voiceAccent": "Voice & Accent",
@@ -152,7 +153,9 @@
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
       "language": "Language",
-      "whatsGrowing": "What's Growing"
+      "whatsGrowing": "What's Growing",
+      "billingPortal": "Billing & Subscription",
+      "outreachSchedule": "Outreach Schedule"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",

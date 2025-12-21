@@ -14,7 +14,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
 import { teamHandlerRegistry, registerTeamHandler } from '../index.js';
 import type { TeamHandlerDefinition, HandlerCapability } from '../types.js';
-import { getLifeDataStore, type MilestoneSavingsGoal } from '../../life-data-store.js';
+import { getLifeDataStore, type MilestoneSavingsGoal } from '../../stores/life-data-store.js';
 
 // ============================================================================
 // SAVINGS GOALS HANDLERS

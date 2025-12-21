@@ -37,7 +37,7 @@ const mockLogs = [
   }),
 ];
 
-vi.mock('../../services/productivity-store.js', () => ({
+vi.mock('../../services/stores/productivity-store.js', () => ({
   getProductivityStore: () => ({
     loadUserData: vi.fn().mockResolvedValue(undefined),
     getUserHabits: vi.fn().mockReturnValue(mockHabits),
@@ -88,7 +88,7 @@ describe('Maya Habit Insights Context Builder', () => {
   describe('Builder Registration', () => {
     it('should export the context builder', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       expect(mayaHabitInsightsBuilder).toBeDefined();
       expect(mayaHabitInsightsBuilder.name).toBe('maya-habit-insights');
@@ -97,7 +97,7 @@ describe('Maya Habit Insights Context Builder', () => {
 
     it('should have correct metadata', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       expect(mayaHabitInsightsBuilder.description).toContain('habit');
       expect(mayaHabitInsightsBuilder.priority).toBeGreaterThan(0);
@@ -107,7 +107,7 @@ describe('Maya Habit Insights Context Builder', () => {
   describe('Builder Activation', () => {
     it('should only activate for Maya persona', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       // Test with non-Maya persona
       const ferniResult = await mayaHabitInsightsBuilder.build({
@@ -123,7 +123,7 @@ describe('Maya Habit Insights Context Builder', () => {
 
     it('should return empty for missing userId', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       const result = await mayaHabitInsightsBuilder.build({
         persona: { id: 'maya-santos', name: 'Maya Santos' } as any,
@@ -140,7 +140,7 @@ describe('Maya Habit Insights Context Builder', () => {
   describe('Insight Generation', () => {
     it('should potentially generate insights for Maya sessions', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       // Run multiple times to account for probability
       let foundInsight = false;
@@ -168,7 +168,7 @@ describe('Maya Habit Insights Context Builder', () => {
   describe('Session State Management', () => {
     it('should export clearMayaInsightSession function', async () => {
       const { clearMayaInsightSession } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       expect(clearMayaInsightSession).toBeInstanceOf(Function);
 
@@ -180,7 +180,7 @@ describe('Maya Habit Insights Context Builder', () => {
   describe('Habit-Aware Greeting Context', () => {
     it('should include greeting context for early turns', async () => {
       const { mayaHabitInsightsBuilder } =
-        await import('../intelligence/context-builders/maya-habit-insights.js');
+        await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
       // Multiple attempts to account for probability
       let foundGreetingContext = false;
@@ -215,7 +215,7 @@ describe('Maya Habit Insights Context Builder', () => {
 describe('Maya Habit Insights - Types', () => {
   it('should use correct injection types', async () => {
     const { mayaHabitInsightsBuilder } =
-      await import('../intelligence/context-builders/maya-habit-insights.js');
+      await import('../intelligence/context-builders/personas/maya-habit-insights.js');
 
     // The builder should return ContextInjection objects
     const result = await mayaHabitInsightsBuilder.build({

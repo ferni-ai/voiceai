@@ -9,7 +9,7 @@ import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
-import { persistenceMetrics } from '../../../services/persistence-metrics.js';
+import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
 
 const log = createLogger({ module: 'HealthRoutes' });
 

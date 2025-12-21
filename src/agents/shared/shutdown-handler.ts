@@ -266,7 +266,7 @@ export async function gracefulShutdown(signal: string): Promise<void> {
 
     // 2. Shutdown memory monitor
     try {
-      const { stopMemoryMonitoring } = await import('../../services/memory-monitor.js');
+      const { stopMemoryMonitoring } = await import('../../services/memory/memory-monitor.js');
       stopMemoryMonitoring();
     } catch {
       // Memory monitor not initialized

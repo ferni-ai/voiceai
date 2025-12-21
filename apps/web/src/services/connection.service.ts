@@ -109,6 +109,9 @@ class ConnectionService {
   // Cache audio elements by participant to prevent duplicate creation
   private audioElements: Map<string, HTMLAudioElement> = new Map();
 
+  // Track intentional disconnects vs crashes
+  private isDisconnecting = false;
+
   // 🎚️ Music track identification
   // When we receive music_state: playing, we expect a music track soon
   private expectingMusicTrack = false;
@@ -406,6 +409,9 @@ class ConnectionService {
   async disconnect(): Promise<void> {
     if (!this.room) return;
 
+    // Mark as intentional disconnect (for crash analytics)
+    this.isDisconnecting = true;
+
     try {
       // Stop quality monitoring
       this.stopQualityMonitoring();
@@ -427,6 +433,8 @@ class ConnectionService {
       this.updateState('disconnected');
     } catch (error) {
       log.error('Disconnect error:', error);
+    } finally {
+      this.isDisconnecting = false;
     }
   }
 
@@ -545,9 +553,20 @@ class ConnectionService {
     if (!this.room) return;
 
     // Connection state changes
-    const onConnectionStateChange = (state: string) => {
+    const onConnectionStateChange = async (state: string) => {
       const mapped = this.mapConnectionState(state);
       this.updateState(mapped);
+
+      // Update crash reporter context
+      try {
+        const { updateCrashContext } = await import('./crash-reporter.service.js');
+        updateCrashContext({
+          connectionState: mapped as 'connecting' | 'connected' | 'reconnecting' | 'disconnected',
+          roomName: this.room?.name,
+        });
+      } catch {
+        // Crash reporter not available
+      }
     };
     this.room.on('connectionStateChanged', onConnectionStateChange);
     this.cleanupFunctions.push(() => {
@@ -816,8 +835,37 @@ class ConnectionService {
     });
 
     // Disconnected
-    const onDisconnected = () => {
+    const onDisconnected = async () => {
+      const disconnectTime = Date.now();
+      const wasGraceful = this.isDisconnecting; // Check if we initiated the disconnect
+
+      // 🚨 CRITICAL: Log ALL disconnects for debugging music crash issues
+      log.warn(
+        {
+          wasGraceful,
+          roomName: this.room?.name,
+          roomState: this.room?.state,
+          isDisconnecting: this.isDisconnecting,
+          disconnectTime: new Date(disconnectTime).toISOString(),
+        },
+        wasGraceful
+          ? '🔌 Graceful disconnect from LiveKit room'
+          : '🚨 UNEXPECTED DISCONNECT from LiveKit room - may be a crash!'
+      );
+
       this.updateState('disconnected');
+
+      // Report unexpected disconnections to crash analytics with full context
+      try {
+        const { reportConnectionDrop } = await import('./crash-reporter.service.js');
+        reportConnectionDrop('LiveKit room disconnected', wasGraceful, {
+          roomName: this.room?.name,
+          disconnectTime: new Date(disconnectTime).toISOString(),
+          source: 'livekit_disconnected_event',
+        });
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to report connection drop');
+      }
     };
     this.room.on('disconnected', onDisconnected);
     this.cleanupFunctions.push(() => {

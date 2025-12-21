@@ -78,7 +78,10 @@ export type ToolDomain =
   | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
   | 'marketing' // Social media management: content generation, publishing, analytics
   | 'referral' // Viral growth via voice calls
-  | 'smart-home'; // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'books' // Book tracking, recommendations, reading lists
+  | 'podcasts' // Podcast discovery, listening history, recommendations
+  | 'video'; // Video content recommendations and tracking
 
 /**
  * All available tool domains
@@ -142,6 +145,9 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'marketing',
   'referral',
   'smart-home',
+  'books',
+  'podcasts',
+  'video',
 ] as const;
 
 // ============================================================================
@@ -223,6 +229,9 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
   'smart-home': 'productivity', // Home Assistant integration for smart home control
+  books: 'entertainment', // Book tracking, recommendations, reading lists
+  podcasts: 'entertainment', // Podcast discovery, listening history
+  video: 'entertainment', // Video content recommendations and tracking
 };
 
 // ============================================================================

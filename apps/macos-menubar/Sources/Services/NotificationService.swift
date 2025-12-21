@@ -46,18 +46,37 @@ class NotificationService: NSObject, ObservableObject {
     var onQuickPrep: ((String) -> Void)?  // Passes meeting ID
     var onTakeBreak: (() -> Void)?
 
+    // MARK: - Bundle Check
+
+    /// Check if running as proper app bundle (required for UserNotifications)
+    private static var isProperBundle: Bool {
+        // SPM command-line builds don't have proper bundle identifiers
+        Bundle.main.bundleIdentifier != nil
+    }
+
+    /// Safe access to notification center - returns nil if not proper bundle
+    private var notificationCenter: UNUserNotificationCenter? {
+        guard Self.isProperBundle else { return nil }
+        return UNUserNotificationCenter.current()
+    }
+
     // MARK: - Initialization
 
     private override init() {
         super.init()
-        setupNotificationCategories()
-        checkAuthorization()
+        // Only setup notifications if running as proper app bundle
+        if Self.isProperBundle {
+            setupNotificationCategories()
+            checkAuthorization()
+        } else {
+            print("[NotificationService] Skipping - not running as app bundle")
+        }
     }
 
     // MARK: - Setup
 
     private func setupNotificationCategories() {
-        let center = UNUserNotificationCenter.current()
+        guard let center = notificationCenter else { return }
         center.delegate = self
 
         // Check-in category
@@ -182,7 +201,8 @@ class NotificationService: NSObject, ObservableObject {
     // MARK: - Authorization
 
     func checkAuthorization() {
-        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+        guard let center = notificationCenter else { return }
+        center.getNotificationSettings { [weak self] settings in
             DispatchQueue.main.async {
                 self?.isAuthorized = settings.authorizationStatus == .authorized
             }
@@ -191,8 +211,9 @@ class NotificationService: NSObject, ObservableObject {
 
     @MainActor
     func requestAuthorization() async -> Bool {
+        guard let center = notificationCenter else { return false }
         do {
-            let granted = try await UNUserNotificationCenter.current().requestAuthorization(
+            let granted = try await center.requestAuthorization(
                 options: [.alert, .sound, .badge]
             )
             isAuthorized = granted

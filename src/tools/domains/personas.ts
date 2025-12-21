@@ -19,7 +19,7 @@ export {
 } from '../scheduling.js';
 
 // Financial habits tools
-export { createFinancialHabitsTools } from '../financial-habits.js';
+export { createFinancialHabitsTools } from './finance/financial-habits.js';
 
 // Event planning tools
 export { createEventPlanningTools } from './life-planning/event-planning.js';

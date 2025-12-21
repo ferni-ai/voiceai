@@ -1,8 +1,11 @@
 /**
- * Tool Fillers - Verbal feedback during tool execution
+ * Tool Fillers - SSML Pauses During Tool Execution
  *
- * Tool fillers are spoken BEFORE long-running tools execute to prevent dead air.
- * These should be SHORT and tool-appropriate - not generic "please wait" messages.
+ * DEPRECATED: Static verbal phrases have been replaced by LLM behavioral guidance.
+ * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ *
+ * This module now only provides SSML pause tags (no spoken content).
+ * The LLM will generate natural speech based on context, not static phrases.
  *
  * @module tool-fillers
  */
@@ -11,156 +14,98 @@ import { breakTag } from '../ssml/cartesia.js';
 import { normalizePersonaId } from './persona-phrases.js';
 
 // ============================================================================
-// TOOL FILLER DEFINITIONS
+// DEPRECATED: STATIC PHRASE POOLS
+// ============================================================================
+//
+// Previously, this file contained static phrases like:
+// - "Let me check your calendar..."
+// - "One moment..."
+// - "Looking that up..."
+//
+// These have been REMOVED because:
+// 1. They sound robotic when repeated
+// 2. The LLM can generate better, contextual speech
+// 3. Behavioral guidance in dynamic-speech-guidance.ts teaches the LLM HOW to behave
+//
+// Now we only provide silent pauses (SSML break tags) to prevent dead air.
 // ============================================================================
 
 /**
- * Tool fillers organized by tool category and persona.
- * Each entry is an array of possible phrases (randomly selected at runtime).
+ * Tool fillers now only return SSML pauses (no spoken content).
+ * The LLM handles natural speech via behavioral guidance.
  */
 export const TOOL_FILLERS: Record<string, Record<string, string[]>> = {
-  // Calendar/scheduling tools
+  // All categories now return only pauses - no spoken phrases
   calendar: {
-    ferni: [
-      `${breakTag('200ms')}Let me check your calendar...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Looking at your schedule...${breakTag('300ms')}`,
-      `${breakTag('150ms')}One sec, checking that...${breakTag('300ms')}`,
-    ],
-    'nayan-patel': [
-      `${breakTag('250ms')}Let me see what your schedule looks like...${breakTag('350ms')}`,
-      `${breakTag('250ms')}Checking your calendar...${breakTag('350ms')}`,
-    ],
-    'peter-john': [
-      `${breakTag('150ms')}Let me pull that up!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Checking your schedule...${breakTag('250ms')}`,
-    ],
-    'maya-santos': [
-      `${breakTag('200ms')}Let me check on that...${breakTag('350ms')}`,
-      `${breakTag('200ms')}Looking at your calendar...${breakTag('300ms')}`,
-    ],
-    'jordan-taylor': [
-      `${breakTag('150ms')}Ooh let me check!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Looking at your schedule...${breakTag('250ms')}`,
-    ],
-    'alex-chen': [
-      `${breakTag('150ms')}Checking...${breakTag('250ms')}`,
-      `${breakTag('150ms')}Let me pull that up...${breakTag('250ms')}`,
-    ],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('350ms')}`],
+    'peter-john': [`${breakTag('250ms')}`],
+    'maya-santos': [`${breakTag('300ms')}`],
+    'jordan-taylor': [`${breakTag('250ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // Search/lookup tools
   search: {
-    ferni: [
-      `${breakTag('200ms')}Let me look that up...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Searching for that...${breakTag('300ms')}`,
-    ],
-    'nayan-patel': [
-      `${breakTag('250ms')}Let me find that for you...${breakTag('400ms')}`,
-      `${breakTag('250ms')}Looking into that...${breakTag('350ms')}`,
-    ],
-    'peter-john': [
-      `${breakTag('150ms')}Ooh let me dig into this!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Researching...${breakTag('250ms')}`,
-    ],
-    'maya-santos': [
-      `${breakTag('200ms')}Let me find that...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Looking that up...${breakTag('300ms')}`,
-    ],
-    'jordan-taylor': [
-      `${breakTag('150ms')}On it!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Looking that up...${breakTag('250ms')}`,
-    ],
-    'alex-chen': [
-      `${breakTag('150ms')}Searching...${breakTag('200ms')}`,
-      `${breakTag('150ms')}Looking into it...${breakTag('200ms')}`,
-    ],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('400ms')}`],
+    'peter-john': [`${breakTag('250ms')}`],
+    'maya-santos': [`${breakTag('300ms')}`],
+    'jordan-taylor': [`${breakTag('250ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // Weather tools
   weather: {
-    ferni: [
-      `${breakTag('200ms')}Checking the weather...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Let me see what it's like out there...${breakTag('350ms')}`,
-    ],
-    'nayan-patel': [`${breakTag('250ms')}Let me check the weather for you...${breakTag('350ms')}`],
-    'peter-john': [`${breakTag('150ms')}Let me check!${breakTag('300ms')}`],
-    'maya-santos': [`${breakTag('200ms')}Checking the forecast...${breakTag('300ms')}`],
-    'jordan-taylor': [`${breakTag('150ms')}Let me see!${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}Checking...${breakTag('200ms')}`],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('350ms')}`],
+    'peter-john': [`${breakTag('250ms')}`],
+    'maya-santos': [`${breakTag('300ms')}`],
+    'jordan-taylor': [`${breakTag('250ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // Music tools
   music: {
-    ferni: [
-      `${breakTag('200ms')}Finding something good...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Let me find the right vibe...${breakTag('350ms')}`,
-    ],
-    'nayan-patel': [`${breakTag('250ms')}Let me find something fitting...${breakTag('400ms')}`],
-    'peter-john': [
-      `${breakTag('150ms')}Oh I know just the thing!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Let me find something great...${breakTag('300ms')}`,
-    ],
-    'maya-santos': [`${breakTag('200ms')}Let me find the right music...${breakTag('350ms')}`],
-    'jordan-taylor': [`${breakTag('150ms')}Ooh let me pick something!${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}Queuing that up...${breakTag('200ms')}`],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('400ms')}`],
+    'peter-john': [`${breakTag('300ms')}`],
+    'maya-santos': [`${breakTag('350ms')}`],
+    'jordan-taylor': [`${breakTag('300ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // News tools
   news: {
-    ferni: [
-      `${breakTag('200ms')}Checking the news...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Let me see what's happening...${breakTag('350ms')}`,
-    ],
-    'nayan-patel': [`${breakTag('250ms')}Let me see the latest...${breakTag('400ms')}`],
-    'peter-john': [`${breakTag('150ms')}Let me check the news!${breakTag('300ms')}`],
-    'maya-santos': [`${breakTag('200ms')}Checking on that...${breakTag('300ms')}`],
-    'jordan-taylor': [`${breakTag('150ms')}Let me see!${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}Checking...${breakTag('200ms')}`],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('400ms')}`],
+    'peter-john': [`${breakTag('300ms')}`],
+    'maya-santos': [`${breakTag('300ms')}`],
+    'jordan-taylor': [`${breakTag('300ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // Stock/financial tools
   stocks: {
-    ferni: [
-      `${breakTag('200ms')}Let me check that...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Looking up those numbers...${breakTag('350ms')}`,
-    ],
-    'nayan-patel': [
-      `${breakTag('250ms')}Let me check the markets...${breakTag('400ms')}`,
-      `${breakTag('250ms')}Looking at those numbers...${breakTag('350ms')}`,
-    ],
-    'peter-john': [
-      `${breakTag('150ms')}Let me dig into this!${breakTag('300ms')}`,
-      `${breakTag('150ms')}Checking the data...${breakTag('300ms')}`,
-    ],
-    'maya-santos': [`${breakTag('200ms')}Let me look that up...${breakTag('300ms')}`],
-    'jordan-taylor': [`${breakTag('150ms')}Checking...${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}Pulling that data...${breakTag('200ms')}`],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('400ms')}`],
+    'peter-john': [`${breakTag('300ms')}`],
+    'maya-santos': [`${breakTag('300ms')}`],
+    'jordan-taylor': [`${breakTag('300ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 
-  // Memory/recall tools
   memory: {
-    ferni: [
-      `${breakTag('200ms')}Let me think back...${breakTag('350ms')}`,
-      `${breakTag('200ms')}I remember you mentioned...${breakTag('300ms')}`,
-    ],
-    'nayan-patel': [`${breakTag('300ms')}Reflecting on what you've shared...${breakTag('450ms')}`],
-    'peter-john': [`${breakTag('200ms')}Oh, you know what...${breakTag('350ms')}`],
-    'maya-santos': [`${breakTag('250ms')}I recall...${breakTag('350ms')}`],
-    'jordan-taylor': [`${breakTag('200ms')}Oh yeah!${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}Let me recall...${breakTag('250ms')}`],
+    ferni: [`${breakTag('350ms')}`],
+    'nayan-patel': [`${breakTag('450ms')}`],
+    'peter-john': [`${breakTag('350ms')}`],
+    'maya-santos': [`${breakTag('350ms')}`],
+    'jordan-taylor': [`${breakTag('300ms')}`],
+    'alex-chen': [`${breakTag('250ms')}`],
   },
 
-  // Default for unknown tools
   default: {
-    ferni: [
-      `${breakTag('200ms')}One moment...${breakTag('300ms')}`,
-      `${breakTag('200ms')}Let me check on that...${breakTag('350ms')}`,
-    ],
-    'nayan-patel': [`${breakTag('250ms')}Give me a moment...${breakTag('400ms')}`],
-    'peter-john': [`${breakTag('150ms')}One sec!${breakTag('300ms')}`],
-    'maya-santos': [`${breakTag('200ms')}Just a moment...${breakTag('350ms')}`],
-    'jordan-taylor': [`${breakTag('150ms')}Hang on!${breakTag('300ms')}`],
-    'alex-chen': [`${breakTag('150ms')}One moment...${breakTag('200ms')}`],
+    ferni: [`${breakTag('300ms')}`],
+    'nayan-patel': [`${breakTag('400ms')}`],
+    'peter-john': [`${breakTag('300ms')}`],
+    'maya-santos': [`${breakTag('350ms')}`],
+    'jordan-taylor': [`${breakTag('300ms')}`],
+    'alex-chen': [`${breakTag('200ms')}`],
   },
 };
 

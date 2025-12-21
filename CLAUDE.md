@@ -739,6 +739,67 @@ npm test -- --run context-injection-integration
 
 **Reference:** `docs/PERSONA-EXCELLENCE-PLAN.md` for the full implementation plan.
 
+## 🔧 Function Calling System (CRITICAL - DO NOT BREAK)
+
+Ferni uses a **custom JSON-based function calling workaround** because Gemini Live API's native function calling is unreliable. This is a fragile system that has been carefully tuned.
+
+**Full documentation:** `docs/architecture/FUNCTION-CALLING-SYSTEM.md`
+
+### The JSON Format (Single Source of Truth)
+
+```json
+{"fn":"toolName","args":{"key":"value"}}
+```
+
+### Key Files (ALL must stay in sync)
+
+| File | Purpose |
+|------|---------|
+| `src/personas/bundles/shared/function-calling-base.md` | Prompt instructions for JSON format |
+| `src/personas/bundles/{persona}/identity/function-calling-specialty.md` | Per-persona specialty tools |
+| `src/agents/shared/tool-call-sanitizer.ts` | Intercepts JSON from TTS stream |
+| `src/agents/shared/json-function-executor.ts` | Routes JSON to actual tool implementations |
+| `src/agents/shared/function-call-format.ts` | TypeScript types and registered tools |
+
+### When Adding a New Tool (ALL STEPS REQUIRED)
+
+1. Add to `function-calling-base.md` OR `function-calling-specialty.md`
+2. Add tool name to `tool-call-sanitizer.ts` → `TOOL_NAME_PATTERNS`
+3. Add route to `json-function-executor.ts` → `routeToTool()`
+4. Add to `function-call-format.ts` → `REGISTERED_TOOLS`
+5. Test with voice: say the trigger phrase, verify tool executes
+
+### ⛔ NEVER DO (Will Break Voice Agent)
+
+| Wrong | Why It Breaks |
+|-------|---------------|
+| Change JSON format without updating ALL files | Sanitizer won't detect calls |
+| Add tool only to prompt (skip sanitizer) | LLM outputs "toolName query xyz" as speech |
+| Add tool only to executor (skip prompt) | LLM won't know to output JSON for it |
+| "Clean up" or "refactor" these files | System is tuned through trial and error |
+| Change `fn`/`args` key names | Regex patterns won't match |
+
+### Debugging Tool Calls
+
+```bash
+# Watch for these logs:
+🎯 JSON function call detected    # Good - JSON intercepted
+🔧 Executing JSON function call   # Good - tool running
+🚨 TOOL CALL LEAKAGE DETECTED     # Bad - LLM spoke instead of calling
+```
+
+### Quick Validation
+
+```bash
+# Test with voice agent
+pnpm dev
+
+# Say these and verify tools execute:
+"Play some jazz"                  # → music should play
+"What's the weather?"             # → should get weather data
+"Transfer me to Maya"             # → should handoff
+```
+
 ## Critical Rules
 
 ### Never Do

@@ -105,11 +105,11 @@ const MOOD_VALUES: Record<string, number> = {
 };
 
 const MOOD_COLORS: Record<string, string> = {
-  sunny: 'var(--color-semantic-success, #3d7a52)',
-  'partly-cloudy': 'var(--color-accent-primary, #2d5a3d)',
-  cloudy: 'var(--color-semantic-warning, #a67c35)',
-  rainy: 'var(--color-semantic-info, #3a6b9c)',
-  stormy: 'var(--color-semantic-error, #b5453a)',
+  sunny: 'var(--color-semantic-success)',
+  'partly-cloudy': 'var(--color-accent-primary)',
+  cloudy: 'var(--color-semantic-warning)',
+  rainy: 'var(--color-semantic-info)',
+  stormy: 'var(--color-semantic-error)',
 };
 
 // ============================================================================
@@ -657,10 +657,10 @@ class AnalyticsDashboardUI {
     // Render growth score as a visual indicator
     const scoreColor =
       summary.growthScore >= 70
-        ? 'var(--color-semantic-success, #3d7a52)'
+        ? 'var(--color-semantic-success)'
         : summary.growthScore >= 40
-          ? 'var(--color-semantic-warning, #a67c35)'
-          : 'var(--color-text-muted, #756a5e)';
+          ? 'var(--color-semantic-warning)'
+          : 'var(--color-text-muted)';
 
     // Render top growth areas
     const topAreas = summary.topGrowthAreas
@@ -796,7 +796,7 @@ class AnalyticsDashboardUI {
         max-width: 680px;
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
@@ -817,7 +817,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -834,18 +834,18 @@ class AnalyticsDashboardUI {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .analytics__export:hover,
       .analytics__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .analytics__export svg,
@@ -873,7 +873,7 @@ class AnalyticsDashboardUI {
       .analytics__card {
         text-align: center;
         padding: var(--ma-breath, 13px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
       }
 
@@ -881,7 +881,7 @@ class AnalyticsDashboardUI {
         width: 24px;
         height: 24px;
         margin: 0 auto var(--space-2, 8px);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
       }
 
       .analytics__card-icon svg {
@@ -893,13 +893,13 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .analytics__card-label {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       /* ========================================================================
@@ -919,7 +919,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__chart-section {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
         padding: var(--ma-breath, 13px);
       }
@@ -928,7 +928,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -943,7 +943,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__empty-icon {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         opacity: 0.5;
         margin-bottom: var(--space-2, 8px);
       }
@@ -952,14 +952,14 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--space-1, 4px) 0;
       }
 
       .analytics__empty-hint {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -991,7 +991,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__streak-bar-fill {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
       }
 
       .analytics__mood-bar-label,
@@ -999,7 +999,7 @@ class AnalyticsDashboardUI {
         margin-top: var(--space-1, 4px);
         font-family: var(--font-body);
         font-size: 10px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       /* ========================================================================
@@ -1014,7 +1014,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -1045,14 +1045,14 @@ class AnalyticsDashboardUI {
         width: 32px;
         height: 32px;
         border-radius: var(--radius-md, 0.5rem);
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-background-secondary);
+        color: var(--color-accent-primary);
         flex-shrink: 0;
       }
 
       .analytics__insight-icon-wrapper--tip {
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
-        color: var(--color-semantic-warning, #a67c35);
+        color: var(--color-semantic-warning);
       }
 
       .analytics__insight-content {
@@ -1063,19 +1063,19 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__insight-label {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         font-size: var(--text-xs, 0.75rem);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
 
       .analytics__insight-value {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         font-weight: var(--font-weight-medium, 500);
       }
 
       .analytics__insight-item--tip {
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .analytics__insight-text {
@@ -1097,7 +1097,7 @@ class AnalyticsDashboardUI {
         padding: var(--space-2, 8px) 0;
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
       }
 
@@ -1106,7 +1106,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__insights-list strong {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       /* ========================================================================
@@ -1135,7 +1135,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
         background: var(--persona-tint);
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
@@ -1163,14 +1163,14 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__prediction-line {
-        stroke: var(--color-accent-primary, #2d5a3d);
+        stroke: var(--color-accent-primary);
         stroke-linecap: round;
         stroke-linejoin: round;
       }
 
       .analytics__prediction-point {
-        fill: var(--color-background-elevated, #fffdfb);
-        stroke: var(--color-accent-primary, #2d5a3d);
+        fill: var(--color-background-elevated);
+        stroke: var(--color-accent-primary);
         stroke-width: 2;
       }
 
@@ -1191,20 +1191,20 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
       }
 
       .analytics__prediction-avg-label,
       .analytics__prediction-range-label {
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .analytics__prediction-range span:first-child {
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================
@@ -1223,7 +1223,7 @@ class AnalyticsDashboardUI {
         width: 32px;
         height: 32px;
         border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: analytics-spin 0.8s linear infinite;
         margin-bottom: var(--ma-breath, 13px);
@@ -1236,7 +1236,7 @@ class AnalyticsDashboardUI {
       .analytics__loading-text {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -1254,7 +1254,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__error-icon {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         opacity: 0.5;
         margin-bottom: var(--ma-breath, 13px);
       }
@@ -1263,14 +1263,14 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--space-1, 4px) 0;
       }
 
       .analytics__error-hint {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -1282,7 +1282,7 @@ class AnalyticsDashboardUI {
       }
 
       [data-theme="midnight"] .analytics__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .analytics__title,
@@ -1290,23 +1290,23 @@ class AnalyticsDashboardUI {
       [data-theme="midnight"] .analytics__chart-section h3,
       [data-theme="midnight"] .analytics__insights h3,
       [data-theme="midnight"] .analytics__insights-list strong {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .analytics__card,
       [data-theme="midnight"] .analytics__chart-section {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .analytics__export,
       [data-theme="midnight"] .analytics__close {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .analytics__export:hover,
       [data-theme="midnight"] .analytics__close:hover {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       /* Dark Theme Text - WCAG AA Compliant */
@@ -1314,36 +1314,36 @@ class AnalyticsDashboardUI {
       [data-theme="midnight"] .analytics__card-subtext,
       [data-theme="midnight"] .analytics__chart-label,
       [data-theme="midnight"] .analytics__bar-label {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       /* Insights text needs high contrast for readability */
       [data-theme="midnight"] .analytics__insights-list li {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .analytics__insights-list span {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       /* Dark Theme - Empty States */
       [data-theme="midnight"] .analytics__empty-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .analytics__empty-hint {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .analytics__empty-icon {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
         opacity: 0.6;
       }
 
       /* Dark Theme - Prediction Chart */
       [data-theme="midnight"] .analytics__accuracy-badge {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__prediction-area {
@@ -1351,31 +1351,31 @@ class AnalyticsDashboardUI {
       }
 
       [data-theme="midnight"] .analytics__prediction-line {
-        stroke: var(--color-accent-secondary, #7cb36b);
+        stroke: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__prediction-point {
-        fill: var(--color-background-elevated, #70605a);
-        stroke: var(--color-accent-secondary, #7cb36b);
+        fill: var(--color-background-elevated);
+        stroke: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__prediction-avg-value {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__prediction-range span:first-child {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       /* Dark Theme - Insight Icons */
       [data-theme="midnight"] .analytics__insight-icon-wrapper {
-        background: var(--color-background-secondary, #5a4d47);
-        color: var(--color-accent-secondary, #7cb36b);
+        background: var(--color-background-secondary);
+        color: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__insight-icon-wrapper--tip {
         background: var(--persona-tint);
-        color: var(--color-semantic-warning, #c9a255);
+        color: var(--color-semantic-warning);
       }
 
       /* ========================================================================
@@ -1473,7 +1473,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -1481,7 +1481,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin: 0 0 var(--space-2, 8px) 0;
@@ -1492,7 +1492,7 @@ class AnalyticsDashboardUI {
         flex-direction: column;
         align-items: center;
         padding: var(--space-2, 8px) var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
         border: 2px solid var(--score-color);
       }
@@ -1507,7 +1507,7 @@ class AnalyticsDashboardUI {
       .analytics__growth-score-label {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .analytics__growth-stats {
@@ -1522,12 +1522,12 @@ class AnalyticsDashboardUI {
         flex-direction: column;
         align-items: center;
         padding: var(--ma-breath, 13px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
       }
 
       .analytics__growth-stat-icon {
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -1535,13 +1535,13 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .analytics__growth-stat-label {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .analytics__growth-areas {
@@ -1553,7 +1553,7 @@ class AnalyticsDashboardUI {
         justify-content: space-between;
         align-items: center;
         padding: var(--space-2, 8px) var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         margin-bottom: var(--space-2, 8px);
       }
@@ -1566,14 +1566,14 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         text-transform: capitalize;
       }
 
       .analytics__growth-area-count {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .analytics__growth-recent {
@@ -1585,7 +1585,7 @@ class AnalyticsDashboardUI {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         margin-bottom: var(--space-2, 8px);
       }
@@ -1602,7 +1602,7 @@ class AnalyticsDashboardUI {
         align-items: center;
         justify-content: center;
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
         border-radius: var(--radius-md, 0.5rem);
       }
 
@@ -1615,7 +1615,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.03em;
         margin-bottom: var(--space-1, 4px);
@@ -1630,18 +1630,18 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__growth-before {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-decoration: line-through;
         opacity: 0.7;
       }
 
       .analytics__growth-arrow {
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
         font-weight: bold;
       }
 
       .analytics__growth-after {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         font-weight: var(--font-weight-medium, 500);
       }
 
@@ -1649,7 +1649,7 @@ class AnalyticsDashboardUI {
         flex-shrink: 0;
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-primary);
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
@@ -1658,7 +1658,7 @@ class AnalyticsDashboardUI {
       .analytics__growth-empty {
         text-align: center;
         padding: var(--ma-rest, 21px);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
       }
@@ -1672,28 +1672,28 @@ class AnalyticsDashboardUI {
       [data-theme="midnight"] .analytics__growth-stat-value,
       [data-theme="midnight"] .analytics__growth-area-name,
       [data-theme="midnight"] .analytics__growth-after {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .analytics__growth-stat,
       [data-theme="midnight"] .analytics__growth-area,
       [data-theme="midnight"] .analytics__growth-insight,
       [data-theme="midnight"] .analytics__growth-score {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .analytics__growth-insight-icon {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__growth-insight-confidence {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-accent-secondary);
       }
 
       [data-theme="midnight"] .analytics__growth-arrow {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-accent-secondary);
       }
 
       /* ========================================================================

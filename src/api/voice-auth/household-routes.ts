@@ -16,7 +16,7 @@ import {
   getHousehold,
   identifyHouseholdSpeaker,
   removeHouseholdMember,
-} from '../../services/voice-household.js';
+} from '../../services/voice/voice-household.js';
 import { parseBody, sendJson, getUserId, parseAudio } from './helpers.js';
 
 /**

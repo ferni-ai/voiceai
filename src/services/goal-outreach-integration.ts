@@ -681,7 +681,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
 
   try {
     // Get engagement store to find users who haven't interacted recently
-    const { getEngagementStore } = await import('./engagement-store.js');
+    const { getEngagementStore } = await import('./engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     if (!store) {

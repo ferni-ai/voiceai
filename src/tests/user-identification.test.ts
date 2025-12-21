@@ -12,7 +12,7 @@ import {
   identifyByPhone,
   identifyByWebAuth,
   identifyFromMetadata,
-} from '../services/user-identification.js';
+} from '../services/identity/user-identification.js';
 
 describe('User Identification Service', () => {
   describe('Phone Number Normalization', () => {

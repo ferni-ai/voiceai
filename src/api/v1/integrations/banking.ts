@@ -20,7 +20,7 @@ import {
   getAccountBalances,
   getTransactions,
   analyzeSpending,
-} from '../../../tools/plaid.js';
+} from '../../../tools/domains/finance/plaid.js';
 import {
   detectBills,
   detectIncome,
@@ -114,7 +114,7 @@ router.post('/exchange-token', async (req: Request, res: Response) => {
     }
 
     // Store the token
-    const { storeAccessToken } = await import('../../../tools/plaid.js');
+    const { storeAccessToken } = await import('../../../tools/domains/finance/plaid.js');
     storeAccessToken(userId, accessToken, undefined, institution);
 
     // Trigger initial financial analysis in background

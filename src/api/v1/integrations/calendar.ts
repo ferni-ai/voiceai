@@ -26,7 +26,10 @@ import {
   disconnectCalendar,
   type LocationType,
 } from '../../../services/context-awareness/location-calendar.js';
-import { exchangeCodeForTokens, storeUserTokens } from '../../../services/google-calendar-oauth.js';
+import {
+  exchangeCodeForTokens,
+  storeUserTokens,
+} from '../../../services/identity/google-calendar-oauth.js';
 
 const log = createLogger({ module: 'api:calendar' });
 const router = Router();

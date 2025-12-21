@@ -25,7 +25,7 @@ import {
   applyVoiceParametersToSSML,
   getVoiceParameterSummary,
   type VoiceContext,
-} from '../../services/dynamic-voice-parameters.js';
+} from '../../services/voice/dynamic-voice-parameters.js';
 
 // Re-export VoiceContext for external use
 export type { VoiceContext };

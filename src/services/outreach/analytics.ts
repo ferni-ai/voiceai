@@ -9,7 +9,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getBetterThanHumanTelemetry } from '../better-than-human-telemetry.js';
+import { getBetterThanHumanTelemetry } from '../analytics/better-than-human-telemetry.js';
 import type { OutreachDecision, OutreachTriggerType } from './decision-engine.js';
 
 const log = getLogger().child({ module: 'outreach-analytics' });

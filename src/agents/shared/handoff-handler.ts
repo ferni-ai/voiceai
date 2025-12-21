@@ -36,7 +36,7 @@ import {
   buildBanterContext,
   getLLMDrivenBanter,
   type LLMBanterInstructions,
-} from '../../services/team-engagement.js';
+} from '../../services/engagement/team-engagement.js';
 import { getDJIntegration } from '../dj-integration.js';
 import { criticalMonitor } from '../voice-agent/critical-function-monitor.js';
 import { safeGenerateReply } from './safe-generate-reply.js';

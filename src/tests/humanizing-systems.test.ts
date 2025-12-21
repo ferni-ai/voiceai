@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   analyzeVoiceEmotionIntelligence,
   formatVoiceIntelligenceForPrompt,
-} from '../intelligence/context-builders/voice-emotion-intelligence.js';
+} from '../intelligence/context-builders/emotional/voice-emotion-intelligence.js';
 
 // Spontaneous Vulnerability
 import {
@@ -32,7 +32,7 @@ import {
   getMoodContext,
   shouldMoodShift,
   getMoodShift,
-} from '../intelligence/context-builders/persona-mood.js';
+} from '../intelligence/context-builders/personas/persona-mood.js';
 
 // Relationship Behaviors
 import {
@@ -52,7 +52,7 @@ import {
   buildHumanizingContext,
   formatHumanizingForPrompt,
   getHumanizingSummary,
-} from '../intelligence/context-builders/humanizing.js';
+} from '../intelligence/context-builders/humanization/humanizing.js';
 
 // Types
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';

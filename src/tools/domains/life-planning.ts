@@ -16,11 +16,11 @@
  */
 
 export { createLifeFirstsTools } from './life-planning/life-firsts-tracker.js';
-export { createCulturalCelebrationTools } from '../cultural-celebrations.js';
-export { createFirstTimePlanningTools } from '../first-time-planning.js';
-export { createGiftRegistryTools } from '../gift-registry.js';
-export { createMilestoneProactiveTools } from '../milestone-proactive.js';
-export { createRetirementPlanningTools } from '../retirement-planning.js';
+export { createCulturalCelebrationTools } from './life-planning/cultural-celebrations.js';
+export { createFirstTimePlanningTools } from './life-planning/first-time-planning.js';
+export { createGiftRegistryTools } from './life-planning/gift-registry.js';
+export { createMilestoneProactiveTools } from './life-planning/milestone-proactive.js';
+export { createRetirementPlanningTools } from './finance/retirement-planning.js';
 export { createGoalManagementTools } from './life-planning/goal-management.js';
 export { createTeamIntegrationTools } from '../team-integration.js';
 export { createEventPlanningTools } from './life-planning/event-planning.js';

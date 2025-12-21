@@ -15,7 +15,7 @@ import {
   getGamificationStore,
   type GamificationProfile,
   type EarnedBadge,
-} from '../../../services/gamification-store.js';
+} from '../../../services/engagement/gamification-store.js';
 import { BADGE_DEFINITIONS, TITLE_PROGRESSION } from '../../gamification.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';

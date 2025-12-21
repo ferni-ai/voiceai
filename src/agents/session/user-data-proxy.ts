@@ -19,7 +19,7 @@ import type { LaughterDetectionResult } from '../../speech/voice-humanization.js
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
-import type { MoodState } from '../../intelligence/context-builders/persona-mood.js';
+import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
 import type { UserBundleState } from '../../personas/bundles/index.js';
 import type { SessionStateManager } from './session-state.js';
 

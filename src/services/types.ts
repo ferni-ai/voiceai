@@ -154,9 +154,9 @@ export interface SessionServices {
 export interface GlobalServices {
   store: MemoryStore;
   vectorStore: VectorStore | FirestoreVectorStore;
-  productivityStore: import('./productivity-store.js').default;
-  backgroundTasks: import('./background-tasks.js').default;
-  collectiveLearning: import('./collective-learning-store.js').CollectiveLearningStore;
+  productivityStore: import('./stores/productivity-store.js').default;
+  backgroundTasks: import('./scheduling/background-tasks.js').default;
+  collectiveLearning: import('./memory/collective-learning-store.js').CollectiveLearningStore;
   initialized: boolean;
 }
 

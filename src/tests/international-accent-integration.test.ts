@@ -42,8 +42,8 @@ import { detectAccentFromLocale, detectAccentFromLocales } from '../config/voice
 import {
   clearLocalizationCache,
   getLocalizedVoiceId,
-} from '../services/cartesia-voice-localization.js';
-import { detectGeoFromRequest } from '../services/geo-detection.js';
+} from '../services/voice/cartesia-voice-localization.js';
+import { detectGeoFromRequest } from '../services/identity/geo-detection.js';
 
 // Helper to create mock HTTP request
 function createMockRequest(

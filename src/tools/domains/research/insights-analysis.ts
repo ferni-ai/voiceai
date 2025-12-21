@@ -29,7 +29,7 @@ import {
   type SavingsGoalData,
   type SpendingTriggerData,
   type SpendingLimitData,
-} from '../../../services/financial-store.js';
+} from '../../../services/stores/financial-store.js';
 
 // ============================================================================
 // TYPES FOR CROSS-DOMAIN ANALYSIS

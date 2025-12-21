@@ -124,7 +124,7 @@ export async function fetchSpotifyAmbientTracks(): Promise<MusicTrack[]> {
 
   try {
     // Try to import Spotify module
-    const { searchTracksWithPreviews } = await import('../tools/spotify.js');
+    const { searchTracksWithPreviews } = await import('../tools/domains/entertainment/spotify.js');
 
     // Pick random search queries
     const queries = AMBIENT_SEARCH_QUERIES.sort(() => Math.random() - 0.5).slice(0, 3);

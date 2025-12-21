@@ -14,7 +14,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../../google-calendar-oauth.js', () => ({
+vi.mock('../../identity/google-calendar-oauth.js', () => ({
   getValidAccessToken: vi.fn(),
   getEvents: vi.fn(),
   createEvent: vi.fn(),
@@ -37,7 +37,7 @@ import {
   type CalendarEvent,
   type CreateEventInput,
 } from '../calendar-service.js';
-import * as googleCalendarOAuth from '../../google-calendar-oauth.js';
+import * as googleCalendarOAuth from '../../identity/google-calendar-oauth.js';
 
 describe('Calendar Service', () => {
   const mockUserId = 'test-user-123';

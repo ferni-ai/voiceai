@@ -37,10 +37,10 @@ import { withTimeout } from './session-manager/utils.js';
 import { validateUserId } from './session-manager/validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
-import * as realtimeMemory from './realtime-memory.js';
+import * as realtimeMemory from './memory/realtime-memory.js';
 
 // Voice authentication - household identification
-import { getActiveSession, startHouseholdSession } from './voice-household.js';
+import { getActiveSession, startHouseholdSession } from './voice/voice-household.js';
 
 // Cross-persona insights - load team intelligence for new sessions
 import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';
@@ -138,7 +138,7 @@ import {
 } from './intelligence-persistence.js';
 
 // Persistence metrics for observability
-import { persistenceMetrics } from './persistence-metrics.js';
+import { persistenceMetrics } from './analytics/persistence-metrics.js';
 
 // ============================================================================
 // SESSION STATE
@@ -284,6 +284,18 @@ export async function createSessionServices(
     } catch {
       // Non-critical
     }
+
+    // 🚀 PERFORMANCE: Pre-warm embeddings and initialize session optimizations
+    // This runs in background and doesn't block session creation
+    import('../agents/shared/performance/session-optimizations.js')
+      .then(({ optimizeSessionStart }) => {
+        optimizeSessionStart(sessionId, validatedUserId).catch(() => {
+          // Non-critical - optimization failure shouldn't affect session
+        });
+      })
+      .catch(() => {
+        // Module load failure - non-critical
+      });
   } else if (userId) {
     getLogger().warn(
       { providedUserId: userId?.slice(0, 20) },
@@ -2071,7 +2083,7 @@ export async function createSessionServices(
       // Clear life data cache
       if (userId) {
         try {
-          const { getLifeDataStore } = await import('./life-data-store.js');
+          const { getLifeDataStore } = await import('./stores/life-data-store.js');
           getLifeDataStore().clearUserCache(userId);
         } catch (error) {
           getLogger().debug({ error }, 'Failed to clear life data cache (non-blocking)');

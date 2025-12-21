@@ -3,10 +3,13 @@ import Vision
 import AppKit
 import ScreenCaptureKit
 import Combine
+import os.log
 
 // MARK: - Vision Service
 /// Provides screenshot OCR and visual analysis
 /// Detects error messages, reads documents, analyzes screen content
+
+private let visionLog = Logger(subsystem: "com.ferni.voice", category: "Vision")
 
 @available(macOS 12.3, *)
 class VisionService: ObservableObject {
@@ -148,40 +151,36 @@ class VisionService: ObservableObject {
     // MARK: - Text Extraction (OCR)
 
     /// Extract text from an image using Vision framework
+    /// Note: Uses synchronous Vision API to avoid continuation leaks
     func extractText(from image: CGImage) async -> String {
-        await withCheckedContinuation { continuation in
-            let request = VNRecognizeTextRequest { request, error in
-                if let error = error {
-                    print("[Vision] OCR error: \(error)")
-                    continuation.resume(returning: "")
-                    return
-                }
+        // Use the synchronous pattern - Vision's perform() is blocking
+        // and will complete the request before returning
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
 
-                guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                    continuation.resume(returning: "")
-                    return
-                }
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
 
-                // Extract all recognized text
-                let text = observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
-                }.joined(separator: "\n")
+        do {
+            try handler.perform([request])
 
-                continuation.resume(returning: text)
+            // Get results after perform() completes
+            guard let observations = request.results else {
+                visionLog.warning("OCR returned no results")
+                return ""
             }
 
-            // Configure for accuracy
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
+            // Extract all recognized text
+            let text = observations.compactMap { observation in
+                observation.topCandidates(1).first?.string
+            }.joined(separator: "\n")
 
-            // Perform request
-            let handler = VNImageRequestHandler(cgImage: image, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                print("[Vision] Failed to perform OCR: \(error)")
-                continuation.resume(returning: "")
-            }
+            visionLog.debug("OCR extracted \(observations.count) text observations")
+            return text
+
+        } catch {
+            visionLog.error("Failed to perform OCR: \(error.localizedDescription)")
+            return ""
         }
     }
 

@@ -14,7 +14,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import {
   getAppointmentIntegrationService,
   type AppointmentRequest,
-} from '../../services/appointment-integration.js';
+} from '../../services/scheduling/appointment-integration.js';
 import {
   areTokensExpired,
   createAppointmentEvent,
@@ -24,7 +24,7 @@ import {
   isOAuthConfigured,
   storeUserTokens,
   type GoogleTokens,
-} from '../../services/google-calendar-oauth.js';
+} from '../../services/identity/google-calendar-oauth.js';
 import {
   generateAppointmentTwiML,
   generateMessageTwiML,

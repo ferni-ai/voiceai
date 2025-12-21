@@ -69,7 +69,7 @@ startHealthCheckServer(AGENT_NAME);
 
 log('Phase 1.5: Starting container watchdog');
 
-import { startWatchdog, stopWatchdog } from '../services/container-watchdog.js';
+import { startWatchdog, stopWatchdog } from '../services/deployment/container-watchdog.js';
 startWatchdog({
   diskWarningPercent: 70,
   diskCriticalPercent: 85,
@@ -119,6 +119,11 @@ import {
 
 import { markLivekitDisconnected } from './shared/worker-readiness.js';
 
+// Initialize crash analytics early for comprehensive crash detection
+import { initCrashAnalytics, getCrashSummary } from './shared/crash-analytics.js';
+initCrashAnalytics();
+log('✅ Crash analytics initialized');
+
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
@@ -149,13 +154,17 @@ async function main(): Promise<void> {
   log('Phase 4: Connecting to LiveKit');
   await connectToLiveKit();
 
-  // Diagnostic summary
+  // Diagnostic summary with crash analytics
   setInterval(() => {
     const metrics = getJobMetrics();
+    const crashSummary = getCrashSummary();
     log('Diagnostic summary', {
       uptimeMs: Date.now() - _startTime,
       memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
       ...metrics,
+      crashes: crashSummary.totalCrashes,
+      activeSessions: crashSummary.activeSessions,
+      crashRate: crashSummary.crashRate,
     });
   }, 60000);
 

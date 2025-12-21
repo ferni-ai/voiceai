@@ -30,14 +30,18 @@ import {
   type MusicPreferences,
 } from './dj-enhancements.js';
 import {
+  buildTrackContext,
   checkSpontaneousMusicMoment,
   getConversationBridge,
   getEmotionalMirrorOffer,
   getFunInterjection,
+  getFunInterjectionAsync,
   getMusicHumanization,
   getPostMusicCheckIn,
   getTimeAwareMusicSuggestion,
+  prewarmMusicInterjection,
   type MusicHumanizationController,
+  type TrackContext,
 } from './music-humanization.js';
 import { getMusicPlayer, type MusicState, type MusicTrack } from './music-player.js';
 
@@ -620,11 +624,15 @@ export class DJBooth {
   /**
    * Get a fun DJ interjection (15% chance by default)
    * Makes the DJ feel more human and playful
+   *
+   * Now with contextual awareness! When track context is provided,
+   * interjections can include actual facts about the artist/song.
    */
   getFunInterjection(
-    moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped'
+    moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped',
+    trackContext?: TrackContext
   ): string | null {
-    return getFunInterjection(moment);
+    return getFunInterjection(moment, undefined, trackContext);
   }
 
   /**
@@ -882,13 +890,24 @@ export class DJBooth {
     this.humanization.onMusicStarted(track.name, track.artist);
 
     // 🎵 Fun interjection on track start (15% chance)
-    const funIntro = this.getFunInterjection('track_start');
-    if (funIntro && !this.state.agentSpeaking) {
-      // Delay slightly so the music starts first
+    // Now LLM-powered! Uses the 3-second delay to generate contextual commentary
+    const trackContext = buildTrackContext(track.name, track.artist, this.config.personaId);
+
+    // Pre-warm the LLM cache for track_end too (fire and forget)
+    void prewarmMusicInterjection(trackContext);
+
+    // Use async version since we have 3 seconds anyway - gives LLM time to generate
+    if (!this.state.agentSpeaking) {
       this.scheduleTimer(() => {
-        if (this.state.musicState === 'playing' && !this.state.userSpeaking) {
-          this.speakOverMusic(funIntro);
-        }
+        void (async () => {
+          if (this.state.musicState === 'playing' && !this.state.userSpeaking) {
+            // Try LLM-generated first, falls back to templates
+            const funIntro = await getFunInterjectionAsync('track_start', 0.15, trackContext);
+            if (funIntro) {
+              this.speakOverMusic(funIntro);
+            }
+          }
+        })();
       }, 3000);
     }
 
@@ -901,7 +920,7 @@ export class DJBooth {
 
   /**
    * Schedule all the DJ moments for this track
-   * 
+   *
    * HUMANIZATION: Reduced probabilities significantly. When someone asks for music,
    * they usually want to LISTEN to music, not hear constant DJ commentary.
    * Less is more - save the moments for truly special occasions.

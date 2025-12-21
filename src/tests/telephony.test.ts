@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createTelephonyTools } from '../tools/telephony.js';
+import { createTelephonyTools } from '../tools/domains/telephony/telephony.js';
 
 // Mock tool options that satisfies ToolOptions<unknown>
 const mockToolOptions = {
@@ -171,7 +171,7 @@ describe('Telephony Configuration', () => {
 
     // Dynamically import to get fresh module with cleared env
     const { createTelephonyTools: freshCreateTelephonyTools } =
-      await import('../tools/telephony.js');
+      await import('../tools/domains/telephony/telephony.js');
 
     const tools = freshCreateTelephonyTools();
     const result = await tools.callUser.execute(

@@ -390,7 +390,7 @@ function injectStyles(): void {
 
     .garden-content {
       position: relative;
-      background: var(--color-background-elevated, #faf8f5);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       max-width: 420px;
@@ -408,14 +408,14 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 9999px);
       transition: all 0.2s ease;
     }
 
     .garden-close:hover {
       background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .garden-header {
@@ -429,7 +429,7 @@ function injectStyles(): void {
       justify-content: center;
       width: 64px;
       height: 64px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
       border-radius: 50%;
       color: white;
       margin-bottom: var(--space-4, 16px);
@@ -444,13 +444,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
 
     .garden-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
       font-weight: 500;
       margin: 0;
     }
@@ -477,16 +477,16 @@ function injectStyles(): void {
       display: block;
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .garden-stat--highlight .garden-stat-value {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .garden-stat-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .garden-earned {
@@ -496,13 +496,13 @@ function injectStyles(): void {
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
       background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.08)), transparent);
-      border: 1px solid var(--persona-primary, #4a6741);
+      border: 1px solid var(--persona-primary);
       border-radius: var(--radius-lg, 12px);
       margin-bottom: var(--space-5, 20px);
     }
 
     .garden-earned-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .garden-earned-text {
@@ -512,12 +512,12 @@ function injectStyles(): void {
 
     .garden-earned-text strong {
       font-size: var(--text-lg, 1.125rem);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .garden-earned-text span {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .garden-tiers {
@@ -540,7 +540,7 @@ function injectStyles(): void {
     .garden-tier--active {
       opacity: 1;
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      border: 1px solid var(--persona-primary, #4a6741);
+      border: 1px solid var(--persona-primary);
     }
 
     .garden-tier--complete {
@@ -553,18 +553,18 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .garden-tier-name {
       font-weight: 500;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       flex: 1;
     }
 
     .garden-tier-req {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .garden-link {
@@ -579,14 +579,14 @@ function injectStyles(): void {
 
     .garden-link-label {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .garden-link-url {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
       font-family: var(--font-mono, monospace);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -597,14 +597,14 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       border-radius: var(--radius-md, 8px);
       transition: all 0.2s ease;
     }
 
     .garden-link-copy:hover {
       background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary);
     }
 
     .garden-actions {
@@ -628,12 +628,12 @@ function injectStyles(): void {
     }
 
     .garden-action--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       color: white;
     }
 
     .garden-action--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary);
       transform: translateY(-1px);
     }
 
@@ -646,12 +646,12 @@ function injectStyles(): void {
 
     .garden-empty p {
       margin: 0;
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
     }
 
     .garden-empty-sub {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a) !important;
+      color: var(--color-text-muted) !important;
       margin-top: var(--space-2, 8px) !important;
     }
 
@@ -661,7 +661,7 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .garden-content {
-      background: var(--color-background-elevated, #1a1a1f);
+      background: var(--color-background-elevated);
     }
 
     /* Mobile */

@@ -21,9 +21,13 @@
  */
 
 import { getHistoricalEvent } from '../external-apis.js';
-import { getFinancialNews, getGeneralNews, getTechNews } from '../../tools/news.js';
-import { getTeamScore } from '../../tools/sports.js';
-import { getCurrentWeather, getWeatherForecast } from '../../tools/weather.js';
+import {
+  getFinancialNews,
+  getGeneralNews,
+  getTechNews,
+} from '../../tools/domains/information/news.js';
+import { getTeamScore } from '../../tools/domains/information/sports.js';
+import { getCurrentWeather, getWeatherForecast } from '../../tools/domains/information/weather.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WorldAwareness' });

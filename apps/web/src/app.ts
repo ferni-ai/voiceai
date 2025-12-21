@@ -88,7 +88,10 @@ import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 import { showIntegrationsSettings } from './ui/integrations-settings.ui.js';
+import { openDigitalTwinUI } from './ui/digital-twin.ui.js';
 import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
+// 📔 Journal Capture - Auto-capture meaningful moments from conversations
+import { initJournalCapture } from './services/journal-capture.service.js';
 // Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // New Unified Admin Portal
@@ -395,6 +398,14 @@ class VoiceAIApp {
     if (this.isInitialized) {
       log.warn('App already initialized');
       return;
+    }
+
+    // Initialize crash reporter FIRST for comprehensive error capture
+    try {
+      const { initCrashReporter } = await import('./services/crash-reporter.service.js');
+      initCrashReporter();
+    } catch (e) {
+      log.warn('Failed to initialize crash reporter:', e);
     }
 
     // Check for admin route
@@ -1246,6 +1257,21 @@ class VoiceAIApp {
       initInsightsDebugPanel();
     });
 
+    // 🎯 Trigger Debug Panel - Dynamic trigger debugging (Cmd/Ctrl+Shift+T)
+    this.safeInit('TriggerDebugPanel', async () => {
+      const { initTriggerDebugPanel } = await import('./ui/trigger-debug-panel.ui.js');
+      initTriggerDebugPanel();
+    });
+
+    // 📔 Journaling Shortcut - Cmd/Ctrl+J to open journal
+    this.safeInit('JournalingShortcut', async () => {
+      const { initJournalingShortcut } = await import('./ui/digital-twin.ui.js');
+      initJournalingShortcut();
+    });
+
+    // 📔 Journal Capture - Auto-capture meaningful moments from conversations
+    this.safeInit('JournalCapture', () => initJournalCapture());
+
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());
     this.safeInit('PredictionsUI', () => {
@@ -1535,6 +1561,7 @@ class VoiceAIApp {
           openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
+        onJournalClick: () => void openDigitalTwinUI(),
         onConnectionsClick: () => void showIntegrationsSettings(),
         onContactsClick: () => void openYourPeople(),
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
@@ -2348,8 +2375,9 @@ class VoiceAIApp {
     });
 
     // When handoff fails - hide indicator and show error
-    handoffService.onHandoffFailed((error, targetPersona) => {
-      log.error('onHandoffFailed:', { error, targetPersona });
+    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+      log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
         clearTimeout(handoffUITimeout);
@@ -2357,6 +2385,14 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
+
+      // FIX AUDIT GAP #1: Restore waveform and other UI to rollback persona
+      if (rollbackTo) {
+        log.info('Restoring UI systems to rollback persona:', rollbackTo);
+        waveformUI.setPersona(rollbackTo);
+        gesturesUI.setCurrentPersona(rollbackTo);
+        this.updatePersonaTheme(rollbackTo);
+      }
 
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
@@ -2382,6 +2418,30 @@ class VoiceAIApp {
         handoffProgress.classList.add('hidden');
       }
       thinkingUI.hide();
+    });
+
+    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
+    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
+    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
+      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
+
+      // Calculate progress percentage (0-100)
+      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
+
+      // Update waveform with progress indication
+      // The waveform shimmer intensity can vary based on progress
+      if (waveformUI.isTransitioning && progress > 50) {
+        // After halfway, intensify the shimmer to show progress
+        // (waveformUI already handles transitioning state, but this adds visual variety)
+        log.debug('Handoff progress:', `${progress}%`);
+      }
+
+      // Update the handoff progress element if present
+      const handoffProgress = document.getElementById('handoffProgress');
+      if (handoffProgress) {
+        // Add a data attribute for CSS-based progress visualization
+        handoffProgress.setAttribute('data-progress', String(progress));
+      }
     });
 
     // Main handoff callback (plays sounds, updates UI)

@@ -14,6 +14,6 @@ export {
   getMarketOverview,
   getMarketStatus,
 } from './finance/market-data.js';
-export { createEconomicTools } from '../economic.js';
-export { createCalculatorTools } from '../calculators.js';
-export { createPersonalFinanceTools } from '../personal-finance.js';
+export { createEconomicTools } from './finance/economic.js';
+export { createCalculatorTools } from './finance/calculators.js';
+export { createPersonalFinanceTools } from './finance/personal-finance.js';

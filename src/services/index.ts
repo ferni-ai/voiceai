@@ -57,7 +57,7 @@ export {
   type StartupCapabilities,
   type ValidationConfig,
   type ValidationResult,
-} from './startup-validation.js';
+} from './deployment/startup-validation.js';
 
 // ============================================================================
 // INTELLIGENCE PERSISTENCE
@@ -86,7 +86,7 @@ export {
   withMetrics,
   withMetricsSync,
   type PersistenceMetricsSnapshot,
-} from './persistence-metrics.js';
+} from './analytics/persistence-metrics.js';
 
 // ============================================================================
 // ERROR TRACKING
@@ -142,7 +142,7 @@ export {
 // SHUTDOWN
 // ============================================================================
 
-export { shutdownServices } from './shutdown.js';
+export { shutdownServices } from './deployment/shutdown.js';
 
 // ============================================================================
 // CONVERSATION STATE (Tool Orchestration)
@@ -182,7 +182,7 @@ export {
   type AuthAction as UserAuthAction,
   type AuthContext as UserAuthContext,
   type ConfidenceLevel as UserConfidenceLevel,
-} from './user-identification.js';
+} from './identity/user-identification.js';
 
 // ============================================================================
 // VOICE MEMORY & IDENTIFICATION
@@ -196,14 +196,14 @@ export {
   type VoiceSearchResult,
   type VoiceSimilarityResult,
   type VoiceSketch,
-} from './voice-memory.js';
+} from './memory/voice-memory.js';
 
 export {
   identifyWithVoice,
   mergeVoiceSketch,
   type VoiceIdentificationResult,
   type VoiceVerificationResult,
-} from './voice-identification.js';
+} from './voice/voice-identification.js';
 
 // ============================================================================
 // NATURAL AUTHENTICATION
@@ -220,7 +220,7 @@ export {
   type AuthAction,
   type AuthContext,
   type ConfidenceLevel,
-} from './natural-auth.js';
+} from './identity/natural-auth.js';
 
 // ============================================================================
 // PRODUCTIVITY DATA STORE
@@ -237,7 +237,7 @@ export {
   type ProductivityData,
   type RoutineData,
   type TaskData,
-} from './productivity-store.js';
+} from './stores/productivity-store.js';
 
 // ============================================================================
 // COLLECTIVE LEARNING
@@ -247,7 +247,7 @@ export {
   getCollectiveLearningStore,
   initializeCollectiveLearning,
   shutdownCollectiveLearning,
-} from './collective-learning-store.js';
+} from './memory/collective-learning-store.js';
 
 // ============================================================================
 // TEAM MANAGEMENT
@@ -274,7 +274,7 @@ export {
   type GamificationProfile,
   type LeaderboardEntry,
   type MoodLog,
-} from './gamification-store.js';
+} from './engagement/gamification-store.js';
 
 // ============================================================================
 // MAYA NOTIFICATIONS
@@ -287,7 +287,7 @@ export {
   type MayaNotificationPreferences,
   type MayaNotificationRequest,
   type MayaNotificationType,
-} from './engagement-notification-service.js';
+} from './engagement/engagement-notification-service.js';
 
 // ============================================================================
 // MEMORY MANAGEMENT
@@ -311,7 +311,7 @@ export {
   type ProactiveMemory,
   type PruningConfig,
   type PruningResult,
-} from './memory-management.js';
+} from './memory/memory-management.js';
 
 // ============================================================================
 // BACKGROUND TASKS
@@ -331,7 +331,7 @@ export {
   type TaskStatus,
   type Workflow,
   type WorkflowStep,
-} from './background-tasks.js';
+} from './scheduling/background-tasks.js';
 
 // ============================================================================
 // REMINDER SCHEDULER
@@ -351,7 +351,7 @@ export {
   type ReminderDeliveryMethod,
   type ScheduledReminder,
   type VoiceMessage,
-} from './reminder-scheduler.js';
+} from './scheduling/reminder-scheduler.js';
 
 // ============================================================================
 // AGENT BUS & LIFE DATA
@@ -365,7 +365,7 @@ export {
   type LifeMilestone,
   type LifePortfolio,
   type RetirementPlan,
-} from './life-data-store.js';
+} from './stores/life-data-store.js';
 
 // ============================================================================
 // DJ & MUSIC SERVICES
@@ -402,7 +402,7 @@ export {
   startProactiveScheduler,
   stopProactiveScheduler,
   type ProactiveNotification,
-} from './proactive-scheduler.js';
+} from './scheduling/proactive-scheduler.js';
 
 // ============================================================================
 // RE-EXPORTS FROM OTHER MODULES (for backward compatibility)
@@ -440,7 +440,7 @@ export {
   parseAcceptLanguage,
   type GeoDetectionOptions,
   type GeoDetectionResult,
-} from './geo-detection.js';
+} from './identity/geo-detection.js';
 
 // ============================================================================
 // CARTESIA VOICE LOCALIZATION (International Accents)
@@ -457,7 +457,7 @@ export {
   preWarmLocalizedVoices,
   type LocalizationResult,
   type LocalizedVoice,
-} from './cartesia-voice-localization.js';
+} from './voice/cartesia-voice-localization.js';
 
 // ============================================================================
 // TEAM CAMEO SYSTEM (Team member "pop-in" feature)
@@ -511,7 +511,7 @@ export {
   runCriticalHealthChecks,
   type HealthCheckResult,
   type SystemHealthReport,
-} from './health-checks.js';
+} from './deployment/health-checks.js';
 
 // ============================================================================
 // LANDING INTELLIGENCE (Gemini-powered landing page optimization)
@@ -563,7 +563,7 @@ import {
   getActiveSessionIds as _getActiveSessionIds,
   getSessionServices as _getSessionServices,
 } from './session-manager.js';
-import { shutdownServices as _shutdownServices } from './shutdown.js';
+import { shutdownServices as _shutdownServices } from './deployment/shutdown.js';
 
 // ============================================================================
 // ASYNC EVENTS (Fire-and-Forget Event System)

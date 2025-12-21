@@ -16,9 +16,185 @@
  * - Music as Conversation Bridge (transitions)
  */
 
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
+import { callLLM } from '../services/llm-utils.js';
+import { getMusicCommentary, hasArtistInfo } from '../tools/domains/entertainment/music-commentary.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
+
+// ============================================================================
+// LLM-POWERED MUSIC INTERJECTIONS
+// ============================================================================
+
+/**
+ * Cache for LLM-generated interjections
+ * Key: `${artist}-${trackName}-${moment}`
+ */
+const llmInterjectionCache = new Map<string, { content: string; generatedAt: number }>();
+const LLM_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_CACHE_SIZE = 100;
+
+/**
+ * Pending LLM generation promises to avoid duplicate calls
+ */
+const pendingGenerations = new Map<string, Promise<string | null>>();
+
+/**
+ * Ferni's DJ Voice DNA - compact for prompt injection
+ */
+const FERNI_DJ_VOICE_DNA = `
+## FERNI AS DJ
+You're Ferni - a warm, curious life coach who also has great taste in music.
+When you comment on music, you're sharing genuine appreciation, not performing.
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences MAX. This isn't a speech.
+- Genuine: Like telling a friend about a song you love
+- Physical: "This one hits", "Gives me chills", "Makes me want to move"
+- Warm but not cheesy: No "bangers" or DJ clichés
+
+## THINGS FERNI SAYS AS DJ
+- "Oh, I love this part coming up"
+- "There's something about this song"
+- "{Artist} just gets it, you know?"
+- "This takes me back"
+
+## THINGS FERNI NEVER SAYS
+- "What a banger!" / "This slaps!" (try-hard)
+- "Now playing..." (robotic)
+- "You're gonna love this" (presumptuous)
+- Generic hype phrases
+`;
+
+/**
+ * Build prompt for LLM music interjection
+ */
+function buildMusicInterjectionPrompt(
+  context: TrackContext,
+  moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped'
+): string {
+  const momentDescriptions: Record<string, string> = {
+    track_start: 'The song just started playing. Say something brief to introduce/appreciate it.',
+    mid_song: 'We\'re in the middle of the song. A brief appreciative moment if you feel it.',
+    track_end: 'The song just finished. A quick, warm reflection.',
+    user_liked: 'The user expressed they liked it! Share in their enjoyment briefly.',
+    user_skipped: 'The user skipped the song. Acknowledge gracefully and move on.',
+  };
+
+  let artistContext = '';
+  if (context.fact) {
+    artistContext = `\nFACT YOU KNOW: ${context.fact}`;
+  } else if (context.artist) {
+    artistContext = `\nYou're playing music by ${context.artist}.`;
+  }
+
+  return `${FERNI_DJ_VOICE_DNA}
+
+## CURRENT MOMENT
+Track: "${context.name || 'this song'}" by ${context.artist || 'the artist'}${artistContext}
+
+MOMENT: ${momentDescriptions[moment]}
+
+## YOUR TASK
+Generate ONE brief, genuine Ferni-style reaction (1-2 sentences max).
+Don't use quotation marks around your response.
+Just output the line Ferni would say, nothing else.`;
+}
+
+/**
+ * Generate a music interjection using LLM
+ * Returns cached result if available, generates in background if not
+ */
+async function generateLLMInterjection(
+  context: TrackContext,
+  moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped'
+): Promise<string | null> {
+  const cacheKey = `${context.artist || 'unknown'}-${context.name || 'unknown'}-${moment}`;
+
+  // Check cache first
+  const cached = llmInterjectionCache.get(cacheKey);
+  if (cached && Date.now() - cached.generatedAt < LLM_CACHE_TTL_MS) {
+    log.debug({ cacheKey }, '🎵 Using cached LLM interjection');
+    return cached.content;
+  }
+
+  // Check if generation is already in progress
+  const pending = pendingGenerations.get(cacheKey);
+  if (pending) {
+    log.debug({ cacheKey }, '🎵 Waiting for pending LLM generation');
+    return pending;
+  }
+
+  // Generate new interjection
+  const generationPromise = (async () => {
+    try {
+      const prompt = buildMusicInterjectionPrompt(context, moment);
+
+      const result = await callLLM(prompt, {
+        maxTokens: 100, // Keep it brief
+        temperature: 0.8, // Creative but not wild
+        timeout: 3000, // Fast timeout for responsiveness
+      });
+
+      if (result) {
+        // Clean up the result (remove quotes if LLM added them)
+        const cleaned = result.trim().replace(/^["']|["']$/g, '');
+
+        // Cache it
+        llmInterjectionCache.set(cacheKey, {
+          content: cleaned,
+          generatedAt: Date.now(),
+        });
+
+        // Trim cache if too large
+        if (llmInterjectionCache.size > MAX_CACHE_SIZE) {
+          const oldest = [...llmInterjectionCache.entries()]
+            .sort((a, b) => a[1].generatedAt - b[1].generatedAt)[0];
+          if (oldest) {
+            llmInterjectionCache.delete(oldest[0]);
+          }
+        }
+
+        log.debug({ cacheKey, content: cleaned }, '🎵 LLM interjection generated');
+        return cleaned;
+      }
+
+      return null;
+    } catch (error) {
+      log.warn({ error: String(error) }, '🎵 LLM interjection generation failed');
+      return null;
+    } finally {
+      pendingGenerations.delete(cacheKey);
+    }
+  })();
+
+  pendingGenerations.set(cacheKey, generationPromise);
+  return generationPromise;
+}
+
+/**
+ * Pre-warm LLM interjection cache when music starts
+ * Call this when you know what track is about to play
+ */
+export async function prewarmMusicInterjection(context: TrackContext): Promise<void> {
+  // Fire and forget - don't block on this
+  void generateLLMInterjection(context, 'track_start');
+  void generateLLMInterjection(context, 'track_end');
+}
+
+/**
+ * Clear the LLM interjection cache
+ */
+export function clearLLMInterjectionCache(): void {
+  llmInterjectionCache.clear();
+  pendingGenerations.clear();
+  log.debug('🎵 Cleared LLM interjection cache');
+}
 
 // ============================================================================
 // TYPES
@@ -589,17 +765,41 @@ export function checkSpontaneousMusicMoment(params: {
 // ============================================================================
 
 /**
- * Fun DJ interjections that show personality
- * These should be used sparingly (15% chance or less)
+ * Track context for generating contextual interjections
  */
-// FUN_DJ_INTERJECTIONS: Fun DJ personality moments
-// NOTE: Do NOT use *asterisk* stage directions - they may be spoken aloud!
-const FUN_DJ_INTERJECTIONS: Record<string, string[]> = {
-  track_start: [
-    "Okay confession: I've had this on repeat all day. It's just too good.",
-    'This one? Absolute perfection.',
-    'Fun fact: I was just thinking about this song.',
+export interface TrackContext {
+  name?: string;
+  artist?: string;
+  era?: string; // e.g., "1960s", "Big Band", "Classical"
+  genre?: string;
+  fact?: string; // A specific fact about this track/artist
+}
+
+/**
+ * Dynamic interjection templates that adapt to the track
+ * Use {artist}, {trackName}, {era}, {fact} placeholders
+ * NOTE: Do NOT use *asterisk* stage directions - they may be spoken aloud!
+ */
+const CONTEXTUAL_INTERJECTION_TEMPLATES: Record<string, string[]> = {
+  track_start_with_context: [
+    "Oh {artist}! Did you know {fact}",
+    "Fun fact about this one: {fact}",
+    "{artist} is so good. {fact}",
+    "Okay but {fact} How cool is that?",
+    "I love this choice. {fact}",
+  ],
+  track_start_with_artist: [
+    "{artist}! Always a great choice.",
+    "Ah, {artist}. Can't go wrong here.",
+    "Good call with {artist}.",
+    "{artist} hits different.",
+    "You know what I love about {artist}? Everything.",
+  ],
+  track_start_generic: [
+    "This one? Absolute perfection.",
     "Ooh I love this one. No pressure but... it's a vibe.",
+    "Good pick.",
+    "Oh this is nice.",
   ],
   mid_song: [
     'Right? RIGHT?',
@@ -607,7 +807,12 @@ const FUN_DJ_INTERJECTIONS: Record<string, string[]> = {
     "I'm not saying this is perfect but... it's perfect.",
     "If you're not vibing right now, I don't know what to tell you.",
   ],
-  track_end: [
+  track_end_with_artist: [
+    'That was {artist} doing what {artist} does best.',
+    '{artist} never disappoints.',
+    'I could listen to {artist} all day.',
+  ],
+  track_end_generic: [
     'That was... <break time="200ms"/> that was good.',
     'Okay I might be biased but that was great.',
     'Did that hit? I feel like that hit.',
@@ -628,23 +833,189 @@ const FUN_DJ_INTERJECTIONS: Record<string, string[]> = {
 };
 
 /**
- * Get a fun DJ interjection
+ * Fill template placeholders with actual track context
+ */
+function fillTemplate(template: string, context: TrackContext): string {
+  let result = template;
+  if (context.artist) result = result.replace(/\{artist\}/g, context.artist);
+  if (context.name) result = result.replace(/\{trackName\}/g, context.name);
+  if (context.era) result = result.replace(/\{era\}/g, context.era);
+  if (context.fact) result = result.replace(/\{fact\}/g, context.fact);
+  return result;
+}
+
+/**
+ * Get a contextual interjection based on track info
+ * This is the "guidance" version - uses real track context when available
+ */
+function getContextualInterjection(
+  moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped',
+  context?: TrackContext
+): string | null {
+  // For moments that don't change with context, use generic
+  if (moment === 'mid_song' || moment === 'user_liked' || moment === 'user_skipped') {
+    const templates = CONTEXTUAL_INTERJECTION_TEMPLATES[moment];
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+
+  // For track_start and track_end, use context if available
+  if (moment === 'track_start') {
+    // Best: We have a specific fact about this track/artist
+    if (context?.fact) {
+      const templates = CONTEXTUAL_INTERJECTION_TEMPLATES.track_start_with_context;
+      const template = templates[Math.floor(Math.random() * templates.length)];
+      return fillTemplate(template, context);
+    }
+
+    // Good: We at least know the artist
+    if (context?.artist) {
+      const templates = CONTEXTUAL_INTERJECTION_TEMPLATES.track_start_with_artist;
+      const template = templates[Math.floor(Math.random() * templates.length)];
+      return fillTemplate(template, context);
+    }
+
+    // Fallback: Generic but still warm
+    const templates = CONTEXTUAL_INTERJECTION_TEMPLATES.track_start_generic;
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+
+  if (moment === 'track_end') {
+    if (context?.artist) {
+      const templates = CONTEXTUAL_INTERJECTION_TEMPLATES.track_end_with_artist;
+      const template = templates[Math.floor(Math.random() * templates.length)];
+      return fillTemplate(template, context);
+    }
+
+    const templates = CONTEXTUAL_INTERJECTION_TEMPLATES.track_end_generic;
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+
+  return null;
+}
+
+// Legacy static interjections for backward compatibility
+// These are used when no track context is provided
+const FUN_DJ_INTERJECTIONS: Record<string, string[]> =
+  CONTEXTUAL_INTERJECTION_TEMPLATES as unknown as Record<string, string[]>;
+
+/**
+ * Build a TrackContext from track metadata, enriched with facts from our knowledge base
+ *
+ * This bridges the music-commentary system with the interjection system,
+ * making interjections contextual and educational.
+ *
+ * @example
+ * const context = buildTrackContext('My Way', 'Frank Sinatra');
+ * // Returns: { name: 'My Way', artist: 'Frank Sinatra', fact: 'He actually wasn\'t too fond of that song at first.' }
+ */
+export function buildTrackContext(
+  trackName: string,
+  artistName: string,
+  personaId?: string
+): TrackContext {
+  const context: TrackContext = {
+    name: trackName,
+    artist: artistName,
+  };
+
+  // Try to get a fact from our artist knowledge base
+  if (hasArtistInfo(artistName)) {
+    // getMusicCommentary returns a fact/story about the artist (50% chance internally)
+    // We call it to potentially get contextual info
+    const commentary = getMusicCommentary(trackName, artistName, personaId);
+    if (commentary) {
+      context.fact = commentary;
+    }
+  }
+
+  return context;
+}
+
+/**
+ * Get a fun DJ interjection - now LLM-powered with fallbacks!
+ *
+ * Priority chain:
+ * 1. LLM-generated (if cached from prewarm or previous call)
+ * 2. Template-based with track context
+ * 3. Generic templates
+ *
+ * @param moment - When in the track lifecycle
+ * @param probability - Chance to trigger (0-1, default 0.15)
+ * @param trackContext - Optional track metadata for contextual responses
+ * @param useLLM - Whether to try LLM generation (default: true)
  */
 export function getFunInterjection(
   moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped',
-  probability = 0.15
+  probability = 0.15,
+  trackContext?: TrackContext,
+  useLLM = true
 ): string | null {
   // Only trigger some of the time
   if (Math.random() > probability) {
     return null;
   }
 
-  const interjections = FUN_DJ_INTERJECTIONS[moment];
-  if (!interjections || interjections.length === 0) {
+  // Try to get LLM-generated interjection (from cache - doesn't block)
+  if (useLLM && trackContext && (trackContext.artist || trackContext.name)) {
+    const cacheKey = `${trackContext.artist || 'unknown'}-${trackContext.name || 'unknown'}-${moment}`;
+    const cached = llmInterjectionCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.generatedAt < LLM_CACHE_TTL_MS) {
+      log.debug({ moment, artist: trackContext.artist }, '🎵 Using LLM-generated interjection');
+      return cached.content;
+    }
+
+    // Kick off LLM generation for next time (non-blocking)
+    void generateLLMInterjection(trackContext, moment);
+  }
+
+  // Fallback: Use contextual templates if we have track info
+  if (trackContext && (trackContext.artist || trackContext.fact)) {
+    return getContextualInterjection(moment, trackContext);
+  }
+
+  // Final fallback: Generic templates
+  const templateKey =
+    moment === 'track_start'
+      ? 'track_start_generic'
+      : moment === 'track_end'
+        ? 'track_end_generic'
+        : moment;
+
+  const templates = CONTEXTUAL_INTERJECTION_TEMPLATES[templateKey];
+  if (!templates || templates.length === 0) {
     return null;
   }
 
-  return interjections[Math.floor(Math.random() * interjections.length)];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+
+/**
+ * Get a fun DJ interjection - async version that waits for LLM
+ *
+ * Use this when you can afford to wait (e.g., during the 3-second delay before speaking)
+ */
+export async function getFunInterjectionAsync(
+  moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped',
+  probability = 0.15,
+  trackContext?: TrackContext
+): Promise<string | null> {
+  // Only trigger some of the time
+  if (Math.random() > probability) {
+    return null;
+  }
+
+  // Try LLM first if we have context
+  if (trackContext && (trackContext.artist || trackContext.name)) {
+    const llmResult = await generateLLMInterjection(trackContext, moment);
+    if (llmResult) {
+      log.debug({ moment, artist: trackContext.artist }, '🎵 Using fresh LLM interjection');
+      return llmResult;
+    }
+  }
+
+  // Fallback to sync version
+  return getFunInterjection(moment, 1.0, trackContext, false); // probability=1 since we already checked
 }
 
 /**
@@ -743,8 +1114,13 @@ const PERSONA_CHECK_INS: Record<string, string[]> = {
 
 /**
  * Get a post-music check-in phrase
+ * Now LLM-powered with template fallback!
  */
-export function getPostMusicCheckIn(personaId?: string, wasRequested = true): string {
+export function getPostMusicCheckIn(
+  personaId?: string,
+  wasRequested = true,
+  trackContext?: TrackContext
+): string {
   // Don't always check in - 60% of the time for requested music, 30% for ambient
   const checkInProbability = wasRequested ? 0.6 : 0.3;
   if (Math.random() > checkInProbability) {
@@ -752,6 +1128,24 @@ export function getPostMusicCheckIn(personaId?: string, wasRequested = true): st
     return "So... what's on your mind?";
   }
 
+  // Try LLM-generated check-in (from cache)
+  const llmContext: ContentContext = {
+    contentType: 'post_music_checkin',
+    personaId,
+    metadata: {
+      trackName: trackContext?.name,
+      artist: trackContext?.artist,
+      wasRequested,
+    },
+  };
+
+  const llmContent = getContentWithFallback(llmContext);
+  if (llmContent.source === 'llm' && llmContent.content) {
+    log.debug({ source: 'llm' }, '🎵 Using LLM-generated post-music check-in');
+    return llmContent.content;
+  }
+
+  // Fallback to persona-specific templates
   if (personaId) {
     const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
     const matchingKey = Object.keys(PERSONA_CHECK_INS).find((key) => normalizedId.includes(key));
@@ -763,6 +1157,39 @@ export function getPostMusicCheckIn(personaId?: string, wasRequested = true): st
   }
 
   return POST_MUSIC_CHECK_INS[Math.floor(Math.random() * POST_MUSIC_CHECK_INS.length)];
+}
+
+/**
+ * Get a post-music check-in phrase asynchronously
+ * Use when you can wait for LLM generation
+ */
+export async function getPostMusicCheckInAsync(
+  personaId?: string,
+  wasRequested = true,
+  trackContext?: TrackContext
+): Promise<string> {
+  const checkInProbability = wasRequested ? 0.6 : 0.3;
+  if (Math.random() > checkInProbability) {
+    return "So... what's on your mind?";
+  }
+
+  const llmContext: ContentContext = {
+    contentType: 'post_music_checkin',
+    personaId,
+    metadata: {
+      trackName: trackContext?.name,
+      artist: trackContext?.artist,
+      wasRequested,
+    },
+  };
+
+  const llmContent = await generateContent(llmContext);
+  if (llmContent && llmContent.content) {
+    log.debug({ source: 'llm-async' }, '🎵 Using fresh LLM post-music check-in');
+    return llmContent.content;
+  }
+
+  return getPostMusicCheckIn(personaId, wasRequested, trackContext);
 }
 
 // ============================================================================
@@ -986,11 +1413,13 @@ export class MusicHumanizationController {
 
   /**
    * Get fun interjection (if lucky!)
+   * Pass trackContext for contextual, knowledge-based responses
    */
   getFunInterjection(
-    moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped'
+    moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped',
+    trackContext?: TrackContext
   ): string | null {
-    return getFunInterjection(moment, this.config.funInterjectionProbability);
+    return getFunInterjection(moment, this.config.funInterjectionProbability, trackContext);
   }
 
   /**
@@ -1089,9 +1518,14 @@ export default {
   getEmotionalMirrorOffer,
   checkSpontaneousMusicMoment,
   getFunInterjection,
+  getFunInterjectionAsync,
   getPersonaFunMoment,
   getPostMusicCheckIn,
+  getPostMusicCheckInAsync,
   getConversationBridge,
   getMusicConversationStarter,
   getTimeOfDay,
+  buildTrackContext,
+  prewarmMusicInterjection,
+  clearLLMInterjectionCache,
 };

@@ -14,6 +14,10 @@
 
 import { getTopicTracker } from '../intelligence/topic-tracker.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
+import {
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -707,8 +711,26 @@ export class ConversationalMemoryEngine {
 
   /**
    * Get natural transition phrase for topic change
+   * Now LLM-powered with template fallback!
    */
   getTopicTransitionPhrase(fromTopic: string, toTopic: string): string {
+    // Try LLM-generated transition first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'transition',
+      topic: toTopic,
+      metadata: {
+        fromTopic,
+        toTopic,
+        transitionType: 'natural',
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      return llmContent.content;
+    }
+
+    // Fallback to specific transitions
     const specificTransitions: Record<string, string[]> = {
       emotions: [
         "I hear the emotion in your voice. Let's talk about how you're feeling.",

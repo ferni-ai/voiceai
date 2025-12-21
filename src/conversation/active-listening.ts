@@ -11,8 +11,15 @@
  * These behaviors make the AI feel like a genuinely attentive listener.
  */
 
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { seededChance, seededIndex } from './utils/rng.js';
+
+const log = getLogger();
 
 // ============================================================================
 // TYPES
@@ -298,6 +305,7 @@ export class ActiveListeningEngine {
 
   /**
    * Get an appropriate backchannel for the context
+   * Now LLM-powered with template fallback!
    */
   getBackchannel(personaId: string, context: BackchannelContext): Backchannel | null {
     // Use dynamic cooldown based on user preference
@@ -320,6 +328,35 @@ export class ActiveListeningEngine {
 
     // Determine type based on context
     const type = this.selectBackchannelType(context);
+
+    // Try LLM-generated backchannel first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'active_listening',
+      personaId,
+      emotion: context.userEmotion,
+      topic: context.topicSeriousness || 'casual',
+      metadata: {
+        userEnergy: context.userEnergy,
+        isPersonalSharing: context.userJustSharedSomethingPersonal,
+        isQuestion: context.userAskedQuestion,
+        backchannelType: type,
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      const verbal = llmContent.content;
+      if (!this.recentBackchannels.includes(verbal)) {
+        this.recordBackchannel(verbal);
+        log.debug({ source: 'llm', type }, '👂 Using LLM-generated backchannel');
+        return {
+          verbal,
+          ssml: llmContent.ssml || `<volume ratio="0.85"/>${verbal}`,
+          type,
+          energy: context.userEnergy || 'low',
+        };
+      }
+    }
 
     // Get persona style
     const style = PERSONA_BACKCHANNEL_STYLES[personaId];
@@ -370,6 +407,49 @@ export class ActiveListeningEngine {
       ...selected,
       type,
     };
+  }
+
+  /**
+   * Get a backchannel asynchronously with fresh LLM generation
+   */
+  async getBackchannelAsync(
+    personaId: string,
+    context: BackchannelContext
+  ): Promise<Backchannel | null> {
+    const cooldownMs = this.getBackchannelCooldownMs();
+    if (Date.now() - this.lastBackchannelTime < cooldownMs) {
+      return null;
+    }
+
+    const type = this.selectBackchannelType(context);
+
+    const llmContext: ContentContext = {
+      contentType: 'active_listening',
+      personaId,
+      emotion: context.userEmotion,
+      topic: context.topicSeriousness || 'casual',
+      metadata: {
+        userEnergy: context.userEnergy,
+        isPersonalSharing: context.userJustSharedSomethingPersonal,
+        isQuestion: context.userAskedQuestion,
+        backchannelType: type,
+      },
+    };
+
+    const llmContent = await generateContent(llmContext);
+    if (llmContent && llmContent.content) {
+      const verbal = llmContent.content;
+      this.recordBackchannel(verbal);
+      log.debug({ source: 'llm-async', type }, '👂 Generated async LLM backchannel');
+      return {
+        verbal,
+        ssml: llmContent.ssml || `<volume ratio="0.85"/>${verbal}`,
+        type,
+        energy: context.userEnergy || 'low',
+      };
+    }
+
+    return this.getBackchannel(personaId, context);
   }
 
   /**
@@ -477,11 +557,34 @@ export class ActiveListeningEngine {
 
   /**
    * Generate a clarifying question
+   * Now LLM-powered with template fallback!
    */
   generateClarifyingQuestion(
     type: ClarifyingQuestion['type'],
     context?: { topic?: string; previousStatement?: string }
   ): ClarifyingQuestion {
+    // Try LLM-generated clarification first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'clarification',
+      topic: context?.topic,
+      userMessage: context?.previousStatement,
+      metadata: {
+        clarificationType: type,
+        wantsUnderstanding: type === 'understanding',
+        wantsElaboration: type === 'elaboration',
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      return {
+        question: llmContent.content,
+        ssml: llmContent.ssml || `<break time="100ms"/>${llmContent.content}`,
+        type,
+      };
+    }
+
+    // Fallback to templates
     const questions: Record<ClarifyingQuestion['type'], Array<{ q: string; ssml: string }>> = {
       understanding: [
         {

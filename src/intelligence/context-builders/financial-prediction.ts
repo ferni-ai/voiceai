@@ -19,7 +19,7 @@ import {
   generateSuperhumanMoment,
   predictCashFlow,
 } from '../../services/finance/prediction.js';
-import { hasLinkedAccounts } from '../../tools/plaid.js';
+import { hasLinkedAccounts } from '../../tools/domains/finance/plaid.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { DISTRESS } from '../distress-levels.js';
 import {

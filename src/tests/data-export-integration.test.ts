@@ -45,15 +45,15 @@ const { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockL
     return { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockLogger };
   });
 
-vi.mock('../services/conversation-history.js', () => ({
+vi.mock('../services/stores/conversation-history.js', () => ({
   getConversationHistoryService: vi.fn(() => mockConversationHistory),
 }));
 
-vi.mock('../services/cognitive-memory.js', () => ({
+vi.mock('../services/memory/cognitive-memory.js', () => ({
   getCognitiveMemoryService: vi.fn(() => mockCognitiveMemory),
 }));
 
-vi.mock('../services/engagement-store.js', () => ({
+vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockEngagementStore)),
 }));
 

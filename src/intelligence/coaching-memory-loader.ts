@@ -228,7 +228,7 @@ async function loadVoiceConversationMemory(userId: string): Promise<VoiceMemoryD
   try {
     // Dynamic import to avoid circular dependencies
     const { getUserMemory, getConversationContext } =
-      await import('../services/voice-conversation-memory.js');
+      await import('../services/memory/voice-conversation-memory.js');
 
     const [memory, context] = await Promise.all([
       getUserMemory(userId),
@@ -277,7 +277,7 @@ async function loadPersonaMemories(
 ): Promise<PersonaMemoryData[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { getAllUserMemories } = await import('../services/persona-memories.js');
+    const { getAllUserMemories } = await import('../services/memory/persona-memories.js');
     const memories = await getAllUserMemories(userId);
 
     // Filter and map to PersonaMemoryData format

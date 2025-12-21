@@ -46,7 +46,7 @@ let cognitiveBroadcast:
   | typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast
   | null = null;
 let persistenceMetrics:
-  | typeof import('../../services/persistence-metrics.js').persistenceMetrics
+  | typeof import('../../services/analytics/persistence-metrics.js').persistenceMetrics
   | null = null;
 let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
 let sessionDataManager: ReturnType<
@@ -68,7 +68,7 @@ async function getCognitiveBroadcast() {
 async function getPersistenceMetrics() {
   if (!persistenceMetrics) {
     try {
-      const module = await import('../../services/persistence-metrics.js');
+      const module = await import('../../services/analytics/persistence-metrics.js');
       persistenceMetrics = module.persistenceMetrics;
     } catch {
       return null;
@@ -201,7 +201,7 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   try {
-    const { getMemoryMonitor } = await import('../../services/memory-monitor.js');
+    const { getMemoryMonitor } = await import('../../services/memory/memory-monitor.js');
     const monitor = getMemoryMonitor();
 
     if (url === '/api/memory' || url === '/api/memory/metrics') {
@@ -266,7 +266,7 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   try {
-    const { getHealthData } = await import('../../services/container-watchdog.js');
+    const { getHealthData } = await import('../../services/deployment/container-watchdog.js');
     const data = getHealthData();
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -296,6 +296,18 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
     const { getCrashHistory } = await import('./shutdown-handler.js');
     const crashHistory = getCrashHistory();
 
+    // Also get session-level crash analytics if available
+    let sessionCrashSummary = null;
+    try {
+      const { getCrashSummary, getAllActiveSessions } = await import('./crash-analytics.js');
+      sessionCrashSummary = {
+        ...getCrashSummary(),
+        activeSessions: getAllActiveSessions(),
+      };
+    } catch {
+      // Crash analytics not initialized
+    }
+
     if (url === '/health/crash-analytics' || url === '/api/crash-analytics') {
       // Return crash analytics summary
       const memUsage = process.memoryUsage();
@@ -308,6 +320,8 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
             crashHistory,
             totalCrashes: crashHistory.length,
             lastCrash: crashHistory.length > 0 ? crashHistory[crashHistory.length - 1] : null,
+            // New: Session-level crash analytics
+            sessionCrashes: sessionCrashSummary,
             currentMemory: {
               heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
               heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
@@ -613,7 +627,7 @@ async function handleWarmupAPI(res: ServerResponse): Promise<void> {
  */
 async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
   try {
-    const { exportPrometheusMetrics } = await import('../../services/memory-monitor.js');
+    const { exportPrometheusMetrics } = await import('../../services/memory/memory-monitor.js');
     const metrics = await exportPrometheusMetrics();
     res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
     res.end(metrics);

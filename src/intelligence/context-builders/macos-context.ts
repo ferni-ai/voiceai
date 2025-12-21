@@ -34,6 +34,8 @@ export interface MacOSContextPayload {
   activeApp: string;
   windowTitle: string;
   selectedText?: string;
+  /** True when user pressed Cmd+Shift+H "Help me with this" */
+  helpMeWithThis?: boolean;
 
   // Calendar
   upcomingEvent?: {
@@ -47,6 +49,8 @@ export interface MacOSContextPayload {
     title: string;
     remainingMinutes: number;
   };
+  /** Whether user is currently in a meeting */
+  isInMeeting?: boolean;
 
   // Focus Mode
   isFocused: boolean;
@@ -54,12 +58,29 @@ export interface MacOSContextPayload {
 
   // Location (optional)
   location?: string;
+  /** Whether user is commuting */
+  isCommuting?: boolean;
 
   // Screen Time (optional)
   topApp?: {
     name: string;
     minutesToday: number;
   };
+  /** Total screen time today in minutes */
+  totalMinutesToday?: number;
+  /** Whether user needs a break */
+  needsBreak?: boolean;
+  /** Current app session duration in minutes */
+  currentSessionMinutes?: number;
+
+  // Contacts (birthdays)
+  upcomingBirthdays?: Array<{
+    name: string;
+    daysUntil: number;
+  }>;
+
+  /** Timestamp when context was captured (ms since epoch) */
+  timestamp?: number;
 }
 
 export interface MacOSContextMessage {
@@ -88,7 +109,12 @@ export function buildMacOSContext(ctx: MacOSContextPayload): string {
     const truncated =
       ctx.selectedText.length > 500 ? ctx.selectedText.substring(0, 500) + '...' : ctx.selectedText;
     parts.push(`User has highlighted this text: "${truncated}"`);
-    parts.push('They pressed "Help me with this" - focus on helping them with this specific text.');
+    // Only add the "Help me with this" prompt if they actually pressed the hotkey
+    if (ctx.helpMeWithThis) {
+      parts.push(
+        '⚡ They pressed "Help me with this" - IMMEDIATELY focus on helping them with this specific text. Do not ask clarifying questions first.'
+      );
+    }
   }
 
   // Current meeting
@@ -139,10 +165,40 @@ export function buildMacOSContext(ctx: MacOSContextPayload): string {
     parts.push(`Location: ${ctx.location}`);
   }
 
+  // Commuting detection
+  if (ctx.isCommuting) {
+    parts.push('User is currently commuting - they may be hands-free or distracted.');
+  }
+
   // Screen time awareness
   if (ctx.topApp && ctx.topApp.minutesToday > 120) {
     const hours = Math.round(ctx.topApp.minutesToday / 60);
     parts.push(`Note: User has spent ${hours}+ hours in ${ctx.topApp.name} today`);
+  }
+
+  // Break suggestion
+  if (ctx.needsBreak) {
+    const sessionMins = ctx.currentSessionMinutes || 0;
+    if (sessionMins > 60) {
+      parts.push(
+        `💆 User has been in the current app for ${sessionMins} minutes. Consider gently suggesting a break if the moment feels right.`
+      );
+    }
+  }
+
+  // Birthday awareness (relationship magic)
+  if (ctx.upcomingBirthdays && ctx.upcomingBirthdays.length > 0) {
+    const todayBirthdays = ctx.upcomingBirthdays.filter((b) => b.daysUntil === 0);
+    const tomorrowBirthdays = ctx.upcomingBirthdays.filter((b) => b.daysUntil === 1);
+
+    if (todayBirthdays.length > 0) {
+      const names = todayBirthdays.map((b) => b.name).join(', ');
+      parts.push(`🎂 Today is ${names}'s birthday!`);
+    }
+    if (tomorrowBirthdays.length > 0) {
+      const names = tomorrowBirthdays.map((b) => b.name).join(', ');
+      parts.push(`📅 Tomorrow is ${names}'s birthday`);
+    }
   }
 
   if (parts.length === 0) {
@@ -338,7 +394,17 @@ export const macOSContextBuilder: ContextBuilder = {
       return [];
     }
 
-    log.debug({ context: macOSContext }, 'Building macOS context injection');
+    // Check for stale context (older than 30 seconds)
+    const STALENESS_THRESHOLD_MS = 30000;
+    const contextAge = macOSContext.timestamp ? Date.now() - macOSContext.timestamp : 0;
+    const isStale = contextAge > STALENESS_THRESHOLD_MS;
+
+    if (isStale) {
+      log.warn({ ageMs: contextAge }, 'macOS context is stale, ignoring');
+      return [];
+    }
+
+    log.debug({ context: macOSContext, ageMs: contextAge }, 'Building macOS context injection');
 
     const injections: ContextInjection[] = [];
 
@@ -357,6 +423,18 @@ export const macOSContextBuilder: ContextBuilder = {
     }
 
     // Add specific injections for high-priority situations
+
+    // "Help me with this" - CRITICAL priority
+    if (macOSContext.helpMeWithThis && macOSContext.selectedText) {
+      injections.push({
+        id: 'macos-help-me-with-this',
+        source: 'macos-context',
+        content: `⚡ USER PRESSED "HELP ME WITH THIS" - They have selected text and want immediate help with it. Focus your ENTIRE response on helping with the selected text. Do NOT ask clarifying questions first. Just help them.`,
+        priority: 'critical',
+        category: 'user-action',
+        confidence: 1.0,
+      });
+    }
 
     // Urgent meeting warning
     if (macOSContext.upcomingEvent && macOSContext.upcomingEvent.inMinutes <= 5) {

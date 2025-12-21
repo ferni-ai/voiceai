@@ -428,7 +428,7 @@ export class MarketingDashboard {
         width: 90%;
         max-width: 600px;
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 24px);
         box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
         overflow: hidden;
@@ -455,7 +455,7 @@ export class MarketingDashboard {
         font-size: 0.75rem;
         font-weight: 600;
         letter-spacing: 0.1em;
-        color: var(--color-alex, #5a6b8a);
+        color: var(--color-alex);
         margin-bottom: 4px;
       }
 
@@ -463,7 +463,7 @@ export class MarketingDashboard {
         margin: 0;
         font-size: 1.5rem;
         font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .close-btn {
@@ -471,7 +471,7 @@ export class MarketingDashboard {
         border: none;
         padding: 8px;
         cursor: pointer;
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
         border-radius: 8px;
         transition: background ${DURATION.FAST}ms;
       }
@@ -497,7 +497,7 @@ export class MarketingDashboard {
       section h3 {
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--color-text-secondary, #666);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--space-4, 16px) 0;
       }
 
@@ -511,13 +511,13 @@ export class MarketingDashboard {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px);
-        background: var(--color-background, #faf8f5);
+        background: var(--color-background);
         border-radius: var(--radius-lg, 12px);
         border: 1px solid var(--color-border, rgba(0,0,0,0.08));
       }
 
       .account-card.connected {
-        border-color: var(--color-alex, #5a6b8a);
+        border-color: var(--color-alex);
         border-width: 2px;
       }
 
@@ -527,7 +527,7 @@ export class MarketingDashboard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-text-primary, #2c2520);
+        background: var(--color-text-primary);
         color: white;
         border-radius: 8px;
         font-weight: 700;
@@ -542,12 +542,12 @@ export class MarketingDashboard {
 
       .account-name {
         font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .account-status {
         font-size: 0.875rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .account-action {
@@ -559,13 +559,13 @@ export class MarketingDashboard {
         transition: all ${DURATION.FAST}ms;
         border: 1px solid var(--color-border, rgba(0,0,0,0.1));
         background: white;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .account-action:hover {
-        background: var(--color-alex, #5a6b8a);
+        background: var(--color-alex);
         color: white;
-        border-color: var(--color-alex, #5a6b8a);
+        border-color: var(--color-alex);
       }
 
       .analytics-grid {
@@ -577,7 +577,7 @@ export class MarketingDashboard {
         display: flex;
         gap: var(--space-4, 16px);
         padding: var(--space-4, 16px);
-        background: var(--color-background, #faf8f5);
+        background: var(--color-background);
         border-radius: var(--radius-lg, 12px);
       }
 
@@ -587,7 +587,7 @@ export class MarketingDashboard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-text-primary, #2c2520);
+        background: var(--color-text-primary);
         color: white;
         border-radius: 6px;
         font-weight: 700;
@@ -608,12 +608,12 @@ export class MarketingDashboard {
       .metric-value {
         font-size: 1.25rem;
         font-weight: 700;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .metric-label {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .insights {
@@ -626,14 +626,14 @@ export class MarketingDashboard {
       .insights h4 {
         font-size: 0.75rem;
         font-weight: 600;
-        color: var(--color-alex, #5a6b8a);
+        color: var(--color-alex);
         margin: 0 0 var(--space-2, 8px) 0;
       }
 
       .insights ul {
         margin: 0;
         padding-left: var(--space-4, 16px);
-        color: var(--color-text-secondary, #555);
+        color: var(--color-text-secondary);
         font-size: 0.875rem;
       }
 
@@ -648,7 +648,7 @@ export class MarketingDashboard {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background, #faf8f5);
+        background: var(--color-background);
         border-radius: var(--radius-md, 8px);
       }
 
@@ -658,7 +658,7 @@ export class MarketingDashboard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-text-primary, #2c2520);
+        background: var(--color-text-primary);
         color: white;
         border-radius: 4px;
         font-weight: 700;
@@ -672,13 +672,13 @@ export class MarketingDashboard {
       }
 
       .post-preview {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         font-size: 0.875rem;
       }
 
       .post-time {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .post-status {
@@ -690,12 +690,12 @@ export class MarketingDashboard {
 
       .post-status.scheduled {
         background: rgba(90, 107, 138, 0.1);
-        color: var(--color-alex, #5a6b8a);
+        color: var(--color-alex);
       }
 
       .post-status.posted {
         background: rgba(74, 103, 65, 0.1);
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni);
       }
 
       .post-status.failed {
@@ -714,7 +714,7 @@ export class MarketingDashboard {
         align-items: center;
         gap: 8px;
         padding: 12px 20px;
-        background: var(--color-alex, #5a6b8a);
+        background: var(--color-alex);
         color: white;
         border: none;
         border-radius: var(--radius-lg, 12px);
@@ -725,14 +725,14 @@ export class MarketingDashboard {
       }
 
       .action-btn:hover {
-        background: var(--color-alex-dark, #4a5a73);
+        background: var(--color-alex-dark);
         transform: translateY(-1px);
       }
 
       .help-text {
         margin-top: var(--space-4, 16px);
         font-size: 0.875rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         font-style: italic;
       }
 
@@ -740,8 +740,8 @@ export class MarketingDashboard {
       .empty-posts {
         padding: var(--space-6, 24px);
         text-align: center;
-        color: var(--color-text-muted, #888);
-        background: var(--color-background, #faf8f5);
+        color: var(--color-text-muted);
+        background: var(--color-background);
         border-radius: var(--radius-lg, 12px);
       }
 
@@ -751,14 +751,14 @@ export class MarketingDashboard {
         align-items: center;
         justify-content: center;
         padding: var(--space-8, 32px);
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .loading-spinner {
         width: 32px;
         height: 32px;
         border: 3px solid var(--color-border, rgba(0,0,0,0.1));
-        border-top-color: var(--color-alex, #5a6b8a);
+        border-top-color: var(--color-alex);
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: var(--space-4, 16px);

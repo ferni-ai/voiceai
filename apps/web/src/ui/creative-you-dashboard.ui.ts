@@ -90,10 +90,10 @@ const ICONS = {
 };
 
 const MOOD_COLORS: Record<string, string> = {
-  learn: 'var(--color-teal, #3a6b73)',
-  chill: 'var(--color-ferni, #4a6741)',
-  inspire: 'var(--color-coral, #c4856a)',
-  reflect: 'var(--color-slate, #5a6b8a)',
+  learn: 'var(--persona-primary)',
+  chill: 'var(--color-natural-moss)',
+  inspire: 'var(--color-semantic-warning)',
+  reflect: 'var(--color-semantic-info)',
 };
 
 // Warm mood labels (not clinical categories)
@@ -725,52 +725,52 @@ export class CreativeYouDashboard {
           .episode-detail-backdrop {
             position: absolute;
             inset: 0;
-            background: rgba(44, 37, 32, 0.5);
-            backdrop-filter: blur(12px);
+            background: var(--color-background-overlay);
+            backdrop-filter: blur(var(--glass-blur-medium));
           }
           .episode-detail-content {
             position: relative;
-            background: var(--color-background-elevated, #FFFDFB);
-            border-radius: var(--radius-2xl, 24px);
+            background: var(--color-background-elevated);
+            border-radius: var(--radius-2xl);
             max-width: 420px;
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(44, 37, 32, 0.2);
+            box-shadow: var(--shadow-2xl);
           }
           .episode-detail-content header {
             position: sticky;
             top: 0;
             display: flex;
             justify-content: flex-end;
-            padding: var(--space-3, 12px);
-            background: var(--color-background-elevated, #FFFDFB);
+            padding: var(--space-3);
+            background: var(--color-background-elevated);
           }
           .close-episode-btn {
-            background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+            background: var(--color-background-glass);
             border: none;
-            padding: 8px;
+            padding: var(--space-2);
             cursor: pointer;
-            color: var(--color-text-muted, #7A6F63);
-            border-radius: var(--radius-full, 9999px);
-            transition: background 150ms ease;
+            color: var(--color-text-muted);
+            border-radius: var(--radius-full);
+            transition: background var(--duration-fast) ease;
           }
           .close-episode-btn:hover {
-            background: var(--color-background-subtle, rgba(44, 37, 32, 0.1));
+            background: var(--color-accent-subtle);
           }
           .episode-hero {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            padding: 0 var(--space-5, 20px) var(--space-4, 16px);
+            gap: var(--space-3);
+            padding: 0 var(--space-5) var(--space-4);
           }
           .podcast-icon {
             width: 64px;
             height: 64px;
-            background: var(--color-teal, #3a6b73);
-            color: white;
-            border-radius: var(--radius-xl, 20px);
+            background: var(--persona-primary);
+            color: var(--color-text-inverse);
+            border-radius: var(--radius-xl);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -780,83 +780,83 @@ export class CreativeYouDashboard {
             height: 32px;
           }
           .podcast-name {
-            font-size: 13px;
-            color: var(--color-text-muted, #7A6F63);
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
           }
           .episode-body {
-            padding: 0 var(--space-5, 20px) var(--space-4, 16px);
+            padding: 0 var(--space-5) var(--space-4);
           }
           .episode-body h2 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--color-text-primary, #2C2520);
-            margin: 0 0 8px;
+            font-size: var(--text-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+            margin: 0 0 var(--space-2);
             text-align: center;
           }
           .episode-duration {
-            font-size: 13px;
-            color: var(--color-teal, #3a6b73);
+            font-size: var(--text-sm);
+            color: var(--persona-primary);
             text-align: center;
-            margin: 0 0 16px;
+            margin: 0 0 var(--space-4);
           }
           .episode-summary {
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--color-text-secondary, #5C5248);
+            font-size: var(--text-sm);
+            line-height: var(--leading-normal);
+            color: var(--color-text-secondary);
             margin: 0;
           }
           .discussion-prompts {
-            margin-top: 20px;
-            padding: 16px;
-            background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
-            border-radius: var(--radius-lg, 16px);
+            margin-top: var(--space-5);
+            padding: var(--space-4);
+            background: var(--color-background-secondary);
+            border-radius: var(--radius-lg);
           }
           .discussion-prompts h4 {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--color-text-primary, #2C2520);
-            margin: 0 0 12px;
+            font-size: var(--text-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin: 0 0 var(--space-3);
           }
           .discussion-prompts ul {
             margin: 0;
-            padding-left: 20px;
+            padding-left: var(--space-5);
           }
           .discussion-prompts li {
-            font-size: 13px;
-            color: var(--color-text-secondary, #5C5248);
-            margin-bottom: 8px;
-            line-height: 1.5;
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-2);
+            line-height: var(--leading-normal);
           }
           .discussion-prompts li:last-child {
             margin-bottom: 0;
           }
           .episode-cta {
-            padding: var(--space-4, 16px) var(--space-5, 20px) var(--space-5, 20px);
-            border-top: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+            padding: var(--space-4) var(--space-5) var(--space-5);
+            border-top: var(--glass-border-subtle);
           }
           .listen-hint {
-            font-size: 12px;
-            color: var(--color-text-muted, #7A6F63);
-            margin: 0 0 12px;
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            margin: 0 0 var(--space-3);
             text-align: center;
           }
           .podcast-links {
             display: flex;
-            gap: 8px;
+            gap: var(--space-2);
             justify-content: center;
           }
           .podcast-link {
-            padding: 10px 16px;
-            background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
-            color: var(--color-text-primary, #2C2520);
+            padding: var(--space-2-5) var(--space-4);
+            background: var(--color-background-glass);
+            color: var(--color-text-primary);
             text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: var(--radius-full, 9999px);
-            transition: background 150ms ease;
+            font-size: var(--text-sm);
+            font-weight: var(--font-weight-medium);
+            border-radius: var(--radius-full);
+            transition: background var(--duration-fast) ease;
           }
           .podcast-link:hover {
-            background: var(--color-background-subtle, rgba(44, 37, 32, 0.1));
+            background: var(--color-accent-subtle);
           }
         `;
         document.head.appendChild(styles);
@@ -977,71 +977,71 @@ export class CreativeYouDashboard {
         .track-detail-backdrop {
           position: absolute;
           inset: 0;
-          background: rgba(44, 37, 32, 0.5);
-          backdrop-filter: blur(12px);
+          background: var(--color-background-overlay);
+          backdrop-filter: blur(var(--glass-blur-medium));
         }
         .track-detail-content {
           position: relative;
-          background: var(--color-background-elevated, #FFFDFB);
-          border-radius: var(--radius-2xl, 24px);
+          background: var(--color-background-elevated);
+          border-radius: var(--radius-2xl);
           max-width: 480px;
           width: 100%;
           max-height: 80vh;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 20px 60px rgba(44, 37, 32, 0.2);
+          box-shadow: var(--shadow-2xl);
         }
         .track-detail-content header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          padding: var(--space-5, 20px) var(--space-5, 20px) var(--space-3, 12px);
-          border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+          padding: var(--space-5) var(--space-5) var(--space-3);
+          border-bottom: var(--glass-border-subtle);
         }
         .track-detail-content .eyebrow {
-          font-size: 11px;
+          font-size: var(--text-2xs);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--color-teal, #3a6b73);
-          margin-bottom: 4px;
+          letter-spacing: var(--tracking-wider);
+          color: var(--persona-primary);
+          margin-bottom: var(--space-1);
           display: block;
         }
         .track-detail-content h2 {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--color-text-primary, #2C2520);
-          margin: 0 0 8px;
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-bold);
+          color: var(--color-text-primary);
+          margin: 0 0 var(--space-2);
         }
         .track-detail-content .track-desc {
-          font-size: 13px;
-          color: var(--color-text-secondary, #5C5248);
+          font-size: var(--text-sm);
+          color: var(--color-text-secondary);
           margin: 0;
-          line-height: 1.5;
+          line-height: var(--leading-normal);
         }
         .close-track-btn {
           background: none;
           border: none;
-          padding: 8px;
+          padding: var(--space-2);
           cursor: pointer;
-          color: var(--color-text-muted, #7A6F63);
-          border-radius: var(--radius-full, 9999px);
-          transition: background 150ms ease;
+          color: var(--color-text-muted);
+          border-radius: var(--radius-full);
+          transition: background var(--duration-fast) ease;
         }
         .close-track-btn:hover {
-          background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+          background: var(--color-background-glass);
         }
         .track-episodes {
           flex: 1;
           overflow-y: auto;
-          padding: var(--space-3, 12px) var(--space-5, 20px);
+          padding: var(--space-3) var(--space-5);
         }
         .track-episode {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 0;
-          border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.05));
+          gap: var(--space-3);
+          padding: var(--space-3) 0;
+          border-bottom: var(--glass-border-subtle);
         }
         .track-episode:last-child {
           border-bottom: none;
@@ -1049,11 +1049,11 @@ export class CreativeYouDashboard {
         .episode-number {
           width: 28px;
           height: 28px;
-          border-radius: 50%;
-          background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
-          color: var(--color-text-muted, #7A6F63);
-          font-size: 12px;
-          font-weight: 600;
+          border-radius: var(--radius-full);
+          background: var(--color-background-glass);
+          color: var(--color-text-muted);
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-semibold);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1063,53 +1063,53 @@ export class CreativeYouDashboard {
           flex: 1;
         }
         .episode-info h4 {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--color-text-primary, #2C2520);
-          margin: 0 0 2px;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--color-text-primary);
+          margin: 0 0 var(--space-0_5);
         }
         .episode-info p {
-          font-size: 12px;
-          color: var(--color-text-muted, #7A6F63);
+          font-size: var(--text-xs);
+          color: var(--color-text-muted);
           margin: 0;
         }
         .play-episode-btn {
           width: 36px;
           height: 36px;
-          border-radius: 50%;
-          background: var(--color-teal, #3a6b73);
-          color: white;
+          border-radius: var(--radius-full);
+          background: var(--persona-primary);
+          color: var(--color-text-inverse);
           border: none;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          transition: transform 150ms ease, box-shadow 150ms ease;
+          transition: transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
         }
         .play-episode-btn:hover {
           transform: scale(1.1);
-          box-shadow: 0 4px 12px rgba(58, 107, 115, 0.3);
+          box-shadow: var(--shadow-glow);
         }
         .track-cta {
-          padding: var(--space-4, 16px) var(--space-5, 20px);
-          border-top: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+          padding: var(--space-4) var(--space-5);
+          border-top: var(--glass-border-subtle);
         }
         .start-first-btn {
           width: 100%;
-          padding: 14px;
-          background: var(--color-teal, #3a6b73);
-          color: white;
+          padding: var(--space-3-5);
+          background: var(--persona-primary);
+          color: var(--color-text-inverse);
           border: none;
-          border-radius: var(--radius-lg, 16px);
-          font-size: 15px;
-          font-weight: 600;
+          border-radius: var(--radius-lg);
+          font-size: var(--text-base);
+          font-weight: var(--font-weight-semibold);
           cursor: pointer;
-          transition: transform 150ms ease, box-shadow 150ms ease;
+          transition: transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
         }
         .start-first-btn:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(58, 107, 115, 0.25);
+          box-shadow: var(--shadow-glow);
         }
       `;
       document.head.appendChild(styles);
@@ -1180,11 +1180,11 @@ export class CreativeYouDashboard {
       .creative-dashboard-overlay {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 2100);
+        z-index: var(--z-modal);
         display: none;
         align-items: center;
         justify-content: center;
-        padding: var(--space-4, 16px);
+        padding: var(--space-4);
       }
 
       .creative-dashboard-overlay.open {
@@ -1194,9 +1194,9 @@ export class CreativeYouDashboard {
       .creative-dashboard-backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: var(--color-background-overlay);
+        backdrop-filter: blur(var(--glass-blur-medium));
+        -webkit-backdrop-filter: blur(var(--glass-blur-medium));
       }
 
       .creative-dashboard-content {
@@ -1204,9 +1204,9 @@ export class CreativeYouDashboard {
         width: 100%;
         max-width: 600px;
         max-height: 85vh;
-        background: var(--color-background-elevated, #FFFDFB);
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-2xl);
+        box-shadow: var(--shadow-2xl);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -1220,68 +1220,68 @@ export class CreativeYouDashboard {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        padding: var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+        padding: var(--space-6);
+        border-bottom: var(--glass-border-subtle);
       }
 
       .creative-dashboard-header .eyebrow {
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 1.5px;
+        font-size: var(--text-2xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--tracking-widest);
         text-transform: uppercase;
-        color: var(--color-teal, #3a6b73);
-        margin-bottom: 4px;
+        color: var(--persona-primary);
+        margin-bottom: var(--space-1);
         display: block;
       }
 
       .creative-dashboard-header .welcome-message {
-        font-size: 14px;
-        color: var(--color-text-secondary, #5C5248);
-        margin: 8px 0 0;
-        font-weight: 400;
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: var(--space-2) 0 0;
+        font-weight: var(--font-weight-regular);
       }
 
       .creative-dashboard-header h2 {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--color-text-primary, #2C2520);
+        font-family: var(--font-display);
+        font-size: var(--text-3xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .creative-dashboard-header .close-btn {
         background: none;
         border: none;
-        padding: 8px;
+        padding: var(--space-2);
         cursor: pointer;
-        color: var(--color-text-muted, #7A6F63);
-        border-radius: var(--radius-full, 9999px);
+        color: var(--color-text-muted);
+        border-radius: var(--radius-full);
         transition: background ${DURATION.FAST}ms ease;
       }
 
       .creative-dashboard-header .close-btn:hover,
       .creative-dashboard-header .close-btn:focus-visible {
-        background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-glass);
       }
 
       .creative-dashboard-body {
         flex: 1;
         overflow-y: auto;
-        padding: var(--space-4, 16px) var(--space-6, 24px) var(--space-6, 24px);
+        padding: var(--space-4) var(--space-6) var(--space-6);
       }
 
       .dashboard-section {
-        margin-bottom: var(--space-6, 24px);
+        margin-bottom: var(--space-6);
       }
 
       .dashboard-section h3 {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text-secondary, #5C5248);
-        margin: 0 0 var(--space-3, 12px) 0;
+        gap: var(--space-2);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-3) 0;
       }
 
       .dashboard-section h3 svg {
@@ -1292,7 +1292,7 @@ export class CreativeYouDashboard {
       .picks-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: var(--space-3, 12px);
+        gap: var(--space-3);
       }
 
       @media (max-width: 500px) {
@@ -1302,18 +1302,18 @@ export class CreativeYouDashboard {
       }
 
       .pick-card {
-        background: var(--color-background-elevated, white);
-        border-radius: var(--radius-lg, 16px);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-lg);
         overflow: hidden;
         cursor: pointer;
         transition: transform ${DURATION.FAST}ms ease,
                     box-shadow ${DURATION.FAST}ms ease;
-        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+        border: var(--glass-border-subtle);
       }
 
       .pick-card:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
+        box-shadow: var(--shadow-md);
       }
 
       .pick-card[data-loading="true"] {
@@ -1324,19 +1324,19 @@ export class CreativeYouDashboard {
       }
 
       .pick-loading {
-        color: var(--color-text-muted, #7A6F63);
-        font-size: 14px;
+        color: var(--color-text-muted);
+        font-size: var(--text-sm);
       }
 
       .pick-type {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        font-size: 11px;
-        font-weight: 600;
-        color: white;
-        border-radius: 0 0 var(--radius-md, 12px) 0;
+        gap: var(--space-1-5);
+        padding: var(--space-1-5) var(--space-3);
+        font-size: var(--text-2xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-inverse);
+        border-radius: 0 0 var(--radius-md) 0;
       }
 
       .pick-type svg {
@@ -1349,8 +1349,8 @@ export class CreativeYouDashboard {
         height: 100px;
         background-size: cover;
         background-position: center;
-        margin: -28px 12px 12px 12px;
-        border-radius: var(--radius-md, 12px);
+        margin: -28px var(--space-3) var(--space-3) var(--space-3);
+        border-radius: var(--radius-md);
         overflow: hidden;
       }
 
@@ -1360,7 +1360,7 @@ export class CreativeYouDashboard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--color-background-overlay);
         opacity: 0;
         transition: opacity ${DURATION.FAST}ms ease;
       }
@@ -1372,18 +1372,18 @@ export class CreativeYouDashboard {
       .play-overlay svg {
         width: 40px;
         height: 40px;
-        color: white;
+        color: var(--color-text-inverse);
       }
 
       .pick-thumbnail .duration {
         position: absolute;
-        bottom: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 4px;
+        bottom: var(--space-2);
+        right: var(--space-2);
+        background: var(--color-background-overlay);
+        color: var(--color-text-inverse);
+        font-size: var(--text-2xs);
+        padding: var(--space-0_5) var(--space-1-5);
+        border-radius: var(--radius-xs);
       }
 
       .pick-icon-container {
@@ -1391,25 +1391,25 @@ export class CreativeYouDashboard {
         align-items: center;
         justify-content: center;
         height: 80px;
-        margin: 12px;
-        border-radius: var(--radius-md, 12px);
+        margin: var(--space-3);
+        border-radius: var(--radius-md);
       }
 
       .pick-icon-container svg {
         width: 32px;
         height: 32px;
-        color: var(--color-teal, #3a6b73);
+        color: var(--persona-primary);
       }
 
       .pick-info {
-        padding: 0 12px 12px;
+        padding: 0 var(--space-3) var(--space-3);
       }
 
       .pick-info h4 {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
-        margin: 0 0 4px 0;
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-1) 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
@@ -1417,44 +1417,44 @@ export class CreativeYouDashboard {
       }
 
       .pick-info .channel {
-        font-size: 12px;
-        color: var(--color-text-muted, #7A6F63);
-        margin: 0 0 8px 0;
+        font-size: var(--text-xs);
+        color: var(--color-text-muted);
+        margin: 0 0 var(--space-2) 0;
       }
 
       .pick-info .reason {
-        font-size: 12px;
-        color: var(--color-text-secondary, #5C5248);
-        margin: 0 0 8px 0;
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-2) 0;
         font-style: italic;
       }
 
       .pick-meta {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-2);
       }
 
       .pick-meta .duration {
-        font-size: 11px;
-        color: var(--color-text-muted, #7A6F63);
+        font-size: var(--text-2xs);
+        color: var(--color-text-muted);
       }
 
       .mood-badge {
         display: inline-block;
-        font-size: 10px;
-        font-weight: 600;
-        color: white;
-        padding: 2px 8px;
-        border-radius: var(--radius-full, 9999px);
+        font-size: var(--text-2xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-inverse);
+        padding: var(--space-0_5) var(--space-2);
+        border-radius: var(--radius-full);
       }
 
       /* Creative DNA */
       .dna-card {
-        background: var(--color-background-elevated, white);
-        border-radius: var(--radius-lg, 16px);
-        padding: var(--space-4, 16px);
-        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        border: var(--glass-border-subtle);
       }
 
       .dna-card[data-loading="true"] {
@@ -1468,47 +1468,47 @@ export class CreativeYouDashboard {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: var(--space-4, 16px);
+        margin-bottom: var(--space-4);
       }
 
       .dna-personality .personality-label {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--color-text-primary, #2C2520);
+        font-size: var(--text-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: var(--space-1);
       }
 
       .dna-personality .personality-desc {
-        font-size: 14px;
-        color: var(--color-text-secondary, #5C5248);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
       .share-dna-btn {
-        background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-glass);
         border: none;
-        padding: 10px;
-        border-radius: var(--radius-full, 9999px);
+        padding: var(--space-2-5);
+        border-radius: var(--radius-full);
         cursor: pointer;
-        color: var(--color-text-muted, #7A6F63);
+        color: var(--color-text-muted);
         transition: background ${DURATION.FAST}ms ease;
       }
 
       .share-dna-btn:hover,
       .share-dna-btn:focus-visible {
-        background: var(--color-teal, #3a6b73);
-        color: white;
+        background: var(--persona-primary);
+        color: var(--color-text-inverse);
       }
 
       .dna-stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: var(--space-2, 8px);
-        margin-bottom: var(--space-4, 16px);
-        padding: var(--space-3, 12px);
-        background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
-        border-radius: var(--radius-md, 12px);
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+        padding: var(--space-3);
+        background: var(--color-background-secondary);
+        border-radius: var(--radius-md);
       }
 
       .dna-stats .stat {
@@ -1517,54 +1517,54 @@ export class CreativeYouDashboard {
 
       .dna-stats .stat-value {
         display: block;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--color-teal, #3a6b73);
+        font-size: var(--text-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--persona-primary);
       }
 
       .dna-stats .stat-label {
-        font-size: 11px;
-        color: var(--color-text-muted, #7A6F63);
+        font-size: var(--text-2xs);
+        color: var(--color-text-muted);
       }
 
       .dna-interests h5 {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--color-text-secondary, #5C5248);
-        margin: 0 0 var(--space-2, 8px) 0;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-2) 0;
       }
 
       .interest-bars {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2, 8px);
+        gap: var(--space-2);
       }
 
       .interest-bar {
         display: flex;
         align-items: center;
-        gap: var(--space-2, 8px);
+        gap: var(--space-2);
       }
 
       .interest-bar .interest-name {
         width: 100px;
-        font-size: 12px;
-        color: var(--color-text-secondary, #5C5248);
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
         text-transform: capitalize;
       }
 
       .interest-bar .bar-container {
         flex: 1;
         height: 8px;
-        background: var(--color-background-subtle, rgba(44, 37, 32, 0.08));
-        border-radius: var(--radius-full, 9999px);
+        background: var(--color-background-secondary);
+        border-radius: var(--radius-full);
         overflow: hidden;
       }
 
       .interest-bar .bar-fill {
         height: 100%;
-        background: var(--color-teal, #3a6b73);
-        border-radius: var(--radius-full, 9999px);
+        background: var(--persona-primary);
+        border-radius: var(--radius-full);
         transition: width ${DURATION.SLOW}ms ${EASING.SPRING};
       }
 
@@ -1572,7 +1572,7 @@ export class CreativeYouDashboard {
       .tracks-list {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2, 8px);
+        gap: var(--space-2);
       }
 
       .tracks-list[data-loading="true"] {
@@ -1586,46 +1586,46 @@ export class CreativeYouDashboard {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: var(--space-3, 12px) var(--space-4, 16px);
-        background: var(--color-background-elevated, white);
-        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
-        border-radius: var(--radius-lg, 16px);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-background-elevated);
+        border: var(--glass-border-subtle);
+        border-radius: var(--radius-lg);
         transition: border-color ${DURATION.FAST}ms ease;
       }
 
       .track-card:hover {
-        border-color: var(--color-teal, #3a6b73);
+        border-color: var(--persona-primary);
       }
 
       .track-info h4 {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
-        margin: 0 0 4px 0;
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-1) 0;
       }
 
       .track-info p {
-        font-size: 12px;
-        color: var(--color-text-secondary, #5C5248);
-        margin: 0 0 4px 0;
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-1) 0;
       }
 
       .track-meta {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 11px;
-        color: var(--color-text-muted, #7A6F63);
+        gap: var(--space-2);
+        font-size: var(--text-2xs);
+        color: var(--color-text-muted);
       }
 
       .start-track-btn {
-        background: var(--color-teal, #3a6b73);
-        color: white;
+        background: var(--persona-primary);
+        color: var(--color-text-inverse);
         border: none;
-        padding: 8px 16px;
-        border-radius: var(--radius-full, 9999px);
-        font-size: 12px;
-        font-weight: 600;
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
         cursor: pointer;
         transition: transform ${DURATION.FAST}ms ease,
                     box-shadow ${DURATION.FAST}ms ease;
@@ -1634,13 +1634,13 @@ export class CreativeYouDashboard {
       .start-track-btn:hover,
       .start-track-btn:focus-visible {
         transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(58, 107, 115, 0.3);
+        box-shadow: var(--shadow-glow);
       }
 
       .empty-state {
         text-align: center;
-        color: var(--color-text-muted, #7A6F63);
-        padding: var(--space-4, 16px);
+        color: var(--color-text-muted);
+        padding: var(--space-4);
       }
 
       .empty-pick,
@@ -1649,7 +1649,7 @@ export class CreativeYouDashboard {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--space-6, 24px);
+        padding: var(--space-6);
         text-align: center;
         min-height: 120px;
       }
@@ -1661,10 +1661,10 @@ export class CreativeYouDashboard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-muted, #7A6F63);
-        margin-bottom: 12px;
+        background: var(--color-background-glass);
+        border-radius: var(--radius-full);
+        color: var(--color-text-muted);
+        margin-bottom: var(--space-3);
       }
 
       .empty-pick .empty-icon svg,
@@ -1675,10 +1675,10 @@ export class CreativeYouDashboard {
 
       .empty-pick p,
       .empty-dna p {
-        font-size: 13px;
-        color: var(--color-text-muted, #7A6F63);
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
         margin: 0;
-        line-height: 1.5;
+        line-height: var(--leading-normal);
         max-width: 200px;
       }
 

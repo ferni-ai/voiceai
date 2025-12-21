@@ -16,7 +16,7 @@ import {
   getOverdueTasks,
   getTodaysTasks,
   getUpcomingTasks,
-} from '../tools/tasks.js';
+} from '../tools/domains/productivity/tasks.js';
 
 // Habits
 import {
@@ -38,7 +38,7 @@ import {
   calculateMonthlyTotal,
   getOverdueBills,
   getUserBills,
-} from '../tools/bills.js';
+} from '../tools/domains/finance/bills.js';
 
 // Medications
 import {
@@ -50,7 +50,7 @@ import {
   getUpcomingDoses,
   getMedsNeedingRefill,
   getUserMedications,
-} from '../tools/medications.js';
+} from '../tools/domains/wellness/medications.js';
 
 // Notes
 import {
@@ -59,7 +59,7 @@ import {
   getTodayJournal,
   getJournalStreak,
   getUserNotes,
-} from '../tools/notes.js';
+} from '../tools/domains/productivity/notes.js';
 
 describe('Productivity Tools', () => {
   const testUserId = 'test-user-productivity';

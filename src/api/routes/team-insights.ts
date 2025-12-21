@@ -26,7 +26,7 @@ import {
   getPerformanceStats,
   clearPerformanceLog,
   clearAllSuperhumanCache,
-} from '../../intelligence/context-builders/superhuman-integration.js';
+} from '../../intelligence/context-builders/superhuman/superhuman-integration.js';
 import { getUserId, sendJSON, sendError, handleCorsPreflightIfNeeded } from '../helpers.js';
 import { API_ERRORS } from '../error-messages.js';
 

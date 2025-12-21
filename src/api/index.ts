@@ -12,6 +12,7 @@ export { handleBrandRoutes } from './brand-routes.js';
 export { handleCameoAnalyticsRoutes } from './cameo-analytics-routes.js';
 export { handleCalendarRoutes } from './calendar-routes.js';
 export { handleCommandsRoutes } from './commands-routes.js';
+export { handleDebugRoutes } from './debug-routes.js';
 export { handleWidgetRoutes } from './widget-routes.js';
 export { handleDORARoutes } from './dora-routes.js';
 export { handleEngagementRoutes } from './engagement-routes.js';
@@ -31,8 +32,8 @@ export {
   handleDiagnosticsRoutes,
   setupHandoffDiagnosticsRoutes,
 } from './handoff-diagnostics.js';
-export { handleLandingIntelligenceRoutes } from './landing-intelligence-handler.js';
-export { handleLandingOptimizationRoutes } from './landing-optimization-handler.js';
+export { handleLandingIntelligenceRoutes } from './landing-intelligence.routes.js';
+export { handleLandingOptimizationRoutes } from './landing-optimization.routes.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleOptimizerRoutes } from './optimizer-routes.js';
 export { handleStoryJourneyRoutes } from './story-journey-routes.js';
@@ -47,10 +48,10 @@ export {
   routeSubscriptionRequest,
 } from './subscription-routes.js';
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
-export { handleWellbeingRoutes } from './wellbeing-handler.js';
+export { handleWellbeingRoutes } from './wellbeing.routes.js';
 
 // Modular route handlers
-export { handleVoiceAuthRoutes } from './voice-auth-handler.js';
+export { handleVoiceAuthRoutes } from './voice-auth.routes.js';
 export {
   handleMarketplaceRoutes,
   isMarketplaceRoute,

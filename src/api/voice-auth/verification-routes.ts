@@ -18,7 +18,7 @@ import {
   identifySpeaker,
   verifyUser,
   type VoiceProfile,
-} from '../../services/voice-enrollment.js';
+} from '../../services/voice/voice-enrollment.js';
 import { isNeuralEmbeddingAvailable } from '../../services/voice-memory-enhanced.js';
 import {
   deleteVoiceProfile,
@@ -26,14 +26,14 @@ import {
   loadVoiceProfile,
   loadVoiceProfileIndex,
   removeFromVoiceProfileIndex,
-} from '../../services/voice-profile-store.js';
+} from '../../services/voice/voice-profile-store.js';
 import {
   checkSuspiciousActivity,
   logIdentification,
   logProfileDelete,
   logVerification,
-} from '../../services/voice-audit-log.js';
-import { analyzeAuthEmotionContext } from '../../services/voice-emotion-correlation.js';
+} from '../../services/voice/voice-audit-log.js';
+import { analyzeAuthEmotionContext } from '../../services/voice/voice-emotion-correlation.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { SECURITY_CONFIG } from './types.js';
 import {

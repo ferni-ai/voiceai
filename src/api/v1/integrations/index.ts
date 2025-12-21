@@ -38,7 +38,7 @@ router.get('/status', async (req, res) => {
       await import('../../../services/biometrics/index.js');
     const { hasCalendarConnected } =
       await import('../../../services/context-awareness/location-calendar.js');
-    const { hasLinkedAccounts } = await import('../../../tools/plaid.js');
+    const { hasLinkedAccounts } = await import('../../../tools/domains/finance/plaid.js');
     const { getImportantPeople } = await import('../../../services/social-graph/index.js');
 
     const biometricsConnected = hasBiometricsConnected(userId);

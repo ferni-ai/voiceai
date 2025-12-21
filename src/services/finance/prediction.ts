@@ -19,7 +19,7 @@ import {
   getAccountBalances,
   getTransactions,
   analyzeSpending,
-} from '../../tools/plaid.js';
+} from '../../tools/domains/finance/plaid.js';
 
 const log = createLogger({ module: 'FinancePrediction' });
 

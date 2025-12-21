@@ -22,7 +22,7 @@ import {
   type PersonaEvolutionEvent,
   type SeasonalEvent,
   type UserAnniversary,
-} from '../services/team-engagement.js';
+} from '../services/engagement/team-engagement.js';
 import type { UserProfile } from '../types/user-profile.js';
 
 // Mock dependencies

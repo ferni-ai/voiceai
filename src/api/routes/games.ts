@@ -297,7 +297,7 @@ async function getUserProfileFromStore(
   userId: string
 ): Promise<{ gameMemory?: GameMemory } | null> {
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
     return profile as { gameMemory?: GameMemory } | null;

@@ -18,7 +18,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 
 // Import legacy tool creators
 import { createMusicTools } from './music.js';
-import { createSpotifyTools } from '../../spotify.js';
+import { createSpotifyTools } from './spotify.js';
 
 // Import Apple Music tools
 import { appleMusicTools } from './apple-music-tools.js';

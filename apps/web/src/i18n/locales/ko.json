@@ -86,7 +86,9 @@
       "supportFerni": "Ferni 후원",
       "takeTour": "투어 시작",
       "language": "언어",
-      "whatsGrowing": "성장 중"
+      "whatsGrowing": "성장 중",
+      "billingPortal": "결제 및 구독",
+      "outreachSchedule": "연락 일정"
     },
     "pinItem": "상단에 고정",
     "unpinItem": "고정 해제",

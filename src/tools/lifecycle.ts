@@ -116,7 +116,8 @@ export async function initializeTeamHandlers(options?: {
       );
 
       // Also start the proactive scheduler
-      const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+      const { getProactiveScheduler } =
+        await import('../services/scheduling/proactive-scheduler.js');
       const scheduler = getProactiveScheduler();
       scheduler.start();
       getLogger().info('⏰ Proactive scheduler started');
@@ -142,7 +143,7 @@ async function initializeLegacyTeamHandlers(): Promise<void> {
   try {
     // Legacy team handlers have been migrated to the team-handler-registry system.
     // This function now just starts the proactive scheduler.
-    const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+    const { getProactiveScheduler } = await import('../services/scheduling/proactive-scheduler.js');
 
     // Start the proactive scheduler for background notifications
     const scheduler = getProactiveScheduler();
@@ -174,7 +175,7 @@ export function isTeamHandlerRegistryInitialized(): boolean {
 export async function shutdownTools(): Promise<void> {
   // Stop Spotify auto-refresh
   try {
-    const { shutdownSpotify } = await import('./spotify.js');
+    const { shutdownSpotify } = await import('./domains/entertainment/spotify.js');
     shutdownSpotify();
   } catch (error) {
     getLogger().warn({ error }, 'Error shutting down Spotify');
@@ -182,7 +183,7 @@ export async function shutdownTools(): Promise<void> {
 
   // Stop proactive scheduler
   try {
-    const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+    const { getProactiveScheduler } = await import('../services/scheduling/proactive-scheduler.js');
     getProactiveScheduler().stop();
     getLogger().info('⏰ Proactive scheduler stopped');
   } catch (error) {

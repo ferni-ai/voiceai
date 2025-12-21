@@ -289,7 +289,7 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
       case 'voice_message':
         // Use Cartesia TTS + Twilio for voice messages
         try {
-          const { sendVoiceMessage } = await import('../../reminder-scheduler.js');
+          const { sendVoiceMessage } = await import('../../scheduling/reminder-scheduler.js');
           const toPhone = item.payload.phone;
 
           if (!toPhone) {
@@ -308,7 +308,7 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
       case 'call':
         // Use Twilio for outbound calls (handled by voice-call service)
         try {
-          const { callWithPersonaVoice } = await import('../../voice-call.js');
+          const { callWithPersonaVoice } = await import('../../voice/voice-call.js');
           const toPhone = item.payload.phone;
 
           if (!toPhone) {

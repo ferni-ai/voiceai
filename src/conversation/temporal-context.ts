@@ -203,6 +203,13 @@ const CLOSINGS: Record<TimeOfDay, string[]> = {
   ],
 };
 
+// LLM-powered closing generation support
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
+
 const DAY_CONTEXT_PHRASES: Record<DayType, Record<TimeOfDay, string[]>> = {
   monday: {
     early_morning: [
@@ -355,11 +362,57 @@ export class TemporalContextEngine {
 
   /**
    * Get a closing appropriate for time
+   * Now LLM-powered with template fallback!
    */
-  getClosing(now: Date = new Date()): string {
+  getClosing(now: Date = new Date(), context?: { emotion?: string; topic?: string }): string {
     const state = this.getState(now);
+
+    // Try LLM-generated closing first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'closing',
+      emotion: context?.emotion,
+      topic: context?.topic,
+      metadata: {
+        timeOfDay: state.timeOfDay,
+        conversationLength: 'medium',
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      return llmContent.content;
+    }
+
+    // Fallback to template
     const closings = CLOSINGS[state.timeOfDay];
     return closings[Math.floor(Math.random() * closings.length)];
+  }
+
+  /**
+   * Get a closing asynchronously with fresh LLM generation
+   */
+  async getClosingAsync(
+    now: Date = new Date(),
+    context?: { emotion?: string; topic?: string }
+  ): Promise<string> {
+    const state = this.getState(now);
+
+    const llmContext: ContentContext = {
+      contentType: 'closing',
+      emotion: context?.emotion,
+      topic: context?.topic,
+      metadata: {
+        timeOfDay: state.timeOfDay,
+        conversationLength: 'medium',
+      },
+    };
+
+    const llmContent = await generateContent(llmContext);
+    if (llmContent && llmContent.content) {
+      return llmContent.content;
+    }
+
+    return this.getClosing(now, context);
   }
 
   /**

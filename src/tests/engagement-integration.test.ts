@@ -16,7 +16,7 @@ import {
   buildEngagementContextPrompt,
   generateConversationTriggers,
   type TriggerContext,
-} from '../services/engagement-conversation-triggers.js';
+} from '../services/engagement/engagement-conversation-triggers.js';
 import {
   getRitualOnboardingService,
   resetRitualOnboardingService,
@@ -25,7 +25,7 @@ import {
   getHandoffBanter,
   getTeamEngagementService,
   resetTeamEngagementService,
-} from '../services/team-engagement.js';
+} from '../services/engagement/team-engagement.js';
 
 // Types
 import type { UserProfile } from '../types/user-profile.js';

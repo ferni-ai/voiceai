@@ -845,7 +845,7 @@ function injectStyles(): void {
       width: 90%;
       max-width: 1000px;
       max-height: 85vh;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
       display: flex;
@@ -871,7 +871,7 @@ function injectStyles(): void {
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
       text-transform: uppercase;
     }
     
@@ -879,7 +879,7 @@ function injectStyles(): void {
       margin: var(--space-1, 4px) 0 0;
       font-size: 20px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .header-actions {
@@ -893,7 +893,7 @@ function injectStyles(): void {
       cursor: pointer;
       padding: var(--space-2, 8px);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #444);
+      color: var(--color-text-secondary);
       transition: background ${DURATION.FAST}ms;
     }
     
@@ -906,7 +906,7 @@ function injectStyles(): void {
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-6, 24px);
       border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .tab-btn {
@@ -919,7 +919,7 @@ function injectStyles(): void {
       border-radius: var(--radius-md, 8px);
       cursor: pointer;
       font-size: 14px;
-      color: var(--color-text-secondary, #666);
+      color: var(--color-text-secondary);
       transition: all ${DURATION.FAST}ms;
     }
     
@@ -943,12 +943,12 @@ function injectStyles(): void {
     .evalops-footer {
       padding: var(--space-3, 12px) var(--space-6, 24px);
       border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .status-text {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Overview Tab */
@@ -992,12 +992,12 @@ function injectStyles(): void {
       display: block;
       font-size: 24px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .card-label {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .card-trend {
@@ -1032,7 +1032,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       color: white;
       display: flex;
       align-items: center;
@@ -1059,14 +1059,14 @@ function injectStyles(): void {
     
     .score-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       border-radius: 3px;
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
     
     .persona-score {
       font-size: 12px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Quick Actions */
@@ -1094,13 +1094,13 @@ function injectStyles(): void {
     }
     
     .action-btn--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       color: white;
       border-color: transparent;
     }
     
     .action-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary);
     }
     
     /* Config Tab */
@@ -1112,7 +1112,7 @@ function injectStyles(): void {
       font-size: 16px;
       font-weight: 600;
       margin-bottom: var(--space-4, 16px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .config-row {
@@ -1130,12 +1130,12 @@ function injectStyles(): void {
     .label-text {
       display: block;
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .label-desc {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Toggle Switch */
@@ -1154,7 +1154,7 @@ function injectStyles(): void {
     .toggle-slider {
       position: absolute;
       inset: 0;
-      background: var(--color-border, #ccc);
+      background: var(--color-border);
       border-radius: 26px;
       cursor: pointer;
       transition: ${DURATION.FAST}ms;
@@ -1173,7 +1173,7 @@ function injectStyles(): void {
     }
     
     .toggle input:checked + .toggle-slider {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
     }
     
     .toggle input:checked + .toggle-slider:before {
@@ -1206,13 +1206,13 @@ function injectStyles(): void {
       justify-content: center;
       padding: var(--space-12, 48px);
       text-align: center;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border, #ccc);
+      border: 3px solid var(--color-border);
       border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -1229,7 +1229,7 @@ function injectStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       padding: var(--space-3, 12px) var(--space-6, 24px);
-      background: var(--color-text-primary, #2C2520);
+      background: var(--color-text-primary);
       color: white;
       border-radius: var(--radius-full, 999px);
       font-size: 14px;
@@ -1307,7 +1307,7 @@ function injectStyles(): void {
     .metric-label {
       flex: 1;
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .metric-bar {
@@ -1320,7 +1320,7 @@ function injectStyles(): void {
     
     .metric-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       transition: width ${DURATION.SLOW}ms;
     }
     
@@ -1343,7 +1343,7 @@ function injectStyles(): void {
     .persona-action-btn {
       flex: 1;
       padding: var(--space-2, 8px);
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
       border: none;
       border-radius: var(--radius-md, 8px);
       cursor: pointer;
@@ -1364,17 +1364,17 @@ function injectStyles(): void {
       font-size: 16px;
       font-weight: 600;
       margin-bottom: var(--space-4, 16px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     /* Scenarios Tab */
     .scenarios-summary {
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
       border-radius: var(--radius-md, 8px);
       margin-bottom: var(--space-4, 16px);
       font-size: 14px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .divider {
@@ -1389,7 +1389,7 @@ function injectStyles(): void {
       font-size: 14px;
       font-weight: 600;
       margin-bottom: var(--space-2, 8px);
-      color: var(--color-text-secondary, #444);
+      color: var(--color-text-secondary);
     }
     
     .scenario-item {
@@ -1402,7 +1402,7 @@ function injectStyles(): void {
     }
     
     .scenario-item:hover {
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .scenario-item--passed .scenario-status { color: var(--color-semantic-success); }
@@ -1415,7 +1415,7 @@ function injectStyles(): void {
     
     .scenario-score {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .scenario-run-btn {
@@ -1423,7 +1423,7 @@ function injectStyles(): void {
       border: none;
       cursor: pointer;
       padding: var(--space-1, 4px);
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms;
     }

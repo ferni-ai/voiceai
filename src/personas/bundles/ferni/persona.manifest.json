@@ -351,7 +351,13 @@
   },
 
   "tools": {
-    "domains": ["memory", "handoff", "entertainment", "information", "games"],
+    "domains": [
+      "memory",
+      "handoff",
+      "entertainment",
+      "information",
+      "games"
+    ],
     "_domain_notes": "DYNAMIC TOOL ROUTING: Core domains only (~20 tools). Specialized domains (grief, meaning, vulnerability, crisis, relationships, etc.) are loaded dynamically via dynamic-tool-router.ts based on user intent detection. This keeps tool count under 25 for reliable Gemini function calling while allowing access to 50+ tools when contextually needed.",
     "_contextual_domains_available": [
       "grief",

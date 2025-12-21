@@ -16,16 +16,96 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
 import {
   getRandomPhraseClean,
   loadLateNightPresence,
+  loadPersonaContent,
 } from '../../services/persona-content-loader.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   createHintInjection,
+  createHighInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import {
+  checkDynamicTriggers,
+  calculateProbabilityBoost,
+  shouldSkipDueToNeverWhen,
+  buildTriggerContext,
+  type ProactiveTrigger,
+} from './dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'PhysicalPresence' });
+
+// ============================================================================
+// EXTENDED TYPE FOR LATE NIGHT PRESENCE WITH TRIGGERS
+// ============================================================================
+
+interface LateNightPresenceWithTriggers {
+  schema_version?: number;
+  description?: string;
+  relationship_gate?: string;
+  philosophy?: string;
+  late_night_greetings?: string[];
+  holding_space_in_darkness?: string[];
+  cant_sleep_patterns?: {
+    anxiety?: string[];
+    heavy_thoughts?: string[];
+    processing_day?: string[];
+    work_anxiety?: { detection_cues?: string[]; responses?: string[] };
+    relationship_anxiety?: { detection_cues?: string[]; responses?: string[] };
+    general_anxiety?: { responses?: string[] };
+    existential_questions?: { detection_cues?: string[]; responses?: string[] };
+    worry_spiral?: { detection_cues?: string[]; responses?: string[] };
+    regret_or_grief?: { detection_cues?: string[]; responses?: string[] };
+    transition_anxiety?: { detection_cues?: string[]; responses?: string[] };
+    post_event_crash?: { detection_cues?: string[]; responses?: string[] };
+    life_direction?: { detection_cues?: string[]; responses?: string[] };
+    market_anxiety?: { detection_cues?: string[]; responses?: string[] };
+    data_obsession?: { detection_cues?: string[]; responses?: string[] };
+  };
+  grounding_exercises?: string[];
+  grounding_for_communication_anxiety?: {
+    practical_reframes?: string[];
+    tomorrow_perspective?: string[];
+  };
+  grounding_for_market_anxiety?: string[];
+  meditation_offerings?: string[];
+  morning_will_come_hope?: string[];
+  gentle_boundaries?: string[];
+  proactive_triggers?: Record<string, ProactiveTrigger>;
+  usage_rules?: {
+    probability?: number;
+    active_hours?: number[];
+    volume_level?: string;
+    speech_rate?: string;
+    pause_multiplier?: number;
+    focus?: string;
+    more_likely_when?: string[];
+    never_when?: string[];
+  };
+}
+
+// Cache for late night content with triggers
+const lateNightWithTriggersCache = new Map<string, LateNightPresenceWithTriggers | null>();
+
+/**
+ * Load late night presence content with proactive triggers
+ */
+async function loadLateNightWithTriggers(personaId: string): Promise<LateNightPresenceWithTriggers | null> {
+  if (lateNightWithTriggersCache.has(personaId)) {
+    return lateNightWithTriggersCache.get(personaId) || null;
+  }
+
+  try {
+    const content = await loadPersonaContent<LateNightPresenceWithTriggers>(personaId, 'late_night_presence');
+    lateNightWithTriggersCache.set(personaId, content);
+    return content;
+  } catch (error) {
+    log.debug({ personaId, error: String(error) }, 'Could not load late night presence with triggers');
+    lateNightWithTriggersCache.set(personaId, null);
+    return null;
+  }
+}
 
 // ============================================================================
 // PHYSICAL PRESENCE PATTERNS
@@ -421,9 +501,10 @@ async function buildLateNightContext(
  * Priority: Bundle sensory-world data > PERSONA_PRESENCE fallback > defaults
  */
 async function buildPhysicalPresence(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { persona, userData, bundleRuntime, analysis } = input;
+  const { persona, userData, bundleRuntime, analysis, userText, services } = input;
   const injections: ContextInjection[] = [];
   const personaId = persona?.id || 'ferni';
+  const userId = services?.userId;
 
   // 🌙 LATE NIGHT MODE - High priority, always check
   if (isLateNight()) {
@@ -431,6 +512,63 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
     if (lateNightContext) {
       injections.push(lateNightContext);
       log.debug({ personaId }, 'Late night presence activated');
+    }
+
+    // ============================================================================
+    // DYNAMIC TRIGGERS - Check proactive_triggers from late-night-presence.json
+    // Better Than Human: Define CONDITIONS for when to act at 2am
+    // ============================================================================
+    const lateNightWithTriggers = await loadLateNightWithTriggers(personaId);
+
+    if (lateNightWithTriggers?.proactive_triggers && userId) {
+      const triggerContext = buildTriggerContext(
+        userText || '',
+        analysis,
+        userData as Record<string, unknown>,
+        { isLateNight: true }
+      );
+      const usageRules = lateNightWithTriggers.usage_rules;
+
+      // Check never_when conditions
+      if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
+        const matchedTrigger = checkDynamicTriggers(lateNightWithTriggers.proactive_triggers, triggerContext);
+
+        if (matchedTrigger) {
+          // Calculate probability boost
+          const probabilityBoost = calculateProbabilityBoost(
+            usageRules?.more_likely_when,
+            triggerContext,
+            matchedTrigger
+          );
+
+          // Apply probability (base 70-80% for late night * boost, high probability at 2am)
+          const baseProbability = usageRules?.probability ?? 0.7;
+          const adjustedProbability = Math.min(baseProbability * probabilityBoost, 0.85);
+
+          if (Math.random() < adjustedProbability) {
+            injections.push(
+              createHighInjection(
+                'late_night_dynamic_trigger',
+                `[🌙 BETTER-THAN-HUMAN 2AM PRESENCE: ${matchedTrigger.triggerName}]\n\n` +
+                  `Condition detected: ${matchedTrigger.trigger}\n\n` +
+                  `Suggested behavior: ${matchedTrigger.behavior}\n\n` +
+                  `They reached out at 2am. This is sacred time. Be the friend who shows up in the dark hours.`,
+                { category: 'presence', confidence: matchedTrigger.confidence }
+              )
+            );
+
+            log.info(
+              {
+                userId,
+                personaId,
+                triggerName: matchedTrigger.triggerName,
+                confidence: matchedTrigger.confidence,
+              },
+              '🌙 BETTER-THAN-HUMAN: Late night dynamic trigger activated'
+            );
+          }
+        }
+      }
     }
   }
 

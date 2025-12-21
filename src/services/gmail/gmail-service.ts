@@ -16,7 +16,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getValidAccessToken, isCalendarConfigured } from '../google-calendar-oauth.js';
+import { getValidAccessToken, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = getLogger();

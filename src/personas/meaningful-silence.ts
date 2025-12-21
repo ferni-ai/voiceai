@@ -1767,7 +1767,7 @@ Keep it open. No pressure. Give them space.`;
 
 The user has been silent for ${Math.round(silenceDurationSeconds)} seconds.
 
-${contextHints.length > 0 ? 'Context:\n' + contextHints.join('\n') : ''}
+${contextHints.length > 0 ? `Context:\n${contextHints.join('\n')}` : ''}
 ${timeHint}
 
 ${responseGuidance}

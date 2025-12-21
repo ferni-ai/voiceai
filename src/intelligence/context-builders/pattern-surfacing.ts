@@ -24,7 +24,7 @@
  * @module PatternSurfacing
  */
 
-import { getBetterThanHumanTelemetry } from '../../services/better-than-human-telemetry.js';
+import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createHintInjection,

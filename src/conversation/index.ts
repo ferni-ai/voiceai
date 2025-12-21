@@ -142,6 +142,7 @@ export {
 export {
   buildOpenerContext,
   generateProactiveOpener,
+  generateProactiveOpenerAsync,
   type ConversationOpener,
   type OpenerContext,
   type OpenerType,

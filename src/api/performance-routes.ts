@@ -1,7 +1,7 @@
 /**
  * Performance Monitoring API Routes
  *
- * Exposes performance metrics, memory usage, and alerts.
+ * Exposes performance metrics, memory usage, alerts, and trigger analytics.
  *
  * Routes:
  * - GET  /api/performance              - Full performance report
@@ -11,6 +11,10 @@
  * - POST /api/performance/alerts/:id/acknowledge - Acknowledge an alert
  * - POST /api/performance/config       - Update alert thresholds
  * - GET  /api/performance/tools        - Tool loading metrics
+ * - GET  /api/performance/voice-dashboard - Combined voice agent dashboard (incl triggers)
+ * - GET  /api/performance/triggers     - Dynamic trigger analytics (pattern matching)
+ * - GET  /api/performance/triggers/semantic - Semantic trigger analytics (Phase 1)
+ * - POST /api/performance/triggers/reset - Reset trigger analytics (pattern + semantic)
  *
  * @module PerformanceRoutes
  */
@@ -23,6 +27,22 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { perfInstrumentation } from '../services/performance-instrumentation.js';
 import { getLoadedDomains, isDomainLoaded } from '../tools/index.js';
+
+// Voice agent performance modules
+import {
+  getGlobalPerformanceSummary,
+  PERFORMANCE_THRESHOLDS,
+} from '../agents/shared/performance/turn-profiler.js';
+import { getToolCacheMetrics } from '../agents/shared/performance/tool-response-cache.js';
+import { getSpeculativeTTSMetrics } from '../agents/shared/performance/speculative-tts.js';
+import { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';
+import { getTriggerAnalytics, resetTriggerAnalytics } from '../intelligence/context-builders/dynamic-trigger-utils.js';
+import {
+  getSemanticAnalytics,
+  resetSemanticAnalytics,
+  getTriggerEmbeddingService,
+  getTriggerEmbeddingCache,
+} from '../intelligence/triggers/index.js';
 
 const log = createLogger({ module: 'PerformanceRoutes' });
 
@@ -245,6 +265,195 @@ export async function handlePerformanceRoutes(
       const label = (body.label as string) || `api-snapshot-${Date.now()}`;
       const snapshot = perfInstrumentation.snapshotMemory(label);
       sendJSON(res, { snapshot });
+      return true;
+    }
+
+    // ========================================================================
+    // VOICE AGENT TURN PROFILING METRICS
+    // ========================================================================
+    if (subPath === '/turns' && method === 'GET') {
+      const turnMetrics = getGlobalPerformanceSummary();
+      sendJSON(res, {
+        ...turnMetrics,
+        thresholds: PERFORMANCE_THRESHOLDS,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // TOOL RESPONSE CACHE METRICS
+    // ========================================================================
+    if (subPath === '/tool-cache' && method === 'GET') {
+      const cacheMetrics = getToolCacheMetrics();
+      const hitRate =
+        cacheMetrics.hits + cacheMetrics.misses > 0
+          ? ((cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses)) * 100).toFixed(1)
+          : '0.0';
+      sendJSON(res, {
+        ...cacheMetrics,
+        hitRatePercent: parseFloat(hitRate),
+        estimatedTimeSavedMs: cacheMetrics.totalSavedMs,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // SPECULATIVE TTS METRICS
+    // ========================================================================
+    if (subPath === '/tts' && method === 'GET') {
+      const ttsMetrics = getSpeculativeTTSMetrics();
+      const cacheHitRate =
+        ttsMetrics.totalRequests > 0
+          ? (((ttsMetrics.cacheHits + ttsMetrics.speculativeHits) / ttsMetrics.totalRequests) * 100).toFixed(1)
+          : '0.0';
+      sendJSON(res, {
+        ...ttsMetrics,
+        cacheHitRatePercent: parseFloat(cacheHitRate),
+        estimatedLatencySavedMs: ttsMetrics.savedLatencyMs,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // COMBINED VOICE AGENT DASHBOARD
+    // ========================================================================
+    if (subPath === '/voice-dashboard' && method === 'GET') {
+      const turnMetrics = getGlobalPerformanceSummary();
+      const toolCache = getToolCacheMetrics();
+      const tts = getSpeculativeTTSMetrics();
+      const reliability = getReliabilityDashboard();
+      const triggers = getTriggerAnalytics();
+      const semanticTriggers = getSemanticAnalytics();
+
+      sendJSON(res, {
+        summary: {
+          avgTurnMs: turnMetrics.avgTurnMs,
+          slowTurnPercentage: turnMetrics.slowTurnPercentage,
+          toolCacheHitRate:
+            toolCache.hits + toolCache.misses > 0
+              ? ((toolCache.hits / (toolCache.hits + toolCache.misses)) * 100).toFixed(1) + '%'
+              : 'N/A',
+          ttsCacheHitRate:
+            tts.totalRequests > 0
+              ? (((tts.cacheHits + tts.speculativeHits) / tts.totalRequests) * 100).toFixed(1) + '%'
+              : 'N/A',
+          totalEstimatedSavingsMs: toolCache.totalSavedMs + tts.savedLatencyMs,
+          toolSuccessRate: reliability.summary.overallSuccessRate,
+          openCircuits: reliability.summary.openCircuits,
+          // Trigger metrics (pattern matching)
+          triggersChecked: triggers.summary.totalChecked,
+          triggersMatched: triggers.summary.totalMatched,
+          triggersFired: triggers.summary.totalFired,
+          triggerMatchRate: (triggers.summary.matchRate * 100).toFixed(1) + '%',
+          triggerFireRate: (triggers.summary.fireRate * 100).toFixed(1) + '%',
+          // Semantic trigger metrics (Phase 1)
+          semanticHybridMatches: semanticTriggers.totalHybridMatches,
+          semanticAvgScore: semanticTriggers.averageSemanticScore.toFixed(3),
+          semanticAvgProcessingMs: semanticTriggers.averageProcessingMs.toFixed(2),
+        },
+        turns: turnMetrics,
+        toolCache,
+        speculativeTts: tts,
+        reliability: reliability.summary,
+        triggers: {
+          summary: triggers.summary,
+          topTriggers: triggers.byTrigger.slice(0, 5),
+          topBuilders: triggers.byBuilder.slice(0, 5),
+          // Semantic matching summary
+          semantic: {
+            hybridMatches: semanticTriggers.totalHybridMatches,
+            semanticOnly: semanticTriggers.totalSemanticOnly,
+            patternOnly: semanticTriggers.totalPatternOnly,
+            avgSemanticScore: semanticTriggers.averageSemanticScore.toFixed(3),
+            avgPatternScore: semanticTriggers.averagePatternScore.toFixed(3),
+            avgProcessingMs: semanticTriggers.averageProcessingMs.toFixed(2),
+          },
+        },
+        thresholds: PERFORMANCE_THRESHOLDS,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // TOOL RELIABILITY METRICS (retry, circuit breaker)
+    // ========================================================================
+    if (subPath === '/reliability' && method === 'GET') {
+      const reliability = getReliabilityDashboard();
+      sendJSON(res, reliability);
+      return true;
+    }
+
+    // ========================================================================
+    // DYNAMIC TRIGGER METRICS
+    // ========================================================================
+    if (subPath === '/triggers' && method === 'GET') {
+      const triggers = getTriggerAnalytics();
+
+      // Serialize timestamps for JSON
+      const serializedRecentActivations = triggers.recentActivations.map((a) => ({
+        ...a,
+        timestamp: a.timestamp.toISOString(),
+      }));
+
+      sendJSON(res, {
+        summary: triggers.summary,
+        byTrigger: triggers.byTrigger,
+        byBuilder: triggers.byBuilder,
+        recentActivations: serializedRecentActivations,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // RESET TRIGGER METRICS (admin only)
+    // ========================================================================
+    if (subPath === '/triggers/reset' && method === 'POST') {
+      resetTriggerAnalytics();
+      resetSemanticAnalytics();
+      sendJSON(res, { success: true, message: 'Trigger analytics reset (pattern + semantic)' });
+      log.info({}, 'Trigger analytics reset via performance API');
+      return true;
+    }
+
+    // ========================================================================
+    // SEMANTIC TRIGGER METRICS (Phase 1: Semantic Core)
+    // ========================================================================
+    if (subPath === '/triggers/semantic' && method === 'GET') {
+      const semanticStats = getSemanticAnalytics();
+      const embeddingService = getTriggerEmbeddingService();
+      const embeddingCache = getTriggerEmbeddingCache();
+
+      const serviceStats = embeddingService.getStats();
+      const cacheStats = embeddingCache.getStats();
+
+      sendJSON(res, {
+        matching: {
+          totalHybridMatches: semanticStats.totalHybridMatches,
+          totalSemanticOnly: semanticStats.totalSemanticOnly,
+          totalPatternOnly: semanticStats.totalPatternOnly,
+          averageSemanticScore: semanticStats.averageSemanticScore.toFixed(3),
+          averagePatternScore: semanticStats.averagePatternScore.toFixed(3),
+          averageProcessingMs: semanticStats.averageProcessingMs.toFixed(2),
+        },
+        byCategory: semanticStats.byCategoryArray,
+        embeddings: {
+          totalTriggers: serviceStats.totalTriggers,
+          byPersona: serviceStats.byPersona,
+          byCategory: serviceStats.byCategory,
+          model: serviceStats.model,
+          dimensions: serviceStats.embeddingDimensions,
+        },
+        cache: {
+          memorySize: cacheStats.memorySize,
+          maxSize: cacheStats.maxSize,
+          hitRate: (cacheStats.hitRate * 100).toFixed(1) + '%',
+          memoryHits: cacheStats.memoryHits,
+          memoryMisses: cacheStats.memoryMisses,
+          firestoreHits: cacheStats.firestoreHits,
+          firestoreMisses: cacheStats.firestoreMisses,
+          firestoreEnabled: cacheStats.firestoreEnabled,
+        },
+      });
       return true;
     }
 

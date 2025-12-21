@@ -19,7 +19,7 @@ import type { Room } from '@livekit/rtc-node';
 import {
   getSpeakerChangeDetector,
   type SpeakerChangeEvent,
-} from '../../services/voice-speaker-change.js';
+} from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
 
 // ============================================================================
@@ -96,7 +96,8 @@ export async function identifyUser(
     if (jobMetadata) {
       const metadata = JSON.parse(jobMetadata);
 
-      const { identifyFromMetadata } = await import('../../services/user-identification.js');
+      const { identifyFromMetadata } =
+        await import('../../services/identity/user-identification.js');
       const identification = await identifyFromMetadata(metadata);
 
       userId = identification.userId;
@@ -144,7 +145,7 @@ export async function identifyUser(
   // Configure music playback mode for phone calls
   if (identificationSource === 'phone') {
     try {
-      const { setStreamIntoCall } = await import('../../tools/spotify.js');
+      const { setStreamIntoCall } = await import('../../tools/domains/entertainment/spotify.js');
       setStreamIntoCall(true);
     } catch (e) {
       diag.debug('Failed to set stream-into-call mode', { error: String(e) });

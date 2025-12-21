@@ -14,7 +14,10 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
-import { getTeamEngagementService, TEAM_HUDDLE_SCRIPTS } from '../../services/team-engagement.js';
+import {
+  getTeamEngagementService,
+  TEAM_HUDDLE_SCRIPTS,
+} from '../../services/engagement/team-engagement.js';
 
 const log = createLogger({ module: 'TeamAPI' });
 
@@ -214,7 +217,7 @@ async function getUserEngagementInsights(userId: string): Promise<UserEngagement
   };
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     // Get profile and streaks
@@ -603,7 +606,7 @@ export async function handleGetHuddles(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
 

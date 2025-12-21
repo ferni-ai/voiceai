@@ -17,7 +17,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { isValidAccent, type EnglishAccent } from '../config/voice-accents.js';
-import { getLocalizedVoiceId } from '../services/cartesia-voice-localization.js';
+import { getLocalizedVoiceId } from '../services/voice/cartesia-voice-localization.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';

@@ -60,7 +60,7 @@ const MODULE_LOADERS: Record<string, ModuleLoader> = {
   'services/conversation-manager': () => import('../../services/conversation-manager.js'),
   'services/cognitive-session-hooks': () => import('../../services/cognitive-session-hooks.js'),
   'services/emotion-analysis/hume': () => import('../../services/emotion-analysis/hume.js'),
-  'services/voice-speaker-change': () => import('../../services/voice-speaker-change.js'),
+  'services/voice-speaker-change': () => import('../../services/voice/voice-speaker-change.js'),
 
   // Tools
   'tools/auto-optimizer': () => import('../../tools/auto-optimizer.js'),

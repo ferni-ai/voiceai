@@ -271,7 +271,7 @@ async function getCalendarDensityFactor(
 ): Promise<{ modifier: number; factor: EnergyFactor } | null> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { getCalendarBusyProfile } = await import('../scheduling/calendar-busy-detection.js');
     const profile = await getCalendarBusyProfile(userId);
 
     if (!profile || profile.todayBusySlots.length === 0) {

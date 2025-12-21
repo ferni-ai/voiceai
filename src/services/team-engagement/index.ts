@@ -34,4 +34,4 @@ export {
 } from './intelligent-banter.js';
 
 // Main service is in the parent directory for backward compatibility
-// Import via: import { getTeamEngagement } from '../services/team-engagement.js';
+// Import via: import { getTeamEngagement } from '../services/engagement/team-engagement.js';

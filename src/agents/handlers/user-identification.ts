@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { identifyFromMetadata } from '../../services/user-identification.js';
+import { identifyFromMetadata } from '../../services/identity/user-identification.js';
 import { diag as defaultDiag, type DiagnosticLogger } from '../../services/diagnostic-logger.js';
 
 /**

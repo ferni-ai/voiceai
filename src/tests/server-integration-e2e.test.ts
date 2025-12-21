@@ -885,7 +885,7 @@ describe('API Module Exports', () => {
 
   describe('Voice Auth Routes', () => {
     it('should export handleVoiceAuthRoutes', async () => {
-      const module = await import('../api/voice-auth-handler.js');
+      const module = await import('../api/voice-auth.routes.js');
       expect(module.handleVoiceAuthRoutes).toBeDefined();
     });
   });
@@ -913,21 +913,21 @@ describe('API Module Exports', () => {
 
   describe('EvalOps Routes', () => {
     it('should export handleEvalOpsRoutes', async () => {
-      const module = await import('../api/evalops-handler.js');
+      const module = await import('../api/evalops.routes.js');
       expect(module.handleEvalOpsRoutes).toBeDefined();
     });
   });
 
   describe('Outreach Routes', () => {
     it('should export handleOutreachRoutes', async () => {
-      const module = await import('../api/outreach-handler.js');
+      const module = await import('../api/outreach-routes.js');
       expect(module.handleOutreachRoutes).toBeDefined();
     });
   });
 
   describe('Scheduled Jobs Routes', () => {
     it('should export handleScheduledJobsRoutes', async () => {
-      const module = await import('../api/scheduled-jobs-handler.js');
+      const module = await import('../api/scheduled-jobs.routes.js');
       expect(module.handleScheduledJobsRoutes).toBeDefined();
     });
   });
@@ -988,7 +988,7 @@ describe('Service Integration', () => {
 
   describe('Spotify Integration', () => {
     it('should have Spotify auth service', async () => {
-      const module = await import('../services/spotify-auth.js');
+      const module = await import('../services/identity/spotify-auth.js');
       expect(module.isSpotifyConfigured).toBeDefined();
       expect(module.getSpotifyAccessToken).toBeDefined();
     });
@@ -996,7 +996,7 @@ describe('Service Integration', () => {
 
   describe('Google Calendar Integration', () => {
     it('should have Google Calendar OAuth service', async () => {
-      const module = await import('../services/google-calendar-oauth.js');
+      const module = await import('../services/identity/google-calendar-oauth.js');
       expect(module.generateAuthUrl).toBeDefined();
       expect(module.isOAuthConfigured).toBeDefined();
     });

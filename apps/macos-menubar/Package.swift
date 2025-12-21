@@ -10,8 +10,12 @@ let package = Package(
         .executable(name: "FerniVoice", targets: ["FerniVoice"])
     ],
     dependencies: [
-        // LiveKit Swift SDK for native voice streaming
-        .package(url: "https://github.com/livekit/client-sdk-swift", from: "2.0.0"),
+        // LiveKit Swift SDK - using local patched fork to fix macOS 15 continuation crashes
+        // Patches applied:
+        // - Locks.swift: Skip Synchronization.Mutex on macOS 15.x (use OSAllocatedUnfairLock instead)
+        // - Transport.swift: Eager init for _iceCandidatesQueue (avoid lazy var race on NSObject)
+        // - LocalParticipant+RPC.swift: Add ResumeOnce to prevent double continuation resume
+        .package(path: "../../vendor/client-sdk-swift"),
     ],
     targets: [
         .executableTarget(

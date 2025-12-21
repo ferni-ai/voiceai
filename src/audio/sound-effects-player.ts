@@ -125,6 +125,17 @@ class SoundEffectsPlayer {
       return false;
     }
 
+    // 🚨 CRASH-FIX: Check if room is still connected before playing
+    if (this.room && !this.room.isConnected) {
+      log.error(
+        {
+          roomIsConnected: this.room.isConnected,
+        },
+        '🚨 [CRASH-FIX] Cannot play sound - LiveKit room is disconnected'
+      );
+      return false;
+    }
+
     try {
       this.isPlaying = true;
 
@@ -153,8 +164,30 @@ class SoundEffectsPlayer {
       }
 
       // Play through BackgroundAudioPlayer
+      // 🚨 CRASH-FIX: Wrap in try-catch for room disconnect during playback
       log.info({ url, volume }, '🔊 Playing sound effect');
-      this.currentPlayHandle = this.audioPlayer.play({ source: audioPath, volume }, false);
+      try {
+        this.currentPlayHandle = this.audioPlayer.play({ source: audioPath, volume }, false);
+      } catch (playError) {
+        log.error(
+          {
+            error: String(playError),
+            url,
+            roomIsConnected: this.room?.isConnected,
+          },
+          '🚨 [CRASH-FIX] audioPlayer.play() threw - room likely disconnected'
+        );
+        this.isPlaying = false;
+        // Cleanup temp file if we downloaded it
+        if (audioPath !== url && audioPath.includes(os.tmpdir())) {
+          try {
+            fs.unlinkSync(audioPath);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+        return false;
+      }
 
       // 🔧 FIX: Handle fluent-ffmpeg errors gracefully (same pattern as music player)
       // Use .then()/.catch() instead of await to handle "Output stream closed" errors

@@ -1,8 +1,7 @@
 /**
  * Turn Processor
  *
- * Extracted from voice-agent.ts onUserTurnCompleted method.
- * Handles all processing for a single user turn:
+ * Orchestrates all processing for a single user turn:
  * - Message analysis
  * - Context building
  * - Emotional tracking
@@ -13,22 +12,26 @@
  * - Testable in isolation
  * - Clear data flow
  * - Modular context builders
- * - Cached imports for performance
+ * - Split into focused sub-modules for maintainability
+ *
+ * EXTRACTED SUB-MODULES:
+ * - conversation-dynamics.ts - processConversationDynamics
+ * - easter-egg-handler.ts - checkEasterEggs
+ * - emotional-state-builder.ts - buildEmotionalState
+ * - response-guidance-builder.ts - buildResponseGuidance
+ * - identity-context-builder.ts - buildIdentityContext
+ * - humanizing-context-builder.ts - buildHumanizingContextForTurn
+ * - bundle-runtime-processor.ts - processBundleRuntime
+ * - advanced-humanization.ts - processAdvancedHumanization
+ * - cached-modules.ts - getContextBuilders, getTaskManagerCached
  */
 
 import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import {
-  getAgentContext,
-  // FIX BUG #1-4: getCurrentAgent uses global state causing cross-session contamination
-  // We now use ctx.services.handoffState.currentAgent instead
-  getLastHandoff,
-  updateUserContextForHandoff,
-} from '../../tools/handoff/index.js';
+import { updateUserContextForHandoff } from '../../tools/handoff/index.js';
 import type {
   BundleRuntimeContext,
-  CachedModules,
   ContextInjection,
   EmotionalState,
   IdentityContext,
@@ -39,7 +42,7 @@ import type {
   TurnProcessorResult,
 } from './types.js';
 
-// Extracted injection builders (cleaner separation of concerns)
+// Injection builders (cleaner separation of concerns)
 import {
   buildAdvancedHumanizationInjections,
   buildAmbientAwarenessInjections,
@@ -62,6 +65,40 @@ import { detectConversationMode, filterInjections } from './injection-filter.js'
 // Message analysis - extracted for maintainability
 import { analyzeMessage, updateConversationState } from './message-analyzer.js';
 
+// ============================================================================
+// EXTRACTED SUB-MODULES (for maintainability)
+// ============================================================================
+
+// Cached module getters (lazy loading)
+import { getContextBuilders, getTaskManagerCached } from './cached-modules.js';
+
+// Conversation dynamics (narrative arc, engagement, rhythm, silence)
+import {
+  processConversationDynamics,
+  type ConversationDynamicsResult,
+} from './conversation-dynamics.js';
+
+// Easter egg detection
+import { checkEasterEggs } from './easter-egg-handler.js';
+
+// Emotional state building (with voice-text mismatch detection)
+import { buildEmotionalState, type EmotionalStateWithMismatch } from './emotional-state-builder.js';
+
+// Response guidance (length, pacing, story timing)
+import { buildResponseGuidance } from './response-guidance-builder.js';
+
+// Identity context (post-handoff reinforcement)
+import { buildIdentityContext } from './identity-context-builder.js';
+
+// Humanizing context (voice emotion, inner world, mood)
+import { buildHumanizingContextForTurn } from './humanizing-context-builder.js';
+
+// Bundle runtime (modes, situational responses, pushback)
+import { processBundleRuntime } from './bundle-runtime-processor.js';
+
+// Advanced humanization (10 deep capabilities)
+import { processAdvancedHumanization } from './advanced-humanization.js';
+
 // Performance metrics
 import {
   recordTurnTiming,
@@ -83,52 +120,23 @@ import {
   buildReferralConversationContext,
 } from '../../intelligence/context-builders/referral-prompt.js';
 
-// Conversation engines (singletons)
+// Humanizing context formatting (used in buildContextInjections)
 import {
-  getConversationHumanizer,
-  getConversationRhythmTracker,
-  getEmotionalArcTracker,
-  getEngagementScorer,
-  getNarrativeArcTracker,
-  getResponseDynamicsEngine,
-  getSilencePresenceEngine,
-  getStoryTimingEngine,
-} from '../../conversation/index.js';
-
-// Humanizing context
-import {
-  buildHumanizingContext,
   formatHumanizingForPrompt,
-  getHumanizingSummary,
-  getMoodShift,
-  shouldMoodShift,
   type HumanizingResult,
-} from '../../intelligence/context-builders/humanizing.js';
-
-import {
-  logHumanizingResult,
-  logValidation,
-} from '../../intelligence/context-builders/humanizing-debug.js';
+} from '../../intelligence/context-builders/humanization/humanizing.js';
 
 // Conversation humanizing
 import {
   buildConversationHumanizingContext,
   formatConversationHumanizingForPrompt,
-} from '../../intelligence/context-builders/conversation-humanizing.js';
+} from '../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
 // Response naturalness
 import { getResponseEnhancements } from '../../speech/response-naturalness.js';
 
-// Emotion matching
-import { getEmotionGuidance } from '../../speech/emotion-matching.js';
-
-// Voice-text mismatch detection ("better than human" - detect incongruence)
-import {
-  buildMismatchGuidance,
-  detectMismatch,
-  recordMismatchInsight,
-  type MismatchResult,
-} from '../../intelligence/voice-text-mismatch.js';
+// Voice-text mismatch - for recording insights
+import { recordMismatchInsight } from '../../intelligence/voice-text-mismatch.js';
 
 // Cross-session reflection ("Better Than Human" - remember significant moments)
 import {
@@ -136,18 +144,10 @@ import {
   saveReflectionMoment,
 } from '../../intelligence/cross-session-reflection.js';
 
-// Note: Scientific coaching and cross-persona insights are now handled
-// by injection-builders.ts for cleaner separation of concerns
-
 // Monetization - Value Capture (detect achievements/breakthroughs)
 import { valueCapture } from '../../services/monetization/value-capture.js';
 
-// Personal theme tracking (prevents "always talks about Wyoming")
-import { extractPersonalThemes } from '../session/session-state.js';
-
 // Intelligent Outreach - Extract context for proactive check-ins
-// This feeds the "Better Than Human" outreach system with commitments,
-// emotions, life events, wins, and struggles from conversations
 import { extractAndProcess as extractOutreachContext } from '../../services/outreach/conversation-extractor.js';
 
 // Better Than Human Orchestrator - Coordinates all 12 superhuman capabilities
@@ -155,804 +155,22 @@ import { extractAndProcess as extractOutreachContext } from '../../services/outr
 import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 
 // 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
-// This runs on EVERY turn to detect and respond to crisis situations
-import {
-  detectCrisis,
-  guardPreResponse,
-  type CrisisDetectionResult,
-} from '../safety/crisis-guard.js';
+import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 
-// ============================================================================
-// CACHED IMPORTS - Lazy loaded once for performance
-// ============================================================================
+// NOTE: Cached module getters moved to cached-modules.ts
+// NOTE: analyzeMessage and updateConversationState are imported from message-analyzer.ts
 
-const cachedModules: CachedModules = {
-  buildConversationContext: null,
-  formatContextForPrompt: null,
-  shouldUseHighEmotionMode: null,
-  checkForEasterEgg: null,
-  getTaskManager: null,
-};
+// NOTE: processConversationDynamics moved to conversation-dynamics.ts
+// NOTE: checkEasterEggs moved to easter-egg-handler.ts
 
-// ============================================================================
-// CACHED MODULE GETTERS
-// ============================================================================
+// NOTE: buildEmotionalState moved to emotional-state-builder.ts
 
-async function getContextBuilders() {
-  if (!cachedModules.buildConversationContext) {
-    const mod = await import('../../intelligence/context-builders/index.js');
-    cachedModules.buildConversationContext = mod.buildConversationContext;
-    cachedModules.formatContextForPrompt = mod.formatContextForPrompt;
-    // BETTER-THAN-HUMAN: Import high emotion mode detection
-    cachedModules.shouldUseHighEmotionMode = mod.shouldUseHighEmotionMode;
-  }
-  return {
-    buildConversationContext: cachedModules.buildConversationContext!,
-    formatContextForPrompt: cachedModules.formatContextForPrompt!,
-    shouldUseHighEmotionMode: cachedModules.shouldUseHighEmotionMode!,
-  };
-}
+// NOTE: buildResponseGuidance moved to response-guidance-builder.ts
 
-async function getEasterEggChecker() {
-  if (!cachedModules.checkForEasterEgg) {
-    const mod = await import('../../personas/easter-eggs.js');
-    cachedModules.checkForEasterEgg = mod.checkForEasterEgg;
-  }
-  return cachedModules.checkForEasterEgg!;
-}
+// NOTE: buildIdentityContext moved to identity-context-builder.ts
 
-async function getTaskManagerCached() {
-  if (!cachedModules.getTaskManager) {
-    const mod = await import('../../tasks/task-manager.js');
-    cachedModules.getTaskManager = mod.getTaskManager;
-  }
-  return cachedModules.getTaskManager!();
-}
-
-// Note: analyzeMessage and updateConversationState are now imported from message-analyzer.ts
-
-// ============================================================================
-// CONVERSATION DYNAMICS PROCESSING
-// ============================================================================
-
-/**
- * Process advanced conversation dynamics:
- * - Narrative arc tracking (is user building to a point?)
- * - Engagement scoring (is user losing interest?)
- * - Conversation rhythm (match user's pacing)
- * - Silence decisions (when to use meaningful pauses)
- */
-interface ConversationDynamicsResult {
-  narrativeArc?: {
-    structure: string;
-    climaxApproaching: boolean;
-    hasReachedCore: boolean;
-    suggestedIntervention: string;
-    interventionGuidance: string;
-  };
-  engagement?: {
-    level: string;
-    score: number;
-    declining: boolean;
-    suggestedAction: string;
-    actionGuidance: string;
-  };
-  rhythm?: {
-    lengthMultiplier: number;
-    rateMultiplier: number;
-    energyLevel: string;
-    guidance: string;
-  };
-  silence?: {
-    useSilence: boolean;
-    reason: string;
-    duration: number;
-    ssml: string;
-  };
-}
-
-function processConversationDynamics(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: { primary: string; intensity: number; distressLevel: number }
-): ConversationDynamicsResult {
-  const { userText, userData, services } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-  const result: ConversationDynamicsResult = {};
-
-  // 1. NARRATIVE ARC TRACKING
-  // Detect if user is building to a point, meandering, or has reached their core message
-  try {
-    const narrativeTracker = getNarrativeArcTracker(services.sessionId);
-    const narrativeResult = narrativeTracker.analyzeUtterance({
-      text: userText,
-      turn: userData.turnCount || 0,
-      emotion: emotionalState.primary,
-      emotionalIntensity: emotionalState.intensity,
-    });
-
-    result.narrativeArc = {
-      structure: narrativeResult.structure,
-      climaxApproaching: narrativeResult.climaxApproaching,
-      hasReachedCore: narrativeResult.hasReachedCore,
-      suggestedIntervention: narrativeResult.suggestedIntervention,
-      interventionGuidance: narrativeResult.interventionGuidance,
-    };
-
-    if (narrativeResult.climaxApproaching || narrativeResult.hasReachedCore) {
-      ctx.logger.debug(
-        { structure: narrativeResult.structure, climax: narrativeResult.climaxApproaching },
-        '📖 Narrative moment detected'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Narrative arc tracking failed (non-fatal)');
-  }
-
-  // 2. ENGAGEMENT SCORING
-  // Track if user is engaged or losing interest
-  try {
-    const engagementScorer = getEngagementScorer(services.sessionId);
-    const engagementResult = engagementScorer.recordResponse(userText, {
-      currentTopic,
-    });
-
-    result.engagement = {
-      level: engagementResult.level,
-      score: engagementResult.score,
-      declining: engagementResult.declining,
-      suggestedAction: engagementResult.suggestedAction,
-      actionGuidance: engagementResult.actionGuidance,
-    };
-
-    if (engagementResult.level === 'low' || engagementResult.level === 'distracted') {
-      ctx.logger.debug(
-        { level: engagementResult.level, action: engagementResult.suggestedAction },
-        '👀 Low engagement detected'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Engagement scoring failed (non-fatal)');
-  }
-
-  // 3. CONVERSATION RHYTHM TRACKING
-  // Match user's pacing and energy
-  try {
-    const rhythmTracker = getConversationRhythmTracker();
-    rhythmTracker.recordUserTurn({
-      text: userText,
-      emotionIntensity: emotionalState.intensity,
-    });
-
-    const rhythmGuidance = rhythmTracker.getRhythmGuidance();
-
-    result.rhythm = {
-      lengthMultiplier: rhythmGuidance.lengthMultiplier,
-      rateMultiplier: rhythmGuidance.rateMultiplier,
-      energyLevel: rhythmGuidance.energyLevel,
-      guidance: rhythmGuidance.guidance,
-    };
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Rhythm tracking failed (non-fatal)');
-  }
-
-  // 4. SILENCE DECISION
-  // Determine if a meaningful silence is appropriate
-  try {
-    const silenceEngine = getSilencePresenceEngine();
-    const conversationDepth =
-      emotionalState.distressLevel > 0.6
-        ? ('deep' as const)
-        : emotionalState.intensity > 0.5
-          ? ('medium' as const)
-          : ('surface' as const);
-
-    const topicWeight =
-      emotionalState.distressLevel > 0.6
-        ? ('heavy' as const)
-        : emotionalState.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
-
-    const silenceDecision = silenceEngine.decideSilence({
-      userMessage: userText,
-      userEmotion: emotionalState.primary,
-      turnCount: userData.turnCount || 0,
-      wasPersonalSharing: analysis.state.userNeedsSupport || false,
-      conversationDepth,
-      topicWeight,
-    });
-
-    if (silenceDecision.useSilence) {
-      result.silence = {
-        useSilence: silenceDecision.useSilence,
-        reason: silenceDecision.reason,
-        duration: silenceDecision.duration,
-        ssml: silenceDecision.ssml,
-      };
-
-      ctx.logger.debug(
-        { reason: silenceDecision.reason, duration: silenceDecision.duration },
-        '🤫 Meaningful silence decided'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Silence decision failed (non-fatal)');
-  }
-
-  return result;
-}
-
-// ============================================================================
-// EASTER EGG DETECTION
-// ============================================================================
-
-/**
- * Check for easter eggs in user message
- */
-async function checkEasterEggs(
-  ctx: TurnContext,
-  turnCtx: llm.ChatContext
-): Promise<{ type: string; response: string } | undefined> {
-  const { userText, persona, services } = ctx;
-
-  const checkForEasterEgg = await getEasterEggChecker();
-  const easterEgg = checkForEasterEgg(userText, persona.id, {
-    conversationCount: services.userProfile?.totalConversations || 0,
-    userSinceDate: services.userProfile?.createdAt,
-  });
-
-  if (easterEgg.type !== 'none' && easterEgg.response) {
-    ctx.logger.info({ type: easterEgg.type }, '🎉 Easter egg triggered!');
-
-    // Inject as context hint
-    turnCtx.addMessage({
-      role: 'user',
-      content: `[SPECIAL MOMENT: ${easterEgg.type.toUpperCase()}]\nThis is a special moment! Your response should include or start with:\n"${easterEgg.response}"\nThen continue naturally with your response to what they said.`,
-    });
-
-    return { type: easterEgg.type, response: easterEgg.response };
-  }
-
-  return undefined;
-}
-
-// ============================================================================
-// EMOTIONAL STATE BUILDING
-// ============================================================================
-
-/**
- * Build emotional state from analysis and voice emotion
- * Now includes voice-text mismatch detection for "better than human" emotional intelligence
- */
-function buildEmotionalState(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): EmotionalState & { mismatch?: MismatchResult } {
-  const { userData, userText } = ctx;
-  const { analysis } = analysisResult;
-
-  const emotionalArc = getEmotionalArcTracker();
-
-  // Record emotion (combines text and voice)
-  emotionalArc.recordEmotion(analysis.emotion || null, userData.voiceEmotion || null);
-
-  const arc = emotionalArc.getArc();
-  const emotionalResponse = emotionalArc.getResponseRecommendation();
-  const transitionPhrase = emotionalArc.getTransitionPhrase();
-
-  // Get emotion guidance for voice emotion mirroring
-  const { emotionModulation } = userData;
-  const emotionalGuidance = emotionModulation ? getEmotionGuidance(emotionModulation) : null;
-
-  // "Better than human" - detect when voice contradicts words
-  // (e.g., "I'm fine" + trembling voice)
-  const mismatch = detectMismatch(userText, userData.voiceEmotion || null, analysis.emotion);
-
-  // Combine guidance if there's a mismatch
-  let combinedGuidance = emotionalResponse.guidance || emotionalGuidance || undefined;
-  if (mismatch.hasMismatch && mismatch.confidence > 0.5) {
-    const mismatchGuidance = buildMismatchGuidance(mismatch);
-    if (mismatchGuidance) {
-      combinedGuidance = combinedGuidance
-        ? `${combinedGuidance}\n\n${mismatchGuidance}`
-        : mismatchGuidance;
-    }
-  }
-
-  return {
-    primary: analysis.emotion.primary,
-    intensity: analysis.emotion.intensity || 0.5,
-    distressLevel: analysis.emotion.distressLevel || 0,
-    trajectory: arc.trajectory,
-    responseGuidance: combinedGuidance,
-    transitionPhrase: transitionPhrase || undefined,
-    mismatch: mismatch.hasMismatch ? mismatch : undefined,
-  };
-}
-
-// ============================================================================
-// RESPONSE GUIDANCE BUILDING
-// ============================================================================
-
-/**
- * Build response guidance (length, pacing, story timing)
- */
-function buildResponseGuidance(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: EmotionalState
-): ResponseGuidance {
-  const { persona, services, userData } = ctx;
-  const { analysis, currentTopic, previousTopic, topicChanged } = analysisResult;
-
-  const responseDynamics = getResponseDynamicsEngine();
-  const storyTiming = getStoryTimingEngine();
-  const humanizer = getConversationHumanizer(persona.id);
-
-  // Record user message for dynamics
-  responseDynamics.recordMessage('user', ctx.userText, analysis.topics.detected);
-
-  // Get length guidance
-  const lengthGuidance = responseDynamics.getLengthGuidance();
-
-  // Get topic transition
-  let topicTransition: string | undefined;
-  const preResponseActions = humanizer.processUserMessage({
-    personaId: persona.id,
-    turnNumber: userData.turnCount || 0,
-    userMessage: ctx.userText,
-    userEmotion: analysis.emotion.primary,
-    topic: currentTopic,
-    isSeriousContext: (analysis.emotion.distressLevel || 0) > 0.5,
-    wasPersonalSharing: analysis.state.userNeedsSupport || false,
-  });
-
-  if (preResponseActions.topicChange?.detected && preResponseActions.topicChange.transitionPhrase) {
-    topicTransition = `[TOPIC SHIFT: ${preResponseActions.topicChange.transitionPhrase}]`;
-  } else if (topicChanged && previousTopic && currentTopic) {
-    const transition = responseDynamics.getTopicTransition(previousTopic, currentTopic);
-    if (transition.phrase) {
-      topicTransition = `[TOPIC SHIFT: Smoothly transition from ${previousTopic} to ${currentTopic}. Consider: "${transition.phrase}"]`;
-    }
-  }
-
-  // Story timing
-  let storyOpportunity: ResponseGuidance['storyOpportunity'];
-
-  // Get the full emotional arc from the tracker for story timing
-  const emotionalArc = getEmotionalArcTracker();
-  const fullArc = emotionalArc.getArc();
-
-  const storyContext = {
-    turnCount: userData.turnCount || 0,
-    conversationDurationMs: Date.now() - services.sessionStartTime,
-    lastStoryTurn: userData.lastStoryTurn,
-    storiesToldThisSession: userData.storiesShared || [],
-    emotionalArc: fullArc, // Use the full EmotionalArc object
-    userEngagement:
-      analysis.emotion.intensity > 0.6
-        ? ('high' as const)
-        : analysis.emotion.intensity < 0.3
-          ? ('low' as const)
-          : ('medium' as const),
-    userPacing: responseDynamics.getPacingAnalysis().userPacing,
-    currentTopic,
-    recentTopics: analysis.topics.detected,
-  };
-
-  const storyRecommendation = storyTiming.evaluateStoryTiming(persona, storyContext);
-  if (storyRecommendation.shouldTell && storyRecommendation.story) {
-    storyOpportunity = {
-      story: storyRecommendation.story.content.slice(0, 200),
-      transitionPhrase: storyRecommendation.transitionPhrase || '',
-    };
-
-    // Record story told
-    storyTiming.recordStoryTold(storyRecommendation.story.id, userData.turnCount || 0);
-    if (userData) {
-      userData.lastStoryTurn = userData.turnCount || 0;
-      if (!userData.storiesShared) userData.storiesShared = [];
-      userData.storiesShared.push(storyRecommendation.story.id);
-    }
-  }
-
-  // Humor guidance
-  const humorGuidance = services.humorCalibration.getHumorGuidance(
-    currentTopic || 'general',
-    analysis.emotion.primary,
-    userData.turnCount || 0
-  );
-
-  // Pacing from voice adapter
-  const paceContext = services.voicePaceAdapter.getPaceContext();
-
-  return {
-    length: {
-      min: 20,
-      max: 100,
-      guidance: lengthGuidance,
-    },
-    topicTransition,
-    storyOpportunity,
-    humor: {
-      shouldAttempt: humorGuidance.shouldAttempt,
-      type: humorGuidance.recommendedType,
-      avoid: humorGuidance.avoidTypes,
-    },
-    pacing: paceContext || undefined,
-  };
-}
-
-// ============================================================================
-// IDENTITY CONTEXT
-// ============================================================================
-
-/**
- * Build identity context for post-handoff reinforcement
- *
- * FIX BUG: Previously compared activeAgentId vs sessionPersonaId, but after a handoff
- * BOTH are updated to the new persona, so the comparison always returned equal.
- * Now we check if a handoff occurred recently (within 60s) and ALWAYS inject
- * identity context to override the LLM's original instructions from session start.
- */
-function buildIdentityContext(ctx: TurnContext): IdentityContext {
-  const { persona, services } = ctx;
-
-  // FIX BUG #1-4: Use session-scoped state instead of global getCurrentAgent()
-  // The global state causes cross-session contamination in concurrent sessions
-  const activeAgentId = services.handoffState.currentAgent;
-  const sessionPersonaId = persona.id;
-
-  // Helper to normalize IDs
-  const normalize = (id: string): string => {
-    const mapping: Record<string, string> = {
-      'jack-b': 'ferni',
-      'comm-specialist': 'alex-chen',
-      'spend-save': 'maya-santos',
-      'event-planner': 'jordan-taylor',
-      alex: 'alex-chen',
-      maya: 'maya-santos',
-      jordan: 'jordan-taylor',
-      peter: 'peter-john',
-    };
-    return mapping[id.toLowerCase()] || id.toLowerCase();
-  };
-
-  const isSamePersona = (id1: string, id2: string): boolean => {
-    return normalize(id1) === normalize(id2);
-  };
-
-  const isCoach = (id: string): boolean => {
-    return isSamePersona(id, 'ferni') || isSamePersona(id, 'jack-b');
-  };
-
-  let needsReinforcement = false;
-  let injection: string | undefined;
-
-  // FIX BUG: Check if a handoff occurred recently (within 60 seconds)
-  // The LLM's base instructions were set at session start and cannot be updated mid-session.
-  // We MUST inject identity context after ANY handoff to override the original instructions.
-  const lastHandoff = getLastHandoff();
-  const handoffOccurredRecently = lastHandoff && Date.now() - lastHandoff.timestamp < 60000;
-
-  // If we're not the coordinator AND a handoff occurred recently, reinforce identity
-  if (!isCoach(activeAgentId) && handoffOccurredRecently) {
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are ${persona.name}. This is WHO YOU ARE.
-- You are NOT Ferni. You are NOT the coordinator.
-- Your name is ${persona.name}. Say "${persona.name}" if asked who you are.
-- Your current identity determines your personality, tools, and expertise.
-=== END IDENTITY ===`;
-    }
-  } else if (isCoach(activeAgentId) && handoffOccurredRecently) {
-    // Returned to Ferni - still need reinforcement if handoff was recent
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are FERNI, the life coach and team coordinator.
-- You are NOT the previous specialist. You've returned to your coach role.
-=== END IDENTITY ===`;
-    }
-  } else if (!isSamePersona(activeAgentId, sessionPersonaId) && !isCoach(activeAgentId)) {
-    // Fallback: ID mismatch detected (shouldn't happen after the fix above, but keep for safety)
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are ${persona.name}. This is WHO YOU ARE.
-- If asked "who are you?" respond with your CURRENT identity.
-=== END IDENTITY ===`;
-    }
-  }
-
-  return {
-    needsReinforcement,
-    injection,
-    activeAgentId,
-    sessionPersonaId,
-  };
-}
-
-// ============================================================================
-// HUMANIZING CONTEXT
-// ============================================================================
-
-/**
- * Build humanizing context (voice emotion, inner world, mood)
- */
-function buildHumanizingContextForTurn(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): HumanizingResult | null {
-  const { persona, bundleRuntime, services, userData, userText } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-
-  try {
-    const userProfileRelationshipStage = services.userProfile?.relationshipStage;
-    const { previousRelationshipStage } = userData;
-
-    const humanizingContext = {
-      persona,
-      bundleRuntime,
-      voiceEmotion: userData.voiceEmotion || null,
-      textEmotion: analysis.emotion
-        ? {
-            primary: analysis.emotion.primary,
-            confidence: analysis.emotion.confidence || 0.7,
-            valence: analysis.emotion.valence || 'neutral',
-            distressLevel: analysis.emotion.distressLevel,
-            intensity: analysis.emotion.intensity || 0.5,
-            markers: analysis.emotion.markers || [],
-            suggestedTone: (analysis.emotion.suggestedTone || 'neutral') as
-              | 'warm'
-              | 'gentle'
-              | 'enthusiastic'
-              | 'calm'
-              | 'serious'
-              | 'friendly'
-              | 'reassuring'
-              | 'informative'
-              | 'measured',
-          }
-        : null,
-      userMessage: userText,
-      currentTopic,
-      recentTopics: analysis.topics.detected,
-      turnCount: userData.turnCount || 0,
-      sessionCount: services.userProfile?.totalConversations || 1,
-      userName: userData.name,
-      isVulnerableMoment: analysis.emotion.distressLevel > 0.5,
-      userEmotionIntensity: analysis.emotion.intensity,
-      totalTurns: services.userProfile?.totalConversations
-        ? services.userProfile.totalConversations * 10 + (userData.turnCount || 0)
-        : userData.turnCount || 0,
-      sharedVulnerabilities: Math.min((services.userProfile?.totalConversations || 0) / 3, 5),
-      celebratedTogether: Math.min((services.userProfile?.totalConversations || 0) / 5, 3),
-      difficultConversations: Math.min((services.userProfile?.totalConversations || 0) / 8, 2),
-      userProfileRelationshipStage,
-      previousRelationshipStage,
-      usedShareTags: userData.usedShareTags || [],
-      spontaneousShareCount: userData.spontaneousShareCount || 0,
-      lastMood: userData.lastMood,
-      // Personal theme tracking (prevents "always talks about Wyoming/Japan/book")
-      mentionedPersonalThemes: userData.mentionedPersonalThemes || new Set<string>(),
-    };
-
-    const result = buildHumanizingContext(humanizingContext);
-
-    // Update userData with tracking
-    if (userData) {
-      userData.usedShareTags = result.usedTags;
-      if (result.spontaneousShare) {
-        userData.spontaneousShareCount = (userData.spontaneousShareCount || 0) + 1;
-      }
-      userData.lastMood = result.mood.state;
-      userData.previousRelationshipStage = result.relationship.stage;
-
-      // Track personal themes from inner world content (prevents "always talks about Wyoming")
-      if (result.innerWorldContent && result.innerWorldContent.length > 0) {
-        const mentionedThemes = userData.mentionedPersonalThemes || new Set<string>();
-        for (const content of result.innerWorldContent) {
-          const themes = extractPersonalThemes(content.content);
-          themes.forEach((theme) => mentionedThemes.add(theme));
-        }
-        userData.mentionedPersonalThemes = mentionedThemes;
-        if (mentionedThemes.size > 0) {
-          ctx.logger.debug(
-            { themes: Array.from(mentionedThemes) },
-            '🏔️ Personal themes tracked (prevents repetition)'
-          );
-        }
-      }
-    }
-
-    // Check for mood shift
-    const topicWeight =
-      analysis.emotion.distressLevel > 0.6
-        ? ('heavy' as const)
-        : analysis.emotion.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
-
-    if (shouldMoodShift(result.mood, analysis.emotion.primary, topicWeight)) {
-      const newMoodState = getMoodShift(
-        result.mood.state,
-        `${analysis.emotion.primary}_${topicWeight}`
-      );
-      ctx.logger.info(
-        { from: result.mood.state, to: newMoodState, reason: topicWeight },
-        '🌤️ Mood shifting'
-      );
-      if (userData) {
-        userData.lastMood = newMoodState;
-      }
-    }
-
-    ctx.logger.info({ summary: getHumanizingSummary(result) }, '🎭 Humanizing context built');
-
-    // Debug logging
-    logHumanizingResult(result, userText);
-    logValidation(result);
-
-    return result;
-  } catch (error) {
-    ctx.logger.warn({ error: String(error) }, 'Humanizing context failed (non-fatal)');
-    return null;
-  }
-}
-
-// ============================================================================
-// BUNDLE RUNTIME PROCESSING
-// ============================================================================
-
-/**
- * Process bundle runtime behaviors (modes, situations, pushback)
- */
-function processBundleRuntime(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): BundleRuntimeContext | undefined {
-  const { bundleRuntime, userData, userText } = ctx;
-  const { analysis } = analysisResult;
-
-  if (!bundleRuntime) return undefined;
-
-  // Increment turn
-  bundleRuntime.incrementTurn();
-
-  // Detect mode
-  const previousMode = bundleRuntime.getState().currentMode;
-  const newMode = bundleRuntime.detectAndSetMode(
-    userText,
-    analysis.emotion.distressLevel > 0.6
-      ? 'high_distress'
-      : analysis.emotion.primary === 'joy'
-        ? 'high_energy_positive'
-        : undefined
-  );
-
-  const result: BundleRuntimeContext = {
-    currentMode: newMode,
-    previousMode: newMode !== previousMode ? previousMode : undefined,
-  };
-
-  // Mode transition
-  if (newMode !== previousMode) {
-    result.modeTransitionPhrase =
-      bundleRuntime.getModeTransitionPhrase(previousMode, newMode) || undefined;
-
-    // Sync to userData
-    if (userData?.bundleRuntimeState) {
-      userData.bundleRuntimeState.currentMode = newMode;
-      userData.bundleRuntimeState.lastModeTransition = `${previousMode}_to_${newMode}`;
-    }
-  }
-
-  // Check situational responses
-  const lowerText = userText.toLowerCase();
-
-  const celebrationKeywords = [
-    'promotion',
-    'got the job',
-    'engaged',
-    'married',
-    'pregnant',
-    'retired',
-    'graduated',
-    'paid off',
-  ];
-  const condolenceKeywords = [
-    'died',
-    'passed away',
-    'cancer',
-    'lost my',
-    'funeral',
-    'divorce',
-    'laid off',
-    'fired',
-  ];
-
-  for (const keyword of celebrationKeywords) {
-    if (lowerText.includes(keyword)) {
-      const situation = keyword.includes('job')
-        ? 'job_promotion'
-        : keyword.includes('engaged')
-          ? 'engagement'
-          : keyword.includes('pregnant')
-            ? 'baby_news'
-            : keyword.includes('retired')
-              ? 'retirement'
-              : keyword.includes('graduated')
-                ? 'graduation'
-                : keyword.includes('paid off')
-                  ? 'paid_off_debt'
-                  : 'general_good_news';
-
-      const response = bundleRuntime.getSituationalResponse('celebrations', situation);
-      if (response) {
-        result.situationalResponse = {
-          type: 'celebration',
-          situation,
-          response: response.immediate,
-        };
-        bundleRuntime.applyProgressionTrigger('celebrated_together');
-      }
-      break;
-    }
-  }
-
-  for (const keyword of condolenceKeywords) {
-    if (lowerText.includes(keyword)) {
-      const situation =
-        keyword.includes('died') || keyword.includes('passed')
-          ? 'death_family_member'
-          : keyword.includes('cancer')
-            ? 'health_diagnosis'
-            : keyword.includes('divorce')
-              ? 'divorce_breakup'
-              : keyword.includes('laid off') || keyword.includes('fired')
-                ? 'job_loss'
-                : 'general_loss';
-
-      const response = bundleRuntime.getSituationalResponse('condolences', situation);
-      if (response) {
-        result.situationalResponse = {
-          type: 'condolence',
-          situation,
-          response: response.immediate,
-          avoidPhrases: response.dontSay,
-        };
-        bundleRuntime.applyProgressionTrigger('shared_vulnerability');
-      }
-      break;
-    }
-  }
-
-  // Check pushback
-  const pushback = bundleRuntime.detectPushback(userText);
-  if (pushback) {
-    result.pushbackDetected = {
-      type: pushback.type,
-      response: pushback.response,
-    };
-  }
-
-  return result;
-}
+// NOTE: buildHumanizingContextForTurn moved to humanizing-context-builder.ts
+// NOTE: processBundleRuntime moved to bundle-runtime-processor.ts
 
 // ============================================================================
 // CONTEXT INJECTION BUILDING
@@ -1624,75 +842,8 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
  * 3. Conversational Repair - Recover from miscommunication
  * 4. Hope Injection - Subtle forward-looking language
  * 5. Curiosity Engine - Genuine interest in their life
- * 6. Energy Regulation - Lead vs match energy
- * 7. Micro-Affirmations - Tiny validations throughout
- * 8. Temporal Context - Life rhythm awareness
- * 9. Relationship Events - Track milestones
- * 10. Paradoxical Intervention - Know when advice backfires
+ * NOTE: processAdvancedHumanization moved to advanced-humanization.ts
  */
-async function processAdvancedHumanization(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: EmotionalState
-): Promise<AdvancedHumanizationInjectionResult | null> {
-  const { services, userData } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-
-  // Determine relationship depth from profile
-  // Map from UserProfile's RelationshipStage to advanced humanization's depth
-  let relationshipDepth: 'new' | 'developing' | 'established' | 'deep' = 'developing';
-  const stage = services.userProfile?.relationshipStage;
-  if (stage) {
-    const stageStr = String(stage).toLowerCase();
-    if (stageStr.includes('new') || stageStr.includes('stranger')) {
-      relationshipDepth = 'new';
-    } else if (
-      stageStr.includes('acquaint') ||
-      stageStr.includes('getting') ||
-      stageStr.includes('building')
-    ) {
-      relationshipDepth = 'developing';
-    } else if (stageStr.includes('friend') || stageStr.includes('established')) {
-      relationshipDepth = 'established';
-    } else if (
-      stageStr.includes('trusted') ||
-      stageStr.includes('old') ||
-      stageStr.includes('deep')
-    ) {
-      relationshipDepth = 'deep';
-    }
-  }
-
-  try {
-    const result = await buildAdvancedHumanizationInjections({
-      sessionId: services.sessionId,
-      userId: services.userId || 'anonymous',
-      userText: ctx.userText,
-      turnCount: userData.turnCount || 0,
-      detectedEmotion: analysis.emotion.primary,
-      valence:
-        analysis.emotion.valence === 'positive'
-          ? 0.5
-          : analysis.emotion.valence === 'negative'
-            ? -0.5
-            : 0,
-      arousal: analysis.emotion.intensity || 0.5,
-      topic: currentTopic,
-      relationshipDepth,
-      prosodyHints: userData.voiceEmotion
-        ? {
-            speechRate: userData.voiceEmotion.confidence, // Use as proxy
-            volume: userData.voiceEmotion.confidence || 0.5, // Use confidence as proxy for volume too
-          }
-        : undefined,
-    });
-
-    return result;
-  } catch (error) {
-    diag.warn('Advanced humanization failed (non-fatal)', { error: String(error) });
-    return null;
-  }
-}
 
 // ============================================================================
 // MAIN TURN PROCESSOR

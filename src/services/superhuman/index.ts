@@ -184,6 +184,20 @@ export {
   type PersonalDate,
 } from './seasonal-awareness.js';
 
+// Jordan ↔ Alex Coordinator (Cross-Persona)
+export {
+  findOptimalMilestoneWindows,
+  suggestTimeBlocks,
+  detectMilestoneConflicts,
+  getCapacityForNewMilestone,
+  getCoordinationContext,
+  type TimeWindow,
+  type MilestoneConflict,
+  type CapacityAssessment,
+  type MilestoneTimeBlock,
+  type SimpleMilestone,
+} from './jordan-alex-coordinator.js';
+
 // ============================================================================
 // UNIFIED CONTEXT BUILDER
 // ============================================================================

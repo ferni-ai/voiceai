@@ -21,21 +21,24 @@ import type { VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // Voice and Auth imports
-import { authenticateNaturally, type AuthContext } from '../natural-auth.js';
-import { identifyFromMetadata, type IdentificationResult } from '../user-identification.js';
+import { authenticateNaturally, type AuthContext } from '../identity/natural-auth.js';
+import {
+  identifyFromMetadata,
+  type IdentificationResult,
+} from '../identity/user-identification.js';
 import {
   ContinuousAuthenticator,
   identifySpeaker,
   verifyUser,
   type VerificationResult,
   type VoiceProfile,
-} from '../voice-enrollment.js';
+} from '../voice/voice-enrollment.js';
 import {
   loadAllVoiceProfiles,
   loadVoiceProfile,
   recordVerification,
   saveVoiceProfile,
-} from '../voice-profile-store.js';
+} from '../voice/voice-profile-store.js';
 
 // Trust and Contact imports
 import { completeOnboarding, detectContactInfo } from '../contact-onboarding.js';
@@ -536,7 +539,7 @@ export async function endIdentitySession(sessionId: string): Promise<void> {
   if (session.voiceProfile && session.newVoiceSamples.length > 0) {
     try {
       // Import updateProfile to add new samples to existing profile
-      const { updateProfile } = await import('../voice-enrollment.js');
+      const { updateProfile } = await import('../voice/voice-enrollment.js');
       const { extractSpeakerEmbedding } = await import('../voice-memory-enhanced.js');
 
       // Convert audio samples to enrollment samples
@@ -575,7 +578,7 @@ export async function endIdentitySession(sessionId: string): Promise<void> {
   if (!session.voiceProfile && session.shouldEnrollVoice && session.voiceSamplesCollected >= 5) {
     try {
       const { startEnrollmentSession, addEnrollmentSample, completeEnrollment } =
-        await import('../voice-enrollment.js');
+        await import('../voice/voice-enrollment.js');
 
       const enrollmentSession = startEnrollmentSession(session.userId, { requiredSamples: 5 });
 

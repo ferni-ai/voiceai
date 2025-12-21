@@ -85,65 +85,55 @@ const RELATIONSHIP_MULTIPLIERS: Record<string, number> = {
 };
 
 // ============================================================================
-// PHRASE LIBRARIES (Organized by Context)
+// DEPRECATED: STATIC PHRASE LIBRARIES
+// ============================================================================
+//
+// These static phrase pools have been replaced by LLM behavioral guidance.
+// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+//
+// The new approach:
+// - Don't give the LLM phrases to repeat
+// - Guide it on INTENT and let it generate naturally
+// - Match energy and context, not templates
+//
+// The phrase pools below are kept for backward compatibility but return
+// empty strings. The LLM will generate natural speech based on context.
 // ============================================================================
 
 /**
- * Processing phrases organized by trigger type and weight
- *
- * PHILOSOPHY: These should be CONVERSATIONAL, not "meta" about thinking.
- * Bad: "Let me think..." (robotic, breaks immersion)
- * Good: "Yeah, so..." (natural, continues conversation)
- *
- * The goal is to maintain conversational flow, not announce processing.
+ * @deprecated REMOVED - LLM generates natural speech from behavioral guidance
+ * Kept for backward compatibility, returns empty strings.
  */
 const PROCESSING_PHRASES: Record<ProcessingType, Record<ProcessingWeight, string[]>> = {
   thinking: {
-    // Light: Brief acknowledgments that continue flow
-    light: ['Yeah...', 'So...', 'Okay...', 'Right...'],
-    // Medium: Engaged responses that show you're processing the substance
-    medium: [
-      "That's interesting.",
-      'Yeah, I hear you.',
-      "Okay, so here's the thing...",
-      'You know what...',
-    ],
-    // Heavy: Emotionally present responses for weighty topics
-    heavy: ["That's real.", 'Yeah... that makes sense.', 'I feel you on that.', "That's a lot."],
+    light: [''], // Empty - LLM decides naturally
+    medium: [''],
+    heavy: [''],
   },
   emotional: {
-    light: ['I hear you.', 'Yeah.', 'Mm.'],
-    medium: ["I'm with you.", 'That makes sense.', 'I feel that.'],
-    heavy: ["That's heavy.", "I'm here.", 'Take your time.', "I'm not going anywhere."],
+    light: [''],
+    medium: [''],
+    heavy: [''],
   },
   tool_call: {
-    // Light: Quick, casual - like checking your phone mid-conversation
-    light: ['One sec.', 'Oh!', 'Ooh.'],
-    // Medium: Engaged curiosity
-    medium: ['Ooh, let me check.', 'Yeah, one sec.', 'Oh nice, let me see.'],
-    // Heavy: Purposeful action
-    heavy: ['Okay, give me a second here.', "Yeah, I'm on it.", 'Let me dig into this.'],
+    light: [''],
+    medium: [''],
+    heavy: [''],
   },
   memory_recall: {
-    // More conversational - like naturally remembering mid-conversation
-    light: ['Oh yeah...', 'Right, so...', 'You mentioned...'],
-    medium: ['Oh, you know what...', 'Actually...', 'Right, I remember...'],
-    heavy: [
-      'Oh yeah, this connects to something...',
-      'Wait, this reminds me...',
-      "Actually, there's something here...",
-    ],
+    light: [''],
+    medium: [''],
+    heavy: [''],
   },
   after_tool_result: {
-    light: ['Nice.', 'Okay so...', 'Alright.'],
-    medium: ['Oh interesting.', 'Okay, so...', 'Huh.'],
-    heavy: ["Okay, there's a lot here.", 'Alright, so...', 'Oh wow.'],
+    light: [''],
+    medium: [''],
+    heavy: [''],
   },
   context_loading: {
-    // Virtually silent - just brief presence signals
-    light: ['Mm.', '...'],
-    medium: ['One sec.', 'Okay...'],
-    heavy: ['Bear with me.', 'One moment.'],
+    light: [''],
+    medium: [''],
+    heavy: [''],
   },
 };
 
@@ -399,106 +389,59 @@ export function getContextLoadingProcessing(weight: ProcessingWeight = 'light'):
 }
 
 // ============================================================================
-// PERSONA-SPECIFIC OVERRIDES
+// DEPRECATED: PERSONA-SPECIFIC PHRASE OVERRIDES
+// ============================================================================
+//
+// These persona-specific phrases have been replaced by LLM behavioral guidance.
+// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+//
+// The LLM now generates persona-appropriate speech naturally based on:
+// 1. Persona identity (system prompt)
+// 2. Behavioral guidance (dynamic-speech-guidance.ts)
+// 3. Conversation context
+//
+// The phrase pools below are kept for backward compatibility but return
+// empty strings.
 // ============================================================================
 
 /**
- * Persona-specific phrase overrides
- * These ADD to the base phrases for specific personas
- *
- * RULE: Keep these CONVERSATIONAL, not meta about processing.
- * Each persona should have their own natural speech pattern.
+ * @deprecated REMOVED - LLM generates persona-appropriate speech naturally
+ * Kept for backward compatibility, returns empty strings.
  */
 const PERSONA_OVERRIDES: Record<
   string,
   Partial<Record<ProcessingType, Partial<Record<ProcessingWeight, string[]>>>>
 > = {
   ferni: {
-    thinking: {
-      medium: ["That's real.", 'Yeah...', "You know what's interesting about that..."],
-      heavy: ['Wow.', "That's... yeah.", 'I feel that.'],
-    },
-    emotional: {
-      heavy: ["I'm here.", "I'm not going anywhere.", 'Take your time.'],
-    },
-    memory_recall: {
-      medium: ['Oh, you mentioned...', 'Right, so...', 'Actually...'],
-      heavy: ['Oh, this connects...', "Wait, there's something here..."],
-    },
+    thinking: { medium: [''], heavy: [''] },
+    emotional: { heavy: [''] },
+    memory_recall: { medium: [''], heavy: [''] },
   },
   maya: {
-    thinking: {
-      light: ['Okay so...', 'Right...'],
-      medium: ["Yeah, here's the thing...", 'So actually...'],
-    },
-    tool_call: {
-      light: ['One sec.', 'Oh!'],
-      medium: ['Ooh, let me check.', 'Yeah, one sec.'],
-    },
-    emotional: {
-      medium: ['I hear you.', "That's real."],
-      heavy: ["I've got you.", "We're in this together."],
-    },
+    thinking: { light: [''], medium: [''] },
+    tool_call: { light: [''], medium: [''] },
+    emotional: { medium: [''], heavy: [''] },
   },
   peter: {
-    thinking: {
-      light: ['Interesting.', 'Hm.'],
-      medium: ['Oh, that reminds me...', "You know what's fascinating..."],
-    },
-    tool_call: {
-      light: ['One sec.', 'Oh!'],
-      medium: ['Ooh, let me see.', 'Yeah, hang on.'],
-      heavy: ['Okay, this is interesting...', 'Alright, so...'],
-    },
-    memory_recall: {
-      medium: ['You know, actually...', 'Right, so...'],
-    },
+    thinking: { light: [''], medium: [''] },
+    tool_call: { light: [''], medium: [''], heavy: [''] },
+    memory_recall: { medium: [''] },
   },
   nayan: {
-    thinking: {
-      medium: ['Mm.', "That's worth sitting with."],
-      heavy: ['That touches something.', 'Mm... yes.'],
-    },
-    emotional: {
-      medium: ['I understand.', 'Yes.'],
-      heavy: ['The heart knows.', 'Be gentle with yourself.'],
-    },
-    memory_recall: {
-      heavy: ['This connects to something you shared...', 'Mm, yes...'],
-    },
+    thinking: { medium: [''], heavy: [''] },
+    emotional: { medium: [''], heavy: [''] },
+    memory_recall: { heavy: [''] },
   },
   jordan: {
-    thinking: {
-      light: ['Ooh!', 'Oh!'],
-      medium: ['Ooh, okay so...', "Yeah, here's the thing!"],
-      heavy: ['Okay, wow!', 'Yeah, that hits.'],
-    },
-    tool_call: {
-      light: ['Ooh!', 'Oh!'],
-      medium: ['On it!', 'Ooh, let me see.'],
-    },
-    emotional: {
-      medium: ["I'm here for this!", 'Yeah!'],
-      heavy: ['Wow.', "I'm feeling this with you."],
-    },
+    thinking: { light: [''], medium: [''], heavy: [''] },
+    tool_call: { light: [''], medium: [''] },
+    emotional: { medium: [''], heavy: [''] },
   },
   alex: {
-    thinking: {
-      light: ['Mm.', 'Right...'],
-      medium: ['Yeah, so...', 'Okay...'],
-    },
-    tool_call: {
-      light: ['One sec.', 'On it.'],
-      medium: ['Yeah, one sec.', 'Checking.'],
-    },
-    emotional: {
-      medium: ['I hear you.', 'Got it.'],
-      heavy: ["That's heavy. I'm here.", 'Take your time.'],
-    },
-    memory_recall: {
-      light: ['If I recall...', 'From what you said...'],
-      medium: ['Let me pull that up.', 'Based on our conversations...'],
-    },
+    thinking: { light: [''], medium: [''] },
+    tool_call: { light: [''], medium: [''] },
+    emotional: { medium: [''], heavy: [''] },
+    memory_recall: { light: [''], medium: [''] },
   },
 };
 

@@ -37,7 +37,7 @@ export async function handleGetUserAnalytics(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
     const streaks = (await store.getAllStreaks(userId)) as unknown as AnyRecord[];

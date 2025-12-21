@@ -66,6 +66,16 @@ export type BackchannelCategory =
 // ============================================================================
 // SOFT BACKCHANNELS (Ultra-short, for live overlays)
 // ============================================================================
+//
+// NOTE: These are used for LIVE backchanneling during user speech where we
+// cannot wait for LLM generation. However, usage should be minimal:
+// - Live backchannels occur rarely (probability-gated)
+// - The LLM handles substantial acknowledgments in turn responses
+// - See backchannels.json files for guidance-based examples
+//
+// The persona backchannels.json files (schema v7) contain behavioral guidance
+// that teaches the LLM HOW to backchannel contextually.
+// ============================================================================
 
 export const SOFT_BACKCHANNELS: Record<string, Record<BackchannelEmotionType, string[]>> = {
   ferni: {
@@ -179,9 +189,25 @@ export const PERSONA_BACKCHANNEL_STYLE: Record<string, PersonaBackchannelStyle> 
 // ============================================================================
 // ACKNOWLEDGMENT PREFIXES (Added before responses)
 // ============================================================================
+//
+// DEPRECATED: Static phrase pools replaced by LLM behavioral guidance.
+// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+//
+// The new architecture:
+// - Don't inject static acknowledgment prefixes
+// - Let the LLM generate natural acknowledgments based on context
+// - The LLM knows HOW to acknowledge (behavioral guidance) and WHO the persona is
+//
+// The phrase pools below are kept for backward compatibility but return
+// empty strings or minimal pauses. The LLM will generate natural acknowledgments.
+// ============================================================================
 
 export type AcknowledgmentMood = 'neutral' | 'engaged' | 'empathetic' | 'excited' | 'thoughtful';
 
+/**
+ * @deprecated REMOVED - LLM generates natural acknowledgments from behavioral guidance
+ * Kept for backward compatibility, returns empty strings.
+ */
 export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, string[]>> = {
   ferni: {
     neutral: [
@@ -548,18 +574,25 @@ export function getSoftBackchannel(
 
 /**
  * Get acknowledgment prefix for a persona
+ *
+ * @deprecated REMOVED - LLM generates natural acknowledgments from behavioral guidance.
+ * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ *
+ * Returns only a brief pause. The LLM will generate contextually appropriate
+ * acknowledgments naturally based on what the user said and the persona's identity.
  */
 export function getAcknowledgmentPrefix(
   personaId: string,
   mood: AcknowledgmentMood = 'neutral'
 ): string {
-  const normalized = normalizePersonaId(personaId);
-  const prefixes = ACKNOWLEDGMENT_PREFIXES[normalized];
-  if (!prefixes) {
-    return `${breakTag('200ms')}`;
-  }
-  const moodPrefixes = prefixes[mood] || prefixes.neutral;
-  return moodPrefixes[Math.floor(Math.random() * moodPrefixes.length)];
+  // DEPRECATED: No longer return static phrases
+  // The LLM generates natural acknowledgments based on:
+  // 1. What the user actually said
+  // 2. The persona's identity and voice
+  // 3. Behavioral guidance from dynamic-speech-guidance.ts
+  //
+  // Return only a brief pause for natural speech pacing
+  return breakTag('150ms');
 }
 
 /**

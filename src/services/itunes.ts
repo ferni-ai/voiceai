@@ -157,6 +157,19 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
  * Returns the track with preview URL, or null if not found.
  */
 export async function findTrack(query: string): Promise<MusicSearchResult> {
+  // 🐛 FIX: Check circuit breaker BEFORE calling searchItunes
+  // If circuit is open, return a more informative error message
+  if (!itunesCircuitBreaker.canRequest()) {
+    log.warn(
+      { query, circuitState: 'OPEN' },
+      '🎵 [DIAG] iTunes circuit breaker OPEN - returning service unavailable message'
+    );
+    return {
+      found: false,
+      error: 'Music search is temporarily having issues. Try again in a few seconds?',
+    };
+  }
+
   const results = await searchItunes(query, 5);
 
   if (results.resultCount === 0) {

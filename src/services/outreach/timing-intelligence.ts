@@ -1057,7 +1057,8 @@ export async function checkCalendarBeforeOutreach(
 }> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { isUserBusy, getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { isUserBusy, getCalendarBusyProfile } =
+      await import('../scheduling/calendar-busy-detection.js');
 
     const busyCheck = await isUserBusy(userId);
 

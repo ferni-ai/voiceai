@@ -21,7 +21,7 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-vi.mock('../../services/reminder-scheduler.js', () => ({
+vi.mock('../../services/scheduling/reminder-scheduler.js', () => ({
   createVoiceMessage: mockCreateVoiceMessage,
   sendVoiceMessage: mockSendVoiceMessage,
   // Unused by this suite but imported by module

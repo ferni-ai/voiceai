@@ -13,7 +13,7 @@ import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Import metrics for observability
-import { persistenceMetrics } from './persistence-metrics.js';
+import { persistenceMetrics } from './analytics/persistence-metrics.js';
 
 // Intelligence Engines
 import {

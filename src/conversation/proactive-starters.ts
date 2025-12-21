@@ -13,7 +13,15 @@
  */
 
 import type { PersonaConfig } from '../personas/types.js';
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger();
 
 // ============================================================================
 // TYPES
@@ -94,6 +102,7 @@ function daysSinceLastConversation(lastDate: Date): number {
 
 /**
  * Generate a proactive conversation opener
+ * Now LLM-powered with template fallback!
  */
 export function generateProactiveOpener(
   persona: PersonaConfig,
@@ -102,7 +111,36 @@ export function generateProactiveOpener(
   // Determine opener type based on context
   const openerType = determineOpenerType(context);
 
-  // Generate appropriate opener
+  // Try LLM-generated opener first (from cache)
+  const llmContext: ContentContext = {
+    contentType: 'proactive_starter',
+    personaId: persona.id,
+    topic: context.lastConversationSummary || context.openQuestions?.[0],
+    metadata: {
+      timeOfDay: getTimeOfDay(),
+      isReturning: context.isReturningUser,
+      userName: context.userName,
+      relationshipStage: context.lastConversationDate
+        ? daysSinceLastConversation(context.lastConversationDate) < 7
+          ? 'familiar'
+          : 'reconnecting'
+        : 'new',
+      openerType,
+    },
+  };
+
+  const llmContent = getContentWithFallback(llmContext);
+  if (llmContent.source === 'llm' && llmContent.content) {
+    log.debug({ source: 'llm', type: openerType }, '👋 Using LLM-generated opener');
+    return {
+      greeting: llmContent.content,
+      reason: 'LLM-generated contextual opener',
+      type: openerType,
+      ssmlTagged: false,
+    };
+  }
+
+  // Fallback to template-based generation
   switch (openerType) {
     case 'intention_followup':
       return generateIntentionFollowupOpener(persona, context);
@@ -126,6 +164,46 @@ export function generateProactiveOpener(
     default:
       return generateFirstMeetingOpener(persona, context);
   }
+}
+
+/**
+ * Generate a proactive opener asynchronously with LLM
+ */
+export async function generateProactiveOpenerAsync(
+  persona: PersonaConfig,
+  context: OpenerContext
+): Promise<ConversationOpener> {
+  const openerType = determineOpenerType(context);
+
+  const llmContext: ContentContext = {
+    contentType: 'proactive_starter',
+    personaId: persona.id,
+    topic: context.lastConversationSummary || context.openQuestions?.[0],
+    metadata: {
+      timeOfDay: getTimeOfDay(),
+      isReturning: context.isReturningUser,
+      userName: context.userName,
+      relationshipStage: context.lastConversationDate
+        ? daysSinceLastConversation(context.lastConversationDate) < 7
+          ? 'familiar'
+          : 'reconnecting'
+        : 'new',
+      openerType,
+    },
+  };
+
+  const llmContent = await generateContent(llmContext);
+  if (llmContent && llmContent.content) {
+    log.debug({ source: 'llm-async', type: openerType }, '👋 Generated async LLM opener');
+    return {
+      greeting: llmContent.content,
+      reason: 'LLM-generated contextual opener',
+      type: openerType,
+      ssmlTagged: false,
+    };
+  }
+
+  return generateProactiveOpener(persona, context);
 }
 
 function determineOpenerType(context: OpenerContext): OpenerType {

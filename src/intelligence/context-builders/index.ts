@@ -24,8 +24,8 @@ import type {
   ContextBuilderInput,
   ContextInjection,
   ContextPriority,
-} from './types.js';
-import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
+} from './core/types.js';
+import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './core/categories.js';
 import {
   checkPerformanceIssues,
   getMetricsSummary,
@@ -218,7 +218,7 @@ export type {
   VoiceEmotionResult,
   PersonaConfig,
   UserProfile,
-} from './types.js';
+} from './core/types.js';
 
 // Re-export categories and metrics
 export {
@@ -226,10 +226,12 @@ export {
   BuilderCategory,
   getBuilderCategory,
   getBuildersInCategory,
-} from './categories.js';
+  getCategoryMetadata,
+  validateBuilderPriorities,
+} from './core/categories.js';
 
 // Import for internal use
-import { BuilderCategory as BC } from './categories.js';
+import { BuilderCategory as BC } from './core/categories.js';
 export {
   checkPerformanceIssues,
   getAllBuilderMetrics,
@@ -950,10 +952,10 @@ export {
   getLoadingStatus,
   reloadBuilders,
   type BuilderLoadReport,
-} from './loader.js';
+} from './core/loader.js';
 
 // Import for internal use
-import { ensureBuildersLoaded } from './loader.js';
+import { ensureBuildersLoaded } from './core/loader.js';
 
 // ============================================================================
 // CONVERSATION HUMANIZING CONTEXT BUILDER
@@ -964,13 +966,13 @@ export {
   buildConversationHumanizingContext,
   formatConversationHumanizingForPrompt,
   getHumanizingSummary as getConversationHumanizingSummary,
-} from './conversation-humanizing.js';
+} from './humanization/conversation-humanizing.js';
 
 // ============================================================================
 // RNG UTILITIES FOR DETERMINISTIC BEHAVIOR
 // ============================================================================
 
-export { createBuilderRng, createSimpleRng, type BuilderRng } from './rng-utils.js';
+export { createBuilderRng, createSimpleRng, type BuilderRng } from './core/rng-utils.js';
 
 // ============================================================================
 // SESSION CLEANUP (Memory Leak Prevention)
@@ -1007,7 +1009,7 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear superhuman insights session state
   try {
-    const { clearSuperhumanInsightsSession } = await import('./superhuman-insights.js');
+    const { clearSuperhumanInsightsSession } = await import('./superhuman/superhuman-insights.js');
     clearSuperhumanInsightsSession(sessionId);
   } catch {
     /* module not loaded */
@@ -1041,7 +1043,8 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all superhuman insights sessions
   try {
-    const { clearAllSuperhumanInsightsSessions } = await import('./superhuman-insights.js');
+    const { clearAllSuperhumanInsightsSessions } =
+      await import('./superhuman/superhuman-insights.js');
     clearAllSuperhumanInsightsSessions();
   } catch {
     /* module not loaded */

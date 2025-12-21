@@ -11,7 +11,9 @@ Context builders inject guidance into each conversation turn. They analyze the c
 
 ## Reference Docs
 - Architecture: `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md`
+- Dynamic Triggers: `docs/architecture/DYNAMIC-TRIGGER-SYSTEM.md` (proactive behavior activation)
 - Examples: See `emotional.ts`, `memory.ts`, `crisis.ts` in this directory
+- Trigger Utils: `dynamic-trigger-utils.ts` (condition-based trigger matching)
 
 ## Quick Start
 

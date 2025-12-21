@@ -15,7 +15,7 @@ import {
   type MedicationData,
   type NoteData,
   type RoutineData,
-} from '../services/productivity-store.js';
+} from '../services/stores/productivity-store.js';
 
 describe('ProductivityStore', () => {
   let store: ReturnType<typeof getProductivityStore>;

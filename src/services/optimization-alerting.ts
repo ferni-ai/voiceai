@@ -120,7 +120,7 @@ class OptimizationAlertingService {
       // Import services dynamically
       const [{ toolUsageAnalytics }, { feedbackCollector }, { recommendationEngine }] =
         await Promise.all([
-          import('./tool-usage-analytics.js'),
+          import('./analytics/tool-usage-analytics.js'),
           import('../tools/feedback-collector.js'),
           import('../tools/recommendation-engine.js'),
         ]);

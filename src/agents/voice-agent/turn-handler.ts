@@ -24,7 +24,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
+import { getThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
 import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
 import type { UserData } from '../shared/types.js';
@@ -38,6 +38,15 @@ import {
 } from './turn-personality.js';
 import { dispatchAllTurnEvents, type EventDispatchContext } from './turn-events.js';
 import { recordAllLearningData, type LearningContext } from './turn-learning.js';
+
+// Performance optimization imports
+import {
+  getTurnProfiler,
+  startTurnProfiling,
+  markTurnCheckpoint,
+  completeTurnProfiling,
+} from '../shared/performance/turn-profiler.js';
+import { speculateTTS } from '../shared/performance/speculative-tts.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -142,6 +151,12 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   }
 
   // ================================================================
+  // PERFORMANCE: Start turn profiling
+  // ================================================================
+  const turnNumber = userData.turnCount || 1;
+  startTurnProfiling(services.sessionId, turnNumber);
+
+  // ================================================================
   // EXTENSIBILITY: Slash command detection
   // ================================================================
   const trimmedText = userText.trim();
@@ -184,24 +199,14 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       fillerTimeout = setTimeout(() => {
         if (!spokeFiller && currentSession) {
           spokeFiller = true;
-          const filler = getContextAwareThinkingFiller(persona.id, {
-            type: 'thinking',
-            weight:
-              userData.lastEmotionAnalysis?.intensity &&
-              userData.lastEmotionAnalysis.intensity > 0.7
-                ? 'heavy'
-                : userData.lastEmotionAnalysis?.intensity &&
-                    userData.lastEmotionAnalysis.intensity > 0.4
-                  ? 'medium'
-                  : 'light',
-            emotionalState: userData.lastEmotionAnalysis,
-            hourOfDay: new Date().getHours(),
-            relationshipStage: userData.relationshipStage,
-          });
+          // DEAD AIR FIX: Use getThinkingFiller for actual verbal content
+          // getContextAwareThinkingFiller returns empty strings (by design for LLM responses)
+          // But dead air prevention NEEDS verbal content like "Mm", "Yeah", "So..."
+          const filler = getThinkingFiller(persona.id);
           currentSession.say(filler, { allowInterruptions: true });
-          diag.filler('Spoke context-aware thinking filler', {
+          diag.filler('Spoke dead air thinking filler', {
             personaId: persona.id,
-            emotionalContext: userData.lastEmotionAnalysis?.primary,
+            filler,
             timeoutMs: PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT,
           });
         }
@@ -225,6 +230,24 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     });
 
     void fillerPromise;
+
+    // ================================================================
+    // PERFORMANCE: Mark analysis complete, trigger speculative TTS
+    // ================================================================
+    markTurnCheckpoint(services.sessionId, turnNumber, 'analysisComplete');
+
+    // Fire-and-forget: Speculative TTS pre-generation based on emotion/intent
+    // This pre-warms the TTS cache with likely response starters
+    if (result.emotional || result.analysis?.analysis?.intent) {
+      void speculateTTS(services.sessionId, persona.id, {
+        emotion: result.emotional?.primary,
+        intent: result.analysis?.analysis?.intent?.primary,
+        topic: result.analysis?.currentTopic,
+        distressLevel: result.emotional?.distressLevel,
+      }).catch((e) => {
+        diag.debug('Speculative TTS failed (non-critical)', { error: String(e) });
+      });
+    }
 
     // ================================================================
     // 🚨 SAFETY FIRST: Crisis Detection & Override
@@ -387,8 +410,16 @@ You are their lifeline right now. Be fully present.`,
       });
     }
 
+    // ================================================================
+    // PERFORMANCE: Mark context building complete
+    // ================================================================
+    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
+
     // Inject context into LLM
     injectTurnContext(turnCtx, result);
+
+    // Mark LLM start (LLM inference happens after this point)
+    markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
 
     // ================================================================
     // UPDATE SESSION STATE MANAGER
@@ -550,11 +581,30 @@ IMPORTANT:
 
     await recordAllLearningData(learningCtx);
 
+    // ================================================================
+    // PERFORMANCE: Complete turn profiling
+    // ================================================================
+    const turnMetrics = completeTurnProfiling(services.sessionId, turnNumber);
+    if (turnMetrics && (turnMetrics.tier === 'slow' || turnMetrics.tier === 'critical')) {
+      diag.warn('Turn latency above threshold', {
+        totalMs: turnMetrics.latencies.totalTurnMs,
+        bottleneck: turnMetrics.bottleneck.component,
+        tier: turnMetrics.tier,
+      });
+    }
+
     logger.info(
       {
         elapsedMs: result.context.elapsedMs,
         contextCount: result.context.injections.length,
         emotion: result.emotional.primary,
+        turnMetrics: turnMetrics
+          ? {
+              totalMs: turnMetrics.latencies.totalTurnMs,
+              ttfa: turnMetrics.latencies.timeToFirstAudioMs,
+              tier: turnMetrics.tier,
+            }
+          : undefined,
       },
       'Turn processed successfully'
     );

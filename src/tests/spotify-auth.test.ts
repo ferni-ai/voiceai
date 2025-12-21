@@ -35,7 +35,7 @@ describe('Spotify Auth', () => {
       delete process.env.SPOTIFY_CLIENT_ID;
       delete process.env.SPOTIFY_CLIENT_SECRET;
 
-      const { isSpotifyConfigured } = await import('../services/spotify-auth.js');
+      const { isSpotifyConfigured } = await import('../services/identity/spotify-auth.js');
       // Need to reload module to pick up env changes
       vi.resetModules();
 
@@ -44,7 +44,7 @@ describe('Spotify Auth', () => {
     });
 
     it('should be a function that checks configuration', async () => {
-      const { isSpotifyConfigured } = await import('../services/spotify-auth.js');
+      const { isSpotifyConfigured } = await import('../services/identity/spotify-auth.js');
       expect(typeof isSpotifyConfigured).toBe('function');
     });
   });
@@ -54,7 +54,7 @@ describe('Spotify Auth', () => {
       const fs = await import('fs');
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
-      const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
+      const { getSpotifyTokenStatus } = await import('../services/identity/spotify-auth.js');
       vi.resetModules();
 
       // The function should handle missing tokens gracefully
@@ -62,7 +62,7 @@ describe('Spotify Auth', () => {
     });
 
     it('should return token status with expiry info', async () => {
-      const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
+      const { getSpotifyTokenStatus } = await import('../services/identity/spotify-auth.js');
       const status = getSpotifyTokenStatus();
 
       expect(status).toHaveProperty('valid');
@@ -73,17 +73,17 @@ describe('Spotify Auth', () => {
 
   describe('Auto-refresh functionality', () => {
     it('should have startAutoRefresh function', async () => {
-      const { startAutoRefresh } = await import('../services/spotify-auth.js');
+      const { startAutoRefresh } = await import('../services/identity/spotify-auth.js');
       expect(typeof startAutoRefresh).toBe('function');
     });
 
     it('should have stopAutoRefresh function', async () => {
-      const { stopAutoRefresh } = await import('../services/spotify-auth.js');
+      const { stopAutoRefresh } = await import('../services/identity/spotify-auth.js');
       expect(typeof stopAutoRefresh).toBe('function');
     });
 
     it('stopAutoRefresh should be safe to call multiple times', async () => {
-      const { stopAutoRefresh } = await import('../services/spotify-auth.js');
+      const { stopAutoRefresh } = await import('../services/identity/spotify-auth.js');
 
       // Should not throw
       expect(() => {
@@ -96,12 +96,12 @@ describe('Spotify Auth', () => {
 
   describe('Token storage', () => {
     it('should have storeSpotifyTokens function', async () => {
-      const { storeSpotifyTokens } = await import('../services/spotify-auth.js');
+      const { storeSpotifyTokens } = await import('../services/identity/spotify-auth.js');
       expect(typeof storeSpotifyTokens).toBe('function');
     });
 
     it('should have clearSpotifyTokens function', async () => {
-      const { clearSpotifyTokens } = await import('../services/spotify-auth.js');
+      const { clearSpotifyTokens } = await import('../services/identity/spotify-auth.js');
       expect(typeof clearSpotifyTokens).toBe('function');
     });
 
@@ -109,7 +109,7 @@ describe('Spotify Auth', () => {
       const fs = await import('fs');
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
-      const { clearSpotifyTokens } = await import('../services/spotify-auth.js');
+      const { clearSpotifyTokens } = await import('../services/identity/spotify-auth.js');
 
       expect(() => clearSpotifyTokens()).not.toThrow();
     });
@@ -122,7 +122,7 @@ describe('Spotify Auth', () => {
         json: async () => ({ error: 'invalid_grant', error_description: 'Token expired' }),
       });
 
-      const { getSpotifyAccessToken } = await import('../services/spotify-auth.js');
+      const { getSpotifyAccessToken } = await import('../services/identity/spotify-auth.js');
 
       // Should return null on error, not throw
       expect(typeof getSpotifyAccessToken).toBe('function');
@@ -131,7 +131,7 @@ describe('Spotify Auth', () => {
 
   describe('Ensure token fresh', () => {
     it('should have ensureTokenFresh function', async () => {
-      const { ensureTokenFresh } = await import('../services/spotify-auth.js');
+      const { ensureTokenFresh } = await import('../services/identity/spotify-auth.js');
       expect(typeof ensureTokenFresh).toBe('function');
     });
   });
@@ -139,7 +139,7 @@ describe('Spotify Auth', () => {
 
 describe('Spotify Auth API exports', () => {
   it('should export all required functions', async () => {
-    const spotifyAuth = await import('../services/spotify-auth.js');
+    const spotifyAuth = await import('../services/identity/spotify-auth.js');
 
     expect(spotifyAuth).toHaveProperty('getSpotifyAccessToken');
     expect(spotifyAuth).toHaveProperty('isSpotifyConfigured');

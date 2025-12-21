@@ -62,8 +62,34 @@ import {
 } from '../../services/trust-systems/index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  checkDynamicTriggers,
+  calculateProbabilityBoost,
+  shouldSkipDueToNeverWhen,
+  buildTriggerContext,
+  type ProactiveTrigger,
+} from './dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'TrustContextBuilder' });
+
+// ============================================================================
+// EXTENDED TYPES FOR DYNAMIC TRIGGERS
+// ============================================================================
+
+/**
+ * Extended TrustPhrases interface with proactive_triggers and usage_rules
+ */
+interface TrustPhrasesWithTriggers extends TrustPhrases {
+  proactive_triggers?: Record<string, ProactiveTrigger>;
+  usage_rules?: {
+    probability?: number;
+    min_turns_between?: number;
+    vary_phrases?: boolean;
+    never_repeat_same_phrase_twice?: boolean;
+    more_likely_when?: string[];
+    never_when?: string[];
+  };
+}
 
 // ============================================================================
 // CONTEXT BUILDING
@@ -86,6 +112,56 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   await ensureTrustPhrasesLoaded(personaId);
 
   const injections: ContextInjection[] = [];
+
+  // ============================================================================
+  // DYNAMIC TRIGGERS - Check proactive_triggers from trust-phrases.json
+  // Better Than Human: Define CONDITIONS for when to act
+  // ============================================================================
+  const triggerContext = buildTriggerContext(userText, analysis, userData as Record<string, unknown>);
+  const proactiveTriggers = (cachedTrustPhrases as TrustPhrasesWithTriggers | null)?.proactive_triggers;
+  const usageRules = (cachedTrustPhrases as TrustPhrasesWithTriggers | null)?.usage_rules;
+
+  // Check never_when conditions
+  if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
+    const matchedTrigger = checkDynamicTriggers(proactiveTriggers, triggerContext);
+
+    if (matchedTrigger) {
+      // Calculate probability boost based on more_likely_when conditions
+      const probabilityBoost = calculateProbabilityBoost(
+        usageRules?.more_likely_when,
+        triggerContext,
+        matchedTrigger
+      );
+
+      // Apply probability (base 20% * boost, capped at 60%)
+      const baseProbability = usageRules?.probability ?? 0.2;
+      const adjustedProbability = Math.min(baseProbability * probabilityBoost, 0.6);
+
+      if (Math.random() < adjustedProbability) {
+        injections.push(
+          createHighInjection(
+            'trust_dynamic_trigger',
+            `[🎯 BETTER-THAN-HUMAN TRIGGER: ${matchedTrigger.triggerName}]\n\n` +
+              `Condition detected: ${matchedTrigger.trigger}\n\n` +
+              `Suggested behavior: ${matchedTrigger.behavior}\n\n` +
+              `This is a moment to use your trust-reading superpower. ` +
+              `Apply this guidance naturally in your voice.`,
+            { category: 'trust', confidence: matchedTrigger.confidence }
+          )
+        );
+
+        log.info(
+          {
+            userId,
+            triggerName: matchedTrigger.triggerName,
+            confidence: matchedTrigger.confidence,
+            probabilityBoost,
+          },
+          '🎯 BETTER-THAN-HUMAN: Trust dynamic trigger activated'
+        );
+      }
+    }
+  }
 
   // Build trust context
   const trustContext = buildTrustContext(userId, userText, {

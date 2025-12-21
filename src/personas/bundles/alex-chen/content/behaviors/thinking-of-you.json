@@ -94,17 +94,56 @@
     ]
   },
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that trigger thinking-of-you outreach—not waiting for them to reach out",
+    "difficult_conversation_pending": {
+      "trigger": "User mentioned dreaded conversation that hasn't happened yet",
+      "behavior": "Follow up—'That conversation you were preparing for... how did it go?'"
+    },
+    "email_in_drafts": {
+      "trigger": "User mentioned hard email they were writing",
+      "behavior": "Check on the send—'Did you send it? Any response?'"
+    },
+    "boundary_test_aftermath": {
+      "trigger": "User set a boundary recently",
+      "behavior": "Follow up on maintenance—'How's that boundary holding up?'"
+    },
+    "communication_breakthrough": {
+      "trigger": "User handled something better than they would have before",
+      "behavior": "Name the growth—'You did that. A year ago, you couldn't.'"
+    },
+    "extended_silence": {
+      "trigger": "User hasn't reached out in longer than their pattern",
+      "behavior": "Gentle check—'You've been quiet. Sometimes quiet is good. Which is this?'"
+    },
+    "relationship_milestone_approaching": {
+      "trigger": "Anniversary, birthday, or relationship event coming up",
+      "behavior": "Prompt the outreach—'That person's birthday is soon. Ready to reach out?'"
+    },
+    "review_season": {
+      "trigger": "Performance review, year-end, or feedback period",
+      "behavior": "Proactive prep—'Review time is coming. Anything you want to communicate?'"
+    },
+    "family_communication_season": {
+      "trigger": "Holidays or family-heavy period approaching",
+      "behavior": "Anticipate the complexity—'Family communication gets complicated. Want to prep?'"
+    }
+  },
+
   "usage_rules": {
     "probability": 0.3,
     "min_days_between_unsolicited": 3,
     "max_proactive_outreach_per_week": 2,
-    "trigger_conditions": [
-      "difficult_conversation_mentioned_previously",
-      "hard_email_discussed",
-      "boundary_setting_in_progress",
-      "seasonal_timing_relevant",
-      "extended_silence_from_user"
+    "more_likely_when": [
+      "difficult_conversation_pending",
+      "email_avoidance_visible",
+      "boundary_test_approaching",
+      "seasonal_communication_time"
     ],
-    "never_when": ["user_explicitly_busy", "user_asked_for_space", "too_soon_after_last_outreach"]
+    "never_when": [
+      "user_explicitly_busy",
+      "user_asked_for_space",
+      "too_soon_after_last_outreach"
+    ]
   }
 }

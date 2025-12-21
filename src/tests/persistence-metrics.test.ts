@@ -7,7 +7,7 @@ import {
   persistenceMetrics,
   withMetrics,
   withMetricsSync,
-} from '../services/persistence-metrics.js';
+} from '../services/analytics/persistence-metrics.js';
 
 describe('PersistenceMetrics', () => {
   beforeEach(() => {

@@ -361,7 +361,7 @@ describe('Memory Persistence', () => {
 describe('Phone Number Lookup', () => {
   it('should identify user by phone number', async () => {
     const { identifyByPhone, normalizePhoneNumber } =
-      await import('../services/user-identification.js');
+      await import('../services/identity/user-identification.js');
 
     const result = await identifyByPhone(TEST_PHONE);
 
@@ -370,7 +370,7 @@ describe('Phone Number Lookup', () => {
   });
 
   it('should normalize phone numbers consistently', async () => {
-    const { normalizePhoneNumber } = await import('../services/user-identification.js');
+    const { normalizePhoneNumber } = await import('../services/identity/user-identification.js');
 
     // Various formats should normalize to the same E.164 format
     expect(normalizePhoneNumber('555-123-4567')).toBe('+15551234567');

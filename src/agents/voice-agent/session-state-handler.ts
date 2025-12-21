@@ -38,7 +38,7 @@ import {
   generateBackchannelInstructions,
   generateSilenceInstructions,
 } from '../../speech/llm-backchannel.js';
-import { getContextAwareThinkingFiller } from '../../speech/response-naturalness.js';
+import { getThinkingFiller } from '../../speech/persona-phrases.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
@@ -604,29 +604,18 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         if (!conversationManager.isAgentSpeaking()) {
           const timeSinceStop = Date.now() - userStoppedAt;
           if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-            // Use dynamic context-aware filler based on emotional state & time
-            const filler = getContextAwareThinkingFiller(sessionPersona.id, {
-              type: 'thinking',
-              weight:
-                userData.lastEmotionAnalysis?.intensity &&
-                userData.lastEmotionAnalysis.intensity > 0.7
-                  ? 'heavy'
-                  : userData.lastEmotionAnalysis?.intensity &&
-                      userData.lastEmotionAnalysis.intensity > 0.4
-                    ? 'medium'
-                    : 'light',
-              emotionalState: userData.lastEmotionAnalysis,
-              hourOfDay: new Date().getHours(),
-              relationshipStage: userData.relationshipStage,
-            });
+            // DEAD AIR FIX: Use getThinkingFiller for actual verbal content
+            // getContextAwareThinkingFiller returns empty strings (by design for LLM responses)
+            // But dead air prevention NEEDS verbal content like "Mm", "Yeah", "So..."
+            const filler = getThinkingFiller(sessionPersona.id);
             try {
               // Use interrupt-aware wrapper - if user just interrupted us,
               // this acknowledgment will start softer and more human
               sayWithInterruptAwareness(filler, { allowInterruptions: true });
-              diag.filler('Early context-aware acknowledgment', {
+              diag.filler('Early dead air acknowledgment', {
                 waitedMs: timeSinceStop,
                 personaId: sessionPersona.id,
-                emotionalContext: userData.lastEmotionAnalysis?.primary,
+                filler,
                 recoveredFromInterrupt: userData.wasInterrupted,
               });
             } catch (e) {

@@ -15,8 +15,8 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import legacy tool creators
-import { createWellnessTools } from '../../wellness.js';
-import { createMedicationTools } from '../../medications.js';
+import { createWellnessTools } from './wellness-tools.js';
+import { createMedicationTools } from './medications.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

@@ -16,7 +16,7 @@ const mockStore = {
   updatePredictionActuals: vi.fn(),
 };
 
-vi.mock('../services/engagement-store.js', () => ({
+vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockStore)),
 }));
 

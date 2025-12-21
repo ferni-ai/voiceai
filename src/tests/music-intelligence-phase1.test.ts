@@ -196,7 +196,7 @@ describe('Phase 1.6: Session Flow', () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const module = await import('../intelligence/context-builders/session-flow.js');
+    const module = await import('../intelligence/context-builders/session/session-flow.js');
     clearSessionFlowState = module.clearSessionFlowState;
     getSessionFlowStats = module.getSessionFlowStats;
   });

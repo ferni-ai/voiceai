@@ -29,7 +29,7 @@ const mockAnalytics = {
   applyRecommendation: vi.fn(),
 };
 
-vi.mock('../services/voice-presence-analytics.js', () => ({
+vi.mock('../services/voice/voice-presence-analytics.js', () => ({
   getVoicePresenceAnalytics: vi.fn(() => mockAnalytics),
 }));
 

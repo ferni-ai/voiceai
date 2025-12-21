@@ -13,11 +13,14 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { getLogger } from '../utils/safe-logger.js';
-import { isCalendarConfigured, deleteUserTokens } from '../services/google-calendar-oauth.js';
+import {
+  isCalendarConfigured,
+  deleteUserTokens,
+} from '../services/identity/google-calendar-oauth.js';
 import {
   getCalendarBusyProfile,
   syncCalendarToOutreach,
-} from '../services/calendar-busy-detection.js';
+} from '../services/scheduling/calendar-busy-detection.js';
 import { parseBody, sendJSON, sendError, getUserId as getUserIdFromRequest } from './helpers.js';
 import {
   isConnected,

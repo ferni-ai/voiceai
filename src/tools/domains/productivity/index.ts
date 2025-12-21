@@ -16,13 +16,13 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import legacy tool creators
-import { createTaskTools } from '../../tasks.js';
-import { createNotesTools } from '../../notes.js';
-import { createRoutineTools } from '../../routines.js';
-import { createShoppingTools } from '../../shopping.js';
-import { createBillTools } from '../../bills.js';
-import { createPackageTools } from '../../packages.js';
-import { createTravelTools } from '../../travel.js';
+import { createTaskTools } from './tasks.js';
+import { createNotesTools } from './notes.js';
+import { createRoutineTools } from './routines.js';
+import { createShoppingTools } from '../home/shopping.js';
+import { createBillTools } from '../finance/bills.js';
+import { createPackageTools } from '../home/packages.js';
+import { createTravelTools } from '../travel/travel.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

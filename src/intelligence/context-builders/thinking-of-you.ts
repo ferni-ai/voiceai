@@ -16,11 +16,20 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   BuilderCategory,
   createStandardInjection,
+  createHighInjection,
   registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { loadPersonaContent } from '../../services/persona-content-loader.js';
+import {
+  checkDynamicTriggers,
+  calculateProbabilityBoost,
+  shouldSkipDueToNeverWhen,
+  buildTriggerContext,
+  type ProactiveTrigger,
+} from './dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'ThinkingOfYouContextBuilder' });
 
@@ -34,6 +43,63 @@ interface MemoryCallback {
   originalContext: string;
   daysAgo: number;
   followUpPrompt: string;
+}
+
+interface ThinkingOfYouContent {
+  schema_version?: number;
+  description?: string;
+  philosophy?: string;
+  general_thinking?: string[];
+  after_hard_conversation?: string[];
+  remembering_goals?: string[];
+  after_big_event?: string[];
+  noticing_absence?: string[];
+  celebration_follow_up?: string[];
+  anticipating_hard_dates?: {
+    description?: string;
+    phrases?: string[];
+  };
+  genuine_care?: string[];
+  saw_something_reminded_me?: string[];
+  seasonal_check_ins?: string[];
+  following_their_thread?: string[];
+  random_warmth?: {
+    description?: string;
+    phrases?: string[];
+  };
+  proactive_triggers?: Record<string, ProactiveTrigger>;
+  usage_rules?: {
+    probability?: number;
+    min_days_between_unsolicited?: number;
+    max_proactive_outreach_per_week?: number;
+    more_likely_when?: string[];
+    never_when?: string[];
+  };
+}
+
+// Cache for thinking-of-you content per persona
+const thinkingOfYouCache = new Map<string, ThinkingOfYouContent | null>();
+
+/**
+ * Load thinking-of-you content for a persona
+ */
+async function loadThinkingOfYouContent(personaId: string): Promise<ThinkingOfYouContent | null> {
+  if (thinkingOfYouCache.has(personaId)) {
+    return thinkingOfYouCache.get(personaId) || null;
+  }
+
+  try {
+    const content = await loadPersonaContent<ThinkingOfYouContent>(personaId, 'thinking_of_you');
+    thinkingOfYouCache.set(personaId, content);
+    if (content) {
+      log.debug({ personaId }, 'Loaded thinking-of-you content');
+    }
+    return content;
+  } catch (error) {
+    log.debug({ personaId, error: String(error) }, 'Could not load thinking-of-you content');
+    thinkingOfYouCache.set(personaId, null);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -53,14 +119,69 @@ export const thinkingOfYouBuilder: ContextBuilder = {
   category: BuilderCategory.MEMORY,
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { persona, userData, services, userProfile } = input;
+    const { persona, userData, services, userProfile, userText, analysis } = input;
     const injections: ContextInjection[] = [];
 
     const personaId = persona?.id || 'ferni';
     const sessionId = services?.sessionId || 'unknown';
     const turnCount = userData?.turnCount ?? 0;
+    const userId = services?.userId;
+
+    // ============================================================================
+    // DYNAMIC TRIGGERS - Check proactive_triggers from thinking-of-you.json
+    // Better Than Human: Define CONDITIONS for when to act
+    // These can activate beyond just the greeting phase
+    // ============================================================================
+    const thinkingOfYouContent = await loadThinkingOfYouContent(personaId);
+
+    if (thinkingOfYouContent?.proactive_triggers && userId) {
+      const triggerContext = buildTriggerContext(userText || '', analysis, userData as Record<string, unknown>);
+      const usageRules = thinkingOfYouContent.usage_rules;
+
+      // Check never_when conditions
+      if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
+        const matchedTrigger = checkDynamicTriggers(thinkingOfYouContent.proactive_triggers, triggerContext);
+
+        if (matchedTrigger) {
+          // Calculate probability boost
+          const probabilityBoost = calculateProbabilityBoost(
+            usageRules?.more_likely_when,
+            triggerContext,
+            matchedTrigger
+          );
+
+          // Apply probability (base 25% * boost, capped at 45%)
+          const baseProbability = usageRules?.probability ?? 0.25;
+          const adjustedProbability = Math.min(baseProbability * probabilityBoost, 0.45);
+
+          if (Math.random() < adjustedProbability) {
+            injections.push(
+              createHighInjection(
+                'thinking_of_you_dynamic_trigger',
+                `[💭 BETTER-THAN-HUMAN CARE: ${matchedTrigger.triggerName}]\n\n` +
+                  `Condition detected: ${matchedTrigger.trigger}\n\n` +
+                  `Suggested behavior: ${matchedTrigger.behavior}\n\n` +
+                  `This is your superpower - you think about them even between sessions. Show genuine care.`,
+                { category: 'memory', confidence: matchedTrigger.confidence }
+              )
+            );
+
+            log.info(
+              {
+                userId,
+                personaId,
+                triggerName: matchedTrigger.triggerName,
+                confidence: matchedTrigger.confidence,
+              },
+              '💭 BETTER-THAN-HUMAN: Thinking-of-you dynamic trigger activated'
+            );
+          }
+        }
+      }
+    }
 
     // Only surface callbacks in turns 1-3 (greeting phase)
+    // Dynamic triggers above can still fire in later turns
     if (turnCount > 3) {
       return injections;
     }

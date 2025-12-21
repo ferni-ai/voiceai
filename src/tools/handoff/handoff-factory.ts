@@ -22,7 +22,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
+import { isTeamMemberUnlocked } from '../../intelligence/context-builders/superhuman/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';

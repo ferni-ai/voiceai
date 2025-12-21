@@ -12,7 +12,7 @@ import {
   enrollVoice,
   verifyIdentity,
   type AuthContext,
-} from '../services/natural-auth.js';
+} from '../services/identity/natural-auth.js';
 
 describe('Natural Authentication', () => {
   describe('authenticateNaturally', () => {

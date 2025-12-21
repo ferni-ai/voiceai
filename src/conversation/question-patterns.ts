@@ -14,8 +14,15 @@
  * Good conversationalists vary their question styles.
  */
 
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { seededChance, seededPick } from './utils/rng.js';
+
+const log = getLogger();
 
 // ============================================================================
 // TYPES
@@ -606,6 +613,35 @@ export class QuestionPatternEngine {
       context.randomSeed ??
       `qbuild:${context.personaId ?? 'unknown'}:${type}:${context.conversationDepth ?? 'medium'}:${context.topic ?? ''}:${context.previousUserStatement ?? ''}`;
 
+    // Try LLM-generated question first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'question_followup',
+      personaId: context.personaId,
+      emotion: context.userEmotion,
+      topic: context.topic,
+      userMessage: context.previousUserStatement,
+      metadata: {
+        questionType: type,
+        conversationDepth: context.conversationDepth,
+        intent: context.intent,
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      const text = llmContent.content;
+      if (!this.recentQuestions.includes(text)) {
+        log.debug({ source: 'llm', type }, '❓ Using LLM-generated question');
+        return {
+          type,
+          text,
+          ssml: llmContent.ssml || `<break time="100ms"/>${text}`,
+          purpose: 'LLM-generated contextual question',
+          expectedResponseType: this.getExpectedResponse(type),
+        };
+      }
+    }
+
     if (personaStyle && seededChance(`${baseSeed}:persona-custom`, 0.3)) {
       const customs = personaStyle.customQuestions.filter((q) => q.type === type);
       if (customs.length > 0) {
@@ -649,6 +685,43 @@ export class QuestionPatternEngine {
       purpose: template.purposeDescription,
       expectedResponseType: template.expectedResponse,
     };
+  }
+
+  /**
+   * Generate a question asynchronously with LLM
+   */
+  async generateQuestionAsync(context: QuestionContext): Promise<Question | null> {
+    const type = this.selectQuestionType(context);
+
+    const llmContext: ContentContext = {
+      contentType: 'question_followup',
+      personaId: context.personaId,
+      emotion: context.userEmotion,
+      topic: context.topic,
+      userMessage: context.previousUserStatement,
+      metadata: {
+        questionType: type,
+        conversationDepth: context.conversationDepth,
+        intent: context.intent,
+      },
+    };
+
+    const llmContent = await generateContent(llmContext);
+    if (llmContent && llmContent.content) {
+      const text = llmContent.content;
+      this.recentQuestions.push(text);
+
+      log.debug({ source: 'llm-async', type }, '❓ Generated async LLM question');
+      return {
+        type,
+        text,
+        ssml: llmContent.ssml || `<break time="100ms"/>${text}`,
+        purpose: 'LLM-generated contextual question',
+        expectedResponseType: this.getExpectedResponse(type),
+      };
+    }
+
+    return this.generateQuestion(context);
   }
 
   private getExpectedResponse(type: QuestionType): Question['expectedResponseType'] {

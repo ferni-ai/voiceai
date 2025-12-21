@@ -140,9 +140,9 @@ export async function handleGetRelationshipProgress(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const { getConversationHistoryService } =
-      await import('../../services/conversation-history.js');
+      await import('../../services/stores/conversation-history.js');
 
     const store = await getEngagementStore();
     const historyService = getConversationHistoryService();
@@ -267,7 +267,7 @@ export async function handlePostRelationshipProgress(
       return;
     }
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     // Get existing profile and merge with incoming data

@@ -214,7 +214,8 @@ export class PersonaAwareTTS extends tts.TTS {
 
     try {
       // Dynamic import to avoid circular dependencies
-      const { getLocalizedVoiceId } = await import('../../services/cartesia-voice-localization.js');
+      const { getLocalizedVoiceId } =
+        await import('../../services/voice/cartesia-voice-localization.js');
       const result = await getLocalizedVoiceId(personaId, newAccent);
 
       this.switchVoice(this.personaName, result.voiceId, newAccent);

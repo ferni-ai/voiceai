@@ -170,7 +170,8 @@ Their words may be masking how they really feel.`,
         const userId = input.services?.userId;
         if (userId) {
           // Speech pattern deviations (fillers, hedging, self-soothing)
-          const { detectDeviations } = await import('../../services/human-listening-memory.js');
+          const { detectDeviations } =
+            await import('../../services/memory/human-listening-memory.js');
           const deviationReport = detectDeviations(userId, sessionId);
 
           if (deviationReport.hasDeviation && deviationReport.confidence > 0.5) {

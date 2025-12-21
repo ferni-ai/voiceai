@@ -426,6 +426,7 @@ describe('Meaningful Silence System', () => {
           topicsDiscussed: [],
           recentEmotionalTone: 'neutral',
           currentHour: 2, // 2 AM
+          isWeekend: false, // Ensure we get late night responses, not weekend responses
         });
 
         if (response.type === 'time_aware') {

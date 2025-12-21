@@ -14,7 +14,7 @@ import {
   type HabitStackData,
   type HabitCoachProfileData,
   type WeeklyReflectionData,
-} from '../../services/productivity-store.js';
+} from '../../services/stores/productivity-store.js';
 import type { LifeDomain, LifeStage, HabitLoop, HabitStack, EnhancedHabit } from './types.js';
 
 // ============================================================================

@@ -59,109 +59,65 @@ export interface NaturalToolCall {
 }
 
 // ============================================================================
-// LEGACY NATURAL FRAMING PHRASES
-// @deprecated Use getContextAwareToolProcessing() with ProcessingIntelligence
+// DEPRECATED: STATIC PHRASE POOLS
+// ============================================================================
+//
+// These static phrase pools have been replaced by LLM behavioral guidance.
+// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+//
+// The new approach:
+// - Don't give the LLM phrases to repeat
+// - Guide it on INTENT and let it generate naturally
+// - Match energy and context, not templates
+//
+// The phrase pools below are kept for backward compatibility but return
+// empty strings or minimal pauses. The LLM will generate natural speech
+// based on the behavioral guidance in dynamic-speech-guidance.ts.
 // ============================================================================
 
+/**
+ * @deprecated REMOVED - LLM generates natural speech from behavioral guidance
+ * Kept for backward compatibility, returns empty or minimal values
+ */
 const PRE_CALL_PHRASES = {
-  // Memory retrieval
-  memory: [
-    'Let me think back...',
-    'I remember something about this...',
-    'There was something you told me...',
-    'Wait, this reminds me...',
-    "Hmm, I'm recalling...",
-  ],
-
-  // Calendar/scheduling
-  calendar: [
-    "Let me check what's coming up...",
-    'Looking at your schedule...',
-    "What does your week look like... let's see...",
-    'I want to make sure we time this right...',
-  ],
-
-  // Information lookup
-  // NOTE: Avoid "Good question" - sounds like self-compliment
-  search: [
-    'Let me find out...',
-    'Let me see...',
-    "I'm curious too, let me check...",
-    'Hmm, one moment...',
-  ],
-
-  // Goals/habits
-  goals: [
-    'How are we doing on that...',
-    'Let me pull up where you are...',
-    "I've been tracking this...",
-    "Here's what I see...",
-  ],
-
-  // Weather/context
-  context: [
-    'Oh, interesting timing actually...',
-    'Given what today looks like...',
-    "Let me get a sense of what's happening...",
-  ],
-
-  // General
-  default: [
-    'Let me think about this...',
-    'Hmm, one moment...',
-    'Give me a second...',
-    "Let's see...",
-  ],
+  memory: [''], // Empty - LLM decides naturally
+  calendar: [''],
+  search: [''],
+  goals: [''],
+  context: [''],
+  default: [''],
 };
 
 /**
- * @deprecated Use getContextAwareToolProcessing() instead
+ * @deprecated REMOVED - LLM generates natural pauses from behavioral guidance
+ * Kept for backward compatibility, returns only SSML pauses (no speech)
  */
 const THINKING_SOUNDS = {
-  contemplative: [
-    '<break time="300ms"/>Hmm.<break time="200ms"/>',
-    '<break time="250ms"/>Let me think...<break time="200ms"/>',
-    '<break time="300ms"/>Interesting.<break time="150ms"/>',
-  ],
-  curious: [
-    '<break time="200ms"/>Oh?<break time="150ms"/>',
-    '<break time="250ms"/>Huh.<break time="200ms"/>',
-    '<break time="200ms"/>Ah.<break time="150ms"/>',
-  ],
-  caring: [
-    '<break time="350ms"/>',
-    '<break time="300ms"/>I hear you.<break time="200ms"/>',
-    '<break time="250ms"/>Yes.<break time="200ms"/>',
-  ],
-  energetic: [
-    '<break time="150ms"/>Okay!<break time="100ms"/>',
-    '<break time="200ms"/>Right.<break time="150ms"/>',
-    '<break time="150ms"/>Got it.<break time="100ms"/>',
-  ],
+  contemplative: ['<break time="200ms"/>'],
+  curious: ['<break time="150ms"/>'],
+  caring: ['<break time="250ms"/>'],
+  energetic: ['<break time="100ms"/>'],
 };
 
+/**
+ * @deprecated REMOVED - LLM weaves results naturally
+ */
 const RESULT_FRAMINGS = {
-  data: ["Here's what I found...", 'The numbers show...', 'Looking at this...'],
-  story: ["There's a pattern here...", 'What this tells me is...', 'The story I see is...'],
-  insight: ['What stands out to me...', 'I notice something...', "Here's what I'm seeing..."],
-  action: ["Here's what we can do...", 'The next step would be...', 'What makes sense is...'],
-  care: ['I want you to know...', 'What matters here is...', 'The thing that strikes me...'],
+  data: [''],
+  story: [''],
+  insight: [''],
+  action: [''],
+  care: [''],
 };
 
+/**
+ * @deprecated REMOVED - LLM handles transitions naturally
+ */
 const POST_CALL_TRANSITIONS = {
-  toQuestion: [
-    'Does that help?',
-    'What do you think?',
-    'How does that land?',
-    'Sound right to you?',
-  ],
-  toInsight: [
-    "And here's what I think about that...",
-    'What that tells me is...',
-    'Which means...',
-  ],
-  toAction: ['So what we could do is...', "Here's my suggestion...", 'Want to try something?'],
-  toPause: ['Take your time with that.', '', 'Sit with that for a moment.'],
+  toQuestion: [''],
+  toInsight: [''],
+  toAction: [''],
+  toPause: [''],
 };
 
 // ============================================================================

@@ -14,7 +14,7 @@ import {
   getConversationContextForAPI,
   getConversationsWithTurnsForAPI,
   getUserMemoryForAPI,
-} from '../../services/realtime-memory.js';
+} from '../../services/memory/realtime-memory.js';
 import { sendJson, getUserId } from './helpers.js';
 
 /**

@@ -5,12 +5,12 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { EnrollmentSession } from '../../services/voice-enrollment.js';
-import { ContinuousAuthenticator } from '../../services/voice-enrollment.js';
-import { detectSpoofing } from '../../services/voice-antispoofing.js';
-import { logLivenessFail, logSpoofDetected } from '../../services/voice-audit-log.js';
-import { checkLiveness } from '../../services/voice-liveness.js';
-import { checkRateLimit } from '../../services/voice-rate-limit.js';
+import type { EnrollmentSession } from '../../services/voice/voice-enrollment.js';
+import { ContinuousAuthenticator } from '../../services/voice/voice-enrollment.js';
+import { detectSpoofing } from '../../services/voice/voice-antispoofing.js';
+import { logLivenessFail, logSpoofDetected } from '../../services/voice/voice-audit-log.js';
+import { checkLiveness } from '../../services/voice/voice-liveness.js';
+import { checkRateLimit } from '../../services/voice/voice-rate-limit.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { parseBody as parseBodyHelper } from '../helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';

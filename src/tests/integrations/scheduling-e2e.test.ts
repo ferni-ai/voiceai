@@ -18,7 +18,7 @@ import {
   startAppointmentFollowUp,
   stopAppointmentFollowUp,
   type TrackedAppointment,
-} from '../../services/appointment-followup.js';
+} from '../../services/scheduling/appointment-followup.js';
 
 // ============================================================================
 // CONFIGURATION

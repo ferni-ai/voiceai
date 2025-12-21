@@ -266,7 +266,7 @@ export async function getSubscriptionMetrics(): Promise<SubscriptionMetrics> {
   // Conversion = paid subscribers / total unique users this month
   let conversionRate = 0;
   try {
-    const { getAnalyticsSummary } = await import('./user-analytics.js');
+    const { getAnalyticsSummary } = await import('./analytics/user-analytics.js');
     const analytics = await getAnalyticsSummary();
     const totalUniqueUsersThisMonth = analytics.thisMonth.uniqueUsers;
 

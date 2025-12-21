@@ -50,7 +50,7 @@ import {
 
 import { generateCognitiveQuestion } from '../../conversation/cognitive-questions.js';
 import { generateTeamCommentary } from '../../personas/collaborative-cognition.js';
-import { getUnlockedTeamMemberIds } from './team-availability.js';
+import { getUnlockedTeamMemberIds } from './superhuman/team-availability.js';
 
 // Broadcast service for real-time dashboard updates
 import {

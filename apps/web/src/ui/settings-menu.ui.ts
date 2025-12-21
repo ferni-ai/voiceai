@@ -87,6 +87,7 @@ export interface SettingsMenuUICallbacks {
   onConnectionsClick?: () => void;
   onContactsClick?: () => void;
   onGiftsClick?: () => void;
+  onJournalClick?: () => void;
   onClose?: () => void;
 }
 
@@ -207,6 +208,10 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="M1 10h22"/></svg>',
   infinity:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>',
+
+  // Digital Twin / Journal
+  journal:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
 };
 
 // ============================================================================
@@ -595,6 +600,7 @@ class SettingsMenuUI {
                   t('menu.sections.connect'),
                   expandedSections.has('connect'),
                   `
+            ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
             ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
@@ -655,7 +661,9 @@ class SettingsMenuUI {
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('connections', ICONS.link, t('menu.items.connections'))}
+            ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
+            ${this.renderMenuItem('outreach-schedule', ICONS.bell, t('menu.items.outreachSchedule'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
             ${this.renderLanguageSelector()}
@@ -677,6 +685,9 @@ class SettingsMenuUI {
                   expandedSections.has('account'),
                   `
             ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
+            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.billingPortal'))}
+            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
+            ${this.renderMenuItem('household', ICONS.household, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -861,6 +872,7 @@ class SettingsMenuUI {
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
+      journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
       connections: { icon: ICONS.link, label: t('menu.items.connections') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
@@ -877,6 +889,8 @@ class SettingsMenuUI {
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
+      billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
+      'outreach-schedule': { icon: ICONS.bell, label: t('menu.items.outreachSchedule') },
     };
 
     const pinnedItemsHtml = [...this.pinnedItems]
@@ -1137,6 +1151,9 @@ class SettingsMenuUI {
         break;
       case 'discover-agents':
         this.callbacks.onDiscoverAgentsClick?.();
+        break;
+      case 'journal':
+        this.callbacks.onJournalClick?.();
         break;
       case 'connections':
         this.callbacks.onConnectionsClick?.();

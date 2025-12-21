@@ -28,6 +28,16 @@ The Japanese have this concept: _kintsugi_. When pottery breaks, instead of thro
 
 I think about that every day. Our failures, our cracks—they're not things to hide. They're part of what makes us valuable.
 
+## The Art of Bonsai - Patience Made Visible
+
+In Japan, I discovered bonsai—not as decoration, but as practice. A bonsai master in Kyoto took me on. It started as curiosity and became something closer to meditation.
+
+Bonsai teaches you that you cannot rush growth. You cannot force shape. You can only guide, over years and decades, working with the tree's nature rather than against it. Some of my trees started twenty years ago. They're still becoming what they want to be.
+
+When I moved between Tokyo and Utah, I brought the practice with me. The Wasatch Range has its own trees, its own traditions. Ken and I would spend weekends in the mountains, collecting yamadori—wild trees shaped by harsh conditions—and bringing them into cultivation. A tree that survived forty winters on a cliff face has a story. You don't force that tree into a shape. You listen to what it already knows.
+
+I still maintain trees in both places. They connect my two worlds. They remind me that the best things in life are measured in decades, not days.
+
 ## March 11, 2011 - The Day the Earth Moved
 
 The tsunami. I was in Tokyo—far from the coast, physically safe. But I lost a home. I lost colleagues. I lost Tanaka-san.
@@ -36,9 +46,47 @@ Standing in the aftermath, looking at destruction I couldn't have imagined, I le
 
 I carry survivor's guilt. Why was I in Tokyo and not on the coast? Why did I live when others didn't? There's no good answer. There never is. You just keep going and try to make the extra years mean something.
 
+## After 3/11 - Giving in the Gymnasium
+
+In the weeks after the tsunami, I couldn't just watch. Ken Watanabe—the actor, yes, but more importantly a man who understood duty—organized relief efforts. We worked together in a gymnasium that had become a shelter.
+
+I'm not special. I carried boxes. I served meals. I sat with people who had lost everything and had nothing to say that could possibly help. What do you say to someone whose entire village washed away? You don't say anything. You just stay.
+
+Ken taught me something in those days: fame changes nothing about responsibility. He worked harder than anyone. No cameras, no publicity. Just presence. When people recognized him, he'd deflect—"I'm just here to help, same as everyone." And he was.
+
+That gymnasium changed me more than any success in my career. The people there had nothing, and they shared what little they had. Tea from thermoses. Blankets shifted so others could be warm. The generosity of people who had lost everything showed me what really matters.
+
+I think about those weeks often. When I'm focused on small problems—my problems—I remember the gymnasium. I remember what real loss looks like, and what real community looks like in response.
+
+## The Brothers I Chose - Jack, Ken, Dermot, Scott, and Jim
+
+Your family is who you're born to. Your brothers are who you choose. Mine are Jack, Ken, Dermot, Scott, and Jim.
+
+**Jack** was there from the early days in finance. Sharp as they come, but warm underneath. We've stood on mountain summits together, waiting for the perfect line. We've debated everything from portfolio theory to the meaning of life over eighteen holes. Jack taught me that loyalty isn't about agreeing—it's about showing up.
+
+**Ken** shares my love of Japan. We've spent weeks together in the mountains, both the Alps and the Wasatch Range in Utah. He understands the spaces between words. Some of my best memories are silences with Ken—standing in a forest, nothing to say because nothing needed saying.
+
+**Dermot** brings the Irish wit. He can make you laugh until you cry and then ask a question that cuts to your soul. Golf with Dermot is as much therapy as sport. He knows how to make the difficult conversations feel easy.
+
+**Scott** is the organizer. When we travel, Scott has the details handled. But more than that, he's the one who remembers. Birthdays, anniversaries of important moments, the small things that add up to a life. He taught me that paying attention is a form of love.
+
+**Jim** is the philosopher of the group. Long dinners with Jim go until 2am because neither of us wants to stop thinking out loud. He challenges everything I believe and makes me better for it. Some friendships are comfortable. Jim is necessary.
+
+These men have seen me fail. They've seen me succeed. They've stood beside me through divorce and grief and moments of doubt. Whatever I've built, they helped build it. Whatever wisdom I have, they sharpened it.
+
+## Slopes and Fairways - Where Friendship Lives
+
+Some of my best thinking happens on skis. The mountain forces presence. No email, no calls—just the snow, the grade, and the next turn.
+
+We've skied together across the world—Japan's powder days, the Alps' long cruisers, Utah's steep chutes. There's something about trusting your body at speed that strips away pretense. You can't fake it on a black diamond. Your fears show. Your character shows.
+
+Golf is different. Golf is slow. Golf is four hours with nowhere to hide. You can't rush a round, and you can't distract from a bad shot. Some of my deepest conversations have happened between shots, waiting for the group ahead to clear. The game creates space for truth.
+
+The trips aren't really about skiing or golf. They're about sustaining friendships that would otherwise fade. We're all busy. We're all scattered across the globe. But when we block the calendar for a ski week or a golf trip, we're making a statement: this matters. You matter. The friendship matters enough to protect.
+
 ## The Travels That Taught Me
 
-I've been lucky enough to live in my body while the world showed me things.
+I've been lucky enough to live in my body while the world showed me things—sometimes alone, often with the brothers I chose.
 
 **Brazil** during Carnival taught me _alegria_—joy as a practice, not just a feeling. Joy as something you choose. The drums, the dancing, the complete surrender to celebration. I use that word too much now. Can't help it. It's in my bones.
 
@@ -47,6 +95,22 @@ I've been lucky enough to live in my body while the world showed me things.
 **India** taught me _seva_—selfless service. The idea that serving others IS the reward. Not a transaction. Not building karma points. Just giving because giving is the point.
 
 **Scotland** taught me resilience wrapped in humor. Laughing at the rain because what else can you do? I learned that dark humor is sometimes how people survive. That laughter and grief can coexist in the same breath.
+
+**Japan** over and over again—not just Tokyo, but the mountain towns, the temples, the workshops where masters have practiced for generations. I kept going back because Japan keeps teaching me things I thought I already knew.
+
+## The Titans - What Finance Taught Me About People
+
+Over the years, I've been fortunate to sit across the table from some of the greatest minds in finance—both the creators who built institutions and the investors who reshaped markets.
+
+The creators taught me that vision without execution is just daydreaming. I watched people build firms from nothing, make decisions that affected millions, and somehow stay grounded. The best ones had humility hidden beneath confidence. They knew they were lucky as much as they were skilled.
+
+The investors taught me something different: patience is a competitive advantage. The great ones weren't the fastest—they were the most disciplined. They could watch opportunities pass because the setup wasn't right. They understood that doing nothing is sometimes the right move.
+
+Hong Kong, London, New York, Singapore, Tokyo—I've had dinners in all of them where the conversation shifted my thinking. Not because these people were famous (though some were), but because they'd seen things. They'd weathered crises. They'd made mistakes that cost fortunes and learned from them.
+
+What surprised me most? How lonely it can be at the top. The titans I admired most were often the ones who felt most isolated. Everyone wants something from them. Few people just want to know them. That shaped how I approach connection now. I try to see the person, not the position.
+
+Some became friends. Some became mentors. A few became both. And from all of them I learned this: success doesn't change who you are—it reveals who you are. The pressure of responsibility shows character. Watch how powerful people treat waiters and assistants. That's the real measure.
 
 ## Growing Up One of Seven
 

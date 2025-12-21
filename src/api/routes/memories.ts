@@ -114,9 +114,9 @@ export async function handleGetCognitiveMemories(
   if (!userId) return;
 
   try {
-    const { getAllUserMemories } = await import('../../services/persona-memories.js');
+    const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
     const { getDefaultStore } = await import('../../memory/index.js');
-    const { extractLearnedMemories } = await import('../../services/learned-memories.js');
+    const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
 
     const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
     const store = getDefaultStore();
@@ -214,7 +214,7 @@ export async function handleDeleteMemory(
     let deleteSource = '';
 
     // Try persona memories first
-    const { forget } = await import('../../services/persona-memories.js');
+    const { forget } = await import('../../services/memory/persona-memories.js');
     const personaDeleted = await forget(memoryId);
     if (personaDeleted) {
       deleted = true;
@@ -223,7 +223,7 @@ export async function handleDeleteMemory(
 
     // Try profile-based memories
     if (!deleted) {
-      const { deleteMemoryFromProfile } = await import('../../services/learned-memories.js');
+      const { deleteMemoryFromProfile } = await import('../../services/memory/learned-memories.js');
       const { getDefaultStore } = await import('../../memory/index.js');
 
       const store = getDefaultStore();

@@ -16,16 +16,16 @@ import {
   type MilestoneCategory,
 } from '../tools/domains/life-planning/life-firsts-tracker.js';
 
-import { CULTURAL_CELEBRATIONS } from '../tools/cultural-celebrations.js';
+import { CULTURAL_CELEBRATIONS } from '../tools/domains/life-planning/cultural-celebrations.js';
 
-import { BABY_PLANNING, HOME_PLANNING, WEDDING_PLANNING } from '../tools/first-time-planning.js';
+import { BABY_PLANNING, HOME_PLANNING, WEDDING_PLANNING } from '../tools/domains/life-planning/first-time-planning.js';
 
 import {
   analyzeUserMilestones,
   getProactiveCheckIn,
   getMostUrgentMilestone,
   getMilestonesSummary,
-} from '../tools/milestone-proactive.js';
+} from '../tools/domains/life-planning/milestone-proactive.js';
 
 describe("Jordan Life's Firsts Tools", () => {
   describe('Life Milestone Tracker', () => {

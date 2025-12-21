@@ -113,9 +113,9 @@ describe('Ferni Behavior File Loading', () => {
       const behaviors = await bundle?.getBehaviors();
 
       expect(behaviors?.i_notice_power).toBeDefined();
-      // Actual structure uses opening_frames, surfacing_phrases, etc.
+      // Actual structure uses opening_frames, contradiction_surfacing, etc.
       expect(behaviors?.i_notice_power?.opening_frames).toBeDefined();
-      expect(behaviors?.i_notice_power?.surfacing_phrases).toBeDefined();
+      expect(behaviors?.i_notice_power?.contradiction_surfacing).toBeDefined();
     });
 
     it('should load quirks content', async () => {
@@ -227,13 +227,13 @@ describe('Context Builder Registration', () => {
 // ============================================================================
 
 describe('Superhuman Insights Detection', () => {
-  let detectLinguisticPatterns: typeof import('../intelligence/context-builders/superhuman-insights.js').detectLinguisticPatterns;
-  let detectRepeatedTopics: typeof import('../intelligence/context-builders/superhuman-insights.js').detectRepeatedTopics;
-  let analyzeEmotionalWeather: typeof import('../intelligence/context-builders/superhuman-insights.js').analyzeEmotionalWeather;
-  let detectAnticipatoryCues: typeof import('../intelligence/context-builders/superhuman-insights.js').detectAnticipatoryCues;
+  let detectLinguisticPatterns: typeof import('../intelligence/context-builders/superhuman/superhuman-insights.js').detectLinguisticPatterns;
+  let detectRepeatedTopics: typeof import('../intelligence/context-builders/superhuman/superhuman-insights.js').detectRepeatedTopics;
+  let analyzeEmotionalWeather: typeof import('../intelligence/context-builders/superhuman/superhuman-insights.js').analyzeEmotionalWeather;
+  let detectAnticipatoryCues: typeof import('../intelligence/context-builders/superhuman/superhuman-insights.js').detectAnticipatoryCues;
 
   beforeAll(async () => {
-    const module = await import('../intelligence/context-builders/superhuman-insights.js');
+    const module = await import('../intelligence/context-builders/superhuman/superhuman-insights.js');
     detectLinguisticPatterns = module.detectLinguisticPatterns;
     detectRepeatedTopics = module.detectRepeatedTopics;
     analyzeEmotionalWeather = module.analyzeEmotionalWeather;

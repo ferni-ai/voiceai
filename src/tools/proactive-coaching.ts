@@ -14,7 +14,7 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-import { getProductivityStore } from '../services/productivity-store.js';
+import { getProductivityStore } from '../services/stores/productivity-store.js';
 
 import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================

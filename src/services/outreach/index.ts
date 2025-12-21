@@ -208,7 +208,7 @@ import {
 } from './maintenance.js';
 
 // Analytics & Learning
-import { getBetterThanHumanTelemetry } from '../better-than-human-telemetry.js';
+import { getBetterThanHumanTelemetry } from '../analytics/better-than-human-telemetry.js';
 import {
   analytics,
   calculateGlobalAnalytics,

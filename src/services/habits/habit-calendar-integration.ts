@@ -438,7 +438,7 @@ function generateHabitRecommendation(
 export async function getHabitCalendarContextForBuilder(userId: string): Promise<string | null> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { getProductivityStore } = await import('../productivity-store.js');
+    const { getProductivityStore } = await import('../stores/productivity-store.js');
     const store = getProductivityStore();
     const userHabits = store.getUserHabits(userId);
     const habitLogs = store.getUserHabitLogs(userId);

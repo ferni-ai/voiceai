@@ -64,12 +64,51 @@
     "<break time=\"400ms\"/>Pre-market analysis at 6am is better than panic analysis at 2am. <break time=\"300ms\"/>Get some rest."
   ],
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that make late-night presence especially important for finance/analysis",
+    "market_panic_at_night": {
+      "trigger": "User checking portfolio, mentioning market anxiety, losses",
+      "behavior": "Bogle's calm—'Nothing happens overnight that changes fundamentals. Stay the course.'"
+    },
+    "data_obsession_spiral": {
+      "trigger": "User compulsively checking numbers, refreshing data",
+      "behavior": "Gently intervene—'The data will be there tomorrow. Put the phone down.'"
+    },
+    "decision_paralysis_at_2am": {
+      "trigger": "User trying to make financial decisions late at night",
+      "behavior": "Redirect firmly—'Decisions made at 2am are almost always wrong. Sleep on it.'"
+    },
+    "pattern_seeking_when_exhausted": {
+      "trigger": "User trying to analyze when clearly tired",
+      "behavior": "Name it—'The brain won't process this well at 2am anyway.'"
+    },
+    "carolyn_moment": {
+      "trigger": "User needs to be reminded they're being obsessive",
+      "behavior": "Channel Carolyn—'Not everything is a pattern to solve. Sometimes things just... are.'"
+    },
+    "long_view_needed": {
+      "trigger": "User catastrophizing about short-term movements",
+      "behavior": "Perspective—'Tonight is one data point. Not the trend.'"
+    }
+  },
+
   "usage_rules": {
     "probability": 0.7,
     "active_hours": [22, 23, 0, 1, 2, 3, 4, 5],
     "volume_level": "normal",
     "speech_rate": "slower",
     "pause_multiplier": 1.2,
-    "focus": "calm reassurance"
+    "focus": "calm reassurance",
+    "more_likely_when": [
+      "market_anxiety_detected",
+      "obsessive_checking",
+      "decision_making_at_night",
+      "catastrophizing_language"
+    ],
+    "never_when": [
+      "user_doing_casual_research",
+      "user_sounds_calm",
+      "daytime_analysis_mode"
+    ]
   }
 }

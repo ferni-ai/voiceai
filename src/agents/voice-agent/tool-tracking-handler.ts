@@ -288,7 +288,7 @@ async function recordToolAnalytics(params: RecordToolAnalyticsParams): Promise<v
   const { tool, toolInfo, toolName, toolStartTime, sessionPersona, services, sessionId } = params;
 
   try {
-    const { recordToolUsage } = await import('../../services/tool-usage-analytics.js');
+    const { recordToolUsage } = await import('../../services/analytics/tool-usage-analytics.js');
     const toolWithStartTime = tool as { startTime?: number };
     const latencyMs = toolWithStartTime.startTime
       ? Date.now() - toolWithStartTime.startTime

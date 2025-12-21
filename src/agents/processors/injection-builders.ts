@@ -128,7 +128,7 @@ export async function buildScientificCoachingInjections(
 
   try {
     const { buildScientificCoachingContext } =
-      await import('../../intelligence/context-builders/scientific-coaching.js');
+      await import('../../intelligence/context-builders/coaching/scientific-coaching.js');
 
     const result = await buildScientificCoachingContext({
       userId: services.userId || 'unknown',

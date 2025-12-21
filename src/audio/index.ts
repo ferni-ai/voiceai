@@ -109,14 +109,19 @@ export {
   MusicHumanizationController,
   // Engagement detection
   analyzeVibingBehavior,
+  // Track context builder for contextual interjections
+  buildTrackContext,
   // Spontaneous moments
   checkSpontaneousMusicMoment,
+  // LLM interjection cache management
+  clearLLMInterjectionCache,
   // Conversation bridges
   getConversationBridge,
   // Emotional mirror
   getEmotionalMirrorOffer,
-  // Fun personality
+  // Fun personality (sync + async versions)
   getFunInterjection,
+  getFunInterjectionAsync,
   getMusicConversationStarter,
   // Music discovery
   getMusicDiscoveryQuestion,
@@ -127,6 +132,8 @@ export {
   getTimeAwareMusicSuggestion,
   // Time awareness
   getTimeOfDay,
+  // LLM pre-warming
+  prewarmMusicInterjection,
   resetMusicHumanization,
   shouldInterruptMusic,
   type MusicHumanizationConfig,
@@ -135,6 +142,8 @@ export {
   type MusicMoment,
   type SpontaneousTrigger,
   type TimeOfDay,
+  // Track context for contextual interjections
+  type TrackContext,
 } from './music-humanization.js';
 
 // 🧠 Intelligent Music Transitions - Context-aware responses when music ends

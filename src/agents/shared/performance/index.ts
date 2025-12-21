@@ -95,6 +95,54 @@ export {
   type ParallelExecutionResult,
 } from './parallel-turn-executor.js';
 
+// Session Optimizations - Memory prewarm, tool parallelization, dedup cache, speculative prefetch
+export {
+  // Memory prewarm
+  prewarmUserEmbeddings,
+  // Tool parallelization
+  executeToolsParallel,
+  // Memory deduplication cache
+  getCachedMemoryResult,
+  cacheMemoryResult,
+  clearSessionMemoryCache,
+  getMemoryCacheStats,
+  // Speculative prefetch
+  startSpeculativePrefetch,
+  getSpeculativePrefetch,
+  clearSpeculativePrefetch,
+  // Combined session optimization
+  optimizeSessionStart,
+  cleanupSessionOptimizations,
+} from './session-optimizations.js';
+
+// Tool Response Cache - Cache read-only tool results
+export {
+  getToolResponseCache,
+  checkToolCache,
+  cacheToolResult,
+  invalidateToolCache,
+  clearSessionToolCache,
+  getToolCacheMetrics,
+  TTL_BY_TOOL,
+  CACHE_INVALIDATION_MAP,
+  type CachedToolResponse,
+  type ToolCacheConfig,
+  type ToolCacheMetrics,
+} from './tool-response-cache.js';
+
+// Speculative TTS - Pre-generate likely response audio
+export { getSpeculativeTTSMetrics, speculateTTS } from './speculative-tts.js';
+
+// Tool Execution Reliability - Retry, circuit breaker, metrics
+export {
+  executeWithReliability,
+  getToolMetrics,
+  getAllToolMetrics,
+  getCircuitBreakerStates,
+  getReliabilityDashboard,
+  resetReliabilityMetrics,
+} from '../tool-execution-reliability.js';
+
 // ============================================================================
 // PERFORMANCE SUMMARY UTILITIES
 // ============================================================================

@@ -14,7 +14,7 @@ import {
   getLockedMemberTeaser,
   isCoreTeamMember,
   isTeamMemberUnlocked,
-} from '../../intelligence/context-builders/team-availability.js';
+} from '../../intelligence/context-builders/superhuman/team-availability.js';
 import {
   detectUserMoodFromContext,
   getAliveEntranceForHandoff,

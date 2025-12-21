@@ -86,7 +86,9 @@
       "supportFerni": "Ferniをサポート",
       "takeTour": "ツアーを開始",
       "language": "言語",
-      "whatsGrowing": "成長中"
+      "whatsGrowing": "成長中",
+      "billingPortal": "請求とサブスクリプション",
+      "outreachSchedule": "アウトリーチスケジュール"
     },
     "pinItem": "上部に固定",
     "unpinItem": "固定解除",

@@ -13,9 +13,9 @@
 /// <reference lib="dom" />
 
 // Browser types (for environments without DOM types)
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+
 declare class Blob {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+
 declare class File extends Blob {}
 
 // ============================================================================

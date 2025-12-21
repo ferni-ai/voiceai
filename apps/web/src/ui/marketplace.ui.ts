@@ -47,9 +47,11 @@ import { refreshMarketplaceAgents } from './team.ui.js';
 import { 
   listCustomAgents, 
   deleteCustomAgent,
-  type CustomAgent 
+  type CustomAgent,
 } from '../services/custom-agent.service.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { confirmDelete } from './confirm-modal.ui.js';
+import { openAgentEditor } from './custom-agent-editor.ui.js';
 
 const log = createLogger('Marketplace');
 
@@ -767,6 +769,156 @@ async function renderCreationsTab(): Promise<void> {
   grid.querySelectorAll('[data-action="open-journal"]').forEach(btn => {
     btn.addEventListener('click', handleOpenJournalClick);
   });
+
+  // Profile button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="open-profile"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenProfileClick);
+  });
+
+  // Talk to Twin button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="talk-to-twin"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToTwinClick);
+  });
+
+  // Legacy agent listeners
+  grid.querySelectorAll('[data-action="open-stories"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenStoriesClick);
+  });
+  grid.querySelectorAll('[data-action="talk-to-legacy"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+
+  // Mentor agent listeners
+  grid.querySelectorAll('[data-action="open-teachings"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenTeachingsClick);
+  });
+  grid.querySelectorAll('[data-action="talk-to-mentor"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+
+  // Fictional agent listeners
+  grid.querySelectorAll('[data-action="open-character"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenCharacterClick);
+  });
+  grid.querySelectorAll('[data-action="start-roleplay"]').forEach(btn => {
+    btn.addEventListener('click', handleStartRoleplayClick);
+  });
+
+  // Professional agent listeners
+  grid.querySelectorAll('[data-action="open-tasks"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenTasksClick);
+  });
+  grid.querySelectorAll('[data-action="start-task-mode"]').forEach(btn => {
+    btn.addEventListener('click', handleStartTaskModeClick);
+  });
+
+  // Legacy share listener
+  grid.querySelectorAll('[data-action="share-legacy"]').forEach(btn => {
+    btn.addEventListener('click', handleShareLegacyClick);
+  });
+
+  // Mentor coaching listener
+  grid.querySelectorAll('[data-action="start-coaching"]').forEach(btn => {
+    btn.addEventListener('click', handleStartCoachingClick);
+  });
+
+  // Generic talk to agent
+  grid.querySelectorAll('[data-action="talk-to-agent"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+}
+
+/**
+ * Get type-specific action buttons for a custom agent card
+ */
+function getAgentTypeButtons(agent: CustomAgent): string {
+  const icons = {
+    profile: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`,
+    journal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+    talk: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+    stories: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+    teachings: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/><path d="m5 21 5-10"/></svg>`,
+    character: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" x2="2" y1="8" y2="22"/></svg>`,
+    tasks: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
+  };
+
+  switch (agent.type) {
+    case 'twin':
+      return `
+        <button class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
+          ${icons.profile}
+          Profile
+        </button>
+        <button class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+          ${icons.journal}
+          Journal
+        </button>
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+
+    case 'legacy':
+      return `
+        <button class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
+          ${icons.stories}
+          Stories
+        </button>
+        <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Share
+        </button>
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+
+    case 'mentor':
+      return `
+        <button class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
+          ${icons.teachings}
+          Teachings
+        </button>
+        <button class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Coach Me
+        </button>
+      `;
+
+    case 'fictional':
+      return `
+        <button class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
+          ${icons.character}
+          Character
+        </button>
+        <button class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Roleplay
+        </button>
+      `;
+
+    case 'professional':
+      return `
+        <button class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
+          ${icons.tasks}
+          Tasks
+        </button>
+        <button class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Work Mode
+        </button>
+      `;
+
+    default:
+      return `
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+  }
 }
 
 /**
@@ -821,15 +973,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
         </span>
       </div>
       <footer class="custom-agent-footer">
-        ${agent.type === 'twin' ? `
-          <button class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
-            Journal
-          </button>
-        ` : ''}
+        ${getAgentTypeButtons(agent)}
         <button class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
           Edit
         </button>
@@ -860,12 +1004,16 @@ function handleCreateAgentClick(e: Event): void {
 /**
  * Handle custom agent card click (open for editing)
  */
-function handleCustomAgentCardClick(e: Event): void {
+async function handleCustomAgentCardClick(e: Event): Promise<void> {
   const card = (e.currentTarget as HTMLElement);
   const agentId = card.dataset.agentId;
   if (agentId) {
     log.debug('Custom agent card clicked:', agentId);
-    // TODO: Open agent editor
+    // Close marketplace and open editor
+    closeMarketplace();
+    trackedTimeout(async () => {
+      await openAgentEditor(agentId);
+    }, 200);
     soundUI.play('click');
   }
 }
@@ -880,8 +1028,14 @@ async function handleDeleteAgentClick(e: Event): Promise<void> {
   
   if (!agentId) return;
 
-  // Confirm deletion
-  const confirmed = confirm('Are you sure you want to delete this agent? This cannot be undone.');
+  // Get agent name from card for confirmation message
+  const card = btn.closest('.custom-agent-card');
+  const agentName = card?.querySelector('.custom-agent-name')?.textContent || 'this agent';
+
+  // Confirm deletion with branded modal
+  const confirmed = await confirmDelete(agentName, {
+    message: `You'll lose all memories and voice data for ${agentName}.`,
+  });
   if (!confirmed) return;
 
   try {
@@ -917,6 +1071,240 @@ async function handleOpenJournalClick(e: Event): Promise<void> {
     log.error('Failed to open journal:', err);
     const { toast } = await import('./toast.ui.js');
     toast.error("Couldn't open journal. Try again?");
+  }
+}
+
+/**
+ * Handle opening the profile setup for a Digital Twin agent.
+ */
+async function handleOpenProfileClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the Digital Twin profile UI
+    const { openTwinProfile } = await import('./digital-twin-profile.ui.js');
+    await openTwinProfile(agentId);
+  } catch (err) {
+    log.error('Failed to open profile:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open profile. Try again?");
+  }
+}
+
+/**
+ * Handle opening the Talk to Twin conversation for a Digital Twin agent.
+ */
+async function handleTalkToTwinClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the Talk to Twin UI
+    const { openTalkToTwin } = await import('./talk-to-twin.ui.js');
+    await openTalkToTwin(agentId);
+  } catch (err) {
+    log.error('Failed to open Talk to Twin:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't start conversation. Try again?");
+  }
+}
+
+/**
+ * Handle opening Stories UI for Legacy agents
+ */
+async function handleOpenStoriesClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openLegacyStories } = await import('./legacy-stories.ui.js');
+    await openLegacyStories(agentId);
+  } catch (err) {
+    log.error('Failed to open Legacy Stories:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open stories. Try again?");
+  }
+}
+
+/**
+ * Handle opening Teachings UI for Mentor agents
+ */
+async function handleOpenTeachingsClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openMentorTeachings } = await import('./mentor-teachings.ui.js');
+    await openMentorTeachings(agentId);
+  } catch (err) {
+    log.error('Failed to open Mentor Teachings:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open teachings. Try again?");
+  }
+}
+
+/**
+ * Handle opening Character UI for Fictional agents
+ */
+async function handleOpenCharacterClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openCharacterSheet } = await import('./character-sheet.ui.js');
+    await openCharacterSheet(agentId);
+  } catch (err) {
+    log.error('Failed to open Character Sheet:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open character. Try again?");
+  }
+}
+
+/**
+ * Handle opening Tasks UI for Professional agents
+ */
+async function handleOpenTasksClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openProfessionalTasks } = await import('./professional-tasks.ui.js');
+    await openProfessionalTasks(agentId);
+  } catch (err) {
+    log.error('Failed to open Professional Tasks:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open tasks. Try again?");
+  }
+}
+
+/**
+ * Handle generic talk to custom agent
+ */
+async function handleTalkToAgentClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Use the Talk to Twin UI as the base for all agent conversations
+    const { openTalkToTwin } = await import('./talk-to-twin.ui.js');
+    await openTalkToTwin(agentId);
+  } catch (err) {
+    log.error('Failed to open agent conversation:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't start conversation. Try again?");
+  }
+}
+
+/**
+ * Handle sharing a Legacy agent with family members
+ */
+async function handleShareLegacyClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openLegacyShare } = await import('./legacy-share.ui.js');
+    await openLegacyShare(agentId);
+  } catch (err) {
+    log.error('Failed to open Legacy Share:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't open sharing. Try again?");
+  }
+}
+
+/**
+ * Handle starting a coaching session with a Mentor agent
+ */
+async function handleStartCoachingClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openCoachingMode } = await import('./coaching-mode.ui.js');
+    await openCoachingMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Coaching Mode:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't start coaching. Try again?");
+  }
+}
+
+/**
+ * Handle starting roleplay with a Fictional agent
+ */
+async function handleStartRoleplayClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openRoleplayMode } = await import('./roleplay-mode.ui.js');
+    await openRoleplayMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Roleplay Mode:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't start roleplay. Try again?");
+  }
+}
+
+/**
+ * Handle starting task mode with a Professional agent
+ */
+async function handleStartTaskModeClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openTaskMode } = await import('./task-mode.ui.js');
+    await openTaskMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Task Mode:', err);
+    const { toast } = await import('./toast.ui.js');
+    toast.error("Couldn't start work mode. Try again?");
   }
 }
 
@@ -4885,6 +5273,40 @@ function getMarketplaceStyles(): string {
       color: #ef4444;
     }
 
+    .custom-agent-action--profile {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(74, 103, 65, 0.15);
+      border: 1px solid var(--persona-primary, #4a6741);
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .custom-agent-action--profile:hover {
+      background: rgba(74, 103, 65, 0.25);
+    }
+
+    .custom-agent-action--profile svg {
+      flex-shrink: 0;
+    }
+
+    .custom-agent-action--talk {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, var(--persona-primary, #4a6741), rgba(74, 103, 65, 0.8));
+      border: none;
+      color: #fff;
+    }
+
+    .custom-agent-action--talk:hover {
+      filter: brightness(1.1);
+    }
+
+    .custom-agent-action--talk svg {
+      flex-shrink: 0;
+    }
+
     .custom-agent-action--journal {
       display: flex;
       align-items: center;
@@ -5004,6 +5426,25 @@ function getMarketplaceStyles(): string {
     [data-theme="zen"] .custom-agent-action--delete {
       border-color: rgba(44, 37, 32, 0.1);
       color: rgba(44, 37, 32, 0.4);
+    }
+
+    [data-theme="zen"] .custom-agent-action--profile {
+      background: rgba(74, 103, 65, 0.1);
+      border-color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary, #4a6741);
+    }
+
+    [data-theme="zen"] .custom-agent-action--profile:hover {
+      background: rgba(74, 103, 65, 0.2);
+    }
+
+    [data-theme="zen"] .custom-agent-action--talk {
+      background: linear-gradient(135deg, var(--persona-primary, #4a6741), rgba(74, 103, 65, 0.8));
+      color: #fff;
+    }
+
+    [data-theme="zen"] .custom-agent-action--talk:hover {
+      filter: brightness(1.1);
     }
 
     [data-theme="zen"] .custom-agent-action--journal {

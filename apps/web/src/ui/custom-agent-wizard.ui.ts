@@ -22,6 +22,7 @@ import {
   type AgentDraft,
   type AddMemoryRequest,
   type CustomAgentPersonality,
+  type MemoryType,
   getAgentTypes,
   saveAgentDraft,
   loadAgentDraft,
@@ -34,6 +35,7 @@ import {
   getVoiceLibrary,
   dispatchCustomAgentEvent,
 } from '../services/custom-agent.service.js';
+import { openMemoryInput, toAddMemoryRequest } from './memory-input-modal.ui.js';
 
 const log = createLogger('CustomAgentWizard');
 
@@ -148,13 +150,40 @@ function ensureWizardExists(): HTMLElement {
 // ============================================================================
 
 /**
- * Opens the custom agent creation wizard
+ * Options for opening the wizard
  */
-export function openCustomAgentWizard(resumeDraft = true): void {
+export interface WizardOptions {
+  /** Resume from saved draft if available */
+  resumeDraft?: boolean;
+  /** Pre-select an agent type and skip type selection step */
+  preselectedType?: CustomAgentType;
+}
+
+/**
+ * Opens the custom agent creation wizard
+ * @param options - Configuration options or boolean for backwards compatibility
+ */
+export function openCustomAgentWizard(options: WizardOptions | boolean = true): void {
   const modal = ensureWizardExists();
 
-  // Load existing draft or start fresh
-  if (resumeDraft) {
+  // Handle backwards compatibility (boolean param = resumeDraft)
+  const opts: WizardOptions =
+    typeof options === 'boolean' ? { resumeDraft: options } : options;
+  const { resumeDraft = true, preselectedType } = opts;
+
+  // If preselected type, start fresh with that type pre-filled
+  if (preselectedType) {
+    clearAgentDraft();
+    draft = {
+      step: 1, // Skip type selection, go to info step
+      updatedAt: new Date().toISOString(),
+      type: preselectedType,
+    };
+    currentStep = 1;
+    createdAgentId = null;
+    log.info(`Starting wizard with preselected type: ${preselectedType}`);
+  } else if (resumeDraft) {
+    // Load existing draft or start fresh
     const existingDraft = loadAgentDraft();
     if (existingDraft) {
       draft = existingDraft;
@@ -1121,20 +1150,15 @@ function handleProfileSelect(e: Event): void {
   soundUI.play('click');
 }
 
-function handleAddMemory(e: Event): void {
+async function handleAddMemory(e: Event): Promise<void> {
   const btn = e.currentTarget as HTMLElement;
-  const type = btn.dataset.memoryType as AddMemoryRequest['type'];
+  const type = btn.dataset.memoryType as MemoryType;
   
-  // Open memory input modal (simplified - would be a separate component)
-  const content = prompt(`Enter ${type}:`);
-  if (content) {
-    const memory: AddMemoryRequest = {
-      type,
-      content,
-      title: type === 'story' ? prompt('Title for this story:') || 'Untitled' : undefined,
-      phrase: type === 'wisdom' ? content : undefined,
-      context: type === 'sharedMoment' ? prompt('Context (who, when, where):') || '' : undefined,
-    };
+  // Open memory input modal with pre-selected type
+  const result = await openMemoryInput(type);
+  
+  if (result) {
+    const memory: AddMemoryRequest = toAddMemoryRequest(result);
     
     if (!draft.memories) {
       draft.memories = [];
@@ -1143,7 +1167,6 @@ function handleAddMemory(e: Event): void {
     
     // Re-render step
     renderStep();
-    soundUI.play('success');
   }
 }
 

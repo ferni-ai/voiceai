@@ -21,9 +21,9 @@ import {
   createReminder,
   startReminderScheduler,
   type ReminderDeliveryMethod,
-} from '../services/reminder-scheduler.js';
+} from '../services/scheduling/reminder-scheduler.js';
 import { sendEmail, sendSMS } from '../services/communication-service.js';
-import { callWithPersonaVoice } from '../services/voice-call.js';
+import { callWithPersonaVoice } from '../services/voice/voice-call.js';
 import { getDefaultStore } from '../memory/index.js';
 import { getPersonaDisplayName, getCanonicalPersonaId } from '../personas/voice-registry.js';
 

@@ -15,7 +15,7 @@ import {
   buildCelebrationContext,
   MILESTONE_PATTERNS,
   GOOD_NEWS_PATTERNS,
-} from '../intelligence/context-builders/celebration.js';
+} from '../intelligence/context-builders/emotional/celebration.js';
 
 import type {
   ContextBuilderInput,

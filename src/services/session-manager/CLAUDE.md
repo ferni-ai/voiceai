@@ -24,78 +24,100 @@ Level 10:  config/, utils/, types/
 
 ```
 services/
-├── session-manager.ts           # Main entry (needs further splitting)
+├── session-manager.ts           # Main orchestration (~1000 lines)
 └── session-manager/
     ├── access.ts                # Session access functions (getSession, clearAll)
     ├── cleanup.ts               # TTL and cleanup management
     ├── constants.ts             # Configuration constants
     ├── utils.ts                 # Utility functions (withTimeout)
     ├── validation.ts            # User ID validation
+    ├── profile-loader.ts        # User profile loading/creation
+    ├── engine-factory.ts        # Intelligence engine initialization
+    ├── session-primer.ts        # Session priming for returning users
+    ├── end-session.ts           # Session end lifecycle
+    ├── __tests__/               # Test files
     └── CLAUDE.md                # This file
 ```
 
 ---
 
-## Refactoring Plan: session-manager.ts
+## Extracted Modules
 
-**Current state:** 2,139 lines - too large for maintainability
-
-**Already extracted:**
+### Core Infrastructure (already extracted)
 - ✅ `access.ts` - getSession, clearAll, getActiveIds, getActiveCount
-- ✅ `cleanup.ts` - startSessionCleanup, stopSessionCleanup
-- ✅ `constants.ts` - MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS
-- ✅ `utils.ts` - withTimeout helper
+- ✅ `cleanup.ts` - startSessionCleanup, stopSessionCleanup, cleanupOrphanedSessions
+- ✅ `constants.ts` - MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS, etc.
+- ✅ `utils.ts` - withTimeout helper, generateFallbackSummary
 - ✅ `validation.ts` - validateUserId
 
-**Target:** Continue splitting `createSessionServices()` into focused modules.
+### Session Lifecycle (newly extracted)
+- ✅ `profile-loader.ts` (~170 lines) - User profile loading/creation, intelligence state loading
+  - `loadOrCreateProfile()` - Main entry point
+  - Handles realtime memory enrichment, cross-persona insights, trust persistence
 
-### Phase 1: Profile Management (extract)
-- [ ] `profile-loader.ts` - User profile loading/creation, intelligence state loading
-  - Lines: ~100
-  - Dependencies: store, realtimeMemory, cross-persona insights
+- ✅ `engine-factory.ts` (~200 lines) - Create all intelligence engines
+  - `createSessionEngines()` - Creates response quality, pattern analyzer, etc.
+  - Handles emotional memory loading, cross-session thread persistence
 
-### Phase 2: Engine Initialization (extract)
-- [ ] `engine-factory.ts` - Create all intelligence engines
-  - Lines: ~150
-  - Dependencies: emotion detector, pattern analyzer, journey tracker, etc.
+- ✅ `session-primer.ts` (~230 lines) - Build priming context for returning users
+  - `generateSessionPriming()` - Memory index warming, priming context
+  - `generateProactiveInsights()` - Proactive check-ins
+  - `buildSuperhumanMemoryContext()` - "Better than Human" intelligence
 
-### Phase 3: Session Priming (extract)
-- [ ] `session-primer.ts` - Build priming context for returning users
-  - Lines: ~200
-  - Dependencies: memory index, priming memories, conversation summaries
-
-### Phase 4: Method Implementations (extract)
-- [ ] `session-methods.ts` - analyze, addTurn, getSpeechContext, etc.
-  - Lines: ~800
-  - Dependencies: engines, profile, memory
-
-### Phase 5: Main Orchestration (keep in session-manager.ts)
-- `createSessionServices()` - ~400 lines (orchestrates all the above)
-- Initialization and cleanup hooks
+- ✅ `end-session.ts` (~550 lines) - Session end lifecycle
+  - `handleEndSession()` - Main orchestrator for session end
+  - Conversation summarization (LLM or extraction)
+  - Learning data finalization
+  - All state persistence (handoff, threads, emotional, intelligence, journey, human memory)
+  - Cleanup operations
 
 ---
 
-## Extraction Pattern
+## Module Responsibilities
 
-Follow the existing module patterns:
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `session-manager.ts` | ~1000 | Main orchestration, SessionServices object |
+| `profile-loader.ts` | ~170 | Profile loading, intelligence state |
+| `engine-factory.ts` | ~200 | Intelligence engine creation |
+| `session-primer.ts` | ~230 | Session priming, superhuman context |
+| `end-session.ts` | ~550 | Session end lifecycle |
+| `access.ts` | ~105 | Session access functions |
+| `cleanup.ts` | ~130 | TTL and cleanup |
+| `constants.ts` | ~45 | Configuration |
+| `utils.ts` | ~90 | Utility functions |
+| `validation.ts` | ~50 | User ID validation |
+
+**Total: ~2570 lines across 10 modules**
+
+---
+
+## Usage Pattern
 
 ```typescript
-// profile-loader.ts
-import type { UserProfile } from '../../types/user-profile.js';
-import type { GlobalServices } from './types.js';
-
-export async function loadOrCreateProfile(
-  userId: string | undefined,
-  global: GlobalServices
-): Promise<{ profile: UserProfile | null; isReturning: boolean }> {
-  // Implementation
-}
-
-// session-manager.ts
+// In session-manager.ts
 import { loadOrCreateProfile } from './session-manager/profile-loader.js';
+import { createSessionEngines } from './session-manager/engine-factory.js';
+import { generateSessionPriming, buildSuperhumanMemoryContext } from './session-manager/session-primer.js';
+import { handleEndSession } from './session-manager/end-session.js';
 
 // In createSessionServices():
-const { profile, isReturning } = await loadOrCreateProfile(userId, global);
+const { userProfile, validatedUserId, isReturningUser } = await loadOrCreateProfile(
+  userId, sessionId, global
+);
+
+const engines = createSessionEngines({
+  engineKey: userId || sessionId,
+  sessionId,
+  userProfile,
+  isReturningUser,
+});
+
+const sessionPriming = await generateSessionPriming({ ... });
+const superhumanContext = buildSuperhumanMemoryContext({ ... });
+
+// In endSession():
+await handleEndSession({ sessionId, userId, validatedUserId, ... });
 ```
 
 ---
@@ -105,7 +127,7 @@ const { profile, isReturning } = await loadOrCreateProfile(userId, global);
 From main session-manager.ts:
 ```typescript
 export { createSessionServices } from './session-manager.js';
-export { getSessionServices, clearAllSessions, ... } from './session-manager/access.js';
+export { getSessionServices, clearAllSessions, getActiveSessionIds, getActiveSessionCount } from './session-manager/access.js';
 export { startSessionCleanup, stopSessionCleanup } from './session-manager/cleanup.js';
 ```
 
@@ -113,16 +135,24 @@ export { startSessionCleanup, stopSessionCleanup } from './session-manager/clean
 
 ## Testing
 
-Each extracted module should have its own test file:
+Each module has (or should have) corresponding tests:
 ```
 session-manager/__tests__/
+├── access.test.ts
+├── cleanup.test.ts
+├── session-manager-utils.test.ts
 ├── profile-loader.test.ts
 ├── engine-factory.test.ts
 ├── session-primer.test.ts
-└── session-methods.test.ts
+└── end-session.test.ts
+```
+
+Run tests:
+```bash
+pnpm vitest run src/services/session-manager/__tests__/
 ```
 
 ---
 
 *Created: December 2024*
-*Status: Partial extraction complete, refactoring in progress*
+*Status: Refactoring complete (2139 → ~10 focused modules)*

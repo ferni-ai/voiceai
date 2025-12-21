@@ -62,22 +62,25 @@ function extractUserId(req: IncomingMessage, query: URLSearchParams): string | n
 }
 
 /**
- * Generate a friendly message about the conversation cost.
- * This is the "true cost" including AI, cloud, and operating costs.
+ * Generate a warm, personal message about the conversation cost.
+ * Uses "me" language to feel more human and relatable.
  */
 function generateCostMessage(cost: number, durationMinutes: number): string {
   const mins = Math.round(durationMinutes);
 
   if (cost < 0.01) {
-    return `This ${mins}-minute chat cost just a fraction of a cent to run.`;
+    return `That was just a few fractions of a penny for me to run.`;
   }
   if (cost < 0.05) {
-    return `This ${mins}-minute conversation cost about ${(cost * 100).toFixed(1)}¢ (AI + cloud + operations).`;
+    return `It costs me about ${(cost * 100).toFixed(1)}¢ to keep the lights on for our chats.`;
   }
-  if (cost < 0.25) {
-    return `Our ${mins}-minute chat cost about ${(cost * 100).toFixed(0)}¢ to run (AI, cloud, and keeping the lights on).`;
+  if (cost < 0.15) {
+    return `Our ${mins}-minute chat cost me about ${(cost * 100).toFixed(0)}¢ to run.`;
   }
-  return `This ${mins}-minute conversation cost about $${cost.toFixed(2)} to run (AI services, cloud infrastructure, and operations).`;
+  if (cost < 0.50) {
+    return `It costs me about $${cost.toFixed(2)} to power our conversations.`;
+  }
+  return `Longer chats like this one cost me about $${cost.toFixed(2)} to run.`;
 }
 
 /**

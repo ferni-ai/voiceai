@@ -16,17 +16,17 @@
       }
     },
     "rememberAboutUser": {
-      "description": "Store an important fact about the user for future conversations. Call when user shares personal information worth remembering - names, preferences, life events, goals, concerns. The fact will persist across sessions.",
+      "description": "Store an important fact about the user with semantic embedding for future recall. Facts persist across all sessions and are searchable by meaning. Stores personal details, life events, goals, concerns, and preferences.",
       "parameters": {
-        "fact": "The important fact to remember. Be specific and natural. Examples: 'has two kids named Maya and Jake', 'retiring next year from teaching', 'worried about healthcare costs', 'loves hiking in the mountains'",
-        "category": "Category of fact. Options: 'personal' (family, interests), 'financial' (money concerns), 'emotional' (feelings, struggles), 'goal' (aspirations), 'preference' (likes/dislikes)",
-        "importance": "Priority level: 'low' (nice-to-know details), 'medium' (useful context), 'high' (critical to remember)"
+        "fact": "The fact to remember with full context. Examples: 'has two kids named Maya and Jake, ages 8 and 12', 'retiring next year from teaching biology', 'worried about healthcare costs', 'loves hiking in Colorado mountains'",
+        "category": "Category: 'personal' (family, background), 'financial' (money, career), 'emotional' (feelings, struggles), 'goal' (aspirations), 'preference' (likes/dislikes)",
+        "importance": "'low' (nice-to-know), 'medium' (useful context), 'high' (critical life events, key relationships)"
       }
     },
     "recallFromMemory": {
-      "description": "Retrieve something remembered about the user from previous conversations. Call when you need to reference past information, check what you know about them, or personalize the conversation.",
+      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords. Returns matches with temporal context showing when the memory was stored.",
       "parameters": {
-        "topic": "What you're trying to recall. Examples: 'their retirement goals', 'family members', 'what worried them last time', 'their job situation', 'hobbies they mentioned'"
+        "topic": "What to recall - conceptual, not exact match. Examples: 'retirement plans', 'family situation', 'their concerns', 'career goals'"
       }
     },
     "getWeather": {

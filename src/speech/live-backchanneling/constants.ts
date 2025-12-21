@@ -1,7 +1,20 @@
 /**
  * Live Backchanneling Constants
  *
- * Configuration and phrase banks for live backchanneling.
+ * Configuration and phrase banks for live backchanneling during user speech.
+ *
+ * IMPORTANT: Live backchannels are MINIMAL presence signals during user speech.
+ * They're NOT meant to be substantial acknowledgments - the LLM handles those
+ * in turn responses based on behavioral guidance from dynamic-speech-guidance.ts.
+ *
+ * Live backchannels should be:
+ * - RARE: Low probability, long intervals
+ * - SHORT: 1-2 syllables max ("Mm", "Yeah")
+ * - SOFT: 30% volume, quick
+ * - CONTEXT-AWARE: Only during natural breath pauses
+ *
+ * For substantial acknowledgments, the LLM generates contextually appropriate
+ * responses based on what the user actually said.
  */
 
 // ============================================================================
@@ -10,10 +23,10 @@
 
 export const CONFIG = {
   /** Minimum time into turn before live backchannel (ms) */
-  MIN_SPEAKING_DURATION: 4000,
+  MIN_SPEAKING_DURATION: 5000, // Increased from 4000 - wait longer before backchanneling
 
   /** Minimum time between backchannels (ms) */
-  MIN_INTERVAL: 8000,
+  MIN_INTERVAL: 10000, // Increased from 8000 - longer gaps between backchannels
 
   /** Volume ratio for soft backchannels (30% of normal) */
   SOFT_VOLUME_RATIO: 0.3,
@@ -22,13 +35,13 @@ export const CONFIG = {
   BREATH_PAUSE_MAX: 400,
 
   /** Minimum turns before live backchannels start */
-  MIN_TURNS: 3,
+  MIN_TURNS: 4, // Increased from 3 - wait for more rapport
 
-  /** Probability of backchannel when conditions are met */
-  BASE_PROBABILITY: 0.25,
+  /** Probability of backchannel when conditions are met - LOW to minimize repetition */
+  BASE_PROBABILITY: 0.15, // Reduced from 0.25 - less frequent
 
-  /** Increased probability for emotional moments */
-  EMOTIONAL_PROBABILITY: 0.4,
+  /** Increased probability for emotional moments - still lower than before */
+  EMOTIONAL_PROBABILITY: 0.3, // Reduced from 0.4
 } as const;
 
 // ============================================================================

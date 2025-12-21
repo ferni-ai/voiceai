@@ -16,7 +16,10 @@ import { getMusicPlayer, type MusicTrack } from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
 import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
-import { getSpotifyAccessToken, isSpotifyConfigured } from '../../../services/spotify-auth.js';
+import {
+  getSpotifyAccessToken,
+  isSpotifyConfigured,
+} from '../../../services/identity/spotify-auth.js';
 import {
   getAirDJMoment,
   getDancingComment,
@@ -671,7 +674,7 @@ async function playViaSpotify(query: string): Promise<string> {
 
   try {
     // Dynamically import Spotify to avoid circular deps
-    const { default: createSpotifyTools } = await import('../../spotify.js');
+    const { default: createSpotifyTools } = await import('./spotify.js');
     const tools = createSpotifyTools();
 
     // Use Spotify's playMusic tool

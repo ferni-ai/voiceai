@@ -188,18 +188,16 @@ struct SimpleEyeIcon: View {
 extension MenubarIconGenerator {
     
     /// Get appropriate SF Symbol for state (fallback)
+    /// NOTE: listening/speaking use same icon as connected - no visual distinction
     nonisolated static func sfSymbol(for state: VoiceState) -> String {
         switch state {
         case .disconnected:
             return "mic.circle"
         case .connecting:
             return "mic.circle.fill"
-        case .connected:
+        case .connected, .listening, .speaking:
+            // All active states use same icon - no listening/speaking distinction
             return "waveform.circle.fill"
-        case .listening:
-            return "ear.fill"
-        case .speaking:
-            return "waveform"
         case .thinking:
             return "ellipsis.circle.fill"
         case .error:

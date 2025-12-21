@@ -8,13 +8,13 @@
 import { getDefaultStore, getVectorStore, initializeMemorySystem } from '../memory/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { stopAllAutoSaves } from './intelligence-persistence.js';
-import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
+import { validateAndLog, type StartupCapabilities } from './deployment/startup-validation.js';
 import {
   initializeUnifiedPersistence,
   shutdownUnifiedPersistence,
 } from './trust-systems/unified-persistence.js';
 import type { GlobalServices } from './types.js';
-import { setGlobalStore } from './user-identification.js';
+import { setGlobalStore } from './identity/user-identification.js';
 // NOTE: session-manager imports are done dynamically to avoid circular dependency
 // (session-manager.ts imports getGlobalServices from this file)
 
@@ -97,10 +97,10 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       { initializeCollectiveLearning },
       { initializeMemoryManagement },
     ] = await Promise.all([
-      import('./productivity-store.js'),
-      import('./background-tasks.js'),
-      import('./collective-learning-store.js'),
-      import('./memory-management.js'),
+      import('./stores/productivity-store.js'),
+      import('./scheduling/background-tasks.js'),
+      import('./memory/collective-learning-store.js'),
+      import('./memory/memory-management.js'),
     ]);
 
     // Initialize essential services in parallel (these are fast)
@@ -187,36 +187,37 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
     // Still try to init productivity store in fallback
     let productivityStore;
     try {
-      const { initializeProductivityStore } = await import('./productivity-store.js');
+      const { initializeProductivityStore } = await import('./stores/productivity-store.js');
       productivityStore = await initializeProductivityStore();
     } catch {
-      const { getProductivityStore } = await import('./productivity-store.js');
+      const { getProductivityStore } = await import('./stores/productivity-store.js');
       productivityStore = getProductivityStore();
     }
 
     // Try to init background tasks in fallback
     let backgroundTasks;
     try {
-      const { initializeBackgroundTasks } = await import('./background-tasks.js');
+      const { initializeBackgroundTasks } = await import('./scheduling/background-tasks.js');
       backgroundTasks = await initializeBackgroundTasks();
     } catch {
-      const { getBackgroundTaskService } = await import('./background-tasks.js');
+      const { getBackgroundTaskService } = await import('./scheduling/background-tasks.js');
       backgroundTasks = getBackgroundTaskService();
     }
 
     // Try to init collective learning in fallback
     let collectiveLearning;
     try {
-      const { initializeCollectiveLearning } = await import('./collective-learning-store.js');
+      const { initializeCollectiveLearning } =
+        await import('./memory/collective-learning-store.js');
       collectiveLearning = await initializeCollectiveLearning();
     } catch {
-      const { getCollectiveLearningStore } = await import('./collective-learning-store.js');
+      const { getCollectiveLearningStore } = await import('./memory/collective-learning-store.js');
       collectiveLearning = getCollectiveLearningStore();
     }
 
     // Try to init memory management in fallback
     try {
-      const { initializeMemoryManagement } = await import('./memory-management.js');
+      const { initializeMemoryManagement } = await import('./memory/memory-management.js');
       await initializeMemoryManagement();
     } catch {
       getLogger().debug('Memory management init skipped in fallback');
@@ -301,15 +302,16 @@ export async function resetGlobalServices(): Promise<void> {
   }
 
   try {
-    const { shutdownCalendarReminders } = await import('./calendar-reminders.js');
+    const { shutdownCalendarReminders } = await import('./scheduling/calendar-reminders.js');
     await shutdownCalendarReminders();
   } catch {
     // Non-critical
   }
 
   try {
-    const { shutdownEngagementNotifications } = await import('./engagement-notifications.js');
-    await shutdownEngagementNotifications();
+    const { shutdownEngagementNotificationService } =
+      await import('./engagement/engagement-notification-service.js');
+    await shutdownEngagementNotificationService();
   } catch {
     // Non-critical
   }
@@ -353,7 +355,7 @@ export async function resetGlobalServices(): Promise<void> {
   }
 
   try {
-    const { shutdownTeamEngagementService } = await import('./team-engagement.js');
+    const { shutdownTeamEngagementService } = await import('./engagement/team-engagement.js');
     await shutdownTeamEngagementService();
   } catch {
     // Non-critical

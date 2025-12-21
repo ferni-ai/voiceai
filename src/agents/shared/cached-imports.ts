@@ -50,7 +50,7 @@ interface CachedModuleRefs {
 
   // User identification
   identifyFromMetadata:
-    | typeof import('../../services/user-identification.js').identifyFromMetadata
+    | typeof import('../../services/identity/user-identification.js').identifyFromMetadata
     | null;
 
   // Startup
@@ -234,7 +234,7 @@ export async function getIdentifyFromMetadataCached(): Promise<
   NonNullable<CachedModuleRefs['identifyFromMetadata']>
 > {
   if (!cachedModules.identifyFromMetadata) {
-    const mod = await import('../../services/user-identification.js');
+    const mod = await import('../../services/identity/user-identification.js');
     cachedModules.identifyFromMetadata = mod.identifyFromMetadata;
   }
   return cachedModules.identifyFromMetadata!;

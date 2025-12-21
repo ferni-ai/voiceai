@@ -21,7 +21,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { isTeamMemberUnlocked } from './team-availability.js';
+import { isTeamMemberUnlocked } from './superhuman/team-availability.js';
 
 const log = createLogger({ module: 'RoleBoundaries' });
 

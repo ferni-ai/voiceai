@@ -23,7 +23,7 @@ import {
   type CalendarEvent,
   type EventReminder,
   type CalendarDigest,
-} from '../services/calendar-reminders.js';
+} from '../services/scheduling/calendar-reminders.js';
 
 // Mock dependencies
 vi.mock('../utils/safe-logger.js', () => ({

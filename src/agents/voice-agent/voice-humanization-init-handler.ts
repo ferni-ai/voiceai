@@ -22,8 +22,8 @@ import { getSessionFlags, initializeFlags } from '../../config/voice-humanizatio
 import {
   recordFeatureUsage,
   recordSessionStart,
-} from '../../services/voice-humanization-metrics.js';
-import { recordSessionStart as recordUserSessionStart } from '../../services/user-analytics.js';
+} from '../../services/voice/voice-humanization-metrics.js';
+import { recordSessionStart as recordUserSessionStart } from '../../services/analytics/user-analytics.js';
 import { initializeSpeechMetrics } from '../integrations/speech-metrics-integration.js';
 import { getEnhancedTurnPredictor } from '../../speech/enhanced-turn-prediction.js';
 import { getMultiSignalLaughterDetector } from '../../speech/multi-signal-laughter.js';

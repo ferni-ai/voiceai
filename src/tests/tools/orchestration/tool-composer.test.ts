@@ -11,7 +11,7 @@ import {
   createToolComposer,
   TOOL_CHAINS,
   type ComposedResult,
-} from '../../../tools/orchestration/tool-composer.js';
+} from '../../../tools/orchestrator/tool-composer.js';
 import { endConversation } from '../../../services/conversation-state.js';
 
 describe('ToolComposer', () => {

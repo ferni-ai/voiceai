@@ -67,6 +67,7 @@
       "teamHuddles": "Team Huddles",
       "playGames": "Play Games",
       "musicalYou": "Musical You",
+      "journaling": "Journaling",
       "personalize": "Personalise",
       "voiceAccent": "Voice & Accent",
       "guidedPractices": "Guided Practices",
@@ -87,7 +88,9 @@
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
       "language": "Language",
-      "whatsGrowing": "What's Growing"
+      "whatsGrowing": "What's Growing",
+      "billingPortal": "Billing & Subscription",
+      "outreachSchedule": "Outreach Schedule"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",

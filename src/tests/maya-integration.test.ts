@@ -10,7 +10,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getProductivityStore } from '../services/productivity-store.js';
+import { getProductivityStore } from '../services/stores/productivity-store.js';
 
 // Mock LiveKit agents
 const createMockLogger = () => ({
@@ -256,7 +256,7 @@ describe('Maya Proactive Coaching', () => {
 describe('Maya Notification System', () => {
   describe('Notification Tools', () => {
     it('should provide all notification configuration tools', async () => {
-      const { createNotificationTools } = await import('../tools/notifications.js');
+      const { createNotificationTools } = await import('../tools/domains/communication/notifications.js');
       const tools = createNotificationTools();
 
       expect(tools.getNotificationPreferences).toBeDefined();
@@ -340,7 +340,7 @@ describe('Maya Tool Integration', () => {
   });
 
   it('should import notification tools', async () => {
-    const module = await import('../tools/notifications.js');
+    const module = await import('../tools/domains/communication/notifications.js');
     expect(module.createNotificationTools).toBeDefined();
     expect(typeof module.createNotificationTools).toBe('function');
   });
@@ -437,7 +437,7 @@ describe('Maya Data Persistence', () => {
 describe('Maya Gamification Store V2', () => {
   describe('Zod Schemas', () => {
     it('should validate gamification profile schema', async () => {
-      const { GamificationProfileSchema } = await import('../services/gamification-store.js');
+      const { GamificationProfileSchema } = await import('../services/engagement/gamification-store.js');
 
       const validProfile = {
         userId: 'test-123',
@@ -472,7 +472,7 @@ describe('Maya Gamification Store V2', () => {
     });
 
     it('should validate earned badge schema', async () => {
-      const { EarnedBadgeSchema } = await import('../services/gamification-store.js');
+      const { EarnedBadgeSchema } = await import('../services/engagement/gamification-store.js');
 
       const validBadge = {
         id: 'badge_first_streak_123',
@@ -489,7 +489,7 @@ describe('Maya Gamification Store V2', () => {
     });
 
     it('should validate export schema', async () => {
-      const { GamificationExportSchema } = await import('../services/gamification-store.js');
+      const { GamificationExportSchema } = await import('../services/engagement/gamification-store.js');
 
       const validExport = {
         version: '1.0',

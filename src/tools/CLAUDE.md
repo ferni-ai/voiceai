@@ -101,32 +101,100 @@ tools/
 ├── __tests__/                 # Shared test utilities & E2E tests
 │   ├── test-utils.ts         # Mock factories, assertions
 │   └── e2e-tool-chains.test.ts # User journey tests
+│
 ├── advanced/                  # Advanced optimization systems
 │   ├── index.ts              # Re-exports all advanced systems
 │   └── tool-lifecycle.ts     # A/B testing, semantic routing integration
-├── domains/                   # Domain-specific tool collections
+│
+├── domains/                   # Domain-specific tool collections (40+ domains)
+│   ├── calendar/             # Calendar tools (Alex)
 │   ├── career/               # Career tools
-│   │   ├── index.ts          # Domain export
-│   │   └── __tests__/        # Domain tests
+│   ├── communication/        # Email, SMS, messaging (Alex)
+│   ├── connection/           # Loneliness, friendship
+│   ├── entertainment/        # Music, media
+│   ├── finance/              # Banking, budgeting
 │   ├── grief/                # Grief support tools
+│   ├── habits/               # Habit tracking (Maya)
+│   ├── information/          # News, weather, search
+│   ├── life-planning/        # Goals, milestones (Jordan)
 │   ├── memory/               # Memory persistence tools
-│   └── ...                   # 40+ domains
-├── orchestration/            # Tool composition & chaining
-│   ├── index.ts
-│   └── tool-composer.ts      # TOOL_CHAINS, emotion detection
-├── registry/                 # Central tool registry
+│   ├── research/             # Stock research, market analysis (Peter)
+│   │   ├── knowledge-graph/  # Knowledge graph services
+│   │   ├── global-intelligence/ # Big brain services
+│   │   └── proactive-engine/ # Proactive insights
+│   ├── self-compassion/      # Inner critic, self-kindness
+│   ├── wellness/             # Health tracking, medications
+│   ├── wisdom/               # Quotes, principles (Nayan)
+│   └── ...                   # 40+ total domains
+│
+├── factories/                 # Tool factory patterns
+├── habit-coaching/            # Habit coaching module (split for size)
+│   ├── index.ts              # Re-exports
+│   ├── types.ts              # Type definitions
+│   ├── templates.ts          # Habit templates
+│   ├── bundles.ts            # Habit bundles
+│   ├── storage.ts            # Persistence layer
+│   └── tools.ts              # Tool implementations
+│
+├── handoff/                   # Agent handoff tools
+│
+├── orchestrator/              # Tool orchestration (PREFERRED)
+│   ├── index.ts              # Main exports
+│   ├── tool-composer.ts      # TOOL_CHAINS, composition
+│   ├── unified-tool-orchestrator.ts # Unified orchestrator
+│   └── voice-agent-integration.ts # Voice agent hooks
+│
+├── orchestration/             # DEPRECATED - use orchestrator/ instead
+│   └── index.ts              # Re-exports from orchestrator/
+│
+├── registry/                  # Central tool registry
 │   ├── index.ts              # ToolRegistry class
 │   ├── loader.ts             # Lazy loading, domain registration
 │   └── types.ts              # Type definitions
-├── utils/                    # Shared utilities
+│
+├── utils/                     # Shared utilities
 │   ├── index.ts              # formatters, ID generation
 │   ├── tool-helpers.ts       # Common tool utilities
-│   └── tool-wrapper.ts       # Validation, analytics, error handling
+│   ├── tool-wrapper.ts       # Validation, analytics, error handling
+│   └── tool-execution-wrapper.ts # Execution utilities
+│
+├── # Root-level Infrastructure Files
 ├── builder.ts                # Builds tools from manifests
+├── dynamic-loader.ts         # Lazy loading tools
+├── lifecycle.ts              # Tool lifecycle management
 ├── validation.ts             # Input validation utilities
+├── categories.ts             # Tool categories
+├── deprecation.ts            # Deprecation handling
+├── ab-testing.ts             # A/B testing service
+│
+├── # Root-level Domain Files (legacy - consider moving to domains/)
+├── bills.ts                  # → domains/finance/
+├── calculators.ts            # → domains/finance/
+├── communication.ts          # → domains/communication/
+├── gamification.ts           # → domains/habits/ or engagement/
+├── medications.ts            # → domains/wellness/
+├── news.ts                   # → domains/information/
+├── notes.ts                  # → domains/productivity/
+│
 ├── CLAUDE.md                 # This file
 └── index.ts                  # Main exports
 ```
+
+### File Organization Guidelines
+
+**Infrastructure (keep at root):**
+- `builder.ts`, `validation.ts`, `lifecycle.ts` - Core infrastructure
+- `dynamic-loader.ts`, `categories.ts` - Registry support
+- `deprecation.ts`, `ab-testing.ts` - Advanced features
+
+**Domain tools (move to domains/):**
+- New domain tools should go in `domains/{domain}/`
+- Legacy root files (bills.ts, news.ts, etc.) should be migrated when feasible
+
+**When splitting large files:**
+- Follow the `habit-coaching/` pattern
+- Create: `types.ts`, `index.ts`, `tools.ts`, plus domain-specific files
+- Re-export everything from `index.ts` for backward compatibility
 
 ---
 

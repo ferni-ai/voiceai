@@ -90,14 +90,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateIcon()
             }
             .store(in: &cancellables)
-        
-        // Observe backend mode changes
-        voiceManager.$backendMode
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] mode in
-                self?.updateIcon()
-            }
-            .store(in: &cancellables)
     }
     
     // MARK: - Shortcuts Integration
@@ -246,8 +238,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // MARK: - Notification Permission
-    
+
     private func requestNotificationPermission() {
+        // Only request if running as proper app bundle
+        guard Bundle.main.bundleIdentifier != nil else {
+            print("[Notifications] Skipping permission request - not app bundle")
+            return
+        }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
                 print("[Notifications] Permission error: \(error)")
@@ -363,24 +360,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(openClaudeITermItem)
         
         menu.addItem(NSMenuItem.separator())
-        
-        // Backend mode (Native/CLI)
-        let backendIcon = voiceManager.backendMode == .native ? "⚡️" : "🖥️"
-        let backendLabel = "\(backendIcon) \(voiceManager.backendMode.displayName)"
-        let backendItem = NSMenuItem(title: backendLabel, action: nil, keyEquivalent: "")
-        backendItem.isEnabled = false
-        menu.addItem(backendItem)
-        
-        let toggleBackendItem = NSMenuItem(
-            title: voiceManager.backendMode == .native ? "Switch to CLI Mode" : "Switch to Native Mode",
-            action: #selector(toggleBackendMode),
-            keyEquivalent: ""
-        )
-        toggleBackendItem.target = self
-        menu.addItem(toggleBackendItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
+
         // Cloud/Local toggle
         let modeLabel = voiceManager.useCloudMode ? "☁️ Cloud (app.ferni.ai)" : "🏠 Local (localhost)"
         let modeItem = NSMenuItem(title: modeLabel, action: nil, keyEquivalent: "")
@@ -488,14 +468,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .connecting:
             iconName = "mic.circle.fill"
             isTemplate = false
-        case .connected:
+        case .connected, .listening, .speaking:
+            // All active conversation states use same icon
+            // NO visual distinction between listening/speaking - like real humans
             iconName = "waveform.circle.fill"
-            isTemplate = false
-        case .listening:
-            iconName = "ear.fill"
-            isTemplate = false
-        case .speaking:
-            iconName = "waveform"
             isTemplate = false
         case .thinking:
             iconName = "ellipsis.circle.fill"
@@ -530,16 +506,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             message: voiceManager.useCloudMode
                 ? "Switched to Cloud Mode (app.ferni.ai)"
                 : "Switched to Local Mode (localhost:3001)"
-        )
-    }
-    
-    @objc private func toggleBackendMode() {
-        voiceManager.backendMode = voiceManager.backendMode == .native ? .cli : .native
-        showNotification(
-            title: "Ferni Voice",
-            message: voiceManager.backendMode == .native
-                ? "Switched to Native SDK (lower latency)"
-                : "Switched to CLI Mode (easier debugging)"
         )
     }
     
@@ -593,19 +559,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func showNotification(title: String, message: String) {
         guard showNotifications else { return }
-        
+        // Skip if not running as proper app bundle
+        guard Bundle.main.bundleIdentifier != nil else { return }
+
         // Use UNUserNotificationCenter for macOS 11+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = message
         content.sound = playSounds ? .default : nil
-        
+
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,
             trigger: nil
         )
-        
+
         UNUserNotificationCenter.current().add(request)
     }
 }
