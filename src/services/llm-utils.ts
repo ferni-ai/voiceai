@@ -58,14 +58,16 @@ async function getGoogleAIClient(): Promise<unknown> {
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-      getLogger().warn('No Google AI API key found, LLM utilities will be disabled');
+      getLogger().warn('No Google AI API key found (checked GOOGLE_AI_API_KEY and GOOGLE_API_KEY)');
       return null;
     }
 
+    getLogger().info('Initializing Google AI client...');
     googleAIClient = new GoogleGenAI({ apiKey });
+    getLogger().info('Google AI client initialized successfully');
     return googleAIClient;
   } catch (error) {
-    getLogger().debug({ error: String(error) }, 'Failed to initialize Google AI client');
+    getLogger().warn({ error: String(error) }, 'Failed to initialize Google AI client');
     return null;
   }
 }
@@ -124,7 +126,7 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
       throw error;
     }
   } catch (error) {
-    getLogger().debug({ error: String(error) }, 'Google AI call failed');
+    getLogger().warn({ error: String(error) }, 'Google AI call failed');
     return null;
   }
 }
