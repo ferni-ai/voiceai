@@ -82,6 +82,7 @@ import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
+import { handleLifeContextRoutes } from '../../api/life-context-routes.js';
 import { handleSpeechMetricsRoutes } from '../../api/speech-metrics-routes.js';
 import { handleVoiceAuthRoutes } from '../../api/voice-auth.routes.js';
 import { handleUserRoutes } from '../../api/user-routes.js';
@@ -124,6 +125,12 @@ import {
   initInsightsWebSocket,
   shutdownInsightsWebSocket,
 } from '../../services/insights-websocket.js';
+
+// WebSocket for life context (Phase 6)
+import {
+  initLifeContextWebSocket,
+  shutdownLifeContextWebSocket,
+} from '../../services/life-context-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 import { handleCustomAgentRoutes } from '../../api/custom-agent.routes.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
@@ -592,6 +599,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Life context routes (Phase 6)
+    if (pathname.startsWith('/api/life-context')) {
+      const handled = await handleLifeContextRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Speech metrics routes
     if (pathname.startsWith('/api/speech-metrics')) {
       const handled = await handleSpeechMetricsRoutes(req, res, pathname);
@@ -843,6 +856,10 @@ hardenServer(server);
 initInsightsWebSocket(server);
 log.info('Insights WebSocket server initialized on /ws/insights');
 
+// Initialize WebSocket server for life context (Phase 6)
+initLifeContextWebSocket(server);
+log.info('Life Context WebSocket server initialized on /ws/life-context');
+
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -902,6 +919,7 @@ async function gracefulShutdown(): Promise<void> {
 
   // Shutdown WebSocket servers first
   shutdownInsightsWebSocket();
+  shutdownLifeContextWebSocket();
 
   // Shutdown all services in parallel
   try {

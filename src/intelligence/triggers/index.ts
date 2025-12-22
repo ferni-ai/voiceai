@@ -352,6 +352,7 @@ export {
   supportTriggerTemplates,
   celebrationTriggerTemplates,
   warningTriggerTemplates,
+  nuancedTriggerTemplates,
   type TriggerTemplate,
   type SynthesisAnalytics,
 } from './synthesis-trigger-generator.js';
