@@ -633,10 +633,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
-    // 🔍 DEBUG: Log voice configuration before TTS creation
-    process.stderr.write(
-      `[TTS-DEBUG] 📋 Creating TTS | persona="${sessionPersona.name}" | personaId="${sessionPersona.id}" | voiceConfig.voiceId="${voiceConfig.voiceId}" | effectiveVoiceId="${effectiveVoiceId}"\n`
-    );
     const voiceManager = await import('../speech/voice-manager.js');
     const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
       ...voiceConfig,

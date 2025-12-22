@@ -301,10 +301,6 @@ export class PersonaAwareTTS extends tts.TTS {
    * Synthesize text to speech.
    */
   synthesize(text: string): tts.ChunkedStream {
-    // 🔍 DEBUG: Log voice ID being used for TTS synthesis
-    process.stderr.write(
-      `[TTS-DEBUG] 🎤 synthesize() called | persona="${this.personaName}" | voiceId="${this.voiceId}" | text="${text.slice(0, 50)}..."\n`
-    );
     log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS synthesize');
     return this.trackStream(() => this.personaTTS.synthesize(text));
   }
@@ -313,10 +309,6 @@ export class PersonaAwareTTS extends tts.TTS {
    * Start a streaming synthesis.
    */
   stream(): tts.SynthesizeStream {
-    // 🔍 DEBUG: Log voice ID being used for TTS stream
-    process.stderr.write(
-      `[TTS-DEBUG] 🎤 stream() called | persona="${this.personaName}" | voiceId="${this.voiceId}"\n`
-    );
     log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS stream');
     return this.trackStream(() => this.personaTTS.stream());
   }
