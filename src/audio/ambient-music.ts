@@ -259,6 +259,13 @@ export async function playAmbientMusic(): Promise<boolean> {
     return false;
   }
 
+  // 🎧 FIX: Don't play ambient music if user explicitly stopped music
+  // This prevents auto-play after user says "stop the music"
+  if (player.wasExplicitlyStopped()) {
+    getLogger().debug('Skipping ambient music - user explicitly stopped music recently');
+    return false;
+  }
+
   // Don't play if not initialized
   if (!player.isInitialized()) {
     getLogger().debug('Music player not initialized, skipping ambient music');

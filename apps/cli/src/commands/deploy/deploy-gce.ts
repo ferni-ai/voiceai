@@ -219,6 +219,9 @@ function getSecrets(): Record<string, string> {
     'cartesia-api-key',
     'deepgram-api-key',
     'elevenlabs-api-key',
+    // Research/information secrets
+    'finnhub-api-key',
+    'alpha-vantage-key',
     // Notification secrets (for ferni runtime watch)
     'slack-webhook-url',
     'sendgrid-api-key',

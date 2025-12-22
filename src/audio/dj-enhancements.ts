@@ -467,6 +467,14 @@ export class ThinkingMusicController {
       return;
     }
 
+    // 🎧 FIX: Don't start thinking music if user explicitly stopped music
+    // This prevents the annoying behavior where user says "stop the music"
+    // and then thinking music auto-starts a few seconds later
+    if (player.wasExplicitlyStopped()) {
+      log.debug('Skipping thinking music - user explicitly stopped music recently');
+      return;
+    }
+
     // Get an ambient track
     const track = getRandomAmbientTrack();
     if (!track || !track.previewUrl) {

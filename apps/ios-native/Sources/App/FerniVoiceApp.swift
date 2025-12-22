@@ -70,8 +70,21 @@ class AppState: ObservableObject {
 struct ContentView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var appState: AppState
+    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
     var body: some View {
+        ZStack {
+            if hasCompletedOnboarding {
+                // Main app
+                mainAppView
+            } else {
+                // First launch onboarding
+                OnboardingView(isComplete: $hasCompletedOnboarding)
+            }
+        }
+    }
+
+    private var mainAppView: some View {
         ZStack {
             // Full-screen voice interface
             VoiceView()

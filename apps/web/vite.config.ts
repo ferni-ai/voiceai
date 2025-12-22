@@ -62,9 +62,26 @@ export default defineConfig(({ mode }) => {
         '/usage': 'http://localhost:3002',
         '/health': 'http://localhost:3002',
         // WebSocket for real-time team insights
-        '/ws': {
+        // Note: WebSocket proxy can be flaky in dev - failures are non-critical
+        '/ws/insights': {
           target: 'http://localhost:3002',
           ws: true,
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on('error', () => {
+              // Silently handle proxy errors - WS reconnects automatically
+            });
+          },
+        },
+        '/ws/life-context': {
+          target: 'http://localhost:3002',
+          ws: true,
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on('error', () => {
+              // Silently handle proxy errors - WS reconnects automatically
+            });
+          },
         },
       },
     },

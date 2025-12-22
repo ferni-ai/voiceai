@@ -23,7 +23,7 @@ const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 // ============================================================================
 
 /**
- * Search news by topic using GNews API
+ * Search news by topic using GNews API or DuckDuckGo fallback
  * Supports any topic: "Christmas", "AI", "sports", etc.
  */
 export async function searchNewsByTopic(topic: string): Promise<string> {
@@ -32,56 +32,95 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
 
   logger.info({ topic }, '🔍 [DIAG] searchNewsByTopic START');
 
-  if (!GNEWS_KEY) {
-    logger.warn('🔍 [DIAG] No GNews API key - falling back to general news');
-    // Fallback to general news if no API key
-    return getGeneralNews();
+  // If we have GNews API key, use it
+  if (GNEWS_KEY) {
+    try {
+      const encodedTopic = encodeURIComponent(topic);
+      const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
+
+      logger.debug({ topic }, '🔍 [DIAG] Fetching from GNews...');
+      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          totalArticles?: number;
+          articles?: Array<{
+            title?: string;
+            description?: string;
+            source?: { name?: string };
+            publishedAt?: string;
+          }>;
+        };
+
+        if (data.articles && data.articles.length > 0) {
+          const headlines = data.articles
+            .slice(0, 4)
+            .map((a) => a.title)
+            .filter(Boolean);
+
+          logger.info(
+            { topic, elapsed: Date.now() - startTime, count: headlines.length },
+            '🔍 [DIAG] searchNewsByTopic SUCCESS (GNews)'
+          );
+
+          return `News about "${topic}": ${headlines.join('. ')}`;
+        }
+      }
+    } catch (error) {
+      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] GNews failed, trying fallback');
+    }
   }
 
+  // Fallback: Use DuckDuckGo to search for news about the topic
+  logger.info({ topic }, '🔍 [DIAG] Using DuckDuckGo news search fallback');
   try {
-    // GNews API endpoint for search
-    const encodedTopic = encodeURIComponent(topic);
-    const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
+    const searchQuery = `${topic} news today`;
+    const response = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1&skip_disambig=1`,
+      { signal: AbortSignal.timeout(10000) }
+    );
 
-    logger.debug({ topic }, '🔍 [DIAG] Fetching from GNews...');
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (response.ok) {
+      const data = (await response.json()) as {
+        AbstractText?: string;
+        AbstractSource?: string;
+        RelatedTopics?: Array<{ Text?: string; FirstURL?: string }>;
+        Heading?: string;
+      };
 
-    if (!response.ok) {
-      logger.warn({ status: response.status }, '🔍 [DIAG] GNews API error');
-      return `I couldn't find news about "${topic}" right now.`;
+      // Try abstract first
+      if (data.AbstractText && data.AbstractText.length > 50) {
+        logger.info(
+          { topic, elapsed: Date.now() - startTime },
+          '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo abstract)'
+        );
+        return `About ${topic}: ${data.AbstractText.slice(0, 500)}`;
+      }
+
+      // Try related topics
+      if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+        const topics = data.RelatedTopics
+          .slice(0, 4)
+          .map((t) => t.Text)
+          .filter((t) => t && t.length > 10);
+
+        if (topics.length > 0) {
+          logger.info(
+            { topic, elapsed: Date.now() - startTime, count: topics.length },
+            '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo topics)'
+          );
+          return `Here's what I found about ${topic}: ${topics.join('. ')}`;
+        }
+      }
     }
-
-    const data = (await response.json()) as {
-      totalArticles?: number;
-      articles?: Array<{
-        title?: string;
-        description?: string;
-        source?: { name?: string };
-        publishedAt?: string;
-      }>;
-    };
-
-    if (data.articles && data.articles.length > 0) {
-      const headlines = data.articles
-        .slice(0, 4)
-        .map((a) => a.title)
-        .filter(Boolean);
-
-      logger.info(
-        { topic, elapsed: Date.now() - startTime, count: headlines.length },
-        '🔍 [DIAG] searchNewsByTopic SUCCESS'
-      );
-
-      return `News about "${topic}": ${headlines.join('. ')}`;
-    }
-
-    logger.info({ topic, elapsed: Date.now() - startTime }, '🔍 [DIAG] No articles found');
-    return `I couldn't find any recent news about "${topic}".`;
   } catch (error) {
-    const elapsed = Date.now() - startTime;
-    logger.warn({ topic, error: String(error), elapsed }, '🔍 [DIAG] searchNewsByTopic FAILED');
-    return `I had trouble searching for news about "${topic}". Try again in a moment?`;
+    logger.warn({ topic, error: String(error) }, '🔍 [DIAG] DuckDuckGo fallback failed');
   }
+
+  // Final fallback: Return general news with a note
+  logger.info({ topic }, '🔍 [DIAG] All topic search failed, returning general news');
+  const generalNews = await getGeneralNews();
+  return `I couldn't find specific news about "${topic}", but here's what's happening: ${generalNews.replace(/^Top news from \w+: /, '')}`;
 }
 
 /**

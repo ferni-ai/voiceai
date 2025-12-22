@@ -93,6 +93,8 @@ export interface MusicPlayerState {
   isInitialized: boolean;
   isAmbientMode: boolean; // Playing ambient/thinking music
   isChangingTrack: boolean; // DJ crossfade in progress
+  wasExplicitlyStopped: boolean; // User explicitly stopped music - don't auto-play thinking music
+  explicitStopTime: number | null; // Timestamp when music was explicitly stopped
 }
 
 /**
@@ -187,6 +189,8 @@ export class CallMusicPlayer {
     isInitialized: false,
     isAmbientMode: false,
     isChangingTrack: false, // DJ crossfade in progress
+    wasExplicitlyStopped: false, // User explicitly stopped - don't auto-play thinking music
+    explicitStopTime: null, // When music was explicitly stopped
   };
 
   // 🎧 EventEmitter for multiple listeners (new pattern)
@@ -724,6 +728,14 @@ export class CallMusicPlayer {
       this.state.isPlaying = true;
       this.state.isAmbientMode = isAmbient;
       this.currentAudioPath = audioPath;
+
+      // 🎧 FIX: Clear explicit stop flag when music starts playing
+      // This allows thinking music to play again after user asks for new music
+      if (!isAmbient) {
+        // Only clear for non-ambient (user-requested) music
+        this.state.wasExplicitlyStopped = false;
+        this.state.explicitStopTime = null;
+      }
 
       // Calculate volume (consider ducking state)
       const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
@@ -1773,11 +1785,17 @@ export class CallMusicPlayer {
     this.currentPlayHandle = null;
     this.currentAudioPath = null;
 
+    // 🎧 FIX: Track explicit stop to prevent thinking music from auto-starting
+    // This is reset when user explicitly asks to play music again
+    this.state.wasExplicitlyStopped = true;
+    this.state.explicitStopTime = Date.now();
+
     getLogger().info(
       {
         wasPlaying,
         stoppedTrack: stoppedTrack?.name,
         queueCleared: queuedTracks,
+        explicitStop: true,
       },
       '🎧 Music stopped (explicit stop call, queue cleared)'
     );
@@ -1919,6 +1937,42 @@ export class CallMusicPlayer {
    */
   isPlaying(): boolean {
     return this.state.isPlaying;
+  }
+
+  /**
+   * Check if music was explicitly stopped by user (vs ended naturally)
+   * Used by ThinkingMusicController to avoid auto-playing ambient music
+   * after user asked to stop music.
+   *
+   * The flag is cleared when:
+   * - User explicitly asks to play new music (non-ambient)
+   * - 5 minutes pass since explicit stop (cooldown period)
+   */
+  wasExplicitlyStopped(): boolean {
+    if (!this.state.wasExplicitlyStopped) return false;
+
+    // 🎧 FIX: Auto-clear after 5 minutes - user probably forgot they stopped it
+    const EXPLICIT_STOP_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+    if (
+      this.state.explicitStopTime &&
+      Date.now() - this.state.explicitStopTime > EXPLICIT_STOP_COOLDOWN_MS
+    ) {
+      this.state.wasExplicitlyStopped = false;
+      this.state.explicitStopTime = null;
+      getLogger().debug('🎧 Explicit stop cooldown expired - allowing thinking music again');
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Clear explicit stop flag (e.g., when user asks for music again)
+   */
+  clearExplicitStop(): void {
+    this.state.wasExplicitlyStopped = false;
+    this.state.explicitStopTime = null;
+    getLogger().debug('🎧 Explicit stop flag cleared');
   }
 
   /**

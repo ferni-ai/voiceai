@@ -857,8 +857,11 @@ initInsightsWebSocket(server);
 log.info('Insights WebSocket server initialized on /ws/insights');
 
 // Initialize WebSocket server for life context (Phase 6)
-initLifeContextWebSocket(server);
-log.info('Life Context WebSocket server initialized on /ws/life-context');
+// DISABLED: Having multiple WebSocketServer instances on the same HTTP server causes
+// "RSV1 must be clear" errors due to conflicting upgrade handlers.
+// TODO: Fix by using noServer:true pattern with manual upgrade routing
+// initLifeContextWebSocket(server);
+// log.info('Life Context WebSocket server initialized on /ws/life-context');
 
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {

@@ -174,7 +174,9 @@ function isWebSocketSupported(): boolean {
 
 function getWebSocketUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
+  // In development, connect directly to UI server (port 3002) to bypass Vite proxy issues
+  const isDev = import.meta.env.DEV;
+  const host = isDev ? 'localhost:3002' : window.location.host;
   return `${protocol}//${host}/ws/insights`;
 }
 

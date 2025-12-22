@@ -67,6 +67,8 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws/life-context',
+    // Disable compression to prevent "RSV1 must be clear" errors
+    perMessageDeflate: false,
   });
 
   wssInstance = wss;

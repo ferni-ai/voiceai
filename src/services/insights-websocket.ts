@@ -63,6 +63,9 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws/insights',
+    // Disable per-message compression to fix "RSV1 must be clear" / "Invalid frame header" errors
+    // This is a known compatibility issue with Node.js 24 and certain browser WebSocket clients
+    perMessageDeflate: false,
   });
 
   log.info('Insights WebSocket server initialized on /ws/insights');

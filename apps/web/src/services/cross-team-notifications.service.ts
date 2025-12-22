@@ -293,7 +293,9 @@ export function connectToInsightsStream(userId: string): void {
   }
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}/ws/insights?userId=${userId}`;
+  // In development, connect directly to UI server (port 3002) to bypass Vite proxy
+  const host = import.meta.env.DEV ? 'localhost:3002' : window.location.host;
+  const wsUrl = `${protocol}//${host}/ws/insights?userId=${userId}`;
 
   try {
     wsConnection = new WebSocket(wsUrl);
