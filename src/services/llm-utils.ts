@@ -110,7 +110,7 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
             };
           }
         ).models.generateContent({
-          model: 'gemini-2.0-flash-exp',
+          model: 'gemini-1.5-flash', // Using 1.5-flash for higher quota limits
           contents: prompt,
           config: {
             maxOutputTokens: maxTokens,
