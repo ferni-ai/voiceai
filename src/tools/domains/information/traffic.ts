@@ -21,7 +21,8 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 // CONFIGURATION
 // ============================================================================
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || '';
+// Use GOOGLE_API_KEY (general) or GOOGLE_MAPS_API_KEY (specific)
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY || '';
 const HERE_API_KEY = process.env.HERE_API_KEY || '';
 
 // ============================================================================

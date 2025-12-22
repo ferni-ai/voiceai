@@ -16,6 +16,9 @@ struct VoiceView: View {
     // Animation state
     @State private var emotionHint: EmotionHint? = nil
 
+    // Waveform animation
+    @State private var waveformPhase: Double = 0
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -32,6 +35,12 @@ struct VoiceView: View {
 
                 Spacer()
 
+                // Audio waveform visualization
+                if session.state.isActive {
+                    audioWaveform
+                        .padding(.bottom, 20)
+                }
+
                 // Bottom control bar
                 controlBar
             }
@@ -41,6 +50,9 @@ struct VoiceView: View {
         .onChange(of: session.state) { newState in
             handleStateChange(newState)
         }
+        .onAppear {
+            startWaveformAnimation()
+        }
     }
 
     // MARK: - Background
@@ -48,22 +60,43 @@ struct VoiceView: View {
     private var backgroundGradient: some View {
         let persona = PersonaRegistry.get(session.currentPersonaId)
 
-        return LinearGradient(
-            colors: [
-                Color.black,
-                persona.primaryColor.opacity(0.15),
-                Color.black
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        return ZStack {
+            // Deep black base for maximum glow contrast
+            Color.black
+
+            // Subtle persona-colored ambient glow at center
+            RadialGradient(
+                colors: [
+                    persona.primaryColor.opacity(0.12),
+                    persona.primaryColor.opacity(0.05),
+                    Color.clear
+                ],
+                center: .center,
+                startRadius: 50,
+                endRadius: 400
+            )
+            .offset(y: -100) // Center around orb area
+
+            // Bottom gradient fade
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    Color.black.opacity(0.8)
+                ],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+        }
     }
 
     // MARK: - Voice Orb Section
 
     private var voiceOrbSection: some View {
         let persona = PersonaRegistry.get(session.currentPersonaId)
-        let orbSize: CGFloat = 200
+        // Larger orb for iOS - more prominent!
+        let orbSize: CGFloat = 260
+        // Frame needs to be 2.2x to show full glow halo
+        let frameSize: CGFloat = orbSize * 2.2
 
         return PixarVoiceOrb(
             persona: persona,
@@ -71,7 +104,7 @@ struct VoiceView: View {
             size: orbSize,
             emotionHint: emotionHint
         )
-        .frame(width: orbSize, height: orbSize)
+        .frame(width: frameSize, height: frameSize)
         .onTapGesture {
             handleOrbTap()
         }
