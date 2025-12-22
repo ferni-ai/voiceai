@@ -1,0 +1,3 @@
+module LiveKitUniFFI {
+    header "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/include/LiveKitUniFFI-Swift.h"
+}

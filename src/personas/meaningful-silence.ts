@@ -44,6 +44,11 @@ import {
   loadSilenceResponses,
   type SilenceResponses,
 } from '../services/persona-content-loader.js';
+// Trait-based dynamic responses (usage-tracked, avoids repetition)
+import {
+  getDynamicSilenceResponseByPersonaId,
+  PERSONA_TRAIT_PROFILES,
+} from './dynamic-responses.js';
 
 const log = getLogger();
 
@@ -121,6 +126,8 @@ export interface SilenceContext {
   isGameActive?: boolean;
   /** 🎮 What game type is active? */
   activeGameType?: string;
+  /** Session ID for usage tracking (avoids repetition) */
+  sessionId?: string;
   /** 🎵 Is music currently playing? */
   isMusicPlaying?: boolean;
 }
@@ -530,7 +537,11 @@ export function getMeaningfulSilenceResponse(
     isGameActive = false,
     activeGameType,
     isMusicPlaying = false,
+    sessionId = 'default-silence-session',
   } = context;
+
+  // Get canonical persona ID for dynamic responses
+  const canonicalPersonaId = getCanonicalPersonaId(persona.id);
 
   // -----------------------------------------------
   // 🎮 GAME ACTIVE - Handle differently!
@@ -606,10 +617,10 @@ export function getMeaningfulSilenceResponse(
       }
     }
 
-    // Otherwise, simple presence
+    // Otherwise, simple presence - use dynamic system for trait-based variation
     return {
       type: 'comfortable_presence',
-      text: randomFrom(COMFORTABLE_PRESENCE.general),
+      text: getDynamicSilenceResponseByPersonaId(canonicalPersonaId, sessionId, 'presence'),
       invitesReply: false,
     };
   }
@@ -788,6 +799,16 @@ export function getMeaningfulSilenceResponse(
     }
 
     // Share a gentle observation from the persona
+    // Try dynamic trait-based observation first for variety
+    const dynamicObservation = getDynamicSilenceResponseByPersonaId(canonicalPersonaId, sessionId, 'observation');
+    if (dynamicObservation && Math.random() < 0.5) {
+      return {
+        type: 'gentle_observation',
+        text: dynamicObservation,
+        invitesReply: false,
+      };
+    }
+    // Fall back to persona-specific observations
     const observations = getPersonaObservations(persona);
     return {
       type: 'gentle_observation',
@@ -1001,12 +1022,13 @@ async function getDynamicThoughtfulQuestion(
 function getThoughtfulQuestionSync(context: SilenceContext, persona: PersonaConfig): string {
   // Use persona's cognitive profile to filter questions
   const canonicalId = getCanonicalPersonaId(persona.id);
+  const sessionId = context.sessionId || 'default-silence-session';
 
   // Select questions based on persona voice
   const questions = getRelevantQuestions(context.topicsDiscussed);
 
-  // Filter by persona traits (basic implementation)
-  // TODO: Use full dynamic-responses.ts trait filtering
+  // Persona-specific questions with SSML pauses for natural voice delivery
+  // These are carefully crafted per-persona and include voice timing
   const personaQuestionStyle: Record<string, string[]> = {
     ferni: [
       '<break time="400ms"/>What\'s underneath that?',
@@ -1040,12 +1062,21 @@ function getThoughtfulQuestionSync(context: SilenceContext, persona: PersonaConf
     ],
   };
 
-  // Use persona-specific questions if available, otherwise fall back to topic-based
+  // Use persona-specific SSML questions (60% chance for natural persona voice)
   const personaQuestions = personaQuestionStyle[canonicalId];
   if (personaQuestions && Math.random() < 0.6) {
     return randomFrom(personaQuestions);
   }
 
+  // Use dynamic trait-based questions (20% chance - avoids repetition via usage tracking)
+  if (Math.random() < 0.5) {
+    const dynamicQuestion = getDynamicSilenceResponseByPersonaId(canonicalId, sessionId, 'question');
+    if (dynamicQuestion) {
+      return dynamicQuestion;
+    }
+  }
+
+  // Fall back to topic-based questions
   return randomFrom(questions);
 }
 

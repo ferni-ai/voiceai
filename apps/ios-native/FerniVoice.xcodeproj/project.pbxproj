@@ -1,0 +1,545 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3A5FB98442E72F8D2295C6AB /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 3B631CB053C6EB9371773D9B /* FerniShared */; };
+		505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */; };
+		6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */; };
+		6D5395233E5005AE6DB2C840 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7F58E1F2D8611AEA3CBDE1CF /* LiveKit */; };
+		81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */; };
+		933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */; };
+		B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7209647670485E81A61C468 /* PersonaPickerSheet.swift */; };
+		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
+		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
+		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
+		F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03DE09C41C69126019ADA01 /* SettingsView.swift */; };
+		FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		110CD8A9D70E857312945A26 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9185C2B470E50C038B18833 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2330EDFA02079221D97BDE77;
+			remoteInfo = FerniVoice;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceiOSTests.swift; sourceTree = "<group>"; };
+		102C31505053144B48576C2E /* FerniVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniVoice.entitlements; sourceTree = "<group>"; };
+		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
+		1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
+		32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		5F50555303ADF2940EFA244D /* FerniVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FerniVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A7209647670485E81A61C468 /* PersonaPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaPickerSheet.swift; sourceTree = "<group>"; };
+		A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniVoiceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
+		E03DE09C41C69126019ADA01 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSLiveKitSession.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0345ED12B44D3F986EBEDFF6 /* FerniVoice */ = {
+			isa = PBXGroup;
+			children = (
+				32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */,
+				102C31505053144B48576C2E /* FerniVoice.entitlements */,
+				73427B6F3CBC0A271A7D438C /* Info.plist */,
+				34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */,
+				7EF3D26D13B368B036DE0B6B /* Preview Content */,
+			);
+			path = FerniVoice;
+			sourceTree = "<group>";
+		};
+		0E16B889D66C34F6ABCDED75 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				BFD4BEBD78ADEBADCC352FA1 /* FerniVoiceiOSTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		12BF02DB87713224F5C8F13A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A7209647670485E81A61C468 /* PersonaPickerSheet.swift */,
+				E03DE09C41C69126019ADA01 /* SettingsView.swift */,
+				1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */,
+				C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		14EF427128B5FF708EA0BF6D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5F50555303ADF2940EFA244D /* FerniVoice.app */,
+				A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7BF7A55AF4BC8A78A83193E9 = {
+			isa = PBXGroup;
+			children = (
+				0345ED12B44D3F986EBEDFF6 /* FerniVoice */,
+				E400D3ECA6052491E4A5A7FD /* Sources */,
+				0E16B889D66C34F6ABCDED75 /* Tests */,
+				14EF427128B5FF708EA0BF6D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7EF3D26D13B368B036DE0B6B /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		97B8928333079A366582BB6F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BFD4BEBD78ADEBADCC352FA1 /* FerniVoiceiOSTests */ = {
+			isa = PBXGroup;
+			children = (
+				057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */,
+			);
+			path = FerniVoiceiOSTests;
+			sourceTree = "<group>";
+		};
+		E2073A04B2D5B2F9A8E60367 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E400D3ECA6052491E4A5A7FD /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				97B8928333079A366582BB6F /* App */,
+				E2073A04B2D5B2F9A8E60367 /* Services */,
+				12BF02DB87713224F5C8F13A /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2330EDFA02079221D97BDE77 /* FerniVoice */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA35538FABF4FE3F65828A39 /* Build configuration list for PBXNativeTarget "FerniVoice" */;
+			buildPhases = (
+				50688D7945D21C4A93E305CF /* Sources */,
+				AB77E93CE10C039A4655A879 /* Resources */,
+				DAF91C6A1AB64AE1FA932C13 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FerniVoice;
+			packageProductDependencies = (
+				3B631CB053C6EB9371773D9B /* FerniShared */,
+				7F58E1F2D8611AEA3CBDE1CF /* LiveKit */,
+			);
+			productName = FerniVoice;
+			productReference = 5F50555303ADF2940EFA244D /* FerniVoice.app */;
+			productType = "com.apple.product-type.application";
+		};
+		8E5FE22A4AD9D915715F2766 /* FerniVoiceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5793331B8F8D326042815832 /* Build configuration list for PBXNativeTarget "FerniVoiceTests" */;
+			buildPhases = (
+				018850B417332ED96C8ACBA7 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				73118FB788D53AD8A52E64A7 /* PBXTargetDependency */,
+			);
+			name = FerniVoiceTests;
+			packageProductDependencies = (
+			);
+			productName = FerniVoiceTests;
+			productReference = A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E9185C2B470E50C038B18833 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					2330EDFA02079221D97BDE77 = {
+						DevelopmentTeam = XT8W26YE9U;
+						ProvisioningStyle = Automatic;
+					};
+					8E5FE22A4AD9D915715F2766 = {
+						DevelopmentTeam = XT8W26YE9U;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 55E0863A734A4864D457B1BE /* Build configuration list for PBXProject "FerniVoice" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7BF7A55AF4BC8A78A83193E9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */,
+				7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2330EDFA02079221D97BDE77 /* FerniVoice */,
+				8E5FE22A4AD9D915715F2766 /* FerniVoiceTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DAF91C6A1AB64AE1FA932C13 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A5FB98442E72F8D2295C6AB /* FerniShared in Frameworks */,
+				6D5395233E5005AE6DB2C840 /* LiveKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AB77E93CE10C039A4655A879 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */,
+				6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */,
+				933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		018850B417332ED96C8ACBA7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50688D7945D21C4A93E305CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
+				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
+				B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */,
+				F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */,
+				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
+				FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		73118FB788D53AD8A52E64A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2330EDFA02079221D97BDE77 /* FerniVoice */;
+			targetProxy = 110CD8A9D70E857312945A26 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		617861943A2903B3959F20C9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FerniVoice.app/FerniVoice";
+			};
+			name = Release;
+		};
+		8B55C5B6B047471F846B8601 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = XT8W26YE9U;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		B0F1085B400E531C5B5A5DAD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = XT8W26YE9U;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		C9C87394A6C56025243B4801 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FerniVoice.app/FerniVoice";
+			};
+			name = Debug;
+		};
+		D31B518BBCBEB632C0A86AAA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FerniVoice/FerniVoice.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = FerniVoice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E260EBBF674F90CB8CE29822 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FerniVoice/FerniVoice.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = FerniVoice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		55E0863A734A4864D457B1BE /* Build configuration list for PBXProject "FerniVoice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0F1085B400E531C5B5A5DAD /* Debug */,
+				8B55C5B6B047471F846B8601 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5793331B8F8D326042815832 /* Build configuration list for PBXNativeTarget "FerniVoiceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9C87394A6C56025243B4801 /* Debug */,
+				617861943A2903B3959F20C9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA35538FABF4FE3F65828A39 /* Build configuration list for PBXNativeTarget "FerniVoice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E260EBBF674F90CB8CE29822 /* Debug */,
+				D31B518BBCBEB632C0A86AAA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../shared;
+		};
+		7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../vendor/client-sdk-swift";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3B631CB053C6EB9371773D9B /* FerniShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */;
+			productName = FerniShared;
+		};
+		7F58E1F2D8611AEA3CBDE1CF /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */;
+			productName = LiveKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E9185C2B470E50C038B18833 /* Project object */;
+}

@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/.build/checkouts/livekit-uniffi-xcframework/Sources/LiveKitUniFFI/livekit_uniffi.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/livekit_uniffi.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/livekit_uniffi.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/livekit_uniffi~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/livekit_uniffi.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitUniFFI.build/livekit_uniffi.dia"
+  }
+}

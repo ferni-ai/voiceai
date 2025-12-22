@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniSharedTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.dia"
+  }
+}

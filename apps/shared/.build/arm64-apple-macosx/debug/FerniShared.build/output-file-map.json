@@ -1,0 +1,68 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarLamp.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarSoul.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/PixarAnimations.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/Persona.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Persona~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/VoiceOrb.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.dia"
+  }
+}

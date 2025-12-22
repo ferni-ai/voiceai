@@ -330,13 +330,13 @@ function createModal(): void {
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
           <div class="journey-progress-ring-container">
-            <svg class="journey-progress-ring" viewBox="0 0 120 120">
-              <circle class="journey-progress-ring__bg" cx="60" cy="60" r="52" />
+            <svg class="journey-progress-ring" viewBox="0 0 100 100">
+              <circle class="journey-progress-ring__bg" cx="50" cy="50" r="43" />
               <circle 
                 class="journey-progress-ring__fill" 
-                cx="60" cy="60" r="52"
-                stroke-dasharray="${2 * Math.PI * 52}"
-                stroke-dashoffset="${2 * Math.PI * 52 * (1 - progressPercent / 100)}"
+                cx="50" cy="50" r="43"
+                stroke-dasharray="${2 * Math.PI * 43}"
+                stroke-dashoffset="${2 * Math.PI * 43 * (1 - progressPercent / 100)}"
               />
             </svg>
             <div class="journey-progress-ring__text">

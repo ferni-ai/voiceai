@@ -1,0 +1,3 @@
+module FerniVoiceiOS {
+    header "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/include/FerniVoiceiOS-Swift.h"
+}
