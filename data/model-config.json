@@ -6,7 +6,7 @@
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 25,
+    "maxTools": 30,
     "enabledDomains": [
       "entertainment",
       "memory",
@@ -20,7 +20,7 @@
       "calendar"
     ],
     "excludedTools": [],
-    "includedTools": [],
+    "includedTools": ["playMusic", "musicControl", "musicInfo"],
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true

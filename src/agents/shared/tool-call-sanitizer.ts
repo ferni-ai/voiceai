@@ -56,6 +56,12 @@ const TOOL_NAME_PATTERNS = [
   'resume music',
   'stopMusic',
   'stop music',
+  'skipMusic',
+  'skip music',
+  'nextSong',
+  'next song',
+  'skipSong',
+  'skip song',
   'whatsPlaying',
   'whats playing',
 
@@ -543,6 +549,39 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     };
   }
 
+  // 0c. CRITICAL: Check for instruction prompt leakage
+  // When generateReply() is called, the SDK puts instructions as role:'model' which
+  // causes Gemini to sometimes echo them back. Detect and suppress these patterns.
+  // Patterns: "You are Ferni", "CRITICAL RULES:", "Style: warm", "Context:", etc.
+  const instructionLeakagePatterns = [
+    /^you are \w+\./i, // "You are Ferni."
+    /^style:\s/i, // "Style: warm, curious..."
+    /critical rules:/i, // "CRITICAL RULES:"
+    /^context:/i, // "Context:"
+    /^rules:/i, // "RULES:"
+    /the user has been silent for \d+ seconds/i, // Silence instruction leak
+    /respond briefly to the user's silence/i, // New silence instruction format
+    /don't read this out/i, // Context instruction leak
+    /maximum \d+-\d+ sentences/i, // Rules leak
+    /no ssml tags/i, // Rules leak
+    /just speak naturally/i, // Rules leak
+    /say only your response/i, // Rules leak
+  ];
+
+  for (const pattern of instructionLeakagePatterns) {
+    if (pattern.test(trimmed)) {
+      log.warn(
+        { text: trimmed.slice(0, 80), pattern: pattern.source },
+        '🚨 INSTRUCTION PROMPT LEAKAGE - Gemini echoed generateReply instructions'
+      );
+      return {
+        detected: true,
+        toolName: 'instruction_leakage',
+        pattern: 'instruction_leakage',
+      };
+    }
+  }
+
   // 1. Announcement patterns: "I'll call the playMusic function"
   const announcement = checkAnnouncementPatterns(trimmed);
   if (announcement) {
@@ -593,9 +632,13 @@ function toolMatches(toolName: string, ...keywords: string[]): boolean {
 function getReplacementText(detection: LeakageDetection): string {
   const toolNameLower = detection.toolName?.toLowerCase() || '';
 
-  // CRITICAL: Internal markers and instructions - ALWAYS suppress silently
-  // These are tool responses that should never be spoken
-  if (detection.pattern === 'internal_marker' || detection.pattern === 'internal_instruction') {
+  // CRITICAL: Internal markers, instructions, and instruction leakage - ALWAYS suppress silently
+  // These are tool responses or generateReply prompts that should never be spoken
+  if (
+    detection.pattern === 'internal_marker' ||
+    detection.pattern === 'internal_instruction' ||
+    detection.pattern === 'instruction_leakage'
+  ) {
     return '';
   }
 

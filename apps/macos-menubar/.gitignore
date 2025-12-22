@@ -1,0 +1,17 @@
+# Build output
+.build/
+*.dmg
+*.app
+DerivedData/
+
+# Xcode
+*.xcuserstate
+*.xcworkspace
+xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# OS files
+.DS_Store

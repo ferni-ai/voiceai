@@ -93,29 +93,28 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
 
     try {
       const response = await googleAICircuitBreaker.execute(async () => {
-        const result = await (
+        // Get the generative model
+        const model = (
           client as {
-            models: {
-              generateContent: (params: {
-                model: string;
-                contents: string;
-                config: { maxOutputTokens: number; temperature: number };
-              }) => Promise<{ text: string }>;
+            getGenerativeModel: (params: { model: string }) => {
+              generateContent: (
+                contents: string,
+                config?: { maxOutputTokens: number; temperature: number }
+              ) => Promise<{ response: { text: () => string } }>;
             };
           }
-        ).models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: prompt,
-          config: {
-            maxOutputTokens: maxTokens,
-            temperature,
-          },
+        ).getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const result = await model.generateContent(prompt, {
+          maxOutputTokens: maxTokens,
+          temperature,
         });
         return result;
       });
 
       clearTimeout(timeoutId);
-      return response.text || null;
+      // Access text via response.text() method
+      return response?.response?.text?.() || null;
     } catch (error) {
       clearTimeout(timeoutId);
       if ((error as Error).name === 'AbortError') {

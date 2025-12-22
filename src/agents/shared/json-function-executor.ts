@@ -464,6 +464,19 @@ async function routeToTool(
     }
   }
 
+  if (fnLower === 'skipmusic' || fnLower === 'nextsong' || fnLower === 'skipsong') {
+    try {
+      const { getMusicPlayer } = await import('../../audio/music-player.js');
+      const musicPlayer = getMusicPlayer();
+      log.info({ fn }, '🎵 Legacy skip tool - routing to musicControl');
+      musicPlayer.skip();
+      return 'Skipping to the next track.';
+    } catch (err) {
+      log.error({ error: String(err), fn }, '🎵 Skip music failed');
+      return "I couldn't skip the track.";
+    }
+  }
+
   // ========================================
   // MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall)
   // ========================================

@@ -70,6 +70,11 @@ export const REGISTERED_TOOLS = [
   'musicControl',
   'musicInfo',
   'searchAppleMusic',
+  'skipMusic',
+  'nextSong',
+  'pauseMusic',
+  'resumeMusic',
+  'stopMusic',
 
   // Memory (SUPERHUMAN - semantic embeddings + temporal awareness)
   'rememberAboutUser',

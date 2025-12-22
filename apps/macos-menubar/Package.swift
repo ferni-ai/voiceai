@@ -16,12 +16,16 @@ let package = Package(
         // - Transport.swift: Eager init for _iceCandidatesQueue (avoid lazy var race on NSObject)
         // - LocalParticipant+RPC.swift: Add ResumeOnce to prevent double continuation resume
         .package(path: "../../vendor/client-sdk-swift"),
+
+        // Shared code between macOS and iOS apps
+        .package(path: "../shared"),
     ],
     targets: [
         .executableTarget(
             name: "FerniVoice",
             dependencies: [
                 .product(name: "LiveKit", package: "client-sdk-swift"),
+                .product(name: "FerniShared", package: "shared"),
             ],
             path: "Sources"
         ),

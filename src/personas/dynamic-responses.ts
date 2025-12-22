@@ -37,7 +37,10 @@ export type ResponseCategory =
   | 'backchannel_thinking'
   | 'comfort_phrase'
   | 'acknowledgment'
-  | 'transition';
+  | 'transition'
+  | 'silence_presence'
+  | 'silence_question'
+  | 'silence_observation';
 
 interface ResponseVariant {
   text: string;
@@ -218,6 +221,89 @@ const ACKNOWLEDGMENT_VARIANTS: ResponseVariant[] = [
 ];
 
 // ============================================================================
+// SILENCE RESPONSE VARIANTS (for meaningful silence moments)
+// ============================================================================
+
+/**
+ * Silence presence variants - "I'm here" energy
+ */
+const SILENCE_PRESENCE_VARIANTS: ResponseVariant[] = [
+  // High warmth - very present
+  { text: "I'm here. No rush.", minWarmth: 0.8 },
+  { text: "Take your time. I'm not going anywhere.", minWarmth: 0.8 },
+  { text: 'Still here with you.', minWarmth: 0.7 },
+  { text: "I'm listening. Even to the silence.", minWarmth: 0.8 },
+
+  // Warm + direct
+  { text: "Whenever you're ready.", minWarmth: 0.6, minDirectness: 0.5 },
+  { text: 'No rush.', minDirectness: 0.6, minWarmth: 0.5 },
+  { text: "I'm here.", minWarmth: 0.6 },
+
+  // Lower energy - contemplative
+  { text: 'Take your time.', maxEnergy: 0.6, minWarmth: 0.6 },
+  { text: 'Still here.', maxEnergy: 0.5, minWarmth: 0.5 },
+
+  // Higher energy - encouraging
+  { text: 'Take all the time you need!', minEnergy: 0.7, minWarmth: 0.7 },
+
+  // Formal - professional presence
+  { text: 'I am here. Take your time.', minFormality: 0.6, minWarmth: 0.5 },
+  { text: 'No hurry.', minFormality: 0.5 },
+];
+
+/**
+ * Silence question variants - thoughtful questions during silence
+ */
+const SILENCE_QUESTION_VARIANTS: ResponseVariant[] = [
+  // Deep/reflective (low energy, high warmth)
+  { text: "What's underneath that?", maxEnergy: 0.6, minWarmth: 0.6 },
+  { text: 'What would it mean if this worked out?', minWarmth: 0.7 },
+  { text: "What's the story you're telling yourself here?", minWarmth: 0.7 },
+
+  // Direct questions
+  { text: "What's on your mind?", minDirectness: 0.6 },
+  { text: 'What are you thinking about?', minDirectness: 0.5 },
+  { text: "What's blocking progress?", minDirectness: 0.7 },
+
+  // Warm + curious
+  { text: 'What are you feeling right now?', minWarmth: 0.7 },
+  { text: "What's coming up for you?", minWarmth: 0.6 },
+
+  // Energetic + encouraging
+  { text: 'What are you looking forward to?', minEnergy: 0.6, minWarmth: 0.6 },
+  { text: "What's exciting you?", minEnergy: 0.7 },
+
+  // Philosophical (high formality)
+  { text: 'What is the deeper truth here?', minFormality: 0.6 },
+  { text: 'What does your intuition say?', minFormality: 0.5, minWarmth: 0.6 },
+];
+
+/**
+ * Silence observation variants - gentle observations during silence
+ */
+const SILENCE_OBSERVATION_VARIANTS: ResponseVariant[] = [
+  // Warm + reflective
+  { text: 'The best conversations have long pauses.', minWarmth: 0.7 },
+  { text: "Silence isn't awkward if you're comfortable with someone.", minWarmth: 0.7 },
+  { text: 'Sometimes the good stuff lives in the quiet.', minWarmth: 0.7 },
+
+  // Direct observations
+  { text: 'Processing time is productive time.', minDirectness: 0.6 },
+  { text: 'Room to think.', minDirectness: 0.6 },
+
+  // Low energy - contemplative
+  { text: 'Some things need space to breathe.', maxEnergy: 0.5, minWarmth: 0.6 },
+  { text: 'The mind needs space to unfold.', maxEnergy: 0.5 },
+
+  // Higher energy
+  { text: "I love this part. The part where something's forming.", minEnergy: 0.7 },
+
+  // Philosophical
+  { text: 'In silence, we find what noise cannot reveal.', minFormality: 0.6 },
+  { text: 'The best insights come when we stop seeking them.', minFormality: 0.6 },
+];
+
+// ============================================================================
 // RESPONSE SELECTION
 // ============================================================================
 
@@ -373,6 +459,135 @@ export function getDynamicAcknowledgment(persona: PersonaConfig, sessionId: stri
  */
 export function getDynamicThinkingSound(persona: PersonaConfig, sessionId: string): string {
   return getDynamicBackchannel(persona, sessionId, 'thinking');
+}
+
+// ============================================================================
+// SILENCE RESPONSE API
+// ============================================================================
+
+/**
+ * Get a dynamic silence presence phrase for a persona
+ * Used when offering warm presence during silence
+ */
+export function getDynamicSilencePresence(persona: PersonaConfig, sessionId: string): string {
+  const traits = extractVoiceTraits(persona);
+  const eligible = getEligibleVariants(SILENCE_PRESENCE_VARIANTS, traits);
+
+  if (eligible.length === 0) {
+    return "I'm here."; // Fallback
+  }
+
+  const sorted = [...eligible].sort((a, b) => {
+    const aUsage = getUsageCount(sessionId, 'silence_presence', a.text);
+    const bUsage = getUsageCount(sessionId, 'silence_presence', b.text);
+    return aUsage - bUsage;
+  });
+
+  const topChoices = sorted.slice(0, Math.min(3, sorted.length));
+  const selected = topChoices[Math.floor(Math.random() * topChoices.length)];
+
+  trackUsage(sessionId, 'silence_presence', selected.text);
+
+  return selected.text;
+}
+
+/**
+ * Get a dynamic silence question for a persona
+ * Used when asking a thoughtful question during silence
+ */
+export function getDynamicSilenceQuestion(persona: PersonaConfig, sessionId: string): string {
+  const traits = extractVoiceTraits(persona);
+  const eligible = getEligibleVariants(SILENCE_QUESTION_VARIANTS, traits);
+
+  if (eligible.length === 0) {
+    return "What's on your mind?"; // Fallback
+  }
+
+  const sorted = [...eligible].sort((a, b) => {
+    const aUsage = getUsageCount(sessionId, 'silence_question', a.text);
+    const bUsage = getUsageCount(sessionId, 'silence_question', b.text);
+    return aUsage - bUsage;
+  });
+
+  const topChoices = sorted.slice(0, Math.min(3, sorted.length));
+  const selected = topChoices[Math.floor(Math.random() * topChoices.length)];
+
+  trackUsage(sessionId, 'silence_question', selected.text);
+
+  return selected.text;
+}
+
+/**
+ * Get a dynamic silence observation for a persona
+ * Used when sharing a gentle observation during silence
+ */
+export function getDynamicSilenceObservation(persona: PersonaConfig, sessionId: string): string {
+  const traits = extractVoiceTraits(persona);
+  const eligible = getEligibleVariants(SILENCE_OBSERVATION_VARIANTS, traits);
+
+  if (eligible.length === 0) {
+    return 'The best conversations have long pauses.'; // Fallback
+  }
+
+  const sorted = [...eligible].sort((a, b) => {
+    const aUsage = getUsageCount(sessionId, 'silence_observation', a.text);
+    const bUsage = getUsageCount(sessionId, 'silence_observation', b.text);
+    return aUsage - bUsage;
+  });
+
+  const topChoices = sorted.slice(0, Math.min(3, sorted.length));
+  const selected = topChoices[Math.floor(Math.random() * topChoices.length)];
+
+  trackUsage(sessionId, 'silence_observation', selected.text);
+
+  return selected.text;
+}
+
+/**
+ * Get silence response by persona ID (convenience function)
+ */
+export function getDynamicSilenceResponseByPersonaId(
+  personaId: string,
+  sessionId: string,
+  type: 'presence' | 'question' | 'observation' = 'presence'
+): string {
+  const traits = PERSONA_TRAIT_PROFILES[personaId] || {
+    warmth: 0.7,
+    energy: 0.6,
+    formality: 0.5,
+    humor: 0.4,
+    directness: 0.5,
+  };
+
+  const variants =
+    type === 'presence'
+      ? SILENCE_PRESENCE_VARIANTS
+      : type === 'question'
+        ? SILENCE_QUESTION_VARIANTS
+        : SILENCE_OBSERVATION_VARIANTS;
+
+  const eligible = getEligibleVariants(variants, traits);
+
+  if (eligible.length === 0) {
+    return type === 'presence'
+      ? "I'm here."
+      : type === 'question'
+        ? "What's on your mind?"
+        : 'The best conversations have long pauses.';
+  }
+
+  const sorted = [...eligible].sort((a, b) => {
+    const aUsage = getUsageCount(sessionId, `silence_${type}`, a.text);
+    const bUsage = getUsageCount(sessionId, `silence_${type}`, b.text);
+    return aUsage - bUsage;
+  });
+
+  const topChoices = sorted.slice(0, Math.min(3, sorted.length));
+  const selected = topChoices[Math.floor(Math.random() * topChoices.length)];
+
+  trackUsage(sessionId, `silence_${type}`, selected.text);
+
+  return selected.text;
 }
 
 // ============================================================================
@@ -532,8 +747,11 @@ export function mapContextToBackchannelType(context: {
 }
 
 export {
+  ACKNOWLEDGMENT_VARIANTS,
   BACKCHANNEL_VARIANTS,
   COMFORT_VARIANTS,
-  ACKNOWLEDGMENT_VARIANTS,
   PERSONA_EXCLUSIVE_PHRASES,
+  SILENCE_OBSERVATION_VARIANTS,
+  SILENCE_PRESENCE_VARIANTS,
+  SILENCE_QUESTION_VARIANTS,
 };

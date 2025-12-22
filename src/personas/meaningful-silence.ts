@@ -39,8 +39,54 @@ import {
   getAnticipatoryQuestion,
 } from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';
+// Dynamic persona content loading
+import {
+  loadSilenceResponses,
+  type SilenceResponses,
+} from '../services/persona-content-loader.js';
 
 const log = getLogger();
+
+// ============================================================================
+// DYNAMIC CONTENT CACHE
+// ============================================================================
+
+/** Cache for loaded silence responses per persona */
+const silenceContentCache = new Map<string, SilenceResponses | null>();
+
+/**
+ * Load silence responses for a persona with caching
+ * Falls back to hardcoded content if loading fails
+ */
+async function getSilenceContent(personaId: string): Promise<SilenceResponses | null> {
+  const canonicalId = getCanonicalPersonaId(personaId);
+
+  // Check cache first
+  if (silenceContentCache.has(canonicalId)) {
+    return silenceContentCache.get(canonicalId) || null;
+  }
+
+  try {
+    const content = await loadSilenceResponses(canonicalId);
+    silenceContentCache.set(canonicalId, content);
+    if (content) {
+      log.debug({ personaId: canonicalId }, 'Loaded dynamic silence content');
+    }
+    return content;
+  } catch (error) {
+    log.warn({ error: String(error), personaId: canonicalId }, 'Failed to load silence content');
+    silenceContentCache.set(canonicalId, null);
+    return null;
+  }
+}
+
+/**
+ * Get a random item from an array with fallback
+ */
+function randomFromDynamic<T>(arr: T[] | undefined, fallback: T[]): T {
+  const source = arr && arr.length > 0 ? arr : fallback;
+  return source[Math.floor(Math.random() * source.length)];
+}
 
 // ============================================================================
 // TYPES
@@ -1322,6 +1368,113 @@ function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConf
 }
 
 // ============================================================================
+// ASYNC DYNAMIC CONTENT HELPERS
+// ============================================================================
+
+/**
+ * Get a micro-story using dynamic content if available
+ */
+export async function getMicroStoryAsync(persona: PersonaConfig): Promise<string | null> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  if (dynamicContent?.micro_stories && dynamicContent.micro_stories.length > 0) {
+    return randomFrom(dynamicContent.micro_stories);
+  }
+
+  // Fall back to static
+  return getPersonaMicroStory(persona);
+}
+
+/**
+ * Get a thoughtful question using dynamic content if available
+ */
+export async function getThoughtfulQuestionAsync(
+  persona: PersonaConfig,
+  topics: string[]
+): Promise<string> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  // Try persona-specific voice questions first
+  if (dynamicContent?.thoughtful_questions?.persona_voice) {
+    const questions = dynamicContent.thoughtful_questions.persona_voice;
+    if (questions.length > 0 && Math.random() < 0.6) {
+      return randomFrom(questions);
+    }
+  }
+
+  // Try topic-specific questions
+  const topicLower = topics.map((t) => t.toLowerCase()).join(' ');
+
+  if (topicLower.includes('family') || topicLower.includes('kid') || topicLower.includes('parent')) {
+    const familyQuestions = dynamicContent?.thoughtful_questions?.family || THOUGHTFUL_QUESTIONS.family;
+    return randomFrom(familyQuestions);
+  }
+
+  if (topicLower.includes('work') || topicLower.includes('job') || topicLower.includes('career')) {
+    const workQuestions = dynamicContent?.thoughtful_questions?.work || THOUGHTFUL_QUESTIONS.work;
+    return randomFrom(workQuestions);
+  }
+
+  // Fall back to general
+  const generalQuestions = dynamicContent?.thoughtful_questions?.general || THOUGHTFUL_QUESTIONS.general;
+  return randomFrom(generalQuestions);
+}
+
+/**
+ * Get a music offering using dynamic content if available
+ */
+export async function getMusicOfferingAsync(persona: PersonaConfig): Promise<string> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  if (dynamicContent?.music_offerings && dynamicContent.music_offerings.length > 0) {
+    return randomFrom(dynamicContent.music_offerings);
+  }
+
+  return randomFrom(MUSIC_OFFERINGS);
+}
+
+/**
+ * Get time-aware response using dynamic content if available
+ */
+export async function getTimeAwareResponseAsync(
+  persona: PersonaConfig,
+  hour: number,
+  isWeekend: boolean
+): Promise<string | null> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  // Weekend awareness
+  if (isWeekend && Math.random() < 0.3) {
+    const weekend = dynamicContent?.time_aware?.weekend || TIME_AWARE_RESPONSES.weekend;
+    return randomFrom(weekend);
+  }
+
+  // Late night (10pm - 5am)
+  if (hour >= 22 || hour < 5) {
+    const lateNight = dynamicContent?.time_aware?.late_night || TIME_AWARE_RESPONSES.lateNight;
+    return randomFrom(lateNight);
+  }
+
+  // Early morning (5am - 8am)
+  if (hour >= 5 && hour < 8) {
+    const earlyMorning = dynamicContent?.time_aware?.early_morning || TIME_AWARE_RESPONSES.earlyMorning;
+    return randomFrom(earlyMorning);
+  }
+
+  // Evening (6pm - 10pm)
+  if (hour >= 18 && hour < 22) {
+    const evening = dynamicContent?.time_aware?.evening || TIME_AWARE_RESPONSES.evening;
+    return randomFrom(evening);
+  }
+
+  return null;
+}
+
+// ============================================================================
 // PROGRESSIVE SILENCE HANDLER
 // ============================================================================
 
@@ -1652,10 +1805,39 @@ export interface LLMSilenceInstructions {
  *
  * Instead of picking from static phrases, let the LLM generate
  * something that feels genuine and responsive to the moment.
+ *
+ * This is the sync version that uses fallback guidance. For dynamic
+ * persona-specific guidance, use buildLLMSilenceInstructionsAsync.
  */
 export function buildLLMSilenceInstructions(
   persona: PersonaConfig,
   context: SilenceContext
+): LLMSilenceInstructions {
+  return buildLLMSilenceInstructionsInternal(persona, context, null);
+}
+
+/**
+ * Build LLM instructions with dynamic persona-specific content
+ *
+ * Loads persona-specific guidance templates from bundles for more
+ * natural, persona-voiced responses.
+ */
+export async function buildLLMSilenceInstructionsAsync(
+  persona: PersonaConfig,
+  context: SilenceContext
+): Promise<LLMSilenceInstructions> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+  return buildLLMSilenceInstructionsInternal(persona, context, dynamicContent);
+}
+
+/**
+ * Internal implementation for building LLM silence instructions
+ */
+function buildLLMSilenceInstructionsInternal(
+  persona: PersonaConfig,
+  context: SilenceContext,
+  dynamicContent: SilenceResponses | null
 ): LLMSilenceInstructions {
   const {
     silenceDurationSeconds,
@@ -1668,10 +1850,6 @@ export function buildLLMSilenceInstructions(
     currentHour = new Date().getHours(),
     isMusicPlaying,
   } = context;
-
-  // Get persona identity
-  const personaName = persona.name || 'Ferni';
-  const personaStyle = persona.personality?.traits?.join(', ') || 'warm, supportive, present';
 
   // Build context hints
   const contextHints: string[] = [];
@@ -1702,6 +1880,12 @@ export function buildLLMSilenceInstructions(
         ? "It's morning - steady energy"
         : '';
 
+  // Get usage rules from dynamic content or use defaults
+  const rules = dynamicContent?.usage_rules;
+  const firstThreshold = rules?.first_silence_threshold_sec ?? 12;
+  const secondThreshold = rules?.second_silence_threshold_sec ?? 25;
+  const questionMinTurns = rules?.thoughtful_question_min_turn_count ?? 5;
+
   // Determine response type based on silence duration
   let responseType: SilenceResponseType;
   let responseGuidance: string;
@@ -1711,33 +1895,55 @@ export function buildLLMSilenceInstructions(
   const hasTopicsToReference =
     (topicsDiscussed && topicsDiscussed.length > 0) || wasDiscussingTopic || lastUserMessage;
 
-  if (silenceDurationSeconds < 12 || recentEmotionalTone === 'heavy') {
+  // Get dynamic guidance templates if available
+  const llmGuidance = dynamicContent?.llm_guidance;
+
+  if (silenceDurationSeconds < firstThreshold || recentEmotionalTone === 'heavy') {
     // Short silence or heavy topic - just presence
     responseType = 'comfortable_presence';
-    responseGuidance = `Just offer presence. Short, warm. Like "I'm here" or "Take your time." 
+    responseGuidance =
+      llmGuidance?.presence?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) ||
+      `Just offer presence. Short, warm. Like "I'm here" or "Take your time." 
 Don't ask questions. Don't fill the silence with words. Just BE THERE.
 One short sentence max. Often just a few words is perfect.`;
     invitesReply = false;
-  } else if (silenceDurationSeconds < 25 && hasTopicsToReference) {
+  } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
     // Medium silence WITH something to reference - use memory callback
     responseType = 'memory_callback';
-    responseGuidance = `Gently reference something they shared earlier or what you were discussing.
+    responseGuidance =
+      llmGuidance?.memory_callback?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) ||
+      `Gently reference something they shared earlier or what you were discussing.
 Example: "I keep thinking about what you said about [topic]."
 Don't push for a response. Just show you're still engaged with their story.
 Keep it brief - one sentence.`;
     invitesReply = false;
-  } else if (silenceDurationSeconds < 25) {
+  } else if (silenceDurationSeconds < secondThreshold) {
     // Medium silence but NO topics to reference - fall back to presence
-    // This prevents LLM timeouts from trying to generate memory callbacks with no context
     responseType = 'comfortable_presence';
-    responseGuidance = `Just offer warm presence. Short and gentle.
+    responseGuidance =
+      llmGuidance?.presence?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) ||
+      `Just offer warm presence. Short and gentle.
 Like "I'm here with you" or "Take all the time you need."
 One short sentence. Don't ask questions yet.`;
     invitesReply = false;
-  } else if (turnCount >= 5) {
+  } else if (turnCount >= questionMinTurns) {
     // Longer silence, established conversation - thoughtful question
     responseType = 'thoughtful_question';
-    responseGuidance = `Ask ONE thoughtful question that shows you've been listening.
+    responseGuidance =
+      llmGuidance?.thoughtful_question?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) ||
+      `Ask ONE thoughtful question that shows you've been listening.
 Based on what they've shared, ask something that invites deeper reflection.
 NOT generic ("how's your day?"). Make it SPECIFIC to them.
 Example: "What would [person they mentioned] say about this?"
@@ -1746,14 +1952,20 @@ Keep it conversational - like a friend genuinely curious.`;
   } else {
     // Early conversation, long silence - gentle check-in
     responseType = 'warm_check_in';
-    responseGuidance = `Gentle check-in without pressure.
+    responseGuidance =
+      llmGuidance?.check_in?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) ||
+      `Gentle check-in without pressure.
 Example: "Just checking in - what's on your mind?"
 Keep it open. No pressure. Give them space.`;
     invitesReply = true;
   }
 
   // Don't speak if music is playing and silence is short
-  if (isMusicPlaying && silenceDurationSeconds < 20) {
+  const musicMinimumSec = rules?.music_playing_minimum_sec ?? 20;
+  if (isMusicPlaying && silenceDurationSeconds < musicMinimumSec) {
     return {
       instructions: '',
       allowInterruptions: true,
@@ -1763,24 +1975,21 @@ Keep it open. No pressure. Give them space.`;
     };
   }
 
-  const instructions = `You are ${personaName}. Style: ${personaStyle}.
-
-The user has been silent for ${Math.round(silenceDurationSeconds)} seconds.
-
-${contextHints.length > 0 ? `Context:\n${contextHints.join('\n')}` : ''}
-${timeHint}
+  // CRITICAL: Instructions must NOT start with identity statements like "You are Ferni..."
+  // The Gemini Live API puts instructions as role:'model' which causes echoing if it looks like
+  // something the model would say. Start with an action verb to prevent echoing.
+  // See: node_modules/@livekit/agents-plugin-google/src/beta/realtime/realtime_api.ts:652-662
+  const instructions = `Respond briefly to the user's silence (${Math.round(silenceDurationSeconds)} seconds).
 
 ${responseGuidance}
 
-CRITICAL RULES:
-- Be BRIEF. This is a silence response, not a monologue.
-- Sound natural, not scripted. Like you're genuinely present.
-- No SSML tags or formatting - just natural speech.
-- Don't explain that they've been silent or apologize.
-- If presence response: just be warmly there, no questions.
-- If question: ask ONE question only.
+${contextHints.length > 0 ? `Context to reference (don't read this out): ${contextHints.join('; ')}` : ''}
 
-Say ONLY your response, nothing else.`;
+RULES:
+- Maximum 1-2 sentences
+- ${timeHint ? timeHint : 'Natural, present energy'}
+- No SSML tags or special formatting
+- Just speak naturally`;
 
   // Generate fallback using static system
   const staticResponse = getMeaningfulSilenceResponse(persona, context);
@@ -1795,7 +2004,7 @@ Say ONLY your response, nothing else.`;
 }
 
 /**
- * Get LLM-driven silence response instructions
+ * Get LLM-driven silence response instructions (sync version)
  *
  * Use this with session.generateReply() for natural, contextual responses
  * that feel genuinely responsive to the moment.
@@ -1816,8 +2025,45 @@ export function getLLMSilenceInstructions(
   return buildLLMSilenceInstructions(persona, context);
 }
 
+/**
+ * Get LLM-driven silence response instructions (async version)
+ *
+ * This version loads persona-specific content from bundles for
+ * more natural, persona-voiced responses.
+ *
+ * @example
+ * const silenceInstructions = await getLLMSilenceInstructionsAsync(persona, context);
+ * if (silenceInstructions.instructions) {
+ *   await session.generateReply({
+ *     instructions: silenceInstructions.instructions,
+ *     allowInterruptions: silenceInstructions.allowInterruptions
+ *   });
+ * }
+ */
+export async function getLLMSilenceInstructionsAsync(
+  persona: PersonaConfig,
+  context: SilenceContext
+): Promise<LLMSilenceInstructions> {
+  return buildLLMSilenceInstructionsAsync(persona, context);
+}
+
+/**
+ * Preload silence content for a persona (call during initialization)
+ * This warms the cache so subsequent calls are fast.
+ */
+export async function preloadSilenceContent(personaId: string): Promise<void> {
+  await getSilenceContent(personaId);
+}
+
+/**
+ * Clear the silence content cache (for testing)
+ */
+export function clearSilenceContentCache(): void {
+  silenceContentCache.clear();
+}
+
 // Export types and utilities for other modules
 export type { QuestionContext, GeneratedQuestion };
-export { getDynamicThoughtfulQuestion, silenceContextToQuestionContext };
+export { getDynamicThoughtfulQuestion, silenceContextToQuestionContext, getSilenceContent };
 
 export default getMeaningfulSilenceResponse;

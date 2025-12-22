@@ -636,6 +636,13 @@ export async function loadBundle(
           await loadJsonFile<BundleBehaviors['mortality_awareness']>(mortalityAwarenessPath);
       }
 
+      // Load silence responses (meaningful silence content)
+      const silenceResponsesPath = join(behaviorsPath, 'silence-responses.json');
+      if (await fileExists(silenceResponsesPath)) {
+        behaviors.silence_responses =
+          await loadJsonFile<BundleBehaviors['silence_responses']>(silenceResponsesPath);
+      }
+
       // ========================================================================
       // LOVABLE PRESENCE BEHAVIORS (Better Than Human charm system)
       // ========================================================================

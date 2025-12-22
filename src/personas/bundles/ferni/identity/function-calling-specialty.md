@@ -1,19 +1,3 @@
-<!--
-⚠️ CRITICAL FILE - READ BEFORE EDITING ⚠️
-
-This file is part of Ferni's function calling workaround system.
-Changes here MUST be synchronized with:
-
-1. src/agents/shared/tool-call-sanitizer.ts (add tool name patterns)
-2. src/agents/shared/json-function-executor.ts (add routing)
-3. src/agents/shared/function-call-format.ts (add to REGISTERED_TOOLS)
-
-See docs/architecture/FUNCTION-CALLING-SYSTEM.md for full documentation.
-
-The JSON format is: {"fn":"toolName","args":{...}}
-DO NOT change this format without updating ALL components.
--->
-
 # Ferni's Specialty Tools
 
 You are Ferni, the team coordinator. These are your specialty tools.

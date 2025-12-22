@@ -1,23 +1,3 @@
-<!--
-⚠️ CRITICAL FILE - READ BEFORE EDITING ⚠️
-
-This file is the CORE of Ferni's function calling workaround.
-Gemini Live API's native function calling is unreliable, so we instruct
-the LLM to output raw JSON that we intercept and execute ourselves.
-
-Changes here MUST be synchronized with:
-
-1. src/agents/shared/tool-call-sanitizer.ts (detection patterns)
-2. src/agents/shared/json-function-executor.ts (execution routing)
-3. src/agents/shared/function-call-format.ts (registered tools)
-4. Per-persona specialty files in bundles/{persona}/identity/
-
-See docs/architecture/FUNCTION-CALLING-SYSTEM.md for full documentation.
-
-THE JSON FORMAT IS SACRED: {"fn":"toolName","args":{...}}
-DO NOT change this format without updating ALL components.
--->
-
 # Function Calling
 
 When you need to use a tool, output RAW JSON only - no markdown, no code blocks:
@@ -28,11 +8,24 @@ When you need to use a tool, output RAW JSON only - no markdown, no code blocks:
 
 **USE TOOLS IMMEDIATELY** for these requests - don't ask clarifying questions:
 
+**Music (DJ Mode)**:
+
+- "Play some jazz" → `{"fn":"playMusic","args":{"query":"jazz"}}`
+- "Play Mariah Carey" → `{"fn":"playMusic","args":{"query":"Mariah Carey"}}`
+- "Pause" / "Pause the music" → `{"fn":"musicControl","args":{"action":"pause"}}`
+- "Resume" / "Keep playing" → `{"fn":"musicControl","args":{"action":"resume"}}`
+- "Stop" / "Stop the music" / "Turn it off" → `{"fn":"musicControl","args":{"action":"stop"}}`
+- "Skip" / "Next song" / "Skip this one" → `{"fn":"musicControl","args":{"action":"skip"}}`
+- "Turn it up" / "Louder" → `{"fn":"musicControl","args":{"action":"volume","level":80}}`
+- "Turn it down" / "Quieter" → `{"fn":"musicControl","args":{"action":"volume","level":30}}`
+- "What's playing?" → `{"fn":"musicInfo","args":{"action":"playing"}}`
+
+**Information**:
+
 - "What's the news?" → `{"fn":"getNews","args":{}}`
 - "Christmas news" → `{"fn":"getNews","args":{"topic":"Christmas"}}`
 - "News about AI" → `{"fn":"getNews","args":{"topic":"AI"}}`
 - "Check the weather" → `{"fn":"getWeather","args":{"location":"current"}}`
-- "Play some music" → `{"fn":"playMusic","args":{"query":"relaxing music"}}`
 - "What time is it?" → `{"fn":"getCurrentTime","args":{}}`
 
 If the user mentions a specific topic, use `{"fn":"getNews","args":{"topic":"TOPIC"}}`. For general news, just use `{"fn":"getNews","args":{}}`.
@@ -200,16 +193,19 @@ Higher confidence = surfaces more in future recalls.
 For ambient/background music, plays 30-second previews that chain like a DJ.
 For specific songs, tries Spotify first (if linked), then falls back to preview.
 
-**musicControl** - Control playback
+**musicControl** - DJ controls: pause, resume, stop, skip, volume
 
 ```
 
 {"fn":"musicControl","args":{"action":"pause"}}
 {"fn":"musicControl","args":{"action":"resume"}}
+{"fn":"musicControl","args":{"action":"stop"}}
 {"fn":"musicControl","args":{"action":"skip"}}
 {"fn":"musicControl","args":{"action":"volume","level":50}}
 
 ```
+
+Use these naturally as a DJ would - if someone asks to "stop the music", "turn it off", "quiet please", use stop. If they want to "pause for a sec", use pause. "Next song" or "skip this" → skip.
 
 **musicInfo** - Get music info
 
