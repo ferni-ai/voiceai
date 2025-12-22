@@ -222,6 +222,7 @@ function getSecrets(): Record<string, string> {
     // Research/information secrets
     'finnhub-api-key',
     'alpha-vantage-key',
+    'newsdata-api-key',
     // Notification secrets (for ferni runtime watch)
     'slack-webhook-url',
     'sendgrid-api-key',

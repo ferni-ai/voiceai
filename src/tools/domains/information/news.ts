@@ -5,9 +5,9 @@
  * Single responsibility: Fetching and presenting news headlines.
  *
  * APIs used:
+ * - NewsData.io (primary - 200 credits/day free, 84K+ sources)
  * - Finnhub (financial news - requires API key)
- * - GNews API (general news - free tier available)
- * - RSS feeds as fallback
+ * - RSS feeds as fallback (NPR, BBC)
  */
 
 import { llm } from '@livekit/agents';
@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || '';
+const NEWSDATA_KEY = process.env.NEWSDATA_API_KEY || '';
 const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 
 // ============================================================================
@@ -23,7 +24,7 @@ const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 // ============================================================================
 
 /**
- * Search news by topic using GNews API or DuckDuckGo fallback
+ * Search news by topic using NewsData.io (primary) or fallbacks
  * Supports any topic: "Christmas", "AI", "sports", etc.
  */
 export async function searchNewsByTopic(topic: string): Promise<string> {
@@ -32,13 +33,56 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
 
   logger.info({ topic }, '🔍 [DIAG] searchNewsByTopic START');
 
-  // If we have GNews API key, use it
+  // Primary: Use NewsData.io (best free tier - 200 credits/day)
+  if (NEWSDATA_KEY) {
+    try {
+      const encodedTopic = encodeURIComponent(topic);
+      const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_KEY}&q=${encodedTopic}&language=en&size=5`;
+
+      logger.debug({ topic }, '🔍 [DIAG] Fetching from NewsData.io...');
+      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          status?: string;
+          totalResults?: number;
+          results?: Array<{
+            title?: string;
+            description?: string;
+            source_name?: string;
+            pubDate?: string;
+          }>;
+        };
+
+        if (data.results && data.results.length > 0) {
+          const headlines = data.results
+            .slice(0, 4)
+            .map((a) => a.title)
+            .filter(Boolean);
+
+          logger.info(
+            { topic, elapsed: Date.now() - startTime, count: headlines.length },
+            '🔍 [DIAG] searchNewsByTopic SUCCESS (NewsData.io)'
+          );
+
+          return `News about "${topic}": ${headlines.join('. ')}`;
+        }
+      } else {
+        const errorData = await response.text();
+        logger.warn({ topic, status: response.status, error: errorData }, '🔍 [DIAG] NewsData.io error');
+      }
+    } catch (error) {
+      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] NewsData.io failed, trying fallback');
+    }
+  }
+
+  // Fallback 1: GNews if configured
   if (GNEWS_KEY) {
     try {
       const encodedTopic = encodeURIComponent(topic);
       const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
 
-      logger.debug({ topic }, '🔍 [DIAG] Fetching from GNews...');
+      logger.debug({ topic }, '🔍 [DIAG] Trying GNews fallback...');
       const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
       if (response.ok) {
@@ -67,11 +111,11 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
         }
       }
     } catch (error) {
-      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] GNews failed, trying fallback');
+      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] GNews failed');
     }
   }
 
-  // Fallback: Use DuckDuckGo to search for news about the topic
+  // Fallback 2: DuckDuckGo for topic context
   logger.info({ topic }, '🔍 [DIAG] Using DuckDuckGo news search fallback');
   try {
     const searchQuery = `${topic} news today`;

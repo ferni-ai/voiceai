@@ -334,10 +334,21 @@ export function setThinking(thinking: boolean): void {
   }
 }
 
+// Track last time we received non-zero volume for debugging
+let lastNonZeroVolumeTime = 0;
+let volumeDropWarningLogged = false;
+
 export function setVolume(volume: number): void {
   lastVolume = Math.max(0, Math.min(1, volume));
-  // Debug: Log volume occasionally to verify data is flowing
-  if (Math.random() < 0.02 && volume > 0.001) {
+  
+  // Debug: Track volume drops after handoff
+  if (volume > 0.01) {
+    lastNonZeroVolumeTime = Date.now();
+    volumeDropWarningLogged = false;
+  } else if (isSpeaking && Date.now() - lastNonZeroVolumeTime > 2000 && !volumeDropWarningLogged) {
+    // No volume for 2+ seconds while we think we're speaking
+    console.warn('[Waveform] ⚠️ No volume received for 2s while speaking - audio visualization may be disconnected');
+    volumeDropWarningLogged = true;
   }
 }
 

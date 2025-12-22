@@ -2237,6 +2237,11 @@ class VoiceAIApp {
       onAudioTrack: (audioElement, _participantId, mediaStreamTrack) => {
         // Enable audio visualization using the MediaStreamTrack (works better for WebRTC)
         // Falls back to audio element if track not available
+        log.info('🎙️ onAudioTrack called - attaching visualization', {
+          hasMediaStreamTrack: !!mediaStreamTrack,
+          trackId: mediaStreamTrack?.id,
+          trackReadyState: mediaStreamTrack?.readyState,
+        });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
         setAudioState('speaking');
         // Set speaking state directly - don't rely only on volume detection
@@ -2600,8 +2605,16 @@ class VoiceAIApp {
     audioElement: HTMLAudioElement,
     mediaStreamTrack?: MediaStreamTrack
   ): Promise<void> {
+    log.info('🎚️ attachAudioVisualization called', {
+      hasMediaStreamTrack: !!mediaStreamTrack,
+      trackId: mediaStreamTrack?.id,
+      trackReadyState: mediaStreamTrack?.readyState,
+      hadPreviousCleanup: !!this.audioCleanup,
+    });
+
     // Clean up previous
     if (this.audioCleanup) {
+      log.debug('🧹 Cleaning up previous audio visualization');
       this.audioCleanup();
     }
 
@@ -2612,13 +2625,16 @@ class VoiceAIApp {
 
     // Prefer MediaStreamTrack - works better for WebRTC streams
     if (mediaStreamTrack) {
+      log.debug('📡 Using MediaStreamTrack for visualization');
       this.audioCleanup = await audioService.attachVisualization(mediaStreamTrack, volumeCallback);
     } else {
+      log.debug('📻 Using audio element for visualization');
       this.audioCleanup = audioService.attachAudioElementVisualization(
         audioElement,
         volumeCallback
       );
     }
+    log.info('✅ Audio visualization attached successfully');
   }
 
   /**
