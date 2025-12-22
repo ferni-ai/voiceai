@@ -912,7 +912,9 @@ function silenceContextToQuestionContext(
     lastUserMessage: context.lastUserMessage,
     silenceReason,
     turnCount: context.turnCount,
-    boundaries: [], // TODO: Load from user preferences
+    // User's conversation boundaries (topics to avoid)
+    // Future: Load from user preferences at bogle_users/{userId}/preferences.conversationBoundaries
+    boundaries: [],
   };
 }
 

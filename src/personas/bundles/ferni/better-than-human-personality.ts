@@ -777,22 +777,36 @@ function randomFrom<T>(arr: T[]): T {
 /**
  * Record what resonated with user (call when positive engagement detected)
  */
+/**
+ * Record a theme resonance for cross-session learning
+ *
+ * FUTURE ENHANCEMENT:
+ * Persist to Firestore at `bogle_users/{userId}/personality_resonance`
+ * This will enable personality themes that resonate to persist across sessions.
+ * See: docs/architecture/CROSS-PERSONA-INTELLIGENCE.md for the broader vision.
+ */
 export function recordResonance(
   userId: string,
   theme: ThemeCategory,
   engagement: 'positive' | 'neutral' | 'negative'
 ): void {
   log.debug({ userId, theme, engagement }, 'Recording resonance');
-  // TODO: Persist to Firestore under bogle_users/{userId}/personality_resonance
-  // This enables cross-session learning
+  // Currently no-op - will implement when cross-session personality learning is prioritized
 }
 
 /**
- * Load user's resonance profile
+ * Load user's resonance profile for cross-session personality continuity
+ *
+ * FUTURE ENHANCEMENT:
+ * Load from Firestore at `bogle_users/{userId}/personality_resonance`
+ * This will allow Ferni to remember which themes resonate with this user.
+ * See: docs/architecture/CROSS-PERSONA-INTELLIGENCE.md for the broader vision.
+ *
+ * @returns UserResonanceProfile or null if not yet implemented/no data
  */
 export async function loadUserResonance(userId: string): Promise<UserResonanceProfile | null> {
-  // TODO: Load from Firestore
-  log.debug({ userId }, 'Loading user resonance profile');
+  log.debug({ userId }, 'Loading user resonance profile (not yet implemented)');
+  // Currently returns null - will implement when cross-session personality learning is prioritized
   return null;
 }
 

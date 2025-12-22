@@ -21,8 +21,6 @@ import {
   getPersonaMemories,
   normalizePersonaId,
 } from '../../intelligence/context-builders/personas/persona-memory.js';
-import { generateAliveGreeting } from '../../personas/alive-greetings.js';
-import { generateAliveIntro } from '../../personas/alive-intros.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
@@ -198,74 +196,11 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
 
   // ===============================================
   // HOLISTIC PERSONALITY: Use greetings.json directly
-  // The "alive" greeting systems were adding too much drama.
-  // greetings.json has well-crafted, grounded greetings.
+  // greetings.json has well-crafted, grounded Pixar-style greetings.
   // ===============================================
   if (!greeting && bundleRuntime) {
-    // DISABLED: Alive greetings were making Ferni too dramatic
-    // The greetings.json already has good Pixar-style greetings
-    // If you want to re-enable, set ENABLE_ALIVE_GREETINGS=true in env
-    const enableAliveGreetings = process.env.ENABLE_ALIVE_GREETINGS === 'true';
-
-    if (enableAliveGreetings) {
-      // PRIORITY 1: Try "caught in a moment" greeting (highest personality)
-      try {
-        const aliveResult = await generateAliveGreeting(bundleRuntime, sessionPersona, {
-          userName: userData.name,
-          isReturningUser,
-          relationshipStage: services.userProfile?.relationshipStage as
-            | 'stranger'
-            | 'acquaintance'
-            | 'friend'
-            | 'trusted_advisor'
-            | undefined,
-          lastConversationSummary: services.userProfile?.lastConversationSummary,
-          usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-        });
-        if (aliveResult) {
-          greeting = aliveResult.greeting;
-          diag.session('Using alive greeting (caught in a moment)', {
-            style: aliveResult.style,
-            components: Object.keys(aliveResult.components).filter(
-              (k) => aliveResult.components[k as keyof typeof aliveResult.components]
-            ),
-          });
-        }
-      } catch (e) {
-        diag.warn('Alive greeting failed, trying alternatives', { error: String(e) });
-      }
-
-      // PRIORITY 2: Try "alive intro" (warm recognition for returning users)
-      if (!greeting && isReturningUser) {
-        try {
-          const introResult = await generateAliveIntro(bundleRuntime, sessionPersona, {
-            userName: userData.name,
-            isReturningUser,
-            relationshipStage: services.userProfile?.relationshipStage as
-              | 'stranger'
-              | 'acquaintance'
-              | 'friend'
-              | 'trusted_advisor'
-              | undefined,
-            meetingCount: services.userProfile?.totalConversations,
-            lastTopic: services.userProfile?.lastConversationSummary?.slice(0, 50),
-          });
-          if (introResult) {
-            greeting = introResult.intro;
-            hasReferencedLastConversation = !!services.userProfile?.lastConversationSummary;
-            diag.session('Using alive intro (warm recognition)', {
-              style: introResult.style,
-            });
-          }
-        } catch (e) {
-          diag.warn('Alive intro failed, trying bundle greeting', { error: String(e) });
-        }
-      }
-    }
-
     // Bundle runtime standard greeting (uses greetings.json)
-    if (!greeting) {
-      const result = await generateBundleGreeting(
+    const result = await generateBundleGreeting(
         bundleRuntime,
         services,
         userData,

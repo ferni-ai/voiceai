@@ -706,7 +706,6 @@ function generateMemoryBasedGreeting(
 
 import { generateProactiveOpener, type OpenerContext } from '../conversation/proactive-starters.js';
 import { getJourneyGreetingEnhancement } from '../intelligence/context-builders/personal-journey.js';
-import { generateAliveGreeting } from './alive-greetings.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import { generateCompositionalGreeting } from './compositional-greetings.js';
 
@@ -722,12 +721,11 @@ import { getMilestoneMessage, isMilestoneConversation } from './shared/welcome-b
  * Generate a greeting for the persona
  *
  * Priority order:
- * 1. ALIVE GREETING - Uses bundle content for authentic, in-the-moment feel
- * 2. PROACTIVE OPENER - Context-aware opener for returning users (thread continuity, callbacks)
- * 3. MEMORY-BASED - References specific things the persona remembers about user
- * 4. DYNAMIC (Gemini) - AI-generated contextual greeting
- * 5. COMPOSITIONAL - Built from atomic pieces at runtime (infinite variety)
- * 6. STATIC - Template-based last resort
+ * 1. PROACTIVE OPENER - Context-aware opener for returning users (thread continuity, callbacks)
+ * 2. MEMORY-BASED - References specific things the persona remembers about user
+ * 3. DYNAMIC (Gemini) - AI-generated contextual greeting
+ * 4. COMPOSITIONAL - Built from atomic pieces at runtime (infinite variety)
+ * 5. STATIC - Template-based last resort
  *
  * The goal is to make every greeting feel like reconnecting with a real person.
  */
@@ -818,31 +816,7 @@ async function generateGreetingWithoutLifeEvents(
   // Static is now last resort only
   const staticGreeting = generateStaticGreeting(persona, options);
 
-  // 1. TRY ALIVE GREETING - Most "real" feeling (75% chance)
-  // Higher probability because this produces the most varied, natural greetings
-  if (options?.bundleRuntime && Math.random() < 0.75) {
-    try {
-      const aliveResult = await generateAliveGreeting(options.bundleRuntime, persona, {
-        userName: options.userName,
-        isReturningUser: options.isReturningUser,
-        relationshipStage: options.relationshipStage,
-        lastConversationSummary: options.lastConversationSummary,
-        usedGreetings: options.usedGreetings,
-      });
-
-      if (aliveResult) {
-        getLogger().info(
-          { persona: persona.id, style: aliveResult.style, components: aliveResult.components },
-          '✨ Using ALIVE greeting - persona feels real!'
-        );
-        return aliveResult.greeting;
-      }
-    } catch (err) {
-      getLogger().debug({ error: String(err) }, 'Alive greeting generation failed, continuing...');
-    }
-  }
-
-  // 2. TRY PROACTIVE OPENER for returning users with context (60% chance)
+  // 1. TRY PROACTIVE OPENER for returning users with context (60% chance)
   // This uses the conversation module's proactive starters for thread continuity,
   // memory callbacks, calendar awareness, etc.
   if (options?.isReturningUser && Math.random() < 0.6) {
