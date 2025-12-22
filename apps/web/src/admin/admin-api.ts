@@ -41,10 +41,14 @@ async function ensureAuthReady(): Promise<void> {
  * Get the admin API key for authentication.
  * In development, uses 'dev-mode' which the backend accepts.
  * In production, uses VITE_ADMIN_API_KEY environment variable.
+ * 
+ * SECURITY: Uses import.meta.env.DEV which is ONLY true during `vite dev` builds.
+ * This is more secure than hostname detection which could be spoofed.
  */
 export function getAdminApiKey(): string {
-  // In development, use dev-mode (backend accepts this when NODE_ENV !== 'production')
-  if (isDevelopment()) {
+  // SECURITY: Only use dev-mode when Vite's DEV flag is true
+  // This flag is set at build time and cannot be changed at runtime
+  if (import.meta.env.DEV) {
     return 'dev-mode';
   }
 

@@ -130,20 +130,39 @@ const ICONS = {
 // API CALLS
 // ============================================================================
 
+/**
+ * Get admin key for EvalOps API requests.
+ * 
+ * SECURITY: Only falls back to 'dev-mode' in development environment.
+ */
+function getAdminKey(): string {
+  const storedKey = localStorage.getItem('admin_key') || localStorage.getItem('ferni_admin_key');
+  if (storedKey) return storedKey;
+  
+  // SECURITY: import.meta.env.DEV is false in production builds
+  if (import.meta.env.DEV) {
+    return 'dev-mode';
+  }
+  
+  return '';
+}
+
 async function fetchDashboardData(): Promise<void> {
   state.loading = true;
   renderContent();
 
+  const adminKey = getAdminKey();
+  
   try {
     // Fetch health data
     const healthRes = await fetch('/api/evalops/health', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: { 'x-admin-key': adminKey },
     });
     const healthData = await healthRes.json();
 
     // Fetch scenarios
     const scenariosRes = await fetch('/api/evalops/scenarios/stats', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: { 'x-admin-key': adminKey },
     });
     const scenariosData = await scenariosRes.json();
 
@@ -190,7 +209,7 @@ async function runQuickCheck(personaId: string, response: string): Promise<void>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-key': 'dev-mode',
+        'x-admin-key': getAdminKey(),
       },
       body: JSON.stringify({ persona_id: personaId, response }),
     });

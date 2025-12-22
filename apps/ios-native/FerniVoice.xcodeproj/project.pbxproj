@@ -15,6 +15,7 @@
 		933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */; };
 		A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */; };
 		B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7209647670485E81A61C468 /* PersonaPickerSheet.swift */; };
+		C0NNECT1NGV1EW1NBUILD0001 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
 		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
 		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
@@ -38,6 +39,7 @@
 		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
 		1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectingView.swift; sourceTree = "<group>"; };
 		32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 		12BF02DB87713224F5C8F13A /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */,
 				2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */,
 				A7209647670485E81A61C468 /* PersonaPickerSheet.swift */,
 				E03DE09C41C69126019ADA01 /* SettingsView.swift */,
@@ -267,6 +270,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0NNECT1NGV1EW1NBUILD0001 /* ConnectingView.swift in Sources */,
 				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
 				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
 				A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */,

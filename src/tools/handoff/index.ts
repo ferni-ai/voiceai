@@ -282,4 +282,8 @@ export {
   type VoiceSwitchCallback,
   type LLMUpdateCallback,
   type UINotifyCallback,
+  // Banter hooks for intelligent transitions
+  type BanterContext,
+  type BeforeVoiceSwitchCallback,
+  type AfterVoiceSwitchCallback,
 } from './handoff-coordinator.js';

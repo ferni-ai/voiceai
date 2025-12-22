@@ -13,13 +13,13 @@
  * @module voice-agent/data-channel-handler
  */
 
-import type { voice } from '@livekit/agents';
+import type { JobContext, voice } from '@livekit/agents';
 import { log as livekitLog } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { createHandoffTools, executeHandoff, getCurrentAgent } from '../../tools/handoff/index.js';
+import { getCurrentAgent } from '../../tools/handoff/index.js';
 import type { UserData } from '../shared/types.js';
 import {
   isHandoffInProgress,
@@ -29,6 +29,14 @@ import {
 } from '../shared/handoff/session-state.js';
 import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
 
+// New coordinator-based handoff system
+import {
+  getSessionAdapter,
+  removeSessionAdapter,
+  createCoordinatorAdapter,
+  type CoordinatorAdapterConfig,
+} from '../shared/handoff/coordinator-adapter.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -36,6 +44,8 @@ import type { MacOSContextPayload } from '../../intelligence/context-builders/ma
 export interface DataChannelContext {
   /** LiveKit room instance */
   room: Room;
+  /** LiveKit job context (needed for coordinator) */
+  ctx?: JobContext;
   /** Voice session instance */
   session: voice.AgentSession<UserData>;
   /** Session services */
@@ -48,7 +58,7 @@ export interface DataChannelContext {
   sessionId: string;
   /** Voice agent reference for persona updates */
   voiceAgentRef?: {
-    setPersona: (persona: PersonaConfig) => void;
+    setPersona: (personaId: string, instructions: string) => void;
   };
 }
 
@@ -173,57 +183,19 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
 
 /**
  * Handle handoff_request messages - user clicked a persona in the UI
+ *
+ * NEW: Uses the HandoffCoordinator for reliable, transactional handoffs
+ * with intelligent banter (soft open + arriving welcome).
  */
 async function handleHandoffRequest(
   message: { target: string },
   ctx: DataChannelContext
 ): Promise<void> {
-  const { room, services, voiceAgentRef } = ctx;
+  const { room, services, voiceAgentRef, sessionId, session } = ctx;
   const targetPersona = message.target;
 
-  getLogger().info({ targetPersona }, '🎯 User requested handoff via UI');
+  getLogger().info({ targetPersona, sessionId }, '🎯 User requested handoff via UI');
   diag.entry(`🎯 User requested handoff via UI to: ${targetPersona}`);
-
-  // Get handoff tools using the new factory
-  const handoffToolSet = await createHandoffTools();
-
-  // Map persona IDs to canonical IDs for lookup
-  const personaToCanonical: Record<string, string> = {
-    // Canonical IDs
-    ferni: 'ferni',
-    'peter-john': 'peter-john',
-    'alex-chen': 'alex-chen',
-    'maya-santos': 'maya-santos',
-    'jordan-taylor': 'jordan-taylor',
-    'nayan-patel': 'nayan-patel',
-    // Legacy aliases (for backward compatibility)
-    'jack-b': 'ferni',
-    'comm-specialist': 'alex-chen',
-    'spend-save': 'maya-santos',
-    'event-planner': 'jordan-taylor',
-    // Short names
-    alex: 'alex-chen',
-    maya: 'maya-santos',
-    jordan: 'jordan-taylor',
-    peter: 'peter-john',
-    nayan: 'nayan-patel',
-  };
-
-  const canonicalId = personaToCanonical[targetPersona] || targetPersona;
-  // Tool names use first name only (e.g., handoffToNayan not handoffToNayanPatel)
-  const displayName = canonicalId.split('-')[0];
-  const toolName = `handoffTo${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`;
-  const toolNameLower = toolName.toLowerCase();
-
-  getLogger().info(
-    {
-      targetPersona,
-      canonicalId,
-      toolName,
-      availableTools: Array.from(handoffToolSet.toolsByName.keys()),
-    },
-    '🔧 Looking up handoff tool'
-  );
 
   // Helper to send acknowledgment to frontend
   const sendAck = async (success: boolean, error?: string) => {
@@ -251,7 +223,6 @@ async function handleHandoffRequest(
         type: 'handoff_failed',
         newAgent: targetPersona,
         previousAgent: currentAgent,
-        // rollbackTo is needed by frontend for UI recovery (restore previous persona state)
         rollbackTo: currentAgent,
         error: errorMsg,
         timestamp: Date.now(),
@@ -264,69 +235,59 @@ async function handleHandoffRequest(
     }
   };
 
-  // Check if we have a valid handoff target
-  const toolDefinition =
-    handoffToolSet.toolsByAgentId.get(canonicalId) || handoffToolSet.toolsByName.get(toolNameLower);
+  try {
+    // Get or create coordinator adapter for this session
+    let adapter = getSessionAdapter(sessionId);
 
-  if (toolDefinition) {
+    if (!adapter && ctx.ctx) {
+      // Create adapter if we have job context
+      adapter = getSessionAdapter(sessionId, {
+        ctx: ctx.ctx,
+        session,
+        services,
+        room,
+        getVoiceAgentRef: () => voiceAgentRef || null,
+      });
+    }
+
+    if (!adapter) {
+      // Fallback: adapter not available
+      getLogger().warn({ sessionId }, '⚠️ Coordinator adapter not available - using legacy handoff');
+      await sendAck(false, 'Handoff system not initialized');
+      await sendFailure('Handoff system not ready');
+      return;
+    }
+
+    // Execute handoff via the new coordinator
     getLogger().info(
-      { targetPersona, toolName, currentAgent: getCurrentAgent() },
-      '🔄 Executing user-requested handoff'
+      { targetPersona, currentAgent: adapter.getCurrentAgent() },
+      '🔄 Executing handoff via coordinator'
     );
 
-    try {
-      // Execute the handoff with user profile for unlock validation
-      const result = await executeHandoff(canonicalId, 'User requested via UI tap', {
-        userProfile: services.userProfile,
-        subscriptionTier:
-          (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free',
-      });
+    const result = await adapter.executeHandoff(targetPersona, 'User requested via UI tap', {
+      userProfile: services.userProfile,
+      subscriptionTier:
+        (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free',
+    });
 
-      getLogger().info({ result: JSON.stringify(result).slice(0, 500) }, '📦 Handoff result');
+    getLogger().info(
+      { result: JSON.stringify(result).slice(0, 500) },
+      '📦 Coordinator handoff result'
+    );
 
-      if (!result.success) {
-        getLogger().warn(
-          { error: result.error, rateLimited: result.rateLimited },
-          '⚠️ Handoff blocked'
-        );
-        await sendAck(false, result.error || 'Handoff failed');
-        if (!result.rateLimited) {
-          await sendFailure(result.error || 'Handoff failed');
-        }
-      } else {
-        getLogger().info({ newAgent: result.targetAgent }, '✅ Handoff executed');
-        await sendAck(true);
-
-        // CRITICAL: Inject identity into LLM context
-        if (result.targetAgent) {
-          try {
-            const { getPersonaAsync } = await import('../../personas/index.js');
-            const newPersona = await getPersonaAsync(result.targetAgent);
-
-            if (newPersona) {
-              // Update the voiceAgent's persona reference AND instructions
-              if (voiceAgentRef) {
-                voiceAgentRef.setPersona(newPersona);
-                diag.entry(`🎭 VoiceAgent persona AND instructions updated to ${newPersona.name}`);
-              }
-              diag.entry(`🎭 Identity switch complete for ${newPersona.name}`);
-            }
-          } catch (identityErr) {
-            getLogger().warn(
-              { error: String(identityErr) },
-              'Identity injection failed (non-fatal)'
-            );
-          }
-        }
-      }
-    } catch (handoffErr) {
-      getLogger().error({ error: String(handoffErr) }, '❌ Handoff execution failed');
-      await sendFailure(String(handoffErr));
+    if (!result.success) {
+      getLogger().warn({ error: result.error }, '⚠️ Handoff blocked');
+      await sendAck(false, result.error || 'Handoff failed');
+      await sendFailure(result.error || 'Handoff failed');
+    } else {
+      getLogger().info({ newAgent: result.targetAgent, traceId: result.traceId }, '✅ Handoff executed');
+      await sendAck(true);
+      diag.entry(`🎭 Coordinator handoff complete: ${result.targetAgent}`);
     }
-  } else {
-    getLogger().warn({ targetPersona, toolName }, '⚠️ Unknown handoff target or tool not found');
-    await sendAck(false, `Unknown persona: ${targetPersona}`);
-    await sendFailure(`Invalid handoff target: ${targetPersona}`);
+  } catch (handoffErr) {
+    getLogger().error({ error: String(handoffErr) }, '❌ Handoff execution failed');
+    await sendAck(false, String(handoffErr));
+    await sendFailure(String(handoffErr));
   }
 }
 

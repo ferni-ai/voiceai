@@ -73,9 +73,17 @@ export async function handleLandingOptimizationRoutes(
     return true;
   }
 
-  // Simple admin auth check (in production, use proper auth)
-  const adminKey = req.headers['x-admin-key'];
-  const isAdmin = adminKey === process.env.ADMIN_KEY || adminKey === 'dev-mode';
+  // Admin auth check with proper security
+  // SECURITY: Never accepts 'dev-mode' in production
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+  
+  // Primary check: valid ADMIN_KEY from environment
+  // Dev mode bypass - ONLY works in development environment
+  const isAdmin = 
+    (configuredAdminKey && adminKey === configuredAdminKey) ||
+    (isDev && adminKey === 'dev-mode');
 
   try {
     // ============================================================================

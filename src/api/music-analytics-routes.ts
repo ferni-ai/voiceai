@@ -30,23 +30,30 @@ const log = createLogger({ module: 'MusicAnalyticsRoutes' });
 const ADMIN_KEY = process.env.ADMIN_API_KEY || process.env.INTERNAL_API_KEY;
 
 /**
- * Verify admin request
- * - In production: Requires x-admin-key header
- * - In development: Allows 'dev-mode' key
+ * Verify admin request with proper security.
+ * 
+ * SECURITY: This function properly validates admin access:
+ * - In production: REQUIRES valid ADMIN_KEY header
+ * - In development: Allows 'dev-mode' key OR no key for easier testing
+ * 
+ * The 'dev-mode' bypass ONLY works when NODE_ENV === 'development'.
  */
 function verifyAdmin(req: IncomingMessage): boolean {
-  const adminKey = req.headers['x-admin-key'] as string;
-  const isDev = process.env.NODE_ENV !== 'production';
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const isDev = process.env.NODE_ENV === 'development';
 
-  if (isDev && adminKey === 'dev-mode') {
-    return true;
-  }
-
+  // Primary check: valid ADMIN_KEY from environment
   if (ADMIN_KEY && adminKey === ADMIN_KEY) {
     return true;
   }
 
-  // In development, allow without key for easier testing
+  // Dev mode bypass - ONLY works when NODE_ENV is explicitly 'development'
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  // In development only, allow without key for easier local testing
   if (isDev && !adminKey) {
     log.debug('Admin endpoint accessed without key in dev mode');
     return true;

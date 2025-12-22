@@ -24,29 +24,38 @@ struct VoiceView: View {
             // Background gradient
             backgroundGradient
 
-            VStack(spacing: 0) {
-                Spacer()
+            // Show magical connecting view during connection
+            if session.state == .connecting {
+                ConnectingView(persona: PersonaRegistry.get(session.currentPersonaId))
+                    .transition(.opacity)
+            } else {
+                // Main content
+                VStack(spacing: 0) {
+                    Spacer()
 
-                // Main voice orb (centered, large)
-                voiceOrbSection
+                    // Main voice orb (centered, large)
+                    voiceOrbSection
 
-                // Status text
-                statusSection
+                    // Status text
+                    statusSection
 
-                Spacer()
+                    Spacer()
 
-                // Audio waveform visualization
-                if session.state.isActive {
-                    audioWaveform
-                        .padding(.bottom, 20)
+                    // Audio waveform visualization
+                    if session.state.isActive {
+                        audioWaveform
+                            .padding(.bottom, 20)
+                    }
+
+                    // Bottom control bar
+                    controlBar
                 }
-
-                // Bottom control bar
-                controlBar
+                .padding(.bottom, 30)
+                .transition(.opacity)
             }
-            .padding(.bottom, 30)
         }
         .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.5), value: session.state == .connecting)
         .onChange(of: session.state) { newState in
             handleStateChange(newState)
         }
@@ -140,12 +149,50 @@ struct VoiceView: View {
         .padding(.top, 30)
     }
 
+    // MARK: - Audio Waveform
+
+    private var audioWaveform: some View {
+        let persona = PersonaRegistry.get(session.currentPersonaId)
+        let barCount = 40
+
+        return HStack(spacing: 3) {
+            ForEach(0..<barCount, id: \.self) { index in
+                let indexPhase = Double(index) / Double(barCount)
+                // Create organic wave pattern
+                let wave1 = sin(waveformPhase * 2 + indexPhase * .pi * 4) * 0.4
+                let wave2 = sin(waveformPhase * 3.7 + indexPhase * .pi * 6) * 0.25
+                let wave3 = sin(waveformPhase * 7.3 + indexPhase * .pi * 2) * 0.15
+                let height = max(0.15, 0.5 + wave1 + wave2 + wave3)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                persona.primaryColor.opacity(0.8),
+                                persona.secondaryColor.opacity(0.6)
+                            ],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                    )
+                    .frame(width: 4, height: CGFloat(height) * 30)
+            }
+        }
+        .frame(height: 35)
+    }
+
+    private func startWaveformAnimation() {
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+            waveformPhase += 0.08
+        }
+    }
+
     // MARK: - Control Bar
 
     private var controlBar: some View {
-        HStack(spacing: 50) {
+        HStack(spacing: 40) {
             // Mute button
-            ControlButton(
+            GlassControlButton(
                 icon: session.isMuted ? "mic.slash.fill" : "mic.fill",
                 isActive: !session.isMuted,
                 action: {
@@ -155,16 +202,16 @@ struct VoiceView: View {
             )
 
             // Connect/Disconnect button (large, center)
-            ConnectButton(
-                isConnected: session.state.isActive,
-                isConnecting: session.state == .connecting,
+            PremiumConnectButton(
+                state: session.state,
+                persona: PersonaRegistry.get(session.currentPersonaId),
                 action: {
                     handleConnectTap()
                 }
             )
 
             // Persona picker button
-            ControlButton(
+            GlassControlButton(
                 icon: "person.2.fill",
                 isActive: false,
                 action: {
@@ -175,7 +222,7 @@ struct VoiceView: View {
                 }
             )
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 30)
     }
 
     // MARK: - Actions
@@ -253,69 +300,156 @@ struct VoiceView: View {
     }
 }
 
-// MARK: - Control Button
+// MARK: - Glass Control Button
 
-struct ControlButton: View {
+/// iOS-native glassmorphism control button
+struct GlassControlButton: View {
     let icon: String
     let isActive: Bool
     let action: () -> Void
 
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(isActive ? .white : .white.opacity(0.5))
-                .frame(width: 50, height: 50)
-                .background(
-                    Circle()
-                        .fill(Color.white.opacity(0.1))
-                )
-        }
-    }
-}
-
-// MARK: - Connect Button
-
-struct ConnectButton: View {
-    let isConnected: Bool
-    let isConnecting: Bool
-    let action: () -> Void
-
-    @State private var rotationAngle: Double = 0
+    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Background circle
+                // Glass background
                 Circle()
-                    .fill(isConnected ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
-                    .frame(width: 70, height: 70)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.3),
+                                        Color.white.opacity(0.1)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
 
                 // Icon
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(isActive ? .white : .white.opacity(0.6))
+            }
+            .frame(width: 54, height: 54)
+            .scaleEffect(isPressed ? 0.92 : 1.0)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    withAnimation(.easeOut(duration: 0.1)) { isPressed = true }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { isPressed = false }
+                }
+        )
+    }
+}
+
+// MARK: - Premium Connect Button
+
+/// Premium iOS-native connect button with persona colors
+struct PremiumConnectButton: View {
+    let state: VoiceState
+    let persona: Persona
+    let action: () -> Void
+
+    @State private var isPressed = false
+    @State private var rotationAngle: Double = 0
+    @State private var pulseScale: CGFloat = 1.0
+
+    var isConnected: Bool { state.isActive }
+    var isConnecting: Bool { state == .connecting }
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                // Outer glow ring (when connected)
+                if isConnected {
+                    Circle()
+                        .stroke(persona.glowColor.opacity(0.3), lineWidth: 2)
+                        .frame(width: 90, height: 90)
+                        .scaleEffect(pulseScale)
+                }
+
+                // Glass background with gradient
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: isConnected
+                                ? [Color(hex: 0xe85d5d), Color(hex: 0xc23c3c)]  // Red gradient for disconnect
+                                : [persona.primaryColor, persona.secondaryColor],  // Persona colors for connect
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.4),
+                                        Color.white.opacity(0.1)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                    )
+                    .shadow(color: (isConnected ? Color(hex: 0xe85d5d) : persona.glowColor).opacity(0.4), radius: 12)
+                    .frame(width: 76, height: 76)
+
+                // Icon or spinner
                 if isConnecting {
                     // Spinning indicator
-                    Circle()
-                        .stroke(Color.white.opacity(0.3), lineWidth: 3)
-                        .frame(width: 30, height: 30)
-                        .overlay(
-                            Circle()
-                                .trim(from: 0, to: 0.3)
-                                .stroke(Color.white, lineWidth: 3)
-                                .rotationEffect(.degrees(rotationAngle))
-                        )
-                        .onAppear {
-                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-                                rotationAngle = 360
-                            }
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.3), lineWidth: 3)
+                            .frame(width: 32, height: 32)
+
+                        Circle()
+                            .trim(from: 0, to: 0.3)
+                            .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .frame(width: 32, height: 32)
+                            .rotationEffect(.degrees(rotationAngle))
+                    }
+                    .onAppear {
+                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                            rotationAngle = 360
                         }
+                    }
                 } else {
-                    Image(systemName: isConnected ? "phone.down.fill" : "phone.fill")
-                        .font(.system(size: 28, weight: .semibold))
+                    Image(systemName: isConnected ? "phone.down.fill" : "waveform")
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.white)
                 }
             }
+            .scaleEffect(isPressed ? 0.92 : 1.0)
         }
+        .buttonStyle(PlainButtonStyle())
         .disabled(isConnecting)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    withAnimation(.easeOut(duration: 0.1)) { isPressed = true }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { isPressed = false }
+                }
+        )
+        .onAppear {
+            // Pulse animation for connected state
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulseScale = 1.1
+            }
+        }
     }
 }
 

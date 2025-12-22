@@ -44,3 +44,13 @@ export {
   getBundleFunctionsCached,
   clearCachedModules,
 } from './cached-modules.js';
+
+// NEW: Coordinator-based handoff system (replaces handoff-handler.ts)
+export {
+  CoordinatorAdapter,
+  createCoordinatorAdapter,
+  getSessionAdapter,
+  removeSessionAdapter,
+  type CoordinatorAdapterConfig,
+  type AdapterHandoffResult,
+} from './coordinator-adapter.js';

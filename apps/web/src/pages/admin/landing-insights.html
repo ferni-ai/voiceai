@@ -461,7 +461,27 @@
 
   <script>
     const API_BASE = '/api/landing/optimization';
-    const ADMIN_KEY = 'dev-mode'; // In production, use proper auth
+    
+    /**
+     * Get admin key for API requests.
+     * SECURITY: Only falls back to 'dev-mode' on localhost (development).
+     * In production (any other hostname), requires a real admin key in localStorage.
+     */
+    function getAdminKey() {
+      // Check localStorage for stored admin key (set during admin login)
+      const storedKey = localStorage.getItem('ferni_admin_key') || localStorage.getItem('admin_key');
+      if (storedKey) return storedKey;
+      
+      // SECURITY: Only allow dev-mode fallback on localhost
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalhost) {
+        return 'dev-mode';
+      }
+      
+      // In production, return empty string (will fail auth - as expected)
+      console.warn('No admin key found. Set localStorage.ferni_admin_key for admin access.');
+      return '';
+    }
     
     let allInsights = [];
 
@@ -470,7 +490,7 @@
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': ADMIN_KEY,
+          'X-Admin-Key': getAdminKey(),
           ...options.headers,
         },
       });

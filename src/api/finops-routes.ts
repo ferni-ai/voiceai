@@ -36,10 +36,32 @@ const log = createLogger({ module: 'FinOpsRoutes' });
 // HELPERS
 // ============================================================================
 
+/**
+ * Verify admin access for FinOps endpoints.
+ * 
+ * SECURITY: Properly validates admin key without accepting 'dev-mode' in production.
+ * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
+ */
 function isAdmin(req: IncomingMessage, query: URLSearchParams): boolean {
-  const adminKey = req.headers['x-admin-key'] || query.get('admin_key');
-  const devMode = process.env.NODE_ENV === 'development' || adminKey === 'dev-mode';
-  return devMode || adminKey === process.env.ADMIN_KEY;
+  const adminKeyHeader = req.headers['x-admin-key'] as string | undefined;
+  const adminKeyQuery = query.get('admin_key');
+  const adminKey = adminKeyHeader || adminKeyQuery || undefined;
+  
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Primary check: valid ADMIN_KEY from environment
+  if (configuredAdminKey && adminKey === configuredAdminKey) {
+    return true;
+  }
+
+  // Dev mode bypass - ONLY works in development environment
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  return false;
 }
 
 function sendJSON(res: ServerResponse, data: unknown, status = 200): void {

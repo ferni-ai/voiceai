@@ -905,6 +905,13 @@ function showUpgradeError(): void {
  * Handle upgrade in dev mode when Stripe is not configured
  */
 async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
+  // SECURITY: Only allow dev upgrade in development environment
+  if (!import.meta.env.DEV) {
+    log.warn('Dev upgrade not available in production');
+    toast.error('This feature is only available in development');
+    return;
+  }
+  
   try {
     // Get authenticated headers (includes X-User-Id and Firebase token)
     const headers = await getApiHeadersAsync();
@@ -915,6 +922,7 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
       body: JSON.stringify({
         device_id: deviceId,
         tier,
+        // SECURITY: Only works in development - backend also validates NODE_ENV
         admin_key: 'dev-mode',
       }),
     });

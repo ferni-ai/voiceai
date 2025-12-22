@@ -10,6 +10,30 @@
  * - data-channel-handler.ts
  * - state.ts
  *
+ * BANTER INTEGRATION:
+ * The coordinator supports warm handoffs with intelligent banter via hooks:
+ * - onBeforeVoiceSwitch: Called before switching - use for "soft open" (departing goodbye)
+ * - onAfterVoiceSwitch: Called after switching - use for "arriving welcome" (new persona greeting)
+ *
+ * Example with banter:
+ * ```typescript
+ * const coordinator = createHandoffCoordinator({
+ *   sessionId,
+ *   onVoiceSwitch: async (voiceId, personaId) => voiceManager.switchVoice(voiceId),
+ *   onLLMUpdate: async (personaId, instructions) => agent.setPersona(personaId, instructions),
+ *   onBeforeVoiceSwitch: async (fromPersona, toPersona) => {
+ *     // Soft open - departing persona's goodbye
+ *     const banter = await getLLMDrivenBanter(session, fromPersona, toPersona);
+ *     await session.say(banter.softOpen);
+ *   },
+ *   onAfterVoiceSwitch: async (toPersona, context) => {
+ *     // Arriving welcome - new persona's greeting
+ *     const greeting = await generateContextualGreeting(toPersona, context);
+ *     await session.say(greeting);
+ *   },
+ * });
+ * ```
+ *
  * @module handoff/handoff-coordinator
  */
 
@@ -91,6 +115,41 @@ export type LLMUpdateCallback = (personaId: string, instructions: string) => Pro
 export type UINotifyCallback = (event: SequencedEvent) => void;
 
 /**
+ * Banter context passed to banter hooks.
+ */
+export interface BanterContext {
+  /** Reason for the handoff */
+  reason?: string;
+  /** Recent conversation messages */
+  recentMessages?: string[];
+  /** User's cognitive style */
+  cognitiveContext?: string;
+  /** Whether this is the first time meeting this persona */
+  isFirstMeeting: boolean;
+  /** Whether the user initiated this handoff */
+  isUserInitiated: boolean;
+}
+
+/**
+ * Before voice switch callback - for "soft open" (departing persona's goodbye).
+ * Called BEFORE the voice is switched, so banter is spoken in the current persona's voice.
+ */
+export type BeforeVoiceSwitchCallback = (
+  fromPersonaId: string,
+  toPersonaId: string,
+  context: BanterContext
+) => Promise<void>;
+
+/**
+ * After voice switch callback - for "arriving welcome" (new persona's greeting).
+ * Called AFTER the voice is switched, so greeting is spoken in the new persona's voice.
+ */
+export type AfterVoiceSwitchCallback = (
+  toPersonaId: string,
+  context: BanterContext
+) => Promise<void>;
+
+/**
  * Coordinator configuration.
  */
 export interface CoordinatorConfig {
@@ -104,6 +163,30 @@ export interface CoordinatorConfig {
   onUINotify?: UINotifyCallback;
   /** Timeout for handoff completion (default: 15000ms) */
   handoffTimeoutMs?: number;
+
+  // ========== BANTER HOOKS ==========
+
+  /**
+   * Called BEFORE voice switch for "soft open" banter.
+   * The departing persona says goodbye in their voice.
+   *
+   * Example: "I'm going to hand you to Peter - he's great with research!"
+   */
+  onBeforeVoiceSwitch?: BeforeVoiceSwitchCallback;
+
+  /**
+   * Called AFTER voice switch for "arriving welcome" banter.
+   * The new persona greets the user in their voice.
+   *
+   * Example: "Hey! I heard you're looking into some financial stuff..."
+   */
+  onAfterVoiceSwitch?: AfterVoiceSwitchCallback;
+
+  /**
+   * Whether to skip banter entirely (for fast/emergency handoffs).
+   * Default: false
+   */
+  skipBanter?: boolean;
 }
 
 // ============================================================================
@@ -154,6 +237,11 @@ export class HandoffCoordinator {
   private readonly onUINotify?: UINotifyCallback;
   private readonly handoffTimeoutMs: number;
 
+  // Banter hooks
+  private readonly onBeforeVoiceSwitch?: BeforeVoiceSwitchCallback;
+  private readonly onAfterVoiceSwitch?: AfterVoiceSwitchCallback;
+  private readonly skipBanter: boolean;
+
   private currentTransaction: HandoffTransaction | null = null;
   private lastTraceId: string = '';
 
@@ -166,7 +254,12 @@ export class HandoffCoordinator {
     this.onUINotify = config.onUINotify;
     this.handoffTimeoutMs = config.handoffTimeoutMs || HANDOFF_TIMING.HANDOFF_TIMEOUT_MS;
 
-    log.info({ sessionId: config.sessionId }, '🎯 HandoffCoordinator created');
+    // Banter configuration
+    this.onBeforeVoiceSwitch = config.onBeforeVoiceSwitch;
+    this.onAfterVoiceSwitch = config.onAfterVoiceSwitch;
+    this.skipBanter = config.skipBanter || false;
+
+    log.info({ sessionId: config.sessionId, hasBanterHooks: !!(config.onBeforeVoiceSwitch || config.onAfterVoiceSwitch) }, '🎯 HandoffCoordinator created');
   }
 
   // ========================================================================
@@ -297,7 +390,32 @@ export class HandoffCoordinator {
       const tx = createTransaction(`${previousAgent}-to-${canonicalId}`);
       this.currentTransaction = tx;
 
-      // Step 1: Switch voice
+      // Build banter context
+      const banterContext: BanterContext = {
+        reason: request.reason,
+        recentMessages: request.recentMessages,
+        cognitiveContext: request.cognitiveContext,
+        isFirstMeeting: !this.stateManager.hasMetPersona(canonicalId),
+        isUserInitiated: request.source === 'user',
+      };
+
+      // Step 1: Soft Open (departing persona's goodbye) - non-critical
+      if (!this.skipBanter && this.onBeforeVoiceSwitch) {
+        tx.addStep({
+          name: 'soft-open-banter',
+          execute: async () => {
+            this.emitUIEvent('handoff_progress', { traceId, phase: 'soft_open', progress: 0.35 });
+            await this.onBeforeVoiceSwitch!(previousAgent, canonicalId, banterContext);
+            this.emitUIEvent('soft_open_complete', { traceId, fromAgent: previousAgent, toAgent: canonicalId });
+          },
+          rollback: async () => {
+            // Can't unsay banter, but that's okay
+          },
+          critical: false, // Don't fail handoff if banter fails
+        });
+      }
+
+      // Step 2: Switch voice - CRITICAL
       tx.addStep({
         name: 'switch-voice',
         execute: async () => {
@@ -312,11 +430,26 @@ export class HandoffCoordinator {
         critical: true,
       });
 
-      // Step 2: Update LLM instructions
+      // Step 3: Arriving Welcome (new persona's greeting) - non-critical
+      if (!this.skipBanter && this.onAfterVoiceSwitch) {
+        tx.addStep({
+          name: 'arriving-welcome-banter',
+          execute: async () => {
+            this.emitUIEvent('handoff_progress', { traceId, phase: 'arriving_welcome', progress: 0.6 });
+            await this.onAfterVoiceSwitch!(canonicalId, banterContext);
+          },
+          rollback: async () => {
+            // Can't unsay banter
+          },
+          critical: false, // Don't fail handoff if banter fails
+        });
+      }
+
+      // Step 4: Update LLM instructions - CRITICAL
       tx.addStep({
         name: 'update-llm',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'updating_llm', progress: 0.7 });
+          this.emitUIEvent('handoff_progress', { traceId, phase: 'updating_llm', progress: 0.75 });
           const instructions = await this.buildInstructions(canonicalId, personaConfig, request);
           await this.onLLMUpdate(canonicalId, instructions);
         },
@@ -330,7 +463,7 @@ export class HandoffCoordinator {
         critical: true,
       });
 
-      // Step 3: Notify UI of completion (non-critical)
+      // Step 5: Notify UI of completion (non-critical)
       tx.addStep({
         name: 'notify-ui',
         execute: async () => {

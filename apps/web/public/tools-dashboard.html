@@ -972,10 +972,18 @@
       const indicator = document.getElementById('data-source-indicator');
       
       try {
-        // Try to fetch from real API with dev mode header
+        // Get admin key - only falls back to dev-mode on localhost
+        function getAdminKey() {
+          const storedKey = localStorage.getItem('ferni_admin_key') || localStorage.getItem('admin_key');
+          if (storedKey) return storedKey;
+          const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          return isLocalhost ? 'dev-mode' : '';
+        }
+        
+        // Try to fetch from real API with proper admin header
         const response = await fetch(`${API_BASE}/api/tools/analytics`, {
           headers: {
-            'x-admin-key': localStorage.getItem('ferni_admin_key') || 'dev-mode',
+            'x-admin-key': getAdminKey(),
             'Accept': 'application/json'
           }
         });

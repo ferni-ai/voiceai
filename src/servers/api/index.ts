@@ -21,7 +21,7 @@ import {
   startDDoSMonitoring,
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
-import { rateLimit } from '../../api/auth-middleware.js';
+import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 
 // Local routes
 import {
@@ -741,6 +741,21 @@ const server = http.createServer(async (req, res) => {
     // Subscription routes
     if (isSubscriptionRoute(pathname)) {
       try {
+        // Skip auth for webhooks (they use signature verification)
+        const isWebhook = pathname.endsWith('/webhook');
+        
+        // SECURITY: Get authenticated user for IDOR protection
+        // Webhooks don't need auth (they use Stripe signature verification)
+        let authUserId: string | undefined;
+        let isAdmin = false;
+        if (!isWebhook) {
+          const auth = await optionalAuthAsync(req);
+          if (auth) {
+            authUserId = auth.userId;
+            isAdmin = auth.isAdmin;
+          }
+        }
+        
         let body: unknown = undefined;
 
         if (req.method === 'POST' || req.method === 'PUT') {
@@ -751,7 +766,6 @@ const server = http.createServer(async (req, res) => {
           });
           const rawBody = Buffer.concat(chunks).toString('utf8');
 
-          const isWebhook = pathname.endsWith('/webhook');
           if (isWebhook) {
             body = rawBody;
           } else {
@@ -769,6 +783,9 @@ const server = http.createServer(async (req, res) => {
           query: Object.fromEntries(parsedUrl.searchParams),
           body,
           headers: req.headers,
+          // SECURITY: Pass authenticated user to prevent IDOR attacks
+          authUserId,
+          isAdmin,
         };
 
         const response = await handleSubscriptionRequest(ctx);
@@ -786,6 +803,15 @@ const server = http.createServer(async (req, res) => {
     // Monetization routes
     if (isMonetizationRoute(pathname)) {
       try {
+        // SECURITY: Get authenticated user for IDOR protection
+        let authUserId: string | undefined;
+        let isAdmin = false;
+        const auth = await optionalAuthAsync(req);
+        if (auth) {
+          authUserId = auth.userId;
+          isAdmin = auth.isAdmin;
+        }
+        
         let body: unknown = undefined;
 
         if (req.method === 'POST' || req.method === 'PUT') {
@@ -808,6 +834,9 @@ const server = http.createServer(async (req, res) => {
           query: Object.fromEntries(parsedUrl.searchParams),
           body,
           headers: req.headers,
+          // SECURITY: Pass authenticated user to prevent IDOR attacks
+          authUserId,
+          isAdmin,
         };
 
         const response = await handleMonetizationRequest(ctx);

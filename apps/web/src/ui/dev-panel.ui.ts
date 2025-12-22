@@ -3066,13 +3066,17 @@ async function updateServerSubscription(tier: 'free' | 'friend' | 'partner'): Pr
   if (!deviceId) return;
 
   try {
+    // SECURITY: Only use dev-mode key in development environment
+    // In production builds, import.meta.env.DEV is false
+    const adminKey = import.meta.env.DEV ? 'dev-mode' : '';
+    
     await fetch('/subscription/upgrade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         device_id: deviceId,
         tier,
-        admin_key: 'dev-mode', // Special dev key
+        admin_key: adminKey,
       }),
     });
   } catch (e) {

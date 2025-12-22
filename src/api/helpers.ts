@@ -265,3 +265,97 @@ export async function validateAuth(
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   return requireUserId(req, res, parsedUrl);
 }
+
+// ============================================================================
+// SECURE AUTH HELPERS (IDOR Prevention)
+// ============================================================================
+
+import type { AuthContext } from './auth-middleware.js';
+
+/**
+ * Securely get userId from authenticated context.
+ * 
+ * SECURITY: This prevents IDOR (Insecure Direct Object Reference) attacks
+ * by ensuring users can only access their own data unless they're admins.
+ * 
+ * @param auth - Authenticated context from requireAuth()
+ * @param requestedUserId - Optional userId from query params (only used by admins)
+ * @returns The appropriate userId to use for the request
+ */
+export function getSecureUserId(
+  auth: AuthContext,
+  requestedUserId?: string | null
+): string {
+  // Admins can access other users' data (for support/debugging)
+  if (auth.isAdmin && requestedUserId) {
+    return requestedUserId;
+  }
+  // Everyone else uses their own authenticated ID
+  return auth.userId;
+}
+
+/**
+ * Verify admin access with proper security checks.
+ * 
+ * SECURITY: This function NEVER accepts 'dev-mode' string in production.
+ * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
+ * 
+ * @param req - Incoming HTTP request
+ * @param allowDevMode - Whether to allow dev-mode bypass (only works in development)
+ * @returns true if request has valid admin credentials
+ */
+export function verifyAdminAccess(
+  req: IncomingMessage,
+  allowDevMode = false
+): boolean {
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Primary check: valid ADMIN_KEY from environment
+  if (configuredAdminKey && adminKey === configuredAdminKey) {
+    return true;
+  }
+
+  // Dev mode bypass - ONLY works in development environment
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (allowDevMode && isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Verify admin access from query params or headers.
+ * 
+ * @param req - Incoming HTTP request  
+ * @param parsedUrl - Parsed URL with searchParams
+ * @param allowDevMode - Whether to allow dev-mode bypass (only in development)
+ * @returns true if request has valid admin credentials
+ */
+export function verifyAdminAccessFromUrl(
+  req: IncomingMessage,
+  parsedUrl: URL,
+  allowDevMode = false
+): boolean {
+  const adminKeyFromHeader = req.headers['x-admin-key'] as string | undefined;
+  const adminKeyFromQuery = parsedUrl.searchParams.get('admin_key');
+  const adminKey = adminKeyFromHeader || adminKeyFromQuery || undefined;
+  
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Primary check: valid ADMIN_KEY from environment
+  if (configuredAdminKey && adminKey === configuredAdminKey) {
+    return true;
+  }
+
+  // Dev mode bypass - ONLY works in development environment
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (allowDevMode && isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  return false;
+}

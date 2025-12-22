@@ -79,8 +79,10 @@ export function getDeviceId(): string | null {
 export function getApiHeaders(includeJson = true): HeadersInit {
   const headers: HeadersInit = {};
 
-  // In development mode, add admin key to bypass auth
-  if (isDevelopment()) {
+  // SECURITY: Only add dev-mode key when Vite's DEV flag is true
+  // This flag is ONLY true during `vite dev` builds, never in production
+  // Using import.meta.env.DEV is more secure than hostname detection
+  if (import.meta.env.DEV) {
     headers['X-Admin-Key'] = 'dev-mode';
   }
 
