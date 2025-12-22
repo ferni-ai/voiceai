@@ -20,6 +20,147 @@ const NEWSDATA_KEY = process.env.NEWSDATA_API_KEY || '';
 const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 
 // ============================================================================
+// "BETTER THAN HUMAN" NEWS FORMATTING
+// Natural, warm news delivery - like a thoughtful friend sharing what's happening
+// ============================================================================
+
+/**
+ * Format news headlines with SSML for natural, human-like delivery
+ * 
+ * The goal: Sound like a warm, thoughtful friend sharing interesting news,
+ * not a robotic news ticker. We add:
+ * - Natural pauses between stories (giving the listener time to absorb)
+ * - Slightly slower pace for clarity
+ * - Breathing room between headlines
+ * - Warmth in delivery
+ */
+/**
+ * Natural transitions a friend might use between news items
+ * Varies to avoid robotic repetition
+ */
+const NEWS_TRANSITIONS = [
+  'Also,',
+  'And,',
+  'Oh, and',
+  'This one\'s interesting:',
+  'Meanwhile,',
+  'And then there\'s this:',
+  '',  // Sometimes just pause, no transition
+  '',
+];
+
+/**
+ * Detect the emotional weight of a headline for appropriate delivery
+ */
+function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising' | 'neutral' {
+  const lower = headline.toLowerCase();
+  
+  // Heavy/serious topics
+  if (/\b(killed|dead|dies|death|murder|war|crisis|disaster|tragedy|shooting|attack)\b/.test(lower)) {
+    return 'heavy';
+  }
+  
+  // Surprising/exciting topics  
+  if (/\b(breakthrough|discover|first|record|amazing|incredible|shocking|unexpected)\b/.test(lower)) {
+    return 'surprising';
+  }
+  
+  // Lighter topics
+  if (/\b(fun|holiday|christmas|game|sport|win|celebrate|happy|comedy|cute)\b/.test(lower)) {
+    return 'light';
+  }
+  
+  return 'neutral';
+}
+
+/**
+ * Format news headlines with SSML for natural, human-like delivery
+ * 
+ * "Better than human" means:
+ * - Varying pace based on content weight
+ * - Natural transitions between stories
+ * - Emotional awareness in delivery
+ * - Not robotic/uniform pacing
+ */
+function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): string {
+  // Filter out undefined headlines
+  const validHeadlines = headlines.filter((h): h is string => h !== undefined && h !== null && h.trim().length > 0);
+  
+  if (validHeadlines.length === 0) {
+    return intro;
+  }
+
+  const parts: string[] = [];
+  
+  // Warm intro with natural pace
+  parts.push(`<speed ratio="0.95"/>${intro}`);
+  parts.push('<break time="350ms"/>');
+  
+  validHeadlines.forEach((headline, index) => {
+    // Clean up headline
+    const cleanHeadline = headline.trim().replace(/\.+$/, '');
+    const weight = detectHeadlineWeight(cleanHeadline);
+    
+    // First headline - no transition needed
+    if (index === 0) {
+      // Adjust speed based on headline weight
+      if (weight === 'heavy') {
+        parts.push(`<speed ratio="0.90"/>${cleanHeadline}`);
+      } else if (weight === 'surprising') {
+        parts.push(`<speed ratio="1.0"/><emotion value="curious"/>${cleanHeadline}`);
+      } else {
+        parts.push(cleanHeadline);
+      }
+    } else {
+      // Natural varied pause (300-600ms based on previous headline weight)
+      const prevWeight = detectHeadlineWeight(validHeadlines[index - 1] || '');
+      const pauseMs = prevWeight === 'heavy' ? 600 : prevWeight === 'surprising' ? 400 : 450;
+      parts.push(`<break time="${pauseMs}ms"/>`);
+      
+      // Maybe add a transition (not every time - that would be weird)
+      if (index <= 3 && Math.random() > 0.4) {
+        const transition = NEWS_TRANSITIONS[index % NEWS_TRANSITIONS.length];
+        if (transition) {
+          parts.push(`${transition} <break time="150ms"/>`);
+        }
+      }
+      
+      // Adjust delivery based on this headline's weight
+      if (weight === 'heavy') {
+        parts.push(`<speed ratio="0.90"/>${cleanHeadline}`);
+      } else if (weight === 'surprising') {
+        parts.push(`<speed ratio="1.0"/>${cleanHeadline}`);
+      } else if (weight === 'light') {
+        parts.push(`<speed ratio="1.02"/>${cleanHeadline}`);
+      } else {
+        parts.push(`<speed ratio="0.96"/>${cleanHeadline}`);
+      }
+    }
+    
+    parts.push('.');
+  });
+  
+  // Warm closing breath
+  parts.push('<break time="250ms"/>');
+  
+  return parts.join('');
+}
+
+/**
+ * Format a single news result with natural pacing
+ */
+function formatSingleNewsResult(content: string): string {
+  // Add natural pacing for longer content
+  let result = content;
+  
+  // Add pauses after sentence-ending punctuation followed by capital letter
+  result = result.replace(/([.!?])\s+([A-Z])/g, '$1<break time="400ms"/> $2');
+  
+  // Slightly slower for clarity
+  return `<speed ratio="0.94"/>${result}`;
+}
+
+// ============================================================================
 // NEWS FETCHING FUNCTIONS
 // ============================================================================
 
@@ -65,7 +206,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
             '🔍 [DIAG] searchNewsByTopic SUCCESS (NewsData.io)'
           );
 
-          return `News about "${topic}": ${headlines.join('. ')}`;
+          return formatNewsWithSSML(headlines, `Here's what's happening with ${topic}`);
         }
       } else {
         const errorData = await response.text();
@@ -107,7 +248,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
             '🔍 [DIAG] searchNewsByTopic SUCCESS (GNews)'
           );
 
-          return `News about "${topic}": ${headlines.join('. ')}`;
+          return formatNewsWithSSML(headlines, `Here's what's happening with ${topic}`);
         }
       }
     } catch (error) {
@@ -138,7 +279,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
           { topic, elapsed: Date.now() - startTime },
           '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo abstract)'
         );
-        return `About ${topic}: ${data.AbstractText.slice(0, 500)}`;
+        return formatSingleNewsResult(`About ${topic}: ${data.AbstractText.slice(0, 500)}`);
       }
 
       // Try related topics
@@ -153,7 +294,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
             { topic, elapsed: Date.now() - startTime, count: topics.length },
             '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo topics)'
           );
-          return `Here's what I found about ${topic}: ${topics.join('. ')}`;
+          return formatNewsWithSSML(topics as string[], `Here's what I found about ${topic}`);
         }
       }
     }
@@ -207,7 +348,7 @@ export async function getFinancialNews(
         .slice(0, 3)
         .map((n) => n.headline)
         .filter(Boolean);
-      return `Financial news headlines: ${topStories.join('. ')}`;
+      return formatNewsWithSSML(topStories, "Here's what's moving in the markets");
     }
 
     logger.info({ elapsed: Date.now() - startTime }, '📰 [DIAG] getFinancialNews: No news found');
@@ -259,7 +400,7 @@ export async function getStockNews(symbol: string): Promise<string> {
         .slice(0, 3)
         .map((n) => n.headline)
         .filter(Boolean);
-      return `Recent ${symbol} news: ${topStories.join('. ')}`;
+      return formatNewsWithSSML(topStories, `Here's what's happening with ${symbol}`);
     }
 
     return `No recent news for ${symbol}. Sometimes that's a good thing!`;
@@ -303,7 +444,7 @@ export async function getGeneralNews(): Promise<string> {
             { source: source.name, elapsed: Date.now() - startTime, headlines: headlines.length },
             '📰 [DIAG] getGeneralNews SUCCESS'
           );
-          return `Top news from ${source.name}: ${headlines.join('. ')}`;
+          return formatNewsWithSSML(headlines, "Here's what's happening in the world");
         }
       } else {
         logger.warn(
@@ -361,7 +502,7 @@ export async function getTechNews(): Promise<string> {
           const headlines = extractRSSHeadlines(xml, 5);
 
           if (headlines.length > 0) {
-            return `Tech news (via ${source.name}): ${headlines.join('. ')}`;
+            return formatNewsWithSSML(headlines, "Here's what's happening in tech");
           }
         }
       } catch (error) {
