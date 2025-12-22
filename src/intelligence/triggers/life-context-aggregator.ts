@@ -346,7 +346,7 @@ function computeHabitsStress(data: HabitsDomainData): DomainStressIndicator | nu
 // PATTERN DETECTION
 // ============================================================================
 
-interface DetectedPattern {
+export interface DetectedPattern {
   description: string;
   domains: string[];
   impact: 'positive' | 'negative' | 'neutral';
@@ -433,7 +433,11 @@ function detectCrossDomainPatterns(
 
   // Pattern: Good sleep + Active habits
   if (domains.sleep && domains.habits) {
-    if (domains.sleep.averageSleepHours >= 7 && domains.sleep.trend !== 'declining' && !domains.habits.inSlump) {
+    if (
+      domains.sleep.averageSleepHours >= 7 &&
+      domains.sleep.trend !== 'declining' &&
+      !domains.habits.inSlump
+    ) {
       patterns.push({
         description: 'Good sleep and habit consistency supporting each other',
         domains: ['sleep', 'habits'],
@@ -455,7 +459,10 @@ function detectCrossDomainPatterns(
 
   // Pattern: Thriving relationships + Low isolation
   if (domains.relationships) {
-    if (domains.relationships.relationshipHealth === 'thriving' && !domains.relationships.isolationSignals) {
+    if (
+      domains.relationships.relationshipHealth === 'thriving' &&
+      !domains.relationships.isolationSignals
+    ) {
       patterns.push({
         description: 'Strong social connection',
         domains: ['relationships'],
@@ -507,7 +514,7 @@ function calculateOverallLoadScore(stressIndicators: DomainStressIndicator[]): n
 
   // Apply non-linear scaling - multiple high stress domains compound
   const highStressCount = stressIndicators.filter((i) => i.stressLevel > 0.5).length;
-  const compoundingFactor = 1 + (highStressCount * 0.1);
+  const compoundingFactor = 1 + highStressCount * 0.1;
 
   const rawScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
   return Math.min(1, rawScore * compoundingFactor);
@@ -523,7 +530,7 @@ function calculateWellbeingScore(
   patterns: DetectedPattern[]
 ): number {
   // Start with inverse of load
-  let wellbeing = 1 - (loadScore * 0.6); // Load accounts for 60%
+  let wellbeing = 1 - loadScore * 0.6; // Load accounts for 60%
 
   // Positive signals boost wellbeing
   const positivePatterns = patterns.filter((p) => p.impact === 'positive').length;
@@ -550,8 +557,10 @@ function calculateWellbeingScore(
   }
 
   // Existential growth (meaning-making can be positive)
-  if (domains.relationships?.existentialThemes.includes('meaning') ||
-      domains.relationships?.existentialThemes.includes('purpose')) {
+  if (
+    domains.relationships?.existentialThemes.includes('meaning') ||
+    domains.relationships?.existentialThemes.includes('purpose')
+  ) {
     wellbeing += 0.03;
   }
 

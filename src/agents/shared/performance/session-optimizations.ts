@@ -322,10 +322,7 @@ function getSessionMemoryCache(sessionId: string): Map<string, CachedMemoryResul
 /**
  * Check if a memory query result is cached
  */
-export function getCachedMemoryResult(
-  sessionId: string,
-  query: string
-): CachedMemoryResult | null {
+export function getCachedMemoryResult(sessionId: string, query: string): CachedMemoryResult | null {
   const cache = getSessionMemoryCache(sessionId);
   const normalizedQuery = query.toLowerCase().trim();
 
@@ -345,11 +342,7 @@ export function getCachedMemoryResult(
 /**
  * Cache a memory query result
  */
-export function cacheMemoryResult(
-  sessionId: string,
-  query: string,
-  result: unknown
-): void {
+export function cacheMemoryResult(sessionId: string, query: string, result: unknown): void {
   const cache = getSessionMemoryCache(sessionId);
   const normalizedQuery = query.toLowerCase().trim();
 
@@ -464,10 +457,7 @@ export function startSpeculativePrefetch(
 /**
  * Get prefetched context if available and relevant
  */
-export function getSpeculativePrefetch<T>(
-  sessionId: string,
-  finalText: string
-): T | null {
+export function getSpeculativePrefetch<T>(sessionId: string, finalText: string): T | null {
   const state = sessionPrefetchState.get(sessionId);
   if (!state) return null;
 
@@ -483,8 +473,7 @@ export function getSpeculativePrefetch<T>(
   const prefetchLower = state.partialText.toLowerCase();
 
   const isRelated =
-    finalLower.startsWith(prefetchLower) ||
-    finalLower.includes(prefetchLower.slice(0, 20));
+    finalLower.startsWith(prefetchLower) || finalLower.includes(prefetchLower.slice(0, 20));
 
   if (!isRelated) {
     log.debug({ sessionId }, '🔮 Prefetch not relevant to final text');
@@ -555,4 +544,3 @@ export function cleanupSessionOptimizations(sessionId: string): void {
   clearSpeculativePrefetch(sessionId);
   log.debug({ sessionId }, '🧹 Session optimizations cleaned up');
 }
-

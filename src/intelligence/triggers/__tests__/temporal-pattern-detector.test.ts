@@ -32,7 +32,10 @@ import type {
   SignificantDate,
   UserTriggerProfile,
 } from '../user-trigger-profile.types.js';
-import { DEFAULT_USER_TRIGGER_PROFILE, DEFAULT_TEMPORAL_INTELLIGENCE } from '../user-trigger-profile.types.js';
+import {
+  DEFAULT_USER_TRIGGER_PROFILE,
+  DEFAULT_TEMPORAL_INTELLIGENCE,
+} from '../user-trigger-profile.types.js';
 
 describe('Temporal Pattern Detector', () => {
   describe('Helper Functions', () => {
@@ -175,8 +178,23 @@ describe('Temporal Pattern Detector', () => {
         expect(event.triggerCategory).toBe('emotional');
         expect(event.outcome).toBe('engaged');
         expect(event.timestamp).toBeInstanceOf(Date);
-        expect(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']).toContain(event.dayOfWeek);
-        expect(['late_night', 'early_morning', 'morning', 'afternoon', 'evening', 'night']).toContain(event.timeOfDay);
+        expect([
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+          'sunday',
+        ]).toContain(event.dayOfWeek);
+        expect([
+          'late_night',
+          'early_morning',
+          'morning',
+          'afternoon',
+          'evening',
+          'night',
+        ]).toContain(event.timeOfDay);
         expect(event.hour).toBeGreaterThanOrEqual(0);
         expect(event.hour).toBeLessThanOrEqual(23);
       });
@@ -200,7 +218,13 @@ describe('Temporal Pattern Detector', () => {
           },
         ];
 
-        const event = createTriggerFiringEvent('celebration_prompt', 'emotional', 'engaged', 'session_1', significantDates);
+        const event = createTriggerFiringEvent(
+          'celebration_prompt',
+          'emotional',
+          'engaged',
+          'session_1',
+          significantDates
+        );
 
         expect(event.dateProximity).toBeDefined();
         expect(event.dateProximity?.dateId).toBe('upcoming_bday');
@@ -245,7 +269,10 @@ describe('Temporal Pattern Detector', () => {
         };
 
         const event = createTriggerFiringEvent('new_trigger', 'emotional');
-        const updated = recordFiringEvent(profile, event, { ...DEFAULT_TEMPORAL_CONFIG, retentionDays: 90 });
+        const updated = recordFiringEvent(profile, event, {
+          ...DEFAULT_TEMPORAL_CONFIG,
+          retentionDays: 90,
+        });
 
         // Old event should be pruned
         expect(updated.temporalIntelligence?.recentFirings).toHaveLength(1);
@@ -255,14 +282,21 @@ describe('Temporal Pattern Detector', () => {
   });
 
   describe('Pattern Analysis', () => {
-    const generateEvents = (count: number, overrides: Partial<TriggerFiringEvent> = {}): TriggerFiringEvent[] => {
+    const generateEvents = (
+      count: number,
+      overrides: Partial<TriggerFiringEvent> = {}
+    ): TriggerFiringEvent[] => {
       return Array.from({ length: count }, (_, i) => ({
         timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
         triggerName: `trigger_${i % 3}`,
         triggerCategory: i % 2 === 0 ? 'emotional' : 'behavioral',
         outcome: i % 3 === 0 ? 'engaged' : 'deflected',
-        dayOfWeek: (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const)[i % 7],
-        timeOfDay: (['morning', 'afternoon', 'evening', 'night', 'late_night', 'early_morning'] as const)[i % 6],
+        dayOfWeek: (
+          ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+        )[i % 7],
+        timeOfDay: (
+          ['morning', 'afternoon', 'evening', 'night', 'late_night', 'early_morning'] as const
+        )[i % 6],
         hour: (9 + i) % 24,
         ...overrides,
       }));
@@ -441,8 +475,12 @@ describe('Temporal Pattern Detector', () => {
 
       expect(boost.overallMultiplier).toBeGreaterThan(1.0);
       expect(boost.categoryBoosts['emotional']).toBeDefined();
-      expect(boost.triggerAdjustments.find((a) => a.triggerName === 'gentle_check_in')?.adjustment).toBeGreaterThan(0);
-      expect(boost.triggerAdjustments.find((a) => a.triggerName === 'productivity_push')?.adjustment).toBeLessThan(0);
+      expect(
+        boost.triggerAdjustments.find((a) => a.triggerName === 'gentle_check_in')?.adjustment
+      ).toBeGreaterThan(0);
+      expect(
+        boost.triggerAdjustments.find((a) => a.triggerName === 'productivity_push')?.adjustment
+      ).toBeLessThan(0);
     });
 
     it('should apply time-of-day patterns', () => {
@@ -535,8 +573,20 @@ describe('Temporal Pattern Detector', () => {
             triggerName: `trigger_${i % 5}`,
             triggerCategory: ['emotional', 'behavioral', 'temporal'][i % 3],
             outcome: (['engaged', 'deflected', 'neutral'] as const)[i % 3],
-            dayOfWeek: (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const)[i % 7],
-            timeOfDay: (['morning', 'afternoon', 'evening', 'night', 'late_night', 'early_morning'] as const)[i % 6],
+            dayOfWeek: (
+              [
+                'monday',
+                'tuesday',
+                'wednesday',
+                'thursday',
+                'friday',
+                'saturday',
+                'sunday',
+              ] as const
+            )[i % 7],
+            timeOfDay: (
+              ['morning', 'afternoon', 'evening', 'night', 'late_night', 'early_morning'] as const
+            )[i % 6],
             hour: (9 + i) % 24,
           })),
         },

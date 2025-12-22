@@ -131,12 +131,19 @@ export const anticipationBuilder: ContextBuilder = {
     const anticipationContent = await loadAnticipationContent(personaId);
 
     if (anticipationContent?.proactive_triggers) {
-      const triggerContext = buildTriggerContext(userText || '', analysis, userData as Record<string, unknown>);
+      const triggerContext = buildTriggerContext(
+        userText || '',
+        analysis,
+        userData as Record<string, unknown>
+      );
       const usageRules = anticipationContent.usage_rules;
 
       // Check never_when conditions
       if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
-        const matchedTrigger = checkDynamicTriggers(anticipationContent.proactive_triggers, triggerContext);
+        const matchedTrigger = checkDynamicTriggers(
+          anticipationContent.proactive_triggers,
+          triggerContext
+        );
 
         if (matchedTrigger) {
           // Calculate probability boost

@@ -217,10 +217,7 @@ class ToolResponseCache {
         cached.hitCount++;
         this.metrics.hits++;
         this.metrics.totalSavedMs += this.avgToolLatencyMs;
-        log.debug(
-          { fn, hitCount: cached.hitCount, ageMs: age },
-          '🎯 Tool response cache HIT'
-        );
+        log.debug({ fn, hitCount: cached.hitCount, ageMs: age }, '🎯 Tool response cache HIT');
         return { hit: true, result: cached.result };
       }
       // Expired - will be replaced
@@ -234,12 +231,7 @@ class ToolResponseCache {
   /**
    * Cache a tool response
    */
-  set(
-    sessionId: string,
-    fn: string,
-    args: Record<string, unknown>,
-    result: unknown
-  ): void {
+  set(sessionId: string, fn: string, args: Record<string, unknown>, result: unknown): void {
     if (!this.isCacheable(fn)) return;
 
     const cache = this.getSessionCache(sessionId);
@@ -376,4 +368,3 @@ export function getToolCacheMetrics(): ToolCacheMetrics {
 }
 
 export default ToolResponseCache;
-

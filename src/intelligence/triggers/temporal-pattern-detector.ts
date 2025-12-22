@@ -67,7 +67,15 @@ export const DEFAULT_TEMPORAL_CONFIG: TemporalPatternConfig = {
  * Get day of week from a date
  */
 export function getDayOfWeek(date: Date): DayOfWeek {
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
   return days[date.getDay()];
 }
 
@@ -230,7 +238,12 @@ export function recordFiringEvent(
   const prunedFirings = recentFirings.filter((e) => e.timestamp >= cutoff);
 
   log.debug(
-    { triggerName: event.triggerName, dayOfWeek: event.dayOfWeek, timeOfDay: event.timeOfDay, totalEvents: prunedFirings.length },
+    {
+      triggerName: event.triggerName,
+      dayOfWeek: event.dayOfWeek,
+      timeOfDay: event.timeOfDay,
+      totalEvents: prunedFirings.length,
+    },
     'Recorded trigger firing event'
   );
 
@@ -256,7 +269,15 @@ export function analyzeDayOfWeekPatterns(
 ): DayOfWeekPattern[] {
   if (events.length < config.minObservations) return [];
 
-  const days: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const days: DayOfWeek[] = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+  ];
   const patterns: DayOfWeekPattern[] = [];
 
   // Group events by day
@@ -278,12 +299,19 @@ export function analyzeDayOfWeekPatterns(
 
     // Group by category
     const categoryCount = new Map<string, number>();
-    const categoryOutcomes = new Map<string, { engaged: number; deflected: number; total: number }>();
+    const categoryOutcomes = new Map<
+      string,
+      { engaged: number; deflected: number; total: number }
+    >();
 
     for (const event of dayEvents) {
       categoryCount.set(event.triggerCategory, (categoryCount.get(event.triggerCategory) || 0) + 1);
 
-      const outcomes = categoryOutcomes.get(event.triggerCategory) || { engaged: 0, deflected: 0, total: 0 };
+      const outcomes = categoryOutcomes.get(event.triggerCategory) || {
+        engaged: 0,
+        deflected: 0,
+        total: 0,
+      };
       outcomes.total++;
       if (event.outcome === 'engaged') outcomes.engaged++;
       if (event.outcome === 'deflected') outcomes.deflected++;
@@ -349,7 +377,10 @@ export function analyzeDayOfWeekPatterns(
     });
   }
 
-  log.debug({ patternCount: patterns.length, eventCount: events.length }, 'Analyzed day-of-week patterns');
+  log.debug(
+    { patternCount: patterns.length, eventCount: events.length },
+    'Analyzed day-of-week patterns'
+  );
 
   return patterns;
 }
@@ -363,7 +394,14 @@ export function analyzeTimeOfDayPatterns(
 ): TimeOfDayPattern[] {
   if (events.length < config.minObservations) return [];
 
-  const timeBuckets: TimeOfDayBucket[] = ['late_night', 'early_morning', 'morning', 'afternoon', 'evening', 'night'];
+  const timeBuckets: TimeOfDayBucket[] = [
+    'late_night',
+    'early_morning',
+    'morning',
+    'afternoon',
+    'evening',
+    'night',
+  ];
   const patterns: TimeOfDayPattern[] = [];
 
   // Group events by time bucket
@@ -451,7 +489,10 @@ export function analyzeTimeOfDayPatterns(
     });
   }
 
-  log.debug({ patternCount: patterns.length, eventCount: events.length }, 'Analyzed time-of-day patterns');
+  log.debug(
+    { patternCount: patterns.length, eventCount: events.length },
+    'Analyzed time-of-day patterns'
+  );
 
   return patterns;
 }
@@ -480,18 +521,22 @@ export function analyzeRecurringDatePatterns(
     if (nearbyEvents.length < config.minObservations) continue;
 
     // Analyze approach pattern (before the date)
-    const approachEvents = nearbyEvents.filter((e) => e.dateProximity && e.dateProximity.daysAway > 0);
+    const approachEvents = nearbyEvents.filter(
+      (e) => e.dateProximity && e.dateProximity.daysAway > 0
+    );
     const trailEvents = nearbyEvents.filter((e) => e.dateProximity && e.dateProximity.daysAway < 0);
 
     // Calculate lead time (earliest days away with elevated activity)
-    const leadTimeDays = approachEvents.length > 0
-      ? Math.max(...approachEvents.map((e) => e.dateProximity!.daysAway))
-      : config.dateApproachWindowDays;
+    const leadTimeDays =
+      approachEvents.length > 0
+        ? Math.max(...approachEvents.map((e) => e.dateProximity!.daysAway))
+        : config.dateApproachWindowDays;
 
     // Calculate trail time
-    const trailTimeDays = trailEvents.length > 0
-      ? Math.max(...trailEvents.map((e) => Math.abs(e.dateProximity!.daysAway)))
-      : config.dateTrailWindowDays;
+    const trailTimeDays =
+      trailEvents.length > 0
+        ? Math.max(...trailEvents.map((e) => Math.abs(e.dateProximity!.daysAway)))
+        : config.dateTrailWindowDays;
 
     // Analyze category distribution
     const categoryCount = new Map<string, number>();
@@ -502,7 +547,8 @@ export function analyzeRecurringDatePatterns(
     const elevatedCategories: RecurringDatePattern['elevatedCategories'] = [];
     for (const [category, count] of categoryCount) {
       const multiplier = count / nearbyEvents.length;
-      if (multiplier >= 0.2) { // At least 20% of events
+      if (multiplier >= 0.2) {
+        // At least 20% of events
         elevatedCategories.push({
           category,
           multiplier: Math.round(multiplier * 100) / 100,
@@ -535,7 +581,12 @@ export function analyzeRecurringDatePatterns(
     });
 
     log.debug(
-      { dateId: sigDate.id, dateType: sigDate.type, approachBehavior, eventCount: nearbyEvents.length },
+      {
+        dateId: sigDate.id,
+        dateType: sigDate.type,
+        approachBehavior,
+        eventCount: nearbyEvents.length,
+      },
       'Analyzed recurring date pattern'
     );
   }
@@ -655,7 +706,8 @@ export function calculateTemporalBoost(
     result.overallMultiplier *= dayPattern.intensityMultiplier;
 
     for (const elevated of dayPattern.elevatedCategories) {
-      result.categoryBoosts[elevated.category] = (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier;
+      result.categoryBoosts[elevated.category] =
+        (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier;
     }
 
     for (const trigger of dayPattern.effectiveTriggers) {
@@ -681,7 +733,8 @@ export function calculateTemporalBoost(
     result.overallMultiplier *= timePattern.intensityMultiplier;
 
     for (const elevated of timePattern.elevatedCategories) {
-      result.categoryBoosts[elevated.category] = (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier;
+      result.categoryBoosts[elevated.category] =
+        (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier;
     }
 
     for (const trigger of timePattern.effectiveTriggers) {
@@ -701,7 +754,9 @@ export function calculateTemporalBoost(
     }
 
     if (timePattern.commonTopics.length > 0) {
-      result.contextNotes.push(`Common topics at this time: ${timePattern.commonTopics.join(', ')}`);
+      result.contextNotes.push(
+        `Common topics at this time: ${timePattern.commonTopics.join(', ')}`
+      );
     }
   }
 
@@ -724,7 +779,8 @@ export function calculateTemporalBoost(
       // Apply elevated categories
       for (const elevated of datePattern.elevatedCategories) {
         const proximityBoost = 1 + (1 - daysUntil / datePattern.leadTimeDays) * 0.5; // Stronger as date approaches
-        result.categoryBoosts[elevated.category] = (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier * proximityBoost;
+        result.categoryBoosts[elevated.category] =
+          (result.categoryBoosts[elevated.category] || 1.0) * elevated.multiplier * proximityBoost;
       }
 
       // Add context note
@@ -840,7 +896,8 @@ export function recordTemporalBoost(
   temporalAnalytics.byTimeOfDay[timeOfDay]++;
 
   totalProcessingTime += processingMs;
-  temporalAnalytics.averageProcessingMs = totalProcessingTime / temporalAnalytics.totalBoostCalculations;
+  temporalAnalytics.averageProcessingMs =
+    totalProcessingTime / temporalAnalytics.totalBoostCalculations;
 }
 
 /**

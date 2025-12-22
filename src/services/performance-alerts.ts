@@ -145,7 +145,8 @@ class PerformanceAlertingService {
       if (turnMetrics.avgTurnMs > this.config.avgLatencyThreshold) {
         alerts.push({
           type: 'high_latency',
-          severity: turnMetrics.avgTurnMs > PERFORMANCE_THRESHOLDS.SLOW_TOTAL_MS ? 'critical' : 'warning',
+          severity:
+            turnMetrics.avgTurnMs > PERFORMANCE_THRESHOLDS.SLOW_TOTAL_MS ? 'critical' : 'warning',
           message: `Average turn latency at ${Math.round(turnMetrics.avgTurnMs)}ms (threshold: ${this.config.avgLatencyThreshold}ms)`,
           details: {
             avgLatencyMs: turnMetrics.avgTurnMs,
@@ -305,9 +306,7 @@ class PerformanceAlertingService {
     return {
       ...this.config,
       slackWebhookUrl: this.config.slackWebhookUrl ? '[REDACTED]' : '',
-      emailRecipients: this.config.emailRecipients.map((e) =>
-        e.replace(/(.{2}).+@/, '$1***@')
-      ),
+      emailRecipients: this.config.emailRecipients.map((e) => e.replace(/(.{2}).+@/, '$1***@')),
     };
   }
 
@@ -369,4 +368,3 @@ export function configurePerformanceAlerts(config: Partial<AlertConfig>): void {
 }
 
 export default PerformanceAlertingService;
-

@@ -50,7 +50,11 @@ const MAX_RECENT_ACTIVATIONS = 100;
  */
 export function recordTriggerCheck(builderSource: string): void {
   analytics.totalTriggersChecked++;
-  const builderStats = analytics.byBuilderSource.get(builderSource) || { checked: 0, matched: 0, fired: 0 };
+  const builderStats = analytics.byBuilderSource.get(builderSource) || {
+    checked: 0,
+    matched: 0,
+    fired: 0,
+  };
   builderStats.checked++;
   analytics.byBuilderSource.set(builderSource, builderStats);
 }
@@ -67,12 +71,20 @@ export function recordTriggerMatch(
   analytics.totalTriggersMatched++;
 
   // Update trigger stats
-  const triggerStats = analytics.byTriggerName.get(triggerName) || { checked: 0, matched: 0, fired: 0 };
+  const triggerStats = analytics.byTriggerName.get(triggerName) || {
+    checked: 0,
+    matched: 0,
+    fired: 0,
+  };
   triggerStats.matched++;
   analytics.byTriggerName.set(triggerName, triggerStats);
 
   // Update builder stats
-  const builderStats = analytics.byBuilderSource.get(builderSource) || { checked: 0, matched: 0, fired: 0 };
+  const builderStats = analytics.byBuilderSource.get(builderSource) || {
+    checked: 0,
+    matched: 0,
+    fired: 0,
+  };
   builderStats.matched++;
   analytics.byBuilderSource.set(builderSource, builderStats);
 
@@ -99,12 +111,20 @@ export function recordTriggerFired(triggerName: string, builderSource: string): 
   analytics.totalTriggersFired++;
 
   // Update trigger stats
-  const triggerStats = analytics.byTriggerName.get(triggerName) || { checked: 0, matched: 0, fired: 0 };
+  const triggerStats = analytics.byTriggerName.get(triggerName) || {
+    checked: 0,
+    matched: 0,
+    fired: 0,
+  };
   triggerStats.fired++;
   analytics.byTriggerName.set(triggerName, triggerStats);
 
   // Update builder stats
-  const builderStats = analytics.byBuilderSource.get(builderSource) || { checked: 0, matched: 0, fired: 0 };
+  const builderStats = analytics.byBuilderSource.get(builderSource) || {
+    checked: 0,
+    matched: 0,
+    fired: 0,
+  };
   builderStats.fired++;
   analytics.byBuilderSource.set(builderSource, builderStats);
 
@@ -130,20 +150,34 @@ export function getTriggerAnalytics(): {
     matchRate: number;
     fireRate: number;
   };
-  byTrigger: Array<{ name: string; checked: number; matched: number; fired: number; fireRate: number }>;
-  byBuilder: Array<{ name: string; checked: number; matched: number; fired: number; fireRate: number }>;
+  byTrigger: Array<{
+    name: string;
+    checked: number;
+    matched: number;
+    fired: number;
+    fireRate: number;
+  }>;
+  byBuilder: Array<{
+    name: string;
+    checked: number;
+    matched: number;
+    fired: number;
+    fireRate: number;
+  }>;
   recentActivations: TriggerAnalytics['recentActivations'];
 } {
   const summary = {
     totalChecked: analytics.totalTriggersChecked,
     totalMatched: analytics.totalTriggersMatched,
     totalFired: analytics.totalTriggersFired,
-    matchRate: analytics.totalTriggersChecked > 0
-      ? analytics.totalTriggersMatched / analytics.totalTriggersChecked
-      : 0,
-    fireRate: analytics.totalTriggersMatched > 0
-      ? analytics.totalTriggersFired / analytics.totalTriggersMatched
-      : 0,
+    matchRate:
+      analytics.totalTriggersChecked > 0
+        ? analytics.totalTriggersMatched / analytics.totalTriggersChecked
+        : 0,
+    fireRate:
+      analytics.totalTriggersMatched > 0
+        ? analytics.totalTriggersFired / analytics.totalTriggersMatched
+        : 0,
   };
 
   const byTrigger = Array.from(analytics.byTriggerName.entries())
@@ -228,13 +262,7 @@ const EMOTION_KEYWORDS: Record<string, string[]> = {
 };
 
 const TEXT_PATTERNS: Record<string, RegExp[]> = {
-  falseFine: [
-    /i['']?m fine/i,
-    /i['']?m okay/i,
-    /it['']?s fine/i,
-    /i['']?m good/i,
-    /no big deal/i,
-  ],
+  falseFine: [/i['']?m fine/i, /i['']?m okay/i, /it['']?s fine/i, /i['']?m good/i, /no big deal/i],
   deflection: [
     /anyway/i,
     /let['']?s move on/i,
@@ -253,23 +281,14 @@ const TEXT_PATTERNS: Record<string, RegExp[]> = {
     /is this all there is/i,
     /what does it matter/i,
   ],
-  comparison: [
-    /everyone else/i,
-    /other people/i,
-    /i should be/i,
-    /why can['']?t i/i,
-  ],
+  comparison: [/everyone else/i, /other people/i, /i should be/i, /why can['']?t i/i],
   selfCriticism: [
     /i should have/i,
     /i shouldn['']?t have/i,
     /what['']?s wrong with me/i,
     /i['']?m so (stupid|dumb|bad)/i,
   ],
-  permission: [
-    /can i (tell|say|ask)/i,
-    /is it okay (if|to)/i,
-    /would you mind/i,
-  ],
+  permission: [/can i (tell|say|ask)/i, /is it okay (if|to)/i, /would you mind/i],
   sleep: [
     /can['']?t sleep/i,
     /couldn['']?t sleep/i,
@@ -278,54 +297,12 @@ const TEXT_PATTERNS: Record<string, RegExp[]> = {
     /3 ?am/i,
     /2 ?am/i,
   ],
-  work: [
-    /email/i,
-    /boss/i,
-    /meeting/i,
-    /deadline/i,
-    /presentation/i,
-    /work/i,
-  ],
-  relationship: [
-    /text/i,
-    /respond/i,
-    /friend/i,
-    /family/i,
-    /relationship/i,
-    /conversation/i,
-  ],
-  habit: [
-    /habit/i,
-    /routine/i,
-    /streak/i,
-    /missed/i,
-    /skipped/i,
-    /consistency/i,
-  ],
-  planning: [
-    /milestone/i,
-    /goal/i,
-    /plan/i,
-    /decision/i,
-    /transition/i,
-    /change/i,
-  ],
-  financial: [
-    /market/i,
-    /portfolio/i,
-    /stock/i,
-    /invest/i,
-    /money/i,
-    /retire/i,
-  ],
-  grief: [
-    /miss/i,
-    /lost/i,
-    /gone/i,
-    /anniversary/i,
-    /passed/i,
-    /died/i,
-  ],
+  work: [/email/i, /boss/i, /meeting/i, /deadline/i, /presentation/i, /work/i],
+  relationship: [/text/i, /respond/i, /friend/i, /family/i, /relationship/i, /conversation/i],
+  habit: [/habit/i, /routine/i, /streak/i, /missed/i, /skipped/i, /consistency/i],
+  planning: [/milestone/i, /goal/i, /plan/i, /decision/i, /transition/i, /change/i],
+  financial: [/market/i, /portfolio/i, /stock/i, /invest/i, /money/i, /retire/i],
+  grief: [/miss/i, /lost/i, /gone/i, /anniversary/i, /passed/i, /died/i],
 };
 
 // ============================================================================
@@ -343,7 +320,10 @@ function matchesTextPattern(text: string, patternKey: keyof typeof TEXT_PATTERNS
 /**
  * Check if emotion matches a category
  */
-function matchesEmotionCategory(emotion: string | undefined, category: keyof typeof EMOTION_KEYWORDS): boolean {
+function matchesEmotionCategory(
+  emotion: string | undefined,
+  category: keyof typeof EMOTION_KEYWORDS
+): boolean {
   if (!emotion) return false;
   const emotions = EMOTION_KEYWORDS[category];
   return emotions?.includes(emotion.toLowerCase()) ?? false;
@@ -381,16 +361,30 @@ export function checkDynamicTriggers(
     }
 
     // Voice/text contradiction (false fine)
-    if (triggerLower.includes('contradict') || triggerLower.includes('false') || triggerLower.includes('fine')) {
-      if (matchesTextPattern(lowerText, 'falseFine') && matchesEmotionCategory(context.emotion, 'sad')) {
+    if (
+      triggerLower.includes('contradict') ||
+      triggerLower.includes('false') ||
+      triggerLower.includes('fine')
+    ) {
+      if (
+        matchesTextPattern(lowerText, 'falseFine') &&
+        matchesEmotionCategory(context.emotion, 'sad')
+      ) {
         matched = true;
         confidence = 0.85;
       }
     }
 
     // Sadness/grief
-    if (triggerLower.includes('grief') || triggerLower.includes('loss') || triggerLower.includes('sad')) {
-      if (matchesEmotionCategory(context.emotion, 'sad') || matchesTextPattern(lowerText, 'grief')) {
+    if (
+      triggerLower.includes('grief') ||
+      triggerLower.includes('loss') ||
+      triggerLower.includes('sad')
+    ) {
+      if (
+        matchesEmotionCategory(context.emotion, 'sad') ||
+        matchesTextPattern(lowerText, 'grief')
+      ) {
         matched = true;
         confidence = context.emotionIntensity ?? 0.6;
       }
@@ -407,7 +401,11 @@ export function checkDynamicTriggers(
     // === TEXT PATTERN TRIGGERS ===
 
     // Deflection
-    if (triggerLower.includes('deflect') || triggerLower.includes('pivot') || triggerLower.includes('topic')) {
+    if (
+      triggerLower.includes('deflect') ||
+      triggerLower.includes('pivot') ||
+      triggerLower.includes('topic')
+    ) {
       if (matchesTextPattern(lowerText, 'deflection')) {
         matched = true;
         confidence = 0.7;
@@ -423,7 +421,11 @@ export function checkDynamicTriggers(
     }
 
     // Meaning/existential questions
-    if (triggerLower.includes('meaning') || triggerLower.includes('point') || triggerLower.includes('existential')) {
+    if (
+      triggerLower.includes('meaning') ||
+      triggerLower.includes('point') ||
+      triggerLower.includes('existential')
+    ) {
       if (matchesTextPattern(lowerText, 'meaning')) {
         matched = true;
         confidence = 0.8;
@@ -431,7 +433,11 @@ export function checkDynamicTriggers(
     }
 
     // Self-criticism/should language
-    if (triggerLower.includes('should') || triggerLower.includes('self-criticism') || triggerLower.includes('critic')) {
+    if (
+      triggerLower.includes('should') ||
+      triggerLower.includes('self-criticism') ||
+      triggerLower.includes('critic')
+    ) {
       if (matchesTextPattern(lowerText, 'selfCriticism')) {
         matched = true;
         confidence = 0.7;
@@ -456,7 +462,7 @@ export function checkDynamicTriggers(
 
     // Minimizing
     if (triggerLower.includes('minimiz') || triggerLower.includes('not that bad')) {
-      if (lowerText.includes("not that bad") || lowerText.includes("not a big deal")) {
+      if (lowerText.includes('not that bad') || lowerText.includes('not a big deal')) {
         matched = true;
         confidence = 0.7;
       }
@@ -465,7 +471,11 @@ export function checkDynamicTriggers(
     // === CONTEXTUAL TRIGGERS ===
 
     // Late night specific
-    if (triggerLower.includes('late night') || triggerLower.includes('2am') || triggerLower.includes('midnight')) {
+    if (
+      triggerLower.includes('late night') ||
+      triggerLower.includes('2am') ||
+      triggerLower.includes('midnight')
+    ) {
       if (context.isLateNight) {
         matched = true;
         confidence = 0.6;
@@ -481,7 +491,11 @@ export function checkDynamicTriggers(
     }
 
     // Work anxiety
-    if (triggerLower.includes('work') || triggerLower.includes('email') || triggerLower.includes('meeting')) {
+    if (
+      triggerLower.includes('work') ||
+      triggerLower.includes('email') ||
+      triggerLower.includes('meeting')
+    ) {
       if (matchesTextPattern(lowerText, 'work') && context.isLateNight) {
         matched = true;
         confidence = 0.7;
@@ -489,7 +503,11 @@ export function checkDynamicTriggers(
     }
 
     // Relationship replay
-    if (triggerLower.includes('relationship') || triggerLower.includes('conversation') || triggerLower.includes('replay')) {
+    if (
+      triggerLower.includes('relationship') ||
+      triggerLower.includes('conversation') ||
+      triggerLower.includes('replay')
+    ) {
       if (matchesTextPattern(lowerText, 'relationship')) {
         matched = true;
         confidence = 0.65;
@@ -499,7 +517,11 @@ export function checkDynamicTriggers(
     // === DOMAIN-SPECIFIC TRIGGERS ===
 
     // Habit-related
-    if (triggerLower.includes('habit') || triggerLower.includes('streak') || triggerLower.includes('routine')) {
+    if (
+      triggerLower.includes('habit') ||
+      triggerLower.includes('streak') ||
+      triggerLower.includes('routine')
+    ) {
       if (matchesTextPattern(lowerText, 'habit')) {
         matched = true;
         confidence = 0.7;
@@ -507,7 +529,11 @@ export function checkDynamicTriggers(
     }
 
     // Planning/milestone
-    if (triggerLower.includes('milestone') || triggerLower.includes('planning') || triggerLower.includes('transition')) {
+    if (
+      triggerLower.includes('milestone') ||
+      triggerLower.includes('planning') ||
+      triggerLower.includes('transition')
+    ) {
       if (matchesTextPattern(lowerText, 'planning')) {
         matched = true;
         confidence = 0.65;
@@ -515,7 +541,11 @@ export function checkDynamicTriggers(
     }
 
     // Financial/market
-    if (triggerLower.includes('market') || triggerLower.includes('portfolio') || triggerLower.includes('financial')) {
+    if (
+      triggerLower.includes('market') ||
+      triggerLower.includes('portfolio') ||
+      triggerLower.includes('financial')
+    ) {
       if (matchesTextPattern(lowerText, 'financial')) {
         matched = true;
         confidence = 0.7;
@@ -525,7 +555,11 @@ export function checkDynamicTriggers(
     // === TIME-BASED TRIGGERS ===
 
     // Extended silence/returning user
-    if (triggerLower.includes('silence') || triggerLower.includes('returning') || triggerLower.includes('absence')) {
+    if (
+      triggerLower.includes('silence') ||
+      triggerLower.includes('returning') ||
+      triggerLower.includes('absence')
+    ) {
       if (context.daysSinceLastSession && context.daysSinceLastSession > 7) {
         matched = true;
         confidence = 0.6;
@@ -541,18 +575,29 @@ export function checkDynamicTriggers(
     }
 
     // Voice exhaustion (check emotion + intensity)
-    if (triggerLower.includes('exhaustion') || triggerLower.includes('fatigue') || triggerLower.includes('tired')) {
-      if (matchesEmotionCategory(context.emotion, 'tired') && (context.emotionIntensity ?? 0) > 0.5) {
+    if (
+      triggerLower.includes('exhaustion') ||
+      triggerLower.includes('fatigue') ||
+      triggerLower.includes('tired')
+    ) {
+      if (
+        matchesEmotionCategory(context.emotion, 'tired') &&
+        (context.emotionIntensity ?? 0) > 0.5
+      ) {
         matched = true;
         confidence = context.emotionIntensity ?? 0.6;
       }
     }
 
     // Growth moment
-    if (triggerLower.includes('growth') || triggerLower.includes('different') || triggerLower.includes('changed')) {
+    if (
+      triggerLower.includes('growth') ||
+      triggerLower.includes('different') ||
+      triggerLower.includes('changed')
+    ) {
       // Growth moments are harder to detect from text alone
       // Usually need memory comparison - mark as low confidence
-      if (lowerText.includes("i used to") || lowerText.includes("before i would")) {
+      if (lowerText.includes('i used to') || lowerText.includes('before i would')) {
         matched = true;
         confidence = 0.5;
       }
@@ -596,13 +641,22 @@ export function calculateProbabilityBoost(
     const conditionLower = condition.toLowerCase();
 
     // Emotional conditions
-    if (conditionLower.includes('voice_text_mismatch') && matchedTrigger?.triggerName.includes('false')) {
+    if (
+      conditionLower.includes('voice_text_mismatch') &&
+      matchedTrigger?.triggerName.includes('false')
+    ) {
       multiplier *= 1.5;
     }
-    if (conditionLower.includes('contradiction') && matchedTrigger?.triggerName.includes('contradict')) {
+    if (
+      conditionLower.includes('contradiction') &&
+      matchedTrigger?.triggerName.includes('contradict')
+    ) {
       multiplier *= 1.4;
     }
-    if (conditionLower.includes('distress') && matchesEmotionCategory(context.emotion, 'distress')) {
+    if (
+      conditionLower.includes('distress') &&
+      matchesEmotionCategory(context.emotion, 'distress')
+    ) {
       multiplier *= 1.3;
     }
 
@@ -610,10 +664,18 @@ export function calculateProbabilityBoost(
     if (conditionLower.includes('late_night') && context.isLateNight) {
       multiplier *= 1.3;
     }
-    if (conditionLower.includes('extended_silence') && context.daysSinceLastSession && context.daysSinceLastSession > 7) {
+    if (
+      conditionLower.includes('extended_silence') &&
+      context.daysSinceLastSession &&
+      context.daysSinceLastSession > 7
+    ) {
       multiplier *= 1.2;
     }
-    if (conditionLower.includes('returning') && context.daysSinceLastSession && context.daysSinceLastSession > 3) {
+    if (
+      conditionLower.includes('returning') &&
+      context.daysSinceLastSession &&
+      context.daysSinceLastSession > 3
+    ) {
       multiplier *= 1.2;
     }
 
@@ -621,7 +683,10 @@ export function calculateProbabilityBoost(
     if (conditionLower.includes('heavy_topic') && matchesEmotionCategory(context.emotion, 'sad')) {
       multiplier *= 1.3;
     }
-    if (conditionLower.includes('growth_moment') && matchedTrigger?.triggerName.includes('growth')) {
+    if (
+      conditionLower.includes('growth_moment') &&
+      matchedTrigger?.triggerName.includes('growth')
+    ) {
       multiplier *= 1.4;
     }
 
@@ -668,19 +733,33 @@ export function shouldSkipDueToNeverWhen(
         return true;
       }
     }
-    if (conditionLower.includes('distressed') && matchesEmotionCategory(context.emotion, 'distress')) {
+    if (
+      conditionLower.includes('distressed') &&
+      matchesEmotionCategory(context.emotion, 'distress')
+    ) {
       return true;
     }
-    if (conditionLower.includes('practical') && context.recentTopics?.some(t => t.includes('help'))) {
+    if (
+      conditionLower.includes('practical') &&
+      context.recentTopics?.some((t) => t.includes('help'))
+    ) {
       return true;
     }
-    if (conditionLower.includes('energized') && matchesEmotionCategory(context.emotion, 'positive')) {
+    if (
+      conditionLower.includes('energized') &&
+      matchesEmotionCategory(context.emotion, 'positive')
+    ) {
       // Some contexts want to skip when user is energized
       if (context.isLateNight === false) {
         return true;
       }
     }
-    if (conditionLower.includes('daytime') && context.currentHour && context.currentHour >= 6 && context.currentHour < 22) {
+    if (
+      conditionLower.includes('daytime') &&
+      context.currentHour &&
+      context.currentHour >= 6 &&
+      context.currentHour < 22
+    ) {
       // Skip if it's daytime and condition says never during daytime
       return true;
     }
@@ -694,8 +773,17 @@ export function shouldSkipDueToNeverWhen(
  */
 export function buildTriggerContext(
   userText: string,
-  analysis: { emotion?: { primary?: string; intensity?: number }; topics?: { primary?: string | null } } | undefined,
-  userData: { turnCount?: number; recentTopics?: string[]; relationshipStage?: string; lastSessionDate?: string } | undefined,
+  analysis:
+    | { emotion?: { primary?: string; intensity?: number }; topics?: { primary?: string | null } }
+    | undefined,
+  userData:
+    | {
+        turnCount?: number;
+        recentTopics?: string[];
+        relationshipStage?: string;
+        lastSessionDate?: string;
+      }
+    | undefined,
   additionalContext?: Partial<TriggerContext>
 ): TriggerContext {
   const hour = new Date().getHours();
@@ -778,16 +866,24 @@ export async function checkTriggersHybrid(
           confidence: result.bestMatch.combinedScore,
         };
 
-        recordTriggerMatch(matched.triggerName, 'hybrid-matcher', matched.confidence, context.userData?.userId as string | undefined);
+        recordTriggerMatch(
+          matched.triggerName,
+          'hybrid-matcher',
+          matched.confidence,
+          context.userData?.userId as string | undefined
+        );
 
-        log.debug({
-          triggerName: matched.triggerName,
-          semanticScore: result.bestMatch.semanticScore.toFixed(3),
-          patternScore: result.bestMatch.patternScore.toFixed(3),
-          combined: result.bestMatch.combinedScore.toFixed(3),
-          strategy: result.matchingStrategy,
-          processingMs: result.processingTimeMs.toFixed(2),
-        }, 'Hybrid trigger matched');
+        log.debug(
+          {
+            triggerName: matched.triggerName,
+            semanticScore: result.bestMatch.semanticScore.toFixed(3),
+            patternScore: result.bestMatch.patternScore.toFixed(3),
+            combined: result.bestMatch.combinedScore.toFixed(3),
+            strategy: result.matchingStrategy,
+            processingMs: result.processingTimeMs.toFixed(2),
+          },
+          'Hybrid trigger matched'
+        );
 
         return matched;
       }

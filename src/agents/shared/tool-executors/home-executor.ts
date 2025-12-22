@@ -73,7 +73,8 @@ async function execute(
     if (color) {
       response += ` with ${color} color`;
     }
-    response += ", but I'm not connected to your smart home yet. Would you like to connect your devices?";
+    response +=
+      ", but I'm not connected to your smart home yet. Would you like to connect your devices?";
 
     return response;
   }
@@ -119,7 +120,8 @@ async function execute(
   // ========================================
   if (fnLower === 'controldevice' || fnLower === 'turnon' || fnLower === 'turnoff') {
     const device = args.device as string;
-    const action = fnLower === 'turnon' ? 'on' : fnLower === 'turnoff' ? 'off' : (args.action as string);
+    const action =
+      fnLower === 'turnon' ? 'on' : fnLower === 'turnoff' ? 'off' : (args.action as string);
 
     log.info({ device, action, userId: ctx.userId }, '🔌 Controlling device');
 

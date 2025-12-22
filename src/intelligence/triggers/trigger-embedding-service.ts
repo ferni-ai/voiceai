@@ -12,7 +12,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { embed, embedBatch, getEmbeddingProvider, cosineSimilarity } from '../../memory/embeddings.js';
+import {
+  embed,
+  embedBatch,
+  getEmbeddingProvider,
+  cosineSimilarity,
+} from '../../memory/embeddings.js';
 import type {
   ProactiveTrigger,
   EmbeddedTrigger,
@@ -31,39 +36,130 @@ const log = createLogger({ module: 'TriggerEmbeddingService' });
  */
 const CATEGORY_KEYWORDS: Record<TriggerCategory, string[]> = {
   emotional: [
-    'distress', 'grief', 'loss', 'sad', 'worried', 'anxious', 'overwhelmed',
-    'panic', 'crisis', 'fear', 'anger', 'frustrated', 'hurt', 'pain',
-    'depressed', 'lonely', 'hopeless', 'exhausted', 'burnt out',
+    'distress',
+    'grief',
+    'loss',
+    'sad',
+    'worried',
+    'anxious',
+    'overwhelmed',
+    'panic',
+    'crisis',
+    'fear',
+    'anger',
+    'frustrated',
+    'hurt',
+    'pain',
+    'depressed',
+    'lonely',
+    'hopeless',
+    'exhausted',
+    'burnt out',
   ],
   behavioral: [
-    'deflect', 'avoid', 'minimize', 'deny', 'excuse', 'rationalize',
-    'blame', 'project', 'withdraw', 'isolate', 'procrastinate',
-    'fine', 'okay', 'whatever', 'anyway', 'never mind',
+    'deflect',
+    'avoid',
+    'minimize',
+    'deny',
+    'excuse',
+    'rationalize',
+    'blame',
+    'project',
+    'withdraw',
+    'isolate',
+    'procrastinate',
+    'fine',
+    'okay',
+    'whatever',
+    'anyway',
+    'never mind',
   ],
   temporal: [
-    'late night', 'midnight', '2am', '3am', 'morning', 'evening',
-    'returning', 'absence', 'silence', 'days', 'weeks', 'anniversary',
-    'birthday', 'holiday', 'season', 'monday', 'sunday',
+    'late night',
+    'midnight',
+    '2am',
+    '3am',
+    'morning',
+    'evening',
+    'returning',
+    'absence',
+    'silence',
+    'days',
+    'weeks',
+    'anniversary',
+    'birthday',
+    'holiday',
+    'season',
+    'monday',
+    'sunday',
   ],
   domain: [
-    'habit', 'routine', 'streak', 'goal', 'plan', 'milestone',
-    'market', 'portfolio', 'finance', 'money', 'invest',
-    'calendar', 'meeting', 'email', 'work', 'deadline',
+    'habit',
+    'routine',
+    'streak',
+    'goal',
+    'plan',
+    'milestone',
+    'market',
+    'portfolio',
+    'finance',
+    'money',
+    'invest',
+    'calendar',
+    'meeting',
+    'email',
+    'work',
+    'deadline',
   ],
   relational: [
-    'relationship', 'friend', 'family', 'partner', 'spouse', 'parent',
-    'child', 'sibling', 'colleague', 'boss', 'text', 'respond',
-    'conversation', 'argument', 'conflict', 'boundary',
+    'relationship',
+    'friend',
+    'family',
+    'partner',
+    'spouse',
+    'parent',
+    'child',
+    'sibling',
+    'colleague',
+    'boss',
+    'text',
+    'respond',
+    'conversation',
+    'argument',
+    'conflict',
+    'boundary',
   ],
   existential: [
-    'meaning', 'purpose', 'point', 'why', 'life', 'death', 'legacy',
-    'values', 'beliefs', 'identity', 'who am i', 'matter',
-    'important', 'worth', 'significance',
+    'meaning',
+    'purpose',
+    'point',
+    'why',
+    'life',
+    'death',
+    'legacy',
+    'values',
+    'beliefs',
+    'identity',
+    'who am i',
+    'matter',
+    'important',
+    'worth',
+    'significance',
   ],
   growth: [
-    'growth', 'change', 'progress', 'different', 'used to',
-    'before', 'now', 'learning', 'improving', 'developing',
-    'realizing', 'understanding', 'awareness',
+    'growth',
+    'change',
+    'progress',
+    'different',
+    'used to',
+    'before',
+    'now',
+    'learning',
+    'improving',
+    'developing',
+    'realizing',
+    'understanding',
+    'awareness',
   ],
 };
 
@@ -120,8 +216,10 @@ export class TriggerEmbeddingService {
    * Initialize the service with triggers from a persona
    */
   async initializeForPersona(triggerSet: PersonaTriggerSet): Promise<number> {
-    log.info({ personaId: triggerSet.personaId, triggerCount: Object.keys(triggerSet.triggers).length },
-      'Initializing trigger embeddings');
+    log.info(
+      { personaId: triggerSet.personaId, triggerCount: Object.keys(triggerSet.triggers).length },
+      'Initializing trigger embeddings'
+    );
 
     const triggers = Object.entries(triggerSet.triggers);
     if (triggers.length === 0) {
@@ -153,17 +251,22 @@ export class TriggerEmbeddingService {
         this.embeddedTriggers.set(triggerId, embeddedTrigger);
       }
 
-      log.info({
-        personaId: triggerSet.personaId,
-        embedded: embeddings.length,
-        provider: getEmbeddingProvider().model,
-      }, 'Trigger embeddings initialized');
+      log.info(
+        {
+          personaId: triggerSet.personaId,
+          embedded: embeddings.length,
+          provider: getEmbeddingProvider().model,
+        },
+        'Trigger embeddings initialized'
+      );
 
       this.initialized = true;
       return embeddings.length;
     } catch (error) {
-      log.error({ error: String(error), personaId: triggerSet.personaId },
-        'Failed to generate trigger embeddings');
+      log.error(
+        { error: String(error), personaId: triggerSet.personaId },
+        'Failed to generate trigger embeddings'
+      );
       throw error;
     }
   }
@@ -290,9 +393,10 @@ export class TriggerEmbeddingService {
     }
 
     const provider = getEmbeddingProvider();
-    const dimensions = this.embeddedTriggers.size > 0
-      ? Array.from(this.embeddedTriggers.values())[0].embedding.length
-      : provider.dimensions;
+    const dimensions =
+      this.embeddedTriggers.size > 0
+        ? Array.from(this.embeddedTriggers.values())[0].embedding.length
+        : provider.dimensions;
 
     return {
       totalTriggers: this.embeddedTriggers.size,

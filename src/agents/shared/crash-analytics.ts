@@ -37,7 +37,12 @@ export interface CrashContext {
 export interface CrashEvent {
   id: string;
   timestamp: string;
-  type: 'uncaught_exception' | 'unhandled_rejection' | 'connection_drop' | 'timeout' | 'manual_report';
+  type:
+    | 'uncaught_exception'
+    | 'unhandled_rejection'
+    | 'connection_drop'
+    | 'timeout'
+    | 'manual_report';
   error: {
     name: string;
     message: string;
@@ -127,7 +132,8 @@ export function updateSessionState(
   if (updates.lastUserMessage || updates.lastAgentMessage) {
     sessionMessages.set(sessionId, {
       lastUserMessage: updates.lastUserMessage || sessionMessages.get(sessionId)?.lastUserMessage,
-      lastAgentMessage: updates.lastAgentMessage || sessionMessages.get(sessionId)?.lastAgentMessage,
+      lastAgentMessage:
+        updates.lastAgentMessage || sessionMessages.get(sessionId)?.lastAgentMessage,
     });
   }
 }
@@ -278,11 +284,7 @@ export function recordConnectionDrop(
 /**
  * Record a timeout (operation took too long)
  */
-export function recordTimeout(
-  sessionId: string,
-  operation: string,
-  timeoutMs: number
-): CrashEvent {
+export function recordTimeout(sessionId: string, operation: string, timeoutMs: number): CrashEvent {
   return recordCrash(
     'timeout',
     new Error(`Operation timed out: ${operation} (${timeoutMs}ms)`),
@@ -493,4 +495,3 @@ export const crashAnalytics = {
   getSessionState,
   getAllActiveSessions,
 };
-

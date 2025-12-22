@@ -210,11 +210,11 @@ class LifeContextBroadcast extends EventEmitter {
     if (wellbeingChange > 0.15) return true;
 
     // Check for new high-stress domains
-    const prevHighStress = previous.stressIndicators.filter(s => s.stressLevel > 0.7);
-    const currHighStress = current.stressIndicators.filter(s => s.stressLevel > 0.7);
+    const prevHighStress = previous.stressIndicators.filter((s) => s.stressLevel > 0.7);
+    const currHighStress = current.stressIndicators.filter((s) => s.stressLevel > 0.7);
 
     const newHighStressDomains = currHighStress.filter(
-      cs => !prevHighStress.some(ps => ps.domain === cs.domain)
+      (cs) => !prevHighStress.some((ps) => ps.domain === cs.domain)
     );
     if (newHighStressDomains.length > 0) return true;
 

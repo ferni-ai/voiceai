@@ -75,10 +75,6 @@
       "research_breakthrough_possible",
       "pattern_playing_out"
     ],
-    "never_when": [
-      "user_just_had_loss",
-      "first_session_ever",
-      "user_in_panic_mode"
-    ]
+    "never_when": ["user_just_had_loss", "first_session_ever", "user_in_panic_mode"]
   }
 }

@@ -265,7 +265,8 @@ function buildNoticingPhrase(
   relationshipStage: string
 ): string {
   // Select opening - handle both naming conventions
-  const openings = phrases.opening_frames.gentle_openings || phrases.opening_frames.gentle_openers || [];
+  const openings =
+    phrases.opening_frames.gentle_openings || phrases.opening_frames.gentle_openers || [];
   const opening = openings.length > 0 ? openings[Math.floor(Math.random() * openings.length)] : '';
 
   // Get type-specific phrase
@@ -273,9 +274,16 @@ function buildNoticingPhrase(
 
   switch (pattern.type) {
     case 'contradiction':
-      if (relationshipStage === 'friend' || relationshipStage === 'close_friend' || relationshipStage === 'familiar') {
+      if (
+        relationshipStage === 'friend' ||
+        relationshipStage === 'close_friend' ||
+        relationshipStage === 'familiar'
+      ) {
         // Handle both naming conventions
-        const contradictionPhrases = phrases.contradiction_surfacing.phrases || phrases.contradiction_surfacing.gentle_call_outs || [];
+        const contradictionPhrases =
+          phrases.contradiction_surfacing.phrases ||
+          phrases.contradiction_surfacing.gentle_call_outs ||
+          [];
         if (contradictionPhrases.length > 0) {
           bodyPhrase =
             contradictionPhrases[Math.floor(Math.random() * contradictionPhrases.length)];
@@ -284,18 +292,20 @@ function buildNoticingPhrase(
       break;
     case 'frequency':
       // Try multiple phrase categories based on persona
-      const emotionalPhrases = phrases.surfacing_phrases.emotional_patterns ||
+      const emotionalPhrases =
+        phrases.surfacing_phrases.emotional_patterns ||
         phrases.surfacing_phrases.habit_patterns ||
         phrases.surfacing_phrases.behavioral_patterns ||
         phrases.surfacing_phrases.communication_patterns ||
-        phrases.surfacing_phrases.life_arc_patterns || [];
+        phrases.surfacing_phrases.life_arc_patterns ||
+        [];
       if (emotionalPhrases.length > 0) {
         bodyPhrase = emotionalPhrases[Math.floor(Math.random() * emotionalPhrases.length)];
       }
       break;
     case 'deflection':
-      const unsaidPhrases = phrases.what_they_didnt_say?.phrases ||
-        phrases.surfacing_phrases.avoidance_patterns || [];
+      const unsaidPhrases =
+        phrases.what_they_didnt_say?.phrases || phrases.surfacing_phrases.avoidance_patterns || [];
       if (unsaidPhrases.length > 0) {
         bodyPhrase = unsaidPhrases[Math.floor(Math.random() * unsaidPhrases.length)];
       }
@@ -340,28 +350,49 @@ function checkDynamicTriggers(
     const triggerLower = trigger.trigger.toLowerCase();
 
     // Check for emotional patterns
-    if (triggerLower.includes('distress') && context.emotion && ['anxious', 'stressed', 'overwhelmed', 'sad'].includes(context.emotion)) {
+    if (
+      triggerLower.includes('distress') &&
+      context.emotion &&
+      ['anxious', 'stressed', 'overwhelmed', 'sad'].includes(context.emotion)
+    ) {
       return { matched: true, triggerName: name, behavior: trigger.behavior };
     }
 
     // Check for "should" language (self-criticism)
-    if ((triggerLower.includes('should') || triggerLower.includes('self-criticism')) && (lowerText.match(/i should/gi) || []).length >= 2) {
+    if (
+      (triggerLower.includes('should') || triggerLower.includes('self-criticism')) &&
+      (lowerText.match(/i should/gi) || []).length >= 2
+    ) {
       return { matched: true, triggerName: name, behavior: trigger.behavior };
     }
 
     // Check for comparison language
-    if (triggerLower.includes('comparison') && (lowerText.includes('others') || lowerText.includes('everyone else') || lowerText.includes('should be'))) {
+    if (
+      triggerLower.includes('comparison') &&
+      (lowerText.includes('others') ||
+        lowerText.includes('everyone else') ||
+        lowerText.includes('should be'))
+    ) {
       return { matched: true, triggerName: name, behavior: trigger.behavior };
     }
 
     // Check for avoidance patterns
-    if (triggerLower.includes('avoidance') && (lowerText.includes("i don't want to") || lowerText.includes("let's not") || lowerText.includes("never mind"))) {
+    if (
+      triggerLower.includes('avoidance') &&
+      (lowerText.includes("i don't want to") ||
+        lowerText.includes("let's not") ||
+        lowerText.includes('never mind'))
+    ) {
       return { matched: true, triggerName: name, behavior: trigger.behavior };
     }
 
     // Check for meaning/existential questions
     if (triggerLower.includes('meaning') || triggerLower.includes('point')) {
-      if (lowerText.includes("what's the point") || lowerText.includes('is this all') || lowerText.includes('why bother')) {
+      if (
+        lowerText.includes("what's the point") ||
+        lowerText.includes('is this all') ||
+        lowerText.includes('why bother')
+      ) {
         return { matched: true, triggerName: name, behavior: trigger.behavior };
       }
     }
@@ -408,7 +439,12 @@ async function buildProactiveNoticingContext(
   // Check "never_when" conditions
   const emotion = analysis?.emotion?.primary;
   if (neverWhen.includes('first_few_turns') && turnCount < 4) return [];
-  if (neverWhen.includes('user_distressed') && emotion && ['distressed', 'crisis', 'panic'].includes(emotion)) return [];
+  if (
+    neverWhen.includes('user_distressed') &&
+    emotion &&
+    ['distressed', 'crisis', 'panic'].includes(emotion)
+  )
+    return [];
   if (neverWhen.includes('user_in_crisis') && emotion === 'crisis') return [];
 
   // Check cooldown
@@ -418,7 +454,14 @@ async function buildProactiveNoticingContext(
   }
 
   // Check relationship gate
-  const relationshipLevels = ['stranger', 'acquaintance', 'familiar', 'friend', 'close_friend', 'trusted_advisor'];
+  const relationshipLevels = [
+    'stranger',
+    'acquaintance',
+    'familiar',
+    'friend',
+    'close_friend',
+    'trusted_advisor',
+  ];
   const currentLevel = relationshipLevels.indexOf(relationshipStage);
   const gateLevel = relationshipLevels.indexOf(relationshipGate);
   if (currentLevel < gateLevel) {
@@ -467,13 +510,17 @@ async function buildProactiveNoticingContext(
 
   // Calculate adjusted probability based on "more_likely_when" conditions
   let adjustedProbability = probability;
-  if (moreLikelyWhen.includes('pattern_repeating') && patterns.length > 1) adjustedProbability *= 1.5;
-  if (moreLikelyWhen.includes('user_asked_why') && userText.toLowerCase().includes('why')) adjustedProbability *= 1.3;
-  if (moreLikelyWhen.includes('contradiction_detected') && contradiction) adjustedProbability *= 1.4;
+  if (moreLikelyWhen.includes('pattern_repeating') && patterns.length > 1)
+    adjustedProbability *= 1.5;
+  if (moreLikelyWhen.includes('user_asked_why') && userText.toLowerCase().includes('why'))
+    adjustedProbability *= 1.3;
+  if (moreLikelyWhen.includes('contradiction_detected') && contradiction)
+    adjustedProbability *= 1.4;
   if (dynamicTrigger) adjustedProbability *= 1.5; // Boost when dynamic trigger matches
 
   // Apply probability gate
-  if (Math.random() > Math.min(adjustedProbability, 0.4)) { // Cap at 40%
+  if (Math.random() > Math.min(adjustedProbability, 0.4)) {
+    // Cap at 40%
     log.debug(
       { userId, pattern: bestPattern.type, confidence: bestPattern.confidence },
       'Pattern detected but probability gate not passed'

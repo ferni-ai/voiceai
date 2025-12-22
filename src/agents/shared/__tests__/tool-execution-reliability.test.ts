@@ -26,10 +26,7 @@ describe('Tool Execution Reliability', () => {
     it('should execute successfully on first attempt', async () => {
       const executor = vi.fn().mockResolvedValue('success');
 
-      const { result, retries, fromFallback } = await executeWithReliability(
-        'testTool',
-        executor
-      );
+      const { result, retries, fromFallback } = await executeWithReliability('testTool', executor);
 
       expect(result).toBe('success');
       expect(retries).toBe(0);
@@ -44,11 +41,9 @@ describe('Tool Execution Reliability', () => {
         .mockRejectedValueOnce(new Error('ETIMEDOUT'))
         .mockResolvedValue('success after retries');
 
-      const { result, retries, fromFallback } = await executeWithReliability(
-        'testTool',
-        executor,
-        { retryConfig: { maxRetries: 3, initialDelayMs: 10, maxDelayMs: 50 } }
-      );
+      const { result, retries, fromFallback } = await executeWithReliability('testTool', executor, {
+        retryConfig: { maxRetries: 3, initialDelayMs: 10, maxDelayMs: 50 },
+      });
 
       expect(result).toBe('success after retries');
       expect(retries).toBe(2);
@@ -71,14 +66,10 @@ describe('Tool Execution Reliability', () => {
     it('should use fallback when all retries fail', async () => {
       const executor = vi.fn().mockRejectedValue(new Error('timeout'));
 
-      const { result, retries, fromFallback } = await executeWithReliability(
-        'testTool',
-        executor,
-        {
-          retryConfig: { maxRetries: 2, initialDelayMs: 10, maxDelayMs: 50 },
-          fallbackValue: 'fallback response',
-        }
-      );
+      const { result, retries, fromFallback } = await executeWithReliability('testTool', executor, {
+        retryConfig: { maxRetries: 2, initialDelayMs: 10, maxDelayMs: 50 },
+        fallbackValue: 'fallback response',
+      });
 
       expect(result).toBe('fallback response');
       expect(retries).toBe(2);
@@ -301,4 +292,3 @@ describe('Tool Execution Reliability', () => {
     });
   });
 });
-

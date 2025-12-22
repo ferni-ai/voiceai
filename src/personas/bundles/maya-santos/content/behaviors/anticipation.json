@@ -134,10 +134,6 @@
       "keystone_ripple_visible",
       "routine_disruption_detected"
     ],
-    "never_when": [
-      "user_just_had_setback",
-      "first_session_ever",
-      "user_explicitly_stressed"
-    ]
+    "never_when": ["user_just_had_setback", "first_session_ever", "user_explicitly_stressed"]
   }
 }

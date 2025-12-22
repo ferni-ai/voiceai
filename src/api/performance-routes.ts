@@ -36,7 +36,10 @@ import {
 import { getToolCacheMetrics } from '../agents/shared/performance/tool-response-cache.js';
 import { getSpeculativeTTSMetrics } from '../agents/shared/performance/speculative-tts.js';
 import { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';
-import { getTriggerAnalytics, resetTriggerAnalytics } from '../intelligence/context-builders/dynamic-trigger-utils.js';
+import {
+  getTriggerAnalytics,
+  resetTriggerAnalytics,
+} from '../intelligence/context-builders/dynamic-trigger-utils.js';
 import {
   getSemanticAnalytics,
   resetSemanticAnalytics,
@@ -304,7 +307,10 @@ export async function handlePerformanceRoutes(
       const ttsMetrics = getSpeculativeTTSMetrics();
       const cacheHitRate =
         ttsMetrics.totalRequests > 0
-          ? (((ttsMetrics.cacheHits + ttsMetrics.speculativeHits) / ttsMetrics.totalRequests) * 100).toFixed(1)
+          ? (
+              ((ttsMetrics.cacheHits + ttsMetrics.speculativeHits) / ttsMetrics.totalRequests) *
+              100
+            ).toFixed(1)
           : '0.0';
       sendJSON(res, {
         ...ttsMetrics,

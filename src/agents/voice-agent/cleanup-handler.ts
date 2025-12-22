@@ -341,12 +341,10 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       // Phase 5: Anticipatory trigger profile - save learned signals
       userId && userData?.triggerProfile
         ? (async () => {
-            const { saveUserTriggerContext } = await import(
-              '../../intelligence/triggers/voice-agent-integration.js'
-            );
-            const { clearAnticipatorySession } = await import(
-              '../../intelligence/triggers/anticipatory-trigger-engine.js'
-            );
+            const { saveUserTriggerContext } =
+              await import('../../intelligence/triggers/voice-agent-integration.js');
+            const { clearAnticipatorySession } =
+              await import('../../intelligence/triggers/anticipatory-trigger-engine.js');
             // Save the trigger profile (includes learned signals and outcome events)
             const saved = await saveUserTriggerContext(sessionId);
             // Clean up session memory

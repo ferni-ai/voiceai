@@ -132,4 +132,3 @@ export const productivityExecutor: DomainExecutor = {
 };
 
 export default productivityExecutor;
-

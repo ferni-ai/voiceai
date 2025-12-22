@@ -256,7 +256,8 @@ describe('Maya Proactive Coaching', () => {
 describe('Maya Notification System', () => {
   describe('Notification Tools', () => {
     it('should provide all notification configuration tools', async () => {
-      const { createNotificationTools } = await import('../tools/domains/communication/notifications.js');
+      const { createNotificationTools } =
+        await import('../tools/domains/communication/notifications.js');
       const tools = createNotificationTools();
 
       expect(tools.getNotificationPreferences).toBeDefined();
@@ -437,7 +438,8 @@ describe('Maya Data Persistence', () => {
 describe('Maya Gamification Store V2', () => {
   describe('Zod Schemas', () => {
     it('should validate gamification profile schema', async () => {
-      const { GamificationProfileSchema } = await import('../services/engagement/gamification-store.js');
+      const { GamificationProfileSchema } =
+        await import('../services/engagement/gamification-store.js');
 
       const validProfile = {
         userId: 'test-123',
@@ -489,7 +491,8 @@ describe('Maya Gamification Store V2', () => {
     });
 
     it('should validate export schema', async () => {
-      const { GamificationExportSchema } = await import('../services/engagement/gamification-store.js');
+      const { GamificationExportSchema } =
+        await import('../services/engagement/gamification-store.js');
 
       const validExport = {
         version: '1.0',

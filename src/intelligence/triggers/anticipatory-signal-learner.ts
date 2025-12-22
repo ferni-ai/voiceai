@@ -114,7 +114,7 @@ export const COMMON_ANTICIPATORY_PHRASES: Array<{
     phrases: [
       "i've been trying to figure out",
       "i'm still processing",
-      "i keep coming back to",
+      'i keep coming back to',
       'part of me thinks',
       "i'm torn between",
       'on one hand',
@@ -194,11 +194,7 @@ export function detectAnticipatorySignals(
   const inputLower = partialInput.toLowerCase().trim();
 
   // Check safeguards first
-  const safeguardCheck = checkSafeguards(
-    intelligence.safeguards,
-    partialInput,
-    sessionContext
-  );
+  const safeguardCheck = checkSafeguards(intelligence.safeguards, partialInput, sessionContext);
   if (!safeguardCheck.allowed) {
     return {
       detected: false,
@@ -222,16 +218,12 @@ export function detectAnticipatorySignals(
       // Calculate voice confidence from associated cues
       let voiceConfidence = 0;
       if (voiceProsody && signal.associatedVoiceCues.length > 0) {
-        voiceConfidence = calculateVoiceConfidence(
-          voiceProsody.cues,
-          signal.associatedVoiceCues
-        );
+        voiceConfidence = calculateVoiceConfidence(voiceProsody.cues, signal.associatedVoiceCues);
       }
 
       const textConfidence = signal.probability;
       const combinedConfidence =
-        config.textSignalWeight * textConfidence +
-        config.voiceProsodyWeight * voiceConfidence;
+        config.textSignalWeight * textConfidence + config.voiceProsodyWeight * voiceConfidence;
 
       matchedSignals.push({
         signal,
@@ -402,8 +394,7 @@ function checkSafeguards(
     }
 
     if (sessionContext.lastAnticipationTime) {
-      const secondsSince =
-        (Date.now() - sessionContext.lastAnticipationTime.getTime()) / 1000;
+      const secondsSince = (Date.now() - sessionContext.lastAnticipationTime.getTime()) / 1000;
       if (secondsSince < safeguards.minSecondsBetween) {
         return { allowed: false, reason: 'Too soon since last anticipation' };
       }
@@ -488,8 +479,7 @@ export function learnFromUtterance(
       }
 
       // Recalculate probability
-      existingSignal.probability =
-        existingSignal.correctPredictions / existingSignal.observations;
+      existingSignal.probability = existingSignal.correctPredictions / existingSignal.observations;
 
       // Add example context if we have room
       if (existingSignal.exampleContexts.length < config.maxExamplesPerSignal) {
@@ -561,10 +551,7 @@ export function learnFromUtterance(
       existingCue.observations++;
       // Update typical meaning based on frequency
       if (existingCue.typicalMeaning === input.actualOutcome) {
-        existingCue.reliability = Math.min(
-          existingCue.reliability + 0.05,
-          0.95
-        );
+        existingCue.reliability = Math.min(existingCue.reliability + 0.05, 0.95);
       } else {
         existingCue.reliability = Math.max(existingCue.reliability - 0.02, 0.3);
       }
@@ -590,10 +577,7 @@ export function learnFromUtterance(
 /**
  * Update associated voice cues for a signal
  */
-function updateAssociatedVoiceCues(
-  signal: AnticipatorySignal,
-  newCues: VoiceProsodyCue[]
-): void {
+function updateAssociatedVoiceCues(signal: AnticipatorySignal, newCues: VoiceProsodyCue[]): void {
   for (const cue of newCues) {
     const existing = signal.associatedVoiceCues.find(
       (c) => c.type === cue.type && c.direction === cue.direction
@@ -659,9 +643,7 @@ export function recordAnticipationEvent(
   // Prune old events
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - config.eventRetentionDays);
-  intelligence.recentEvents = intelligence.recentEvents.filter(
-    (e) => e.timestamp >= cutoffDate
-  );
+  intelligence.recentEvents = intelligence.recentEvents.filter((e) => e.timestamp >= cutoffDate);
 
   // Update signal based on outcome
   const signal = intelligence.signals.find((s) => s.id === event.signalId);
@@ -673,15 +655,11 @@ export function recordAnticipationEvent(
   }
 
   // Recalculate overall accuracy
-  const recentEvents = intelligence.recentEvents.filter(
-    (e) => e.userReaction !== 'unknown'
-  );
+  const recentEvents = intelligence.recentEvents.filter((e) => e.userReaction !== 'unknown');
   if (recentEvents.length > 0) {
     const positiveReactions = recentEvents.filter(
       (e) =>
-        e.userReaction === 'appreciated' ||
-        e.userReaction === 'continued' ||
-        e.predictionCorrect
+        e.userReaction === 'appreciated' || e.userReaction === 'continued' || e.predictionCorrect
     );
     intelligence.overallAccuracy = positiveReactions.length / recentEvents.length;
   }

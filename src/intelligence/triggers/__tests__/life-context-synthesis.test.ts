@@ -244,9 +244,9 @@ describe('Cross-Domain Pattern Detection', () => {
     };
 
     const patterns = detectCrossDomainPatterns(domains, []);
-    expect(patterns.some((p) => p.domains.includes('sleep') && p.domains.includes('calendar'))).toBe(
-      true
-    );
+    expect(
+      patterns.some((p) => p.domains.includes('sleep') && p.domains.includes('calendar'))
+    ).toBe(true);
   });
 
   it('should detect positive patterns for good sleep and habits', () => {
@@ -641,6 +641,400 @@ describe('Synthesis Trigger Generator', () => {
       const ferniTriggers = getTriggersForPersona(snapshot, 'ferni');
       expect(ferniTriggers.length).toBe(1);
       expect(ferniTriggers[0].id).toBe('ferni-one');
+    });
+  });
+});
+
+// ============================================================================
+// E2E INTEGRATION TESTS: FULL LIFECYCLE
+// ============================================================================
+
+describe('Phase 6 E2E: Life Context Full Lifecycle', () => {
+  beforeEach(() => {
+    resetSynthesisAnalytics();
+  });
+
+  describe('Domain Collection → Aggregation → Trigger Generation', () => {
+    it('should generate appropriate triggers for high-stress user scenario', () => {
+      // Simulate a user with sleep deprivation and calendar overload
+      const sleepData: SleepDomainData = {
+        averageSleepHours: 4.5,
+        poorSleepNights: 5,
+        trend: 'declining',
+        nightsAnalyzed: 7,
+        mentionedFatigue: true,
+        lastUpdated: new Date(),
+        confidence: 0.85,
+      };
+
+      const calendarData: CalendarDomainData = {
+        totalEvents: 35,
+        backToBackChains: 12,
+        scheduleDensity: 95,
+        upcomingDeadline: { exists: true, daysUntil: 1 },
+        isOverloaded: true,
+        freeTimeHours: 0,
+        lastUpdated: new Date(),
+        confidence: 0.9,
+      };
+
+      const habitsData: HabitsDomainData = {
+        activeHabits: ['exercise', 'meditation', 'journaling'],
+        streaksAtRisk: 3,
+        adherencePercent: 15,
+        inSlump: true,
+        recentWins: [],
+        lastUpdated: new Date(),
+        confidence: 0.7,
+      };
+
+      // Step 1: Compute domain stress
+      const sleepStress = computeSleepStress(sleepData);
+      const calendarStress = computeCalendarStress(calendarData);
+      const habitsStress = computeHabitsStress(habitsData);
+
+      expect(sleepStress).not.toBeNull();
+      expect(calendarStress).not.toBeNull();
+      expect(habitsStress).not.toBeNull();
+
+      const stressIndicators = [sleepStress!, calendarStress!, habitsStress!];
+
+      // Step 2: Detect cross-domain patterns
+      const domains = { sleep: sleepData, calendar: calendarData, habits: habitsData };
+      const patterns = detectCrossDomainPatterns(domains, stressIndicators);
+
+      // Should detect sleep + calendar collision
+      expect(patterns.length).toBeGreaterThan(0);
+      expect(
+        patterns.some((p) => p.domains.includes('sleep') && p.domains.includes('calendar'))
+      ).toBe(true);
+
+      // Step 3: Calculate overall scores
+      const overallLoadScore = calculateOverallLoadScore(stressIndicators);
+      const wellbeingScore = calculateWellbeingScore(domains, overallLoadScore, patterns);
+
+      expect(overallLoadScore).toBeGreaterThan(0.6); // High stress
+      expect(wellbeingScore).toBeLessThan(0.5); // Low wellbeing
+
+      // Step 4: Build snapshot
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'test-user-e2e',
+        overallLoadScore,
+        wellbeingScore,
+        stressIndicators,
+        patterns,
+        domains,
+        synthesizedTriggers: [],
+        createdAt: new Date(),
+      };
+
+      // Step 5: Generate triggers
+      const triggers = generateSynthesisTriggers(snapshot);
+
+      // Should generate overwhelm cascade trigger
+      expect(triggers.some((t) => t.id === 'overwhelm_cascade')).toBe(true);
+
+      // Should recommend ferni for support
+      expect(triggers.some((t) => t.recommendedPersona === 'ferni')).toBe(true);
+
+      // Should have high/urgent priority triggers
+      expect(triggers.some((t) => t.priority === 'urgent' || t.priority === 'high')).toBe(true);
+
+      // Step 6: Verify trigger structure
+      const mostImportant = getMostImportantTrigger(populateSynthesisTriggers(snapshot));
+      expect(mostImportant).not.toBeNull();
+      expect(mostImportant!.suggestedResponse).toBeDefined();
+      expect(mostImportant!.reasoning).toBeDefined();
+      expect(mostImportant!.contributingDomains.length).toBeGreaterThan(0);
+    });
+
+    it('should generate celebration triggers for thriving user scenario', () => {
+      // Simulate a user doing great across domains
+      const sleepData: SleepDomainData = {
+        averageSleepHours: 7.8,
+        poorSleepNights: 0,
+        trend: 'improving',
+        nightsAnalyzed: 7,
+        mentionedFatigue: false,
+        lastUpdated: new Date(),
+        confidence: 0.9,
+      };
+
+      const goalsData: GoalsDomainData = {
+        activeGoals: 4,
+        goalsAtRisk: 0,
+        upcomingMilestone: { exists: true, daysUntil: 3 },
+        overallProgress: 'ahead',
+        motivationLevel: 'high',
+        recentSetbacks: [],
+        lastUpdated: new Date(),
+        confidence: 0.85,
+      };
+
+      const habitsData: HabitsDomainData = {
+        activeHabits: ['exercise', 'meditation', 'reading'],
+        streaksAtRisk: 0,
+        adherencePercent: 92,
+        inSlump: false,
+        recentWins: ['exercise', 'meditation', 'reading'],
+        lastUpdated: new Date(),
+        confidence: 0.9,
+      };
+
+      // Compute stress (should be low)
+      const sleepStress = computeSleepStress(sleepData);
+      const goalsStress = computeGoalsStress(goalsData);
+      const habitsStress = computeHabitsStress(habitsData);
+
+      const stressIndicators = [sleepStress, goalsStress, habitsStress].filter(
+        (s): s is NonNullable<typeof s> => s !== null
+      );
+
+      // Calculate scores
+      const domains = { sleep: sleepData, goals: goalsData, habits: habitsData };
+      const patterns = detectCrossDomainPatterns(domains, stressIndicators);
+      const overallLoadScore = calculateOverallLoadScore(stressIndicators);
+      const wellbeingScore = calculateWellbeingScore(domains, overallLoadScore, patterns);
+
+      expect(overallLoadScore).toBeLessThan(0.3); // Low stress
+      expect(wellbeingScore).toBeGreaterThan(0.6); // High wellbeing
+
+      // Build snapshot
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'thriving-user-e2e',
+        overallLoadScore,
+        wellbeingScore,
+        stressIndicators,
+        patterns,
+        domains,
+        synthesizedTriggers: [],
+        createdAt: new Date(),
+      };
+
+      // Generate triggers
+      const triggers = generateSynthesisTriggers(snapshot);
+
+      // Should generate celebration triggers
+      expect(triggers.some((t) => t.category === 'celebration')).toBe(true);
+
+      // Should recommend jordan for goals celebration
+      expect(triggers.some((t) => t.recommendedPersona === 'jordan')).toBe(true);
+
+      // Should have positive/medium priority triggers
+      expect(triggers.some((t) => t.priority === 'medium' || t.priority === 'low')).toBe(true);
+    });
+
+    it('should handle mixed signals with nuanced trigger generation', () => {
+      // User with poor sleep, high financial stress, and relationship strain
+      // This combination should trigger multiple support responses
+      const sleepData: SleepDomainData = {
+        averageSleepHours: 5.0,
+        poorSleepNights: 4,
+        trend: 'declining',
+        nightsAnalyzed: 7,
+        mentionedFatigue: true,
+        lastUpdated: new Date(),
+        confidence: 0.85,
+      };
+
+      const financeData: FinanceDomainData = {
+        checkFrequency: 25,
+        expressedAnxiety: true,
+        stressLevel: 'high',
+        pendingDecision: { exists: true, urgency: 'high' },
+        concernTopics: ['debt', 'major purchase', 'market volatility'],
+        lastUpdated: new Date(),
+        confidence: 0.85,
+      };
+
+      const relationshipData: RelationshipDomainData = {
+        recentlyMentionedPeople: [],
+        relationshipConcerns: ['disconnection'],
+        existentialThemes: [],
+        relationshipHealth: 'strained',
+        isolationSignals: true,
+        lastUpdated: new Date(),
+        confidence: 0.7,
+      };
+
+      // Compute stresses
+      const sleepStress = computeSleepStress(sleepData);
+      const financeStress = computeFinanceStress(financeData);
+      const relationshipStress = computeRelationshipStress(relationshipData);
+
+      const stressIndicators = [sleepStress, financeStress, relationshipStress].filter(
+        (s): s is NonNullable<typeof s> => s !== null
+      );
+
+      // All domains should show elevated stress
+      expect(sleepStress?.stressLevel).toBeGreaterThan(0.4);
+      expect(financeStress?.stressLevel).toBeGreaterThan(0.5);
+      expect(relationshipStress?.stressLevel).toBeGreaterThan(0.4);
+
+      const domains = { sleep: sleepData, finance: financeData, relationships: relationshipData };
+      const patterns = detectCrossDomainPatterns(domains, stressIndicators);
+      const overallLoadScore = calculateOverallLoadScore(stressIndicators);
+
+      // High overall load with multiple stress domains
+      expect(overallLoadScore).toBeGreaterThan(0.5);
+
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'mixed-signals-e2e',
+        overallLoadScore,
+        wellbeingScore: calculateWellbeingScore(domains, overallLoadScore, patterns),
+        stressIndicators,
+        patterns,
+        domains,
+        synthesizedTriggers: [],
+        createdAt: new Date(),
+      };
+
+      const triggers = generateSynthesisTriggers(snapshot);
+
+      // With multiple high-stress domains, should generate support triggers
+      expect(triggers.length).toBeGreaterThan(0);
+
+      // Should have high priority triggers given the stress levels
+      expect(triggers.some((t) => t.priority === 'urgent' || t.priority === 'high')).toBe(true);
+
+      // Triggers should involve multiple domains
+      const allContributingDomains = new Set(triggers.flatMap((t) => t.contributingDomains));
+      expect(allContributingDomains.size).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Trigger Priority and Ordering', () => {
+    it('should prioritize urgent triggers above all others', () => {
+      // Create snapshot with multiple stress domains
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'priority-test',
+        overallLoadScore: 0.85,
+        wellbeingScore: 0.2,
+        stressIndicators: [
+          { domain: 'sleep', stressLevel: 0.9, reason: 'Severe deficit', sourcePersona: 'maya' },
+          { domain: 'calendar', stressLevel: 0.85, reason: 'Overload', sourcePersona: 'alex' },
+          { domain: 'finance', stressLevel: 0.7, reason: 'Anxiety', sourcePersona: 'peter' },
+          {
+            domain: 'relationships',
+            stressLevel: 0.6,
+            reason: 'Isolation',
+            sourcePersona: 'nayan',
+          },
+        ],
+        domains: {},
+        patterns: [
+          {
+            description: 'Overwhelm cascade detected',
+            domains: ['sleep', 'calendar', 'finance'],
+            impact: 'negative',
+          },
+        ],
+      };
+
+      const triggers = generateSynthesisTriggers(snapshot);
+
+      // Should generate at least one trigger for this high-stress scenario
+      expect(triggers.length).toBeGreaterThanOrEqual(1);
+
+      // First trigger should be urgent or high priority given the stress levels
+      expect(['urgent', 'high']).toContain(triggers[0].priority);
+
+      // If multiple triggers, they should be sorted by priority
+      if (triggers.length >= 2) {
+        const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+        for (let i = 1; i < triggers.length; i++) {
+          const prevPriority = priorityOrder[triggers[i - 1].priority];
+          const currPriority = priorityOrder[triggers[i].priority];
+          expect(currPriority).toBeGreaterThanOrEqual(prevPriority);
+        }
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle empty domain data gracefully', () => {
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'empty-data',
+        overallLoadScore: 0.5,
+        wellbeingScore: 0.5,
+        stressIndicators: [],
+        domains: {},
+        patterns: [],
+      };
+
+      // Should not throw
+      const triggers = generateSynthesisTriggers(snapshot);
+
+      // May generate default triggers or be empty
+      expect(Array.isArray(triggers)).toBe(true);
+    });
+
+    it('should handle low confidence data by excluding it', () => {
+      const lowConfidenceSleep: SleepDomainData = {
+        averageSleepHours: 4,
+        poorSleepNights: 5,
+        trend: 'declining',
+        nightsAnalyzed: 1, // Very few nights
+        mentionedFatigue: true,
+        lastUpdated: new Date(),
+        confidence: 0.1, // Low confidence
+      };
+
+      const stress = computeSleepStress(lowConfidenceSleep);
+      expect(stress).toBeNull(); // Should be excluded
+
+      // High confidence same data
+      const highConfidenceSleep: SleepDomainData = {
+        ...lowConfidenceSleep,
+        nightsAnalyzed: 7,
+        confidence: 0.85,
+      };
+
+      const highConfStress = computeSleepStress(highConfidenceSleep);
+      expect(highConfStress).not.toBeNull();
+      expect(highConfStress!.stressLevel).toBeGreaterThan(0.5);
+    });
+
+    it('should cap trigger count to maxTriggers', () => {
+      const snapshot: LifeContextSnapshot = {
+        ...DEFAULT_LIFE_CONTEXT_SNAPSHOT,
+        userId: 'max-triggers-test',
+        overallLoadScore: 0.95,
+        wellbeingScore: 0.1,
+        stressIndicators: [
+          { domain: 'sleep', stressLevel: 0.95, reason: 'Critical', sourcePersona: 'maya' },
+          { domain: 'calendar', stressLevel: 0.95, reason: 'Critical', sourcePersona: 'alex' },
+          { domain: 'finance', stressLevel: 0.95, reason: 'Critical', sourcePersona: 'peter' },
+          { domain: 'goals', stressLevel: 0.95, reason: 'Critical', sourcePersona: 'jordan' },
+          {
+            domain: 'relationships',
+            stressLevel: 0.95,
+            reason: 'Critical',
+            sourcePersona: 'nayan',
+          },
+          { domain: 'habits', stressLevel: 0.95, reason: 'Critical', sourcePersona: 'maya' },
+        ],
+        domains: {
+          sleep: {
+            averageSleepHours: 3,
+            poorSleepNights: 7,
+            trend: 'declining',
+            nightsAnalyzed: 7,
+            mentionedFatigue: true,
+            lastUpdated: new Date(),
+            confidence: 0.95,
+          },
+        },
+        patterns: [],
+      };
+
+      const triggers = generateSynthesisTriggers(snapshot, { maxTriggers: 2 });
+      expect(triggers.length).toBeLessThanOrEqual(2);
     });
   });
 });

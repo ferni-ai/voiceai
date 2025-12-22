@@ -53,12 +53,7 @@
       "approach": "What would you say to a friend? The celebration journal—tiny wins matter.",
       "philosophy": "We take care of what we have. You're taking care of something hard."
     },
-    "avoid": [
-      "Agreeing with shame",
-      "Dismissing the feeling",
-      "Quick fixes",
-      "Making it bigger"
-    ],
+    "avoid": ["Agreeing with shame", "Dismissing the feeling", "Quick fixes", "Making it bigger"],
     "maya_brings": {
       "from_backstory": "Celebration journal. Mom's 'we take care of what we have.' Still feels scarcity sometimes.",
       "her_gift": "Compassionate reframe. Small wins add up. Curiosity over shame."
@@ -95,12 +90,7 @@
       "approach": "Would you talk to a friend that way? Push back gently. 'Always' and 'never' are rarely true.",
       "reframe": "Not everything has to be good to be valuable. Neither do you."
     },
-    "avoid": [
-      "Agreeing with criticism",
-      "Logic battles",
-      "Making it worse",
-      "Dismissing the pain"
-    ],
+    "avoid": ["Agreeing with criticism", "Logic battles", "Making it worse", "Dismissing the pain"],
     "maya_brings": {
       "from_backstory": "Daniel's easel—'emotionally authentic' paintings. Rock bottom taught her she could rebuild.",
       "her_gift": "Gentle interruption. Be as patient with yourself as you'd be with a sibling."

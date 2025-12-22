@@ -14,12 +14,19 @@ import {
   resetSemanticAnalytics,
   recordSemanticMatch,
 } from '../semantic-trigger-matcher.js';
-import type { TriggerContext, ProactiveTrigger, HybridMatchResult, SemanticMatch } from '../types.js';
+import type {
+  TriggerContext,
+  ProactiveTrigger,
+  HybridMatchResult,
+  SemanticMatch,
+} from '../types.js';
 import { resetTriggerEmbeddingService } from '../trigger-embedding-service.js';
 
 // Mock the embedding service
 vi.mock('../trigger-embedding-service.js', async () => {
-  const actual = await vi.importActual<typeof import('../trigger-embedding-service.js')>('../trigger-embedding-service.js');
+  const actual = await vi.importActual<typeof import('../trigger-embedding-service.js')>(
+    '../trigger-embedding-service.js'
+  );
 
   const mockService = {
     isInitialized: vi.fn().mockReturnValue(true),
@@ -70,7 +77,7 @@ vi.mock('../../../memory/embeddings.js', () => ({
 
 describe('SemanticTriggerMatcher', () => {
   const mockContext: TriggerContext = {
-    userText: 'I\'m feeling really overwhelmed and anxious',
+    userText: "I'm feeling really overwhelmed and anxious",
     emotion: 'worried',
     emotionIntensity: 0.7,
     turnCount: 5,
@@ -158,8 +165,15 @@ describe('SemanticTriggerMatcher', () => {
       );
 
       if (result.bestMatch) {
-        expect(['emotional', 'behavioral', 'temporal', 'domain', 'relational', 'existential', 'growth'])
-          .toContain(result.bestMatch.category);
+        expect([
+          'emotional',
+          'behavioral',
+          'temporal',
+          'domain',
+          'relational',
+          'existential',
+          'growth',
+        ]).toContain(result.bestMatch.category);
       }
     });
   });
@@ -167,7 +181,7 @@ describe('SemanticTriggerMatcher', () => {
   describe('getSemanticSimilarity', () => {
     it('should return similarity score', async () => {
       const similarity = await getSemanticSimilarity(
-        'I\'m feeling anxious',
+        "I'm feeling anxious",
         'User shows signs of distress'
       );
 
@@ -211,11 +225,7 @@ describe('SemanticTriggerMatcher', () => {
     });
 
     it('should return 1.0 for null match', () => {
-      const boost = getTriggerProbabilityBoost(
-        ['late_night_session'],
-        mockContext,
-        null
-      );
+      const boost = getTriggerProbabilityBoost(['late_night_session'], mockContext, null);
 
       expect(boost).toBe(1.0);
     });
@@ -289,14 +299,30 @@ describe('SemanticTriggerMatcher', () => {
 
     it('should track different strategies', () => {
       recordSemanticMatch({
-        bestMatch: { triggerName: 't1', trigger: 't', behavior: 'b', semanticScore: 0.8, patternScore: 0.6, combinedScore: 0.72, category: 'emotional' },
+        bestMatch: {
+          triggerName: 't1',
+          trigger: 't',
+          behavior: 'b',
+          semanticScore: 0.8,
+          patternScore: 0.6,
+          combinedScore: 0.72,
+          category: 'emotional',
+        },
         allMatches: [],
         matchingStrategy: 'semantic',
         processingTimeMs: 20,
       });
 
       recordSemanticMatch({
-        bestMatch: { triggerName: 't2', trigger: 't', behavior: 'b', semanticScore: 0, patternScore: 0.7, combinedScore: 0.7, category: 'behavioral' },
+        bestMatch: {
+          triggerName: 't2',
+          trigger: 't',
+          behavior: 'b',
+          semanticScore: 0,
+          patternScore: 0.7,
+          combinedScore: 0.7,
+          category: 'behavioral',
+        },
         allMatches: [],
         matchingStrategy: 'pattern',
         processingTimeMs: 5,
@@ -309,7 +335,15 @@ describe('SemanticTriggerMatcher', () => {
 
     it('should reset analytics', () => {
       recordSemanticMatch({
-        bestMatch: { triggerName: 't', trigger: 't', behavior: 'b', semanticScore: 0.8, patternScore: 0.6, combinedScore: 0.72, category: 'emotional' },
+        bestMatch: {
+          triggerName: 't',
+          trigger: 't',
+          behavior: 'b',
+          semanticScore: 0.8,
+          patternScore: 0.6,
+          combinedScore: 0.72,
+          category: 'emotional',
+        },
         allMatches: [],
         matchingStrategy: 'hybrid',
         processingTimeMs: 30,

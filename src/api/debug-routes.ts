@@ -9,7 +9,10 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getTriggerAnalytics, resetTriggerAnalytics } from '../intelligence/context-builders/dynamic-trigger-utils.js';
+import {
+  getTriggerAnalytics,
+  resetTriggerAnalytics,
+} from '../intelligence/context-builders/dynamic-trigger-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 

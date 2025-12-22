@@ -316,6 +316,9 @@ export {
   habitsDataCollector,
   domainCollectors,
   collectAllDomainData,
+  clearDomainCache,
+  clearAllDomainCaches,
+  getDomainCacheStats,
 } from './domain-data-collectors.js';
 
 // Phase 6: Life Context Aggregator
@@ -333,6 +336,7 @@ export {
   calculateWellbeingScore,
   DEFAULT_AGGREGATOR_CONFIG,
 } from './life-context-aggregator.js';
+export type { DetectedPattern } from './life-context-aggregator.js';
 
 // Phase 6: Synthesis Trigger Generator
 export {

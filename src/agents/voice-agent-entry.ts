@@ -166,7 +166,14 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
   // Import crash analytics for session tracking
   const crashAnalyticsModule = await import('./shared/crash-analytics.js');
-  const { registerSession, updateSessionState, unregisterSession, recordCrash, recordConnectionDrop, markOperationPending } = crashAnalyticsModule;
+  const {
+    registerSession,
+    updateSessionState,
+    unregisterSession,
+    recordCrash,
+    recordConnectionDrop,
+    markOperationPending,
+  } = crashAnalyticsModule;
 
   // Register session immediately for crash tracking
   registerSession(sessionId, {
@@ -1401,7 +1408,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           try {
             const { recordConnectionDrop } = await import('./shared/crash-analytics.js');
             // Determine if this was a graceful disconnect
-            const isGraceful = disconnectReason === 'client_left' || disconnectReason === 'participant_left';
+            const isGraceful =
+              disconnectReason === 'client_left' || disconnectReason === 'participant_left';
             recordConnectionDrop(sessionId, disconnectReason, isGraceful);
           } catch (e) {
             process.stderr.write(`[voice-agent-entry] Failed to capture disconnect event: ${e}\n`);

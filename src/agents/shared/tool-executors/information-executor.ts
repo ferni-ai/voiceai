@@ -40,9 +40,8 @@ async function execute(
 
   // Weather
   if (fnLower === 'getweather') {
-    const { getCurrentWeather, getWeatherForecast } = await import(
-      '../../../tools/domains/information/weather.js'
-    );
+    const { getCurrentWeather, getWeatherForecast } =
+      await import('../../../tools/domains/information/weather.js');
     const location = (args.location as string) || 'current';
     const type = (args.type as string) || 'current';
 
@@ -72,9 +71,8 @@ async function execute(
 
   // General news search
   if (fnLower === 'searchnews' || fnLower === 'getnews') {
-    const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } = await import(
-      '../../../tools/domains/information/news.js'
-    );
+    const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } =
+      await import('../../../tools/domains/information/news.js');
     const topic = (args.topic as string)?.toLowerCase() || 'general';
     const query = args.query as string;
     const category = args.category as string;
@@ -148,4 +146,3 @@ export const informationExecutor: DomainExecutor = {
 };
 
 export default informationExecutor;
-

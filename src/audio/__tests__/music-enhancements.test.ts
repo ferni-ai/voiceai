@@ -657,6 +657,7 @@ describe('Enhanced Music Transitions (Full Integration)', () => {
         'check_in',
         'invitation',
         'persona_specific',
+        'dj_vibes',
       ]).toContain(result.transitionType);
     });
   });

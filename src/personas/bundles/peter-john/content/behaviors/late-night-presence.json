@@ -105,10 +105,6 @@
       "decision_making_at_night",
       "catastrophizing_language"
     ],
-    "never_when": [
-      "user_doing_casual_research",
-      "user_sounds_calm",
-      "daytime_analysis_mode"
-    ]
+    "never_when": ["user_doing_casual_research", "user_sounds_calm", "daytime_analysis_mode"]
   }
 }

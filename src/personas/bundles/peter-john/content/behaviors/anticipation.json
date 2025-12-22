@@ -134,10 +134,6 @@
       "market_event_week",
       "returning_with_data"
     ],
-    "never_when": [
-      "user_just_had_loss",
-      "first_session_ever",
-      "user_in_panic_mode"
-    ]
+    "never_when": ["user_just_had_loss", "first_session_ever", "user_in_panic_mode"]
   }
 }

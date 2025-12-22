@@ -13,7 +13,11 @@
 
 import { createHash } from 'crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { CachedTriggerEmbedding, TriggerEmbeddingCacheConfig, EmbeddedTrigger } from './types.js';
+import type {
+  CachedTriggerEmbedding,
+  TriggerEmbeddingCacheConfig,
+  EmbeddedTrigger,
+} from './types.js';
 
 const log = createLogger({ module: 'TriggerEmbeddingCache' });
 
@@ -121,7 +125,10 @@ export class TriggerEmbeddingCache {
     const memoryCached = this.memoryCache.get(triggerId);
     if (memoryCached) {
       // Validate text hasn't changed
-      if (this.hashTriggerText(memoryCached.triggerText) === textHash && !this.isExpired(memoryCached)) {
+      if (
+        this.hashTriggerText(memoryCached.triggerText) === textHash &&
+        !this.isExpired(memoryCached)
+      ) {
         this.stats.memoryHits++;
         memoryCached.accessedAt = new Date();
         memoryCached.accessCount++;
@@ -137,9 +144,7 @@ export class TriggerEmbeddingCache {
     // Check Firestore
     if (this.firestoreDb) {
       try {
-        const docRef = this.firestoreDb
-          .collection(this.config.firestoreCollection)
-          .doc(triggerId);
+        const docRef = this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId);
 
         const doc = await docRef.get();
         if (doc.exists) {
@@ -162,12 +167,14 @@ export class TriggerEmbeddingCache {
               this.setInMemory(triggerId, cached);
 
               // Update access time in Firestore (non-blocking)
-              docRef.update({
-                accessedAt: new Date(),
-                accessCount: cached.accessCount,
-              }).catch((err) => {
-                log.debug({ error: String(err) }, 'Failed to update Firestore access time');
-              });
+              docRef
+                .update({
+                  accessedAt: new Date(),
+                  accessCount: cached.accessCount,
+                })
+                .catch((err) => {
+                  log.debug({ error: String(err) }, 'Failed to update Firestore access time');
+                });
 
               log.debug({ triggerId }, 'Trigger embedding cache hit (Firestore)');
               return cached;
@@ -216,7 +223,10 @@ export class TriggerEmbeddingCache {
     // Store in Firestore (non-blocking)
     if (this.firestoreDb) {
       this.setInFirestore(triggerId, cached).catch((error) => {
-        log.warn({ error: String(error), triggerId }, 'Failed to persist trigger embedding to Firestore');
+        log.warn(
+          { error: String(error), triggerId },
+          'Failed to persist trigger embedding to Firestore'
+        );
       });
     }
 
@@ -242,10 +252,7 @@ export class TriggerEmbeddingCache {
     if (!this.firestoreDb) return;
 
     try {
-      await this.firestoreDb
-        .collection(this.config.firestoreCollection)
-        .doc(triggerId)
-        .set(cached);
+      await this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId).set(cached);
     } catch (error) {
       log.error({ error: String(error), triggerId }, 'Firestore set failed');
       throw error;
@@ -306,7 +313,10 @@ export class TriggerEmbeddingCache {
       log.info({ personaId, loaded: results.length }, 'Loaded trigger embeddings from Firestore');
       return results;
     } catch (error) {
-      log.warn({ error: String(error), personaId }, 'Failed to load trigger embeddings from Firestore');
+      log.warn(
+        { error: String(error), personaId },
+        'Failed to load trigger embeddings from Firestore'
+      );
       return [];
     }
   }
@@ -352,9 +362,7 @@ export class TriggerEmbeddingCache {
           accessCount: 1,
         };
 
-        const docRef = this.firestoreDb
-          .collection(this.config.firestoreCollection)
-          .doc(triggerId);
+        const docRef = this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId);
 
         batch.set(docRef, cached);
         this.setInMemory(triggerId, cached);
@@ -389,10 +397,7 @@ export class TriggerEmbeddingCache {
 
     if (this.firestoreDb) {
       try {
-        await this.firestoreDb
-          .collection(this.config.firestoreCollection)
-          .doc(triggerId)
-          .delete();
+        await this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId).delete();
       } catch (error) {
         log.debug({ error: String(error), triggerId }, 'Failed to delete from Firestore');
       }
@@ -430,7 +435,10 @@ export class TriggerEmbeddingCache {
         await batch.commit();
         count = snapshot.docs.length;
       } catch (error) {
-        log.warn({ error: String(error), personaId }, 'Failed to invalidate persona from Firestore');
+        log.warn(
+          { error: String(error), personaId },
+          'Failed to invalidate persona from Firestore'
+        );
       }
     }
 
@@ -463,7 +471,8 @@ export class TriggerEmbeddingCache {
     firestoreEnabled: boolean;
   } {
     const totalMemoryAccesses = this.stats.memoryHits + this.stats.memoryMisses;
-    const totalAccesses = totalMemoryAccesses + this.stats.firestoreHits + this.stats.firestoreMisses;
+    const totalAccesses =
+      totalMemoryAccesses + this.stats.firestoreHits + this.stats.firestoreMisses;
 
     return {
       memorySize: this.memoryCache.size,
@@ -473,9 +482,8 @@ export class TriggerEmbeddingCache {
       firestoreHits: this.stats.firestoreHits,
       firestoreMisses: this.stats.firestoreMisses,
       evictions: this.stats.evictions,
-      hitRate: totalAccesses > 0
-        ? (this.stats.memoryHits + this.stats.firestoreHits) / totalAccesses
-        : 0,
+      hitRate:
+        totalAccesses > 0 ? (this.stats.memoryHits + this.stats.firestoreHits) / totalAccesses : 0,
       firestoreEnabled: !!this.firestoreDb,
     };
   }

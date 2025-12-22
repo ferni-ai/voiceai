@@ -968,8 +968,14 @@ async function buildCommunicationBriefing(
 
   if (protectedTimeWindows.length > 0 && protectedTimeWindows[0].quality === 'ideal') {
     const window = protectedTimeWindows[0];
-    const dateStr = window.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    actionItems.push(`🛡️ Suggest protecting ${dateStr} ${window.startHour}:00-${window.endHour}:00 for milestone focus`);
+    const dateStr = window.date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    actionItems.push(
+      `🛡️ Suggest protecting ${dateStr} ${window.startHour}:00-${window.endHour}:00 for milestone focus`
+    );
   }
 
   return {
@@ -1166,8 +1172,7 @@ function formatBriefingForInjection(
           month: 'short',
           day: 'numeric',
         });
-        const quality =
-          window.quality === 'ideal' ? '⭐' : window.quality === 'good' ? '✓' : '';
+        const quality = window.quality === 'ideal' ? '⭐' : window.quality === 'good' ? '✓' : '';
         sections.push(
           `  ${quality} ${dateStr} ${window.startHour}:00-${window.endHour}:00 (${window.reason})`
         );

@@ -137,11 +137,7 @@ async function executeToolChain(
     results.push(result);
 
     // Check for error indicators
-    if (
-      result.includes("Couldn't") ||
-      result.includes('error') ||
-      result.includes('Sorry')
-    ) {
+    if (result.includes("Couldn't") || result.includes('error') || result.includes('Sorry')) {
       // Log but continue - some steps may intentionally fail
     }
   }
@@ -166,75 +162,235 @@ describe('E2E Media Discovery Tool Chains', () => {
     // Using 'as unknown as X' pattern for test fixtures with partial data
     vi.mocked(podcastService.searchPodcasts).mockResolvedValue({
       found: true,
-      shows: [{ id: 'p1', name: 'Test Podcast', publisher: 'Test Publisher', description: 'Test', imageUrl: '', genres: [], explicit: false, source: 'itunes', totalEpisodes: 100 }],
+      shows: [
+        {
+          id: 'p1',
+          name: 'Test Podcast',
+          publisher: 'Test Publisher',
+          description: 'Test',
+          imageUrl: '',
+          genres: [],
+          explicit: false,
+          source: 'itunes',
+          totalEpisodes: 100,
+        },
+      ],
     });
     vi.mocked(podcastService.getPodcastEpisodes).mockResolvedValue({
       found: true,
-      episodes: [{ id: 'ep1', showId: 'p1', showName: 'Test', title: 'Episode 1', description: '', durationMs: 3600000, releaseDate: new Date().toISOString(), source: 'itunes' }],
+      episodes: [
+        {
+          id: 'ep1',
+          showId: 'p1',
+          showName: 'Test',
+          title: 'Episode 1',
+          description: '',
+          durationMs: 3600000,
+          releaseDate: new Date().toISOString(),
+          source: 'itunes',
+        },
+      ],
     });
     vi.mocked(podcastService.getTopPodcasts).mockResolvedValue({
       found: true,
-      shows: [{ id: 'p2', name: 'Top Show', publisher: 'Famous Host', description: 'Top', imageUrl: '', genres: [], explicit: false, source: 'itunes' }],
+      shows: [
+        {
+          id: 'p2',
+          name: 'Top Show',
+          publisher: 'Famous Host',
+          description: 'Top',
+          imageUrl: '',
+          genres: [],
+          explicit: false,
+          source: 'itunes',
+        },
+      ],
     });
     vi.mocked(podcastService.getPodcastRecommendations).mockResolvedValue({
       found: true,
-      shows: [{ id: 'p3', name: 'Recommended Pod', publisher: 'Expert', description: 'Rec', imageUrl: '', genres: [], explicit: false, source: 'itunes' }],
+      shows: [
+        {
+          id: 'p3',
+          name: 'Recommended Pod',
+          publisher: 'Expert',
+          description: 'Rec',
+          imageUrl: '',
+          genres: [],
+          explicit: false,
+          source: 'itunes',
+        },
+      ],
     });
 
     vi.mocked(videoService.searchVideos).mockResolvedValue({
       found: true,
       videos: [
-        { id: 'vid1', title: 'Test Video', description: 'Test', channelId: 'c1', channelTitle: 'Channel', publishedAt: new Date().toISOString(), thumbnailUrl: '', url: 'http://youtube.com/vid1' },
+        {
+          id: 'vid1',
+          title: 'Test Video',
+          description: 'Test',
+          channelId: 'c1',
+          channelTitle: 'Channel',
+          publishedAt: new Date().toISOString(),
+          thumbnailUrl: '',
+          url: 'http://youtube.com/vid1',
+        },
       ],
     });
     vi.mocked(videoService.getVideoDetails).mockResolvedValue({
       found: true,
-      video: { id: 'vid1', title: 'Detailed Video', description: 'Detail', channelId: 'c1', channelTitle: 'Channel', publishedAt: new Date().toISOString(), thumbnailUrl: '', url: 'http://youtube.com/vid1' },
+      video: {
+        id: 'vid1',
+        title: 'Detailed Video',
+        description: 'Detail',
+        channelId: 'c1',
+        channelTitle: 'Channel',
+        publishedAt: new Date().toISOString(),
+        thumbnailUrl: '',
+        url: 'http://youtube.com/vid1',
+      },
     });
     vi.mocked(videoService.getTrendingVideos).mockResolvedValue({
       found: true,
-      videos: [{ id: 't1', title: 'Trending', description: 'Trend', channelId: 'c2', channelTitle: 'Popular', publishedAt: new Date().toISOString(), thumbnailUrl: '', url: 'http://youtube.com/t1' }],
+      videos: [
+        {
+          id: 't1',
+          title: 'Trending',
+          description: 'Trend',
+          channelId: 'c2',
+          channelTitle: 'Popular',
+          publishedAt: new Date().toISOString(),
+          thumbnailUrl: '',
+          url: 'http://youtube.com/t1',
+        },
+      ],
     });
     vi.mocked(videoService.getVideoRecommendations).mockResolvedValue({
       found: true,
-      videos: [{ id: 'rec1', title: 'Recommended', description: 'Rec', channelId: 'c3', channelTitle: 'Rec Channel', publishedAt: new Date().toISOString(), thumbnailUrl: '', url: 'http://youtube.com/rec1' }],
+      videos: [
+        {
+          id: 'rec1',
+          title: 'Recommended',
+          description: 'Rec',
+          channelId: 'c3',
+          channelTitle: 'Rec Channel',
+          publishedAt: new Date().toISOString(),
+          thumbnailUrl: '',
+          url: 'http://youtube.com/rec1',
+        },
+      ],
     });
 
     vi.mocked(booksService.searchBooks).mockResolvedValue({
       found: true,
-      books: [{ id: 'book1', title: 'Test Book', authors: ['Author'], categories: [], infoLink: '', language: 'en' }],
+      books: [
+        {
+          id: 'book1',
+          title: 'Test Book',
+          authors: ['Author'],
+          categories: [],
+          infoLink: '',
+          language: 'en',
+        },
+      ],
     });
     vi.mocked(booksService.getBookDetails).mockResolvedValue({
       found: true,
-      book: { id: 'book1', title: 'Detailed Book', authors: ['Author'], categories: [], infoLink: '', language: 'en' },
+      book: {
+        id: 'book1',
+        title: 'Detailed Book',
+        authors: ['Author'],
+        categories: [],
+        infoLink: '',
+        language: 'en',
+      },
     });
     vi.mocked(booksService.getBookRecommendations).mockResolvedValue({
       found: true,
-      books: [{ id: 'book2', title: 'Recommended Book', authors: ['Expert Author'], categories: [], infoLink: '', language: 'en' }],
+      books: [
+        {
+          id: 'book2',
+          title: 'Recommended Book',
+          authors: ['Expert Author'],
+          categories: [],
+          infoLink: '',
+          language: 'en',
+        },
+      ],
     });
     vi.mocked(booksService.getPopularBooks).mockResolvedValue({
       found: true,
-      books: [{ id: 'book3', title: 'Bestseller', authors: ['Famous Author'], categories: [], infoLink: '', language: 'en' }],
+      books: [
+        {
+          id: 'book3',
+          title: 'Bestseller',
+          authors: ['Famous Author'],
+          categories: [],
+          infoLink: '',
+          language: 'en',
+        },
+      ],
     });
 
     vi.mocked(readingListStore.addToReadingList).mockResolvedValue({
       success: true,
-      entry: { id: 'entry1', userId: 'user1', bookId: 'book1', title: 'Added Book', authors: ['Author'], status: 'want_to_read', listName: 'default', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      entry: {
+        id: 'entry1',
+        userId: 'user1',
+        bookId: 'book1',
+        title: 'Added Book',
+        authors: ['Author'],
+        status: 'want_to_read',
+        listName: 'default',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
     });
     vi.mocked(readingListStore.getReadingList).mockResolvedValue({
       success: true,
       list: {
-        entries: [{ id: 'entry1', userId: 'user1', bookId: 'book1', title: 'Book', authors: ['A'], status: 'reading', listName: 'default', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+        entries: [
+          {
+            id: 'entry1',
+            userId: 'user1',
+            bookId: 'book1',
+            title: 'Book',
+            authors: ['A'],
+            status: 'reading',
+            listName: 'default',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
         stats: { total: 1, wantToRead: 0, reading: 1, completed: 0 },
       },
     });
     vi.mocked(readingListStore.markBookAsRead).mockResolvedValue({
       success: true,
-      entry: { id: 'entry2', userId: 'user1', bookId: 'book2', title: 'Completed Book', authors: ['B'], status: 'completed', listName: 'default', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), rating: 5 },
+      entry: {
+        id: 'entry2',
+        userId: 'user1',
+        bookId: 'book2',
+        title: 'Completed Book',
+        authors: ['B'],
+        status: 'completed',
+        listName: 'default',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        rating: 5,
+      },
     });
     vi.mocked(readingListStore.getReadingStats).mockResolvedValue({
       success: true,
-      stats: { totalBooks: 5, booksReading: 2, booksCompleted: 3, booksWantToRead: 0, pagesRead: 1000, averageRating: 4.5, readingStreak: 7 },
+      stats: {
+        totalBooks: 5,
+        booksReading: 2,
+        booksCompleted: 3,
+        booksWantToRead: 0,
+        pagesRead: 1000,
+        averageRating: 4.5,
+        readingStreak: 7,
+      },
     });
 
     // Load tools

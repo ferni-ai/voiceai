@@ -840,9 +840,8 @@ async function cleanupCoreComponents(sessionId: string): Promise<void> {
 
   // 🚀 PERFORMANCE: Cleanup session optimizations (memory cache, prefetch state)
   try {
-    const { cleanupSessionOptimizations } = await import(
-      '../../agents/shared/performance/session-optimizations.js'
-    );
+    const { cleanupSessionOptimizations } =
+      await import('../../agents/shared/performance/session-optimizations.js');
     cleanupSessionOptimizations(sessionId);
   } catch {
     // Module may not be loaded - non-critical
@@ -850,9 +849,8 @@ async function cleanupCoreComponents(sessionId: string): Promise<void> {
 
   // 🚀 PERFORMANCE: Cleanup tool response cache
   try {
-    const { clearSessionToolCache } = await import(
-      '../../agents/shared/performance/tool-response-cache.js'
-    );
+    const { clearSessionToolCache } =
+      await import('../../agents/shared/performance/tool-response-cache.js');
     clearSessionToolCache(sessionId);
   } catch {
     // Module may not be loaded - non-critical

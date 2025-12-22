@@ -54,7 +54,8 @@ describe('Effectiveness Calculator', () => {
     const avgLength = 50;
 
     it('should detect longer_response when response exceeds threshold', () => {
-      const longResponse = 'This is a much longer response that goes into great detail about my feelings and experiences with this topic that we are discussing together.';
+      const longResponse =
+        'This is a much longer response that goes into great detail about my feelings and experiences with this topic that we are discussing together.';
       const signals = detectEngagementSignals(longResponse, avgLength, [], 'emotions');
 
       expect(signals).toContain('longer_response');
@@ -68,14 +69,15 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should detect deeper_topic when going deeper', () => {
-      const response = 'To be honest, I feel like this is really important because I realized something about myself.';
+      const response =
+        'To be honest, I feel like this is really important because I realized something about myself.';
       const signals = detectEngagementSignals(response, avgLength, ['weather'], 'emotions');
 
       expect(signals).toContain('deeper_topic');
     });
 
     it('should detect emotional_expression', () => {
-      const response = "I feel really happy about this, it makes me excited for the future.";
+      const response = 'I feel really happy about this, it makes me excited for the future.';
       const signals = detectEngagementSignals(response, avgLength, [], 'emotions');
 
       expect(signals).toContain('emotional_expression');
@@ -96,7 +98,8 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should detect vulnerability_shared', () => {
-      const response = "I haven't told anyone this before, but I've been scared to admit how I really feel.";
+      const response =
+        "I haven't told anyone this before, but I've been scared to admit how I really feel.";
       const signals = detectEngagementSignals(response, avgLength, [], 'emotions');
 
       expect(signals).toContain('vulnerability_shared');
@@ -110,7 +113,8 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should detect multiple signals in one response', () => {
-      const response = "Thank you for asking. I feel like I haven't told anyone this, but I've been really struggling. Tell me more about how I can improve?";
+      const response =
+        "Thank you for asking. I feel like I haven't told anyone this, but I've been really struggling. Tell me more about how I can improve?";
       const signals = detectEngagementSignals(response, avgLength, [], 'emotions');
 
       expect(signals).toContain('emotional_expression');
@@ -146,7 +150,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should detect deflection_phrase', () => {
-      const response = "Never mind about that, forget it.";
+      const response = 'Never mind about that, forget it.';
       const signals = detectDeflectionSignals(response, avgLength, 'emotions', 'emotions', null);
 
       expect(signals).toContain('deflection_phrase');
@@ -336,9 +340,13 @@ describe('Effectiveness Calculator', () => {
 
       const events: TriggerOutcomeEvent[] = [
         // Old events (outside 30-day window)
-        ...Array.from({ length: 5 }, () => createOutcomeEvent('window_trigger', 'engaged', 0.4, 0.8, undefined, undefined, oldDate)),
+        ...Array.from({ length: 5 }, () =>
+          createOutcomeEvent('window_trigger', 'engaged', 0.4, 0.8, undefined, undefined, oldDate)
+        ),
         // Recent events
-        ...Array.from({ length: 5 }, () => createOutcomeEvent('window_trigger', 'deflected', 0.6, 0.3, undefined, undefined, now)),
+        ...Array.from({ length: 5 }, () =>
+          createOutcomeEvent('window_trigger', 'deflected', 0.6, 0.3, undefined, undefined, now)
+        ),
       ];
 
       const result = calculateEffectivenessFromEvents('window_trigger', events);
@@ -350,12 +358,66 @@ describe('Effectiveness Calculator', () => {
 
     it('should track best and worst contexts', () => {
       const events: TriggerOutcomeEvent[] = [
-        createOutcomeEvent('context_trigger', 'engaged', undefined, undefined, undefined, undefined, undefined, ['evening', 'weekend']),
-        createOutcomeEvent('context_trigger', 'engaged', undefined, undefined, undefined, undefined, undefined, ['evening', 'weekend']),
-        createOutcomeEvent('context_trigger', 'engaged', undefined, undefined, undefined, undefined, undefined, ['evening']),
-        createOutcomeEvent('context_trigger', 'deflected', undefined, undefined, undefined, undefined, undefined, ['morning', 'weekday']),
-        createOutcomeEvent('context_trigger', 'deflected', undefined, undefined, undefined, undefined, undefined, ['morning', 'weekday']),
-        createOutcomeEvent('context_trigger', 'deflected', undefined, undefined, undefined, undefined, undefined, ['morning']),
+        createOutcomeEvent(
+          'context_trigger',
+          'engaged',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['evening', 'weekend']
+        ),
+        createOutcomeEvent(
+          'context_trigger',
+          'engaged',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['evening', 'weekend']
+        ),
+        createOutcomeEvent(
+          'context_trigger',
+          'engaged',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['evening']
+        ),
+        createOutcomeEvent(
+          'context_trigger',
+          'deflected',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['morning', 'weekday']
+        ),
+        createOutcomeEvent(
+          'context_trigger',
+          'deflected',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['morning', 'weekday']
+        ),
+        createOutcomeEvent(
+          'context_trigger',
+          'deflected',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ['morning']
+        ),
       ];
 
       const result = calculateEffectivenessFromEvents('context_trigger', events);
@@ -443,9 +505,7 @@ describe('Effectiveness Calculator', () => {
       const iterations = 100;
 
       for (let i = 0; i < iterations; i++) {
-        const profile = createMockProfile([
-          { name: 'low_trigger', score: 0.1, fired: 10 },
-        ]);
+        const profile = createMockProfile([{ name: 'low_trigger', score: 0.1, fired: 10 }]);
         const analysis = analyzeUserEffectiveness(profile);
         if (analysis.triggersToExplore.length > 0) {
           exploredCount++;
@@ -473,9 +533,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should return boost multiplier for effective trigger', () => {
-      const profile = createMockProfile([
-        { name: 'effective_trigger', score: 0.8, fired: 15 },
-      ]);
+      const profile = createMockProfile([{ name: 'effective_trigger', score: 0.8, fired: 15 }]);
 
       const result = getEffectivenessMultiplier('effective_trigger', profile);
 
@@ -484,9 +542,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should return suppression multiplier for ineffective trigger', () => {
-      const profile = createMockProfile([
-        { name: 'ineffective_trigger', score: 0.2, fired: 15 },
-      ]);
+      const profile = createMockProfile([{ name: 'ineffective_trigger', score: 0.2, fired: 15 }]);
 
       const result = getEffectivenessMultiplier('ineffective_trigger', profile);
 
@@ -497,9 +553,7 @@ describe('Effectiveness Calculator', () => {
 
   describe('applyEffectivenessToScore', () => {
     it('should boost score for effective triggers', () => {
-      const profile = createMockProfile([
-        { name: 'good_trigger', score: 0.85, fired: 20 },
-      ]);
+      const profile = createMockProfile([{ name: 'good_trigger', score: 0.85, fired: 20 }]);
 
       const result = applyEffectivenessToScore(0.7, 'good_trigger', profile);
 
@@ -508,9 +562,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should suppress score for ineffective triggers', () => {
-      const profile = createMockProfile([
-        { name: 'bad_trigger', score: 0.2, fired: 20 },
-      ]);
+      const profile = createMockProfile([{ name: 'bad_trigger', score: 0.2, fired: 20 }]);
 
       const result = applyEffectivenessToScore(0.7, 'bad_trigger', profile);
 
@@ -519,9 +571,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should cap score between 0 and 1', () => {
-      const profile = createMockProfile([
-        { name: 'very_good', score: 0.95, fired: 20 },
-      ]);
+      const profile = createMockProfile([{ name: 'very_good', score: 0.95, fired: 20 }]);
 
       const result = applyEffectivenessToScore(0.9, 'very_good', profile);
 
@@ -546,9 +596,7 @@ describe('Effectiveness Calculator', () => {
 
   describe('Feedback Loop Protection', () => {
     it('should never suppress below minimum multiplier', () => {
-      const profile = createMockProfile([
-        { name: 'terrible_trigger', score: 0.01, fired: 50 },
-      ]);
+      const profile = createMockProfile([{ name: 'terrible_trigger', score: 0.01, fired: 50 }]);
 
       const result = getEffectivenessMultiplier('terrible_trigger', profile);
 
@@ -556,9 +604,7 @@ describe('Effectiveness Calculator', () => {
     });
 
     it('should never boost above maximum multiplier', () => {
-      const profile = createMockProfile([
-        { name: 'perfect_trigger', score: 0.99, fired: 50 },
-      ]);
+      const profile = createMockProfile([{ name: 'perfect_trigger', score: 0.99, fired: 50 }]);
 
       const result = getEffectivenessMultiplier('perfect_trigger', profile);
 
@@ -570,9 +616,7 @@ describe('Effectiveness Calculator', () => {
       let explorationOccurred = false;
 
       for (let i = 0; i < 200; i++) {
-        const profile = createMockProfile([
-          { name: `low_trigger_${i}`, score: 0.1, fired: 20 },
-        ]);
+        const profile = createMockProfile([{ name: `low_trigger_${i}`, score: 0.1, fired: 20 }]);
         const result = getEffectivenessMultiplier(`low_trigger_${i}`, profile);
         if (result.shouldExplore) {
           explorationOccurred = true;
@@ -597,7 +641,9 @@ describe('Effectiveness Calculator', () => {
       const highResult = getEffectivenessMultiplier('old_trigger', highConfidenceProfile);
 
       // Low confidence should have multiplier closer to 1.0
-      expect(Math.abs(lowResult.multiplier - 1.0)).toBeLessThan(Math.abs(highResult.multiplier - 1.0));
+      expect(Math.abs(lowResult.multiplier - 1.0)).toBeLessThan(
+        Math.abs(highResult.multiplier - 1.0)
+      );
     });
   });
 

@@ -228,9 +228,7 @@ describe('Podcast Domain Tools', () => {
     it('should get top podcasts', async () => {
       mockGetTopPodcasts.mockResolvedValue({
         found: true,
-        shows: [
-          { name: 'Bestseller', publisher: 'Famous Host', totalEpisodes: 200 },
-        ],
+        shows: [{ name: 'Bestseller', publisher: 'Famous Host', totalEpisodes: 200 }],
       });
 
       const toolDef = toolDefinitions.find((t) => t.id === 'getTopPodcasts')!;

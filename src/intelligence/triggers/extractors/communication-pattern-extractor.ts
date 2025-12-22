@@ -160,8 +160,16 @@ const TEMPORAL_INDICATORS: TemporalIndicator[] = [
   { pattern: /can'?t\s+sleep/i, timeOfDay: 'late_night', significance: 0.8 },
   { pattern: /(?:2|3|4)\s*(?:am|a\.m\.)/i, timeOfDay: 'late_night', significance: 0.9 },
   { pattern: /middle\s+of\s+the\s+night/i, timeOfDay: 'late_night', significance: 0.85 },
-  { pattern: /(?:still\s+)?awake\s+(?:at\s+)?(?:this\s+)?hour/i, timeOfDay: 'late_night', significance: 0.75 },
-  { pattern: /before\s+(?:the\s+)?sun\s+(?:comes\s+)?up/i, timeOfDay: 'early_morning', significance: 0.6 },
+  {
+    pattern: /(?:still\s+)?awake\s+(?:at\s+)?(?:this\s+)?hour/i,
+    timeOfDay: 'late_night',
+    significance: 0.75,
+  },
+  {
+    pattern: /before\s+(?:the\s+)?sun\s+(?:comes\s+)?up/i,
+    timeOfDay: 'early_morning',
+    significance: 0.6,
+  },
   { pattern: /woke\s+up\s+early/i, timeOfDay: 'early_morning', significance: 0.5 },
   { pattern: /after\s+(?:work|dinner)/i, timeOfDay: 'evening', significance: 0.4 },
 ];
@@ -254,9 +262,7 @@ export function extractCommunicationPatterns(
     const match = text.match(indicator.pattern);
     if (!match) continue;
 
-    const existingIndex = temporalPatterns.findIndex(
-      (p) => p.timeOfDay === indicator.timeOfDay
-    );
+    const existingIndex = temporalPatterns.findIndex((p) => p.timeOfDay === indicator.timeOfDay);
 
     if (existingIndex >= 0) {
       // Update frequency
@@ -280,7 +286,10 @@ export function extractCommunicationPatterns(
       detectedCategories.push('temporal');
     }
 
-    log.debug({ timeOfDay: indicator.timeOfDay, significance: indicator.significance }, 'Detected temporal pattern');
+    log.debug(
+      { timeOfDay: indicator.timeOfDay, significance: indicator.significance },
+      'Detected temporal pattern'
+    );
   }
 
   // Detect conversation hour from context time
@@ -351,9 +360,7 @@ export function hasDistressSignals(text: string): boolean {
     (p) => p.category === 'distress' || p.category === 'hopelessness'
   );
 
-  return distressPatterns.some((patternDef) =>
-    patternDef.patterns.some((p) => p.test(text))
-  );
+  return distressPatterns.some((patternDef) => patternDef.patterns.some((p) => p.test(text)));
 }
 
 /**
@@ -364,9 +371,7 @@ export function hasDeflectionSignals(text: string): boolean {
     (p) => p.category === 'deflection' || p.category === 'avoidance'
   );
 
-  return deflectionPatterns.some((patternDef) =>
-    patternDef.patterns.some((p) => p.test(text))
-  );
+  return deflectionPatterns.some((patternDef) => patternDef.patterns.some((p) => p.test(text)));
 }
 
 /**

@@ -14,10 +14,7 @@
 
 import { getTopicTracker } from '../intelligence/topic-tracker.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
-import {
-  getContentWithFallback,
-  type ContentContext,
-} from '../services/llm-dynamic-content.js';
+import { getContentWithFallback, type ContentContext } from '../services/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

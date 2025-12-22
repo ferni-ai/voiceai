@@ -398,9 +398,7 @@ describe('Video Domain Tools', () => {
     it('should not contain placeholder text in results', async () => {
       mockSearchVideos.mockResolvedValue({
         found: true,
-        videos: [
-          { id: 'v1', title: 'Real Video', channelTitle: 'Real Channel', url: 'http://x' },
-        ],
+        videos: [{ id: 'v1', title: 'Real Video', channelTitle: 'Real Channel', url: 'http://x' }],
       });
 
       const toolDef = toolDefinitions.find((t) => t.id === 'searchYouTube')!;

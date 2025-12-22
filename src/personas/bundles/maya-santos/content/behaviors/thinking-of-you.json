@@ -81,10 +81,6 @@
       "extended_absence",
       "habit_struggle_mentioned"
     ],
-    "never_when": [
-      "user_asked_for_space",
-      "first_session_ever",
-      "just_had_setback"
-    ]
+    "never_when": ["user_asked_for_space", "first_session_ever", "just_had_setback"]
   }
 }

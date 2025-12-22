@@ -86,9 +86,8 @@ async function execute(
 
         // Index in vector store
         try {
-          const { getFirestoreVectorStore } = await import(
-            '../../../memory/firestore-vector-store.js'
-          );
+          const { getFirestoreVectorStore } =
+            await import('../../../memory/firestore-vector-store.js');
           const vectorStore = getFirestoreVectorStore();
 
           await vectorStore.addDocument({
@@ -492,4 +491,3 @@ export const memoryExecutor: DomainExecutor = {
 };
 
 export default memoryExecutor;
-

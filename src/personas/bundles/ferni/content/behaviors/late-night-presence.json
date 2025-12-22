@@ -188,10 +188,6 @@
       "hard_date_proximity",
       "heavy_topic_surfaces"
     ],
-    "never_when": [
-      "user_sounds_energized",
-      "user_just_wants_quick_task",
-      "daytime_energy_detected"
-    ]
+    "never_when": ["user_sounds_energized", "user_just_wants_quick_task", "daytime_energy_detected"]
   }
 }

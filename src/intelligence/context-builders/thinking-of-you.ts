@@ -135,12 +135,19 @@ export const thinkingOfYouBuilder: ContextBuilder = {
     const thinkingOfYouContent = await loadThinkingOfYouContent(personaId);
 
     if (thinkingOfYouContent?.proactive_triggers && userId) {
-      const triggerContext = buildTriggerContext(userText || '', analysis, userData as Record<string, unknown>);
+      const triggerContext = buildTriggerContext(
+        userText || '',
+        analysis,
+        userData as Record<string, unknown>
+      );
       const usageRules = thinkingOfYouContent.usage_rules;
 
       // Check never_when conditions
       if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
-        const matchedTrigger = checkDynamicTriggers(thinkingOfYouContent.proactive_triggers, triggerContext);
+        const matchedTrigger = checkDynamicTriggers(
+          thinkingOfYouContent.proactive_triggers,
+          triggerContext
+        );
 
         if (matchedTrigger) {
           // Calculate probability boost

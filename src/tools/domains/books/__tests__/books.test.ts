@@ -139,7 +139,12 @@ describe('Books Domain Tools', () => {
       mockSearchBooks.mockResolvedValue({
         found: true,
         books: [
-          { title: 'Clean Code', authors: ['Robert C. Martin'], averageRating: 4.5, pageCount: 464 },
+          {
+            title: 'Clean Code',
+            authors: ['Robert C. Martin'],
+            averageRating: 4.5,
+            pageCount: 464,
+          },
           { title: 'The Pragmatic Programmer', authors: ['David Thomas'], pageCount: 352 },
         ],
       });
@@ -173,9 +178,7 @@ describe('Books Domain Tools', () => {
     it('should get recommendations based on interests', async () => {
       mockGetBookRecommendations.mockResolvedValue({
         found: true,
-        books: [
-          { title: 'Atomic Habits', authors: ['James Clear'], averageRating: 4.7 },
-        ],
+        books: [{ title: 'Atomic Habits', authors: ['James Clear'], averageRating: 4.7 }],
       });
 
       const toolDef = toolDefinitions.find((t) => t.id === 'getBookRecommendations')!;

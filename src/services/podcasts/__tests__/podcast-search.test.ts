@@ -215,7 +215,10 @@ describe('Podcast Search Service', () => {
         }),
       });
 
-      const result = await getPodcastRecommendations(['artificial intelligence', 'machine learning']);
+      const result = await getPodcastRecommendations([
+        'artificial intelligence',
+        'machine learning',
+      ]);
 
       expect(result.found).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(

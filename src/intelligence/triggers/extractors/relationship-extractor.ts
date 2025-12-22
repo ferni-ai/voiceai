@@ -140,7 +140,8 @@ const RELATIONSHIP_PATTERNS: RelationshipPattern[] = [
 
   // Generic named person
   {
-    pattern: /(\w+)\s+(?:is|was)\s+my\s+(mom|mother|dad|father|brother|sister|friend|wife|husband|partner)/i,
+    pattern:
+      /(\w+)\s+(?:is|was)\s+my\s+(mom|mother|dad|father|brother|sister|friend|wife|husband|partner)/i,
     type: 'other',
     extractName: (m) => m[1],
   },
@@ -158,7 +159,11 @@ interface ValencePattern {
 
 const POSITIVE_VALENCE_PATTERNS: ValencePattern[] = [
   { pattern: /love\s+(?:him|her|them)/i, valence: 'very_positive', weight: 0.8 },
-  { pattern: /(?:best|closest|dearest)\s+(?:friend|person)/i, valence: 'very_positive', weight: 0.7 },
+  {
+    pattern: /(?:best|closest|dearest)\s+(?:friend|person)/i,
+    valence: 'very_positive',
+    weight: 0.7,
+  },
   { pattern: /(?:amazing|wonderful|incredible|supportive)/i, valence: 'positive', weight: 0.5 },
   { pattern: /(?:so|really)\s+(?:close|important)/i, valence: 'positive', weight: 0.5 },
   { pattern: /grateful\s+(?:for|to)/i, valence: 'positive', weight: 0.5 },
@@ -170,7 +175,11 @@ const NEGATIVE_VALENCE_PATTERNS: ValencePattern[] = [
   { pattern: /(?:toxic|abusive|manipulative)/i, valence: 'very_negative', weight: 0.9 },
   { pattern: /(?:difficult|hard|challenging)\s+relationship/i, valence: 'negative', weight: 0.5 },
   { pattern: /(?:hurt|disappointed|frustrated)\s+(?:by|with)/i, valence: 'negative', weight: 0.5 },
-  { pattern: /(?:don't|doesn't)\s+(?:talk|speak)\s+(?:to|with)/i, valence: 'negative', weight: 0.6 },
+  {
+    pattern: /(?:don't|doesn't)\s+(?:talk|speak)\s+(?:to|with)/i,
+    valence: 'negative',
+    weight: 0.6,
+  },
   { pattern: /estranged/i, valence: 'very_negative', weight: 0.7 },
 ];
 

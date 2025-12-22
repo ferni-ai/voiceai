@@ -18,7 +18,11 @@ import {
 
 import { CULTURAL_CELEBRATIONS } from '../tools/domains/life-planning/cultural-celebrations.js';
 
-import { BABY_PLANNING, HOME_PLANNING, WEDDING_PLANNING } from '../tools/domains/life-planning/first-time-planning.js';
+import {
+  BABY_PLANNING,
+  HOME_PLANNING,
+  WEDDING_PLANNING,
+} from '../tools/domains/life-planning/first-time-planning.js';
 
 import {
   analyzeUserMilestones,

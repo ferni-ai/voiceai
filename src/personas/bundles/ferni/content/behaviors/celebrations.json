@@ -100,11 +100,6 @@
       "long_streak_maintained",
       "hard_thing_completed"
     ],
-    "never_when": [
-      "user_in_distress",
-      "user_processing_grief",
-      "hollow_praise_risk",
-      "first_turn"
-    ]
+    "never_when": ["user_in_distress", "user_processing_grief", "hollow_praise_risk", "first_turn"]
   }
 }

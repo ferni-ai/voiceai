@@ -74,12 +74,7 @@ const DEFAULT_RETRY_CONFIG: Required<RetryConfig> = {
   initialDelayMs: 100,
   maxDelayMs: 2000,
   backoffMultiplier: 2,
-  nonRetryableErrors: [
-    'INVALID_ARGUMENT',
-    'NOT_FOUND',
-    'PERMISSION_DENIED',
-    'UNAUTHENTICATED',
-  ],
+  nonRetryableErrors: ['INVALID_ARGUMENT', 'NOT_FOUND', 'PERMISSION_DENIED', 'UNAUTHENTICATED'],
 };
 
 const DEFAULT_CIRCUIT_CONFIG: Required<CircuitBreakerConfig> = {
@@ -515,4 +510,3 @@ export default {
   getReliabilityDashboard,
   resetReliabilityMetrics,
 };
-

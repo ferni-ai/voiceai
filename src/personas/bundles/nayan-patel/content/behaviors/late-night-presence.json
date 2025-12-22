@@ -110,10 +110,6 @@
       "worry_spiral",
       "surrender_language"
     ],
-    "never_when": [
-      "user_needs_practical_help",
-      "user_sounds_light",
-      "daytime_energy"
-    ]
+    "never_when": ["user_needs_practical_help", "user_sounds_light", "daytime_energy"]
   }
 }

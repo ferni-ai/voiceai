@@ -114,8 +114,11 @@ function calculatePatternScore(
     matchedKeywords.push('lateNight');
   }
 
-  if (context.daysSinceLastSession && context.daysSinceLastSession > 7 &&
-      (lowerTrigger.includes('returning') || lowerTrigger.includes('absence'))) {
+  if (
+    context.daysSinceLastSession &&
+    context.daysSinceLastSession > 7 &&
+    (lowerTrigger.includes('returning') || lowerTrigger.includes('absence'))
+  ) {
     totalScore += 0.25;
     matchedKeywords.push('returning');
   }
@@ -130,9 +133,8 @@ function calculatePatternScore(
   }
 
   // Normalize score to 0-1
-  const normalizedScore = matchCount > 0
-    ? Math.min(1, totalScore / Math.max(1, matchCount * 0.8))
-    : 0;
+  const normalizedScore =
+    matchCount > 0 ? Math.min(1, totalScore / Math.max(1, matchCount * 0.8)) : 0;
 
   return {
     score: normalizedScore,
@@ -227,8 +229,8 @@ export async function matchTriggersHybrid(
 
       // Combine scores
       const combinedScore = mergedConfig.enableHybrid
-        ? (similarity * mergedConfig.semanticWeight) +
-          (patternResult.score * mergedConfig.patternWeight)
+        ? similarity * mergedConfig.semanticWeight +
+          patternResult.score * mergedConfig.patternWeight
         : similarity;
 
       allMatches.push({
@@ -247,9 +249,7 @@ export async function matchTriggersHybrid(
     const patternMatch = checkDynamicTriggers(triggers, context);
     if (patternMatch) {
       // Check if we already have this match
-      const existingIdx = allMatches.findIndex(
-        (m) => m.triggerName === patternMatch.triggerName
-      );
+      const existingIdx = allMatches.findIndex((m) => m.triggerName === patternMatch.triggerName);
 
       if (existingIdx === -1) {
         // Add pattern-only match
@@ -271,8 +271,8 @@ export async function matchTriggersHybrid(
         const existing = allMatches[existingIdx];
         existing.patternScore = Math.max(existing.patternScore, patternMatch.confidence);
         existing.combinedScore =
-          (existing.semanticScore * mergedConfig.semanticWeight) +
-          (existing.patternScore * mergedConfig.patternWeight);
+          existing.semanticScore * mergedConfig.semanticWeight +
+          existing.patternScore * mergedConfig.patternWeight;
       }
     }
   } catch (error) {
@@ -306,22 +306,21 @@ export async function matchTriggersHybrid(
 
   // Record match for analytics
   if (bestMatch) {
-    recordTriggerMatch(
-      bestMatch.triggerName,
-      'semantic-matcher',
-      bestMatch.combinedScore
-    );
+    recordTriggerMatch(bestMatch.triggerName, 'semantic-matcher', bestMatch.combinedScore);
   }
 
   const processingTimeMs = performance.now() - startTime;
 
-  log.debug({
-    matchCount: topMatches.length,
-    bestMatch: bestMatch?.triggerName,
-    bestScore: bestMatch?.combinedScore.toFixed(3),
-    strategy: matchingStrategy,
-    processingTimeMs: processingTimeMs.toFixed(2),
-  }, 'Hybrid matching complete');
+  log.debug(
+    {
+      matchCount: topMatches.length,
+      bestMatch: bestMatch?.triggerName,
+      bestScore: bestMatch?.combinedScore.toFixed(3),
+      strategy: matchingStrategy,
+      processingTimeMs: processingTimeMs.toFixed(2),
+    },
+    'Hybrid matching complete'
+  );
 
   return {
     bestMatch,
@@ -341,9 +340,7 @@ export async function getSemanticSimilarity(
   const service = getTriggerEmbeddingService();
 
   // Get embeddings
-  const [userEmbedding] = await Promise.all([
-    service.embedUserText(userText),
-  ]);
+  const [userEmbedding] = await Promise.all([service.embedUserText(userText)]);
 
   // Need to embed trigger text directly since it might not be in cache
   const { embed } = await import('../../memory/embeddings.js');
@@ -432,8 +429,10 @@ export function recordSemanticMatch(result: HybridMatchResult): void {
     totalPatternScore += result.bestMatch.patternScore;
 
     // Update category stats
-    const categoryStats = semanticAnalytics.byCategory.get(result.bestMatch.category) ||
-      { count: 0, avgScore: 0 };
+    const categoryStats = semanticAnalytics.byCategory.get(result.bestMatch.category) || {
+      count: 0,
+      avgScore: 0,
+    };
     const oldTotal = categoryStats.avgScore * categoryStats.count;
     categoryStats.count++;
     categoryStats.avgScore = (oldTotal + result.bestMatch.combinedScore) / categoryStats.count;

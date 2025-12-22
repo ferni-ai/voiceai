@@ -140,10 +140,6 @@
       "boundary_test_approaching",
       "seasonal_communication_time"
     ],
-    "never_when": [
-      "user_explicitly_busy",
-      "user_asked_for_space",
-      "too_soon_after_last_outreach"
-    ]
+    "never_when": ["user_explicitly_busy", "user_asked_for_space", "too_soon_after_last_outreach"]
   }
 }

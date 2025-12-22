@@ -320,9 +320,7 @@ describe('Communication Pattern Extractor', () => {
         contextTime: lateNight,
       });
 
-      expect(result.patterns.temporalPatterns.some((p) => p.timeOfDay === 'late_night')).toBe(
-        true
-      );
+      expect(result.patterns.temporalPatterns.some((p) => p.timeOfDay === 'late_night')).toBe(true);
     });
 
     it('should accumulate phrase frequencies', () => {

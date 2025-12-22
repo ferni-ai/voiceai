@@ -15,7 +15,10 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserTriggerProfileService } from './user-trigger-profile-service.js';
-import { generatePersonalContextBoost, type PersonalContextBoost } from './personal-context-integrator.js';
+import {
+  generatePersonalContextBoost,
+  type PersonalContextBoost,
+} from './personal-context-integrator.js';
 import {
   calculateTemporalBoost,
   createTriggerFiringEvent,
@@ -33,7 +36,11 @@ import {
   recordEffectivenessAnalytics,
   type UserEffectivenessAnalysis,
 } from './effectiveness-calculator.js';
-import type { UserTriggerProfile, SignificantDate, TriggerFiringEvent } from './user-trigger-profile.types.js';
+import type {
+  UserTriggerProfile,
+  SignificantDate,
+  TriggerFiringEvent,
+} from './user-trigger-profile.types.js';
 
 const log = createLogger({ module: 'trigger-voice-integration' });
 
@@ -95,7 +102,7 @@ export async function loadUserTriggerContext(
       currentHour: new Date().getHours(),
     };
     const personalBoost = generatePersonalContextBoost(
-      '',  // No user text at session start
+      '', // No user text at session start
       analyzedProfile,
       triggerContext,
       {
@@ -112,9 +119,10 @@ export async function loadUserTriggerContext(
     const temporalBoost = calculateTemporalBoost(analyzedProfile);
 
     // Analyze effectiveness (Phase 4)
-    const effectivenessAnalysis = analyzedProfile.triggerEffectiveness.length > 0
-      ? analyzeUserEffectiveness(analyzedProfile)
-      : null;
+    const effectivenessAnalysis =
+      analyzedProfile.triggerEffectiveness.length > 0
+        ? analyzeUserEffectiveness(analyzedProfile)
+        : null;
 
     // Record effectiveness analytics
     if (effectivenessAnalysis) {
@@ -344,7 +352,13 @@ export function getCombinedTriggerBoost(
 } {
   const context = sessionContexts.get(sessionId);
   if (!context) {
-    return { multiplier: 1.0, shouldBoost: false, shouldSuppress: false, shouldExplore: false, contextNotes: [] };
+    return {
+      multiplier: 1.0,
+      shouldBoost: false,
+      shouldSuppress: false,
+      shouldExplore: false,
+      contextNotes: [],
+    };
   }
 
   let multiplier = context.temporalBoost.overallMultiplier;
@@ -392,7 +406,9 @@ export function getCombinedTriggerBoost(
     shouldSuppress = effectiveness.multiplier < 0.8; // Consider suppressed if significantly reduced
 
     if (effectiveness.multiplier > 1.1) {
-      contextNotes.push(`Trigger "${triggerName}" has high historical effectiveness (${(effectiveness.confidence * 100).toFixed(0)}% confident)`);
+      contextNotes.push(
+        `Trigger "${triggerName}" has high historical effectiveness (${(effectiveness.confidence * 100).toFixed(0)}% confident)`
+      );
     } else if (effectiveness.multiplier < 0.9) {
       contextNotes.push(`Trigger "${triggerName}" has low historical effectiveness`);
     }

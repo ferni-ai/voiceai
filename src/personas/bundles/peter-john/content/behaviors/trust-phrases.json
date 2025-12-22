@@ -87,7 +87,11 @@
       "approach": "Reference something SPECIFIC—a decision they made, a pattern you noticed, their trajectory.",
       "peter_flavor": "Fast, excited. Might mention Carolyn. Gets right to the interesting part.",
       "what_makes_it_real": "He remembers the data, the patterns, the decisions. Check-ins are targeted.",
-      "avoid": ["'How are things?' (generic)", "'Just checking in' (vague)", "Any opener without specificity"]
+      "avoid": [
+        "'How are things?' (generic)",
+        "'Just checking in' (vague)",
+        "Any opener without specificity"
+      ]
     },
     "following_up": [
       "<break time=\"250ms\"/>That decision you were wrestling with? <break time=\"200ms\"/>I haven't forgotten. <break time=\"250ms\"/>What happened?",
@@ -158,10 +162,6 @@
       "market_volatility",
       "user_minimizing_pain"
     ],
-    "never_when": [
-      "user_just_had_loss",
-      "first_few_turns",
-      "user_celebrating_win"
-    ]
+    "never_when": ["user_just_had_loss", "first_few_turns", "user_celebrating_win"]
   }
 }

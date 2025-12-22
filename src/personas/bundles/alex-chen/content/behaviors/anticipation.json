@@ -134,10 +134,6 @@
       "boundary_test_approaching",
       "growth_visible"
     ],
-    "never_when": [
-      "user_just_had_conflict",
-      "first_session_ever",
-      "user_needs_to_vent"
-    ]
+    "never_when": ["user_just_had_conflict", "first_session_ever", "user_needs_to_vent"]
   }
 }

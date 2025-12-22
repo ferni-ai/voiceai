@@ -132,10 +132,6 @@
       "unresolved_heavy_topic",
       "big_event_just_passed"
     ],
-    "never_when": [
-      "user_asked_for_space",
-      "first_interaction",
-      "too_soon_after_last_outreach"
-    ]
+    "never_when": ["user_asked_for_space", "first_interaction", "too_soon_after_last_outreach"]
   }
 }

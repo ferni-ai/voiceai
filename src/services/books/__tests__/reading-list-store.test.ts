@@ -349,9 +349,7 @@ describe('Reading List Store', () => {
 
     it('should filter by listName', async () => {
       mockGet.mockResolvedValueOnce({
-        docs: [
-          { id: '1', data: () => ({ status: 'want_to_read', listName: '2024 Goals' }) },
-        ],
+        docs: [{ id: '1', data: () => ({ status: 'want_to_read', listName: '2024 Goals' }) }],
       });
 
       const result = await getReadingList('user123', { listName: '2024 Goals' });

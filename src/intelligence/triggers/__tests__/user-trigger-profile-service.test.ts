@@ -348,7 +348,9 @@ describe('UserTriggerProfileService', () => {
       expect(profile.relationships.length).toBe(baselineRelationships + 1);
       expect(profile.relationships.some((r) => r.name === 'Dad')).toBe(true);
 
-      expect(profile.communicationPatterns.deflectionPhrases?.length ?? 0).toBeGreaterThanOrEqual(1);
+      expect(profile.communicationPatterns.deflectionPhrases?.length ?? 0).toBeGreaterThanOrEqual(
+        1
+      );
       expect(profile.communicationPatterns.sensitiveTopics?.length ?? 0).toBeGreaterThanOrEqual(1);
 
       expect(profile.conversationsAnalyzed).toBe(1);
@@ -387,7 +389,8 @@ describe('UserTriggerProfileService', () => {
       expect(boost.triggersToBoost.length).toBeGreaterThan(0);
       // Check that any reason mentions days (could be "in 3 days", "3 days", etc.)
       const hasDateRelatedReason = boost.triggersToBoost.some(
-        (t) => t.reason.includes('days') || t.reason.includes('tomorrow') || t.reason.includes('today')
+        (t) =>
+          t.reason.includes('days') || t.reason.includes('tomorrow') || t.reason.includes('today')
       );
       expect(hasDateRelatedReason).toBe(true);
       expect(boost.contextInjections.length).toBeGreaterThan(0);

@@ -134,8 +134,7 @@ async function execute(
           const now = new Date();
           const lastCompletion = habitData?.lastCompletedAt?.toDate?.() as Date | undefined;
           const isConsecutiveDay =
-            lastCompletion &&
-            now.getTime() - lastCompletion.getTime() < 48 * 60 * 60 * 1000; // Within 48 hours
+            lastCompletion && now.getTime() - lastCompletion.getTime() < 48 * 60 * 60 * 1000; // Within 48 hours
 
           await habitRef.update({
             completions: (habitData?.completions || 0) + 1,
@@ -385,4 +384,3 @@ export const habitsExecutor: DomainExecutor = {
 };
 
 export default habitsExecutor;
-

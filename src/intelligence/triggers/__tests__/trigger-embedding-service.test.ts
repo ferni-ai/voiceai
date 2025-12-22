@@ -16,9 +16,11 @@ import type { PersonaTriggerSet } from '../types.js';
 // Mock the embeddings module
 vi.mock('../../../memory/embeddings.js', () => ({
   embed: vi.fn().mockResolvedValue(new Array(768).fill(0.1)),
-  embedBatch: vi.fn().mockImplementation((texts: string[]) =>
-    Promise.resolve(texts.map(() => new Array(768).fill(0.1)))
-  ),
+  embedBatch: vi
+    .fn()
+    .mockImplementation((texts: string[]) =>
+      Promise.resolve(texts.map(() => new Array(768).fill(0.1)))
+    ),
   getEmbeddingProvider: vi.fn().mockReturnValue({
     model: 'text-embedding-004',
     dimensions: 768,
@@ -47,7 +49,9 @@ describe('TriggerEmbeddingService', () => {
 
     it('should detect behavioral triggers', () => {
       expect(detectTriggerCategory('User deflects with "anyway"')).toBe('behavioral');
-      expect(detectTriggerCategory('User says "I\'m fine" but voice suggests otherwise')).toBe('behavioral');
+      expect(detectTriggerCategory('User says "I\'m fine" but voice suggests otherwise')).toBe(
+        'behavioral'
+      );
       expect(detectTriggerCategory('User tries to avoid and deny the issue')).toBe('behavioral');
     });
 
@@ -70,13 +74,15 @@ describe('TriggerEmbeddingService', () => {
     });
 
     it('should detect existential triggers', () => {
-      expect(detectTriggerCategory('User asks "what\'s the point of all this"')).toBe('existential');
+      expect(detectTriggerCategory('User asks "what\'s the point of all this"')).toBe(
+        'existential'
+      );
       expect(detectTriggerCategory('Questions about meaning and purpose')).toBe('existential');
       expect(detectTriggerCategory('User contemplating life and legacy')).toBe('existential');
     });
 
     it('should detect growth triggers', () => {
-      expect(detectTriggerCategory('User notices they\'ve changed')).toBe('growth');
+      expect(detectTriggerCategory("User notices they've changed")).toBe('growth');
       expect(detectTriggerCategory('User says "I used to think differently"')).toBe('growth');
       expect(detectTriggerCategory('Progress and development in their journey')).toBe('growth');
     });
@@ -145,18 +151,21 @@ describe('TriggerEmbeddingService', () => {
     });
 
     it('should find semantically similar triggers', async () => {
-      const results = await service.findSimilarTriggers('I\'m feeling really anxious about tomorrow', {
-        personaId: 'ferni',
-        topK: 3,
-        minSimilarity: 0.5,
-      });
+      const results = await service.findSimilarTriggers(
+        "I'm feeling really anxious about tomorrow",
+        {
+          personaId: 'ferni',
+          topK: 3,
+          minSimilarity: 0.5,
+        }
+      );
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].similarity).toBeGreaterThanOrEqual(0.5);
     });
 
     it('should filter by persona', async () => {
-      const results = await service.findSimilarTriggers('I\'m anxious', {
+      const results = await service.findSimilarTriggers("I'm anxious", {
         personaId: 'maya', // Different persona
         topK: 3,
       });

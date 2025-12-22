@@ -94,15 +94,12 @@ export interface AvatarCue {
  * Default response templates by anticipated outcome.
  * Personas can override these with their own voice.
  */
-export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, AnticipatoryResponseTemplate> = {
+export const DEFAULT_RESPONSE_TEMPLATES: Record<
+  AnticipatedOutcomeType,
+  AnticipatoryResponseTemplate
+> = {
   vulnerability: {
-    verbal: [
-      "I'm here.",
-      "Take your time.",
-      "I'm listening.",
-      "It's okay.",
-      "I've got you.",
-    ],
+    verbal: ["I'm here.", 'Take your time.', "I'm listening.", "It's okay.", "I've got you."],
     nonVerbal: {
       expression: 'soften',
       gesture: 'lean-in',
@@ -114,10 +111,10 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
   },
   distress: {
     verbal: [
-      "I hear you.",
-      "That sounds hard.",
+      'I hear you.',
+      'That sounds hard.',
       "I'm with you.",
-      "Tell me more.",
+      'Tell me more.',
       "I'm right here.",
     ],
     nonVerbal: {
@@ -130,13 +127,7 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
     pauseDurationMs: 1000,
   },
   celebration: {
-    verbal: [
-      "Oh!",
-      "Really?!",
-      "Tell me!",
-      "Yes!",
-      "Ooh!",
-    ],
+    verbal: ['Oh!', 'Really?!', 'Tell me!', 'Yes!', 'Ooh!'],
     nonVerbal: {
       expression: 'excitement',
       gesture: 'open-hands',
@@ -147,13 +138,7 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
     pauseDurationMs: 200,
   },
   processing: {
-    verbal: [
-      "Mm-hmm.",
-      "I see.",
-      "Go on.",
-      "And?",
-      "Okay.",
-    ],
+    verbal: ['Mm-hmm.', 'I see.', 'Go on.', 'And?', 'Okay.'],
     nonVerbal: {
       expression: 'attentive',
       gesture: 'micro-nod',
@@ -166,10 +151,10 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
   avoidance: {
     verbal: [
       "It's okay to talk about it.",
-      "No rush.",
-      "Only if you want to.",
-      "We can sit with it.",
-      "I notice that.",
+      'No rush.',
+      'Only if you want to.',
+      'We can sit with it.',
+      'I notice that.',
     ],
     nonVerbal: {
       expression: 'warmth',
@@ -181,13 +166,7 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
     pauseDurationMs: 1200,
   },
   request: {
-    verbal: [
-      "Of course.",
-      "Sure.",
-      "What do you need?",
-      "How can I help?",
-      "I'm on it.",
-    ],
+    verbal: ['Of course.', 'Sure.', 'What do you need?', 'How can I help?', "I'm on it."],
     nonVerbal: {
       expression: 'attentive',
       gesture: 'open-hands',
@@ -198,11 +177,7 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<AnticipatedOutcomeType, Anticipa
     pauseDurationMs: 300,
   },
   unknown: {
-    verbal: [
-      "Mm-hmm.",
-      "Okay.",
-      "I see.",
-    ],
+    verbal: ['Mm-hmm.', 'Okay.', 'I see.'],
     nonVerbal: {
       expression: 'neutral',
       gesture: 'micro-nod',
@@ -628,8 +603,7 @@ export function getAnticipatoryEngineAnalytics(): AnticipatoryEngineAnalytics {
   return {
     totalActiveSessions: sessionCount,
     totalAnticipationsFired: analyticsData.totalAnticipationsFired,
-    averageAnticipationsPerSession:
-      sessionCount > 0 ? totalAnticipations / sessionCount : 0,
+    averageAnticipationsPerSession: sessionCount > 0 ? totalAnticipations / sessionCount : 0,
     lastFiringTime: analyticsData.lastFiringTime,
   };
 }

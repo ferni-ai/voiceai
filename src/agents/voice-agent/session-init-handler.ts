@@ -277,9 +277,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       // Phase 5: Anticipatory Intelligence - load user's trigger profile
       (async () => {
         try {
-          const { loadUserTriggerContext } = await import(
-            '../../intelligence/triggers/voice-agent-integration.js'
-          );
+          const { loadUserTriggerContext } =
+            await import('../../intelligence/triggers/voice-agent-integration.js');
           const triggerContext = await loadUserTriggerContext(userId, sessionId);
 
           // Store in session state for access during transcript processing
@@ -292,7 +291,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           diag.session('🔮 Anticipatory intelligence loaded', {
             userId,
             learnedSignals: triggerContext.profile.anticipatoryIntelligence?.signals?.length ?? 0,
-            recentEvents: triggerContext.profile.anticipatoryIntelligence?.recentEvents?.length ?? 0,
+            recentEvents:
+              triggerContext.profile.anticipatoryIntelligence?.recentEvents?.length ?? 0,
           });
         } catch (triggerErr) {
           diag.warn('Anticipatory intelligence load failed (non-fatal)', {
@@ -316,7 +316,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           const contextWithTriggers = populateSynthesisTriggers(lifeContext);
 
           // Store for access during context building
-          (globalThis as Record<string, unknown>)[`_lifeContext_${sessionId}`] = contextWithTriggers;
+          (globalThis as Record<string, unknown>)[`_lifeContext_${sessionId}`] =
+            contextWithTriggers;
 
           diag.session('🌍 Life context synthesized', {
             userId,

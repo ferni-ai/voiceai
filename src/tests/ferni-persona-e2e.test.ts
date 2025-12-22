@@ -233,7 +233,8 @@ describe('Superhuman Insights Detection', () => {
   let detectAnticipatoryCues: typeof import('../intelligence/context-builders/superhuman/superhuman-insights.js').detectAnticipatoryCues;
 
   beforeAll(async () => {
-    const module = await import('../intelligence/context-builders/superhuman/superhuman-insights.js');
+    const module =
+      await import('../intelligence/context-builders/superhuman/superhuman-insights.js');
     detectLinguisticPatterns = module.detectLinguisticPatterns;
     detectRepeatedTopics = module.detectRepeatedTopics;
     analyzeEmotionalWeather = module.analyzeEmotionalWeather;
@@ -493,7 +494,9 @@ describe('Emotional Intelligence', () => {
     const ei = behaviors?.emotional_intelligence;
     expect(ei?.detecting_distress).toBeDefined();
     expect(ei?.detecting_distress?.verbal_cues?.length).toBeGreaterThan(0);
-    expect(ei?.detecting_distress?.phrases?.length).toBeGreaterThan(0);
+    // The structure has response_style and guidance, not phrases
+    expect(ei?.detecting_distress?.response_style).toBeDefined();
+    expect(ei?.detecting_distress?.guidance).toBeDefined();
   });
 
   it('should have detection patterns for sadness', async () => {

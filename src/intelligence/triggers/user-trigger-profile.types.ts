@@ -255,7 +255,14 @@ export interface TriggerEffectiveness {
 /**
  * Day of week for pattern detection
  */
-export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type DayOfWeek =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
 
 /**
  * Time of day buckets for pattern detection

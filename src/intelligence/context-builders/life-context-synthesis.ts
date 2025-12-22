@@ -229,19 +229,15 @@ export const lifeContextSynthesisBuilder = {
       // High priority triggers get high injection priority
       if (primaryTrigger.priority === 'urgent' || primaryTrigger.priority === 'high') {
         injections.push(
-          createHighInjection(
-            'life_context_trigger',
-            formatTriggerGuidance(primaryTrigger),
-            { category: 'life-context' }
-          )
+          createHighInjection('life_context_trigger', formatTriggerGuidance(primaryTrigger), {
+            category: 'life-context',
+          })
         );
       } else {
         injections.push(
-          createStandardInjection(
-            'life_context_trigger',
-            formatTriggerGuidance(primaryTrigger),
-            { category: 'life-context' }
-          )
+          createStandardInjection('life_context_trigger', formatTriggerGuidance(primaryTrigger), {
+            category: 'life-context',
+          })
         );
       }
     }
@@ -252,7 +248,7 @@ export const lifeContextSynthesisBuilder = {
         createHighInjection(
           'life_context_high_load',
           '[HIGH LOAD DETECTED] User is carrying significant stress across multiple life domains. ' +
-            'Consider: (1) Acknowledging the weight they\'re carrying, (2) Not adding tasks or pressure, ' +
+            "Consider: (1) Acknowledging the weight they're carrying, (2) Not adding tasks or pressure, " +
             '(3) Offering space to just be heard, (4) Gentle check-in on what would help most right now.',
           { category: 'life-context' }
         )
@@ -263,9 +259,9 @@ export const lifeContextSynthesisBuilder = {
       injections.push(
         createStandardInjection(
           'life_context_high_wellbeing',
-          '[POSITIVE MOMENTUM] User\'s life is in a good place across domains. ' +
+          "[POSITIVE MOMENTUM] User's life is in a good place across domains. " +
             'Consider: (1) Acknowledging the balance, (2) Celebrating progress, ' +
-            '(3) Exploring what\'s working well.',
+            "(3) Exploring what's working well.",
           { category: 'life-context' }
         )
       );

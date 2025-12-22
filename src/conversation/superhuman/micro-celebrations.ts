@@ -10,10 +10,7 @@
  * @module conversation/superhuman/micro-celebrations
  */
 
-import {
-  getContentWithFallback,
-  type ContentContext,
-} from '../../services/llm-dynamic-content.js';
+import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MicroCelebrations' });

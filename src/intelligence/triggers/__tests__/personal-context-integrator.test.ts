@@ -12,7 +12,11 @@ import {
   type PersonalContextConfig,
 } from '../personal-context-integrator.js';
 import { DEFAULT_USER_TRIGGER_PROFILE } from '../user-trigger-profile.types.js';
-import type { UserTriggerProfile, SignificantDate, Relationship } from '../user-trigger-profile.types.js';
+import type {
+  UserTriggerProfile,
+  SignificantDate,
+  Relationship,
+} from '../user-trigger-profile.types.js';
 import type { HybridMatchResult, TriggerContext } from '../types.js';
 
 describe('Personal Context Integrator', () => {
@@ -49,7 +53,12 @@ describe('Personal Context Integrator', () => {
         enabled: false,
       };
 
-      const result = generatePersonalContextBoost('I feel terrible', baseProfile, baseContext, config);
+      const result = generatePersonalContextBoost(
+        'I feel terrible',
+        baseProfile,
+        baseContext,
+        config
+      );
 
       expect(result.overallMultiplier).toBe(1.0);
     });
@@ -105,7 +114,11 @@ describe('Personal Context Integrator', () => {
 
       baseProfile.significantDates = [lossDate];
 
-      const result = generatePersonalContextBoost('Thinking about the past', baseProfile, baseContext);
+      const result = generatePersonalContextBoost(
+        'Thinking about the past',
+        baseProfile,
+        baseContext
+      );
 
       expect(result.appliedContext.upcomingDates).toHaveLength(1);
       expect(result.triggerBoosts.some((t) => t.triggerName === 'grief_trigger')).toBe(true);

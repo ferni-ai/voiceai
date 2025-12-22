@@ -130,13 +130,16 @@ export interface ContentMetrics {
   /** Average LLM latency in ms */
   avgLatencyMs: number;
   /** Metrics by content type */
-  byType: Record<string, {
-    requests: number;
-    llmHits: number;
-    cacheHits: number;
-    fallbacks: number;
-    avgLatencyMs: number;
-  }>;
+  byType: Record<
+    string,
+    {
+      requests: number;
+      llmHits: number;
+      cacheHits: number;
+      fallbacks: number;
+      avgLatencyMs: number;
+    }
+  >;
   /** Last reset timestamp */
   lastReset: number;
 }
@@ -186,7 +189,7 @@ function recordMetric(
         totalLatencyMs += latencyMs;
         latencyCount++;
         metrics.avgLatencyMs = Math.round(totalLatencyMs / latencyCount);
-        
+
         // Update per-type latency
         const typeMetrics = metrics.byType[contentType];
         const typeLatencyCount = typeMetrics.llmHits;
@@ -231,12 +234,14 @@ export function resetContentMetrics(): void {
  * Get a summary string of metrics for logging
  */
 export function getMetricsSummary(): string {
-  const hitRate = metrics.totalRequests > 0
-    ? ((metrics.llmHits + metrics.cacheHits) / metrics.totalRequests * 100).toFixed(1)
-    : '0.0';
-  const cacheRate = metrics.totalRequests > 0
-    ? (metrics.cacheHits / metrics.totalRequests * 100).toFixed(1)
-    : '0.0';
+  const hitRate =
+    metrics.totalRequests > 0
+      ? (((metrics.llmHits + metrics.cacheHits) / metrics.totalRequests) * 100).toFixed(1)
+      : '0.0';
+  const cacheRate =
+    metrics.totalRequests > 0
+      ? ((metrics.cacheHits / metrics.totalRequests) * 100).toFixed(1)
+      : '0.0';
 
   return `LLM Content: ${metrics.totalRequests} req, ${hitRate}% success (${cacheRate}% cache), ${metrics.avgLatencyMs}ms avg latency`;
 }
@@ -271,9 +276,7 @@ function cleanCache(): void {
   if (contentCache.size <= MAX_CACHE_SIZE) return;
 
   // Remove oldest entries
-  const entries = [...contentCache.entries()].sort(
-    (a, b) => a[1].generatedAt - b[1].generatedAt
-  );
+  const entries = [...contentCache.entries()].sort((a, b) => a[1].generatedAt - b[1].generatedAt);
   const toRemove = entries.slice(0, entries.length - MAX_CACHE_SIZE);
   for (const [key] of toRemove) {
     contentCache.delete(key);
@@ -300,9 +303,7 @@ export function registerContentGenerator(
 /**
  * Generate dynamic content with LLM, using cache and fallbacks
  */
-export async function generateContent(
-  context: ContentContext
-): Promise<GeneratedContent | null> {
+export async function generateContent(context: ContentContext): Promise<GeneratedContent | null> {
   const generator = generators.get(context.contentType);
   if (!generator) {
     log.warn({ contentType: context.contentType }, 'No generator registered for content type');
@@ -743,7 +744,7 @@ Generate ONE closing. No quotes:`,
 // Transition Generator - Smooth topic changes
 registerContentGenerator('transition', {
   voiceDna: FERNI_VOICE_DNA,
-  templates: ['So.', 'Anyway.', 'Speaking of which...', "That reminds me."],
+  templates: ['So.', 'Anyway.', 'Speaking of which...', 'That reminds me.'],
   maxTokens: 40,
   temperature: 0.7,
   timeout: 2000,
@@ -769,7 +770,12 @@ Generate ONE transition phrase. No quotes:`,
 // Encouragement Generator - Support without toxic positivity
 registerContentGenerator('encouragement', {
   voiceDna: FERNI_VOICE_DNA,
-  templates: ["You've got this.", "I believe in you.", "One step at a time.", "You're doing the hard thing."],
+  templates: [
+    "You've got this.",
+    'I believe in you.',
+    'One step at a time.',
+    "You're doing the hard thing.",
+  ],
   maxTokens: 60,
   temperature: 0.8,
   timeout: 2500,
@@ -868,7 +874,7 @@ Generate ONE summary intro. No quotes:`,
 // Humor Generator - Light moments (use sparingly!)
 registerContentGenerator('humor', {
   voiceDna: FERNI_VOICE_DNA,
-  templates: ["Ha!", "That's a good one.", "I mean, you're not wrong."],
+  templates: ['Ha!', "That's a good one.", "I mean, you're not wrong."],
   maxTokens: 50,
   temperature: 0.9,
   timeout: 2500,
@@ -904,4 +910,3 @@ export default {
   getMetricsSummary,
   FERNI_VOICE_DNA,
 };
-

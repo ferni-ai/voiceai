@@ -91,17 +91,25 @@ const lateNightWithTriggersCache = new Map<string, LateNightPresenceWithTriggers
 /**
  * Load late night presence content with proactive triggers
  */
-async function loadLateNightWithTriggers(personaId: string): Promise<LateNightPresenceWithTriggers | null> {
+async function loadLateNightWithTriggers(
+  personaId: string
+): Promise<LateNightPresenceWithTriggers | null> {
   if (lateNightWithTriggersCache.has(personaId)) {
     return lateNightWithTriggersCache.get(personaId) || null;
   }
 
   try {
-    const content = await loadPersonaContent<LateNightPresenceWithTriggers>(personaId, 'late_night_presence');
+    const content = await loadPersonaContent<LateNightPresenceWithTriggers>(
+      personaId,
+      'late_night_presence'
+    );
     lateNightWithTriggersCache.set(personaId, content);
     return content;
   } catch (error) {
-    log.debug({ personaId, error: String(error) }, 'Could not load late night presence with triggers');
+    log.debug(
+      { personaId, error: String(error) },
+      'Could not load late night presence with triggers'
+    );
     lateNightWithTriggersCache.set(personaId, null);
     return null;
   }
@@ -531,7 +539,10 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
 
       // Check never_when conditions
       if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
-        const matchedTrigger = checkDynamicTriggers(lateNightWithTriggers.proactive_triggers, triggerContext);
+        const matchedTrigger = checkDynamicTriggers(
+          lateNightWithTriggers.proactive_triggers,
+          triggerContext
+        );
 
         if (matchedTrigger) {
           // Calculate probability boost

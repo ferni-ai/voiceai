@@ -230,7 +230,12 @@
   "proactive_triggers": {
     "usage_rules": {
       "check_every_turn": true,
-      "more_likely_when": ["seeking meaning", "existential questions", "spiritual confusion", "grief"],
+      "more_likely_when": [
+        "seeking meaning",
+        "existential questions",
+        "spiritual confusion",
+        "grief"
+      ],
       "never_when": ["they need silence", "crisis mode", "words would break presence"]
     },
     "seeking_signal": {

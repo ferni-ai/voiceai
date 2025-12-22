@@ -56,9 +56,8 @@ interface LifeContextResponse {
  */
 async function getLifeContext(userId: string, res: ServerResponse): Promise<void> {
   try {
-    const { aggregateLifeContext, generateSynthesisTriggers } = await import(
-      '../intelligence/triggers/index.js'
-    );
+    const { aggregateLifeContext, generateSynthesisTriggers } =
+      await import('../intelligence/triggers/index.js');
 
     const snapshot = await aggregateLifeContext(userId);
 
@@ -98,7 +97,10 @@ async function getLifeContext(userId: string, res: ServerResponse): Promise<void
       })),
     };
 
-    log.debug({ userId, load: snapshot.overallLoadScore, triggers: triggers.length }, 'Life context retrieved');
+    log.debug(
+      { userId, load: snapshot.overallLoadScore, triggers: triggers.length },
+      'Life context retrieved'
+    );
     sendJSON(res, response);
   } catch (error) {
     log.error({ error, userId }, 'Failed to get life context');
@@ -121,9 +123,7 @@ async function refreshLifeContext(userId: string, res: ServerResponse): Promise<
       return;
     }
 
-    const { generateSynthesisTriggers } = await import(
-      '../intelligence/triggers/index.js'
-    );
+    const { generateSynthesisTriggers } = await import('../intelligence/triggers/index.js');
     const triggers = generateSynthesisTriggers(snapshot);
 
     log.info({ userId, load: snapshot.overallLoadScore }, 'Life context refreshed');

@@ -55,7 +55,7 @@ async function execute(
         const events = await getEventsForDay(ctx.userId, new Date());
 
         if (events.length === 0) {
-          return "Your calendar is clear today. No scheduled events.";
+          return 'Your calendar is clear today. No scheduled events.';
         }
 
         const eventList = events
@@ -98,14 +98,10 @@ async function execute(
     if (ctx.userId) {
       try {
         // Parse duration (default 1 hour = 60 minutes)
-        const durationMinutes = durationStr
-          ? parseInt(durationStr, 10) || 60
-          : 60;
+        const durationMinutes = durationStr ? parseInt(durationStr, 10) || 60 : 60;
 
         // Build start date
-        const startDate = date && time
-          ? new Date(`${date} ${time}`)
-          : new Date();
+        const startDate = date && time ? new Date(`${date} ${time}`) : new Date();
 
         // Build end date
         const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
@@ -182,7 +178,7 @@ async function execute(
       }
     }
 
-    return "Connect your calendar to see upcoming appointments.";
+    return 'Connect your calendar to see upcoming appointments.';
   }
 
   // ========================================
@@ -197,9 +193,7 @@ async function execute(
     if (ctx.userId) {
       try {
         // Build time slot from date and time strings
-        const startTime = date && time
-          ? new Date(`${date} ${time}`)
-          : new Date();
+        const startTime = date && time ? new Date(`${date} ${time}`) : new Date();
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
 
         const isAvailable = await isTimeSlotAvailable(ctx.userId, startTime, endTime);
@@ -212,7 +206,7 @@ async function execute(
       }
     }
 
-    return "Connect your calendar so I can check your availability.";
+    return 'Connect your calendar so I can check your availability.';
   }
 
   return null;
@@ -225,4 +219,3 @@ export const calendarExecutor: DomainExecutor = {
 };
 
 export default calendarExecutor;
-

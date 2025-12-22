@@ -246,8 +246,7 @@ describe('Builder Categories Integration', () => {
   });
 
   it('should validate builder priorities', async () => {
-    const { validateBuilderPriorities } =
-      await import('../intelligence/context-builders/index.js');
+    const { validateBuilderPriorities } = await import('../intelligence/context-builders/index.js');
 
     // validateBuilderPriorities returns string[] of warnings
     // 'crisis' is a known SAFETY builder with priority range 0-20

@@ -75,7 +75,11 @@ async function buildEmotionalContext(input: ContextBuilderInput): Promise<Contex
     recordTriggerCheck('emotional');
 
     // Build context for trigger matching
-    const triggerContext = buildTriggerContext(userText, analysis, userData as Record<string, unknown>);
+    const triggerContext = buildTriggerContext(
+      userText,
+      analysis,
+      userData as Record<string, unknown>
+    );
 
     // Extract triggers (skip usage_rules which contains metadata)
     const rawTriggers = emotionalIntelligence.proactive_triggers as Record<string, unknown>;
@@ -93,7 +97,12 @@ async function buildEmotionalContext(input: ContextBuilderInput): Promise<Contex
 
     if (matchedTrigger) {
       // Record the match for analytics
-      recordTriggerMatch(matchedTrigger.triggerName, 'emotional', matchedTrigger.confidence, services.userId);
+      recordTriggerMatch(
+        matchedTrigger.triggerName,
+        'emotional',
+        matchedTrigger.confidence,
+        services.userId
+      );
 
       // Fire the trigger (probability gate could be added here in the future)
       recordTriggerFired(matchedTrigger.triggerName, 'emotional');

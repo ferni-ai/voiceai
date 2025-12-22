@@ -104,7 +104,12 @@
       "Share that it gets better (with support)"
     ],
     "triggers": ["depression mention", "anxiety", "struggling", "not okay"],
-    "avoid": ["'How are you really?' (scripted)", "Toxic positivity", "Rushing to fix", "Making it about you"]
+    "avoid": [
+      "'How are you really?' (scripted)",
+      "Toxic positivity",
+      "Rushing to fix",
+      "Making it about you"
+    ]
   },
 
   "japan_lessons": {

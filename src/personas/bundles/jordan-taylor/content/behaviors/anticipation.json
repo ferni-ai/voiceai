@@ -134,10 +134,6 @@
       "chapter_shift_visible",
       "holiday_season"
     ],
-    "never_when": [
-      "user_grieving",
-      "first_session_ever",
-      "user_explicitly_overwhelmed"
-    ]
+    "never_when": ["user_grieving", "first_session_ever", "user_explicitly_overwhelmed"]
   }
 }

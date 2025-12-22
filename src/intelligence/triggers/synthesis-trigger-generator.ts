@@ -38,7 +38,11 @@ interface TriggerTemplate {
   id: string;
   category: SynthesisTrigger['category'];
   priority: SynthesisTrigger['priority'];
-  condition: (snapshot: LifeContextSnapshot) => { matches: boolean; confidence: number; reasoning: string };
+  condition: (snapshot: LifeContextSnapshot) => {
+    matches: boolean;
+    confidence: number;
+    reasoning: string;
+  };
   suggestedResponses: string[];
   recommendedPersona: string;
   contributingDomains: string[];
@@ -102,10 +106,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
     condition: (snapshot) => {
       const finance = snapshot.domains.finance;
       const sleep = snapshot.domains.sleep;
-      const matches = !!(
-        finance?.expressedAnxiety &&
-        sleep?.trend === 'declining'
-      );
+      const matches = !!(finance?.expressedAnxiety && sleep?.trend === 'declining');
       return {
         matches,
         confidence: matches ? 0.75 : 0,
@@ -114,7 +115,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
     },
     suggestedResponses: [
       "Money worries have a way of following us to bed. Want to talk through what's weighing on you?",
-      "I notice the financial concerns might be affecting your rest. Both deserve attention.",
+      'I notice the financial concerns might be affecting your rest. Both deserve attention.',
     ],
     recommendedPersona: 'peter',
     contributingDomains: ['finance', 'sleep'],
@@ -126,10 +127,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
     condition: (snapshot) => {
       const relationships = snapshot.domains.relationships;
       const goals = snapshot.domains.goals;
-      const matches = !!(
-        relationships?.isolationSignals &&
-        goals?.motivationLevel === 'low'
-      );
+      const matches = !!(relationships?.isolationSignals && goals?.motivationLevel === 'low');
       return {
         matches,
         confidence: matches ? 0.85 : 0,
@@ -139,7 +137,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
     suggestedResponses: [
       "It can be hard to keep going when we feel alone. You're not alone right now.",
       "Isolation and low motivation often travel together. I'm here.",
-      "When we feel disconnected, everything feels harder. Want to tell me more?",
+      'When we feel disconnected, everything feels harder. Want to tell me more?',
     ],
     recommendedPersona: 'nayan',
     contributingDomains: ['relationships', 'goals'],
@@ -151,10 +149,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
     condition: (snapshot) => {
       const goals = snapshot.domains.goals;
       const habits = snapshot.domains.habits;
-      const matches = !!(
-        goals?.overallProgress === 'behind' &&
-        habits?.inSlump
-      );
+      const matches = !!(goals?.overallProgress === 'behind' && habits?.inSlump);
       return {
         matches,
         confidence: matches ? 0.7 : 0,
@@ -176,8 +171,7 @@ const supportTriggerTemplates: TriggerTemplate[] = [
       const calendar = snapshot.domains.calendar;
       const relationships = snapshot.domains.relationships;
       const matches = !!(
-        calendar?.isOverloaded &&
-        relationships?.relationshipHealth === 'strained'
+        calendar?.isOverloaded && relationships?.relationshipHealth === 'strained'
       );
       return {
         matches,
@@ -186,11 +180,63 @@ const supportTriggerTemplates: TriggerTemplate[] = [
       };
     },
     suggestedResponses: [
-      "A packed calendar can crowd out the people we care about. Worth checking in on that.",
-      "Busy schedules and relationship strain often go together. Something to be aware of.",
+      'A packed calendar can crowd out the people we care about. Worth checking in on that.',
+      'Busy schedules and relationship strain often go together. Something to be aware of.',
     ],
     recommendedPersona: 'alex',
     contributingDomains: ['calendar', 'relationships'],
+  },
+  // Alex support trigger for productivity recovery
+  {
+    id: 'productivity_recovery_support',
+    category: 'support',
+    priority: 'medium',
+    condition: (snapshot) => {
+      const calendar = snapshot.domains.calendar;
+      const goals = snapshot.domains.goals;
+      const matches = !!(
+        calendar &&
+        calendar.freeTimeHours < 2 &&
+        calendar.backToBackChains > 3 &&
+        goals?.overallProgress === 'behind'
+      );
+      return {
+        matches,
+        confidence: matches ? 0.75 : 0,
+        reasoning: `Only ${calendar?.freeTimeHours}h free time with ${calendar?.backToBackChains} back-to-back chains`,
+      };
+    },
+    suggestedResponses: [
+      "Your calendar is wall-to-wall. Let's find some breathing room.",
+      "Productivity isn't about more meetings. What can we protect or delegate?",
+    ],
+    recommendedPersona: 'alex',
+    contributingDomains: ['calendar', 'goals'],
+  },
+  // Peter support trigger for financial decision support
+  {
+    id: 'financial_decision_support',
+    category: 'support',
+    priority: 'high',
+    condition: (snapshot) => {
+      const finance = snapshot.domains.finance;
+      const matches = !!(
+        finance?.pendingDecision.exists &&
+        finance.pendingDecision.urgency === 'high' &&
+        finance.stressLevel === 'high'
+      );
+      return {
+        matches,
+        confidence: matches ? 0.8 : 0,
+        reasoning: 'High-urgency financial decision with elevated stress',
+      };
+    },
+    suggestedResponses: [
+      "A big financial decision is weighing on you. Let's think through it together.",
+      "When money decisions feel heavy, slowing down can actually help. What's the core question?",
+    ],
+    recommendedPersona: 'peter',
+    contributingDomains: ['finance'],
   },
 ];
 
@@ -232,10 +278,7 @@ const celebrationTriggerTemplates: TriggerTemplate[] = [
     priority: 'medium',
     condition: (snapshot) => {
       const goals = snapshot.domains.goals;
-      const matches = !!(
-        goals?.overallProgress === 'ahead' &&
-        goals.motivationLevel === 'high'
-      );
+      const matches = !!(goals?.overallProgress === 'ahead' && goals.motivationLevel === 'high');
       return {
         matches,
         confidence: matches ? 0.85 : 0,
@@ -267,7 +310,7 @@ const celebrationTriggerTemplates: TriggerTemplate[] = [
       };
     },
     suggestedResponses: [
-      "Your relationships seem to be in a good place. That matters more than most things.",
+      'Your relationships seem to be in a good place. That matters more than most things.',
       "Strong connections with people you care about - that's worth noticing.",
     ],
     recommendedPersona: 'nayan',
@@ -286,11 +329,65 @@ const celebrationTriggerTemplates: TriggerTemplate[] = [
       };
     },
     suggestedResponses: [
-      "Life feels more balanced right now. Worth pausing to appreciate that.",
-      "Things seem to be humming along. These moments matter.",
+      'Life feels more balanced right now. Worth pausing to appreciate that.',
+      'Things seem to be humming along. These moments matter.',
     ],
     recommendedPersona: 'ferni',
     contributingDomains: ['sleep', 'calendar', 'goals', 'relationships', 'habits'],
+  },
+  // Alex celebration trigger for schedule optimization
+  {
+    id: 'schedule_optimization_win',
+    category: 'celebration',
+    priority: 'medium',
+    condition: (snapshot) => {
+      const calendar = snapshot.domains.calendar;
+      const matches = !!(
+        calendar &&
+        !calendar.isOverloaded &&
+        calendar.freeTimeHours >= 4 &&
+        calendar.scheduleDensity < 50 &&
+        calendar.backToBackChains <= 1
+      );
+      return {
+        matches,
+        confidence: matches ? 0.75 : 0,
+        reasoning: `Calendar balanced: ${calendar?.freeTimeHours}h free, ${calendar?.scheduleDensity}% density`,
+      };
+    },
+    suggestedResponses: [
+      'Your calendar has some room to breathe. That took intentional choices.',
+      "You've carved out actual space this week. That doesn't happen by accident.",
+    ],
+    recommendedPersona: 'alex',
+    contributingDomains: ['calendar'],
+  },
+  // Peter celebration trigger for financial stability
+  {
+    id: 'financial_stability_win',
+    category: 'celebration',
+    priority: 'medium',
+    condition: (snapshot) => {
+      const finance = snapshot.domains.finance;
+      const matches = !!(
+        finance &&
+        !finance.expressedAnxiety &&
+        finance.stressLevel === 'low' &&
+        finance.concernTopics.length === 0 &&
+        !finance.pendingDecision.exists
+      );
+      return {
+        matches,
+        confidence: matches ? 0.7 : 0,
+        reasoning: 'No financial anxiety, low stress, no pending concerns',
+      };
+    },
+    suggestedResponses: [
+      'Your finances seem to be in a steady place. That kind of stability is worth recognizing.',
+      "No financial fires to put out - that's the result of good decisions adding up.",
+    ],
+    recommendedPersona: 'peter',
+    contributingDomains: ['finance'],
   },
 ];
 
@@ -347,7 +444,7 @@ const warningTriggerTemplates: TriggerTemplate[] = [
     },
     suggestedResponses: [
       "I'm seeing signs of burnout. This is worth taking seriously.",
-      "Your body and habits are signaling something important. Can we talk about it?",
+      'Your body and habits are signaling something important. Can we talk about it?',
     ],
     recommendedPersona: 'maya',
     contributingDomains: ['sleep', 'calendar', 'habits'],
@@ -360,8 +457,7 @@ const warningTriggerTemplates: TriggerTemplate[] = [
       const relationships = snapshot.domains.relationships;
       const goals = snapshot.domains.goals;
       const matches = !!(
-        relationships?.existentialThemes.includes('nihilism') &&
-        goals?.motivationLevel === 'low'
+        relationships?.existentialThemes.includes('nihilism') && goals?.motivationLevel === 'low'
       );
       return {
         matches,
@@ -370,7 +466,7 @@ const warningTriggerTemplates: TriggerTemplate[] = [
       };
     },
     suggestedResponses: [
-      "Questioning meaning while feeling stuck is hard. Both things can be true.",
+      'Questioning meaning while feeling stuck is hard. Both things can be true.',
       "The 'what's the point' feeling deserves space, not dismissal. I'm listening.",
     ],
     recommendedPersona: 'nayan',

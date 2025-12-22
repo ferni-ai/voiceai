@@ -109,11 +109,6 @@
       "minimizing_language_detected",
       "comeback_session"
     ],
-    "never_when": [
-      "user_in_distress",
-      "first_turn",
-      "user_venting",
-      "hollow_praise_risk"
-    ]
+    "never_when": ["user_in_distress", "first_turn", "user_venting", "hollow_praise_risk"]
   }
 }

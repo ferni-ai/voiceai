@@ -68,7 +68,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should detect common vulnerability phrases', () => {
       const result = detectAnticipatorySignals(
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence
       );
 
@@ -78,40 +78,28 @@ describe('AnticipatorySignalLearner', () => {
     });
 
     it('should detect common distress phrases', () => {
-      const result = detectAnticipatorySignals(
-        "I'm worried about what might happen",
-        intelligence
-      );
+      const result = detectAnticipatorySignals("I'm worried about what might happen", intelligence);
 
       expect(result.detected).toBe(true);
       expect(result.anticipatedOutcome).toBe('distress');
     });
 
     it('should detect common celebration phrases', () => {
-      const result = detectAnticipatorySignals(
-        "Guess what happened today!",
-        intelligence
-      );
+      const result = detectAnticipatorySignals('Guess what happened today!', intelligence);
 
       expect(result.detected).toBe(true);
       expect(result.anticipatedOutcome).toBe('celebration');
     });
 
     it('should detect request phrases', () => {
-      const result = detectAnticipatorySignals(
-        "Could you help me with something?",
-        intelligence
-      );
+      const result = detectAnticipatorySignals('Could you help me with something?', intelligence);
 
       expect(result.detected).toBe(true);
       expect(result.anticipatedOutcome).toBe('request');
     });
 
     it('should respect minimum input length safeguard', () => {
-      const result = detectAnticipatorySignals(
-        "Hi",
-        intelligence
-      );
+      const result = detectAnticipatorySignals('Hi', intelligence);
 
       expect(result.safeguardsAllowed).toBe(false);
       expect(result.detected).toBe(false);
@@ -119,7 +107,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should respect max per session safeguard', () => {
       const result = detectAnticipatorySignals(
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence,
         undefined,
         {
@@ -134,7 +122,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should respect cooldown safeguard', () => {
       const result = detectAnticipatorySignals(
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence,
         undefined,
         {
@@ -151,7 +139,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should boost confidence with voice prosody cues', () => {
       const resultWithoutVoice = detectAnticipatorySignals(
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence
       );
 
@@ -166,7 +154,7 @@ describe('AnticipatorySignalLearner', () => {
       ];
 
       const resultWithVoice = detectAnticipatorySignals(
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence,
         { cues: prosodyCues, overallScore: 0.7 }
       );
@@ -177,10 +165,7 @@ describe('AnticipatorySignalLearner', () => {
     });
 
     it('should return no signals for unrecognized input', () => {
-      const result = detectAnticipatorySignals(
-        "The weather is nice today",
-        intelligence
-      );
+      const result = detectAnticipatorySignals('The weather is nice today', intelligence);
 
       expect(result.detected).toBe(false);
       expect(result.anticipatedOutcome).toBeNull();
@@ -205,7 +190,7 @@ describe('AnticipatorySignalLearner', () => {
       });
 
       const result = detectAnticipatorySignals(
-        "You know what really bugs me about this",
+        'You know what really bugs me about this',
         intelligence
       );
 
@@ -224,7 +209,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should learn new signals from utterances', () => {
       const input: LearningInput = {
-        fullUtterance: "whenever I think about my dad it makes me sad",
+        fullUtterance: 'whenever I think about my dad it makes me sad',
         actualOutcome: 'vulnerability',
         voiceCues: [],
         sessionId: 'session_1',
@@ -243,7 +228,7 @@ describe('AnticipatorySignalLearner', () => {
 
       // First observation with a unique phrase
       let updated = learnFromUtterance(freshProfile, {
-        fullUtterance: "whenever I remember my childhood dog",
+        fullUtterance: 'whenever I remember my childhood dog',
         actualOutcome: 'processing',
         voiceCues: [],
         sessionId: 'session_1',
@@ -252,15 +237,16 @@ describe('AnticipatorySignalLearner', () => {
 
       // Find the signal that was just created (should be only one)
       expect(updated.anticipatoryIntelligence!.signals.length).toBeGreaterThan(0);
-      const initialSignal = updated.anticipatoryIntelligence!.signals[
-        updated.anticipatoryIntelligence!.signals.length - 1
-      ]; // Get the most recently added
+      const initialSignal =
+        updated.anticipatoryIntelligence!.signals[
+          updated.anticipatoryIntelligence!.signals.length - 1
+        ]; // Get the most recently added
       const initialPhrase = initialSignal.phrase;
       expect(initialSignal.observations).toBe(1);
 
       // Second observation with same phrase
       updated = learnFromUtterance(updated, {
-        fullUtterance: "whenever I remember my childhood dog",
+        fullUtterance: 'whenever I remember my childhood dog',
         actualOutcome: 'processing',
         voiceCues: [],
         sessionId: 'session_2',
@@ -289,7 +275,7 @@ describe('AnticipatorySignalLearner', () => {
       ];
 
       const updated = learnFromUtterance(freshProfile, {
-        fullUtterance: "I need to tell you something important",
+        fullUtterance: 'I need to tell you something important',
         actualOutcome: 'vulnerability',
         voiceCues,
         sessionId: 'session_1',
@@ -301,7 +287,7 @@ describe('AnticipatorySignalLearner', () => {
 
     it('should not learn generic phrases', () => {
       const updated = learnFromUtterance(profile, {
-        fullUtterance: "I was going to the store",
+        fullUtterance: 'I was going to the store',
         actualOutcome: 'unknown',
         voiceCues: [],
         sessionId: 'session_1',
@@ -374,9 +360,7 @@ describe('AnticipatorySignalLearner', () => {
         sessionId: 'session_1',
       });
 
-      const signal = updated.anticipatoryIntelligence!.signals.find(
-        (s) => s.id === 'signal_1'
-      );
+      const signal = updated.anticipatoryIntelligence!.signals.find((s) => s.id === 'signal_1');
       expect(signal?.correctPredictions).toBe(9); // 8 + 1
     });
 
@@ -542,23 +526,15 @@ describe('AnticipatoryTriggerEngine', () => {
 
   describe('processPartialInput', () => {
     it('should not fire for short input', () => {
-      const result = processPartialInput(
-        sessionId,
-        "Hi",
-        intelligence
-      );
+      const result = processPartialInput(sessionId, 'Hi', intelligence);
 
       expect(result.shouldFire).toBe(false);
       expect(result.reason).toContain('too short');
     });
 
     it('should not fire for very long input', () => {
-      const longInput = "a".repeat(200);
-      const result = processPartialInput(
-        sessionId,
-        longInput,
-        intelligence
-      );
+      const longInput = 'a'.repeat(200);
+      const result = processPartialInput(sessionId, longInput, intelligence);
 
       expect(result.shouldFire).toBe(false);
       expect(result.reason).toContain('too long');
@@ -587,7 +563,7 @@ describe('AnticipatoryTriggerEngine', () => {
       const config = { ...DEFAULT_ENGINE_CONFIG, minFiringConfidence: 0.4 };
       const result = processPartialInput(
         sessionId,
-        "Guess what happened! You will never believe",
+        'Guess what happened! You will never believe',
         intelligence,
         undefined,
         undefined,
@@ -619,7 +595,7 @@ describe('AnticipatoryTriggerEngine', () => {
     it('should not fire when no signals detected', () => {
       const result = processPartialInput(
         sessionId,
-        "The weather is really nice outside",
+        'The weather is really nice outside',
         intelligence
       );
 
@@ -636,7 +612,7 @@ describe('AnticipatoryTriggerEngine', () => {
 
       const result = processPartialInput(
         sessionId,
-        "So... I was thinking about",
+        'So... I was thinking about',
         intelligence,
         undefined,
         undefined,
@@ -658,7 +634,7 @@ describe('AnticipatoryTriggerEngine', () => {
 
       processPartialInput(
         sessionId,
-        "So... I was thinking about something",
+        'So... I was thinking about something',
         intelligence,
         undefined,
         undefined,
@@ -676,11 +652,7 @@ describe('AnticipatoryTriggerEngine', () => {
     });
 
     it('should not fire if pause is too short', () => {
-      processPartialInput(
-        sessionId,
-        "So... I was thinking about something",
-        intelligence
-      );
+      processPartialInput(sessionId, 'So... I was thinking about something', intelligence);
 
       const result = checkPendingAnticipation(sessionId, 100); // Only 100ms
       expect(result).toBeNull();
@@ -759,7 +731,7 @@ describe('AnticipatoryTriggerEngine', () => {
     it('should create session state on first call', () => {
       expect(getAnticipatorySessionStats(sessionId)).toBeNull();
 
-      processPartialInput(sessionId, "Testing session creation", intelligence);
+      processPartialInput(sessionId, 'Testing session creation', intelligence);
 
       const stats = getAnticipatorySessionStats(sessionId);
       expect(stats).not.toBeNull();
@@ -775,8 +747,8 @@ describe('AnticipatoryTriggerEngine', () => {
     });
 
     it('should clear all sessions', () => {
-      processPartialInput('session_1', "Testing", intelligence);
-      processPartialInput('session_2', "Testing", intelligence);
+      processPartialInput('session_1', 'Testing', intelligence);
+      processPartialInput('session_2', 'Testing', intelligence);
 
       clearAllAnticipatorySessions();
 
@@ -791,8 +763,22 @@ describe('AnticipatoryTriggerEngine', () => {
       const config = { ...DEFAULT_ENGINE_CONFIG, minFiringConfidence: 0.4 };
 
       // Fire some anticipations
-      processPartialInput(sessionId, "I've never told anyone this", intelligence, undefined, undefined, config);
-      processPartialInput('session_2', "Guess what happened!", intelligence, undefined, undefined, config);
+      processPartialInput(
+        sessionId,
+        "I've never told anyone this",
+        intelligence,
+        undefined,
+        undefined,
+        config
+      );
+      processPartialInput(
+        'session_2',
+        'Guess what happened!',
+        intelligence,
+        undefined,
+        undefined,
+        config
+      );
 
       const analytics = getAnticipatoryEngineAnalytics();
 
@@ -802,7 +788,14 @@ describe('AnticipatoryTriggerEngine', () => {
 
     it('should reset analytics', () => {
       const config = { ...DEFAULT_ENGINE_CONFIG, minFiringConfidence: 0.4 };
-      processPartialInput(sessionId, "I've never told anyone", intelligence, undefined, undefined, config);
+      processPartialInput(
+        sessionId,
+        "I've never told anyone",
+        intelligence,
+        undefined,
+        undefined,
+        config
+      );
 
       resetAnticipatoryEngineAnalytics();
 

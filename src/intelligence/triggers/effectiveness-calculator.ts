@@ -173,10 +173,7 @@ const sessionOutcomes = new Map<string, TriggerOutcomeEvent[]>();
 /**
  * Record a trigger outcome event during a session
  */
-export function recordOutcomeEvent(
-  sessionId: string,
-  event: TriggerOutcomeEvent
-): void {
+export function recordOutcomeEvent(sessionId: string, event: TriggerOutcomeEvent): void {
   const events = sessionOutcomes.get(sessionId) ?? [];
   events.push(event);
   sessionOutcomes.set(sessionId, events);
@@ -188,9 +185,10 @@ export function recordOutcomeEvent(
       response: event.response,
       engagementSignals: event.engagementSignals.length,
       deflectionSignals: event.deflectionSignals.length,
-      sentimentShift: event.sentimentAfter !== undefined && event.sentimentBefore !== undefined
-        ? (event.sentimentAfter - event.sentimentBefore).toFixed(2)
-        : 'unknown',
+      sentimentShift:
+        event.sentimentAfter !== undefined && event.sentimentBefore !== undefined
+          ? (event.sentimentAfter - event.sentimentBefore).toFixed(2)
+          : 'unknown',
     },
     'Recorded trigger outcome event'
   );
@@ -235,21 +233,38 @@ export function detectEngagementSignals(
   if (currentTopic && !previousTopics.includes(currentTopic)) {
     // Check if response goes deeper (has emotional words, "because", "I feel", etc.)
     const deeperIndicators = [
-      'because', 'i feel', 'i think', 'actually', 'to be honest',
-      'the truth is', 'i\'ve been', 'i realized', 'it made me'
+      'because',
+      'i feel',
+      'i think',
+      'actually',
+      'to be honest',
+      'the truth is',
+      "i've been",
+      'i realized',
+      'it made me',
     ];
-    if (deeperIndicators.some(ind => responseLower.includes(ind))) {
+    if (deeperIndicators.some((ind) => responseLower.includes(ind))) {
       signals.push('deeper_topic');
     }
   }
 
   // Emotional expression
   const emotionalIndicators = [
-    'i feel', 'makes me', 'i\'m feeling', 'i was feeling',
-    'i\'m so', 'i\'ve been so', 'it hurts', 'i love', 'i hate',
-    'i\'m scared', 'i\'m worried', 'i\'m excited', 'i\'m happy'
+    'i feel',
+    'makes me',
+    "i'm feeling",
+    'i was feeling',
+    "i'm so",
+    "i've been so",
+    'it hurts',
+    'i love',
+    'i hate',
+    "i'm scared",
+    "i'm worried",
+    "i'm excited",
+    "i'm happy",
   ];
-  if (emotionalIndicators.some(ind => responseLower.includes(ind))) {
+  if (emotionalIndicators.some((ind) => responseLower.includes(ind))) {
     signals.push('emotional_expression');
   }
 
@@ -260,28 +275,44 @@ export function detectEngagementSignals(
 
   // Gratitude expressed
   const gratitudeIndicators = [
-    'thank you', 'thanks', 'appreciate', 'grateful',
-    'that helps', 'that means a lot', 'i needed that'
+    'thank you',
+    'thanks',
+    'appreciate',
+    'grateful',
+    'that helps',
+    'that means a lot',
+    'i needed that',
   ];
-  if (gratitudeIndicators.some(ind => responseLower.includes(ind))) {
+  if (gratitudeIndicators.some((ind) => responseLower.includes(ind))) {
     signals.push('gratitude_expressed');
   }
 
   // Vulnerability shared
   const vulnerabilityIndicators = [
-    'i haven\'t told', 'nobody knows', 'i\'ve never', 'secret',
-    'ashamed', 'embarrassed', 'scared to admit', 'hard to say'
+    "i haven't told",
+    'nobody knows',
+    "i've never",
+    'secret',
+    'ashamed',
+    'embarrassed',
+    'scared to admit',
+    'hard to say',
   ];
-  if (vulnerabilityIndicators.some(ind => responseLower.includes(ind))) {
+  if (vulnerabilityIndicators.some((ind) => responseLower.includes(ind))) {
     signals.push('vulnerability_shared');
   }
 
   // Continuation requested
   const continuationIndicators = [
-    'tell me more', 'go on', 'and then', 'what else',
-    'keep going', 'continue', 'i\'d like to'
+    'tell me more',
+    'go on',
+    'and then',
+    'what else',
+    'keep going',
+    'continue',
+    "i'd like to",
   ];
-  if (continuationIndicators.some(ind => responseLower.includes(ind))) {
+  if (continuationIndicators.some((ind) => responseLower.includes(ind))) {
     signals.push('continuation_requested');
   }
 
@@ -303,8 +334,14 @@ export function detectDeflectionSignals(
 
   // Topic change (abrupt shift)
   if (previousTopic && currentTopic && previousTopic !== currentTopic) {
-    const transitionIndicators = ['anyway', 'moving on', 'so anyway', 'but anyway', 'let\'s talk about'];
-    if (transitionIndicators.some(ind => responseLower.includes(ind))) {
+    const transitionIndicators = [
+      'anyway',
+      'moving on',
+      'so anyway',
+      'but anyway',
+      "let's talk about",
+    ];
+    if (transitionIndicators.some((ind) => responseLower.includes(ind))) {
       signals.push('topic_change');
     }
   }
@@ -316,26 +353,40 @@ export function detectDeflectionSignals(
 
   // Minimization
   const minimizationIndicators = [
-    'it\'s fine', 'i\'m fine', 'no big deal', 'doesn\'t matter',
-    'whatever', 'not a big deal', 'it is what it is', 'i\'m okay'
+    "it's fine",
+    "i'm fine",
+    'no big deal',
+    "doesn't matter",
+    'whatever',
+    'not a big deal',
+    'it is what it is',
+    "i'm okay",
   ];
-  if (minimizationIndicators.some(ind => responseLower.includes(ind))) {
+  if (minimizationIndicators.some((ind) => responseLower.includes(ind))) {
     signals.push('minimization');
   }
 
   // Deflection phrase
   const deflectionPhrases = [
-    'anyway', 'moving on', 'let\'s change', 'never mind',
-    'forget it', 'don\'t worry about it', 'it doesn\'t matter'
+    'anyway',
+    'moving on',
+    "let's change",
+    'never mind',
+    'forget it',
+    "don't worry about it",
+    "it doesn't matter",
   ];
-  if (deflectionPhrases.some(phrase => responseLower.includes(phrase))) {
+  if (deflectionPhrases.some((phrase) => responseLower.includes(phrase))) {
     signals.push('deflection_phrase');
   }
 
   // Dismissive tone (multiple indicators)
   const dismissiveIndicators = ['yeah', 'sure', 'okay', 'right', 'uh huh'];
   const wordCount = userResponse.split(/\s+/).length;
-  if (wordCount <= 3 && dismissiveIndicators.some(ind => responseLower === ind || responseLower.startsWith(ind + ' '))) {
+  if (
+    wordCount <= 3 &&
+    dismissiveIndicators.some((ind) => responseLower === ind || responseLower.startsWith(ind + ' '))
+  ) {
     signals.push('dismissive_tone');
   }
 
@@ -364,7 +415,7 @@ export function calculateEffectivenessFromEvents(
   cutoffDate.setDate(cutoffDate.getDate() - config.rollingWindowDays);
 
   const relevantEvents = events.filter(
-    e => e.triggerName === triggerName && e.timestamp >= cutoffDate
+    (e) => e.triggerName === triggerName && e.timestamp >= cutoffDate
   );
 
   // Default result for insufficient data
@@ -388,34 +439,34 @@ export function calculateEffectivenessFromEvents(
 
   // Calculate engagement rate
   const engagedCount = relevantEvents.filter(
-    e => e.response === 'engaged' || e.response === 'appreciated'
+    (e) => e.response === 'engaged' || e.response === 'appreciated'
   ).length;
-  const deflectedCount = relevantEvents.filter(e => e.response === 'deflected').length;
+  const deflectedCount = relevantEvents.filter((e) => e.response === 'deflected').length;
   const engagementRate = engagedCount / relevantEvents.length;
 
   // Calculate average sentiment shift
   const eventsWithSentiment = relevantEvents.filter(
-    e => e.sentimentBefore !== undefined && e.sentimentAfter !== undefined
+    (e) => e.sentimentBefore !== undefined && e.sentimentAfter !== undefined
   );
-  const avgSentimentShift = eventsWithSentiment.length > 0
-    ? eventsWithSentiment.reduce(
-        (sum, e) => sum + (e.sentimentAfter! - e.sentimentBefore!),
-        0
-      ) / eventsWithSentiment.length
-    : 0;
+  const avgSentimentShift =
+    eventsWithSentiment.length > 0
+      ? eventsWithSentiment.reduce((sum, e) => sum + (e.sentimentAfter! - e.sentimentBefore!), 0) /
+        eventsWithSentiment.length
+      : 0;
   // Normalize to 0-1 range (sentiment shift can be -1 to +1)
   const normalizedSentimentScore = (avgSentimentShift + 1) / 2;
 
   // Calculate session impact (how much longer sessions lasted after trigger)
   const eventsWithSession = relevantEvents.filter(
-    e => e.sessionDurationBefore !== undefined && e.sessionDurationAfter !== undefined
+    (e) => e.sessionDurationBefore !== undefined && e.sessionDurationAfter !== undefined
   );
-  const avgSessionImpact = eventsWithSession.length > 0
-    ? eventsWithSession.reduce(
-        (sum, e) => sum + (e.sessionDurationAfter! - e.sessionDurationBefore!),
-        0
-      ) / eventsWithSession.length
-    : 0;
+  const avgSessionImpact =
+    eventsWithSession.length > 0
+      ? eventsWithSession.reduce(
+          (sum, e) => sum + (e.sessionDurationAfter! - e.sessionDurationBefore!),
+          0
+        ) / eventsWithSession.length
+      : 0;
   // Normalize: assume +10 minutes is very positive, -5 is very negative
   const normalizedSessionScore = Math.max(0, Math.min(1, (avgSessionImpact + 5) / 15));
 
@@ -432,18 +483,22 @@ export function calculateEffectivenessFromEvents(
   let multiplier = 1.0;
   if (rawScore >= config.boostThreshold) {
     // Boost effective triggers
-    multiplier = 1.0 + (rawScore - config.boostThreshold) / (1 - config.boostThreshold) * (config.maxMultiplier - 1.0);
+    multiplier =
+      1.0 +
+      ((rawScore - config.boostThreshold) / (1 - config.boostThreshold)) *
+        (config.maxMultiplier - 1.0);
   } else if (rawScore <= config.suppressionThreshold) {
     // Suppress ineffective triggers
-    multiplier = config.minMultiplier + (rawScore / config.suppressionThreshold) * (1.0 - config.minMultiplier);
+    multiplier =
+      config.minMultiplier +
+      (rawScore / config.suppressionThreshold) * (1.0 - config.minMultiplier);
   }
   // Apply confidence: less confident = closer to 1.0
   multiplier = 1.0 + (multiplier - 1.0) * confidence;
 
   // Determine if should explore (feedback loop protection)
   const shouldExplore =
-    rawScore < config.suppressionThreshold &&
-    Math.random() < config.explorationRate;
+    rawScore < config.suppressionThreshold && Math.random() < config.explorationRate;
 
   // Find best and worst contexts
   const contextCounts = new Map<string, { engaged: number; deflected: number }>();
@@ -465,11 +520,17 @@ export function calculateEffectivenessFromEvents(
       rate: counts.engaged / (counts.engaged + counts.deflected || 1),
       total: counts.engaged + counts.deflected,
     }))
-    .filter(c => c.total >= 2) // Need at least 2 observations
+    .filter((c) => c.total >= 2) // Need at least 2 observations
     .sort((a, b) => b.rate - a.rate);
 
-  const bestContexts = contextRates.slice(0, 3).filter(c => c.rate >= 0.6).map(c => c.context);
-  const worstContexts = contextRates.slice(-3).filter(c => c.rate <= 0.4).map(c => c.context);
+  const bestContexts = contextRates
+    .slice(0, 3)
+    .filter((c) => c.rate >= 0.6)
+    .map((c) => c.context);
+  const worstContexts = contextRates
+    .slice(-3)
+    .filter((c) => c.rate <= 0.4)
+    .map((c) => c.context);
 
   log.debug(
     {
@@ -536,15 +597,19 @@ export function calculateEffectivenessFromRecord(
   // Calculate multiplier
   let multiplier = 1.0;
   if (rawScore >= config.boostThreshold) {
-    multiplier = 1.0 + (rawScore - config.boostThreshold) / (1 - config.boostThreshold) * (config.maxMultiplier - 1.0);
+    multiplier =
+      1.0 +
+      ((rawScore - config.boostThreshold) / (1 - config.boostThreshold)) *
+        (config.maxMultiplier - 1.0);
   } else if (rawScore <= config.suppressionThreshold) {
-    multiplier = config.minMultiplier + (rawScore / config.suppressionThreshold) * (1.0 - config.minMultiplier);
+    multiplier =
+      config.minMultiplier +
+      (rawScore / config.suppressionThreshold) * (1.0 - config.minMultiplier);
   }
   multiplier = 1.0 + (multiplier - 1.0) * confidence;
 
   const shouldExplore =
-    rawScore < config.suppressionThreshold &&
-    Math.random() < config.explorationRate;
+    rawScore < config.suppressionThreshold && Math.random() < config.explorationRate;
 
   return {
     triggerName: record.triggerName,
@@ -584,21 +649,22 @@ export function analyzeUserEffectiveness(
 
   // Categorize triggers
   const triggersToBoost = triggerResults
-    .filter(r => r.rawScore >= config.boostThreshold && r.confidence >= 0.5)
-    .map(r => r.triggerName);
+    .filter((r) => r.rawScore >= config.boostThreshold && r.confidence >= 0.5)
+    .map((r) => r.triggerName);
 
   const triggersToSuppress = triggerResults
-    .filter(r => r.rawScore <= config.suppressionThreshold && r.confidence >= 0.5 && !r.shouldExplore)
-    .map(r => r.triggerName);
+    .filter(
+      (r) => r.rawScore <= config.suppressionThreshold && r.confidence >= 0.5 && !r.shouldExplore
+    )
+    .map((r) => r.triggerName);
 
-  const triggersToExplore = triggerResults
-    .filter(r => r.shouldExplore)
-    .map(r => r.triggerName);
+  const triggersToExplore = triggerResults.filter((r) => r.shouldExplore).map((r) => r.triggerName);
 
   // Overall confidence
-  const overallConfidence = triggerResults.length > 0
-    ? triggerResults.reduce((sum, r) => sum + r.confidence, 0) / triggerResults.length
-    : 0;
+  const overallConfidence =
+    triggerResults.length > 0
+      ? triggerResults.reduce((sum, r) => sum + r.confidence, 0) / triggerResults.length
+      : 0;
 
   log.info(
     {
@@ -636,7 +702,7 @@ export function getEffectivenessMultiplier(
   profile: UserTriggerProfile,
   config: EffectivenessConfig = DEFAULT_EFFECTIVENESS_CONFIG
 ): { multiplier: number; shouldExplore: boolean; confidence: number } {
-  const record = profile.triggerEffectiveness.find(r => r.triggerName === triggerName);
+  const record = profile.triggerEffectiveness.find((r) => r.triggerName === triggerName);
 
   if (!record) {
     // No data - neutral multiplier
@@ -725,7 +791,10 @@ let effectivenessAnalytics: EffectivenessAnalytics = {
 };
 
 // Aggregate trigger performance across users
-const globalTriggerStats = new Map<string, { totalScore: number; count: number; observations: number }>();
+const globalTriggerStats = new Map<
+  string,
+  { totalScore: number; count: number; observations: number }
+>();
 
 /**
  * Record analytics from a user analysis
@@ -747,7 +816,11 @@ export function recordEffectivenessAnalytics(analysis: UserEffectivenessAnalysis
     }
 
     // Track global stats
-    const stats = globalTriggerStats.get(result.triggerName) ?? { totalScore: 0, count: 0, observations: 0 };
+    const stats = globalTriggerStats.get(result.triggerName) ?? {
+      totalScore: 0,
+      count: 0,
+      observations: 0,
+    };
     stats.totalScore += result.rawScore;
     stats.count++;
     stats.observations += result.observationsInWindow;
@@ -761,15 +834,17 @@ export function recordEffectivenessAnalytics(analysis: UserEffectivenessAnalysis
       score: stats.totalScore / stats.count,
       observations: stats.observations,
     }))
-    .filter(s => s.observations >= 5); // Minimum observations for global ranking
+    .filter((s) => s.observations >= 5); // Minimum observations for global ranking
 
   allStats.sort((a, b) => b.score - a.score);
   effectivenessAnalytics.topPerformingTriggers = allStats.slice(0, 10);
   effectivenessAnalytics.worstPerformingTriggers = allStats.slice(-10).reverse();
 
   if (effectivenessAnalytics.totalTriggersTracked > 0) {
-    const totalScore = Array.from(globalTriggerStats.values())
-      .reduce((sum, s) => sum + s.totalScore / s.count, 0);
+    const totalScore = Array.from(globalTriggerStats.values()).reduce(
+      (sum, s) => sum + s.totalScore / s.count,
+      0
+    );
     effectivenessAnalytics.avgEffectivenessScore = totalScore / globalTriggerStats.size;
   }
 }

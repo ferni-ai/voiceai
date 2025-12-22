@@ -326,7 +326,8 @@ class ThinkingPhraseCoordinator {
     const llmContext: ContentContext = {
       contentType: 'thinking_phrase',
       personaId: request.personaId,
-      emotion: context.emotionalIntensity && context.emotionalIntensity > 0.5 ? 'emotional' : undefined,
+      emotion:
+        context.emotionalIntensity && context.emotionalIntensity > 0.5 ? 'emotional' : undefined,
       topic: context.topic,
       userMessage: context.topic, // Use topic as proxy for what user said
     };

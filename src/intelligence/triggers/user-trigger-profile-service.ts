@@ -231,8 +231,7 @@ export class UserTriggerProfileService {
 
     // Check for duplicates (same date, type, and person)
     const existing = profile.significantDates.find(
-      (d) =>
-        d.date === date.date && d.type === date.type && d.relatedPerson === date.relatedPerson
+      (d) => d.date === date.date && d.type === date.type && d.relatedPerson === date.relatedPerson
     );
 
     if (existing) {
@@ -426,7 +425,10 @@ export class UserTriggerProfileService {
   /**
    * Generate trigger context boosts based on profile
    */
-  async generateContextBoost(userId: string, context?: { date?: Date }): Promise<ProfileContextBoost> {
+  async generateContextBoost(
+    userId: string,
+    context?: { date?: Date }
+  ): Promise<ProfileContextBoost> {
     const profile = await this.loadProfile(userId);
     const now = context?.date || new Date();
 
@@ -625,13 +627,18 @@ export class UserTriggerProfileService {
       aliases: [...new Set([...existing.aliases, ...updated.aliases])],
       // Take higher confidence updates
       emotionalValence:
-        updated.confidence > existing.confidence ? updated.emotionalValence : existing.emotionalValence,
+        updated.confidence > existing.confidence
+          ? updated.emotionalValence
+          : existing.emotionalValence,
       isDeceased: updated.isDeceased || existing.isDeceased,
       // Merge trigger categories
-      triggerCategories: [...new Set([...existing.triggerCategories, ...updated.triggerCategories])],
+      triggerCategories: [
+        ...new Set([...existing.triggerCategories, ...updated.triggerCategories]),
+      ],
       // Update mention tracking
       mentionFrequency:
-        (existing.mentionFrequency * existing.confidence + updated.mentionFrequency * updated.confidence) /
+        (existing.mentionFrequency * existing.confidence +
+          updated.mentionFrequency * updated.confidence) /
         (existing.confidence + updated.confidence),
       lastMentioned: updated.lastMentioned || existing.lastMentioned,
       // Merge associated topics

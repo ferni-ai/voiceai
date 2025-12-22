@@ -36,7 +36,13 @@ describe('TriggerEmbeddingCache', () => {
     it('should cache and retrieve embeddings', async () => {
       const embedding = new Array(768).fill(0.1);
 
-      await cache.set('ferni', 'test_trigger', 'Test trigger text', embedding, 'text-embedding-004');
+      await cache.set(
+        'ferni',
+        'test_trigger',
+        'Test trigger text',
+        embedding,
+        'text-embedding-004'
+      );
 
       const cached = await cache.get('ferni', 'test_trigger', 'Test trigger text');
 

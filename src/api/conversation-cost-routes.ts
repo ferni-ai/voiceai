@@ -77,7 +77,7 @@ function generateCostMessage(cost: number, durationMinutes: number): string {
   if (cost < 0.15) {
     return `Our ${mins}-minute chat cost me about ${(cost * 100).toFixed(0)}¢ to run.`;
   }
-  if (cost < 0.50) {
+  if (cost < 0.5) {
     return `It costs me about $${cost.toFixed(2)} to power our conversations.`;
   }
   return `Longer chats like this one cost me about $${cost.toFixed(2)} to run.`;

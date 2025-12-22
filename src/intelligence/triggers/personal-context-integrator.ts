@@ -402,7 +402,10 @@ function findUpcomingDates(dates: SignificantDate[], daysAhead: number): Signifi
       }
     } else if (date.isRecurring || date.date.startsWith('YYYY')) {
       // Recurring date - check this year and next
-      const [, month, day] = date.date.replace('YYYY', String(now.getFullYear())).split('-').map(Number);
+      const [, month, day] = date.date
+        .replace('YYYY', String(now.getFullYear()))
+        .split('-')
+        .map(Number);
 
       for (const yearOffset of [0, 1]) {
         const year = now.getFullYear() + yearOffset;

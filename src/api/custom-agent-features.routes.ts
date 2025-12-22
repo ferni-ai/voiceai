@@ -12,7 +12,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import * as admin from 'firebase-admin';
-import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError, getUserId } from './helpers.js';
+import {
+  handleCorsPreflightIfNeeded,
+  parseBody,
+  sendJSON,
+  sendError,
+  getUserId,
+} from './helpers.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'CustomAgentFeaturesRoutes' });
@@ -704,4 +710,3 @@ export async function handleCustomAgentFeaturesRoutes(
 
   return false;
 }
-

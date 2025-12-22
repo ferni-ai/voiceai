@@ -249,7 +249,8 @@ describe('Commitment Tracking', () => {
 
 describe('BTH Context Builder Registration', () => {
   it('should have proactive-noticing in builder manifest', async () => {
-    const { getAllBuilderModules } = await import('../intelligence/context-builders/core/loader.js');
+    const { getAllBuilderModules } =
+      await import('../intelligence/context-builders/core/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -257,7 +258,8 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have commitment-follow-up in builder manifest', async () => {
-    const { getAllBuilderModules } = await import('../intelligence/context-builders/core/loader.js');
+    const { getAllBuilderModules } =
+      await import('../intelligence/context-builders/core/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -265,7 +267,8 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have temporal-intelligence in builder manifest', async () => {
-    const { getAllBuilderModules } = await import('../intelligence/context-builders/core/loader.js');
+    const { getAllBuilderModules } =
+      await import('../intelligence/context-builders/core/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -273,7 +276,8 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have deep-relationship in builder manifest', async () => {
-    const { getAllBuilderModules } = await import('../intelligence/context-builders/core/loader.js');
+    const { getAllBuilderModules } =
+      await import('../intelligence/context-builders/core/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -281,7 +285,8 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have import functions for all BTH builders', async () => {
-    const { BUILDER_IMPORTS } = await import('../intelligence/context-builders/core/builder-imports.js');
+    const { BUILDER_IMPORTS } =
+      await import('../intelligence/context-builders/core/builder-imports.js');
 
     expect(BUILDER_IMPORTS['proactive-noticing']).toBeDefined();
     expect(typeof BUILDER_IMPORTS['proactive-noticing']).toBe('function');

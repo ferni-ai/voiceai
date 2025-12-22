@@ -928,10 +928,7 @@ export class CallMusicPlayer {
             );
 
             // Only handle if we haven't already (backup timer might have fired)
-            if (
-              !this.trackEndHandled &&
-              this.state.currentTrack?.name === track.name
-            ) {
+            if (!this.trackEndHandled && this.state.currentTrack?.name === track.name) {
               handleTrackEnd('waitForPlayoutError');
             }
           });
@@ -1262,10 +1259,7 @@ export class CallMusicPlayer {
           );
 
           // Only handle if we haven't already (backup timer might have fired)
-          if (
-            !this.trackEndHandled &&
-            this.state.currentTrack?.name === track.name
-          ) {
+          if (!this.trackEndHandled && this.state.currentTrack?.name === track.name) {
             handleTrackEnd('waitForPlayoutError');
           }
         });
@@ -2023,7 +2017,7 @@ export function getMusicPlayer(): CallMusicPlayer {
 
 /**
  * Reset the music player singleton.
- * 
+ *
  * 🐛 FIX: This is now async to properly await dispose() and prevent race conditions.
  * Previously, dispose() was fire-and-forget which could cause issues if
  * getMusicPlayer() was called before dispose completed.

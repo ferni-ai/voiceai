@@ -32,6 +32,126 @@ import type {
 const log = createLogger({ module: 'domain-data-collectors' });
 
 // ============================================================================
+// CACHING CONFIGURATION
+// ============================================================================
+
+/**
+ * Cache TTL configuration by domain
+ * Different domains have different update frequencies
+ */
+const CACHE_TTL_MS = {
+  // Sleep data changes slowly, cache for 5 minutes
+  sleep: 5 * 60 * 1000,
+  // Calendar data is more dynamic, cache for 2 minutes
+  calendar: 2 * 60 * 1000,
+  // Finance signals from conversation, cache for 5 minutes
+  finance: 5 * 60 * 1000,
+  // Goals data changes infrequently, cache for 5 minutes
+  goals: 5 * 60 * 1000,
+  // Relationship signals, cache for 5 minutes
+  relationships: 5 * 60 * 1000,
+  // Habits data changes daily, cache for 3 minutes
+  habits: 3 * 60 * 1000,
+} as const;
+
+type DomainType = keyof typeof CACHE_TTL_MS;
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  windowDays: number;
+}
+
+// In-memory cache keyed by `${userId}:${domain}`
+const domainCache = new Map<string, CacheEntry<unknown>>();
+
+/**
+ * Get cached data if valid
+ */
+function getCachedData<T>(userId: string, domain: DomainType, windowDays: number): T | null {
+  const cacheKey = `${userId}:${domain}`;
+  const entry = domainCache.get(cacheKey) as CacheEntry<T> | undefined;
+
+  if (!entry) return null;
+
+  // Check if cache is expired
+  const now = Date.now();
+  const ttl = CACHE_TTL_MS[domain];
+  if (now - entry.timestamp > ttl) {
+    domainCache.delete(cacheKey);
+    return null;
+  }
+
+  // Check if windowDays matches (different analysis windows shouldn't share cache)
+  if (entry.windowDays !== windowDays) {
+    return null;
+  }
+
+  return entry.data;
+}
+
+/**
+ * Store data in cache
+ */
+function setCachedData<T>(userId: string, domain: DomainType, windowDays: number, data: T): void {
+  const cacheKey = `${userId}:${domain}`;
+  domainCache.set(cacheKey, {
+    data,
+    timestamp: Date.now(),
+    windowDays,
+  });
+}
+
+/**
+ * Clear cache for a specific user and domain
+ */
+export function clearDomainCache(userId: string, domain?: DomainType): void {
+  if (domain) {
+    domainCache.delete(`${userId}:${domain}`);
+  } else {
+    // Clear all domains for user
+    for (const d of Object.keys(CACHE_TTL_MS) as DomainType[]) {
+      domainCache.delete(`${userId}:${d}`);
+    }
+  }
+  log.debug({ userId, domain }, 'Domain cache cleared');
+}
+
+/**
+ * Clear entire cache (useful for tests)
+ */
+export function clearAllDomainCaches(): void {
+  domainCache.clear();
+  log.debug('All domain caches cleared');
+}
+
+/**
+ * Get cache statistics
+ */
+export function getDomainCacheStats(): {
+  totalEntries: number;
+  entriesByDomain: Record<string, number>;
+  oldestEntryAge: number | null;
+} {
+  const entriesByDomain: Record<string, number> = {};
+  let oldestTimestamp = Date.now();
+
+  for (const [key, entry] of domainCache.entries()) {
+    const domain = key.split(':')[1];
+    entriesByDomain[domain] = (entriesByDomain[domain] || 0) + 1;
+    if ((entry as CacheEntry<unknown>).timestamp < oldestTimestamp) {
+      oldestTimestamp = (entry as CacheEntry<unknown>).timestamp;
+    }
+  }
+
+  return {
+    totalEntries: domainCache.size,
+    entriesByDomain,
+    oldestEntryAge: domainCache.size > 0 ? Date.now() - oldestTimestamp : null,
+  };
+}
+
+// ============================================================================
 // HELPER: Get conversation context from semantic RAG
 // ============================================================================
 
@@ -147,7 +267,8 @@ export const calendarDataCollector: DomainDataCollector<CalendarDomainData> = {
       }[] = [];
 
       try {
-        const calendarIntelligence = await import('../../services/calendar/calendar-intelligence.js');
+        const calendarIntelligence =
+          await import('../../services/calendar/calendar-intelligence.js');
 
         // Get calendar patterns (uses real calendar data when available)
         if (typeof calendarIntelligence.analyzeCalendarPatterns === 'function') {
@@ -255,7 +376,15 @@ export const financeDataCollector: DomainDataCollector<FinanceDomainData> = {
       const contextLower = recentContext.toLowerCase();
 
       // Count finance-related mentions
-      const financeKeywords = ['market', 'stock', 'invest', 'money', 'portfolio', 'savings', 'budget'];
+      const financeKeywords = [
+        'market',
+        'stock',
+        'invest',
+        'money',
+        'portfolio',
+        'savings',
+        'budget',
+      ];
       let checkFrequency = 0;
       for (const keyword of financeKeywords) {
         const matches = contextLower.match(new RegExp(keyword, 'g'));
@@ -271,9 +400,7 @@ export const financeDataCollector: DomainDataCollector<FinanceDomainData> = {
         'anxious about financ',
         'nervous about market',
       ];
-      const expressedAnxiety = anxietyPatterns.some((pattern) =>
-        contextLower.includes(pattern)
-      );
+      const expressedAnxiety = anxietyPatterns.some((pattern) => contextLower.includes(pattern));
 
       // Determine stress level
       let stressLevel: 'low' | 'moderate' | 'high' = 'low';
@@ -284,7 +411,12 @@ export const financeDataCollector: DomainDataCollector<FinanceDomainData> = {
       }
 
       // Detect pending decisions
-      const decisionKeywords = ['should i', 'deciding', 'thinking about buying', 'thinking about selling'];
+      const decisionKeywords = [
+        'should i',
+        'deciding',
+        'thinking about buying',
+        'thinking about selling',
+      ];
       const hasPendingDecision = decisionKeywords.some((kw) => contextLower.includes(kw));
 
       // Extract concern topics
@@ -401,8 +533,7 @@ export const goalsDataCollector: DomainDataCollector<GoalsDomainData> = {
         // Count goals at risk
         const goalsAtRisk = lifeGoals.filter((g) => {
           if (g.status === 'at-risk') return true;
-          if (g.targetDate && new Date(g.targetDate) < now && g.status !== 'completed')
-            return true;
+          if (g.targetDate && new Date(g.targetDate) < now && g.status !== 'completed') return true;
           if (g.progress !== undefined && g.progress < 30 && g.status === 'in-progress')
             return true;
           return false;
@@ -512,7 +643,16 @@ export const relationshipDataCollector: DomainDataCollector<RelationshipDomainDa
 
       // Extract mentioned people using pattern matching
       const recentlyMentionedPeople: string[] = [];
-      const relationshipWords = ['my wife', 'my husband', 'my partner', 'my mom', 'my dad', 'my friend', 'my sister', 'my brother'];
+      const relationshipWords = [
+        'my wife',
+        'my husband',
+        'my partner',
+        'my mom',
+        'my dad',
+        'my friend',
+        'my sister',
+        'my brother',
+      ];
       for (const word of relationshipWords) {
         if (contextLower.includes(word)) {
           recentlyMentionedPeople.push(word.replace('my ', ''));
@@ -722,11 +862,38 @@ export const domainCollectors = {
 } as const;
 
 /**
+ * Collect a single domain with caching
+ */
+async function collectWithCache<T>(
+  userId: string,
+  windowDays: number,
+  domain: DomainType,
+  collector: DomainDataCollector<T>
+): Promise<T | null> {
+  // Check cache first
+  const cached = getCachedData<T | null>(userId, domain, windowDays);
+  if (cached !== null) {
+    log.debug({ userId, domain }, 'Domain data cache hit');
+    return cached;
+  }
+
+  // Collect fresh data
+  const data = await collector.collect(userId, windowDays);
+
+  // Cache the result (including null results to avoid repeated lookups)
+  setCachedData(userId, domain, windowDays, data);
+
+  return data;
+}
+
+/**
  * Collect all domain data for a user
+ * Uses tiered caching to avoid repeated expensive lookups
  */
 export async function collectAllDomainData(
   userId: string,
-  windowDays: number = 7
+  windowDays: number = 7,
+  options: { bypassCache?: boolean } = {}
 ): Promise<{
   sleep: SleepDomainData | null;
   calendar: CalendarDomainData | null;
@@ -734,30 +901,57 @@ export async function collectAllDomainData(
   goals: GoalsDomainData | null;
   relationships: RelationshipDomainData | null;
   habits: HabitsDomainData | null;
+  cacheStats?: { hits: number; misses: number };
 }> {
   const startTime = Date.now();
 
-  // Collect all domains in parallel
+  // Clear cache if bypassing
+  if (options.bypassCache) {
+    clearDomainCache(userId);
+  }
+
+  // Track cache stats
+  const cacheStatsBefore = getDomainCacheStats();
+  const entriesBefore = cacheStatsBefore.totalEntries;
+
+  // Collect all domains in parallel with caching
   const [sleep, calendar, finance, goals, relationships, habits] = await Promise.all([
-    sleepDataCollector.collect(userId, windowDays),
-    calendarDataCollector.collect(userId, windowDays),
-    financeDataCollector.collect(userId, windowDays),
-    goalsDataCollector.collect(userId, windowDays),
-    relationshipDataCollector.collect(userId, windowDays),
-    habitsDataCollector.collect(userId, windowDays),
+    collectWithCache(userId, windowDays, 'sleep', sleepDataCollector),
+    collectWithCache(userId, windowDays, 'calendar', calendarDataCollector),
+    collectWithCache(userId, windowDays, 'finance', financeDataCollector),
+    collectWithCache(userId, windowDays, 'goals', goalsDataCollector),
+    collectWithCache(userId, windowDays, 'relationships', relationshipDataCollector),
+    collectWithCache(userId, windowDays, 'habits', habitsDataCollector),
   ]);
 
   const collected = [sleep, calendar, finance, goals, relationships, habits].filter(Boolean);
+  const cacheStatsAfter = getDomainCacheStats();
+  const entriesAfter = cacheStatsAfter.totalEntries;
+
+  // Calculate cache hits: if entries increased, those were misses; otherwise hits
+  const newEntries = entriesAfter - entriesBefore;
+  const cacheHits = 6 - newEntries;
+  const cacheMisses = newEntries;
 
   log.info(
     {
       userId,
       windowDays,
       domainsCollected: collected.length,
+      cacheHits,
+      cacheMisses,
       processingTimeMs: Date.now() - startTime,
     },
     'Domain data collection complete'
   );
 
-  return { sleep, calendar, finance, goals, relationships, habits };
+  return {
+    sleep,
+    calendar,
+    finance,
+    goals,
+    relationships,
+    habits,
+    cacheStats: { hits: cacheHits, misses: cacheMisses },
+  };
 }

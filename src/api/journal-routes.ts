@@ -14,7 +14,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
-import { generatePrompts, getBestPrompt, type PromptContext } from '../services/trust-systems/journaling-prompts.js';
+import {
+  generatePrompts,
+  getBestPrompt,
+  type PromptContext,
+} from '../services/trust-systems/journaling-prompts.js';
 import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture.service.js';
 import OpenAI from 'openai';
 
@@ -325,11 +329,15 @@ ${profile.greetingStyle ? `\nHow you greet: "${profile.greetingStyle}"` : ''}
 ${profile.farewellStyle ? `\nHow you say goodbye: "${profile.farewellStyle}"` : ''}
 
 ## How You Express Emotions
-${profile.emotionalExpressions ? `
+${
+  profile.emotionalExpressions
+    ? `
 - When happy: ${profile.emotionalExpressions.happy.length > 0 ? profile.emotionalExpressions.happy.map((e) => `"${e}"`).join(', ') : 'Natural expressions'}
 - When sad: ${profile.emotionalExpressions.sad.length > 0 ? profile.emotionalExpressions.sad.map((e) => `"${e}"`).join(', ') : 'Quiet, reflective'}
 - When excited: ${profile.emotionalExpressions.excited.length > 0 ? profile.emotionalExpressions.excited.map((e) => `"${e}"`).join(', ') : 'Enthusiastic'}
-- When frustrated: ${profile.emotionalExpressions.frustrated.length > 0 ? profile.emotionalExpressions.frustrated.map((e) => `"${e}"`).join(', ') : 'Direct but measured'}` : 'Express emotions naturally'}
+- When frustrated: ${profile.emotionalExpressions.frustrated.length > 0 ? profile.emotionalExpressions.frustrated.map((e) => `"${e}"`).join(', ') : 'Direct but measured'}`
+    : 'Express emotions naturally'
+}
 
 ## Your Life Story
 ${profile.lifeChapters && profile.lifeChapters.length > 0 ? profile.lifeChapters.map((ch) => `- ${ch.title} (${ch.years}): ${ch.description}`).join('\n') : 'Still being written'}
@@ -349,7 +357,8 @@ ${themes.length > 0 ? themes.join(', ') : 'Various reflections'}
       prompt += `\n[${date}${journal.mood ? ` - Feeling: ${journal.mood}` : ''}]\n${journal.content}\n`;
     }
   } else {
-    prompt += 'No specific entries match this topic yet, but respond from your general perspective.\n';
+    prompt +=
+      'No specific entries match this topic yet, but respond from your general perspective.\n';
   }
 
   prompt += `

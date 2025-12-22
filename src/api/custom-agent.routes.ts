@@ -377,7 +377,7 @@ export async function handleCustomAgentRoutes(
       // Validate agent is ready to be activated
       if (body.status === 'active') {
         const validationErrors: string[] = [];
-        
+
         if (!agent.voice?.voiceId) {
           validationErrors.push('Voice is not configured');
         }
@@ -387,9 +387,9 @@ export async function handleCustomAgentRoutes(
         if (!agent.description || agent.description.length < 10) {
           validationErrors.push('Description is too short');
         }
-        
+
         if (validationErrors.length > 0) {
-          sendJson(res, 400, { 
+          sendJson(res, 400, {
             error: 'Agent cannot be activated',
             validationErrors,
           });
@@ -404,7 +404,7 @@ export async function handleCustomAgentRoutes(
       }
 
       log.info({ userId, agentId, status: body.status }, 'Agent status updated');
-      sendJson(res, 200, { 
+      sendJson(res, 200, {
         message: `Agent ${body.status === 'active' ? 'activated' : body.status === 'paused' ? 'paused' : 'set to draft'}`,
         status: body.status,
       });
@@ -423,7 +423,7 @@ export async function handleCustomAgentRoutes(
 
       // Validate agent is ready to be activated
       const validationErrors: string[] = [];
-      
+
       if (!agent.voice?.voiceId) {
         validationErrors.push('Voice is not configured');
       }
@@ -433,9 +433,9 @@ export async function handleCustomAgentRoutes(
       if (!agent.description || agent.description.length < 10) {
         validationErrors.push('Description is too short');
       }
-      
+
       if (validationErrors.length > 0) {
-        sendJson(res, 400, { 
+        sendJson(res, 400, {
           error: 'Agent cannot be activated',
           validationErrors,
           readyStatus: {
@@ -454,7 +454,7 @@ export async function handleCustomAgentRoutes(
       }
 
       log.info({ userId, agentId }, 'Agent activated');
-      sendJson(res, 200, { 
+      sendJson(res, 200, {
         message: 'Agent activated and ready for conversations',
         status: 'active',
       });

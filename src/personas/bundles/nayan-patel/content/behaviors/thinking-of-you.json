@@ -85,10 +85,6 @@
       "life_review_energy",
       "wisdom_integration_time"
     ],
-    "never_when": [
-      "user_in_acute_crisis",
-      "first_session_ever",
-      "user_needs_practical_help"
-    ]
+    "never_when": ["user_in_acute_crisis", "first_session_ever", "user_needs_practical_help"]
   }
 }

@@ -158,10 +158,6 @@
       "grief_anniversary",
       "wisdom_gap_visible"
     ],
-    "never_when": [
-      "user_in_acute_crisis",
-      "first_few_turns",
-      "user_needs_practical_help"
-    ]
+    "never_when": ["user_in_acute_crisis", "first_few_turns", "user_needs_practical_help"]
   }
 }

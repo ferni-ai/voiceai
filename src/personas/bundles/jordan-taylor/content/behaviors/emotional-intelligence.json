@@ -170,7 +170,12 @@
   "proactive_triggers": {
     "usage_rules": {
       "check_every_turn": true,
-      "more_likely_when": ["planning something big", "life transition", "countdown to event", "organizing chaos"],
+      "more_likely_when": [
+        "planning something big",
+        "life transition",
+        "countdown to event",
+        "organizing chaos"
+      ],
       "never_when": ["active grief", "user needs immediate action", "crisis mode"]
     },
     "planning_overwhelm": {

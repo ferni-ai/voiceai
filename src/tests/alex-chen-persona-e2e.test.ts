@@ -145,7 +145,9 @@ describe('Alex Chen Persona E2E Tests', () => {
 
       // Check for Alex-specific voice markers
       expect(trustPhrases?.reading_between_lines?.false_fine).toBeDefined();
-      expect(trustPhrases?.reading_between_lines?.false_fine?.length).toBeGreaterThan(0);
+      // false_fine is an object with signals, approach, alex_flavor, avoid - not an array
+      expect(trustPhrases?.reading_between_lines?.false_fine?.signals).toBeDefined();
+      expect(trustPhrases?.reading_between_lines?.false_fine?.alex_flavor).toBeDefined();
 
       // Verify Alex's voice (e.g., mentions restaurant, Mom, Kev, efficiency)
       const falseFineJson = JSON.stringify(trustPhrases?.reading_between_lines?.false_fine);

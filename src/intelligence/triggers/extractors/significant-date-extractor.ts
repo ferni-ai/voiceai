@@ -125,7 +125,10 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
     },
   },
   {
-    pattern: new RegExp(`(${MONTH_PATTERN})\\s+(${ORDINAL_PATTERN})(?:,?\\s+\\d{4})?\\s+is\\s+(?:my|his|her|their)\\s+birthday`, 'i'),
+    pattern: new RegExp(
+      `(${MONTH_PATTERN})\\s+(${ORDINAL_PATTERN})(?:,?\\s+\\d{4})?\\s+is\\s+(?:my|his|her|their)\\s+birthday`,
+      'i'
+    ),
     type: 'birthday',
     baseEmotionalWeight: 0.5,
     extractDate: (match) => {
@@ -156,7 +159,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
     },
   },
   {
-    pattern: /we\s+got\s+married\s+on\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /we\s+got\s+married\s+on\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'anniversary',
     baseEmotionalWeight: 0.8,
     extractDate: (match) => {
@@ -172,7 +176,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
 
   // Loss/death patterns
   {
-    pattern: /(?:my|his|her|their)\s+(\w+)\s+(?:passed\s+away|died)\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /(?:my|his|her|their)\s+(\w+)\s+(?:passed\s+away|died)\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'loss',
     baseEmotionalWeight: 0.95,
     extractDate: (match) => {
@@ -187,7 +192,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
     extractPerson: (match) => match[1],
   },
   {
-    pattern: /lost\s+(?:my|his|her|their)\s+(\w+)(?:\s+to\s+\w+)?\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /lost\s+(?:my|his|her|their)\s+(\w+)(?:\s+to\s+\w+)?\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'loss',
     baseEmotionalWeight: 0.95,
     extractDate: (match) => {
@@ -210,7 +216,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
 
   // Milestone patterns
   {
-    pattern: /graduated\s+(?:from\s+\w+\s+)?(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /graduated\s+(?:from\s+\w+\s+)?(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'milestone',
     baseEmotionalWeight: 0.6,
     extractDate: (match) => {
@@ -224,7 +231,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
     },
   },
   {
-    pattern: /got\s+(?:the\s+)?(?:promotion|job|offer)\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /got\s+(?:the\s+)?(?:promotion|job|offer)\s+(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'milestone',
     baseEmotionalWeight: 0.5,
     extractDate: (match) => {
@@ -240,7 +248,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
 
   // Medical patterns
   {
-    pattern: /(?:diagnosed|surgery|operation)\s+(?:was\s+)?(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /(?:diagnosed|surgery|operation)\s+(?:was\s+)?(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'medical',
     baseEmotionalWeight: 0.8,
     extractDate: (match) => {
@@ -256,7 +265,8 @@ const DATE_PATTERNS: DateExtractionPattern[] = [
 
   // Sobriety/recovery dates
   {
-    pattern: /(?:sober|clean)\s+since\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
+    pattern:
+      /(?:sober|clean)\s+since\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(\w+)(?:,?\s+(\d{4}))?/i,
     type: 'milestone',
     baseEmotionalWeight: 0.85,
     extractDate: (match) => {

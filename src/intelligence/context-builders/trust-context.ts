@@ -117,8 +117,13 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   // DYNAMIC TRIGGERS - Check proactive_triggers from trust-phrases.json
   // Better Than Human: Define CONDITIONS for when to act
   // ============================================================================
-  const triggerContext = buildTriggerContext(userText, analysis, userData as Record<string, unknown>);
-  const proactiveTriggers = (cachedTrustPhrases as TrustPhrasesWithTriggers | null)?.proactive_triggers;
+  const triggerContext = buildTriggerContext(
+    userText,
+    analysis,
+    userData as Record<string, unknown>
+  );
+  const proactiveTriggers = (cachedTrustPhrases as TrustPhrasesWithTriggers | null)
+    ?.proactive_triggers;
   const usageRules = (cachedTrustPhrases as TrustPhrasesWithTriggers | null)?.usage_rules;
 
   // Check never_when conditions

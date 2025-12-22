@@ -22,7 +22,10 @@ import {
   type ContentContext,
 } from '../services/llm-dynamic-content.js';
 import { callLLM } from '../services/llm-utils.js';
-import { getMusicCommentary, hasArtistInfo } from '../tools/domains/entertainment/music-commentary.js';
+import {
+  getMusicCommentary,
+  hasArtistInfo,
+} from '../tools/domains/entertainment/music-commentary.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -80,7 +83,7 @@ function buildMusicInterjectionPrompt(
 ): string {
   const momentDescriptions: Record<string, string> = {
     track_start: 'The song just started playing. Say something brief to introduce/appreciate it.',
-    mid_song: 'We\'re in the middle of the song. A brief appreciative moment if you feel it.',
+    mid_song: "We're in the middle of the song. A brief appreciative moment if you feel it.",
     track_end: 'The song just finished. A quick, warm reflection.',
     user_liked: 'The user expressed they liked it! Share in their enjoyment briefly.',
     user_skipped: 'The user skipped the song. Acknowledge gracefully and move on.',
@@ -153,8 +156,9 @@ async function generateLLMInterjection(
 
         // Trim cache if too large
         if (llmInterjectionCache.size > MAX_CACHE_SIZE) {
-          const oldest = [...llmInterjectionCache.entries()]
-            .sort((a, b) => a[1].generatedAt - b[1].generatedAt)[0];
+          const oldest = [...llmInterjectionCache.entries()].sort(
+            (a, b) => a[1].generatedAt - b[1].generatedAt
+          )[0];
           if (oldest) {
             llmInterjectionCache.delete(oldest[0]);
           }
@@ -782,24 +786,24 @@ export interface TrackContext {
  */
 const CONTEXTUAL_INTERJECTION_TEMPLATES: Record<string, string[]> = {
   track_start_with_context: [
-    "Oh {artist}! Did you know {fact}",
-    "Fun fact about this one: {fact}",
-    "{artist} is so good. {fact}",
-    "Okay but {fact} How cool is that?",
-    "I love this choice. {fact}",
+    'Oh {artist}! Did you know {fact}',
+    'Fun fact about this one: {fact}',
+    '{artist} is so good. {fact}',
+    'Okay but {fact} How cool is that?',
+    'I love this choice. {fact}',
   ],
   track_start_with_artist: [
-    "{artist}! Always a great choice.",
+    '{artist}! Always a great choice.',
     "Ah, {artist}. Can't go wrong here.",
-    "Good call with {artist}.",
-    "{artist} hits different.",
-    "You know what I love about {artist}? Everything.",
+    'Good call with {artist}.',
+    '{artist} hits different.',
+    'You know what I love about {artist}? Everything.',
   ],
   track_start_generic: [
-    "This one? Absolute perfection.",
+    'This one? Absolute perfection.',
     "Ooh I love this one. No pressure but... it's a vibe.",
-    "Good pick.",
-    "Oh this is nice.",
+    'Good pick.',
+    'Oh this is nice.',
   ],
   mid_song: [
     'Right? RIGHT?',

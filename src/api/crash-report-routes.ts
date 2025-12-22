@@ -59,7 +59,8 @@ interface CrashReportResponse {
 // STORAGE (In-memory for now, could be persisted)
 // ============================================================================
 
-const recentClientCrashes: Array<FrontendCrashReport & { crashId: string; receivedAt: string }> = [];
+const recentClientCrashes: Array<FrontendCrashReport & { crashId: string; receivedAt: string }> =
+  [];
 const MAX_STORED_CRASHES = 100;
 
 // ============================================================================
@@ -69,10 +70,7 @@ const MAX_STORED_CRASHES = 100;
 /**
  * Handle crash report submission from frontend
  */
-async function handleCrashReport(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method !== 'POST') {
     res.writeHead(405, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Method not allowed' }));
@@ -124,10 +122,7 @@ async function handleCrashReport(
     // Categorize crash for alerting
     const severity = categorizeCrash(report);
     if (severity === 'critical') {
-      log.error(
-        { crashId, severity },
-        '🔴 CRITICAL CLIENT CRASH - Requires immediate attention!'
-      );
+      log.error({ crashId, severity }, '🔴 CRITICAL CLIENT CRASH - Requires immediate attention!');
     }
 
     // Send response
@@ -149,10 +144,7 @@ async function handleCrashReport(
 /**
  * Get recent crash reports (for admin/debugging)
  */
-async function handleGetCrashes(
-  _req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleGetCrashes(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   const summary = {
     totalCrashes: recentClientCrashes.length,
     last24h: recentClientCrashes.filter(
@@ -265,4 +257,3 @@ export async function handleCrashReportRoutes(
 
   return false;
 }
-

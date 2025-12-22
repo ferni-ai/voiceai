@@ -328,7 +328,10 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
                 observations: 1,
               });
             }
-            if (userData.voiceEmotion.primary === 'angry' || userData.voiceEmotion.primary === 'sad') {
+            if (
+              userData.voiceEmotion.primary === 'angry' ||
+              userData.voiceEmotion.primary === 'sad'
+            ) {
               cues.push({
                 type: 'pitch_change',
                 direction: 'irregular',
@@ -358,11 +361,12 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           const now = Date.now();
           const firingsThisSession = userData.anticipatoryFiringsThisSession ?? 0;
           const lastFiringAt = userData.lastAnticipatoryFiringAt ?? 0;
-          const cooldownMs = (userData.anticipatoryIntelligence.safeguards?.minSecondsBetween ?? 120) * 1000;
+          const cooldownMs =
+            (userData.anticipatoryIntelligence.safeguards?.minSecondsBetween ?? 120) * 1000;
           const maxPerSession = userData.anticipatoryIntelligence.safeguards?.maxPerSession ?? 3;
 
           // Skip if we've exceeded session limits
-          if (firingsThisSession < maxPerSession && (now - lastFiringAt) > cooldownMs) {
+          if (firingsThisSession < maxPerSession && now - lastFiringAt > cooldownMs) {
             const result = processAnticipatoryInput(
               sessionId,
               event.transcript,
@@ -533,11 +537,16 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           // Determine user reaction based on how they continued
           // If they continued speaking on a related topic, we likely guessed right
           // If they changed topic or seemed annoyed, we likely guessed wrong
-          let userReaction: 'appreciated' | 'continued' | 'ignored' | 'corrected' | 'annoyed' = 'continued';
+          let userReaction: 'appreciated' | 'continued' | 'ignored' | 'corrected' | 'annoyed' =
+            'continued';
 
           // Simple heuristics for reaction detection
           const response = cleanedTranscript.toLowerCase();
-          if (response.includes('thank') || response.includes('exactly') || response.includes('yes')) {
+          if (
+            response.includes('thank') ||
+            response.includes('exactly') ||
+            response.includes('yes')
+          ) {
             userReaction = 'appreciated';
           } else if (
             response.includes('no') ||

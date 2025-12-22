@@ -51,4 +51,3 @@ export interface DomainExecutor {
   /** Execute the tool - returns null if not handled */
   execute: ToolHandler;
 }
-

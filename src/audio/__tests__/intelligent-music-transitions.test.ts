@@ -581,6 +581,6 @@ describe('Full Flow Integration', () => {
     });
 
     // Should acknowledge with user-request handling
-    expect(['silence', 'acknowledgment', 'gentle_return']).toContain(transition.transitionType);
+    expect(['silence', 'acknowledgment', 'gentle_return', 'dj_vibes']).toContain(transition.transitionType);
   });
 });
