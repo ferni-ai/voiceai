@@ -79,6 +79,12 @@ interface HumanPersonalityUserData {
 
 /**
  * Calculate relationship stage from user data
+ *
+ * Stages progress: stranger → acquaintance → friend → trusted
+ * - stranger: 0-2 conversations
+ * - acquaintance: 3-10 conversations
+ * - friend: 11+ conversations OR has shared vulnerabilities
+ * - trusted: 25+ conversations AND 3+ shared vulnerabilities
  */
 function calculateRelationshipStage(
   totalConversations: number,
@@ -90,11 +96,11 @@ function calculateRelationshipStage(
   // Acquaintance: 3-10 conversations
   if (totalConversations <= 10) return 'acquaintance';
 
+  // Trusted: Many conversations AND shared vulnerabilities (check BEFORE friend)
+  if (totalConversations > 25 && sharedVulnerabilities >= 3) return 'trusted';
+
   // Friend: 11+ conversations OR has shared vulnerabilities
   if (totalConversations > 10 || sharedVulnerabilities > 0) return 'friend';
-
-  // Trusted: Many conversations AND shared vulnerabilities
-  if (totalConversations > 25 && sharedVulnerabilities >= 3) return 'trusted';
 
   return 'acquaintance';
 }

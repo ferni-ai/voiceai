@@ -10,7 +10,7 @@
 // Route handlers
 export { handleBrandRoutes } from './brand-routes.js';
 export { handleCameoAnalyticsRoutes } from './cameo-analytics-routes.js';
-export { handleCalendarRoutes } from './calendar-routes.js';
+export { handleCalendarRoutes } from './calendar-routes/index.js';
 export { handleCommandsRoutes } from './commands-routes.js';
 export { handleDebugRoutes } from './debug-routes.js';
 export { handleWidgetRoutes } from './widget-routes.js';

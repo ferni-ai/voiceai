@@ -12,8 +12,7 @@
  * - Showing active listening
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 

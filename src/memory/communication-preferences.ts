@@ -14,7 +14,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  ICommunicationPreferences,
+  CommunicationPreferencesService,
   InteractionPreference,
   ApproachGuidance,
   PreferenceDimension,
@@ -213,7 +213,7 @@ function analyzeResponseSentiment(response: string): ResponseSignal {
 // COMMUNICATION PREFERENCES IMPLEMENTATION
 // ============================================================================
 
-export class CommunicationPreferences implements ICommunicationPreferences {
+export class CommunicationPreferences implements CommunicationPreferencesService {
   private config: PreferencesConfig;
   private preferences = new Map<string, InteractionPreference[]>(); // userId -> preferences
 

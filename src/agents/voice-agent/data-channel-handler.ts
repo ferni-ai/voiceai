@@ -60,6 +60,10 @@ export interface DataChannelContext {
   voiceAgentRef?: {
     setPersona: (personaId: string, instructions: string) => void;
   };
+  /** TTS instance for voice switching - CRITICAL for actual voice change! */
+  tts?: {
+    switchVoice?: (name: string, voiceId: string, accent?: string) => void;
+  };
 }
 
 export interface DataChannelResult {
@@ -242,6 +246,7 @@ async function handleHandoffRequest(
     if (!adapter && ctx.ctx) {
       // Create adapter if we have job context
       // CRITICAL: Pass sessionPersona.id so coordinator knows the starting agent
+      // CRITICAL: Pass tts so actual voice can be changed!
       adapter = getSessionAdapter(sessionId, {
         ctx: ctx.ctx,
         session,
@@ -249,6 +254,7 @@ async function handleHandoffRequest(
         room,
         getVoiceAgentRef: () => voiceAgentRef || null,
         initialAgent: ctx.sessionPersona.id,
+        tts: ctx.tts, // CRITICAL: Without this, voice won't actually change!
       });
     }
 
@@ -263,13 +269,16 @@ async function handleHandoffRequest(
     // Execute handoff via the new coordinator
     getLogger().info(
       { targetPersona, currentAgent: adapter.getCurrentAgent() },
-      '🔄 Executing handoff via coordinator'
+      '🔄 Executing handoff via coordinator (FAST MODE)'
     );
 
+    // UI-initiated = FAST MODE (Option D: instant switch, async welcome)
     const result = await adapter.executeHandoff(targetPersona, 'User requested via UI tap', {
       userProfile: services.userProfile,
       subscriptionTier:
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free',
+      fastMode: true, // ⚡ Instant switch for UI clicks
+      source: 'user',
     });
 
     getLogger().info(

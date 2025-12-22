@@ -726,7 +726,7 @@ function renderScores(data: LifeContextSnapshot): string {
         <div class="life-context-score-card__value life-context-score-card__value--${loadClass}">
           ${formatPercentage(data.overallLoadScore)}
         </div>
-        <div class="life-context-score-card__label">Life Load</div>
+        <div class="life-context-score-card__label">${t('lifeContext.scores.load', "How Much You're Carrying")}</div>
         <div class="life-context-score-card__bar">
           <div class="life-context-score-card__bar-fill" style="width: ${data.overallLoadScore * 100}%; background: var(--color-${loadClass === 'good' ? 'ferni' : loadClass === 'warning' ? 'jordan' : 'maya'})"></div>
         </div>
@@ -735,7 +735,7 @@ function renderScores(data: LifeContextSnapshot): string {
         <div class="life-context-score-card__value life-context-score-card__value--${wellbeingClass}">
           ${formatPercentage(data.wellbeingScore)}
         </div>
-        <div class="life-context-score-card__label">Wellbeing</div>
+        <div class="life-context-score-card__label">${t('lifeContext.scores.wellbeing', "How You're Doing")}</div>
         <div class="life-context-score-card__bar">
           <div class="life-context-score-card__bar-fill" style="width: ${data.wellbeingScore * 100}%; background: var(--color-${wellbeingClass === 'good' ? 'ferni' : wellbeingClass === 'warning' ? 'jordan' : 'maya'})"></div>
         </div>
@@ -752,6 +752,7 @@ function renderDomainCard(indicator: DomainStressIndicator): string {
     persona: 'Ferni',
   };
   const level = getStressLevel(indicator.stressLevel);
+  const levelLabel = t(`lifeContext.levels.${level}`, level === 'high' ? 'Needs attention' : level === 'medium' ? 'Worth watching' : 'Looking good');
 
   return `
     <div class="life-context-domain-card" style="--domain-color: ${config.color}">
@@ -763,11 +764,11 @@ function renderDomainCard(indicator: DomainStressIndicator): string {
           ${config.name}
         </div>
         <span class="life-context-domain-card__level life-context-domain-card__level--${level}">
-          ${level === 'high' ? 'High' : level === 'medium' ? 'Moderate' : 'Low'}
+          ${levelLabel}
         </span>
       </div>
       <div class="life-context-domain-card__reason">${indicator.reason}</div>
-      <div class="life-context-domain-card__persona">via ${config.persona}</div>
+      <div class="life-context-domain-card__persona">${t('lifeContext.noticedBy', 'noticed by {name}').replace('{name}', config.persona)}</div>
     </div>
   `;
 }
@@ -776,9 +777,9 @@ function renderDomains(indicators: DomainStressIndicator[]): string {
   if (indicators.length === 0) {
     return `
       <div class="life-context-domains">
-        <div class="life-context-section-title">Domain Stress</div>
+        <div class="life-context-section-title">${t('lifeContext.sections.areas', 'Areas of Your Life')}</div>
         <div class="life-context-empty">
-          <div class="life-context-empty__message">No stress indicators detected</div>
+          <div class="life-context-empty__message">${t('lifeContext.balanced', 'Everything seems balanced right now')}</div>
         </div>
       </div>
     `;
@@ -789,7 +790,7 @@ function renderDomains(indicators: DomainStressIndicator[]): string {
 
   return `
     <div class="life-context-domains">
-      <div class="life-context-section-title">Domain Stress</div>
+      <div class="life-context-section-title">${t('lifeContext.sections.areas', 'Areas of Your Life')}</div>
       <div class="life-context-domain-grid">
         ${sorted.map((i) => renderDomainCard(i)).join('')}
       </div>
@@ -798,12 +799,15 @@ function renderDomains(indicators: DomainStressIndicator[]): string {
 }
 
 function renderPattern(pattern: CrossDomainPattern): string {
+  // More human-friendly severity labels via i18n
+  const severityLabel = t(`lifeContext.severity.${pattern.severity}`, pattern.severity);
+
   return `
     <div class="life-context-pattern">
       <div class="life-context-pattern__header">
         <span class="life-context-pattern__name">${formatPatternName(pattern.pattern)}</span>
         <span class="life-context-pattern__severity life-context-pattern__severity--${pattern.severity}">
-          ${pattern.severity}
+          ${severityLabel}
         </span>
       </div>
       <div class="life-context-pattern__insight">${pattern.insight}</div>
@@ -821,7 +825,7 @@ function renderPatterns(patterns: CrossDomainPattern[]): string {
 
   return `
     <div class="life-context-patterns">
-      <div class="life-context-section-title">Cross-Domain Patterns</div>
+      <div class="life-context-section-title">${t('lifeContext.sections.patterns', "Patterns I'm Noticing")}</div>
       ${patterns.map((p) => renderPattern(p)).join('')}
     </div>
   `;
@@ -834,17 +838,20 @@ function renderTrigger(trigger: SynthesisTrigger): string {
     bgColor: 'var(--persona-tint)',
   };
 
+  // More human-friendly priority labels via i18n
+  const priorityLabel = t(`lifeContext.priority.${trigger.priority}`, trigger.priority);
+
   return `
     <div class="life-context-trigger" role="button" tabindex="0" style="border-color: ${categoryConfig.color}; background: ${categoryConfig.bgColor}">
       <div class="life-context-trigger__header" role="button" tabindex="0">
         <span class="life-context-trigger__category" role="button" tabindex="0" style="background: ${categoryConfig.color}; color: white">
           ${categoryConfig.label}
         </span>
-        <span class="life-context-trigger__priority" role="button" tabindex="0">${trigger.priority}</span>
+        <span class="life-context-trigger__priority" role="button" tabindex="0">${priorityLabel}</span>
       </div>
       <div class="life-context-trigger__message" role="button" tabindex="0">${trigger.message}</div>
       <div class="life-context-trigger__response" role="button" tabindex="0">"${trigger.suggestedResponse}"</div>
-      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">Recommended: ${trigger.recommendedPersona}</div>` : ''}
+      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">${t('lifeContext.personaHint', '{name} might be good to talk to about this').replace('{name}', trigger.recommendedPersona)}</div>` : ''}
     </div>
   `;
 }
@@ -862,8 +869,8 @@ function renderTriggers(triggers?: SynthesisTrigger[]): string {
 
   return `
     <div class="life-context-triggers" role="button" tabindex="0">
-      <div class="life-context-section-title">Synthesis Triggers</div>
-      ${sorted.map((t) => renderTrigger(t)).join('')}
+      <div class="life-context-section-title">${t('lifeContext.sections.thoughts', "What's On My Mind")}</div>
+      ${sorted.map((trig) => renderTrigger(trig)).join('')}
     </div>
   `;
 }
@@ -873,7 +880,7 @@ function renderContent(): string {
     return `
       <div class="life-context-loading">
         <div class="life-context-spinner"></div>
-        <div class="life-context-loading__text">Analyzing life context...</div>
+        <div class="life-context-loading__text">${t('lifeContext.loading', 'Checking in on your world...')}</div>
       </div>
     `;
   }
@@ -882,7 +889,7 @@ function renderContent(): string {
     return `
       <div class="life-context-empty">
         <div class="life-context-empty__icon">${ICONS.layers}</div>
-        <div class="life-context-empty__title">Couldn't load data</div>
+        <div class="life-context-empty__title">${t('lifeContext.error.title', "Couldn't check in right now")}</div>
         <div class="life-context-empty__message">${currentState.error}</div>
       </div>
     `;
@@ -892,8 +899,8 @@ function renderContent(): string {
     return `
       <div class="life-context-empty">
         <div class="life-context-empty__icon">${ICONS.layers}</div>
-        <div class="life-context-empty__title">No life context yet</div>
-        <div class="life-context-empty__message">Keep chatting and your team will build a picture of your life.</div>
+        <div class="life-context-empty__title">${t('lifeContext.empty.title', 'Still getting to know you')}</div>
+        <div class="life-context-empty__message">${t('lifeContext.empty.message', "As we talk more, I'll start to notice patterns and share what I see across your life.")}</div>
       </div>
     `;
   }
@@ -917,14 +924,14 @@ function renderModal(): string {
     <div class="life-context-modal-backdrop"></div>
     <div class="life-context-modal" role="dialog" aria-modal="true" aria-labelledby="life-context-title">
       <div class="life-context-modal__header">
-        <div class="life-context-modal__eyebrow">Phase 6 Intelligence</div>
+        <div class="life-context-modal__eyebrow">${t('lifeContext.eyebrow', 'WHAT I NOTICE').toUpperCase()}</div>
         <h2 id="life-context-title" class="life-context-modal__title">
-          ${t('lifeContext.title', 'Life Context')}
+          ${t('lifeContext.title', 'Your World')}
         </h2>
         <p class="life-context-modal__subtitle">
-          ${t('lifeContext.subtitle', 'Cross-domain synthesis of your life')}
+          ${t('lifeContext.subtitle', 'How things are looking across your life')}
         </p>
-        <button class="life-context-modal__close" aria-label="Close" data-action="close">
+        <button class="life-context-modal__close" aria-label="${t('common.close', 'Close')}" data-action="close">
           ${ICONS.close}
         </button>
       </div>
@@ -933,7 +940,7 @@ function renderModal(): string {
       </div>
       <div class="life-context-modal__footer">
         <span class="life-context-modal__footer-info">
-          ${timestampText ? `Updated ${timestampText}` : 'Real-time synthesis'}
+          ${timestampText ? t('lifeContext.footer.updated', 'Updated {time}').replace('{time}', timestampText) : t('lifeContext.footer.watching', 'Keeping an eye on things')}
         </span>
       </div>
     </div>

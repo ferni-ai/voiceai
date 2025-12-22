@@ -243,18 +243,89 @@
     "_description": "External AI company brand colors for marketplace display",
     "claude": {
       "primary": "#D97757",
+      "secondary": "#B85F42",
       "glow": "rgba(217, 119, 87, 0.35)",
       "_note": "Anthropic Claude - terracotta orange"
     },
     "gemini": {
       "primary": "#4285F4",
+      "secondary": "#2B6AD9",
       "glow": "rgba(66, 133, 244, 0.35)",
       "_note": "Google Gemini - Google blue"
     },
     "gpt": {
       "primary": "#10A37F",
+      "secondary": "#0B7A5E",
       "glow": "rgba(16, 163, 127, 0.35)",
       "_note": "OpenAI GPT - OpenAI green"
+    }
+  },
+
+  "categories": {
+    "_description": "Marketplace category colors - used for agent cards in discovery",
+    "mentorship": {
+      "primary": "#3a6b73",
+      "secondary": "#2d5359",
+      "text": "#5a9aa5",
+      "glow": "rgba(58, 107, 115, 0.4)",
+      "tint": "rgba(58, 107, 115, 0.15)",
+      "_note": "Teal - similar to Peter (Research)"
+    },
+    "finance": {
+      "primary": "#4a5d8a",
+      "secondary": "#3a4d73",
+      "text": "#6a7daa",
+      "glow": "rgba(74, 93, 138, 0.4)",
+      "tint": "rgba(74, 93, 138, 0.15)",
+      "_note": "Ocean blue - trustworthy, professional"
+    },
+    "health": {
+      "primary": "#a67a6a",
+      "secondary": "#8a635a",
+      "text": "#c49a8a",
+      "glow": "rgba(166, 122, 106, 0.4)",
+      "tint": "rgba(166, 122, 106, 0.15)",
+      "_note": "Rose - similar to Maya (Habits)"
+    },
+    "productivity": {
+      "primary": "#b89a5a",
+      "secondary": "#9a7d42",
+      "text": "#d8ba7a",
+      "glow": "rgba(184, 154, 90, 0.4)",
+      "tint": "rgba(184, 154, 90, 0.15)",
+      "_note": "Amber/Gold - energy, focus"
+    },
+    "lifestyle": {
+      "primary": "#c4856a",
+      "secondary": "#a86d55",
+      "text": "#e4a58a",
+      "glow": "rgba(196, 133, 106, 0.4)",
+      "tint": "rgba(196, 133, 106, 0.15)",
+      "_note": "Coral - similar to Jordan (Events)"
+    },
+    "education": {
+      "primary": "#5a8a6a",
+      "secondary": "#4a735a",
+      "text": "#7aaa8a",
+      "glow": "rgba(90, 138, 106, 0.4)",
+      "tint": "rgba(90, 138, 106, 0.15)",
+      "_note": "Forest green - growth, learning"
+    },
+    "entertainment": {
+      "primary": "#8a6a7a",
+      "secondary": "#735a6a",
+      "text": "#aa8a9a",
+      "glow": "rgba(138, 106, 122, 0.4)",
+      "tint": "rgba(138, 106, 122, 0.15)",
+      "_note": "Dusty plum - creative, playful"
+    },
+    "custom": {
+      "primary": "#8a7a6a",
+      "secondary": "#736a5a",
+      "text": "#aa9a8a",
+      "glow": "rgba(138, 122, 106, 0.4)",
+      "tint": "rgba(138, 122, 106, 0.15)",
+      "_note": "Warm gray - similar to Nayan (Wisdom)"
     }
   }
 }

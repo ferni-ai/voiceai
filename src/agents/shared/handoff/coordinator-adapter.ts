@@ -31,26 +31,34 @@ import {
 } from '../../../tools/handoff/handoff-coordinator.js';
 import { resolveVoiceId } from '../../../tools/handoff/voice-id-resolver.js';
 
+// Voice registry for persona display names and voice IDs
+import { getPersonaDisplayName, getVoiceId } from '../../../personas/voice-registry.js';
+
 // Existing banter system
-import {
-  getLLMDrivenBanter,
-  getHandoffBanter,
-  getArrivingBanter,
-  buildBanterContext,
-} from '../../../services/engagement/team-engagement.js';
+// NOTE: We use fallback phrases (actual speech) with generateReply, NOT meta-instructions.
+// generateReply(instructions) adds text as role:"model" - the model thinks IT said it.
+// So we must pass ACTUAL SPEECH the model can continue from, not "generate a greeting" instructions.
+import { getHandoffBanter, getArrivingBanter } from '../../../services/engagement/team-engagement.js';
+
+// Safe LLM generation (with mutex and timeout protection)
+import { safeGenerateReply } from '../safe-generate-reply.js';
 
 // Cached module accessors
 import { getVoiceManagerCached, getPersonaAsyncCached } from './cached-modules.js';
 import { getNextMessageSeq } from './session-state.js';
-
-// Safe LLM generation
-import { safeGenerateReply } from '../safe-generate-reply.js';
 
 const log = getLogger();
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/**
+ * TTS interface for voice switching.
+ */
+export interface TTSWithVoiceSwitch {
+  switchVoice?: (name: string, voiceId: string, accent?: string) => void;
+}
 
 /**
  * Configuration for the coordinator adapter.
@@ -70,6 +78,8 @@ export interface CoordinatorAdapterConfig {
   } | null;
   /** CRITICAL: Initial agent for the session. Must match sessionPersona.id! */
   initialAgent?: string;
+  /** TTS instance for voice switching - CRITICAL for actual voice change! */
+  tts?: TTSWithVoiceSwitch;
 }
 
 /**
@@ -86,10 +96,6 @@ export interface AdapterHandoffResult {
 // ============================================================================
 // BANTER TIMEOUT
 // ============================================================================
-
-const BANTER_TIMEOUT_MS = 5000; // 5 seconds max for banter
-
-// ============================================================================
 // COORDINATOR ADAPTER CLASS
 // ============================================================================
 
@@ -105,14 +111,16 @@ export class CoordinatorAdapter {
   private readonly room: Room;
   private readonly getVoiceAgentRef: () => { setPersona: (personaId: string, instructions: string) => void } | null;
   private readonly sessionId: string;
+  private readonly tts?: TTSWithVoiceSwitch;
 
   constructor(config: CoordinatorAdapterConfig) {
-    const { ctx, session, services, room, getVoiceAgentRef, initialAgent } = config;
+    const { ctx, session, services, room, getVoiceAgentRef, initialAgent, tts } = config;
     this.session = session;
     this.services = services;
     this.room = room;
     this.getVoiceAgentRef = getVoiceAgentRef;
     this.sessionId = ctx.room?.name || `adapter-${Date.now()}`;
+    this.tts = tts;
 
     // Create the coordinator with our callbacks
     // CRITICAL: Pass initialAgent so state manager knows the starting persona
@@ -135,6 +143,11 @@ export class CoordinatorAdapter {
 
   /**
    * Execute a handoff to a target persona.
+   * 
+   * @param targetAgent - Target persona ID
+   * @param reason - Reason for handoff
+   * @param options - Additional options
+   * @param options.fastMode - Enable instant switch with async welcome (default: true for UI-initiated)
    */
   async executeHandoff(
     targetAgent: string,
@@ -142,16 +155,29 @@ export class CoordinatorAdapter {
     options?: {
       userProfile?: unknown;
       subscriptionTier?: 'free' | 'friend' | 'partner';
+      /** 
+       * FAST MODE (Option D): Instant switch + async welcome
+       * - true: Voice switch immediately, greeting async (~250ms)
+       * - false: Full banter flow (~5-10s)
+       * - undefined: Auto-detect (true for user-initiated)
+       */
+      fastMode?: boolean;
+      /** Source of the handoff request */
+      source?: 'user' | 'llm' | 'system';
     }
   ): Promise<AdapterHandoffResult> {
-    log.info({ targetAgent, reason }, '🚀 CoordinatorAdapter executing handoff');
+    const source = options?.source ?? 'user';
+    const fastMode = options?.fastMode; // Let coordinator decide default based on source
+    
+    log.info({ targetAgent, reason, fastMode, source }, '🚀 CoordinatorAdapter executing handoff');
 
     const result = await this.coordinator.execute({
       targetAgent,
       reason,
       userProfile: options?.userProfile as Parameters<typeof this.coordinator.execute>[0]['userProfile'],
       subscriptionTier: options?.subscriptionTier,
-      source: 'user',
+      source,
+      fastMode,
       recentMessages: this.getRecentMessages(),
       cognitiveContext: this.getCognitiveContext(),
     });
@@ -201,8 +227,11 @@ export class CoordinatorAdapter {
   /**
    * Handle voice switch - called by coordinator.
    * 
-   * CRITICAL FIX: VoiceManager.switchVoice() expects an agent ID (like 'peter-john'),
-   * NOT a voice UUID. The coordinator passes voiceId for reference but we use personaId.
+   * CRITICAL: Must update BOTH:
+   * 1. VoiceManager (internal state tracking)
+   * 2. Session TTS (actual Cartesia voice change)
+   * 
+   * Without step 2, the voice doesn't actually change!
    */
   private async handleVoiceSwitch(voiceId: string, personaId: string): Promise<void> {
     log.debug({ voiceId, personaId }, '🎤 Switching voice');
@@ -215,9 +244,19 @@ export class CoordinatorAdapter {
     // Small delay to prevent race conditions
     await new Promise((resolve) => setTimeout(resolve, 150));
 
-    // FIX BUG: Use personaId (agent ID like 'peter-john'), NOT voiceId (UUID)!
-    // VoiceManager.switchVoice() looks up the voice ID from VOICES[agentId].id
+    // Step 1: Update VoiceManager internal state
     voiceManager.switchVoice(personaId);
+
+    // Step 2: CRITICAL - Update session TTS (actually changes the voice!)
+    // Without this, the voice stays the same even though state changed
+    if (this.tts?.switchVoice) {
+      const displayName = getPersonaDisplayName(personaId);
+      const resolvedVoiceId = voiceId || getVoiceId(personaId);
+      this.tts.switchVoice(displayName, resolvedVoiceId);
+      log.info({ voiceId: resolvedVoiceId, personaId, displayName }, '✅ Session TTS voice switched');
+    } else {
+      log.warn({ personaId }, '⚠️ No TTS available for voice switch - voice may not change!');
+    }
 
     log.info({ voiceId, personaId, usedAgentId: personaId }, '✅ Voice switched');
   }
@@ -274,6 +313,10 @@ export class CoordinatorAdapter {
 
   /**
    * Handle soft open (departing persona's goodbye) - called BEFORE voice switch.
+   * 
+   * Uses safeGenerateReply with ACTUAL SPEECH (not meta-instructions).
+   * generateReply adds text as role:"model" - the model thinks IT said it and continues.
+   * So we pass the goodbye phrase directly, and model naturally wraps up.
    */
   private async handleSoftOpen(
     fromPersonaId: string,
@@ -283,29 +326,29 @@ export class CoordinatorAdapter {
     log.debug({ from: fromPersonaId, to: toPersonaId }, '🎭 Generating soft open banter');
 
     try {
-      // Build banter context from services
-      const banterCtx = this.buildBanterContextFromServices(context.reason);
+      // Get the fallback banter phrase (actual speech, not meta-instructions)
+      const goodbyePhrase = getHandoffBanter(fromPersonaId, toPersonaId);
+      
+      if (goodbyePhrase) {
+        // Use safeGenerateReply with the actual speech as "instructions"
+        // The model sees this as something it "said" and continues naturally
+        const result = await safeGenerateReply(this.session, {
+          instructions: goodbyePhrase, // ACTUAL SPEECH, not "say goodbye warmly"
+          allowInterruptions: false,
+          timeoutMs: 4000,
+          context: 'handoff-soft-open',
+        });
 
-      // Get LLM-driven banter
-      const llmBanter = getLLMDrivenBanter(fromPersonaId, toPersonaId, banterCtx);
-      const softOpenInstructions = llmBanter.softOpen;
-      const fallbackBanter = getHandoffBanter(fromPersonaId, toPersonaId);
-
-      // Use safeGenerateReply for LLM-driven banter with fallback
-      const result = await safeGenerateReply(this.session, {
-        instructions: softOpenInstructions.instructions,
-        allowInterruptions: false,
-        fallbackMessage: fallbackBanter ?? undefined,
-        timeoutMs: BANTER_TIMEOUT_MS,
-        context: 'handoff-soft-open',
-      });
-
-      if (result.success) {
-        diag.entry('🎭 Soft open banter complete');
-      } else if (result.usedFallback) {
-        diag.entry('🎭 Soft open used fallback banter');
+        if (result.success) {
+          diag.entry('🎭 Soft open banter complete');
+        } else {
+          // Fallback to direct say if generateReply fails
+          this.session.say(goodbyePhrase, { allowInterruptions: false });
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          diag.entry('🎭 Soft open fallback (direct say)');
+        }
       } else {
-        log.warn('🎭 Soft open failed - continuing');
+        diag.entry('🎭 Soft open skipped - no banter phrase');
       }
     } catch (err) {
       log.warn({ error: String(err) }, '🎭 Soft open error - skipping');
@@ -315,6 +358,10 @@ export class CoordinatorAdapter {
 
   /**
    * Handle arriving welcome (new persona's greeting) - called AFTER voice switch.
+   * 
+   * Uses safeGenerateReply with ACTUAL SPEECH (not meta-instructions).
+   * generateReply adds text as role:"model" - the model thinks IT said it and continues.
+   * So we pass the greeting phrase directly, and model naturally greets.
    */
   private async handleArrivingWelcome(
     toPersonaId: string,
@@ -323,30 +370,31 @@ export class CoordinatorAdapter {
     log.debug({ to: toPersonaId }, '🎭 Generating arriving welcome');
 
     try {
-      // Build banter context
-      const banterCtx = this.buildBanterContextFromServices(context.reason);
-
-      // Get LLM-driven arriving banter
+      // Get the fallback banter phrase (actual speech, not meta-instructions)
       const fromPersonaId = (this.services.handoffState as { previousAgent?: string })?.previousAgent || 'ferni';
-      const llmBanter = getLLMDrivenBanter(fromPersonaId, toPersonaId, banterCtx);
-      const arrivingInstructions = llmBanter.arriving;
-      const fallbackBanter = getArrivingBanter(toPersonaId, fromPersonaId);
+      const greetingPhrase = getArrivingBanter(toPersonaId, fromPersonaId);
 
-      // Use safeGenerateReply
-      const result = await safeGenerateReply(this.session, {
-        instructions: arrivingInstructions.instructions,
-        allowInterruptions: false,
-        fallbackMessage: fallbackBanter ?? undefined,
-        timeoutMs: BANTER_TIMEOUT_MS,
-        context: 'handoff-arriving-welcome',
-      });
+      if (greetingPhrase) {
+        // Use safeGenerateReply with the actual greeting as "instructions"
+        // The model sees this as something it "said" and continues naturally
+        const result = await safeGenerateReply(this.session, {
+          instructions: greetingPhrase, // ACTUAL SPEECH, not "greet the user warmly"
+          allowInterruptions: false,
+          timeoutMs: 4000,
+          context: 'handoff-arriving-welcome',
+        });
 
-      if (result.success) {
-        diag.entry('🎭 Arriving welcome complete');
-      } else if (result.usedFallback) {
-        diag.entry('🎭 Arriving welcome used fallback');
+        if (result.success) {
+          diag.entry('🎭 Arriving welcome complete');
+        } else {
+          // Fallback to direct say if generateReply fails
+          this.session.say(greetingPhrase, { allowInterruptions: false });
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          diag.entry('🎭 Arriving welcome fallback (direct say)');
+        }
       } else {
-        log.warn('🎭 Arriving welcome failed - continuing');
+        // No greeting phrase - let the persona's first natural response be the greeting
+        diag.entry('🎭 Arriving welcome skipped - letting natural response be greeting');
       }
     } catch (err) {
       log.warn({ error: String(err) }, '🎭 Arriving welcome error - skipping');
@@ -357,26 +405,6 @@ export class CoordinatorAdapter {
   // ========================================================================
   // HELPER METHODS
   // ========================================================================
-
-  /**
-   * Build banter context from session services.
-   */
-  private buildBanterContextFromServices(reason?: string) {
-    const history = this.services.historyTracker?.getSessionHistory?.();
-    const handoffCount = this.services.handoffState?.handoffHistory?.length || 0;
-    const relationshipContext = this.services.sessionPriming?.relationshipContext;
-
-    return buildBanterContext({
-      historyTopics: history?.metadata?.topicsDiscussed,
-      detectedEmotion: this.services.sessionPriming?.emotionalContext?.lastEmotion,
-      handoffCount,
-      isFirstTimeUser: (this.services.userProfile?.totalConversations || 0) <= 1,
-      userName: this.services.userProfile?.name,
-      handoffReason: reason,
-      totalSessions: this.services.userProfile?.totalConversations,
-      relationshipStage: relationshipContext?.stage,
-    });
-  }
 
   /**
    * Get recent messages for context continuation.

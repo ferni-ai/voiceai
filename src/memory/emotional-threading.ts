@@ -13,7 +13,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  IEmotionalThreading,
+  EmotionalThreadingService,
   EmotionalThread,
   SessionEmotionalContext,
 } from './interfaces/index.js';
@@ -59,7 +59,7 @@ interface UserEmotionalData {
   lastSessionTimestamp: Date;
 }
 
-export class EmotionalThreading implements IEmotionalThreading {
+export class EmotionalThreading implements EmotionalThreadingService {
   private config: ThreadingConfig;
   private userData = new Map<string, UserEmotionalData>();
 

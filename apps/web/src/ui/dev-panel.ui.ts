@@ -217,12 +217,17 @@ export function initDevPanel(): void {
   // Show dev indicator
   showDevIndicator();
 
-  // Auto-unlock team when VITE_DEV_PANEL_AUTO=true
-  if (ENV_CONFIG.autoEnable) {
+  // Auto-unlock team when:
+  // 1. VITE_DEV_PANEL_AUTO=true is set
+  // 2. ?dev URL parameter is present (for testing convenience)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasDevParam = urlParams.has('dev');
+  
+  if (ENV_CONFIG.autoEnable || hasDevParam) {
     // Use setTimeout to ensure services are ready
     setTimeout(() => {
       quickUnlockAll();
-      log.info('Auto-unlocked all team members (VITE_DEV_PANEL_AUTO=true)');
+      log.info(`Auto-unlocked all team members (${ENV_CONFIG.autoEnable ? 'VITE_DEV_PANEL_AUTO' : '?dev URL param'})`);
     }, 100);
   }
 

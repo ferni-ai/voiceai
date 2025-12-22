@@ -521,7 +521,8 @@ function updateChapterAssessment(profile: ChapterProfile): void {
   }
 
   // Count weighted evidence for each chapter
-  const chapterScores: Record<ChapterType, number> = {} as any;
+  // Using Partial since not all chapter types will have scores
+  const chapterScores: Partial<Record<ChapterType, number>> = {};
 
   // More recent evidence weighted more heavily
   const now = Date.now();

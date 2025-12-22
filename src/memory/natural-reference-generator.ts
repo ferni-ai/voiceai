@@ -13,7 +13,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  INaturalReferenceGenerator,
+  NaturalReferenceGenerator as NaturalReferenceGeneratorInterface,
   ReferenceStyle,
   GeneratedReference,
   RetrievedMemory,
@@ -238,7 +238,7 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
 // NATURAL REFERENCE GENERATOR IMPLEMENTATION
 // ============================================================================
 
-export class NaturalReferenceGenerator implements INaturalReferenceGenerator {
+export class NaturalReferenceGeneratorImpl implements NaturalReferenceGeneratorInterface {
   /**
    * Generate a natural reference for a memory
    */
@@ -442,11 +442,11 @@ export class NaturalReferenceGenerator implements INaturalReferenceGenerator {
 // SINGLETON
 // ============================================================================
 
-let defaultGenerator: NaturalReferenceGenerator | null = null;
+let defaultGenerator: NaturalReferenceGeneratorInterface | null = null;
 
-export function getNaturalReferenceGenerator(): NaturalReferenceGenerator {
+export function getNaturalReferenceGenerator(): NaturalReferenceGeneratorInterface {
   if (!defaultGenerator) {
-    defaultGenerator = new NaturalReferenceGenerator();
+    defaultGenerator = new NaturalReferenceGeneratorImpl();
   }
   return defaultGenerator;
 }
@@ -480,7 +480,7 @@ export function generateNaturalReference(
 }
 
 export default {
-  NaturalReferenceGenerator,
+  NaturalReferenceGeneratorImpl,
   getNaturalReferenceGenerator,
   resetNaturalReferenceGenerator,
   generateNaturalReference,

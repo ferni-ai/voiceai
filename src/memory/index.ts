@@ -50,7 +50,7 @@ export {
 // Vector store interface (unified)
 export {
   isVectorStore,
-  type IVectorStore,
+  type VectorStoreContract,
   type VectorDocument,
   type VectorFilter,
   type VectorSearchOptions,
@@ -170,6 +170,7 @@ export {
 
 // Embedding Cache (performance)
 export {
+  configureEmbeddingCacheMetrics,
   embedBatchCached,
   embedCached,
   EmbeddingCache,
@@ -256,16 +257,21 @@ export {
 // ============================================================================
 
 export {
+  areEmotionalMemoryEnginesConfigured,
   clearAllUnifiedEmotionalMemories,
   clearUnifiedEmotionalMemory,
+  configureEmotionalMemoryEngines,
   getUnifiedEmotionalMemory,
   UnifiedEmotionalMemory,
   type EmotionalBond,
   type EmotionalCheckIn,
   type EmotionalContext as UnifiedEmotionalContext,
   type EmotionalMemoryConfig,
+  type EmotionalMemoryEngineFactories,
   type EmotionalMoment,
   type EmotionalPattern,
+  type BondingEngine,
+  type UserEmotionEngine,
   type RelationshipStage,
   type UnifiedEmotionalState,
   type UserEmotionalContext,
@@ -291,31 +297,31 @@ export type {
   // Associative Memory
   AssociativeTrigger,
   TriggeredMemory,
-  IAssociativeMemory,
+  AssociativeMemoryService,
   // Communication Preferences
   PreferenceDimension,
   InteractionPreference,
   ApproachGuidance,
-  ICommunicationPreferences,
+  CommunicationPreferencesService,
   // Behavioral Patterns
   PatternType,
   BehavioralPattern,
-  IBehavioralPatternDetector,
+  BehavioralPatternDetector,
   // Emotional Threading
   EmotionalThread,
   SessionEmotionalContext,
-  IEmotionalThreading,
+  EmotionalThreadingService,
   // Signal Extraction
   ExtractedSignals,
-  IHumanSignalExtractor,
+  HumanSignalExtractor,
   // Natural References
   ReferenceStyle,
   GeneratedReference,
-  INaturalReferenceGenerator,
+  NaturalReferenceGenerator,
   // Orchestrator
   OrchestratedMemory,
   RecallContext,
-  IMemoryOrchestrator,
+  MemoryOrchestrator,
   // Container
   MemoryContainer,
   MemoryContainerConfig,
@@ -346,7 +352,7 @@ export {
 
 // Natural Reference Generator (human-sounding memory callbacks)
 export {
-  NaturalReferenceGenerator,
+  NaturalReferenceGeneratorImpl,
   getNaturalReferenceGenerator,
   resetNaturalReferenceGenerator,
   generateNaturalReference,
@@ -361,7 +367,7 @@ export {
 
 // Behavioral Pattern Detector (meta-patterns across conversations)
 export {
-  BehavioralPatternDetector,
+  BehavioralPatternDetectorImpl,
   getBehavioralPatternDetector,
   loadPatternsFromPersistence,
   savePatternsToPeristence,
@@ -377,7 +383,7 @@ export {
 
 // Memory Orchestrator (unified entry point)
 export {
-  MemoryOrchestrator,
+  MemoryOrchestratorImpl,
   getMemoryOrchestrator,
   resetMemoryOrchestrator,
 } from './orchestrator.js';

@@ -31,6 +31,8 @@ interface VideoRecommendation {
   reason: string;
   discussionPrompts: string[];
   mood: 'learn' | 'chill' | 'inspire' | 'reflect';
+  /** Superhuman touch - the "Better Than Human" detail */
+  superhumanTouch?: string | null;
 }
 
 interface PodcastRecommendation {
@@ -44,6 +46,8 @@ interface PodcastRecommendation {
   reason: string;
   estimatedListenTime: string;
   mood: 'learn' | 'chill' | 'inspire' | 'reflect';
+  /** Superhuman touch - the "Better Than Human" detail */
+  superhumanTouch?: string | null;
 }
 
 interface CreativeDNA {
@@ -71,6 +75,8 @@ interface IntelligentRecommendation {
   personalizedReason: string;
   connectionToConversations: string | null;
   suggestedTiming: 'now' | 'later' | 'weekend';
+  /** Superhuman touch - the "Better Than Human" detail */
+  superhumanTouch?: string | null;
 }
 
 // ============================================================================
@@ -340,7 +346,9 @@ export class CreativeYouDashboard {
           ...videoRec.content,
           // Override reason with personalized reason
           reason: videoRec.personalizedReason || videoRec.content.reason,
-        };
+          // Pass through superhuman touch
+          superhumanTouch: videoRec.superhumanTouch,
+        } as VideoRecommendation;
         this.renderVideoPick();
       }
 
@@ -348,7 +356,9 @@ export class CreativeYouDashboard {
         this.dailyPodcast = {
           ...podcastRec.content,
           reason: podcastRec.personalizedReason || podcastRec.content.reason,
-        };
+          // Pass through superhuman touch
+          superhumanTouch: podcastRec.superhumanTouch,
+        } as PodcastRecommendation;
         this.renderPodcastPick();
       }
 
@@ -427,6 +437,9 @@ export class CreativeYouDashboard {
     const video = this.dailyVideo.video;
     const moodColor = MOOD_COLORS[this.dailyVideo.mood] || MOOD_COLORS.learn;
 
+    // Check for superhuman touch (Better Than Human memory)
+    const superhumanTouch = (this.dailyVideo as VideoRecommendation & { superhumanTouch?: string | null }).superhumanTouch;
+
     container.innerHTML = `
       <div class="pick-type" style="background: ${moodColor}">
         ${ICONS.video} ${t('creativeYou.video')}
@@ -441,6 +454,7 @@ export class CreativeYouDashboard {
         <h4>${video.title}</h4>
         <p class="channel">${video.channelTitle}</p>
         <p class="reason">${this.dailyVideo.reason}</p>
+        ${superhumanTouch ? `<p class="ferni-remembers"><span class="memory-icon">${ICONS.brain}</span> ${superhumanTouch}</p>` : ''}
         <span class="mood-badge" style="background: ${moodColor}">${MOOD_LABELS[this.dailyVideo.mood]}</span>
       </div>
     `;
@@ -468,6 +482,9 @@ export class CreativeYouDashboard {
     const episode = this.dailyPodcast.episode;
     const moodColor = MOOD_COLORS[this.dailyPodcast.mood] || MOOD_COLORS.learn;
 
+    // Check for superhuman touch (Better Than Human memory)
+    const superhumanTouch = (this.dailyPodcast as PodcastRecommendation & { superhumanTouch?: string | null }).superhumanTouch;
+
     container.innerHTML = `
       <div class="pick-type" style="background: ${moodColor}">
         ${ICONS.headphones} ${t('creativeYou.podcast')}
@@ -479,6 +496,7 @@ export class CreativeYouDashboard {
         <h4>${episode.title}</h4>
         <p class="channel">${episode.podcastTitle}</p>
         <p class="reason">${this.dailyPodcast.reason}</p>
+        ${superhumanTouch ? `<p class="ferni-remembers"><span class="memory-icon">${ICONS.brain}</span> ${superhumanTouch}</p>` : ''}
         <div class="pick-meta">
           <span class="duration">${this.dailyPodcast.estimatedListenTime}</span>
           <span class="mood-badge" style="background: ${moodColor}">${MOOD_LABELS[this.dailyPodcast.mood]}</span>
@@ -1427,6 +1445,30 @@ export class CreativeYouDashboard {
         color: var(--color-text-secondary);
         margin: 0 0 var(--space-2) 0;
         font-style: italic;
+      }
+
+      /* Ferni Remembers - Better Than Human memory display */
+      .ferni-remembers {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1-5);
+        font-size: var(--text-2xs);
+        color: var(--persona-primary);
+        margin: 0 0 var(--space-2) 0;
+        padding: var(--space-1-5) var(--space-2);
+        background: var(--persona-primary-subtle, rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-sm);
+        font-weight: var(--font-weight-medium);
+      }
+
+      .ferni-remembers .memory-icon {
+        display: flex;
+        opacity: 0.8;
+      }
+
+      .ferni-remembers .memory-icon svg {
+        width: 12px;
+        height: 12px;
       }
 
       .pick-meta {

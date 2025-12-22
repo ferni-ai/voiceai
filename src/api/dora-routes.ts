@@ -289,7 +289,7 @@ export async function handleDORARoutes(
     return true;
   } catch (error) {
     log.error({ error }, 'DORA API error');
-    sendError(res, error instanceof Error ? error.message : 'Internal error', 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

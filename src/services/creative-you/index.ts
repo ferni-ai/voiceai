@@ -109,5 +109,17 @@ export {
   type PersonalizedCopyContext,
 } from './better-than-human-memory.js';
 
+// Identity Card Generator (shareable Creative DNA cards)
+export {
+  generateIdentityCardData,
+  generateIdentityCardHTML,
+  generateShareableCardData,
+  parseShareableCardData,
+  generateOGMetaTags,
+  getPersonalityStyles,
+  type IdentityCardData,
+  type IdentityCardStyles,
+} from './identity-card-generator.js';
+
 // Types (from types.ts)
 export * from './types.js';

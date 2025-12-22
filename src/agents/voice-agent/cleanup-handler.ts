@@ -128,7 +128,8 @@ export interface CleanupContext {
   // Additional cleanup functions
   dataChannelCleanup?: () => void;
   // FIX AUDIT: Properly typed handler instead of `any`
-  handoffHandler?: (data: HandoffEventPayload) => void;
+  // NOTE: Handler may be async (returns Promise<void>) as per EventHandlerResult type
+  handoffHandler?: (data: HandoffEventPayload) => void | Promise<void>;
   // FIX AUDIT: Properly typed handler instead of `any`
   cameoUnlockHandler?: (data: CameoUnlockEventData) => void;
   cameoCleanup?: () => void;

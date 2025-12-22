@@ -604,3 +604,5 @@ export function getSessionAnalytics(state: HandoffSessionState): {
     avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
   };
 }
+
+

@@ -87,12 +87,14 @@ class CreativeYouPersistence {
   private memoryInsights = new Map<string, CreativeInsight[]>();
   private memoryWatchHistory = new Map<string, WatchRecord[]>();
   private memoryTopicHistory = new Map<string, UserTopicHistory>();
+  private memoryJourneyProgress = new Map<string, Map<string, LearningJourneyProgress>>();
 
   // Collection names
   private readonly COLLECTION_CREATIVE_DNA = 'creative_dna';
   private readonly COLLECTION_INSIGHTS = 'creative_insights';
   private readonly COLLECTION_WATCH_HISTORY = 'watch_history';
   private readonly COLLECTION_TOPIC_HISTORY = 'topic_history';
+  private readonly COLLECTION_JOURNEY_PROGRESS = 'learning_journey_progress';
 
   /**
    * Initialize Firestore connection (lazy)
@@ -490,6 +492,200 @@ class CreativeYouPersistence {
     const history = await this.loadTopicHistory(userId);
     return history.topics.slice(0, count).map((t) => t.topic);
   }
+
+  // ========================================
+  // LEARNING JOURNEY PROGRESS
+  // ========================================
+
+  /**
+   * Save learning journey progress for a user
+   */
+  async saveLearningJourneyProgress(
+    userId: string,
+    trackId: string,
+    progress: LearningJourneyProgress
+  ): Promise<void> {
+    await this.ensureInitialized();
+
+    if (this.db) {
+      try {
+        const docId = `${userId}_${trackId}`;
+        await this.db
+          .collection(this.COLLECTION_JOURNEY_PROGRESS)
+          .doc(docId)
+          .set(
+            removeUndefined({
+              ...progress,
+              userId,
+              trackId,
+              updatedAt: new Date().toISOString(),
+            }),
+            { merge: true }
+          );
+        log.debug({ userId, trackId }, '📚 Learning journey progress saved');
+      } catch (error) {
+        log.error({ error: String(error), userId, trackId }, 'Failed to save journey progress');
+        // Fallback to memory
+        this.saveJourneyProgressToMemory(userId, trackId, progress);
+      }
+    } else {
+      this.saveJourneyProgressToMemory(userId, trackId, progress);
+    }
+  }
+
+  private saveJourneyProgressToMemory(
+    userId: string,
+    trackId: string,
+    progress: LearningJourneyProgress
+  ): void {
+    let userProgress = this.memoryJourneyProgress.get(userId);
+    if (!userProgress) {
+      userProgress = new Map();
+      this.memoryJourneyProgress.set(userId, userProgress);
+    }
+    userProgress.set(trackId, progress);
+  }
+
+  /**
+   * Load learning journey progress for a user and track
+   */
+  async loadLearningJourneyProgress(
+    userId: string,
+    trackId: string
+  ): Promise<LearningJourneyProgress | null> {
+    await this.ensureInitialized();
+
+    if (this.db) {
+      try {
+        const docId = `${userId}_${trackId}`;
+        const doc = await this.db.collection(this.COLLECTION_JOURNEY_PROGRESS).doc(docId).get();
+
+        if (doc.exists) {
+          const data = doc.data() as Record<string, unknown>;
+          return {
+            trackId: data.trackId as string,
+            currentEpisodeIndex: data.currentEpisodeIndex as number,
+            completedEpisodes: (data.completedEpisodes as string[]) || [],
+            startedAt: data.startedAt as string,
+            lastPlayedAt: data.lastPlayedAt as string | undefined,
+            completedAt: data.completedAt as string | undefined,
+            totalTimeSpent: (data.totalTimeSpent as number) || 0,
+          };
+        }
+      } catch (error) {
+        log.error({ error: String(error), userId, trackId }, 'Failed to load journey progress');
+      }
+    }
+
+    // Fallback to memory
+    const userProgress = this.memoryJourneyProgress.get(userId);
+    return userProgress?.get(trackId) || null;
+  }
+
+  /**
+   * Load all learning journey progress for a user
+   */
+  async loadAllLearningJourneyProgress(userId: string): Promise<LearningJourneyProgress[]> {
+    await this.ensureInitialized();
+
+    if (this.db) {
+      try {
+        const snapshot = await this.db
+          .collection(this.COLLECTION_JOURNEY_PROGRESS)
+          .where('userId', '==', userId)
+          .get();
+
+        const progress: LearningJourneyProgress[] = [];
+        snapshot.forEach((doc: DocumentSnapshot) => {
+          const data = doc.data() as Record<string, unknown>;
+          if (data) {
+            progress.push({
+              trackId: data.trackId as string,
+              currentEpisodeIndex: data.currentEpisodeIndex as number,
+              completedEpisodes: (data.completedEpisodes as string[]) || [],
+              startedAt: data.startedAt as string,
+              lastPlayedAt: data.lastPlayedAt as string | undefined,
+              completedAt: data.completedAt as string | undefined,
+              totalTimeSpent: (data.totalTimeSpent as number) || 0,
+            });
+          }
+        });
+        return progress;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to load all journey progress');
+      }
+    }
+
+    // Fallback to memory
+    const userProgress = this.memoryJourneyProgress.get(userId);
+    return userProgress ? Array.from(userProgress.values()) : [];
+  }
+
+  /**
+   * Mark an episode as completed in a learning journey
+   */
+  async markEpisodeCompleted(
+    userId: string,
+    trackId: string,
+    episodeId: string,
+    timeSpent: number
+  ): Promise<LearningJourneyProgress | null> {
+    let progress = await this.loadLearningJourneyProgress(userId, trackId);
+
+    if (!progress) {
+      // Start new progress
+      progress = {
+        trackId,
+        currentEpisodeIndex: 0,
+        completedEpisodes: [],
+        startedAt: new Date().toISOString(),
+        totalTimeSpent: 0,
+      };
+    }
+
+    // Add episode to completed list if not already there
+    if (!progress.completedEpisodes.includes(episodeId)) {
+      progress.completedEpisodes.push(episodeId);
+    }
+
+    // Update progress
+    progress.currentEpisodeIndex = progress.completedEpisodes.length;
+    progress.lastPlayedAt = new Date().toISOString();
+    progress.totalTimeSpent = (progress.totalTimeSpent || 0) + timeSpent;
+
+    // Save updated progress
+    await this.saveLearningJourneyProgress(userId, trackId, progress);
+
+    return progress;
+  }
+
+  /**
+   * Mark a learning journey as completed
+   */
+  async markJourneyCompleted(userId: string, trackId: string): Promise<void> {
+    const progress = await this.loadLearningJourneyProgress(userId, trackId);
+    if (progress) {
+      progress.completedAt = new Date().toISOString();
+      await this.saveLearningJourneyProgress(userId, trackId, progress);
+      log.info({ userId, trackId }, '🎉 Learning journey completed');
+    }
+  }
+
+  /**
+   * Get in-progress learning journeys for a user
+   */
+  async getInProgressJourneys(userId: string): Promise<LearningJourneyProgress[]> {
+    const allProgress = await this.loadAllLearningJourneyProgress(userId);
+    return allProgress.filter((p) => !p.completedAt);
+  }
+
+  /**
+   * Get completed learning journeys for a user
+   */
+  async getCompletedJourneys(userId: string): Promise<LearningJourneyProgress[]> {
+    const allProgress = await this.loadAllLearningJourneyProgress(userId);
+    return allProgress.filter((p) => p.completedAt);
+  }
 }
 
 // ============================================================================
@@ -506,6 +702,16 @@ export interface WatchRecord {
   completedAt?: string;
   durationSeconds: number;
   percentWatched: number;
+}
+
+export interface LearningJourneyProgress {
+  trackId: string;
+  currentEpisodeIndex: number;
+  completedEpisodes: string[];
+  startedAt: string;
+  lastPlayedAt?: string;
+  completedAt?: string;
+  totalTimeSpent: number;
 }
 
 // ============================================================================

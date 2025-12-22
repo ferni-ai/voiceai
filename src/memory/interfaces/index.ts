@@ -105,7 +105,7 @@ export interface VectorSearchResult {
 /**
  * Vector store interface for semantic search
  */
-export interface IVectorStore {
+export interface VectorStoreContract {
   initialize(): Promise<void>;
   addDocument(doc: VectorDocument): Promise<void>;
   addDocuments(docs: VectorDocument[]): Promise<void>;
@@ -137,7 +137,7 @@ export interface DecayConfig {
 /**
  * Memory decay manager interface
  */
-export interface IMemoryDecay {
+export interface MemoryDecayService {
   calculateStrength(memory: MemoryItem): DecayResult;
   isProtected(memory: MemoryItem): boolean;
   reactivate(memory: MemoryItem): MemoryItem;
@@ -168,7 +168,7 @@ export type ConnectionType =
 /**
  * Generates natural language explanations for retrieved memories
  */
-export interface IRetrievalExplainer {
+export interface RetrievalExplainer {
   explain(memory: RetrievedMemory, context: RetrievalContext): ExplainedMemory;
   explainAll(memories: RetrievedMemory[], context: RetrievalContext): ExplainedMemory[];
 }
@@ -214,7 +214,7 @@ export interface ExtractedSignals {
 /**
  * Extracts human-centric memory signals from conversations
  */
-export interface IHumanSignalExtractor {
+export interface HumanSignalExtractor {
   extractSignals(turns: ConversationTurn[], context: ExtractionContext): Promise<ExtractedSignals>;
   mergeWithExisting(
     existing: Partial<HumanMemory>,
@@ -246,7 +246,7 @@ export interface BondState {
 /**
  * Unified emotional memory interface
  */
-export interface IEmotionalMemory {
+export interface EmotionalMemoryService {
   recordUserEmotion(
     emotion: string,
     topic: string,
@@ -302,7 +302,7 @@ export interface SessionPrimingResult {
 /**
  * Session priming interface for cross-session continuity
  */
-export interface ISessionPrimer {
+export interface SessionPrimer {
   generatePrimingContext(
     profile: UserProfile,
     memories: MemoryItem[],
@@ -337,7 +337,7 @@ export interface TriggeredMemory {
 /**
  * Associative memory - models human-like memory triggers
  */
-export interface IAssociativeMemory {
+export interface AssociativeMemoryService {
   registerTrigger(
     memoryId: string,
     triggers: Omit<AssociativeTrigger, 'triggerId' | 'createdAt' | 'lastFired' | 'fireCount'>[]
@@ -397,7 +397,7 @@ export interface ApproachGuidance {
 /**
  * Tracks how users prefer to be approached
  */
-export interface ICommunicationPreferences {
+export interface CommunicationPreferencesService {
   observeInteraction(observation: {
     userId: string;
     dimension: PreferenceDimension;
@@ -447,12 +447,13 @@ export interface BehavioralPattern {
 /**
  * Detects behavioral patterns across conversations
  */
-export interface IBehavioralPatternDetector {
+export interface BehavioralPatternDetector {
   analyzeForPatterns(
     turns: ConversationTurn[],
     existingPatterns: BehavioralPattern[]
   ): Promise<BehavioralPattern[]>;
   getPatterns(userId: string): Promise<BehavioralPattern[]>;
+  savePatterns(userId: string, patterns: BehavioralPattern[]): Promise<void>;
   getActivePatternGuidance(
     userId: string,
     currentContext: string
@@ -497,7 +498,7 @@ export interface SessionEmotionalContext {
 /**
  * Tracks emotional continuity across sessions
  */
-export interface IEmotionalThreading {
+export interface EmotionalThreadingService {
   recordSessionEnd(context: {
     dominantEmotion: string;
     endState: SessionEmotionalContext['lastSessionEndState'];
@@ -547,7 +548,7 @@ export interface RecallContext extends RetrievalContext {
 /**
  * Unified memory orchestrator - single entry point for all memory operations
  */
-export interface IMemoryOrchestrator {
+export interface MemoryOrchestrator {
   recall(context: RecallContext): Promise<OrchestratedMemory>;
   recordInteraction(context: {
     userId: string;
@@ -583,7 +584,7 @@ export interface GeneratedReference {
 /**
  * Generates natural-sounding memory references
  */
-export interface INaturalReferenceGenerator {
+export interface NaturalReferenceGenerator {
   generate(
     memory: RetrievedMemory,
     context: {
@@ -605,18 +606,18 @@ export interface INaturalReferenceGenerator {
 // ============================================================================
 
 export interface MemoryContainer {
-  vectorStore: IVectorStore;
-  decay: IMemoryDecay;
-  explainer: IRetrievalExplainer;
-  signalExtractor: IHumanSignalExtractor;
-  emotionalMemory: IEmotionalMemory;
-  sessionPrimer: ISessionPrimer;
-  associativeMemory: IAssociativeMemory;
-  communicationPreferences: ICommunicationPreferences;
-  patternDetector: IBehavioralPatternDetector;
-  emotionalThreading: IEmotionalThreading;
-  referenceGenerator: INaturalReferenceGenerator;
-  orchestrator: IMemoryOrchestrator;
+  vectorStore: VectorStoreContract;
+  decay: MemoryDecayService;
+  explainer: RetrievalExplainer;
+  signalExtractor: HumanSignalExtractor;
+  emotionalMemory: EmotionalMemoryService;
+  sessionPrimer: SessionPrimer;
+  associativeMemory: AssociativeMemoryService;
+  communicationPreferences: CommunicationPreferencesService;
+  patternDetector: BehavioralPatternDetector;
+  emotionalThreading: EmotionalThreadingService;
+  referenceGenerator: NaturalReferenceGenerator;
+  orchestrator: MemoryOrchestrator;
 }
 
 export interface MemoryContainerConfig {

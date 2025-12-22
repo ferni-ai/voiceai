@@ -42,7 +42,6 @@ export {
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
-  removeSessionAudioProsodyAnalyzer,
   resetSessionAudioProsodyAnalyzer,
 } from './session-management.js';
 

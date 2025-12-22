@@ -419,16 +419,11 @@ export function getEnhancedBackchannelingEngine(sessionId: string): EnhancedBack
 }
 
 /**
- * Remove session's backchanneling engine
+ * Reset and remove session's backchanneling engine (on session end)
  */
-export function removeEnhancedBackchannelingEngine(sessionId: string): void {
+export function resetEnhancedBackchannelingEngine(sessionId: string): void {
   sessionEngines.delete(sessionId);
 }
-
-/**
- * Alias for removeEnhancedBackchannelingEngine (preferred naming)
- */
-export const resetEnhancedBackchannelingEngine = removeEnhancedBackchannelingEngine;
 
 // ============================================================================
 // QUICK BACKCHANNELS
@@ -466,7 +461,7 @@ export function getQuickBackchannel(userDistressLevel: number, personaId?: strin
 export default {
   EnhancedBackchannelingEngine,
   getEnhancedBackchannelingEngine,
-  removeEnhancedBackchannelingEngine,
+  resetEnhancedBackchannelingEngine,
   getQuickBackchannel,
   BACKCHANNEL_LIBRARY,
   PERSONA_BACKCHANNEL_STYLE,

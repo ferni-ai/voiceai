@@ -13,14 +13,15 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getLogger } from '../utils/safe-logger.js';
+import OpenAI from 'openai';
+import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture.service.js';
 import {
   generatePrompts,
   getBestPrompt,
   type PromptContext,
 } from '../services/trust-systems/journaling-prompts.js';
-import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture.service.js';
-import OpenAI from 'openai';
+import { getLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON } from './helpers.js';
 
 const log = getLogger();
 
@@ -28,29 +29,11 @@ const log = getLogger();
 // HELPERS
 // ============================================================================
 
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-store',
-  });
-  res.end(JSON.stringify(data));
-}
+// parseBody and sendJSON imported from './helpers.js'
 
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on('error', reject);
-  });
+/** Alias for sendJSON with status-first signature for backward compat */
+function sendJson(res: ServerResponse, status: number, data: unknown): void {
+  sendJSON(res, data, status);
 }
 
 // ============================================================================

@@ -235,13 +235,8 @@ export function getSessionBackchannelingSystem(sessionId: string): Backchannelin
 }
 
 /**
- * Remove a session's backchanneling system (on session end)
+ * Reset and remove a session's backchanneling system (on session end)
  */
-export function removeSessionBackchannelingSystem(sessionId: string): void {
+export function resetSessionBackchannelingSystem(sessionId: string): void {
   sessionBackchannelingSystems.delete(sessionId);
 }
-
-/**
- * Alias for removeSessionBackchannelingSystem (preferred naming)
- */
-export const resetSessionBackchannelingSystem = removeSessionBackchannelingSystem;

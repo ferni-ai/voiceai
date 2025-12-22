@@ -24,7 +24,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { getThinkingFiller } from '../../speech/persona-phrases.js';
+import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
 import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
 import type { UserData } from '../shared/types.js';
@@ -199,10 +199,10 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       fillerTimeout = setTimeout(() => {
         if (!spokeFiller && currentSession) {
           spokeFiller = true;
-          // DEAD AIR FIX: Use getThinkingFiller for actual verbal content
-          // getContextAwareThinkingFiller returns empty strings (by design for LLM responses)
-          // But dead air prevention NEEDS verbal content like "Mm", "Yeah", "So..."
-          const filler = getThinkingFiller(persona.id);
+          // Dead air prevention: use forDeadAirPrevention option for actual verbal content
+          const filler = getContextAwareThinkingFiller(persona.id, {
+            forDeadAirPrevention: true,
+          });
           currentSession.say(filler, { allowInterruptions: true });
           diag.filler('Spoke dead air thinking filler', {
             personaId: persona.id,

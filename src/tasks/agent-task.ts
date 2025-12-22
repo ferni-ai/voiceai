@@ -8,7 +8,7 @@
  * Python source: https://github.com/livekit/agents
  */
 
-import { type voice, llm, log } from '@livekit/agents';
+import { type voice, llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ import { getToolDescription } from '../tools/utils/tool-descriptions.js';
  *       instructions: 'Ask for the user\'s name and confirm it.',
  *       tools: {
  *         recordName: llm.tool({
- *           description: getToolDescription('recordName')s name',
+ *           description: getToolDescription('recordName'),
  *           parameters: z.object({ name: z.string() }),
  *           execute: async ({ name }) => {
  *             this.complete(name);
@@ -186,12 +186,11 @@ interface TaskInfo {
  * @example
  * ```typescript
  * const group = new TaskGroup();
- * group.add(() => new CollectEmailTask(), { id: 'email', description: getToolDescription('recordName') });
+ * group.add(() => new CollectEmailTask(), { id: 'email', description: 'Collect email address' });
  * group.add(() => new CollectAddressTask(), { id: 'address', description: 'Collect address' });
  *
  * const results = await group.start(session);
- * console.log(results.taskResults.email); // email result
- * console.log(results.taskResults.address); // address result
+ * // Access results: results.taskResults.email, results.taskResults.address
  * ```
  */
 export class TaskGroup {
@@ -362,7 +361,7 @@ export class CollectNameTask extends AgentTask<NameResult> {
         : baseInstructions,
       tools: {
         recordName: llm.tool({
-          description: getToolDescription('email'),
+          description: getToolDescription('recordName'),
           parameters: z.object({
             name: z.string().describe("The user's name"),
           }),
@@ -372,7 +371,7 @@ export class CollectNameTask extends AgentTask<NameResult> {
           },
         }),
         nameDeclined: llm.tool({
-          description: getToolDescription('recordName'),
+          description: getToolDescription('nameDeclined'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({ name: 'Anonymous' });
@@ -408,7 +407,7 @@ export class CollectEmailTask extends AgentTask<EmailResult> {
         : baseInstructions,
       tools: {
         recordEmail: llm.tool({
-          description: getToolDescription('nameDeclined'),
+          description: getToolDescription('recordEmail'),
           parameters: z.object({
             email: z.string().email().describe("The user's email address"),
           }),
@@ -418,7 +417,7 @@ export class CollectEmailTask extends AgentTask<EmailResult> {
           },
         }),
         emailDeclined: llm.tool({
-          description: getToolDescription('recordName'),
+          description: getToolDescription('emailDeclined'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({ email: '' });

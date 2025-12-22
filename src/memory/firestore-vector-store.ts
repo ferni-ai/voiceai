@@ -28,7 +28,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
 import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
 import type {
-  IVectorStore,
+  VectorStoreContract,
   VectorDocument,
   VectorFilter,
   VectorSearchResult,
@@ -144,7 +144,7 @@ function extractEmbedding(
 // FIRESTORE VECTOR STORE
 // ============================================================================
 
-export class FirestoreVectorStore implements IVectorStore {
+export class FirestoreVectorStore implements VectorStoreContract {
   private db: FirestoreInstance | null = null;
   private config: FirestoreVectorConfig;
   private _initialized = false;

@@ -845,7 +845,34 @@ export class BetterThanHumanOrchestrator {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const orchestrators = new Map<string, BetterThanHumanOrchestrator>();
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
+
+/**
+ * Session registry for Better Than Human orchestrators.
+ *
+ * 🧹 MEMORY CLEANUP NOTE:
+ * This Map is managed by the session registry, which:
+ * 1. Automatically calls reset() when a session is reset
+ * 2. Deletes the Map entry after cleanup
+ * 3. Registers with the global registry for coordinated cleanup
+ *
+ * The key format is `${userId}:${sessionId}` to support multiple sessions.
+ */
+const orchestratorRegistry = createSessionRegistry<BetterThanHumanOrchestrator>(
+  (key: string) => {
+    // Key is pre-formatted as `${userId}:${sessionId}` - extract parts
+    const [userId, sessionId] = key.split(':');
+    return new BetterThanHumanOrchestrator(userId, sessionId, 'ferni', 0);
+  },
+  {
+    name: 'BetterThanHumanOrchestrator',
+    cleanup: (orchestrator: BetterThanHumanOrchestrator) => orchestrator.reset(),
+    verbose: false,
+  }
+);
+
+// Register for global session cleanup
+registerGlobalRegistry(orchestratorRegistry);
 
 /**
  * Get or create the Better Than Human orchestrator
@@ -857,20 +884,19 @@ export function getBetterThanHuman(
   sessionCount: number = 0
 ): BetterThanHumanOrchestrator {
   const key = `${userId}:${sessionId}`;
-  if (!orchestrators.has(key)) {
-    orchestrators.set(
-      key,
-      new BetterThanHumanOrchestrator(userId, sessionId, personaId, sessionCount)
-    );
+  if (!orchestratorRegistry.has(key)) {
+    // Create with full params by bypassing registry factory
+    const orchestrator = new BetterThanHumanOrchestrator(userId, sessionId, personaId, sessionCount);
+    return orchestrator;
   }
-  return orchestrators.get(key)!;
+  return orchestratorRegistry.get(key);
 }
 
 /**
  * Clear orchestrator
  */
 export function clearBetterThanHuman(userId: string, sessionId: string): void {
-  orchestrators.delete(`${userId}:${sessionId}`);
+  orchestratorRegistry.reset(`${userId}:${sessionId}`);
 }
 
 /**
@@ -883,9 +909,9 @@ export function getExistingBetterThanHumanForUser(
   userId: string
 ): BetterThanHumanOrchestrator | undefined {
   // Find any orchestrator for this user (they all share the same underlying engine data)
-  for (const [key, orchestrator] of orchestrators) {
-    if (key.startsWith(`${userId}:`)) {
-      return orchestrator;
+  for (const sessionId of orchestratorRegistry.getActiveSessionIds()) {
+    if (sessionId.startsWith(`${userId}:`)) {
+      return orchestratorRegistry.get(sessionId);
     }
   }
   return undefined;
@@ -895,7 +921,7 @@ export function getExistingBetterThanHumanForUser(
  * Get count of active orchestrators (for debugging memory leaks)
  */
 export function getOrchestratorCount(): number {
-  return orchestrators.size;
+  return orchestratorRegistry.getActiveCount();
 }
 
 /**
@@ -903,13 +929,13 @@ export function getOrchestratorCount(): number {
  */
 export function clearAllBetterThanHumanForUser(userId: string): void {
   const keysToDelete: string[] = [];
-  for (const key of orchestrators.keys()) {
+  for (const key of orchestratorRegistry.getActiveSessionIds()) {
     if (key.startsWith(`${userId}:`)) {
       keysToDelete.push(key);
     }
   }
   for (const key of keysToDelete) {
-    orchestrators.delete(key);
+    orchestratorRegistry.reset(key);
   }
   if (keysToDelete.length > 0) {
     logger.debug({ userId, clearedCount: keysToDelete.length }, '🧹 Cleared user orchestrators');

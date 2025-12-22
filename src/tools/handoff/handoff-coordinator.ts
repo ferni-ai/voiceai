@@ -83,6 +83,19 @@ export interface HandoffRequest {
   cognitiveContext?: string;
   /** Source of the handoff request */
   source?: 'user' | 'llm' | 'system';
+  /**
+   * FAST MODE: Instant switch with async welcome (Option D)
+   * 
+   * When true:
+   * - Skip soft-open banter (no goodbye from departing persona)
+   * - Voice switch + LLM update happen immediately (~250ms)
+   * - handoff_complete sent to frontend immediately
+   * - Arriving welcome spoken ASYNC (non-blocking)
+   * 
+   * Best for: User-initiated transfers (they clicked, they want it NOW)
+   * Default: true for user-initiated, false for LLM-initiated
+   */
+  fastMode?: boolean;
 }
 
 /**
@@ -321,6 +334,8 @@ export class HandoffCoordinator {
           subscriptionTier: request.subscriptionTier,
           sessionId: this.sessionId,
           voiceIdInput: request.voiceIdInput || { personaId: canonicalId },
+          // CRITICAL FIX: Pass session-scoped current agent to prevent state mismatch bugs
+          currentAgent: this.stateManager.getCurrentAgent(),
         });
 
         if (!validation.valid) {
@@ -418,8 +433,18 @@ export class HandoffCoordinator {
         isUserInitiated: request.source === 'user',
       };
 
-      // Step 1: Soft Open (departing persona's goodbye) - non-critical
-      if (!this.skipBanter && this.onBeforeVoiceSwitch) {
+      // ====================================================================
+      // FAST MODE DETECTION (Option D: Instant Switch + Async Welcome)
+      // ====================================================================
+      // Default: user-initiated = fast, LLM-initiated = normal banter
+      const useFastMode = request.fastMode ?? (request.source === 'user');
+      
+      if (useFastMode) {
+        log.info({ traceId, target: canonicalId }, '⚡ FAST MODE: Instant switch enabled');
+      }
+
+      // Step 1: Soft Open (departing persona's goodbye) - SKIP IN FAST MODE
+      if (!useFastMode && !this.skipBanter && this.onBeforeVoiceSwitch) {
         tx.addStep({
           name: 'soft-open-banter',
           execute: async () => {
@@ -435,11 +460,11 @@ export class HandoffCoordinator {
         });
       }
 
-      // Step 2: Switch voice - CRITICAL
+      // Step 2: Switch voice - CRITICAL (always runs)
       tx.addStep({
         name: 'switch-voice',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'switching_voice', progress: 0.5 });
+          this.emitUIEvent('handoff_progress', { traceId, phase: 'switching_voice', progress: useFastMode ? 0.5 : 0.5 });
           await this.onVoiceSwitch(voiceResult.voiceId, canonicalId);
         },
         rollback: async () => {
@@ -450,26 +475,11 @@ export class HandoffCoordinator {
         critical: true,
       });
 
-      // Step 3: Arriving Welcome (new persona's greeting) - non-critical
-      if (!this.skipBanter && this.onAfterVoiceSwitch) {
-        tx.addStep({
-          name: 'arriving-welcome-banter',
-          execute: async () => {
-            this.emitUIEvent('handoff_progress', { traceId, phase: 'arriving_welcome', progress: 0.6 });
-            await this.onAfterVoiceSwitch!(canonicalId, banterContext);
-          },
-          rollback: async () => {
-            // Can't unsay banter
-          },
-          critical: false, // Don't fail handoff if banter fails
-        });
-      }
-
-      // Step 4: Update LLM instructions - CRITICAL
+      // Step 3: Update LLM instructions - CRITICAL (moved UP for fast mode)
       tx.addStep({
         name: 'update-llm',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'updating_llm', progress: 0.75 });
+          this.emitUIEvent('handoff_progress', { traceId, phase: 'updating_llm', progress: useFastMode ? 0.75 : 0.75 });
           const instructions = await this.buildInstructions(canonicalId, personaConfig, request);
           await this.onLLMUpdate(canonicalId, instructions);
         },
@@ -482,6 +492,44 @@ export class HandoffCoordinator {
         },
         critical: true,
       });
+
+      // Step 4: Arriving Welcome - BLOCKING in normal mode, ASYNC in fast mode
+      if (!this.skipBanter && this.onAfterVoiceSwitch) {
+        if (useFastMode) {
+          // FAST MODE: Trigger arriving welcome ASYNC (non-blocking)
+          // Don't add to transaction - fire and forget after switch completes
+          tx.addStep({
+            name: 'queue-async-welcome',
+            execute: async () => {
+              // Queue the welcome to run AFTER transaction completes
+              // Use setImmediate to ensure it runs after handoff_complete is sent
+              setImmediate(() => {
+                log.info({ traceId, target: canonicalId }, '🎭 FAST MODE: Async welcome starting');
+                this.onAfterVoiceSwitch!(canonicalId, banterContext).catch((err) => {
+                  log.warn({ traceId, error: String(err) }, '⚠️ Async welcome failed (non-critical)');
+                });
+              });
+            },
+            rollback: async () => {
+              // Can't cancel queued async - it's fire-and-forget
+            },
+            critical: false,
+          });
+        } else {
+          // NORMAL MODE: Blocking arriving welcome
+          tx.addStep({
+            name: 'arriving-welcome-banter',
+            execute: async () => {
+              this.emitUIEvent('handoff_progress', { traceId, phase: 'arriving_welcome', progress: 0.6 });
+              await this.onAfterVoiceSwitch!(canonicalId, banterContext);
+            },
+            rollback: async () => {
+              // Can't unsay banter
+            },
+            critical: false, // Don't fail handoff if banter fails
+          });
+        }
+      }
 
       // Step 5: Notify UI of completion (non-critical)
       tx.addStep({

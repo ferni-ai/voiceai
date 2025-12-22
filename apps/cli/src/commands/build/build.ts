@@ -170,7 +170,7 @@ async function buildElectron(options: BuildOptions): Promise<boolean> {
 }
 
 async function buildIos(options: BuildOptions): Promise<boolean> {
-  log.step('BUILDING iOS APP');
+  log.step('BUILDING iOS NATIVE APP');
 
   if (process.platform !== 'darwin') {
     log.warn('iOS builds require macOS. Skipping...');
@@ -182,78 +182,52 @@ async function buildIos(options: BuildOptions): Promise<boolean> {
     return false;
   }
 
-  const iosDir = join(PROJECT_ROOT, 'apps/ios');
-  const frontendDist = join(PROJECT_ROOT, 'apps/web/dist');
+  const iosDir = join(PROJECT_ROOT, 'apps/ios-native');
 
   if (!existsSync(iosDir)) {
-    log.error('iOS directory not found: apps/ios');
+    log.error('iOS native directory not found: apps/ios-native');
     return false;
   }
 
-  // Build frontend first if not skipped
-  if (!options.skipFrontend) {
-    await buildFrontend(options);
-  }
+  // Resolve Swift Package dependencies
+  log.info('Resolving Swift Package dependencies...');
+  exec('xcodebuild -resolvePackageDependencies -project FerniVoice.xcodeproj -scheme FerniVoice', { cwd: iosDir });
 
-  // Install dependencies if needed
-  if (!existsSync(join(iosDir, 'node_modules'))) {
-    log.info('Installing Capacitor dependencies...');
-    exec('npm install', { cwd: iosDir });
-  }
+  // Build the app
+  log.info('Building iOS app...');
+  exec('xcodebuild -project FerniVoice.xcodeproj -scheme FerniVoice -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
 
-  // Copy web assets
-  log.info('Copying web assets to iOS project...');
-  const publicDir = join(iosDir, 'ios/App/App/public');
-  cleanDir(publicDir);
-  copyDir(frontendDist, publicDir);
-
-  log.success('iOS project synced!');
+  log.success('iOS native app built!');
   console.log(`
 Next steps:
-  Open in Xcode: cd apps/ios && npx cap open ios
-  Run on simulator: cd apps/ios && npx cap run ios
+  Open in Xcode: open apps/ios-native/FerniVoice.xcodeproj
+  Run on simulator: Select device in Xcode and press Cmd+R
 `);
 
   return true;
 }
 
 async function buildAndroid(options: BuildOptions): Promise<boolean> {
-  log.step('BUILDING ANDROID APP');
+  log.step('BUILDING ANDROID NATIVE APP');
 
-  const androidDir = join(PROJECT_ROOT, 'apps/android');
-  const frontendDist = join(PROJECT_ROOT, 'apps/web/dist');
+  const androidDir = join(PROJECT_ROOT, 'apps/android-native');
 
   if (!existsSync(androidDir)) {
-    log.error('Android directory not found: apps/android');
+    log.error('Android native directory not found: apps/android-native');
     return false;
   }
 
-  // Build frontend first if not skipped
-  if (!options.skipFrontend) {
-    await buildFrontend(options);
-  }
+  // Build the app
+  log.info('Building Android app...');
+  exec('./gradlew assembleRelease', { cwd: androidDir });
 
-  // Install dependencies if needed
-  if (!existsSync(join(androidDir, 'node_modules'))) {
-    log.info('Installing Capacitor dependencies...');
-    exec('npm install', { cwd: androidDir });
-  }
-
-  // Add Android platform if not exists
-  if (!existsSync(join(androidDir, 'android'))) {
-    log.info('Adding Android platform...');
-    exec('npx cap add android', { cwd: androidDir });
-  }
-
-  // Sync web assets
-  log.info('Syncing web assets to Android project...');
-  exec('npx cap sync android', { cwd: androidDir });
-
-  log.success('Android project synced!');
+  log.success('Android native app built!');
   console.log(`
+Output: apps/android-native/app/build/outputs/apk/release/
+
 Next steps:
-  Open in Android Studio: cd apps/android && npx cap open android
-  Run on emulator: cd apps/android && npx cap run android
+  Open in Android Studio: open apps/android-native in Android Studio
+  Run on emulator: ./gradlew installDebug
 `);
 
   return true;
@@ -278,24 +252,9 @@ async function syncAll(options: BuildOptions): Promise<boolean> {
     log.success('Electron synced');
   }
 
-  // iOS
-  if (process.platform === 'darwin') {
-    log.info('Syncing to iOS...');
-    const iosPublic = join(PROJECT_ROOT, 'apps/ios/ios/App/App/public');
-    if (existsSync(join(PROJECT_ROOT, 'apps/ios'))) {
-      cleanDir(iosPublic);
-      copyDir(frontendDist, iosPublic);
-      log.success('iOS synced');
-    }
-  }
-
-  // Android
-  log.info('Syncing to Android...');
-  const androidDir = join(PROJECT_ROOT, 'apps/android');
-  if (existsSync(join(androidDir, 'android'))) {
-    exec('npx cap sync android --no-build 2>/dev/null || npx cap copy android', { cwd: androidDir, silent: true });
-    log.success('Android synced');
-  }
+  // Note: iOS and Android native apps don't need web asset syncing
+  // They are fully native Swift/Kotlin apps that connect to the backend API
+  log.info('Native iOS and Android apps do not require web asset syncing');
 
   log.success('All platforms synced!');
   return true;

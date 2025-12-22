@@ -103,8 +103,54 @@ function generateExternalBrandCSS(external) {
     if (brandColors.primary) {
       lines.push(`  --external-${kebabId}-primary: ${brandColors.primary};`);
     }
+    if (brandColors.secondary) {
+      lines.push(`  --external-${kebabId}-secondary: ${brandColors.secondary};`);
+    }
     if (brandColors.glow) {
       lines.push(`  --external-${kebabId}-glow: ${brandColors.glow};`);
+    }
+    // Generate gradient using primary and secondary (or darkened primary)
+    if (brandColors.primary) {
+      const secondary = brandColors.secondary || brandColors.primary;
+      lines.push(`  --external-${kebabId}-gradient: linear-gradient(135deg, ${secondary}, ${brandColors.primary});`);
+    }
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/**
+ * Generate CSS variables for marketplace categories
+ */
+function generateCategoryCSS(categories) {
+  if (!categories) return '';
+  const lines = [];
+  lines.push(':root {');
+  for (const [categoryId, categoryColors] of Object.entries(categories)) {
+    // Skip description fields
+    if (categoryId.startsWith('_')) continue;
+    const kebabId = camelToKebab(categoryId);
+    if (categoryColors.primary) {
+      lines.push(`  --category-${kebabId}-primary: ${categoryColors.primary};`);
+    }
+    if (categoryColors.secondary) {
+      lines.push(`  --category-${kebabId}-secondary: ${categoryColors.secondary};`);
+    }
+    if (categoryColors.glow) {
+      lines.push(`  --category-${kebabId}-glow: ${categoryColors.glow};`);
+    }
+    // Generate gradient CSS variable
+    if (categoryColors.primary && categoryColors.secondary) {
+      lines.push(`  --category-${kebabId}-gradient: linear-gradient(135deg, ${categoryColors.secondary}, ${categoryColors.primary});`);
+    }
+    // Generate text color (lightened version)
+    if (categoryColors.primary) {
+      lines.push(`  --category-${kebabId}-text: ${categoryColors.primary};`);
+    }
+    // Generate tint/background (very transparent version)
+    if (categoryColors.primary) {
+      const tint = categoryColors.glow || `${categoryColors.primary}26`;
+      lines.push(`  --category-${kebabId}-tint: ${tint};`);
     }
   }
   lines.push('}');
@@ -2047,6 +2093,15 @@ function build() {
     output.push('   EXTERNAL BRAND COLORS');
     output.push('   ======================================== */');
     output.push(generateExternalBrandCSS(colors.external));
+    output.push('');
+  }
+
+  // Category colors (for marketplace agent cards)
+  if (colors.categories) {
+    output.push('/* ========================================');
+    output.push('   MARKETPLACE CATEGORY COLORS');
+    output.push('   ======================================== */');
+    output.push(generateCategoryCSS(colors.categories));
     output.push('');
   }
 

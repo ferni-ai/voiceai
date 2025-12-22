@@ -244,7 +244,7 @@ export function assessDistress(
   emotion: EmotionAnalysis,
   sensitivityLevel: 'normal' | 'sensitive' | 'crisis' = 'normal'
 ): DistressAssessment {
-  const { distressLevel, primary, valence } = emotion;
+  const { distressLevel, primary } = emotion;
 
   // Determine threshold based on sensitivity
   const thresholdOffset =

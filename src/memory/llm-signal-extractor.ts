@@ -13,7 +13,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  IHumanSignalExtractor,
+  HumanSignalExtractor,
   ConversationTurn,
   ExtractionContext,
   ExtractedSignals,
@@ -136,7 +136,7 @@ Remember: Empty arrays are better than guesses. Only extract what you're confide
 // LLM SIGNAL EXTRACTOR IMPLEMENTATION
 // ============================================================================
 
-export class LLMSignalExtractor implements IHumanSignalExtractor {
+export class LLMSignalExtractor implements HumanSignalExtractor {
   private config: ExtractionConfig;
 
   constructor(config?: Partial<ExtractionConfig>) {

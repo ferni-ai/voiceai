@@ -42,6 +42,11 @@ const log = createLogger({ module: 'TeamUnlocks' });
 export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
   const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
 
+  // Debug log to verify bypass value is being read
+  if (bypassValue) {
+    log.debug({ bypassValue }, '🔓 BYPASS_TEAM_UNLOCKS env var detected');
+  }
+
   if (!bypassValue) return null;
 
   const normalized = bypassValue.toLowerCase().trim();
@@ -538,6 +543,10 @@ export function getTeamUnlockState(
 
   if (bypass === 'all') {
     // Full bypass - all members unlocked
+    log.info(
+      { bypass: 'all', memberCount: TEAM_MEMBERS.length },
+      '🔓 BYPASS_TEAM_UNLOCKS=all - unlocking ALL team members'
+    );
     return {
       stage: 'deep-partnership',
       tier,

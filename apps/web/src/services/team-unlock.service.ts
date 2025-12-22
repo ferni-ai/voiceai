@@ -62,6 +62,7 @@ export interface NextUnlockInfo {
   member: TeamMemberConfig;
   conversationsNeeded: number;
   daysNeeded: number;
+  streakNeeded: number;
 }
 
 // ============================================================================
@@ -141,13 +142,21 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
  * relevant topics come up, making unlocks feel organic.
  *
  * Maya unlocks at 10 (not 2) so users know Ferni before meeting teammates.
+ *
+ * NOTE: These thresholds MUST match:
+ * - apps/web/src/services/relationship-stage.service.ts
+ * - src/services/team-unlocks.ts
+ * - src/api/routes/relationship.ts
  */
-const STAGE_THRESHOLDS: Record<RelationshipStage, { minConversations: number; minDays: number }> = {
-  'first-meeting': { minConversations: 0, minDays: 0 },
-  'getting-started': { minConversations: 10, minDays: 0 },
-  'building-trust': { minConversations: 15, minDays: 5 },
-  established: { minConversations: 30, minDays: 21 },
-  'deep-partnership': { minConversations: 60, minDays: 45 },
+const STAGE_THRESHOLDS: Record<
+  RelationshipStage,
+  { minConversations: number; minDays: number; minStreak: number }
+> = {
+  'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
+  'getting-started': { minConversations: 10, minDays: 0, minStreak: 0 },
+  'building-trust': { minConversations: 15, minDays: 5, minStreak: 3 },
+  established: { minConversations: 30, minDays: 21, minStreak: 7 },
+  'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
 };
 
 const STAGE_ORDER: RelationshipStage[] = [
@@ -266,7 +275,12 @@ function getMemberUnlockStatus(
   member: TeamMemberConfig,
   stage: RelationshipStage,
   tier: 'free' | 'friend' | 'partner',
-  metrics: { totalConversations: number; daysSinceFirstMeeting: number }
+  metrics: {
+    totalConversations: number;
+    daysSinceFirstMeeting: number;
+    currentStreak: number;
+    longestStreak: number;
+  }
 ): MemberUnlockStatus {
   // Ferni always unlocked
   if (member.id === 'ferni') {
@@ -303,26 +317,46 @@ function getMemberUnlockStatus(
 }
 
 function calculateProgress(
-  metrics: { totalConversations: number; daysSinceFirstMeeting: number },
-  threshold: { minConversations: number; minDays: number }
+  metrics: {
+    totalConversations: number;
+    daysSinceFirstMeeting: number;
+    currentStreak: number;
+    longestStreak: number;
+  },
+  threshold: { minConversations: number; minDays: number; minStreak: number }
 ): number {
   if (threshold.minConversations === 0) return 1;
 
   const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
   const daysProgress =
     threshold.minDays > 0 ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays) : 1;
+  const streakProgress =
+    threshold.minStreak > 0
+      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
+      : 1;
 
-  return (convProgress + daysProgress) / 2;
+  return (convProgress + daysProgress + streakProgress) / 3;
 }
 
 function getUnlockHint(
   _stage: RelationshipStage,
-  threshold: { minConversations: number; minDays: number }
+  threshold: { minConversations: number; minDays: number; minStreak: number }
 ): string {
-  if (threshold.minDays === 0) {
-    return `${threshold.minConversations} conversations to unlock`;
+  const parts: string[] = [];
+
+  if (threshold.minConversations > 0) {
+    parts.push(`${threshold.minConversations} conversations`);
   }
-  return `${threshold.minConversations} conversations over ${threshold.minDays} days`;
+  if (threshold.minDays > 0) {
+    parts.push(`${threshold.minDays} days`);
+  }
+  if (threshold.minStreak > 0) {
+    parts.push(`${threshold.minStreak}-day streak`);
+  }
+
+  if (parts.length === 0) return 'Keep talking to Ferni!';
+  if (parts.length === 1) return `${parts[0]} to unlock`;
+  return parts.join(', ');
 }
 
 // ============================================================================
@@ -382,6 +416,8 @@ export function updateUnlockState(): TeamUnlockState {
   const metricsData = {
     totalConversations: metrics.totalConversations,
     daysSinceFirstMeeting: metrics.daysSinceFirstMeeting,
+    currentStreak: metrics.currentStreak,
+    longestStreak: metrics.longestStreak,
   };
 
   for (const member of TEAM_MEMBERS) {
@@ -397,6 +433,7 @@ export function updateUnlockState(): TeamUnlockState {
       }
     } else if (!nextUnlock) {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
+      const bestStreak = Math.max(metricsData.currentStreak, metricsData.longestStreak);
       nextUnlock = {
         member,
         conversationsNeeded: Math.max(
@@ -404,6 +441,7 @@ export function updateUnlockState(): TeamUnlockState {
           threshold.minConversations - metricsData.totalConversations
         ),
         daysNeeded: Math.max(0, threshold.minDays - metricsData.daysSinceFirstMeeting),
+        streakNeeded: Math.max(0, threshold.minStreak - bestStreak),
       };
     }
   }
@@ -612,19 +650,21 @@ export function getProgressText(memberId: TeamMemberId): string {
     return status.unlockHint ?? 'Keep talking to Ferni';
   }
 
-  const { conversationsNeeded, daysNeeded } = state.nextUnlock;
+  const { conversationsNeeded, daysNeeded, streakNeeded } = state.nextUnlock;
+  const parts: string[] = [];
 
-  if (conversationsNeeded > 0 && daysNeeded > 0) {
-    return `${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}, ${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
-  }
   if (conversationsNeeded > 0) {
-    return `${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}`;
+    parts.push(`${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}`);
   }
   if (daysNeeded > 0) {
-    return `${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
+    parts.push(`${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`);
+  }
+  if (streakNeeded > 0) {
+    parts.push(`${streakNeeded}-day streak needed`);
   }
 
-  return 'Almost there!';
+  if (parts.length === 0) return 'Almost there!';
+  return parts.join(', ');
 }
 
 // ============================================================================

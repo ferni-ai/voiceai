@@ -1332,6 +1332,24 @@ function renderSparkline(data: number[], color: string): string {
 function renderCalendar(calendar: MoodCalendarEntry[]): string {
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+  // Handle empty calendar - show empty state
+  if (!calendar || calendar.length === 0) {
+    return `
+      <div class="wellbeing-calendar-section">
+        <div class="wellbeing-calendar">
+          ${days.map((d) => `<div class="wellbeing-calendar__day-label">${d}</div>`).join('')}
+          ${Array(28)
+            .fill(null)
+            .map(() => '<div class="wellbeing-calendar__cell wellbeing-calendar__cell--empty"></div>')
+            .join('')}
+        </div>
+        <p style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin-top: var(--space-2, 8px);">
+          Keep chatting to fill in your calendar!
+        </p>
+      </div>
+    `;
+  }
+
   // Get CSS class for score level (uses CSS variables for theming)
   const getScoreClass = (score: number): string => {
     if (score >= 0.7) return 'wellbeing-calendar__cell--high';
@@ -1341,7 +1359,7 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
   };
 
   // Pad to start on correct day
-  const firstDate = new Date(calendar[0]?.date || new Date());
+  const firstDate = new Date(calendar[0].date);
   const startPadding = firstDate.getDay();
   const paddedCalendar = Array(startPadding).fill(null).concat(calendar);
 

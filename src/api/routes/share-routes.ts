@@ -15,6 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { parseBody, sendJSON, sendError } from '../helpers.js';
 import {
   generateCardSVG,
   createShareableCard,
@@ -36,15 +37,7 @@ const cardSVGCache = new Map<string, string>();
 // HELPERS
 // ============================================================================
 
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-function sendError(res: ServerResponse, message: string, status = 400): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ success: false, error: message }));
-}
+// parseBody, sendJSON, sendError imported from '../helpers.js'
 
 function sendSVG(res: ServerResponse, svg: string): void {
   res.writeHead(200, {
@@ -52,21 +45,6 @@ function sendSVG(res: ServerResponse, svg: string): void {
     'Cache-Control': 'public, max-age=86400', // 24 hours
   });
   res.end(svg);
-}
-
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on('error', reject);
-  });
 }
 
 function getBaseUrl(req: IncomingMessage): string {

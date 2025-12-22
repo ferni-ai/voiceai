@@ -453,10 +453,10 @@ export async function createSessionServices(
       let primingMemories: Array<import('../memory/advanced-retrieval.js').MemoryItem> = [];
       try {
         // Build memory index from user profile (fast if already built)
-        await buildMemoryIndex(validatedUserId, userProfile);
+        buildMemoryIndex(validatedUserId, userProfile);
 
         // Get salient memories for session priming (commitments, emotional moments, recent topics)
-        primingMemories = await getConversationPrimingMemories(
+        primingMemories = getConversationPrimingMemories(
           validatedUserId,
           personaId || 'ferni',
           {

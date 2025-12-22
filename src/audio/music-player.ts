@@ -42,7 +42,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
 import { isDebugEnabled } from '../config/feature-flags.js';
-import { createLogger, getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
@@ -256,7 +256,7 @@ export class CallMusicPlayer {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
 
-    getLogger().info({ tempDir: this.tempDir }, 'CallMusicPlayer initialized');
+    log.info({ tempDir: this.tempDir }, 'CallMusicPlayer initialized');
   }
 
   /**
@@ -271,7 +271,7 @@ export class CallMusicPlayer {
     // 🐛 FIX: Check for session pollution - if a different session is trying to use this player,
     // we need to reset it first
     if (this.sessionId && sessionId && this.sessionId !== sessionId) {
-      getLogger().warn(
+      log.warn(
         { oldSession: this.sessionId, newSession: sessionId },
         '🎵 Singleton pollution detected - resetting player for new session'
       );
@@ -279,7 +279,7 @@ export class CallMusicPlayer {
     }
 
     if (this.state.isInitialized) {
-      getLogger().debug('Music player already initialized');
+      log.debug('Music player already initialized');
       // 🐛 FIX: Resolve any pending initialization promises
       if (this.initializationResolve) {
         this.initializationResolve();
@@ -317,7 +317,7 @@ export class CallMusicPlayer {
       this.initializationResolve();
     }
 
-    getLogger().info(
+    log.info(
       {
         hasAgentSession: !!agentSession,
         ffmpegAvailable: this.ffmpegAvailable,
@@ -339,7 +339,7 @@ export class CallMusicPlayer {
 
     if (!this.initializationPromise) {
       // No initialization in progress - player hasn't been set up yet
-      getLogger().warn('🎵 waitForInitialization called but no initialization in progress');
+      log.warn('🎵 waitForInitialization called but no initialization in progress');
       return false;
     }
 
@@ -353,7 +353,7 @@ export class CallMusicPlayer {
       ]);
       return this.state.isInitialized;
     } catch (error) {
-      getLogger().error({ error, timeoutMs }, '🎵 Initialization timeout or error');
+      log.error({ error, timeoutMs }, '🎵 Initialization timeout or error');
       return false;
     }
   }
@@ -489,7 +489,7 @@ export class CallMusicPlayer {
       wasFullyPlayed: false, // Updated when track ends
     });
 
-    getLogger().debug(
+    log.debug(
       { track: track.name, historySize: this.sessionHistory.length },
       '🎧 Added to session music history'
     );
@@ -600,14 +600,14 @@ export class CallMusicPlayer {
         // Pick moment type - mostly "buildup" with occasional "highlight"
         const momentType = Math.random() < 0.7 ? 'buildup' : 'highlight';
 
-        getLogger().info({ track: track.name, momentType }, '🎤 Mid-song moment triggered!');
+        log.info({ track: track.name, momentType }, '🎤 Mid-song moment triggered!');
 
         // Emit to all listeners via EventEmitter
         this.events.emit('midSongMoment', track, momentType);
       }
     }, momentTime);
 
-    getLogger().debug(
+    log.debug(
       { track: track.name, momentTime: Math.round(momentTime / 1000) },
       '🎤 Mid-song moment scheduled'
     );
@@ -622,7 +622,7 @@ export class CallMusicPlayer {
    * Uses EventEmitter pattern - all registered listeners receive the event.
    */
   private notifyStateChange(state: MusicState): void {
-    getLogger().debug(
+    log.debug(
       {
         state,
         track: this.state.currentTrack?.name,
@@ -648,14 +648,14 @@ export class CallMusicPlayer {
         artist: track.artist,
         isAmbient,
       });
-    getLogger().info(
+    log.info(
       { url: url.slice(0, 50), track: track.name, artist: track.artist, isAmbient },
       'Playing from URL'
     );
 
     if (!this.state.isInitialized || !this.backgroundPlayer) {
       // 🚨 CRITICAL: Music player not initialized - return false so agent doesn't announce playback!
-      getLogger().error(
+      log.error(
         {
           timestamp: new Date().toISOString(),
           track: track.name,
@@ -675,7 +675,7 @@ export class CallMusicPlayer {
     // If room disconnected but music player singleton wasn't reset, backgroundPlayer.play()
     // will throw/crash the agent. This is the likely cause of mid-conversation crashes.
     if (this.room && !this.room.isConnected) {
-      getLogger().error(
+      log.error(
         {
           timestamp: new Date().toISOString(),
           track: track.name,
@@ -760,7 +760,7 @@ export class CallMusicPlayer {
           false // Don't loop previews
         );
       } catch (playError) {
-        getLogger().error(
+        log.error(
           {
             error: String(playError),
             track: track.name,
@@ -776,7 +776,7 @@ export class CallMusicPlayer {
       }
 
       if (DEBUG_MUSIC) log.debug('BackgroundAudioPlayer.play() called successfully');
-      getLogger().info(
+      log.info(
         { track: track.name, artist: track.artist, volume, isAmbient },
         '🎵 Music playback started'
       );
@@ -802,7 +802,7 @@ export class CallMusicPlayer {
       const minFadeTime = Math.min(10000, trackDuration * 0.7);
       const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
-      getLogger().info(
+      log.info(
         {
           track: track.name,
           actualDurationMs,
@@ -826,7 +826,7 @@ export class CallMusicPlayer {
       // the handler decide. The session.say() will queue properly.
       const fadeTimer = setTimeout(() => {
         if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
-          getLogger().info(
+          log.info(
             {
               track: track.name,
               isDucked: this.state.isDucked,
@@ -836,7 +836,7 @@ export class CallMusicPlayer {
           );
           this.notifyStateChange('fading');
         } else {
-          getLogger().debug(
+          log.debug(
             {
               track: track.name,
               isPlaying: this.state.isPlaying,
@@ -856,7 +856,7 @@ export class CallMusicPlayer {
 
         // Prevent double-firing
         if (this.trackEndHandled) {
-          getLogger().debug(
+          log.debug(
             { source, track: track.name, elapsedMs },
             '🎧 Track end already handled, skipping'
           );
@@ -883,12 +883,12 @@ export class CallMusicPlayer {
 
         if (source === 'backupTimer') {
           // Backup timer firing means waitForPlayout didn't resolve - this is a problem
-          getLogger().warn(
+          log.warn(
             timingInfo,
             '🎧 Track ended via BACKUP TIMER - waitForPlayout unreliable'
           );
         } else {
-          getLogger().info(timingInfo, '🎧 Track ended normally via waitForPlayout');
+          log.info(timingInfo, '🎧 Track ended normally via waitForPlayout');
         }
 
         const endedTrack = this.state.currentTrack;
@@ -921,7 +921,7 @@ export class CallMusicPlayer {
             // A new track may have started since this handler was set up, so we verify
             // we're still playing the same track before processing the end event
             if (this.state.currentTrack?.name !== track.name) {
-              getLogger().debug(
+              log.debug(
                 { expectedTrack: track.name, currentTrack: this.state.currentTrack?.name },
                 '🎧 waitForPlayout fired for stale track - ignoring'
               );
@@ -934,7 +934,7 @@ export class CallMusicPlayer {
             // 🐛 FIX: If backup timer hasn't fired yet, handle track end now instead of waiting
             // This prevents silent failures where neither waitForPlayout nor backup timer works
             const elapsedMs = Date.now() - playbackStartTime;
-            getLogger().warn(
+            log.warn(
               { track: track.name, error: String(err), elapsedMs },
               '🎧 waitForPlayout error - attempting immediate track end handling'
             );
@@ -959,14 +959,14 @@ export class CallMusicPlayer {
         }
       }, backupDelay);
 
-      getLogger().debug(
+      log.debug(
         { track: track.name, fadeOutTime, backupDelay },
         '🎧 Scheduled track timers'
       );
 
       return true;
     } catch (error) {
-      getLogger().error({ error }, 'Music playback failed');
+      log.error({ error }, 'Music playback failed');
       return false;
     }
   }
@@ -994,7 +994,7 @@ export class CallMusicPlayer {
   ): Promise<{ success: boolean; previousTrack: MusicTrack | null }> {
     // 🚨 CRITICAL FIX: Check room connection BEFORE crossfade operations
     if (this.room && !this.room.isConnected) {
-      getLogger().error(
+      log.error(
         {
           timestamp: new Date().toISOString(),
           track: track.name,
@@ -1008,7 +1008,7 @@ export class CallMusicPlayer {
 
     // 🐛 FIX: Prevent concurrent crossfades - if already crossfading, queue this request
     if (this.state.isChangingTrack) {
-      getLogger().warn(
+      log.warn(
         { currentTrack: this.state.currentTrack?.name, requestedTrack: track.name },
         '🎧 Crossfade already in progress - rejecting concurrent request'
       );
@@ -1036,7 +1036,7 @@ export class CallMusicPlayer {
     this.state.isChangingTrack = true;
     this.notifyStateChange('changing');
 
-    getLogger().info(
+    log.info(
       {
         fromTrack: previousTrack.name,
         toTrack: track.name,
@@ -1060,7 +1060,7 @@ export class CallMusicPlayer {
       log.error('Failed to download new track for crossfade - keeping current playback');
       this.state.isChangingTrack = false;
       // Keep current track playing, just notify the transition failed
-      getLogger().warn(
+      log.warn(
         { fromTrack: previousTrack.name, toTrack: track.name },
         '🎧 Crossfade download failed - keeping current track'
       );
@@ -1105,7 +1105,7 @@ export class CallMusicPlayer {
     try {
       this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
     } catch (playError) {
-      getLogger().error(
+      log.error(
         {
           error: String(playError),
           track: track.name,
@@ -1126,7 +1126,7 @@ export class CallMusicPlayer {
       this.cleanupTempFile(previousAudioPath);
     }
 
-    getLogger().info(
+    log.info(
       { track: track.name, artist: track.artist, volume, isAmbient },
       '🎧 Crossfade complete - new track playing!'
     );
@@ -1150,7 +1150,7 @@ export class CallMusicPlayer {
     const minFadeTime = Math.min(10000, trackDuration * 0.7);
     const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
-    getLogger().info(
+    log.info(
       {
         track: track.name,
         actualDurationMs,
@@ -1171,7 +1171,7 @@ export class CallMusicPlayer {
     // 🐛 FIX: Removed isDucked check - same fix as playFromUrl
     const fadeTimer = setTimeout(() => {
       if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
-        getLogger().info(
+        log.info(
           {
             track: track.name,
             isDucked: this.state.isDucked,
@@ -1192,7 +1192,7 @@ export class CallMusicPlayer {
 
       // Prevent double-firing
       if (this.trackEndHandled) {
-        getLogger().debug(
+        log.debug(
           { source, track: track.name, elapsedMs },
           '🎧 Track end already handled, skipping'
         );
@@ -1219,12 +1219,12 @@ export class CallMusicPlayer {
       };
 
       if (source === 'backupTimer') {
-        getLogger().warn(
+        log.warn(
           timingInfo,
           '🎧 Track ended via BACKUP TIMER (crossfade) - waitForPlayout unreliable'
         );
       } else {
-        getLogger().info(timingInfo, '🎧 Track ended normally via waitForPlayout (crossfade)');
+        log.info(timingInfo, '🎧 Track ended normally via waitForPlayout (crossfade)');
       }
 
       const endedTrack = this.state.currentTrack;
@@ -1253,7 +1253,7 @@ export class CallMusicPlayer {
         .then(() => {
           // 🐛 FIX BUG-004: Check track name before handling to prevent stale handler from firing
           if (this.state.currentTrack?.name !== track.name) {
-            getLogger().debug(
+            log.debug(
               { expectedTrack: track.name, currentTrack: this.state.currentTrack?.name },
               '🎧 waitForPlayout fired for stale track in crossfade - ignoring'
             );
@@ -1265,7 +1265,7 @@ export class CallMusicPlayer {
           // fluent-ffmpeg can throw "Output stream closed" when tracks end abruptly
           // 🐛 FIX: Handle track end immediately instead of waiting for backup timer
           const elapsedMs = Date.now() - playbackStartTime;
-          getLogger().warn(
+          log.warn(
             { track: track.name, error: String(err), elapsedMs },
             '🎧 waitForPlayout error in crossfade - attempting immediate track end handling'
           );
@@ -1290,7 +1290,7 @@ export class CallMusicPlayer {
       }
     }, backupDelay);
 
-    getLogger().debug(
+    log.debug(
       { track: track.name, fadeOutTime, backupDelay },
       '🎧 Scheduled track timers (crossfade)'
     );
@@ -1374,17 +1374,17 @@ export class CallMusicPlayer {
           try {
             if (fs.existsSync(p)) {
               localPath = p;
-              getLogger().debug({ path: p, found: true }, '🎵 Found sound file');
+              log.debug({ path: p, found: true }, '🎵 Found sound file');
               break;
             }
           } catch (checkErr) {
             // Ignore permission errors or other fs.existsSync failures
-            getLogger().debug({ path: p, error: String(checkErr) }, '🎵 Path check failed');
+            log.debug({ path: p, error: String(checkErr) }, '🎵 Path check failed');
           }
         }
 
         if (localPath) {
-          getLogger().info({ localPath, url, cwd }, '🎵 Found local audio file');
+          log.info({ localPath, url, cwd }, '🎵 Found local audio file');
           const fileBuffer = fs.readFileSync(localPath);
           buffer = fileBuffer.buffer.slice(
             fileBuffer.byteOffset,
@@ -1392,7 +1392,7 @@ export class CallMusicPlayer {
           );
         } else {
           // 🐛 FIX: More detailed error logging with all attempted paths
-          getLogger().error(
+          log.error(
             {
               url,
               cwd,
@@ -1408,7 +1408,7 @@ export class CallMusicPlayer {
         // Fetch from HTTP URL
         const response = await fetch(url);
         if (!response.ok) {
-          getLogger().error({ status: response.status }, 'Failed to fetch audio');
+          log.error({ status: response.status }, 'Failed to fetch audio');
           return null;
         }
         buffer = await response.arrayBuffer();
@@ -1423,10 +1423,10 @@ export class CallMusicPlayer {
       // 🐛 FIX BUG-008: Ensure temp directory exists with error handling
       if (!fs.existsSync(this.tempDir)) {
         try {
-          getLogger().warn({ tempDir: this.tempDir }, '🎵 Temp directory missing, recreating...');
+          log.warn({ tempDir: this.tempDir }, '🎵 Temp directory missing, recreating...');
           fs.mkdirSync(this.tempDir, { recursive: true });
         } catch (mkdirErr) {
-          getLogger().error(
+          log.error(
             { tempDir: this.tempDir, error: String(mkdirErr) },
             '🎵 Failed to create temp directory - audio download will fail'
           );
@@ -1437,7 +1437,7 @@ export class CallMusicPlayer {
       // Write to temp file
       fs.writeFileSync(rawFilepath, Buffer.from(buffer));
 
-      getLogger().debug({ rawFilepath, size: buffer.byteLength }, 'Audio downloaded');
+      log.debug({ rawFilepath, size: buffer.byteLength }, 'Audio downloaded');
 
       // 🐛 FIX: Detect ACTUAL duration before applying fade
       // Priority: 1) ffprobe detection, 2) hint from track metadata, 3) default 30s
@@ -1455,19 +1455,19 @@ export class CallMusicPlayer {
           if (!isNaN(actualDurationSec) && actualDurationSec > 0) {
             actualDurationMs = actualDurationSec * 1000;
             durationSource = 'ffprobe';
-            getLogger().debug(
+            log.debug(
               { actualDurationMs, actualDurationSec, trackName },
               '🎧 Detected actual audio duration via ffprobe'
             );
           }
         } catch (probeErr) {
-          getLogger().warn(
+          log.warn(
             { error: String(probeErr), hintDurationMs, trackName },
             '🎧 ffprobe duration detection failed, using fallback'
           );
         }
       } else {
-        getLogger().debug(
+        log.debug(
           { durationSource, actualDurationMs, trackName },
           '🎧 ffprobe not available, using fallback duration'
         );
@@ -1486,7 +1486,7 @@ export class CallMusicPlayer {
       // Fallback to raw file if fade failed
       return { path: rawFilepath, actualDurationMs };
     } catch (error) {
-      getLogger().error({ error }, 'Failed to download audio');
+      log.error({ error }, 'Failed to download audio');
       return null;
     }
   }
@@ -1531,7 +1531,7 @@ export class CallMusicPlayer {
 
       await execAsync(ffmpegCmd);
 
-      getLogger().info(
+      log.info(
         {
           outputPath,
           actualDuration: actualDurationSec.toFixed(2),
@@ -1544,7 +1544,7 @@ export class CallMusicPlayer {
       return outputPath;
     } catch (error) {
       // Log but don't fail - fall back to raw audio
-      getLogger().warn({ error, inputPath }, '🎧 Failed to apply DJ fade-out - using raw audio');
+      log.warn({ error, inputPath }, '🎧 Failed to apply DJ fade-out - using raw audio');
       return inputPath;
     }
   }
@@ -1557,7 +1557,7 @@ export class CallMusicPlayer {
       await execAsync('ffmpeg -version');
       return true;
     } catch {
-      getLogger().info(
+      log.info(
         '🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)'
       );
       return false;
@@ -1571,10 +1571,10 @@ export class CallMusicPlayer {
     try {
       if (fs.existsSync(filepath)) {
         fs.unlinkSync(filepath);
-        getLogger().debug({ filepath }, 'Cleaned up temp audio file');
+        log.debug({ filepath }, 'Cleaned up temp audio file');
       }
     } catch (error) {
-      getLogger().warn({ error, filepath }, 'Failed to cleanup temp file');
+      log.warn({ error, filepath }, 'Failed to cleanup temp file');
     }
   }
 
@@ -1585,7 +1585,7 @@ export class CallMusicPlayer {
    * The agent should NOT announce that music is playing.
    */
   private simulatePlayback(track: MusicTrack): boolean {
-    getLogger().error(
+    log.error(
       {
         track: track.name,
         artist: track.artist,
@@ -1617,7 +1617,7 @@ export class CallMusicPlayer {
     if (this.state.queue.length > 0) {
       // Play next in queue
       const nextTrack = this.state.queue.shift()!;
-      getLogger().info(
+      log.info(
         {
           nextTrack: nextTrack.name,
           remainingInQueue: this.state.queue.length,
@@ -1638,7 +1638,7 @@ export class CallMusicPlayer {
         this.playFromUrl(nextTrack.previewUrl, nextTrack)
           .then((success) => {
             if (!success) {
-              getLogger().warn(
+              log.warn(
                 { track: nextTrack.name },
                 '🎧 Queue track failed to play - trying next'
               );
@@ -1646,7 +1646,7 @@ export class CallMusicPlayer {
             }
           })
           .catch((err) => {
-            getLogger().error(
+            log.error(
               { track: nextTrack.name, error: String(err) },
               '🎧 Queue playback error - trying next'
             );
@@ -1654,7 +1654,7 @@ export class CallMusicPlayer {
           });
       } else {
         // 🐛 FIX: Track has no previewUrl - skip to next or notify stopped
-        getLogger().warn({ track: nextTrack.name }, '🎧 Queue track has no previewUrl - skipping');
+        log.warn({ track: nextTrack.name }, '🎧 Queue track has no previewUrl - skipping');
         // Recursively try the next track in queue
         this.onTrackEnded();
       }
@@ -1664,7 +1664,7 @@ export class CallMusicPlayer {
       const endedTrack = this.state.currentTrack;
       const wasAmbient = this.state.isAmbientMode;
 
-      getLogger().info(
+      log.info(
         {
           track: endedTrack?.name,
           wasAmbient,
@@ -1682,7 +1682,7 @@ export class CallMusicPlayer {
       // ✨ CRITICAL: Notify 'stopped' state so frontend hides the Now Playing UI
       // This MUST happen even if endedTrack is null (defensive)
       if (this.onMusicStateChangeCallback) {
-        getLogger().debug(
+        log.debug(
           {
             hasCallback: true,
             track: endedTrack?.name,
@@ -1692,7 +1692,7 @@ export class CallMusicPlayer {
         this.onMusicStateChangeCallback('stopped', endedTrack, wasAmbient);
       } else {
         // This should never happen in normal operation
-        getLogger().warn(
+        log.warn(
           '🎧 No onMusicStateChangeCallback set - frontend will not be notified of track end!'
         );
       }
@@ -1723,7 +1723,7 @@ export class CallMusicPlayer {
     }
     this.state.isPlaying = false;
 
-    getLogger().info({ track: pausedTrack?.name }, '🎧 Music paused');
+    log.info({ track: pausedTrack?.name }, '🎧 Music paused');
 
     // ✨ Notify frontend - pause state
     this.notifyStateChange('paused');
@@ -1736,13 +1736,13 @@ export class CallMusicPlayer {
    */
   async resume(): Promise<void> {
     if (this.state.currentTrack && this.state.currentTrack.previewUrl) {
-      getLogger().debug(
+      log.debug(
         { track: this.state.currentTrack.name },
         'Resuming playback (replaying from start)'
       );
       await this.playFromUrl(this.state.currentTrack.previewUrl, this.state.currentTrack);
     } else {
-      getLogger().debug('No track to resume');
+      log.debug('No track to resume');
     }
   }
 
@@ -1790,7 +1790,7 @@ export class CallMusicPlayer {
     this.state.wasExplicitlyStopped = true;
     this.state.explicitStopTime = Date.now();
 
-    getLogger().info(
+    log.info(
       {
         wasPlaying,
         stoppedTrack: stoppedTrack?.name,
@@ -1822,7 +1822,7 @@ export class CallMusicPlayer {
    */
   addToQueue(track: MusicTrack): void {
     this.state.queue.push(track);
-    getLogger().debug({ track: track.name }, 'Added to queue');
+    log.debug({ track: track.name }, 'Added to queue');
   }
 
   /**
@@ -1856,12 +1856,12 @@ export class CallMusicPlayer {
       // For ambient music, pause it - it's meant to fill silence, not compete with speech
       if (this.state.isAmbientMode && this.state.isPlaying) {
         this.pause();
-        getLogger().debug('🔉 Paused ambient music during agent speech');
+        log.debug('🔉 Paused ambient music during agent speech');
       } else if (this.state.isPlaying) {
         // For user-requested music: notify frontend to duck via Web Audio GainNode
         // The frontend MusicAudioController handles the actual volume reduction
         this.notifyStateChange('ducking');
-        getLogger().debug(
+        log.debug(
           {
             track: this.state.currentTrack?.name,
           },
@@ -1884,13 +1884,13 @@ export class CallMusicPlayer {
 
       if (wasAmbientPaused) {
         // Don't auto-resume ambient - let the silence detector decide
-        getLogger().debug(
+        log.debug(
           '🔊 Agent finished speaking (ambient music will resume if silence continues)'
         );
       } else if (this.state.isPlaying) {
         // Notify frontend to restore volume via Web Audio GainNode
         this.notifyStateChange('playing');
-        getLogger().debug(
+        log.debug(
           {
             track: this.state.currentTrack?.name,
           },
@@ -1912,7 +1912,7 @@ export class CallMusicPlayer {
    */
   setVolume(volume: number): void {
     this.state.volume = Math.max(0, Math.min(1, volume));
-    getLogger().debug(
+    log.debug(
       { volume: Math.round(this.state.volume * 100) },
       'Volume set (applies to next track)'
     );
@@ -1959,7 +1959,7 @@ export class CallMusicPlayer {
     ) {
       this.state.wasExplicitlyStopped = false;
       this.state.explicitStopTime = null;
-      getLogger().debug('🎧 Explicit stop cooldown expired - allowing thinking music again');
+      log.debug('🎧 Explicit stop cooldown expired - allowing thinking music again');
       return false;
     }
 
@@ -1972,7 +1972,7 @@ export class CallMusicPlayer {
   clearExplicitStop(): void {
     this.state.wasExplicitlyStopped = false;
     this.state.explicitStopTime = null;
-    getLogger().debug('🎧 Explicit stop flag cleared');
+    log.debug('🎧 Explicit stop flag cleared');
   }
 
   /**
@@ -1993,7 +1993,7 @@ export class CallMusicPlayer {
    * Cleanup
    */
   async dispose(): Promise<void> {
-    getLogger().warn(
+    log.warn(
       {
         timestamp: new Date().toISOString(),
         sessionId: this.sessionId,
@@ -2011,7 +2011,7 @@ export class CallMusicPlayer {
         await this.backgroundPlayer.close();
       } catch (err) {
         // Room may already be closed - this is fine during cleanup
-        getLogger().debug(
+        log.debug(
           { error: String(err) },
           'Background player close error (expected during room cleanup)'
         );
@@ -2045,7 +2045,7 @@ export class CallMusicPlayer {
     this.sessionHistory = [];
     this.currentUserMood = undefined;
 
-    getLogger().debug('Music player disposed and reset');
+    log.debug('Music player disposed and reset');
   }
 }
 
@@ -2057,7 +2057,7 @@ let musicPlayerInstance: CallMusicPlayer | null = null;
 
 export function getMusicPlayer(): CallMusicPlayer {
   if (!musicPlayerInstance) {
-    getLogger().info(
+    log.info(
       {
         timestamp: new Date().toISOString(),
         stack: new Error().stack?.split('\n').slice(1, 4).join(' <- '),
@@ -2077,7 +2077,7 @@ export function getMusicPlayer(): CallMusicPlayer {
  * getMusicPlayer() was called before dispose completed.
  */
 export async function resetMusicPlayer(): Promise<void> {
-  getLogger().warn(
+  log.warn(
     {
       timestamp: new Date().toISOString(),
       hadInstance: !!musicPlayerInstance,

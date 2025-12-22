@@ -41,8 +41,20 @@ import {
 
 const log = getLogger();
 
-// Cache for superhuman memory lookups (per request)
+// Cache for superhuman memory lookups (per request - cleared after each getRecommendations call)
 let superhumanMemoryCache: Map<string, PersonalizedCopyContext> | null = null;
+
+// ============================================================================
+// CACHE MANAGEMENT
+// ============================================================================
+
+/**
+ * Clear the superhuman memory cache
+ * Called at the start of each getRecommendations to ensure fresh data
+ */
+function clearSuperhumanCache(): void {
+  superhumanMemoryCache = null;
+}
 
 // ============================================================================
 // TYPES
@@ -67,6 +79,8 @@ export interface IntelligentRecommendation {
   personalizedReason: string;
   connectionToConversations: string | null;
   suggestedTiming: 'now' | 'later' | 'weekend';
+  /** Superhuman touch - the "Better Than Human" detail (e.g., "First came up 3 weeks ago") */
+  superhumanTouch?: string | null;
 }
 
 export interface GeneratedLearningTrack {
@@ -215,7 +229,10 @@ export class IntelligentContentCurator {
 
     const recommendations: IntelligentRecommendation[] = [];
 
-    // 0. Preload "Better Than Human" memory for user's topics (fire-and-forget if fails)
+    // 0. Clear cache from previous requests (prevent memory leaks)
+    clearSuperhumanCache();
+
+    // 0b. Preload "Better Than Human" memory for user's topics (fire-and-forget if fails)
     try {
       superhumanMemoryCache = await getMemoryEnhancedReasons(
         this.userContext.userId,
@@ -235,7 +252,7 @@ export class IntelligentContentCurator {
     if (!preferPodcasts) {
       const videos = this.getPersonalizedVideos(optimalMood, relevantCategories, maxDuration);
       for (const video of videos) {
-        const { personalizedReason, connectionToConversations } =
+        const { personalizedReason, connectionToConversations, superhumanTouch } =
           this.generatePersonalizedReasonWithMemory(video, 'video');
         recommendations.push({
           content: video,
@@ -244,6 +261,7 @@ export class IntelligentContentCurator {
           personalizedReason,
           connectionToConversations,
           suggestedTiming: this.suggestTiming(video, 'video'),
+          superhumanTouch,
         });
       }
     }
@@ -252,7 +270,7 @@ export class IntelligentContentCurator {
     if (!preferVideos) {
       const podcasts = this.getPersonalizedPodcasts(optimalMood, relevantCategories, maxDuration);
       for (const podcast of podcasts) {
-        const { personalizedReason, connectionToConversations } =
+        const { personalizedReason, connectionToConversations, superhumanTouch } =
           this.generatePersonalizedReasonWithMemory(podcast, 'podcast');
         recommendations.push({
           content: podcast,
@@ -261,6 +279,7 @@ export class IntelligentContentCurator {
           personalizedReason,
           connectionToConversations,
           suggestedTiming: this.suggestTiming(podcast, 'podcast'),
+          superhumanTouch,
         });
       }
     }
@@ -604,7 +623,7 @@ export class IntelligentContentCurator {
   private generatePersonalizedReasonWithMemory(
     content: VideoRecommendation | PodcastRecommendation,
     type: 'video' | 'podcast'
-  ): { personalizedReason: string; connectionToConversations: string | null } {
+  ): { personalizedReason: string; connectionToConversations: string | null; superhumanTouch: string | null } {
     const contentTopics =
       type === 'video'
         ? (content as VideoRecommendation).video.tags
@@ -623,6 +642,7 @@ export class IntelligentContentCurator {
         return {
           personalizedReason: memoryContext.personalizedReason,
           connectionToConversations: memoryContext.connectionToConversations,
+          superhumanTouch: memoryContext.superhumanTouch,
         };
       }
     }
@@ -631,7 +651,7 @@ export class IntelligentContentCurator {
     const personalizedReason = this.generatePersonalizedReason(content, type);
     const connectionToConversations = this.findConversationConnection(content, type);
 
-    return { personalizedReason, connectionToConversations };
+    return { personalizedReason, connectionToConversations, superhumanTouch: null };
   }
 
   private generatePersonalizedReason(

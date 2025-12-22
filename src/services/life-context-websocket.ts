@@ -61,17 +61,36 @@ let wssInstance: WebSocketServer | null = null;
 // ============================================================================
 
 /**
+ * Get the WebSocket server instance (for combined upgrade handling)
+ */
+export function getLifeContextWebSocketServer(): WebSocketServer | null {
+  return wssInstance;
+}
+
+/**
  * Initialize WebSocket server for life context streaming
+ * Uses noServer: true to allow manual upgrade handling for multiple WebSocket servers
  */
 export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws/life-context',
+    noServer: true,
     // Disable compression to prevent "RSV1 must be clear" errors
     perMessageDeflate: false,
   });
 
   wssInstance = wss;
+
+  // Handle upgrade requests for /ws/life-context path
+  httpServer.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+
+    if (pathname === '/ws/life-context') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+    // Note: Don't destroy socket here - let other handlers process their paths
+  });
 
   log.info('Life Context WebSocket server initialized on /ws/life-context');
 

@@ -4,13 +4,13 @@
  * In-memory vector store for semantic search over embeddings.
  * Supports the persona knowledge base and conversation history.
  *
- * Implements IVectorStore interface for swappable backends.
+ * Implements VectorStoreContract interface for swappable backends.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
 import type {
-  IVectorStore,
+  VectorStoreContract,
   VectorDocument,
   VectorFilter,
   VectorSearchResult,
@@ -26,9 +26,9 @@ export type { VectorDocument, VectorFilter, VectorSearchResult } from './vector-
 
 /**
  * In-memory vector store for semantic search
- * Implements IVectorStore for swappable backends
+ * Implements VectorStoreContract for swappable backends
  */
-export class VectorStore implements IVectorStore {
+export class VectorStore implements VectorStoreContract {
   private documents = new Map<string, VectorDocument>();
   private embeddings = new Map<string, number[]>();
   private _initialized = false;

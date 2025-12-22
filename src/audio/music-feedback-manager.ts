@@ -10,9 +10,9 @@
  * call it when the user speaks after music ends.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'MusicFeedbackManager' });
 
 // ============================================================================
 // TYPES

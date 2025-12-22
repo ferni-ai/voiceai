@@ -1,59 +1,97 @@
 /**
- * Marketplace UI State Management
+ * Marketplace State Management
+ *
+ * Centralized state for the marketplace UI.
+ *
  * @module marketplace/state
  */
 
-import type { MarketplaceTab } from './types.js';
-import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
+import type { MarketplaceTab, MarketplaceState } from './types.js';
+import { createLogger } from '../../utils/logger.js';
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
-export const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const log = createLogger('MarketplaceState');
 
-/** Marketplace modal element reference */
-export let marketplaceModal: HTMLElement | null = null;
+// ============================================================================
+// STATE
+// ============================================================================
 
-/** Current active tab */
-export let currentTab: MarketplaceTab = 'browse';
+const state: MarketplaceState = {
+  modal: null,
+  currentTab: 'browse',
+  currentCategory: null,
+  searchQuery: '',
+  isLoading: false,
+};
 
-/** Current category filter */
-export let currentCategory: string | null = null;
+// ============================================================================
+// GETTERS
+// ============================================================================
 
-/** Search query */
-export let searchQuery = '';
+export function getModal(): HTMLElement | null {
+  return state.modal;
+}
 
-/** Loading state for marketplace UI */
-export let isLoadingState = false;
+export function getCurrentTab(): MarketplaceTab {
+  return state.currentTab;
+}
 
-/** Detail panel element reference */
-export let detailPanel: HTMLElement | null = null;
+export function getCurrentCategory(): string | null {
+  return state.currentCategory;
+}
 
-// State setters
-export function setMarketplaceModal(modal: HTMLElement | null): void {
-  marketplaceModal = modal;
+export function getSearchQuery(): string {
+  return state.searchQuery;
+}
+
+export function isLoading(): boolean {
+  return state.isLoading;
+}
+
+export function isOpen(): boolean {
+  return state.modal?.classList.contains('open') ?? false;
+}
+
+// ============================================================================
+// SETTERS
+// ============================================================================
+
+export function setModal(modal: HTMLElement | null): void {
+  state.modal = modal;
 }
 
 export function setCurrentTab(tab: MarketplaceTab): void {
-  currentTab = tab;
+  log.debug('Tab changed:', tab);
+  state.currentTab = tab;
 }
 
 export function setCurrentCategory(category: string | null): void {
-  currentCategory = category;
+  log.debug('Category changed:', category);
+  state.currentCategory = category;
 }
 
 export function setSearchQuery(query: string): void {
-  searchQuery = query;
+  state.searchQuery = query;
 }
 
-export function setIsLoadingState(loading: boolean): void {
-  isLoadingState = loading;
+export function setLoading(loading: boolean): void {
+  state.isLoading = loading;
 }
 
-export function setDetailPanel(panel: HTMLElement | null): void {
-  detailPanel = panel;
+// ============================================================================
+// STATE RESET
+// ============================================================================
+
+export function resetState(): void {
+  state.currentTab = 'browse';
+  state.currentCategory = null;
+  state.searchQuery = '';
+  state.isLoading = false;
 }
 
-/** Check if marketplace is loading */
-export function isMarketplaceLoading(): boolean {
-  return isLoadingState;
-}
+// ============================================================================
+// STATE EXPORT (for debugging)
+// ============================================================================
 
+export function getState(): Readonly<MarketplaceState> {
+  return { ...state };
+}

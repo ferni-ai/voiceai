@@ -15,11 +15,11 @@
  * and sadness to another. We track what works for EACH user.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import type { MusicSessionContext, MusicStartReason } from './music-session-context.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'MusicMemoryIntegration' });
 
 // ============================================================================
 // TYPES

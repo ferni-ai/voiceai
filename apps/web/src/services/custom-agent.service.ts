@@ -150,6 +150,10 @@ export interface AddMemoryRequest {
   phrase?: string;
   context?: string;
   mood?: string;
+  /** Transcription text for voice entries */
+  transcript?: string;
+  /** Duration in seconds for voice entries */
+  durationSeconds?: number;
 }
 
 // ============================================================================

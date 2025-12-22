@@ -18,6 +18,32 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'EmotionalPatterns' });
 
 // ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/**
+ * Configuration constants for pattern detection
+ */
+const CONFIG = {
+  /** Maximum emotional data points to keep per user */
+  MAX_DATA_POINTS_PER_USER: 100,
+  /** Minimum history needed for pattern analysis */
+  MIN_HISTORY_FOR_PATTERNS: 5,
+  /** Minimum relevant data points to consider a correlation */
+  MIN_RELEVANT_POINTS: 3,
+  /** Correlation threshold to detect a pattern (60%) */
+  CORRELATION_THRESHOLD: 0.6,
+  /** High correlation threshold for immediate surfacing (80%) */
+  HIGH_CORRELATION_THRESHOLD: 0.8,
+  /** Minimum recent points to detect declining trend */
+  MIN_RECENT_POINTS_FOR_TREND: 5,
+  /** Minimum negative emotions in recent history to flag declining */
+  MIN_NEGATIVE_FOR_DECLINE: 3,
+  /** Minimum temporal pattern matches to surface */
+  MIN_TEMPORAL_MATCHES: 2,
+} as const;
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -102,17 +128,39 @@ const CORRELATION_PATTERNS = [
 const TEMPORAL_PATTERNS = [
   {
     dayOfWeek: 0, // Sunday
-    timeOfDay: 'evening',
+    timeOfDay: 'evening' as const,
     emotionWatch: ['anxiety', 'dread', 'low'],
     insightTemplate: "Sunday evenings seem harder for you. Is that a pattern you've noticed?",
   },
   {
     dayOfWeek: 1, // Monday
-    timeOfDay: 'morning',
+    timeOfDay: 'morning' as const,
     emotionWatch: ['stress', 'overwhelm', 'dread'],
     insightTemplate: "Monday mornings hit different for you, don't they?",
   },
+  {
+    dayOfWeek: 5, // Friday
+    timeOfDay: 'afternoon' as const,
+    emotionWatch: ['relief', 'excited', 'tired'],
+    insightTemplate: "Fridays seem to bring a shift for you. The week's weight lifting?",
+  },
 ];
+
+type TimeOfDay = 'morning' | 'afternoon' | 'evening';
+
+/**
+ * Get time of day from hour
+ */
+function getTimeOfDay(hour: number): TimeOfDay {
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
+}
+
+/**
+ * Day names for human-readable pattern descriptions
+ */
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 // ============================================================================
 // IN-MEMORY TRACKING (would be Firestore in production)
@@ -126,6 +174,93 @@ const detectedPatterns = new Map<string, EmotionalPattern[]>();
 
 // userId -> growth moments
 const growthMoments = new Map<string, GrowthMoment[]>();
+
+// ============================================================================
+// TEMPORAL PATTERN DETECTION
+// ============================================================================
+
+/**
+ * Analyze for time-based emotional patterns
+ *
+ * Detects cyclical patterns like:
+ * - "Sunday evening anxiety" (the Sunday Scaries)
+ * - "Monday morning dread"
+ * - "Friday afternoon relief"
+ */
+function analyzeTemporalPatterns(
+  userId: string,
+  history: EmotionalDataPoint[],
+  patterns: EmotionalPattern[]
+): void {
+  // Group history by day+timeOfDay
+  const temporalGroups = new Map<string, EmotionalDataPoint[]>();
+
+  for (const dp of history) {
+    const date = dp.timestamp;
+    const dayOfWeek = date.getDay();
+    const timeOfDay = getTimeOfDay(date.getHours());
+    const key = `${dayOfWeek}_${timeOfDay}`;
+
+    const group = temporalGroups.get(key) || [];
+    group.push(dp);
+    temporalGroups.set(key, group);
+  }
+
+  // Check each temporal pattern
+  for (const temporalPattern of TEMPORAL_PATTERNS) {
+    const key = `${temporalPattern.dayOfWeek}_${temporalPattern.timeOfDay}`;
+    const group = temporalGroups.get(key);
+
+    if (!group || group.length < CONFIG.MIN_RELEVANT_POINTS) {
+      continue; // Not enough data for this time slot
+    }
+
+    // Check how many match the watched emotions
+    const emotionMatches = group.filter((dp) =>
+      temporalPattern.emotionWatch.some(
+        (watched) =>
+          dp.emotion.toLowerCase().includes(watched) || watched.includes(dp.emotion.toLowerCase())
+      )
+    );
+
+    // If we have enough matches, it's a pattern
+    if (emotionMatches.length >= CONFIG.MIN_TEMPORAL_MATCHES) {
+      const correlation = emotionMatches.length / group.length;
+
+      if (correlation >= CONFIG.CORRELATION_THRESHOLD) {
+        const dayName = DAY_NAMES[temporalPattern.dayOfWeek];
+        const matchedEmotions = [
+          ...new Set(emotionMatches.map((dp) => dp.emotion.toLowerCase())),
+        ].slice(0, 3);
+
+        patterns.push({
+          id: `pattern_${userId}_temporal_${key}`,
+          userId,
+          pattern: `${dayName} ${temporalPattern.timeOfDay} → ${matchedEmotions.join('/')}`,
+          evidence: emotionMatches.slice(-3).map((dp) => dp.context || dp.emotion),
+          trend: 'cyclical',
+          insight: temporalPattern.insightTemplate,
+          deliveryTiming: 'when_relevant',
+          confidence: correlation,
+          detectedAt: new Date(),
+          lastUpdated: new Date(),
+          surfacedToUser: false,
+        });
+
+        log.debug(
+          {
+            userId,
+            dayName,
+            timeOfDay: temporalPattern.timeOfDay,
+            correlation,
+            matches: emotionMatches.length,
+          },
+          '⏰ Temporal pattern detected'
+        );
+      }
+    }
+  }
+}
 
 /**
  * Record an emotional data point from a conversation
@@ -148,8 +283,8 @@ export function recordEmotionalDataPoint(
   const history = emotionalHistory.get(userId) || [];
   history.push(dataPoint);
 
-  // Keep last 100 data points per user
-  if (history.length > 100) {
+  // Keep last N data points per user
+  if (history.length > CONFIG.MAX_DATA_POINTS_PER_USER) {
     history.shift();
   }
 
@@ -166,7 +301,7 @@ export function recordEmotionalDataPoint(
  */
 function analyzeForPatterns(userId: string): void {
   const history = emotionalHistory.get(userId);
-  if (!history || history.length < 5) return; // Need enough data
+  if (!history || history.length < CONFIG.MIN_HISTORY_FOR_PATTERNS) return;
 
   const patterns: EmotionalPattern[] = [];
 
@@ -176,15 +311,14 @@ function analyzeForPatterns(userId: string): void {
       dp.topics.some((t) => pattern.topicKeywords.some((k) => t.toLowerCase().includes(k)))
     );
 
-    if (relevantPoints.length >= 3) {
+    if (relevantPoints.length >= CONFIG.MIN_RELEVANT_POINTS) {
       const emotionalMatches = relevantPoints.filter((dp) =>
         pattern.emotionWatch.includes(dp.emotion.toLowerCase())
       );
 
       const correlation = emotionalMatches.length / relevantPoints.length;
 
-      if (correlation >= 0.6) {
-        // 60%+ correlation
+      if (correlation >= CONFIG.CORRELATION_THRESHOLD) {
         const mostCommonTopic = findMostCommonTopic(relevantPoints, pattern.topicKeywords);
 
         patterns.push({
@@ -195,7 +329,7 @@ function analyzeForPatterns(userId: string): void {
           trend: 'triggered',
           triggers: [mostCommonTopic],
           insight: pattern.insightTemplate.replace('{topic}', mostCommonTopic),
-          deliveryTiming: correlation >= 0.8 ? 'now' : 'when_relevant',
+          deliveryTiming: correlation >= CONFIG.HIGH_CORRELATION_THRESHOLD ? 'now' : 'when_relevant',
           confidence: correlation,
           detectedAt: new Date(),
           lastUpdated: new Date(),
@@ -205,17 +339,27 @@ function analyzeForPatterns(userId: string): void {
     }
   }
 
+  // Check for temporal patterns (Sunday evening anxiety, Monday morning dread, etc.)
+  analyzeTemporalPatterns(userId, history, patterns);
+
   // Check for declining trend
-  if (history.length >= 10) {
-    const recentAvgIntensity = average(history.slice(-5).map((dp) => dp.intensity));
-    const olderAvgIntensity = average(history.slice(-10, -5).map((dp) => dp.intensity));
+  const minPointsForTrend = CONFIG.MIN_RECENT_POINTS_FOR_TREND * 2; // Need 2x for comparison
+  if (history.length >= minPointsForTrend) {
+    const recentSlice = CONFIG.MIN_RECENT_POINTS_FOR_TREND;
+    const recentAvgIntensity = average(history.slice(-recentSlice).map((dp) => dp.intensity));
+    const olderAvgIntensity = average(
+      history.slice(-minPointsForTrend, -recentSlice).map((dp) => dp.intensity)
+    );
 
     const negativeEmotions = ['stress', 'anxiety', 'sadness', 'overwhelm', 'frustration'];
     const recentNegative = history
-      .slice(-5)
+      .slice(-recentSlice)
       .filter((dp) => negativeEmotions.includes(dp.emotion.toLowerCase()));
 
-    if (recentNegative.length >= 3 && recentAvgIntensity > olderAvgIntensity) {
+    if (
+      recentNegative.length >= CONFIG.MIN_NEGATIVE_FOR_DECLINE &&
+      recentAvgIntensity > olderAvgIntensity
+    ) {
       patterns.push({
         id: `pattern_${userId}_declining`,
         userId,

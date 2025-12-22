@@ -270,10 +270,9 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # iOS BUILD
+  # iOS BUILD (Native SwiftUI)
   # ============================================================================
   build-ios:
-    needs: build-frontend
     if: >
       github.event_name == 'push' ||
       github.event.inputs.platforms == 'all' ||
@@ -283,55 +282,35 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: apps/ios/package-lock.json
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend-typescript/dist/
-
-      - name: Install Capacitor dependencies
-        run: |
-          cd apps/ios
-          npm ci
-
-      - name: Copy web assets to iOS
-        run: |
-          rm -rf apps/ios/ios/App/App/public/*
-          cp -r frontend-typescript/dist/* apps/ios/ios/App/App/public/
-
-      - name: Install CocoaPods
-        run: |
-          cd apps/ios/ios/App
-          pod install --repo-update
-        continue-on-error: true
+          submodules: recursive
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
+      - name: Resolve Swift Package Dependencies
+        run: |
+          cd apps/ios-native
+          xcodebuild -resolvePackageDependencies \
+            -project FerniVoice.xcodeproj \
+            -scheme FerniVoice
+
       # For full iOS builds, you'd add:
       # - Import provisioning profiles
       # - Import signing certificates
       # - Build with xcodebuild
       # - Upload to TestFlight
-      
+
       - name: Build iOS (Archive Ready)
         run: |
-          cd apps/ios/ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
+          cd apps/ios-native
+          xcodebuild -project FerniVoice.xcodeproj \
+            -scheme FerniVoice \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath $RUNNER_TEMP/FerniVoice.xcarchive \
             archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -342,14 +321,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-project
-          path: apps/ios/ios/
+          path: apps/ios-native/
           retention-days: 30
 
   # ============================================================================
-  # ANDROID BUILD
+  # ANDROID BUILD (Native Kotlin/Compose)
   # ============================================================================
   build-android:
-    needs: build-frontend
     if: >
       github.event_name == 'push' ||
       github.event.inputs.platforms == 'all' ||
@@ -360,13 +338,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: apps/android/package-lock.json
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -376,28 +347,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
         with:
-          name: frontend-dist
-          path: frontend-typescript/dist/
-
-      - name: Install Capacitor dependencies
-        run: |
-          cd apps/android
-          npm ci
-
-      - name: Sync Capacitor
-        run: |
-          cd apps/android
-          npx cap sync android
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('apps/android-native/**/*.gradle*', 'apps/android-native/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Decode Keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/android/android/voiceai-release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/android-native/ferni-release.keystore
 
       - name: Create key.properties
         if: env.ANDROID_KEYSTORE_PASSWORD != ''
@@ -406,22 +371,22 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cat > apps/android/android/key.properties << EOF
+          cat > apps/android-native/key.properties << EOF
           storePassword=$ANDROID_KEYSTORE_PASSWORD
           keyPassword=$ANDROID_KEY_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=voiceai-release.keystore
+          storeFile=../ferni-release.keystore
           EOF
 
       - name: Build Android APK
         run: |
-          cd apps/android/android
+          cd apps/android-native
           chmod +x gradlew
           ./gradlew assembleRelease
 
       - name: Build Android Bundle (AAB)
         run: |
-          cd apps/android/android
+          cd apps/android-native
           ./gradlew bundleRelease
         continue-on-error: true
 
@@ -430,8 +395,8 @@ jobs:
         with:
           name: android-build
           path: |
-            apps/android/android/app/build/outputs/apk/release/*.apk
-            apps/android/android/app/build/outputs/bundle/release/*.aab
+            apps/android-native/app/build/outputs/apk/release/*.apk
+            apps/android-native/app/build/outputs/bundle/release/*.aab
           retention-days: 30
 
   # ============================================================================

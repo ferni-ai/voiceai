@@ -57,6 +57,37 @@ const userTopicCache = new Map<
   }
 >();
 
+// Cache TTL: 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Cleanup stale cache entries to prevent memory leaks
+ * Called automatically every 30 minutes
+ */
+function cleanupStaleCache(): void {
+  const now = Date.now();
+  let cleaned = 0;
+
+  for (const [userId, data] of userTopicCache) {
+    if (now - data.lastUpdated.getTime() > CACHE_TTL_MS) {
+      userTopicCache.delete(userId);
+      cleaned++;
+    }
+  }
+
+  if (cleaned > 0) {
+    log.debug({ cleaned, remaining: userTopicCache.size }, '🧹 Cleaned stale topic cache entries');
+  }
+}
+
+// Start cache cleanup interval (runs every 30 minutes)
+const cacheCleanupInterval = setInterval(cleanupStaleCache, 30 * 60 * 1000);
+
+// Prevent interval from keeping process alive
+if (cacheCleanupInterval.unref) {
+  cacheCleanupInterval.unref();
+}
+
 /**
  * Record topics from a conversation (persists to Firestore)
  */

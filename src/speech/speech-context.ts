@@ -450,19 +450,11 @@ export function getSessionWPMTracker(sessionId: string): WPMTracker {
 }
 
 /**
- * Remove a session's WPM tracker (on session end)
+ * Reset and remove a session's WPM tracker (on session end)
  */
-/**
- * Reset and remove a session's WPM tracker
- */
-export function removeSessionWPMTracker(sessionId: string): void {
+export function resetSessionWPMTracker(sessionId: string): void {
   sessionWPMTrackers.delete(sessionId);
 }
-
-/**
- * Alias for removeSessionWPMTracker (preferred naming)
- */
-export const resetSessionWPMTracker = removeSessionWPMTracker;
 
 export default {
   buildSpeechContext,
@@ -470,6 +462,5 @@ export default {
   determineTopicWeight,
   WPMTracker,
   getSessionWPMTracker,
-  removeSessionWPMTracker,
   resetSessionWPMTracker,
 };

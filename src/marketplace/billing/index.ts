@@ -19,8 +19,29 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, Pricing, TenantId, UserId } from '../schema/types.js';
+import type { BillingStore } from './persistence.js';
+import { getBillingStore, resetBillingStore as resetStore } from './persistence.js';
 
 const log = getLogger().child({ module: 'marketplace-billing' });
+
+// ============================================================================
+// PERSISTENCE INTEGRATION
+// ============================================================================
+
+let persistenceStore: BillingStore | null = null;
+
+/** Get the billing store (lazy initialization) */
+async function getStore(): Promise<BillingStore | null> {
+  if (persistenceStore) return persistenceStore;
+  
+  try {
+    persistenceStore = await getBillingStore();
+    return persistenceStore;
+  } catch {
+    // In-memory fallback if persistence fails
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -158,6 +179,9 @@ export function recordUsage(record: Omit<UsageRecord, 'id'>): UsageRecord {
 
   state.monthlyUsage.set(key, existing);
 
+  // Persist to Firestore (fire-and-forget with retry)
+  void persistUsageRecord(fullRecord, period, existing);
+
   log.debug(
     {
       userId: fullRecord.userId,
@@ -168,6 +192,40 @@ export function recordUsage(record: Omit<UsageRecord, 'id'>): UsageRecord {
   );
 
   return fullRecord;
+}
+
+/**
+ * Persist usage record to Firestore with retry
+ */
+async function persistUsageRecord(
+  record: UsageRecord,
+  period: string,
+  monthlyMetrics: UsageMetrics
+): Promise<void> {
+  const maxRetries = 3;
+  const backoffMs = 1000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const store = await getStore();
+      if (!store) return; // No persistence available
+
+      // Save individual usage record
+      await store.saveUsageRecord(record);
+
+      // Update monthly aggregate
+      await store.updateMonthlyUsage(record.userId, record.itemId, period, monthlyMetrics);
+
+      return; // Success
+    } catch (error) {
+      if (attempt === maxRetries) {
+        log.error({ error, recordId: record.id }, 'Failed to persist usage record after retries');
+      } else {
+        log.warn({ error, attempt }, 'Retrying usage persistence');
+        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+      }
+    }
+  }
 }
 
 /**
@@ -326,12 +384,40 @@ export function calculateRevenueShare(
 
   state.revenueShares.push(share);
 
+  // Persist to Firestore (fire-and-forget with retry)
+  void persistRevenueShare(share);
+
   log.info(
     { itemId, publisherId, period, grossRevenueCents, publisherShareCents },
     'Revenue share calculated'
   );
 
   return share;
+}
+
+/**
+ * Persist revenue share to Firestore with retry
+ */
+async function persistRevenueShare(share: RevenueShare): Promise<void> {
+  const maxRetries = 3;
+  const backoffMs = 1000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const store = await getStore();
+      if (!store) return; // No persistence available
+
+      await store.saveRevenueShare(share);
+      return; // Success
+    } catch (error) {
+      if (attempt === maxRetries) {
+        log.error({ error, itemId: share.itemId, period: share.period }, 'Failed to persist revenue share after retries');
+      } else {
+        log.warn({ error, attempt }, 'Retrying revenue share persistence');
+        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+      }
+    }
+  }
 }
 
 /**
@@ -399,6 +485,8 @@ export function clearBillingData(): void {
   state.usageRecords = [];
   state.monthlyUsage.clear();
   state.revenueShares = [];
+  persistenceStore = null;
+  resetStore();
 }
 
 // ============================================================================
@@ -409,10 +497,11 @@ export function clearBillingData(): void {
  * Initialize billing system
  */
 export async function initializeBilling(): Promise<void> {
-  log.info('Billing system initialized');
-
-  // In production, this would:
-  // 1. Connect to Stripe
-  // 2. Load existing usage data from Firestore
-  // 3. Set up webhook handlers for payment events
+  // Initialize persistence store
+  try {
+    persistenceStore = await getBillingStore();
+    log.info({ storeAvailable: persistenceStore.isAvailable() }, 'Billing system initialized with persistence');
+  } catch (error) {
+    log.warn({ error }, 'Billing system initialized without persistence');
+  }
 }

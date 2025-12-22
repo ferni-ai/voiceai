@@ -38,7 +38,7 @@ import {
   generateBackchannelInstructions,
   generateSilenceInstructions,
 } from '../../speech/llm-backchannel.js';
-import { getThinkingFiller } from '../../speech/persona-phrases.js';
+import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
@@ -711,10 +711,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         if (!conversationManager.isAgentSpeaking()) {
           const timeSinceStop = Date.now() - userStoppedAt;
           if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-            // DEAD AIR FIX: Use getThinkingFiller for actual verbal content
-            // getContextAwareThinkingFiller returns empty strings (by design for LLM responses)
-            // But dead air prevention NEEDS verbal content like "Mm", "Yeah", "So..."
-            const filler = getThinkingFiller(sessionPersona.id);
+            // Dead air prevention: use forDeadAirPrevention option for actual verbal content
+            const filler = getContextAwareThinkingFiller(sessionPersona.id, {
+              forDeadAirPrevention: true,
+            });
             try {
               // Use interrupt-aware wrapper - if user just interrupted us,
               // this acknowledgment will start softer and more human

@@ -11,6 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { parseBody } from '../helpers.js';
 import {
   getVideoRecommendations,
   getVideoById,
@@ -167,9 +168,9 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/watch/start
     if (pathname === '/api/creative/watch/start' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const videoId = body.videoId as string | undefined;
+      const body = await parseBody<{ userId?: string; videoId?: string }>(req);
+      const userId = body.userId;
+      const videoId = body.videoId;
 
       if (!userId || !videoId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -192,9 +193,9 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/watch/complete
     if (pathname === '/api/creative/watch/complete' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const sessionId = body.sessionId as string | undefined;
+      const body = await parseBody<{ userId?: string; sessionId?: string }>(req);
+      const userId = body.userId;
+      const sessionId = body.sessionId;
 
       if (!userId || !sessionId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -452,9 +453,9 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/intelligent/track - Generate personalized learning track
     if (pathname === '/api/creative/intelligent/track' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const topics = (body.topics as string[]) || [];
+      const body = await parseBody<{ userId?: string; topics?: string[] }>(req);
+      const userId = body.userId;
+      const topics = body.topics || [];
 
       if (!userId || topics.length === 0) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -554,17 +555,21 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/insights
     if (pathname === '/api/creative/insights' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const content = body.content as string | undefined;
-      const source = body.source as
-        | {
-            type: 'video' | 'podcast' | 'conversation';
-            id: string;
-            title: string;
-          }
-        | undefined;
-      const tags = (body.tags as string[]) || [];
+      interface InsightSource {
+        type: 'video' | 'podcast' | 'conversation';
+        id: string;
+        title: string;
+      }
+      const body = await parseBody<{
+        userId?: string;
+        content?: string;
+        source?: InsightSource;
+        tags?: string[];
+      }>(req);
+      const userId = body.userId;
+      const content = body.content;
+      const source = body.source;
+      const tags = body.tags || [];
 
       if (!userId || !content || !source) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -617,19 +622,4 @@ export async function handleCreativeYouRoutes(
 // HELPERS
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from '../helpers.js'

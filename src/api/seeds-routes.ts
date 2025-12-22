@@ -13,6 +13,7 @@
 import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
@@ -211,34 +212,18 @@ async function getOrCreateUserSeeds(
   return { userId, ...newUser };
 }
 
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
+// parseBody, sendJSON, sendError imported from './helpers.js'
 
-function sendError(res: ServerResponse, status: number, message: string): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
-}
-
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const body = Buffer.concat(chunks).toString();
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
+/**
+ * Get user ID from request headers (local version - header-based only)
+ */
 function getUserId(req: IncomingMessage): string | null {
   return (req.headers['x-user-id'] as string) || (req.headers['x-device-id'] as string) || null;
+}
+
+/** Wrapper for sendError with (status, message) signature used in this file */
+function sendErrorStatus(res: ServerResponse, status: number, message: string): void {
+  sendError(res, message, status);
 }
 
 // =============================================================================
@@ -259,13 +244,13 @@ export async function handleSeedsRoutes(
 
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Unauthorized');
+    sendErrorStatus(res, 401, 'Unauthorized');
     return true;
   }
 
   const db = getFirestore();
   if (!db) {
-    sendError(res, 503, 'Database unavailable');
+    sendErrorStatus(res, 503, 'Database unavailable');
     return true;
   }
 
@@ -357,17 +342,17 @@ export async function handleSeedsRoutes(
       const { toUserId, amount, message } = body;
 
       if (!toUserId || !amount) {
-        sendError(res, 400, 'Missing toUserId or amount');
+        sendErrorStatus(res, 400, 'Missing toUserId or amount');
         return true;
       }
 
       if (toUserId === userId) {
-        sendError(res, 400, "Can't gift to yourself");
+        sendErrorStatus(res, 400, "Can't gift to yourself");
         return true;
       }
 
       if (amount < 10 || amount > 50) {
-        sendError(res, 400, 'Gift amount must be between 10 and 50 seeds');
+        sendErrorStatus(res, 400, 'Gift amount must be between 10 and 50 seeds');
         return true;
       }
 
@@ -466,7 +451,7 @@ export async function handleSeedsRoutes(
       const { referralCode } = body;
 
       if (!referralCode) {
-        sendError(res, 400, 'Missing referral code');
+        sendErrorStatus(res, 400, 'Missing referral code');
         return true;
       }
 
@@ -477,7 +462,7 @@ export async function handleSeedsRoutes(
         .get();
 
       if (referrersQuery.empty) {
-        sendError(res, 404, 'Invalid referral code');
+        sendErrorStatus(res, 404, 'Invalid referral code');
         return true;
       }
 
@@ -485,7 +470,7 @@ export async function handleSeedsRoutes(
       const referrerId = referrerDoc.id;
 
       if (referrerId === userId) {
-        sendError(res, 400, "Can't refer yourself");
+        sendErrorStatus(res, 400, "Can't refer yourself");
         return true;
       }
 
@@ -557,7 +542,7 @@ export async function handleSeedsRoutes(
     return false;
   } catch (error) {
     log.error({ error, pathname, userId }, 'Seeds route error');
-    sendError(res, 500, 'Internal server error');
+    sendErrorStatus(res, 500, 'Internal server error');
     return true;
   }
 }

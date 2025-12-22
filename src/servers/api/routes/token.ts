@@ -2,6 +2,7 @@
  * Token Routes
  *
  * LiveKit token generation and demo session handling.
+ * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -10,6 +11,15 @@ import { rateLimit } from '../../../api/auth-middleware.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+
+// Import shared rate limiting from token server module (single source of truth)
+import {
+  DEMO_CONFIG,
+  checkDemoAllowed,
+  recordDemoSession,
+  startRateLimitCleanup as startSharedRateLimitCleanup,
+  stopRateLimitCleanup as stopSharedRateLimitCleanup,
+} from '../../token/demo-rate-limit.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
 
@@ -45,24 +55,8 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 
-// Demo rate limiting configuration
-const DEMO_CONFIG = {
-  maxSessionsPerDay: 3,
-  sessionDurationMinutes: 3,
-  cooldownMinutes: 5,
-};
-
-// Demo rate limit storage (in-memory is OK since it's per-IP throttling)
-const demoRateLimits = new Map<
-  string,
-  { dayStart: number; sessionCount: number; lastSession: number }
->();
-
 // Agent dispatch client
 let agentDispatch: AgentDispatchClient | null = null;
-
-// Cleanup interval reference for graceful shutdown
-let rateLimitCleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Initialize the agent dispatch client
@@ -94,63 +88,14 @@ async function createToken(roomName: string, participantName: string): Promise<s
 }
 
 /**
- * Get demo rate limit data for an IP
+ * Get IP address from request
  */
-function getDemoRateLimit(ip: string): {
-  dayStart: number;
-  sessionCount: number;
-  lastSession: number;
-} {
-  const dayStart = new Date().setHours(0, 0, 0, 0);
-  let data = demoRateLimits.get(ip);
-
-  if (!data || data.dayStart !== dayStart) {
-    data = { dayStart, sessionCount: 0, lastSession: 0 };
-    demoRateLimits.set(ip, data);
-  }
-  return data;
-}
-
-/**
- * Check if demo is allowed for an IP
- */
-function checkDemoAllowed(ip: string): {
-  allowed: boolean;
-  reason?: string;
-  message?: string;
-  sessionsRemaining?: number;
-} {
-  const data = getDemoRateLimit(ip);
-  const now = Date.now();
-
-  if (data.sessionCount >= DEMO_CONFIG.maxSessionsPerDay) {
-    return {
-      allowed: false,
-      reason: 'daily_limit',
-      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`,
-    };
-  }
-
-  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
-  if (data.lastSession && now - data.lastSession < cooldownMs) {
-    const retryIn = Math.ceil((cooldownMs - (now - data.lastSession)) / 1000);
-    return {
-      allowed: false,
-      reason: 'cooldown',
-      message: `Please wait ${retryIn} seconds before starting another demo.`,
-    };
-  }
-
-  return { allowed: true, sessionsRemaining: DEMO_CONFIG.maxSessionsPerDay - data.sessionCount };
-}
-
-/**
- * Record a demo session for an IP
- */
-function recordDemoSession(ip: string): void {
-  const data = getDemoRateLimit(ip);
-  data.sessionCount++;
-  data.lastSession = Date.now();
+function getClientIp(req: IncomingMessage): string {
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
 }
 
 /**
@@ -165,22 +110,34 @@ function getDemoStatus(ip: string): {
   cooldownMinutes: number;
   canStartSession: boolean;
 } {
-  const data = getDemoRateLimit(ip);
-  const now = Date.now();
-  const sessionsRemaining = Math.max(0, DEMO_CONFIG.maxSessionsPerDay - data.sessionCount);
-  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
-  const timeSinceLastSession = data.lastSession ? now - data.lastSession : Infinity;
-  const inCooldown = !!data.lastSession && timeSinceLastSession < cooldownMs;
-  const cooldownRemaining = inCooldown ? Math.ceil((cooldownMs - timeSinceLastSession) / 1000) : 0;
+  // Use the shared checkDemoAllowed to get current status
+  const check = checkDemoAllowed(ip);
+
+  if (!check.allowed) {
+    // Parse cooldown info from the message if in cooldown
+    const cooldownMatch = check.message?.match(/wait (\d+) seconds/);
+    const cooldownRemaining = cooldownMatch ? parseInt(cooldownMatch[1], 10) : 0;
+    const inCooldown = check.reason === 'cooldown';
+
+    return {
+      sessionsRemaining: check.sessionsRemaining ?? 0,
+      sessionsTotal: DEMO_CONFIG.maxSessionsPerDay,
+      sessionDurationMinutes: DEMO_CONFIG.sessionDurationMinutes,
+      inCooldown,
+      cooldownRemaining,
+      cooldownMinutes: DEMO_CONFIG.cooldownMinutes,
+      canStartSession: false,
+    };
+  }
 
   return {
-    sessionsRemaining,
+    sessionsRemaining: check.sessionsRemaining ?? DEMO_CONFIG.maxSessionsPerDay,
     sessionsTotal: DEMO_CONFIG.maxSessionsPerDay,
     sessionDurationMinutes: DEMO_CONFIG.sessionDurationMinutes,
-    inCooldown,
-    cooldownRemaining,
+    inCooldown: false,
+    cooldownRemaining: 0,
     cooldownMinutes: DEMO_CONFIG.cooldownMinutes,
-    canStartSession: sessionsRemaining > 0 && !inCooldown,
+    canStartSession: true,
   };
 }
 
@@ -202,10 +159,7 @@ export async function handleTokenRoutes(
 
   // Demo status endpoint (hyphenated path for backwards compatibility)
   if (pathname === '/demo-status') {
-    const ip =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.socket.remoteAddress ||
-      'unknown';
+    const ip = getClientIp(req);
     const status = getDemoStatus(ip);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(status));
@@ -214,12 +168,9 @@ export async function handleTokenRoutes(
 
   // Demo token endpoint (for landing page try-without-signup)
   if (pathname === '/demo-token') {
-    const ip =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.socket.remoteAddress ||
-      'unknown';
+    const ip = getClientIp(req);
 
-    // Check rate limits
+    // Check rate limits using shared module
     const allowed = checkDemoAllowed(ip);
     if (!allowed.allowed) {
       res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -244,7 +195,7 @@ export async function handleTokenRoutes(
         userAgent: req.headers['user-agent'],
       });
 
-      // Record the session for rate limiting
+      // Record the session for rate limiting using shared module
       recordDemoSession(ip);
 
       // Pre-warm LLM content cache for demo (fire-and-forget)
@@ -277,7 +228,7 @@ export async function handleTokenRoutes(
           username,
           demo_id: demoId,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          sessions_remaining: allowed.sessionsRemaining! - 1,
+          sessions_remaining: (allowed.sessionsRemaining ?? 1) - 1,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
         })
@@ -554,36 +505,20 @@ export async function handleTokenRoutes(
 
 /**
  * Start rate limit cleanup interval
+ * Delegates to shared module for single source of truth
  */
 export function startRateLimitCleanup(): void {
-  if (rateLimitCleanupInterval) return;
-
-  // Cleanup old rate limit entries hourly
-  rateLimitCleanupInterval = setInterval(
-    () => {
-      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-      for (const [ip, data] of demoRateLimits.entries()) {
-        if (data.lastSession < dayAgo) {
-          demoRateLimits.delete(ip);
-        }
-      }
-      log.debug({ remaining: demoRateLimits.size }, 'Cleaned up old rate limits');
-    },
-    60 * 60 * 1000
-  );
-
-  log.info('Rate limit cleanup interval started');
+  startSharedRateLimitCleanup();
+  log.info('Rate limit cleanup started (delegating to shared module)');
 }
 
 /**
  * Stop rate limit cleanup interval (for graceful shutdown)
+ * Delegates to shared module
  */
 export function stopRateLimitCleanup(): void {
-  if (rateLimitCleanupInterval) {
-    clearInterval(rateLimitCleanupInterval);
-    rateLimitCleanupInterval = null;
-    log.info('Rate limit cleanup interval stopped');
-  }
+  stopSharedRateLimitCleanup();
+  log.info('Rate limit cleanup stopped');
 }
 
 /**

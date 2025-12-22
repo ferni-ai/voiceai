@@ -654,8 +654,8 @@ ${colors.bold}Quick Setup for Android:${colors.reset}
   const setupAndroid = await confirm('Generate Android keystore?');
   
   if (setupAndroid) {
-    const keystoreDir = join(PROJECT_ROOT, 'apps/android');
-    const keystoreFile = join(keystoreDir, 'voiceai-release.keystore');
+    const keystoreDir = join(PROJECT_ROOT, 'apps/android-native');
+    const keystoreFile = join(keystoreDir, 'ferni-release.keystore');
 
     if (existsSync(keystoreFile)) {
       log.warn('Keystore already exists');
@@ -690,7 +690,7 @@ Recommended backup locations:
   • Secure offline backup
 
 To build signed APK:
-  cd apps/android/android
+  cd apps/android-native
   ./gradlew assembleRelease
 `);
     } catch (error) {

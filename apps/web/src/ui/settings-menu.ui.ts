@@ -249,8 +249,10 @@ type SectionVisibility = Record<string, RelationshipStage>;
 
 const SECTION_VISIBILITY: SectionVisibility = {
   connect: 'first-meeting', // Always visible
-  personalize: 'first-meeting', // Always visible
-  account: 'first-meeting', // Always visible
+  preferences: 'first-meeting', // Always visible (was: personalize)
+  connections: 'first-meeting', // Always visible - integrations
+  practices: 'first-meeting', // Always visible - daily practices
+  youAndFerni: 'first-meeting', // Always visible (was: account)
   grow: 'getting-started', // After 2+ conversations
   remember: 'building-trust', // After building trust
 };
@@ -286,7 +288,7 @@ class SettingsMenuUI {
   private isVisible = false;
   private spotifyLinked = false;
   private spotifyConfigured = false;
-  private expandedSections: Set<string> = new Set(['connect', 'personalize']);
+  private expandedSections: Set<string> = new Set(['connect', 'preferences']);
   private pinnedItems: Set<string> = getPinnedItems();
   private languageExpanded = false;
 
@@ -636,7 +638,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Remember - Memories & history (unlocks at building-trust) -->
+          <!-- SECTION: Remember - Memories & relationships (unlocks at building-trust) -->
           ${
             this.isSectionVisible('remember')
               ? this.renderCollapsibleSection(
@@ -644,7 +646,7 @@ class SettingsMenuUI {
                   t('menu.sections.remember'),
                   expandedSections.has('remember'),
                   `
-            ${this.renderMenuItem('contacts', ICONS.users, 'Your People')}
+            ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
@@ -652,25 +654,33 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Make It Yours - Personalization -->
+          <!-- SECTION: Your Way - Personalization preferences -->
           ${
-            this.isSectionVisible('personalize')
+            this.isSectionVisible('preferences')
               ? this.renderCollapsibleSection(
-                  'personalize',
-                  t('menu.sections.personalize'),
-                  expandedSections.has('personalize'),
+                  'preferences',
+                  t('menu.sections.preferences'),
+                  expandedSections.has('preferences'),
                   `
             ${this.renderMenuItem('personalize', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
-            ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
-            ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItem('connections', ICONS.link, t('menu.items.connections'))}
-            ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
-            ${this.renderMenuItem('outreach-schedule', ICONS.bell, t('menu.items.outreachSchedule'))}
-            ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
             ${this.renderLanguageSelector()}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION: Connections - Integrations & wearables -->
+          ${
+            this.isSectionVisible('connections')
+              ? this.renderCollapsibleSection(
+                  'connections',
+                  t('menu.sections.connections'),
+                  expandedSections.has('connections'),
+                  `
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
+            ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
             <button aria-label="Settings" class="settings-menu__item" data-action="spotify" style="display: none;">
               <span class="settings-menu__icon">${ICONS.music}</span>
               <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
@@ -680,18 +690,35 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Account -->
+          <!-- SECTION: Daily Practices -->
           ${
-            this.isSectionVisible('account')
+            this.isSectionVisible('practices')
               ? this.renderCollapsibleSection(
-                  'account',
-                  t('menu.sections.account'),
-                  expandedSections.has('account'),
+                  'practices',
+                  t('menu.sections.practices'),
+                  expandedSections.has('practices'),
+                  `
+            ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
+            ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
+            ${this.renderMenuItem('outreach-schedule', ICONS.bell, t('menu.items.outreachSchedule'))}
+            ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION: You & Ferni (was Account) -->
+          ${
+            this.isSectionVisible('youAndFerni')
+              ? this.renderCollapsibleSection(
+                  'youAndFerni',
+                  t('menu.sections.youAndFerni'),
+                  expandedSections.has('youAndFerni'),
                   `
             ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.billingPortal'))}
             ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('household', ICONS.household, t('menu.items.householdMembers'))}
+            ${this.renderMenuItem('household', ICONS.users, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -868,7 +895,10 @@ class SettingsMenuUI {
       cognitive: { icon: ICONS.brain, label: t('menu.items.whatILearned') },
       'conversation-memory': { icon: ICONS.memory, label: t('menu.items.memoryBrowser') },
       wellbeing: { icon: ICONS.wellbeing, label: t('menu.items.wellbeingDashboard') },
+      'life-context': { icon: ICONS.layers, label: t('menu.items.lifeContext') },
+      'team-insights': { icon: ICONS.lightbulb, label: t('menu.items.teamInsights') },
       history: { icon: ICONS.history, label: t('menu.items.conversationHistory') },
+      contacts: { icon: ICONS.users, label: t('menu.items.contacts') },
       'video-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
       team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
@@ -877,7 +907,6 @@ class SettingsMenuUI {
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
       journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
-      connections: { icon: ICONS.link, label: t('menu.items.connections') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
       commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
@@ -888,8 +917,8 @@ class SettingsMenuUI {
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
-      household: { icon: ICONS.household, label: t('menu.items.householdMembers') },
-      'contact-settings': { icon: ICONS.heart, label: t('menu.items.contactInfo') },
+      household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
+      'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
@@ -1033,7 +1062,7 @@ class SettingsMenuUI {
    */
   private toggleSection(sectionId: string): void {
     if (!this.expandedSections) {
-      this.expandedSections = new Set(['journey', 'insights']);
+      this.expandedSections = new Set(['connect', 'preferences']);
     }
 
     if (this.expandedSections.has(sectionId)) {

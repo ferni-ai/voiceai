@@ -46,8 +46,12 @@
       "connect": "Connect",
       "grow": "Grow",
       "remember": "Remember",
-      "personalize": "Make It Yours",
-      "account": "Account",
+      "preferences": "Your Way",
+      "connections": "Connections",
+      "practices": "Daily Practices",
+      "youAndFerni": "You & Ferni",
+      "personalize": "Your Way",
+      "account": "You & Ferni",
       "admin": "Admin"
     },
     "items": {
@@ -58,40 +62,44 @@
       "whatILearned": "What I've Learnt",
       "memoryBrowser": "Our Memories",
       "wellbeingDashboard": "Your Wellbeing",
-      "lifeContext": "Life Context",
-      "teamInsights": "Team Insights",
+      "lifeContext": "Your World",
+      "teamInsights": "What We Notice",
       "conversationHistory": "Past Conversations",
-      "contacts": "My People",
+      "contacts": "Your People",
       "gifts": "Gifts & Occasions",
-      "videoSessions": "Video Chat",
-      "groupCoaching": "Group Sessions",
+      "videoSessions": "Face to Face",
+      "groupCoaching": "Together Sessions",
       "teamHuddles": "Team Huddles",
       "playGames": "Play Games",
       "musicalYou": "Musical You",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
       "journaling": "Journaling",
+      "connections": "Connections",
       "personalize": "Personalise",
       "voiceAccent": "Voice & Accent",
       "guidedPractices": "Guided Practices",
       "createPractice": "Create Practice",
       "wearables": "Wearables",
       "calendar": "Calendar",
-      "notifications": "Notifications",
+      "notifications": "When I Check In",
       "toggleTheme": "Light / Dark",
       "linkSpotify": "Link Spotify",
       "spotifyConnected": "Spotify Connected",
       "yourPlan": "Your Plan",
       "manageBilling": "Payment Settings",
+      "supportFerniExpanded": "Support Ferni",
       "voiceId": "Your Voice",
-      "householdMembers": "Your People",
-      "contactInfo": "Contact Info",
+      "householdMembers": "Family & Household",
+      "contactInfo": "How to Reach You",
       "exportData": "Download Your Story",
       "shareFerni": "Share Ferni",
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
       "language": "Language",
       "whatsGrowing": "What's Growing",
-      "billingPortal": "Billing & Subscription",
-      "outreachSchedule": "Outreach Schedule"
+      "billingPortal": "Your Support",
+      "outreachSchedule": "Stay in Touch"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
@@ -223,6 +231,54 @@
       }
     }
   },
+
+  "lifeContext": {
+    "eyebrow": "What I Notice",
+    "title": "Your World",
+    "subtitle": "How things are looking across your life",
+    "loading": "Checking in on your world...",
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "levels": {
+      "low": "Looking good",
+      "medium": "Worth watching",
+      "high": "Needs attention"
+    },
+    "severity": {
+      "low": "gentle",
+      "medium": "notable",
+      "high": "significant"
+    },
+    "priority": {
+      "urgent": "important",
+      "high": "worth discussing",
+      "medium": "when you have time",
+      "low": "just a thought"
+    },
+    "personaHint": "{name} might be good to talk to about this",
+    "noticedBy": "noticed by {name}",
+    "empty": {
+      "title": "Still getting to know you",
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life."
+    },
+    "error": {
+      "title": "Couldn't check in right now",
+      "message": "We'll try again in a moment."
+    },
+    "balanced": "Everything seems balanced right now",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    }
+  },
+
   "subscription": {
     "free": "Community",
     "friend": "Founding Member",

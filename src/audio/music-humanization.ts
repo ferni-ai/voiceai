@@ -26,9 +26,9 @@ import {
   getMusicCommentary,
   hasArtistInfo,
 } from '../tools/domains/entertainment/music-commentary.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'MusicHumanization' });
 
 // ============================================================================
 // LLM-POWERED MUSIC INTERJECTIONS

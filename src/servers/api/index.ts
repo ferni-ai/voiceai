@@ -119,6 +119,9 @@ import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.j
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
+import { handleJournalRoutes } from '../../api/journal-routes.js';
+import { handleDebugRoutes } from '../../api/debug-routes.js';
+import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -653,6 +656,24 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Journal routes (Voice Journal / Digital Twin)
+    if (pathname.startsWith('/api/journal')) {
+      const handled = await handleJournalRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Custom agent features routes (share, coaching, tasks, roleplay)
+    if (pathname.startsWith('/api/custom-agent-features')) {
+      const handled = await handleCustomAgentFeaturesRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Debug routes (dev mode only)
+    if (pathname.startsWith('/api/debug')) {
+      const handled = await handleDebugRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Marketing routes (Alex's social media management - dogfooding)
     if (pathname.startsWith('/api/marketing')) {
       const handled = await handleMarketingRoutes(req, res, pathname, parsedUrl);
@@ -881,16 +902,15 @@ const server = http.createServer(async (req, res) => {
 // Harden server with DDoS protection
 hardenServer(server);
 
-// Initialize WebSocket server for real-time insights
+// Initialize WebSocket servers for real-time streaming
+// Both use noServer:true pattern with manual upgrade routing to avoid conflicts
 initInsightsWebSocket(server);
 log.info('Insights WebSocket server initialized on /ws/insights');
 
 // Initialize WebSocket server for life context (Phase 6)
-// DISABLED: Having multiple WebSocketServer instances on the same HTTP server causes
-// "RSV1 must be clear" errors due to conflicting upgrade handlers.
-// TODO: Fix by using noServer:true pattern with manual upgrade routing
-// initLifeContextWebSocket(server);
-// log.info('Life Context WebSocket server initialized on /ws/life-context');
+// Now enabled: Uses noServer:true pattern with path-based upgrade routing
+initLifeContextWebSocket(server);
+log.info('Life Context WebSocket server initialized on /ws/life-context');
 
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {

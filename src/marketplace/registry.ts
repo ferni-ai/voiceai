@@ -28,6 +28,13 @@ import { getMarketplaceStore, type MarketplaceStore } from './persistence/index.
 const log = getLogger().child({ module: 'marketplace-registry' });
 
 // ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Maximum number of executions to keep in memory */
+const MAX_CACHED_EXECUTIONS = 1000;
+
+// ============================================================================
 // HYBRID STORAGE (In-memory cache + Firestore persistence)
 // ============================================================================
 
@@ -390,8 +397,12 @@ export function recordExecution(execution: Omit<ToolExecution, 'id'>): ToolExecu
     id: `exec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
   };
 
-  // Update cache
+  // Update cache with size limit to prevent unbounded memory growth
   cache.executions.push(fullExecution);
+  if (cache.executions.length > MAX_CACHED_EXECUTIONS) {
+    // Keep most recent executions, drop oldest
+    cache.executions = cache.executions.slice(-MAX_CACHED_EXECUTIONS);
+  }
 
   // Update installation usage in cache
   const installation = getInstallation(execution.userId, execution.toolId);

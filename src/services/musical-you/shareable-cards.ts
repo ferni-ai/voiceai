@@ -28,6 +28,36 @@ import type {
 const log = createLogger({ module: 'ShareableCards' });
 
 // ============================================================================
+// BRAND COLORS FOR SVG CARDS
+// These match design-system/tokens/colors.json - centralized here for SVG generation
+// ============================================================================
+
+const CARD_COLORS = {
+  // Backgrounds
+  naturalInk: '#2C2520', // Primary dark background
+  backgroundDark: '#4a3f38', // Dark background gradient end
+  backgroundAlt: '#3a3530', // Alternative dark background
+
+  // Ferni brand greens (accent)
+  ferniPrimary: '#4a6741', // Primary Ferni green
+  ferniSecondary: '#6a8b5d', // Secondary green (gradient)
+
+  // Text colors
+  textPrimary: '#faf6f0', // Paper cream - primary text on dark
+  textMuted: '#8a7b6d', // Muted text
+  textSecondary: '#c9beb0', // Secondary text
+
+  // Ocean theme (Desert Island card)
+  oceanDark: '#1a3a4a', // Deep ocean
+  oceanLight: '#2d5568', // Light ocean gradient
+  oceanHighlight: '#7ab8d4', // Ocean accent
+
+  // Sand/gold accents
+  sandPrimary: '#d4a574', // Primary sand/gold
+  sandSecondary: '#c4956a', // Secondary sand gradient
+} as const;
+
+// ============================================================================
 // CARD STORAGE
 // ============================================================================
 
@@ -254,16 +284,17 @@ export function generateMusicalDNASVG(data: MusicalDNACardData): string {
   const { personalityLabel, personalityDescription, topGenres, totalGames } = data;
 
   // Card dimensions: 1200x630 (standard social share)
+  const C = CARD_COLORS;
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2C2520;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4a3f38;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.naturalInk};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.backgroundDark};stop-opacity:1" />
     </linearGradient>
     <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#4a6741;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6a8b5d;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.ferniPrimary};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.ferniSecondary};stop-opacity:1" />
     </linearGradient>
   </defs>
   
@@ -276,25 +307,25 @@ export function generateMusicalDNASVG(data: MusicalDNACardData): string {
   </g>
   
   <!-- Header -->
-  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="#8a7b6d" letter-spacing="0.1em">MUSICAL DNA</text>
+  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="${C.textMuted}" letter-spacing="0.1em">MUSICAL DNA</text>
   
   <!-- Personality Type -->
-  <text x="80" y="140" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="#faf6f0">${escapeXml(personalityLabel)}</text>
-  <text x="80" y="190" font-family="Inter, sans-serif" font-size="18" fill="#c9beb0" width="600">
+  <text x="80" y="140" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${C.textPrimary}">${escapeXml(personalityLabel)}</text>
+  <text x="80" y="190" font-family="Inter, sans-serif" font-size="18" fill="${C.textSecondary}" width="600">
     ${wrapText(escapeXml(personalityDescription), 60)
       .map((line, i) => `<tspan x="80" dy="${i === 0 ? 0 : 24}">${line}</tspan>`)
       .join('')}
   </text>
   
   <!-- Top Genres -->
-  <text x="80" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">TOP GENRES</text>
+  <text x="80" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="${C.textMuted}" letter-spacing="0.05em">TOP GENRES</text>
   ${topGenres
     .map(
       (genre, i) => `
     <g transform="translate(80, ${350 + i * 60})">
       <rect width="${Math.round(genre.score * 4)}" height="8" fill="url(#accentGradient)" rx="4" />
-      <text y="-8" font-family="Inter, sans-serif" font-size="16" fill="#faf6f0">${escapeXml(genre.name)}</text>
-      <text x="${Math.round(genre.score * 4) + 16}" y="6" font-family="Inter, sans-serif" font-size="14" fill="#8a7b6d">${genre.score}%</text>
+      <text y="-8" font-family="Inter, sans-serif" font-size="16" fill="${C.textPrimary}">${escapeXml(genre.name)}</text>
+      <text x="${Math.round(genre.score * 4) + 16}" y="6" font-family="Inter, sans-serif" font-size="14" fill="${C.textMuted}">${genre.score}%</text>
     </g>
   `
     )
@@ -302,14 +333,14 @@ export function generateMusicalDNASVG(data: MusicalDNACardData): string {
   
   <!-- Stats -->
   <g transform="translate(700, 320)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">GAMES PLAYED</text>
-    <text y="50" font-family="Plus Jakarta Sans, sans-serif" font-size="72" font-weight="700" fill="#4a6741">${totalGames}</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="${C.textMuted}" letter-spacing="0.05em">GAMES PLAYED</text>
+    <text y="50" font-family="Plus Jakarta Sans, sans-serif" font-size="72" font-weight="700" fill="${C.ferniPrimary}">${totalGames}</text>
   </g>
   
   <!-- Ferni branding -->
   <g transform="translate(80, 570)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="#4a6741">ferni</text>
-    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="#8a7b6d">Your soundtrack, understood.</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="${C.ferniPrimary}">ferni</text>
+    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="${C.textMuted}">Your soundtrack, understood.</text>
   </g>
 </svg>`.trim();
 
@@ -321,17 +352,18 @@ export function generateMusicalDNASVG(data: MusicalDNACardData): string {
  */
 export function generateDesertIslandSVG(data: DesertIslandCardData): string {
   const { picks } = data;
+  const C = CARD_COLORS;
 
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a3a4a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2d5568;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.oceanDark};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.oceanLight};stop-opacity:1" />
     </linearGradient>
     <linearGradient id="sandGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#d4a574;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#c4956a;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.sandPrimary};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.sandSecondary};stop-opacity:1" />
     </linearGradient>
   </defs>
   
@@ -348,8 +380,8 @@ export function generateDesertIslandSVG(data: DesertIslandCardData): string {
   <ellipse cx="600" cy="580" rx="400" ry="80" fill="url(#sandGradient)" />
   
   <!-- Header -->
-  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="#7ab8d4" letter-spacing="0.1em">DESERT ISLAND DISCS</text>
-  <text x="80" y="130" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="700" fill="#faf6f0">My 5 Essential Songs</text>
+  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="${C.oceanHighlight}" letter-spacing="0.1em">DESERT ISLAND DISCS</text>
+  <text x="80" y="130" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="700" fill="${C.textPrimary}">My 5 Essential Songs</text>
   
   <!-- Picks -->
   ${picks
@@ -357,9 +389,9 @@ export function generateDesertIslandSVG(data: DesertIslandCardData): string {
     .map(
       (pick, i) => `
     <g transform="translate(80, ${180 + i * 70})">
-      <text font-family="Plus Jakarta Sans, sans-serif" font-size="24" font-weight="700" fill="#d4a574">${pick.rank}</text>
-      <text x="40" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="600" fill="#faf6f0">${escapeXml(truncate(pick.trackName, 30))}</text>
-      <text x="40" y="28" font-family="Inter, sans-serif" font-size="14" fill="#7ab8d4">${escapeXml(truncate(pick.artistName, 35))}</text>
+      <text font-family="Plus Jakarta Sans, sans-serif" font-size="24" font-weight="700" fill="${C.sandPrimary}">${pick.rank}</text>
+      <text x="40" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="600" fill="${C.textPrimary}">${escapeXml(truncate(pick.trackName, 30))}</text>
+      <text x="40" y="28" font-family="Inter, sans-serif" font-size="14" fill="${C.oceanHighlight}">${escapeXml(truncate(pick.artistName, 35))}</text>
     </g>
   `
     )
@@ -367,16 +399,16 @@ export function generateDesertIslandSVG(data: DesertIslandCardData): string {
   
   <!-- Palm tree decoration -->
   <g transform="translate(1000, 350)" opacity="0.5">
-    <path d="M0,200 Q10,100 0,0" stroke="#4a6741" stroke-width="8" fill="none"/>
-    <ellipse cx="-30" cy="20" rx="50" ry="15" fill="#4a6741" transform="rotate(-30)"/>
-    <ellipse cx="30" cy="20" rx="50" ry="15" fill="#4a6741" transform="rotate(30)"/>
-    <ellipse cx="0" cy="0" rx="40" ry="15" fill="#4a6741"/>
+    <path d="M0,200 Q10,100 0,0" stroke="${C.ferniPrimary}" stroke-width="8" fill="none"/>
+    <ellipse cx="-30" cy="20" rx="50" ry="15" fill="${C.ferniPrimary}" transform="rotate(-30)"/>
+    <ellipse cx="30" cy="20" rx="50" ry="15" fill="${C.ferniPrimary}" transform="rotate(30)"/>
+    <ellipse cx="0" cy="0" rx="40" ry="15" fill="${C.ferniPrimary}"/>
   </g>
   
   <!-- Ferni branding -->
   <g transform="translate(80, 570)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="#4a6741">ferni</text>
-    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="#7ab8d4">ferni.ai/island</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="${C.ferniPrimary}">ferni</text>
+    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="${C.oceanHighlight}">ferni.ai/island</text>
   </g>
 </svg>`.trim();
 
@@ -388,17 +420,18 @@ export function generateDesertIslandSVG(data: DesertIslandCardData): string {
  */
 export function generateVictorySVG(data: GameVictoryCardData): string {
   const { gameDisplayName, score, trackName, artistName, guessTimeMs, isPersonalBest } = data;
+  const C = CARD_COLORS;
 
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2C2520;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3a3530;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.naturalInk};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.backgroundAlt};stop-opacity:1" />
     </linearGradient>
     <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#d4a574;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#c4956a;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:${C.sandPrimary};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${C.sandSecondary};stop-opacity:1" />
     </linearGradient>
   </defs>
   
@@ -411,7 +444,7 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
   <!-- Personal Best banner -->
   <g transform="translate(850, 50)">
     <rect width="280" height="50" fill="url(#goldGradient)" rx="25" />
-    <text x="140" y="32" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="700" fill="#2C2520">⭐ PERSONAL BEST!</text>
+    <text x="140" y="32" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="700" fill="${C.naturalInk}">⭐ PERSONAL BEST!</text>
   </g>
   `
       : ''
@@ -423,20 +456,20 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
   </g>
   
   <!-- Header -->
-  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="#8a7b6d" letter-spacing="0.1em">${escapeXml(gameDisplayName.toUpperCase())}</text>
+  <text x="80" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="16" fill="${C.textMuted}" letter-spacing="0.1em">${escapeXml(gameDisplayName.toUpperCase())}</text>
   
   <!-- Score -->
   <text x="80" y="200" font-family="Plus Jakarta Sans, sans-serif" font-size="120" font-weight="700" fill="url(#goldGradient)">${score}</text>
-  <text x="80" y="240" font-family="Inter, sans-serif" font-size="20" fill="#8a7b6d">points</text>
+  <text x="80" y="240" font-family="Inter, sans-serif" font-size="20" fill="${C.textMuted}">points</text>
   
   ${
     trackName
       ? `
   <!-- Song info -->
   <g transform="translate(80, 320)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">I NAILED</text>
-    <text y="40" font-family="Plus Jakarta Sans, sans-serif" font-size="28" font-weight="600" fill="#faf6f0">${escapeXml(truncate(trackName, 35))}</text>
-    <text y="70" font-family="Inter, sans-serif" font-size="18" fill="#c9beb0">${escapeXml(truncate(artistName || '', 40))}</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="${C.textMuted}" letter-spacing="0.05em">I NAILED</text>
+    <text y="40" font-family="Plus Jakarta Sans, sans-serif" font-size="28" font-weight="600" fill="${C.textPrimary}">${escapeXml(truncate(trackName, 35))}</text>
+    <text y="70" font-family="Inter, sans-serif" font-size="18" fill="${C.textSecondary}">${escapeXml(truncate(artistName || '', 40))}</text>
   </g>
   `
       : ''
@@ -447,8 +480,8 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
       ? `
   <!-- Time -->
   <g transform="translate(700, 180)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="#8a7b6d" letter-spacing="0.05em">TIME</text>
-    <text y="50" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="#4a6741">${(guessTimeMs / 1000).toFixed(1)}s</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="14" fill="${C.textMuted}" letter-spacing="0.05em">TIME</text>
+    <text y="50" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${C.ferniPrimary}">${(guessTimeMs / 1000).toFixed(1)}s</text>
   </g>
   `
       : ''
@@ -456,8 +489,8 @@ export function generateVictorySVG(data: GameVictoryCardData): string {
   
   <!-- Ferni branding -->
   <g transform="translate(80, 570)">
-    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="#4a6741">ferni</text>
-    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="#8a7b6d">Play music games at ferni.ai</text>
+    <text font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="600" fill="${C.ferniPrimary}">ferni</text>
+    <text x="60" font-family="Inter, sans-serif" font-size="14" fill="${C.textMuted}">Play music games at ferni.ai</text>
   </g>
 </svg>`.trim();
 
@@ -513,7 +546,7 @@ function generateMusicNotes(): string {
     const y = Math.random() * 630;
     const size = 20 + Math.random() * 20;
     notes.push(
-      `<text x="${x}" y="${y}" font-size="${size}" fill="#faf6f0" transform="rotate(${Math.random() * 30 - 15}, ${x}, ${y})">♪</text>`
+      `<text x="${x}" y="${y}" font-size="${size}" fill="${CARD_COLORS.textPrimary}" transform="rotate(${Math.random() * 30 - 15}, ${x}, ${y})">♪</text>`
     );
   }
   return notes.join('');
@@ -525,7 +558,7 @@ function generateSparkles(): string {
     const x = Math.random() * 1200;
     const y = Math.random() * 400;
     const size = 2 + Math.random() * 4;
-    sparkles.push(`<circle cx="${x}" cy="${y}" r="${size}" fill="#d4a574" />`);
+    sparkles.push(`<circle cx="${x}" cy="${y}" r="${size}" fill="${CARD_COLORS.sandPrimary}" />`);
   }
   return sparkles.join('');
 }

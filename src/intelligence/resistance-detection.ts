@@ -305,7 +305,8 @@ export function getResistanceProfile(userId: string): ResistanceProfile {
 }
 
 function createEmptyProfile(userId: string): ResistanceProfile {
-  const patterns: ResistanceProfile['selfProtection']['patterns'] = {} as any;
+  // Build patterns object with proper typing - initialized in loop below
+  const patterns = {} as ResistanceProfile['selfProtection']['patterns'];
 
   for (const pattern of Object.keys(DEFENSE_PATTERNS) as DefensePattern[]) {
     patterns[pattern] = {

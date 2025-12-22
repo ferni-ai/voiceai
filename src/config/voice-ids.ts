@@ -39,14 +39,14 @@ export const VOICE_IDS = {
   // Ferni (life coach) - Dec 2024
   FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
-  // Peter John (insights quant) - Updated Dec 2024
-  PETER_JOHN: '79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e',
+  // Peter John (insights quant) - Synced from .env Dec 2024
+  PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
 
   // Alex Chen (communications specialist) - Verified Dec 2024
   ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
 
-  // Maya Santos (spend & save coach) - Updated Dec 2024
-  MAYA_SANTOS: 'e8e5fffb-252c-436d-b842-8879b84445b6',
+  // Maya Santos (spend & save coach) - Synced from .env Dec 2024
+  MAYA_SANTOS: 'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
 
   // Jordan Taylor (event planner) - Verified Dec 2024
   JORDAN_TAYLOR: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',

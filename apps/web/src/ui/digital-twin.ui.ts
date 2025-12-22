@@ -22,7 +22,7 @@ import {
   listCustomAgents,
   createCustomAgent,
 } from '../services/custom-agent.service.js';
-import { openVoiceJournal } from './voice-journal.ui.js';
+import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import {
   isCaptureEnabled,

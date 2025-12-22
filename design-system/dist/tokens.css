@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-21T22:33:13.570Z
+ * Build: 2025-12-22T16:57:00.377Z
  */
 
 /* ========================================
@@ -297,11 +297,71 @@
    ======================================== */
 :root {
   --external-claude-primary: #D97757;
+  --external-claude-secondary: #B85F42;
   --external-claude-glow: rgba(217, 119, 87, 0.35);
+  --external-claude-gradient: linear-gradient(135deg, #B85F42, #D97757);
   --external-gemini-primary: #4285F4;
+  --external-gemini-secondary: #2B6AD9;
   --external-gemini-glow: rgba(66, 133, 244, 0.35);
+  --external-gemini-gradient: linear-gradient(135deg, #2B6AD9, #4285F4);
   --external-gpt-primary: #10A37F;
+  --external-gpt-secondary: #0B7A5E;
   --external-gpt-glow: rgba(16, 163, 127, 0.35);
+  --external-gpt-gradient: linear-gradient(135deg, #0B7A5E, #10A37F);
+}
+
+/* ========================================
+   MARKETPLACE CATEGORY COLORS
+   ======================================== */
+:root {
+  --category-mentorship-primary: #3a6b73;
+  --category-mentorship-secondary: #2d5359;
+  --category-mentorship-glow: rgba(58, 107, 115, 0.4);
+  --category-mentorship-gradient: linear-gradient(135deg, #2d5359, #3a6b73);
+  --category-mentorship-text: #3a6b73;
+  --category-mentorship-tint: rgba(58, 107, 115, 0.4);
+  --category-finance-primary: #4a5d8a;
+  --category-finance-secondary: #3a4d73;
+  --category-finance-glow: rgba(74, 93, 138, 0.4);
+  --category-finance-gradient: linear-gradient(135deg, #3a4d73, #4a5d8a);
+  --category-finance-text: #4a5d8a;
+  --category-finance-tint: rgba(74, 93, 138, 0.4);
+  --category-health-primary: #a67a6a;
+  --category-health-secondary: #8a635a;
+  --category-health-glow: rgba(166, 122, 106, 0.4);
+  --category-health-gradient: linear-gradient(135deg, #8a635a, #a67a6a);
+  --category-health-text: #a67a6a;
+  --category-health-tint: rgba(166, 122, 106, 0.4);
+  --category-productivity-primary: #b89a5a;
+  --category-productivity-secondary: #9a7d42;
+  --category-productivity-glow: rgba(184, 154, 90, 0.4);
+  --category-productivity-gradient: linear-gradient(135deg, #9a7d42, #b89a5a);
+  --category-productivity-text: #b89a5a;
+  --category-productivity-tint: rgba(184, 154, 90, 0.4);
+  --category-lifestyle-primary: #c4856a;
+  --category-lifestyle-secondary: #a86d55;
+  --category-lifestyle-glow: rgba(196, 133, 106, 0.4);
+  --category-lifestyle-gradient: linear-gradient(135deg, #a86d55, #c4856a);
+  --category-lifestyle-text: #c4856a;
+  --category-lifestyle-tint: rgba(196, 133, 106, 0.4);
+  --category-education-primary: #5a8a6a;
+  --category-education-secondary: #4a735a;
+  --category-education-glow: rgba(90, 138, 106, 0.4);
+  --category-education-gradient: linear-gradient(135deg, #4a735a, #5a8a6a);
+  --category-education-text: #5a8a6a;
+  --category-education-tint: rgba(90, 138, 106, 0.4);
+  --category-entertainment-primary: #8a6a7a;
+  --category-entertainment-secondary: #735a6a;
+  --category-entertainment-glow: rgba(138, 106, 122, 0.4);
+  --category-entertainment-gradient: linear-gradient(135deg, #735a6a, #8a6a7a);
+  --category-entertainment-text: #8a6a7a;
+  --category-entertainment-tint: rgba(138, 106, 122, 0.4);
+  --category-custom-primary: #8a7a6a;
+  --category-custom-secondary: #736a5a;
+  --category-custom-glow: rgba(138, 122, 106, 0.4);
+  --category-custom-gradient: linear-gradient(135deg, #736a5a, #8a7a6a);
+  --category-custom-text: #8a7a6a;
+  --category-custom-tint: rgba(138, 122, 106, 0.4);
 }
 
 /* ========================================

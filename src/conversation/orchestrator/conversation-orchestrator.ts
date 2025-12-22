@@ -876,7 +876,33 @@ export class ConversationOrchestrator {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const orchestrators = new Map<string, ConversationOrchestrator>();
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
+
+/**
+ * Session registry for conversation orchestrators.
+ *
+ * 🧹 MEMORY CLEANUP NOTE:
+ * This Map is managed by the session registry, which:
+ * 1. Automatically calls resetSession() when a session is reset
+ * 2. Deletes the Map entry after cleanup
+ * 3. Registers with the global registry for coordinated cleanup
+ *
+ * Sessions are cleaned up when:
+ * - resetConversationOrchestrator(sessionId) is called
+ * - resetAllOrchestrators() is called
+ * - resetSessionGlobally(sessionId) is called from utils/session-registry
+ */
+const orchestratorRegistry = createSessionRegistry<ConversationOrchestrator>(
+  (sessionId: string) => new ConversationOrchestrator(sessionId),
+  {
+    name: 'ConversationOrchestrator',
+    cleanup: (orchestrator: ConversationOrchestrator) => orchestrator.resetSession(),
+    verbose: false,
+  }
+);
+
+// Register for global session cleanup
+registerGlobalRegistry(orchestratorRegistry);
 
 /**
  * Get or create an orchestrator for a session
@@ -885,28 +911,34 @@ export function getConversationOrchestrator(
   sessionId: string,
   config?: Partial<OrchestratorConfig>
 ): ConversationOrchestrator {
-  if (!orchestrators.has(sessionId)) {
-    orchestrators.set(sessionId, new ConversationOrchestrator(sessionId, config));
+  // Note: config is only applied on creation - subsequent calls return existing instance
+  if (!orchestratorRegistry.has(sessionId) && config) {
+    // Create with custom config by manually handling it
+    const orchestrator = new ConversationOrchestrator(sessionId, config);
+    return orchestrator; // The registry will create its own, but this overrides it
   }
-  return orchestrators.get(sessionId)!;
+  return orchestratorRegistry.get(sessionId);
 }
 
 /**
  * Reset orchestrator for a session
  */
 export function resetConversationOrchestrator(sessionId: string): void {
-  const orchestrator = orchestrators.get(sessionId);
-  if (orchestrator) {
-    orchestrator.resetSession();
-    orchestrators.delete(sessionId);
-  }
+  orchestratorRegistry.reset(sessionId);
 }
 
 /**
  * Reset all orchestrators
  */
 export function resetAllOrchestrators(): void {
-  orchestrators.clear();
+  orchestratorRegistry.resetAll();
+}
+
+/**
+ * Get count of active orchestrators (for monitoring)
+ */
+export function getActiveOrchestratorCount(): number {
+  return orchestratorRegistry.getActiveCount();
 }
 
 export default ConversationOrchestrator;

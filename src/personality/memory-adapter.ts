@@ -20,7 +20,7 @@ import { cosineSimilarity } from '../memory/embeddings.js';
 import { isOk } from '../memory/result.js';
 import type { KeyMoment, SharedStory, UserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { getMomentsForPersona } from './personal-moment-store.js';
+import { getMomentsForPersona, getRegisteredPersonaIds } from './personal-moment-store.js';
 import type {
   PersonalMoment,
   PersonalMomentTopic,
@@ -472,7 +472,7 @@ export async function warmUpPersonaEmbeddings(personaId: string): Promise<void> 
  * Warm up embeddings for all personas
  */
 export async function warmUpAllPersonaEmbeddings(): Promise<void> {
-  const personaIds = ['ferni', 'alex', 'maya', 'jordan', 'peter', 'nayan'];
+  const personaIds = getRegisteredPersonaIds();
   log.info({ count: personaIds.length }, '🔥 Warming up all persona embeddings');
 
   await Promise.all(personaIds.map(async (id) => warmUpPersonaEmbeddings(id)));

@@ -156,8 +156,7 @@ export {
   detectEnergyLevel,
   determineTopicWeight,
   getSessionWPMTracker,
-  removeSessionWPMTracker,
-  resetSessionWPMTracker, // Preferred naming alias
+  resetSessionWPMTracker,
   type EnergyLevel,
   type SpeechContext,
   type TopicWeight,
@@ -224,8 +223,7 @@ export {
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
-  removeSessionAudioProsodyAnalyzer,
-  resetSessionAudioProsodyAnalyzer, // Preferred naming alias
+  resetSessionAudioProsodyAnalyzer,
   type ProsodyFeatures,
   type ProsodyMetrics,
   type VoiceEmotion,
@@ -255,8 +253,7 @@ export {
 export {
   BackchannelingSystem,
   getSessionBackchannelingSystem,
-  removeSessionBackchannelingSystem,
-  resetSessionBackchannelingSystem, // Preferred naming alias
+  resetSessionBackchannelingSystem,
   type BackchannelContext,
   type BackchannelResult,
 } from './backchanneling.js';
@@ -595,7 +592,6 @@ export {
   EnhancedBackchannelingEngine,
   getEnhancedBackchannelingEngine,
   getQuickBackchannel,
-  removeEnhancedBackchannelingEngine,
   resetEnhancedBackchannelingEngine,
   type BackchannelType,
   type EnhancedBackchannelContext, // Preferred naming alias

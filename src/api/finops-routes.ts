@@ -10,7 +10,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
-import { finops } from '../services/observability/finops.js';
+import { parseBody, sendJSON } from './helpers.js';
+import { finops, type FinOpsThresholds } from '../services/observability/finops.js';
 
 // ============================================================================
 // VALIDATION SCHEMAS (Zod)
@@ -64,25 +65,7 @@ function isAdmin(req: IncomingMessage, query: URLSearchParams): boolean {
   return false;
 }
 
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from './helpers.js'
 
 // ============================================================================
 // ROUTE HANDLER
@@ -128,7 +111,7 @@ export async function handleFinOpsRoutes(
 
     // PUT /api/finops/thresholds
     if (pathname === '/api/finops/thresholds' && req.method === 'PUT') {
-      const body = await parseBody(req);
+      const body = await parseBody<Partial<FinOpsThresholds>>(req);
       finops.setThresholds(body);
       sendJSON(res, { success: true, thresholds: finops.getThresholds() });
       return true;

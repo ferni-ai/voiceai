@@ -41,6 +41,14 @@ function startServer(name: string, command: string, args: string[], port: number
     env: { ...process.env },
   });
 
+  // Handle spawn errors (e.g., command not found, permission denied)
+  proc.on('error', (err) => {
+    log.error({ server: name, error: err.message, code: (err as NodeJS.ErrnoException).code }, 'Failed to spawn server process');
+    // Remove from servers list if spawn failed
+    const index = servers.findIndex((s) => s.name === name);
+    if (index !== -1) servers.splice(index, 1);
+  });
+
   // Prefix logs with server name
   proc.stdout?.on('data', (data) => {
     const lines = data.toString().split('\n').filter(Boolean);
@@ -56,8 +64,8 @@ function startServer(name: string, command: string, args: string[], port: number
     });
   });
 
-  proc.on('exit', (code) => {
-    log.info({ server: name, exitCode: code }, 'Server exited');
+  proc.on('exit', (code, signal) => {
+    log.info({ server: name, exitCode: code, signal }, 'Server exited');
     // Remove from servers list
     const index = servers.findIndex((s) => s.name === name);
     if (index !== -1) servers.splice(index, 1);

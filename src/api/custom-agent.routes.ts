@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON } from './helpers.js';
 import {
   createCustomAgent,
   getCustomAgent,
@@ -37,31 +38,11 @@ const log = getLogger().child({ module: 'CustomAgentHandler' });
 // HELPERS
 // ============================================================================
 
-/**
- * Parses JSON body from request
- */
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const raw = Buffer.concat(chunks).toString('utf8');
-        resolve(raw ? JSON.parse(raw) : ({} as T));
-      } catch {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from './helpers.js'
 
-/**
- * Sends JSON response
- */
+/** Alias for sendJSON with status-first signature for backward compat */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 /**

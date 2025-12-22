@@ -28,14 +28,14 @@ import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './h
 import { perfInstrumentation } from '../services/performance-instrumentation.js';
 import { getLoadedDomains, isDomainLoaded } from '../tools/index.js';
 
-// Voice agent performance modules
+// Voice agent performance metrics (via services layer to avoid architecture violation)
 import {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
-} from '../agents/shared/performance/turn-profiler.js';
-import { getToolCacheMetrics } from '../agents/shared/performance/tool-response-cache.js';
-import { getSpeculativeTTSMetrics } from '../agents/shared/performance/speculative-tts.js';
-import { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';
+  getToolCacheMetrics,
+  getSpeculativeTTSMetrics,
+  getReliabilityDashboard,
+} from '../services/performance-metrics.js';
 import {
   getTriggerAnalytics,
   resetTriggerAnalytics,

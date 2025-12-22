@@ -17,9 +17,9 @@
  *   → Reference what they were thinking about → "So... that decision you mentioned?"
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'MusicSessionContext' });
 
 // ============================================================================
 // TYPES

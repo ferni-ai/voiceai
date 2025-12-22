@@ -143,6 +143,105 @@ const DEFAULT_CONFIG: RetrievalConfig = {
 const memoryIndex = new Map<string, MemoryItem[]>(); // userId -> memories
 
 // ============================================================================
+// MEMORY ITEM BUILDERS (helpers for buildMemoryIndex)
+// ============================================================================
+
+function buildFollowUpMemories(
+  userId: string,
+  followUps: NonNullable<UserProfile['pendingFollowUps']>
+): MemoryItem[] {
+  return followUps.map((followUp) => ({
+    id: `followup_${followUp.topic}_${followUp.targetDate.getTime()}`,
+    type: 'commitment' as const,
+    content: `Follow up about: ${followUp.topic}. Reason: ${followUp.reason}`,
+    timestamp: followUp.targetDate,
+    emotionalWeight: 0.6,
+    relevanceDecay: 0,
+    baseImportance: 0.8,
+    topics: [followUp.topic],
+    commitment: true,
+    source: { collection: 'profile', documentId: `${userId}/followups` },
+  }));
+}
+
+function buildFamilyMemories(userId: string, profile: UserProfile): MemoryItem[] {
+  const familyMembers = profile.familyMembers ?? [];
+  return familyMembers.map((member) => ({
+    id: `family_${member.relationship}_${member.name ?? 'unnamed'}`,
+    type: 'person' as const,
+    content: `${profile.name ?? 'User'}'s ${member.relationship}${member.name ? ` named ${member.name}` : ''}${member.mentionedTopics && member.mentionedTopics.length > 0 ? `. Mentioned in: ${member.mentionedTopics.join(', ')}` : ''}`,
+    timestamp: member.lastMentioned ?? profile.firstContact,
+    emotionalWeight: 0.7,
+    relevanceDecay: 0,
+    baseImportance: 0.8,
+    personMentioned: member.name ?? member.relationship,
+    source: { collection: 'profile', documentId: `${userId}/family` },
+  }));
+}
+
+function buildTopicMemories(userId: string, profile: UserProfile): MemoryItem[] {
+  const topics = profile.preferredTopics ?? [];
+  return topics.map((topic) => ({
+    id: `topic_${topic}`,
+    type: 'topic' as const,
+    content: `${profile.name ?? 'User'} frequently discusses: ${topic}`,
+    timestamp: profile.lastContact,
+    emotionalWeight: 0.3,
+    relevanceDecay: 0,
+    baseImportance: 0.5,
+    topics: [topic],
+    source: { collection: 'profile', documentId: `${userId}/topics` },
+  }));
+}
+
+function buildThreadMemories(
+  userId: string,
+  threads: NonNullable<UserProfile['openThreads']>
+): MemoryItem[] {
+  return threads.map((thread) => ({
+    id: thread.id,
+    type: 'commitment' as const,
+    content: `Open topic to revisit: ${thread.topic}. ${thread.reason}. Resume with: "${thread.suggestedResumption}"`,
+    timestamp: thread.createdAt,
+    emotionalWeight: 0.5,
+    relevanceDecay: 0,
+    baseImportance: thread.priority === 'high' ? 0.9 : 0.7,
+    topics: [thread.topic],
+    commitment: true,
+    source: { collection: 'profile', documentId: `${userId}/threads` },
+  }));
+}
+
+function getEmotionalWeight(significance: string | undefined): number {
+  switch (significance) {
+    case 'life_changing':
+      return 1.0;
+    case 'major':
+      return 0.8;
+    case 'meaningful':
+      return 0.6;
+    default:
+      return 0.3;
+  }
+}
+
+function buildLifeEventMemories(
+  userId: string,
+  events: NonNullable<UserProfile['lifeEvents']>
+): MemoryItem[] {
+  return events.map((event) => ({
+    id: event.id,
+    type: 'event' as const,
+    content: `Life event: ${event.title}${event.description ? `. ${event.description}` : ''}. Status: ${event.status}`,
+    timestamp: event.date ?? event.createdAt,
+    emotionalWeight: getEmotionalWeight(event.emotionalSignificance),
+    relevanceDecay: 0,
+    baseImportance: 0.85,
+    source: { collection: 'profile', documentId: `${userId}/events` },
+  }));
+}
+
+// ============================================================================
 // CORE RETRIEVAL FUNCTIONS
 // ============================================================================
 
@@ -150,102 +249,40 @@ const memoryIndex = new Map<string, MemoryItem[]>(); // userId -> memories
  * Build memory index from user profile
  * Call this when profile is loaded or updated
  */
-export async function buildMemoryIndex(userId: string, profile: UserProfile): Promise<number> {
+export function buildMemoryIndex(userId: string, profile: UserProfile): number {
   const memories: MemoryItem[] = [];
 
   // Index conversation summaries
-  for (const summary of profile.conversationSummaries || []) {
-    const item = summaryToMemoryItem(summary);
-    memories.push(item);
+  const summaries = profile.conversationSummaries ?? [];
+  for (const summary of summaries) {
+    memories.push(summaryToMemoryItem(summary));
   }
 
   // Index key moments
-  for (const moment of profile.keyMoments || []) {
-    const item = momentToMemoryItem(moment);
-    memories.push(item);
+  const moments = profile.keyMoments ?? [];
+  for (const moment of moments) {
+    memories.push(momentToMemoryItem(moment));
   }
 
   // Index pending follow-ups as commitments
-  for (const followUp of profile.pendingFollowUps || []) {
-    memories.push({
-      id: `followup_${followUp.topic}_${followUp.targetDate.getTime()}`,
-      type: 'commitment',
-      content: `Follow up about: ${followUp.topic}. Reason: ${followUp.reason}`,
-      timestamp: followUp.targetDate,
-      emotionalWeight: 0.6,
-      relevanceDecay: 0,
-      baseImportance: 0.8,
-      topics: [followUp.topic],
-      commitment: true,
-      source: { collection: 'profile', documentId: `${userId}/followups` },
-    });
+  if (profile.pendingFollowUps && profile.pendingFollowUps.length > 0) {
+    memories.push(...buildFollowUpMemories(userId, profile.pendingFollowUps));
   }
 
   // Index family members
-  for (const member of profile.familyMembers || []) {
-    memories.push({
-      id: `family_${member.relationship}_${member.name || 'unnamed'}`,
-      type: 'person',
-      content: `${profile.name || 'User'}'s ${member.relationship}${member.name ? ` named ${member.name}` : ''}${member.mentionedTopics?.length ? `. Mentioned in: ${member.mentionedTopics.join(', ')}` : ''}`,
-      timestamp: member.lastMentioned || profile.firstContact,
-      emotionalWeight: 0.7,
-      relevanceDecay: 0,
-      baseImportance: 0.8,
-      personMentioned: member.name || member.relationship,
-      source: { collection: 'profile', documentId: `${userId}/family` },
-    });
-  }
+  memories.push(...buildFamilyMemories(userId, profile));
 
   // Index preferred topics
-  for (const topic of profile.preferredTopics || []) {
-    memories.push({
-      id: `topic_${topic}`,
-      type: 'topic',
-      content: `${profile.name || 'User'} frequently discusses: ${topic}`,
-      timestamp: profile.lastContact,
-      emotionalWeight: 0.3,
-      relevanceDecay: 0,
-      baseImportance: 0.5,
-      topics: [topic],
-      source: { collection: 'profile', documentId: `${userId}/topics` },
-    });
-  }
+  memories.push(...buildTopicMemories(userId, profile));
 
   // Index open threads (cross-session continuity)
-  for (const thread of profile.openThreads || []) {
-    memories.push({
-      id: thread.id,
-      type: 'commitment',
-      content: `Open topic to revisit: ${thread.topic}. ${thread.reason}. Resume with: "${thread.suggestedResumption}"`,
-      timestamp: thread.createdAt,
-      emotionalWeight: 0.5,
-      relevanceDecay: 0,
-      baseImportance: thread.priority === 'high' ? 0.9 : 0.7,
-      topics: [thread.topic],
-      commitment: true,
-      source: { collection: 'profile', documentId: `${userId}/threads` },
-    });
+  if (profile.openThreads) {
+    memories.push(...buildThreadMemories(userId, profile.openThreads));
   }
 
   // Index life events
-  for (const event of profile.lifeEvents || []) {
-    memories.push({
-      id: event.id,
-      type: 'event',
-      content: `Life event: ${event.title}${event.description ? `. ${event.description}` : ''}. Status: ${event.status}`,
-      timestamp: event.date || event.createdAt,
-      emotionalWeight:
-        event.emotionalSignificance === 'life_changing'
-          ? 1.0
-          : event.emotionalSignificance === 'major'
-            ? 0.8
-            : event.emotionalSignificance === 'meaningful'
-              ? 0.6
-              : 0.3,
-      relevanceDecay: 0,
-      baseImportance: 0.85,
-      source: { collection: 'profile', documentId: `${userId}/events` },
-    });
+  if (profile.lifeEvents) {
+    memories.push(...buildLifeEventMemories(userId, profile.lifeEvents));
   }
 
   // Store in index
@@ -312,9 +349,11 @@ export async function retrieveMemories(
     let contextScore = 0;
 
     // Topic overlap with recent conversation
-    if (context.recentTopics && memory.topics) {
-      const overlap = memory.topics.filter((t) =>
-        context.recentTopics!.some(
+    const { recentTopics } = context;
+    const memoryTopics = memory.topics;
+    if (recentTopics && recentTopics.length > 0 && memoryTopics && memoryTopics.length > 0) {
+      const overlap = memoryTopics.filter((t) =>
+        recentTopics.some(
           (rt) =>
             rt.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(rt.toLowerCase())
         )
@@ -323,12 +362,13 @@ export async function retrieveMemories(
     }
 
     // Current topic match
-    if (context.currentTopic && memory.topics) {
+    const { currentTopic } = context;
+    if (currentTopic && memoryTopics && memoryTopics.length > 0) {
       if (
-        memory.topics.some(
+        memoryTopics.some(
           (t) =>
-            t.toLowerCase().includes(context.currentTopic!.toLowerCase()) ||
-            context.currentTopic!.toLowerCase().includes(t.toLowerCase())
+            t.toLowerCase().includes(currentTopic.toLowerCase()) ||
+            currentTopic.toLowerCase().includes(t.toLowerCase())
         )
       ) {
         contextScore += 0.4;
@@ -380,16 +420,16 @@ export async function retrieveMemories(
  * Get memories specifically for conversation priming
  * Returns memories the persona should "naturally" reference
  */
-export async function getConversationPrimingMemories(
+export function getConversationPrimingMemories(
   userId: string,
-  personaId: string,
+  _personaId: string,
   options: {
     maxMemories?: number;
     includeCommitments?: boolean;
     includeRecentTopics?: boolean;
     sessionCount?: number;
   } = {}
-): Promise<MemoryItem[]> {
+): MemoryItem[] {
   const memories = memoryIndex.get(userId);
   if (!memories) return [];
 
@@ -438,10 +478,7 @@ export async function getConversationPrimingMemories(
 /**
  * Get memories related to a specific person
  */
-export async function getPersonRelatedMemories(
-  userId: string,
-  personName: string
-): Promise<RetrievedMemory[]> {
+export function getPersonRelatedMemories(userId: string, personName: string): RetrievedMemory[] {
   const memories = memoryIndex.get(userId);
   if (!memories) return [];
 
@@ -542,23 +579,30 @@ export function getIndexStats(): {
 function summaryToMemoryItem(summary: ConversationSummary): MemoryItem {
   const content = [
     `Conversation on ${summary.timestamp.toLocaleDateString()}:`,
-    summary.mainTopics.length ? `Topics: ${summary.mainTopics.join(', ')}` : '',
-    summary.keyPoints.length ? `Key points: ${summary.keyPoints.join('. ')}` : '',
+    summary.mainTopics.length > 0 ? `Topics: ${summary.mainTopics.join(', ')}` : '',
+    summary.keyPoints.length > 0 ? `Key points: ${summary.keyPoints.join('. ')}` : '',
     summary.emotionalArc ? `Emotional arc: ${summary.emotionalArc}` : '',
-    summary.decisionsReached?.length ? `Decisions: ${summary.decisionsReached.join(', ')}` : '',
-    summary.followUpItems?.length ? `Follow-up: ${summary.followUpItems.join(', ')}` : '',
+    summary.decisionsReached && summary.decisionsReached.length > 0
+      ? `Decisions: ${summary.decisionsReached.join(', ')}`
+      : '',
+    summary.followUpItems && summary.followUpItems.length > 0
+      ? `Follow-up: ${summary.followUpItems.join(', ')}`
+      : '',
   ]
     .filter(Boolean)
     .join(' ');
 
   // Emotional weight based on arc
-  const emotionalWeight = summary.emotionalArc?.includes('heavy')
-    ? 0.8
-    : summary.emotionalArc?.includes('emotional')
-      ? 0.6
-      : summary.emotionalArc?.includes('vulnerable')
-        ? 0.7
-        : 0.4;
+  function getEmotionalWeightFromArc(arc: string | undefined): number {
+    if (!arc) return 0.4;
+    if (arc.includes('heavy')) return 0.8;
+    if (arc.includes('vulnerable')) return 0.7;
+    if (arc.includes('emotional')) return 0.6;
+    return 0.4;
+  }
+
+  const emotionalWeight = getEmotionalWeightFromArc(summary.emotionalArc);
+  const hasFollowUpItems = summary.followUpItems && summary.followUpItems.length > 0;
 
   return {
     id: summary.id,
@@ -569,7 +613,7 @@ function summaryToMemoryItem(summary: ConversationSummary): MemoryItem {
     relevanceDecay: 0,
     baseImportance: 0.6,
     topics: summary.mainTopics,
-    commitment: !!summary.followUpItems?.length,
+    commitment: hasFollowUpItems,
     embedding: summary.embedding,
     source: { collection: 'summaries', documentId: summary.id },
   };
@@ -594,6 +638,9 @@ function momentToMemoryItem(moment: KeyMoment): MemoryItem {
     decision: 0.75,
   };
 
+  const momentType = moment.type;
+  const baseImportance = momentType in importanceMap ? importanceMap[momentType] : 0.7;
+
   return {
     id: moment.id,
     type: 'moment',
@@ -601,7 +648,7 @@ function momentToMemoryItem(moment: KeyMoment): MemoryItem {
     timestamp: moment.timestamp,
     emotionalWeight: emotionalWeightMap[moment.emotionalWeight],
     relevanceDecay: 0,
-    baseImportance: importanceMap[moment.type] || 0.7,
+    baseImportance,
     topics: moment.topics,
     commitment: moment.followUpNeeded,
     source: { collection: 'moments', documentId: moment.id },
@@ -631,7 +678,7 @@ function keywordSimilarity(query: string, content: string): number {
 function generateRetrievalReason(
   memory: MemoryItem,
   breakdown: RetrievedMemory['scoreBreakdown'],
-  context: RetrievalContext
+  _context: RetrievalContext
 ): string {
   const reasons: string[] = [];
 

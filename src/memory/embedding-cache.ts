@@ -12,14 +12,21 @@ import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
 import { embed, embedBatch, getEmbeddingProvider } from './embeddings.js';
 import { err, memoryError, ok, type MemoryError, type Result } from './result.js';
-import {
-  recordCacheHit,
-  recordCacheMiss,
-  recordCacheEviction,
-} from '../services/performance-metrics.js';
+import { noopMetrics, type PerformanceMetricsCallbacks } from '../types/performance-metrics-types.js';
 
 const log = getLogger();
 const CACHE_NAME = 'embeddings';
+
+// Performance metrics callbacks - injected at runtime to avoid architecture violation
+let metrics: PerformanceMetricsCallbacks = noopMetrics;
+
+/**
+ * Configure performance metrics callbacks.
+ * Called by services layer during initialization.
+ */
+export function configureEmbeddingCacheMetrics(callbacks: PerformanceMetricsCallbacks): void {
+  metrics = callbacks;
+}
 
 // ============================================================================
 // TYPES
@@ -190,7 +197,7 @@ export class EmbeddingCache {
     const cached = this.cache.get(hash);
     if (cached && !this.isExpired(cached)) {
       this.stats.hits++;
-      recordCacheHit(CACHE_NAME); // Performance metrics
+      metrics.recordCacheHit(CACHE_NAME); // Performance metrics
       cached.accessedAt = Date.now();
       cached.accessCount++;
       log.debug(`Embedding cache hit (memory): ${hash.slice(0, 8)}...`);
@@ -204,7 +211,7 @@ export class EmbeddingCache {
         // Promote to in-memory cache
         this.setInMemory(hash, redisCached);
         this.stats.hits++;
-        recordCacheHit(CACHE_NAME);
+        metrics.recordCacheHit(CACHE_NAME);
         log.debug(`Embedding cache hit (Redis): ${hash.slice(0, 8)}...`);
         return ok(redisCached.embedding);
       }
@@ -212,7 +219,7 @@ export class EmbeddingCache {
 
     // Cache miss - generate embedding
     this.stats.misses++;
-    recordCacheMiss(CACHE_NAME); // Performance metrics
+    metrics.recordCacheMiss(CACHE_NAME); // Performance metrics
     log.debug(`Embedding cache miss: ${hash.slice(0, 8)}...`);
 
     try {
@@ -459,7 +466,7 @@ export class EmbeddingCache {
     if (oldest) {
       this.cache.delete(oldest.hash);
       this.stats.evictions++;
-      recordCacheEviction(CACHE_NAME); // Performance metrics
+      metrics.recordCacheEviction(CACHE_NAME); // Performance metrics
       log.debug(`Evicted LRU embedding: ${oldest.hash.slice(0, 8)}...`);
     }
   }

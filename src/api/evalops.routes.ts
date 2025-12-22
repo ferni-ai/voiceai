@@ -487,7 +487,7 @@ export async function handleEvalOpsRoutes(
     return true;
   } catch (error) {
     log.error({ error, pathname }, 'EvalOps route error');
-    sendError(res, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

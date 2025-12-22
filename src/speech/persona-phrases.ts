@@ -598,18 +598,10 @@ export function getAcknowledgmentPrefix(
 /**
  * Get thinking filler for a persona
  *
- * @deprecated Use getContextAwareThinkingFiller for context-aware phrases
+ * @deprecated Use getContextAwareThinkingFiller(personaId, { forDeadAirPrevention: true })
  */
 export function getThinkingFiller(personaId: string): string {
-  const normalized = normalizePersonaId(personaId);
-  const fillers = THINKING_FILLERS[normalized];
-
-  // For unknown personas, return a stable, "safe" default (tests expect "Hmm")
-  if (!fillers) {
-    return THINKING_FILLERS.ferni[0];
-  }
-
-  return fillers[Math.floor(Math.random() * fillers.length)];
+  return getThinkingFillerInternal(personaId);
 }
 
 /**
@@ -620,7 +612,8 @@ export function getThinkingFiller(personaId: string): string {
  *
  * @param personaId - The persona ID
  * @param options - Optional context for phrase composition
- * @returns SSML-formatted thinking phrase
+ * @param options.forDeadAirPrevention - If true, returns actual verbal filler (not empty)
+ * @returns SSML-formatted thinking phrase (empty by default, verbal if forDeadAirPrevention)
  */
 export function getContextAwareThinkingFiller(
   personaId: string,
@@ -630,16 +623,43 @@ export function getContextAwareThinkingFiller(
     emotionalState?: { primary: string; intensity: number };
     hourOfDay?: number;
     relationshipStage?: string;
+    /**
+     * If true, returns actual verbal content like "Mm", "So...", "Yeah"
+     * for dead air prevention. By default (false), returns empty strings
+     * to let the LLM generate natural responses.
+     */
+    forDeadAirPrevention?: boolean;
   }
 ): string {
-  const { type = 'thinking', weight = 'medium', ...rest } = options || {};
+  const { type = 'thinking', weight = 'medium', forDeadAirPrevention = false, ...rest } =
+    options || {};
+
+  // For dead air prevention, we need actual verbal content
+  if (forDeadAirPrevention) {
+    return getThinkingFillerInternal(personaId);
+  }
 
   try {
     return getProcessingPhraseWithSSML(type, weight, rest);
   } catch {
     // Fallback to legacy system if ProcessingIntelligence fails
-    return getThinkingFiller(personaId);
+    return getThinkingFillerInternal(personaId);
   }
+}
+
+/**
+ * Internal helper to get actual verbal filler content
+ */
+function getThinkingFillerInternal(personaId: string): string {
+  const normalized = normalizePersonaId(personaId);
+  const fillers = THINKING_FILLERS[normalized];
+
+  // For unknown personas, return a stable, "safe" default
+  if (!fillers) {
+    return THINKING_FILLERS.ferni[0];
+  }
+
+  return fillers[Math.floor(Math.random() * fillers.length)];
 }
 
 /**

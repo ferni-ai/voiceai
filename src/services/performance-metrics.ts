@@ -551,3 +551,25 @@ export default {
   startMetricsLogging,
   stopMetricsLogging,
 };
+
+// ============================================================================
+// RE-EXPORTS FROM AGENTS LAYER (for API layer access)
+// ============================================================================
+// These re-exports allow the API layer (Level 100) to access agent performance
+// metrics through the services layer (Level 60), avoiding direct imports from
+// agents/ which would violate the clean architecture.
+
+// Voice agent turn profiling
+export {
+  getGlobalPerformanceSummary,
+  PERFORMANCE_THRESHOLDS,
+} from '../agents/shared/performance/turn-profiler.js';
+
+// Tool response caching metrics
+export { getToolCacheMetrics } from '../agents/shared/performance/tool-response-cache.js';
+
+// Speculative TTS metrics
+export { getSpeculativeTTSMetrics } from '../agents/shared/performance/speculative-tts.js';
+
+// Tool execution reliability (retries, circuit breakers)
+export { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';

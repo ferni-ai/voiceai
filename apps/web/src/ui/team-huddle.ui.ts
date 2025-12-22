@@ -49,36 +49,38 @@ export interface TeamHuddleUICallbacks {
 // PERSONA COLORS (from design system)
 // ============================================================================
 
+// Persona colors from design-system/tokens/colors.json (source of truth)
+// Pattern: bg = secondary, border = primary
 const PERSONA_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   ferni: {
-    bg: 'var(--persona-ferni-bg, #3d5a35)',
+    bg: 'var(--persona-ferni-secondary, #3d5a35)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-ferni-border, #4a6741)',
+    border: 'var(--persona-ferni-primary, #4a6741)',
   },
   'alex-chen': {
-    bg: 'var(--persona-alex-bg, #4a6b8a)',
+    bg: 'var(--persona-alex-secondary, #4a5a73)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-alex-border, #5a7b9a)',
+    border: 'var(--persona-alex-primary, #5a6b8a)',
   },
   'maya-santos': {
-    bg: 'var(--persona-maya-bg, #8b6b5a)',
+    bg: 'var(--persona-maya-secondary, #8a635a)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-maya-border, #9b7b6a)',
+    border: 'var(--persona-maya-primary, #a67a6a)',
   },
   'jordan-taylor': {
-    bg: 'var(--persona-jordan-bg, #7a5a5a)',
+    bg: 'var(--persona-jordan-secondary, #a86d55)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-jordan-border, #8a6a6a)',
+    border: 'var(--persona-jordan-primary, #c4856a)',
   },
   'nayan-patel': {
-    bg: 'var(--persona-nayan-bg, #8a7a5a)',
+    bg: 'var(--persona-nayan-secondary, #9a7a52)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-nayan-border, #9a8a6a)',
+    border: 'var(--persona-nayan-primary, #b8956a)',
   },
   'peter-john': {
-    bg: 'var(--persona-peter-bg, #4a7a7a)',
+    bg: 'var(--persona-peter-secondary, #2d5359)',
     text: 'var(--color-text-inverse, #faf8f5)',
-    border: 'var(--persona-peter-border, #5a8a8a)',
+    border: 'var(--persona-peter-primary, #3a6b73)',
   },
 };
 

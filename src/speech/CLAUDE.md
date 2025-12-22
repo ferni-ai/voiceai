@@ -512,6 +512,30 @@ const adjustments = humanizer.getEmotionalTtsAdjustments(emotionalArc);
 
 ## Deprecated APIs
 
+These functions are deprecated and will be removed according to the timeline below.
+
+### 📅 Deprecation Timeline
+
+| API Category | Status | Removal Target | Migration Guide |
+|--------------|--------|----------------|-----------------|
+| **ssml-tagger/** module | ✅ **REMOVED** | - | Migrate to `src/ssml/` |
+| **jack-bogle.ts** | ✅ **REMOVED** | - | Use persona bundles |
+| **Legacy global managers** | ⚠️ Deprecated | Q1 2025 | Use session-scoped APIs |
+| **remove* naming** | ⚠️ Deprecated | Q2 2025 | Use `reset*` naming |
+| **ACKNOWLEDGMENT_PREFIXES** | ⚠️ Deprecated | Q2 2025 | LLM generates naturally |
+| **getThinkingFiller()** | ⚠️ Deprecated | Q2 2025 | Use `getContextAwareThinkingFiller()` |
+
+**Deprecation Stages:**
+1. **Warning** (Current): APIs work but log deprecation warnings
+2. **Runtime Warning**: APIs emit console warnings in development
+3. **Removal**: APIs are removed from exports
+
+### How to Migrate
+
+See `docs/SPEECH-MIGRATION-GUIDE.md` for step-by-step migration instructions.
+
+---
+
 These functions are deprecated and will be removed in a future version:
 
 ### Session-Scoped Replacements
@@ -525,24 +549,6 @@ These functions are deprecated and will be removed in a future version:
 | `getWPMTracker()`                    | `getSessionWPMTracker(sessionId)`           |
 | `shouldInjectCatchphrase()` (3 args) | `shouldInjectCatchphrase(sessionId, ...)`   |
 
-### SSML Module Consolidation (NEW!)
-
-| Deprecated Import                                 | Use Instead                                             |
-| ------------------------------------------------- | ------------------------------------------------------- |
-| `import { ... } from './ssml-tagger/constants'`   | `import { ... } from '../ssml/constants'`               |
-| `import { ... } from './ssml-tagger/types'`       | `import { ... } from '../ssml/types'`                   |
-| `import { ... } from './ssml-tagger/detection'`   | `import { ... } from '../ssml/detection'`               |
-| `import { sanitizeSsml } from './ssml-tagger'`    | `import { sanitizeSsml } from '../ssml'`                |
-| `import { tagTextWithSsml } from './ssml-tagger'` | `import { tagTextWithSsmlPersonaAware } from '../ssml'` |
-
-### Jack Bogle Speech Traits (NEW!)
-
-| Deprecated Import                                | Use Instead                                                          |
-| ------------------------------------------------ | -------------------------------------------------------------------- |
-| `import { ... } from './ssml-tagger/jack-bogle'` | `import { ... } from '../personas/bundles/peter-john/speech-traits'` |
-| `addCatchphraseEmphasis` from ssml-tagger        | `addCatchphraseEmphasis` from persona bundle                         |
-| `addWisdomCadence` from ssml-tagger              | `addWisdomCadence` from persona bundle                               |
-
 ### Unified Module Replacements
 
 | Deprecated                 | Use Instead                                          |
@@ -552,14 +558,13 @@ These functions are deprecated and will be removed in a future version:
 | `LegacyBackchannelContext` | `BackchannelContext` from `backchanneling/types.ts`  |
 | `LegacyBackchannelResult`  | `BackchannelDecision` from `backchanneling/types.ts` |
 
-### Naming Convention Updates
+### Naming Convention Updates (COMPLETED)
 
-| Deprecated                             | Use Instead (Preferred)               |
-| -------------------------------------- | ------------------------------------- |
-| `removeSessionAudioProsodyAnalyzer()`  | `resetSessionAudioProsodyAnalyzer()`  |
-| `removeSessionWPMTracker()`            | `resetSessionWPMTracker()`            |
-| `removeSessionBackchannelingSystem()`  | `resetSessionBackchannelingSystem()`  |
-| `removeEnhancedBackchannelingEngine()` | `resetEnhancedBackchannelingEngine()` |
+The `remove*` naming has been replaced with `reset*`:
+- `resetSessionAudioProsodyAnalyzer()`
+- `resetSessionWPMTracker()`
+- `resetSessionBackchannelingSystem()`
+- `resetEnhancedBackchannelingEngine()`
 
 ### Other Deprecated
 

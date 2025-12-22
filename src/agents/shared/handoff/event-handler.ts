@@ -55,6 +55,8 @@ export interface EventHandlerConfig {
   } | null;
   /** Session ID - MUST match the ID used by data-channel-handler */
   sessionId?: string;
+  /** CRITICAL: Initial agent for the session. Must match sessionPersona.id from voice-agent-entry! */
+  initialAgent?: string;
 }
 
 /**
@@ -84,20 +86,24 @@ export interface EventHandlerResult {
  * @returns Handler function and cleanup
  */
 export function createEventHandler(config: EventHandlerConfig): EventHandlerResult {
-  const { ctx, session, services, userData, getVoiceAgentRef, sessionId: configSessionId } = config;
+  const { ctx, session, tts, services, userData, getVoiceAgentRef, sessionId: configSessionId, initialAgent } = config;
   // Use passed sessionId if available, otherwise fall back to room name
   // CRITICAL: This MUST match the sessionId used by data-channel-handler
   const sessionId = configSessionId || ctx.room?.name || `event-handler-${Date.now()}`;
 
-  log.info({ sessionId }, '📡 Creating voiceSwitch event handler');
+  log.info({ sessionId, initialAgent }, '📡 Creating voiceSwitch event handler');
 
   // Ensure coordinator adapter exists for this session
+  // CRITICAL: Always pass initialAgent so the state manager knows the starting persona!
+  // CRITICAL: Pass tts so the actual voice can be changed!
   const adapterConfig: CoordinatorAdapterConfig = {
     ctx,
     session,
     services,
     room: ctx.room,
     getVoiceAgentRef,
+    initialAgent: initialAgent || 'ferni', // Default to ferni if not provided
+    tts, // CRITICAL: Without this, LLM-initiated handoffs won't switch voice!
   };
 
   // Get or create the adapter
@@ -141,11 +147,14 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
       const greeting = 'greeting' in data ? data.greeting : undefined;
       const reason = greeting || 'LLM requested handoff';
 
-      // Execute via coordinator adapter
+      // LLM-initiated = FULL BANTER (not fast mode)
+      // The LLM is making a conversational transfer, so allow natural goodbye/hello
       const result = await currentAdapter.executeHandoff(targetPersonaId, reason, {
         userProfile: services.userProfile,
         subscriptionTier:
           (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free',
+        fastMode: false, // 🎭 Full banter for LLM-initiated transfers
+        source: 'llm',
       });
 
       if (!result.success) {

@@ -557,3 +557,31 @@ export type {
   Recommendation,
   RecommendationType,
 } from './optimization-types.js';
+
+// ============================================================================
+// EMOTION TYPES (Shared across memory and intelligence layers)
+// ============================================================================
+
+export {
+  isEmotionResult,
+  isPrimaryEmotion,
+  type EmotionalCheckIn,
+  type EmotionalContext,
+  type EmotionalMoment,
+  type EmotionalPattern,
+  type EmotionResult,
+  type PrimaryEmotion,
+  type Valence,
+} from './emotion-types.js';
+
+// ============================================================================
+// PERFORMANCE METRICS TYPES (Shared across services and memory layers)
+// ============================================================================
+
+export {
+  noopMetrics,
+  type PerformanceMetricsCallbacks,
+  type RecordCacheEvictionFn,
+  type RecordCacheHitFn,
+  type RecordCacheMissFn,
+} from './performance-metrics-types.js';

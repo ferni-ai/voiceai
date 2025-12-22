@@ -26,7 +26,7 @@
  * - A/B Testing: Compare transition strategies to improve over time
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import type { MusicSessionContext, MusicStartReason } from './music-session-context.js';
 
 // Import enhanced systems
@@ -57,7 +57,7 @@ import {
   ensureMusicLearningLoaded,
 } from './music-learning-persistence.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'IntelligentMusicTransitions' });
 
 // ============================================================================
 // TYPES

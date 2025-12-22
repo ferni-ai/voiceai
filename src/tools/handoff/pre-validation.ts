@@ -14,7 +14,6 @@
  * @module handoff/pre-validation
  */
 
-import type { AgentId } from '../../services/agent-bus.js';
 import {
   isCoreTeamMember,
   isTeamMemberUnlocked,
@@ -23,8 +22,8 @@ import { isCoach } from '../../personas/persona-ids.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { resolveVoiceId, canResolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
-import { isHandoffAllowed, isSameAgent, getCurrentAgent } from './state.js';
+import { getCurrentAgent, isHandoffAllowed, isSameAgent } from './state.js';
+import { canResolveVoiceId, resolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
 
 const log = getLogger();
 
@@ -104,6 +103,12 @@ export interface ValidationOptions {
   voiceIdInput?: VoiceIdInput;
   /** Session ID for session-scoped rate limiting */
   sessionId?: string;
+  /**
+   * CRITICAL: Current agent from session-scoped state.
+   * If provided, uses this instead of global state for "already with agent" check.
+   * This prevents state mismatch bugs between sessions.
+   */
+  currentAgent?: string;
 }
 
 // ============================================================================
@@ -148,16 +153,14 @@ export async function validateHandoffPreconditions(
     skipUnlockCheck = false,
     skipRateLimit = false,
     voiceIdInput,
+    currentAgent: sessionCurrentAgent, // Use session state if provided
   } = options;
 
   // Get canonical ID
   const canonicalId = getCanonicalPersonaId(targetAgentId);
   const displayName = getPersonaDisplayName(canonicalId);
 
-  log.debug(
-    { targetAgentId, canonicalId, displayName },
-    '🔍 Starting handoff pre-validation'
-  );
+  log.debug({ targetAgentId, canonicalId, displayName }, '🔍 Starting handoff pre-validation');
 
   // ========================================================================
   // CHECK 1: Valid target (not empty, not invalid)
@@ -174,8 +177,10 @@ export async function validateHandoffPreconditions(
 
   // ========================================================================
   // CHECK 2: Not already with this agent
+  // CRITICAL FIX: Use session-scoped current agent if provided, else fall back to global state.
+  // This prevents state mismatch bugs where global state is stale from a previous session.
   // ========================================================================
-  const currentAgent = getCurrentAgent();
+  const currentAgent = sessionCurrentAgent || getCurrentAgent();
   if (canonicalId && isSameAgent(currentAgent, canonicalId)) {
     errors.push({
       code: 'ALREADY_WITH_AGENT',
@@ -207,6 +212,18 @@ export async function validateHandoffPreconditions(
 
     if (isCoreTeamMember(canonicalId)) {
       const isUnlocked = isTeamMemberUnlocked(canonicalId, userProfile || null, tier);
+
+      log.debug(
+        {
+          personaId: canonicalId,
+          tier,
+          isUnlocked,
+          hasProfile: !!userProfile,
+          profileTier: userProfile?.subscription?.tier,
+          bypassEnv: process.env['BYPASS_TEAM_UNLOCKS'],
+        },
+        '🔓 Team unlock check'
+      );
 
       if (!isUnlocked) {
         errors.push({
@@ -296,13 +313,16 @@ export async function validateHandoffPreconditions(
  * Full validation should still be called before execution.
  *
  * @param targetAgentId - Target persona ID
+ * @param sessionCurrentAgent - Optional: current agent from session state (preferred over global state)
  * @returns Quick validation result
  */
 export function quickValidate(
-  targetAgentId: string
+  targetAgentId: string,
+  sessionCurrentAgent?: string
 ): { canProceed: boolean; reason?: string } {
   const canonicalId = getCanonicalPersonaId(targetAgentId);
-  const currentAgent = getCurrentAgent();
+  // CRITICAL FIX: Use session state if provided, else fall back to global
+  const currentAgent = sessionCurrentAgent || getCurrentAgent();
 
   // Check 1: Valid target
   if (!canonicalId || canonicalId === 'unknown') {
@@ -357,4 +377,3 @@ export function areErrorsRecoverable(errors: ValidationError[]): boolean {
 // ============================================================================
 
 export default validateHandoffPreconditions;
-

@@ -6,7 +6,6 @@
  */
 
 import { llm } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 

@@ -56,16 +56,40 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 // WEBSOCKET SERVER
 // ============================================================================
 
+// Store reference for external access (e.g., combined upgrade handler)
+let wssInstance: WebSocketServer | null = null;
+
+/**
+ * Get the WebSocket server instance (for combined upgrade handling)
+ */
+export function getInsightsWebSocketServer(): WebSocketServer | null {
+  return wssInstance;
+}
+
 /**
  * Initialize WebSocket server for insights streaming
+ * Uses noServer: true to allow manual upgrade handling for multiple WebSocket servers
  */
 export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws/insights',
+    noServer: true,
     // Disable per-message compression to fix "RSV1 must be clear" / "Invalid frame header" errors
     // This is a known compatibility issue with Node.js 24 and certain browser WebSocket clients
     perMessageDeflate: false,
+  });
+
+  wssInstance = wss;
+
+  // Handle upgrade requests for /ws/insights path
+  httpServer.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+
+    if (pathname === '/ws/insights') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+    // Note: Don't destroy socket here - let other handlers process their paths
   });
 
   log.info('Insights WebSocket server initialized on /ws/insights');

@@ -27,6 +27,13 @@ Level 10:  config/, utils/, types/
 ```
 memory/
 ├── __tests__/                    # Test files
+├── interfaces/                   # Clean architecture interfaces
+│   └── index.ts                  # VectorStoreContract, MemoryDecayService, etc.
+├── user-memory-indexer/          # User memory vectorization (modular)
+│   ├── index.ts                  # Main entry point
+│   ├── types.ts                  # Types and doc ID generation
+│   ├── profile-indexers.ts       # Profile data indexers
+│   └── human-memory-indexers.ts  # Human-centric memory indexers
 ├── firestore-store.ts            # Firestore document storage
 ├── firestore-vector-store.ts     # Vector embeddings in Firestore
 ├── firestore-memory-persistence.ts # Memory persistence helpers
@@ -35,14 +42,19 @@ memory/
 ├── embedding-cache.ts            # Embedding cache layer
 ├── advanced-retrieval.ts         # Semantic search with RAG
 ├── associative-memory.ts         # Memory associations
-├── emotional-memory-unified.ts   # Emotion-tagged memories
+├── emotional-memory-unified.ts   # Emotion-tagged memories (uses DI)
 ├── emotional-threading.ts        # Emotional context threads
 ├── behavioral-pattern-detector.ts # Pattern detection
 ├── communication-preferences.ts  # User preferences
 ├── human-signal-extractor.ts     # Extract signals from conversation
 ├── history.ts                    # Conversation history
 ├── in-memory-store.ts            # Fast in-memory cache
-└── background-indexer.ts         # Async indexing
+├── background-indexer.ts         # Async indexing
+├── result.ts                     # Result type for error handling
+├── type-guards.ts                # Runtime type validation
+├── store.ts                      # Abstract MemoryStore base class
+├── store-factory.ts              # Store factory (Firestore/Postgres/in-memory)
+└── index.ts                      # Main exports
 ```
 
 ---
@@ -275,7 +287,45 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/memory/
 - Generate embeddings without caching
 - Query without limits
 - Skip error handling
-- Import from higher architecture levels
+- Import from higher architecture levels (services, intelligence, conversation, etc.)
+
+---
+
+## Dependency Injection Pattern
+
+To avoid architecture violations, some modules use dependency injection for components from higher layers:
+
+### Emotional Memory Unified
+
+The `emotional-memory-unified.ts` module coordinates user emotion tracking (from intelligence layer) and persona bonding (from conversation layer). To avoid importing from these higher layers:
+
+```typescript
+import { configureEmotionalMemoryEngines } from './memory/emotional-memory-unified.js';
+
+// In services/index.ts during initialization:
+configureEmotionalMemoryEngines({
+  getUserEmotionEngine: (userId) => getEmotionalMemory(userId),
+  getBondingEngine: (userId, bond) => getEmotionalMemory(userId, bond),
+  removeUserEmotionEngine: (userId) => removeEmotionalMemory(userId),
+  clearBondingEngine: (userId) => clearEmotionalMemory(userId),
+});
+```
+
+### Embedding Cache Metrics
+
+The `embedding-cache.ts` module can report cache metrics to the performance-metrics service:
+
+```typescript
+import { configureEmbeddingCacheMetrics } from './memory/embedding-cache.js';
+import { recordCacheHit, recordCacheMiss, recordCacheEviction } from '../services/performance-metrics.js';
+
+// In services initialization:
+configureEmbeddingCacheMetrics({
+  recordCacheHit,
+  recordCacheMiss,
+  recordCacheEviction,
+});
+```
 
 ---
 

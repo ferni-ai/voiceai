@@ -14,7 +14,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  IMemoryOrchestrator,
+  MemoryOrchestrator as MemoryOrchestratorInterface,
   OrchestratedMemory,
   RecallContext,
   ExplainedMemory,
@@ -27,6 +27,7 @@ import type {
   ApproachGuidance,
   BehavioralPattern,
   SessionPrimingResult,
+  BehavioralPatternDetector,
 } from './interfaces/index.js';
 
 // Import implementations
@@ -44,10 +45,7 @@ import {
   type CommunicationPreferences,
 } from './communication-preferences.js';
 import { getEmotionalThreading, type EmotionalThreading } from './emotional-threading.js';
-import {
-  getBehavioralPatternDetector,
-  type BehavioralPatternDetector,
-} from './behavioral-pattern-detector.js';
+import { getBehavioralPatternDetector } from './behavioral-pattern-detector.js';
 import { getNaturalReferenceGenerator } from './natural-reference-generator.js';
 import { getLLMSignalExtractor } from './llm-signal-extractor.js';
 
@@ -82,7 +80,7 @@ const DEFAULT_CONFIG: OrchestratorConfig = {
 // MEMORY ORCHESTRATOR IMPLEMENTATION
 // ============================================================================
 
-export class MemoryOrchestrator implements IMemoryOrchestrator {
+export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
   private config: OrchestratorConfig;
   private explainer = getRetrievalExplainer();
   private sessionPrimer = getSessionPrimer();
@@ -336,9 +334,9 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
     // 3. Priming memories (for session start)
     if (isSessionStart) {
       try {
-        const primingMemories = await getConversationPrimingMemories(userId, personaId || 'ferni', {
+        const primingMemories = getConversationPrimingMemories(userId, personaId || 'ferni', {
           maxMemories: 3,
-          sessionCount: context.sessionCount || 0,
+          sessionCount: context.sessionCount ?? 0,
         });
         for (const item of primingMemories) {
           // Avoid duplicates
@@ -680,11 +678,11 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
 // SINGLETON
 // ============================================================================
 
-let defaultOrchestrator: MemoryOrchestrator | null = null;
+let defaultOrchestrator: MemoryOrchestratorInterface | null = null;
 
-export function getMemoryOrchestrator(): MemoryOrchestrator {
+export function getMemoryOrchestrator(): MemoryOrchestratorInterface {
   if (!defaultOrchestrator) {
-    defaultOrchestrator = new MemoryOrchestrator();
+    defaultOrchestrator = new MemoryOrchestratorImpl();
   }
   return defaultOrchestrator;
 }
@@ -694,7 +692,7 @@ export function resetMemoryOrchestrator(): void {
 }
 
 export default {
-  MemoryOrchestrator,
+  MemoryOrchestratorImpl,
   getMemoryOrchestrator,
   resetMemoryOrchestrator,
 };
