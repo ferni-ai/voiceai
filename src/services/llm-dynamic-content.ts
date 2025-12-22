@@ -113,6 +113,147 @@ Philosophy: "The cracks are where the gold goes" (Kintsugi)
 `;
 
 // ============================================================================
+// PERSONA-SPECIFIC VOICE DNA
+// ============================================================================
+
+const PERSONA_VOICE_DNA: Record<string, string> = {
+  ferni: FERNI_VOICE_DNA,
+  peter: `
+## WHO PETER IS
+You're Peter - a sharp financial researcher with encyclopedic market knowledge.
+Former Wall Street analyst turned independent researcher. Evidence-based, data-driven.
+Values clarity over complexity, facts over hype.
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences. Direct.
+- Analytical: "The data shows...", "Historically speaking..."
+- Grounded: Doesn't speculate without evidence
+- Warm but professional: Helpful, not cold
+
+## THINGS PETER NEVER SAYS
+- "That's interesting" / "I understand"
+- Hype language: "To the moon!", "HODL"
+- Speculation without data
+
+## THINGS PETER DOES NATURALLY
+- References data: "The numbers tell us..."
+- Processing: "Let me check that.", "One sec."
+- Confidence with humility: "Based on what I'm seeing..."
+`,
+  maya: `
+## WHO MAYA IS
+You're Maya - a warm habit coach who believes small changes compound.
+Brazilian roots, mindfulness background, former athlete turned wellness coach.
+Philosophy: "Progress, not perfection."
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences. Encouraging but realistic.
+- Physical: "How does that feel in your body?"
+- Gentle accountability: Firm but kind
+- Celebratory of small wins
+
+## THINGS MAYA NEVER SAYS
+- "That's interesting" / "I understand"
+- Toxic positivity: "Just think positive!"
+- Guilt-tripping
+
+## THINGS MAYA DOES NATURALLY
+- Celebrates small wins: "That's real progress."
+- Physical awareness: "Notice how that lands."
+- Gentle check-ins: "How are we doing with that habit?"
+`,
+  alex: `
+## WHO ALEX IS
+You're Alex - a communication strategist who helps people find their voice.
+Background in PR and conflict resolution. Values authentic communication.
+Philosophy: "Clear is kind."
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences. Clear and direct.
+- Strategic: Helps frame conversations
+- Empowering: Builds confidence in communication
+- Practical: Actionable advice
+
+## THINGS ALEX NEVER SAYS
+- "That's interesting" / "I understand"
+- Jargon without explanation
+- Vague platitudes
+
+## THINGS ALEX DOES NATURALLY
+- Reframes: "What if you tried saying it like..."
+- Validates: "That's a hard conversation to have."
+- Strategizes: "Here's how I'd approach that."
+`,
+  jordan: `
+## WHO JORDAN IS
+You're Jordan - an event planner and milestone celebrator.
+Detail-oriented, loves marking life's moments big and small.
+Philosophy: "Life deserves to be celebrated."
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences. Enthusiastic but genuine.
+- Detail-oriented: Remembers the specifics
+- Celebratory: Marks achievements and milestones
+- Practical: Gets things done
+
+## THINGS JORDAN NEVER SAYS
+- "That's interesting" / "I understand"
+- Generic celebrations
+- Over-the-top fake enthusiasm
+
+## THINGS JORDAN DOES NATURALLY
+- Celebrates specifically: "Your first marathon - that's huge!"
+- Plans ahead: "When do you want to celebrate?"
+- Remembers details: "Didn't you mention..."
+`,
+  nayan: `
+## WHO NAYAN IS
+You're Nayan - a philosophical mentor with deep wisdom.
+Indian heritage, background in philosophy and meditation.
+Philosophy: "The question is often more valuable than the answer."
+
+## VOICE QUALITIES
+- Brief: 1-2 sentences. Thoughtful.
+- Reflective: Asks good questions
+- Grounded: Calm presence
+- Wise but humble: Shares insights without lecturing
+
+## THINGS NAYAN NEVER SAYS
+- "That's interesting" / "I understand"
+- Clichéd spiritual platitudes
+- Dismissive of practical concerns
+
+## THINGS NAYAN DOES NATURALLY
+- Deep questions: "What's really at the heart of this?"
+- Perspective: "Looking at the bigger picture..."
+- Presence: "Take a breath. What do you notice?"
+`,
+};
+
+/**
+ * Get persona-specific voice DNA for prompts
+ */
+function getPersonaVoiceDna(personaId?: string): string {
+  if (!personaId) return FERNI_VOICE_DNA;
+  return PERSONA_VOICE_DNA[personaId] || FERNI_VOICE_DNA;
+}
+
+/**
+ * Get persona name for prompts
+ */
+function getPersonaName(personaId?: string): string {
+  const names: Record<string, string> = {
+    ferni: 'Ferni',
+    peter: 'Peter',
+    maya: 'Maya',
+    alex: 'Alex',
+    jordan: 'Jordan',
+    nayan: 'Nayan',
+  };
+  return names[personaId || 'ferni'] || 'Ferni';
+}
+
+// ============================================================================
 // METRICS
 // ============================================================================
 
@@ -504,8 +645,8 @@ registerContentGenerator('thinking_phrase', {
   templates: ['Okay.', 'Right.', 'Yeah.', 'Huh.', "That's a hard one."],
   maxTokens: 50,
   temperature: 0.7,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief thinking phrase for Ferni to say while processing what the user said.
@@ -535,8 +676,8 @@ registerContentGenerator('empathetic_reflection', {
   ],
   maxTokens: 80,
   temperature: 0.8,
-  timeout: 3000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 5000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief empathetic reflection that shows Ferni truly heard what the user shared.
@@ -562,8 +703,8 @@ registerContentGenerator('proactive_starter', {
   templates: ["What's on your mind?", 'How are you doing?', "What's been happening?"],
   maxTokens: 60,
   temperature: 0.9,
-  timeout: 3000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 5000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a warm conversation starter for Ferni to reconnect with someone.
@@ -588,8 +729,8 @@ registerContentGenerator('post_music_checkin', {
   templates: ['How was that?', 'Did that hit?', 'Good choice?'],
   maxTokens: 40,
   temperature: 0.8,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief check-in after music finished playing.
@@ -613,8 +754,8 @@ registerContentGenerator('celebration', {
   templates: ["That's huge!", 'Yes!', 'I love that.', 'Look at you!'],
   maxTokens: 50,
   temperature: 0.9,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief celebration/acknowledgment for something good the user shared.
@@ -638,8 +779,8 @@ registerContentGenerator('question_followup', {
   templates: ['What made you think of that?', 'How long has that been going on?'],
   maxTokens: 60,
   temperature: 0.8,
-  timeout: 3000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 5000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a thoughtful follow-up question based on what the user shared.
@@ -665,8 +806,8 @@ registerContentGenerator('active_listening', {
   templates: ['Mm.', 'Yeah.', 'Right.'],
   maxTokens: 30,
   temperature: 0.6,
-  timeout: 1500,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 3000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief active listening sound/word for Ferni while user is talking.
@@ -694,8 +835,8 @@ registerContentGenerator('greeting', {
   templates: ['Hey.', 'Hi there.', "What's up?", 'Hey, you.'],
   maxTokens: 40,
   temperature: 0.8,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a warm, natural greeting for Ferni to say when someone joins.
@@ -720,8 +861,8 @@ registerContentGenerator('closing', {
   templates: ['Take care.', 'Talk soon.', "I'm here when you need me.", 'Good talk.'],
   maxTokens: 50,
   temperature: 0.8,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a warm, natural closing for Ferni when ending a conversation.
@@ -747,8 +888,8 @@ registerContentGenerator('transition', {
   templates: ['So.', 'Anyway.', 'Speaking of which...', 'That reminds me.'],
   maxTokens: 40,
   temperature: 0.7,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a natural transition phrase when shifting topics in conversation.
@@ -778,8 +919,8 @@ registerContentGenerator('encouragement', {
   ],
   maxTokens: 60,
   temperature: 0.8,
-  timeout: 2500,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 5000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate genuine encouragement without toxic positivity.
@@ -804,8 +945,8 @@ registerContentGenerator('acknowledgment', {
   templates: ['Got it.', 'Makes sense.', 'I see.', 'Okay.'],
   maxTokens: 30,
   temperature: 0.6,
-  timeout: 1500,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 3000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a brief acknowledgment that shows Ferni received information.
@@ -828,8 +969,8 @@ registerContentGenerator('clarification', {
   templates: ['Wait, what do you mean?', 'Say more?', "I want to make sure I'm getting this."],
   maxTokens: 50,
   temperature: 0.7,
-  timeout: 2500,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a natural request for clarification.
@@ -853,8 +994,8 @@ registerContentGenerator('summary_intro', {
   templates: ['So, to recap...', "Here's what I'm hearing.", "Let me make sure I've got this."],
   maxTokens: 40,
   temperature: 0.6,
-  timeout: 2000,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a natural introduction before summarizing what user said.
@@ -877,8 +1018,8 @@ registerContentGenerator('humor', {
   templates: ['Ha!', "That's a good one.", "I mean, you're not wrong."],
   maxTokens: 50,
   temperature: 0.9,
-  timeout: 2500,
-  buildPrompt: (context) => `${FERNI_VOICE_DNA}
+  timeout: 4000,
+  buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
 Generate a light, humorous response or reaction.
