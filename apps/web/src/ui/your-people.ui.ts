@@ -153,7 +153,7 @@ function injectStyles(): void {
     .your-people-panel {
       position: relative;
       width: 94%;
-      max-width: 560px;
+      max-width: clamp(392px, 90vw, 560px);
       max-height: 85vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -606,7 +606,7 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       color: var(--color-text-muted, #70605a);
       line-height: 1.5;
-      max-width: 280px;
+      max-width: min(280px, 100%);
       margin: 0 auto;
     }
 
@@ -676,7 +676,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .your-people-panel {
         width: 100%;
         max-width: none;
@@ -743,7 +743,7 @@ function renderHeader(): string {
           <div class="yp-eyebrow" id="yp-desc">Relationships</div>
           <h2 class="yp-title" id="yp-title">Your People</h2>
         </div>
-        <div class="yp-header-actions">
+        <div class="yp-header-actions" role="button" tabindex="0">
           <button class="yp-action-btn" id="yp-insights-btn" aria-label="View relationship insights" title="Insights">${ICONS.chart}</button>
           <button class="yp-close" aria-label="Close">${ICONS.close}</button>
         </div>
@@ -762,13 +762,13 @@ function renderHeader(): string {
       </div>
       
       <div class="yp-filters">
-        <button class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+        <button aria-label="All" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
           All
         </button>
-        <button class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
+        <button aria-label="Needs attention" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
           Needs attention
         </button>
-        <button class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
+        <button aria-label="Recent" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
           Recent
         </button>
       </div>
@@ -858,10 +858,10 @@ function renderPeopleList(): string {
             <div class="yp-empty-title">No one here yet</div>
             <p class="yp-empty-text">Add people you care about and we'll help you nurture those relationships.</p>
           </div>
-          <button class="yp-add-btn" data-action="add-person">
+          <button aria-label="Add" class="yp-add-btn" data-action="add-person">
             ${ICONS.plus} Add Someone
           </button>
-          <button class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
+          <button aria-label="Upload" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
             ${ICONS.upload} Import from Google or CSV
           </button>
         </div>
@@ -891,11 +891,11 @@ function renderPeopleList(): string {
   }
 
   html += `
-    <div class="yp-section yp-action-buttons">
-      <button class="yp-add-btn" data-action="add-person">
+    <div class="yp-section yp-action-buttons" role="button" tabindex="0">
+      <button aria-label="Add" class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} Add Someone
       </button>
-      <button class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+      <button aria-label="Upload" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
         ${ICONS.upload} Import Contacts
       </button>
     </div>

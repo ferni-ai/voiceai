@@ -387,7 +387,7 @@ function createModal(): void {
               ${ICONS.sparkles}
               <span>What I've Noticed</span>
             </h3>
-            <span class="journey-insights-toggle">${ICONS.chevronDown}</span>
+            <span class="journey-insights-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
           <div class="journey-insights-body">
             <!-- Loading state - will be replaced with actual data -->
@@ -404,7 +404,7 @@ function createModal(): void {
           <div class="journey-milestones-header" role="button" tabindex="0" aria-expanded="true">
             <h3 class="journey-milestones-title">Milestones</h3>
             <span class="journey-milestones-count">${celebrated}/${total}</span>
-            <span class="journey-milestones-toggle">${ICONS.chevronDown}</span>
+            <span class="journey-milestones-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
           <div class="journey-milestones-body">
             ${Object.entries(grouped)
@@ -512,7 +512,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">Connection lost</span>
             <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
           </div>
-          <button class="journey-connect-btn journey-connect-btn--retry">
+          <button aria-label="Reconnect" class="journey-connect-btn journey-connect-btn--retry">
             ${ICONS.phone}
             <span>Reconnect</span>
           </button>
@@ -529,7 +529,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">We're not connected</span>
             <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
           </div>
-          <button class="journey-connect-btn">
+          <button aria-label="Start talking" class="journey-connect-btn">
             ${ICONS.phone}
             <span>Start talking</span>
           </button>

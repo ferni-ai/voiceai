@@ -278,15 +278,15 @@ class GamePickerUI {
         
         <!-- Category Tabs -->
         <div class="game-picker__tabs">
-          <button class="game-picker__tab game-picker__tab--active" data-category="music">
+          <button aria-label="Music" class="game-picker__tab game-picker__tab--active" data-category="music">
             ${ICONS.music}
             <span>Music</span>
           </button>
-          <button class="game-picker__tab" data-category="text">
+          <button aria-label="Fun" class="game-picker__tab" data-category="text">
             ${ICONS.gamepad}
             <span>Fun</span>
           </button>
-          <button class="game-picker__tab" data-category="library">
+          <button aria-label="Your Library" class="game-picker__tab" data-category="library">
             ${ICONS.spotify}
             <span>Your Library</span>
           </button>
@@ -350,7 +350,7 @@ class GamePickerUI {
       : '';
     
     return `
-      <button class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
+      <button aria-label="More information" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
           <h3 class="game-card__name">${game.name}${newBadge}${spotifyBadge}</h3>
@@ -703,7 +703,7 @@ class GamePickerUI {
       .game-picker {
         position: fixed;
         inset: 0;
-        z-index: 9999;
+        z-index: var(--z-tooltip);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -727,7 +727,7 @@ class GamePickerUI {
       .game-picker__content {
         position: relative;
         width: 90%;
-        max-width: 500px;
+        max-width: clamp(350px, 90vw, 500px);
         max-height: 85vh;
         background: var(--color-background-elevated, #FFFDFB);
         border-radius: var(--radius-2xl, 24px);
@@ -1065,7 +1065,7 @@ class GamePickerUI {
       .game-help-modal {
         position: fixed;
         inset: 0;
-        z-index: 10001;
+        z-index: var(--z-tooltip);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1081,7 +1081,7 @@ class GamePickerUI {
       .game-help-modal__content {
         position: relative;
         width: 90%;
-        max-width: 480px;
+        max-width: clamp(336px, 90vw, 480px);
         max-height: 80vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #FFFDFB);

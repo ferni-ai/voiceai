@@ -99,7 +99,7 @@ export async function render(): Promise<string> {
               placeholder="/api/..."
               value="/health"
             >
-            <button class="admin-btn admin-btn--primary" data-action="send-request">
+            <button aria-label="Send" class="admin-btn admin-btn--primary" data-action="send-request">
               <span class="admin-icon">${iconSm(ICON_SEND)}</span>
               Send
             </button>
@@ -236,7 +236,7 @@ export async function render(): Promise<string> {
       .api-desc {
         font-size: 0.75rem;
         color: var(--color-text-secondary, #a89a8c);
-        max-width: 300px;
+        max-width: min(300px, 100%);
       }
 
       .api-auth {

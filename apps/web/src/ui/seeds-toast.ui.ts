@@ -59,7 +59,7 @@ function injectStyles(): void {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       pointer-events: none;
     }
 

@@ -833,7 +833,7 @@ class WinterSolsticeMomentUI {
         <p class="subtitle">${content.subtitle}</p>
         <p class="reflection">${content.reflection}</p>
         <p class="promise">${content.promise}</p>
-        <button class="solstice-close-static">Close</button>
+        <button aria-label="Close" class="solstice-close-static">Close</button>
       </div>
     `;
 
@@ -926,7 +926,7 @@ class WinterSolsticeMomentUI {
       .solstice-container {
         position: fixed;
         inset: 0;
-        z-index: 10000;
+        z-index: var(--z-tooltip);
         background: #0d1b2a;
         display: flex;
         align-items: center;
@@ -966,7 +966,7 @@ class WinterSolsticeMomentUI {
 
       .solstice-content {
         text-align: center;
-        max-width: 600px;
+        max-width: clamp(420px, 90vw, 600px);
         color: var(--solstice-star);
       }
 
@@ -1074,7 +1074,7 @@ class WinterSolsticeMomentUI {
       .solstice-static-content {
         text-align: center;
         padding: var(--space-8);
-        max-width: 500px;
+        max-width: clamp(350px, 90vw, 500px);
         color: var(--solstice-star);
       }
 
@@ -1115,7 +1115,7 @@ class WinterSolsticeMomentUI {
       }
 
       /* Responsive */
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .solstice-team-gathering {
           gap: var(--space-2);
         }

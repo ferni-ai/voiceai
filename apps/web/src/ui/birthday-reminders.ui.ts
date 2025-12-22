@@ -124,7 +124,7 @@ function injectStyles(): void {
     .br-modal {
       position: relative;
       width: 90%;
-      max-width: 520px;
+      max-width: clamp(364px, 90vw, 520px);
       max-height: 85vh;
       background: var(--color-background-elevated, #faf6f0);
       border-radius: var(--radius-2xl, 1rem);
@@ -462,7 +462,7 @@ function render(): void {
           <div class="br-setting-label">In conversation</div>
           <div class="br-setting-desc">Ferni mentions upcoming dates naturally</div>
         </div>
-        <div class="br-toggle ${state.settings.enableVoiceReminders ? 'active' : ''}" id="br-voice-toggle"></div>
+        <div class="br-toggle ${state.settings.enableVoiceReminders ? 'active' : ''}" role="button" tabindex="0" id="br-voice-toggle"></div>
       </div>
       
       <div class="br-setting">
@@ -470,7 +470,7 @@ function render(): void {
           <div class="br-setting-label">Push notifications</div>
           <div class="br-setting-desc">Get notified on your device</div>
         </div>
-        <div class="br-toggle ${state.settings.enablePushNotifications ? 'active' : ''}" id="br-push-toggle"></div>
+        <div class="br-toggle ${state.settings.enablePushNotifications ? 'active' : ''}" role="button" tabindex="0" id="br-push-toggle"></div>
       </div>
       
       <div class="br-setting">
@@ -478,7 +478,7 @@ function render(): void {
           <div class="br-setting-label">Email reminders</div>
           <div class="br-setting-desc">Receive email notifications</div>
         </div>
-        <div class="br-toggle ${state.settings.enableEmailReminders ? 'active' : ''}" id="br-email-toggle"></div>
+        <div class="br-toggle ${state.settings.enableEmailReminders ? 'active' : ''}" role="button" tabindex="0" id="br-email-toggle"></div>
       </div>
     </div>
     
@@ -491,7 +491,7 @@ function render(): void {
           <div class="br-setting-label">Gift ideas</div>
           <div class="br-setting-desc">Get personalized gift suggestions</div>
         </div>
-        <div class="br-toggle ${state.settings.suggestGifts ? 'active' : ''}" id="br-gifts-toggle"></div>
+        <div class="br-toggle ${state.settings.suggestGifts ? 'active' : ''}" role="button" tabindex="0" id="br-gifts-toggle"></div>
       </div>
       
       <div class="br-setting">
@@ -499,7 +499,7 @@ function render(): void {
           <div class="br-setting-label">Message drafts</div>
           <div class="br-setting-desc">Get suggested birthday messages</div>
         </div>
-        <div class="br-toggle ${state.settings.suggestMessages ? 'active' : ''}" id="br-messages-toggle"></div>
+        <div class="br-toggle ${state.settings.suggestMessages ? 'active' : ''}" role="button" tabindex="0" id="br-messages-toggle"></div>
       </div>
     </div>
     
@@ -759,8 +759,8 @@ export function openBirthdayReminders(): void {
         <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">Loading...</div>
       </div>
       <div class="br-footer">
-        <button class="br-btn br-btn-secondary" id="br-cancel">Cancel</button>
-        <button class="br-btn br-btn-primary" id="br-save">Save Settings</button>
+        <button aria-label="Cancel" class="br-btn br-btn-secondary" id="br-cancel">Cancel</button>
+        <button aria-label="Settings" class="br-btn br-btn-primary" id="br-save">Save Settings</button>
       </div>
     </div>
   `;

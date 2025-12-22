@@ -237,15 +237,15 @@ function createContainer(): HTMLElement {
       </header>
 
       <nav class="admin-tabs" role="tablist">
-        <button role="tab" class="admin-tab admin-tab--active" data-tab="queue">
+        <button aria-label="Review Queue" role="tab" class="admin-tab admin-tab--active" data-tab="queue">
           ${ICONS.clock} Review Queue
           <span class="tab-badge">${state.queue.length}</span>
         </button>
-        <button role="tab" class="admin-tab" data-tab="reviews">
+        <button aria-label="Reviews" role="tab" class="admin-tab" data-tab="reviews">
           ${ICONS.star} Reviews
           <span class="tab-badge">${state.pendingReviews.length}</span>
         </button>
-        <button role="tab" class="admin-tab" data-tab="stats">
+        <button aria-label="Stats" role="tab" class="admin-tab" data-tab="stats">
           ${ICONS.barChart} Stats
         </button>
       </nav>
@@ -382,11 +382,11 @@ function renderQueueItem(item: QueueItem): string {
           .join('')}
       </div>
 
-      <div class="item-actions">
-        <button class="action-btn action-btn--reject" data-action="reject" data-item-id="${item.id}">
+      <div class="item-actions" role="button" tabindex="0">
+        <button aria-label="Reject" class="action-btn action-btn--reject" data-action="reject" data-item-id="${item.id}">
           ${ICONS.x} Reject
         </button>
-        <button class="action-btn action-btn--approve" data-action="approve" data-item-id="${item.id}">
+        <button aria-label="Confirm" class="action-btn action-btn--approve" data-action="approve" data-item-id="${item.id}">
           ${ICONS.check} Approve
         </button>
       </div>
@@ -440,11 +440,11 @@ function renderReviewItem(review: PendingReview): string {
       </div>
       ${review.title ? `<h4 class="review-title">${review.title}</h4>` : ''}
       <p class="review-body">${review.body}</p>
-      <div class="review-actions">
-        <button class="action-btn action-btn--reject" data-action="reject-review" data-review-id="${review.id}">
+      <div class="review-actions" role="button" tabindex="0">
+        <button aria-label="Reject" class="action-btn action-btn--reject" data-action="reject-review" data-review-id="${review.id}">
           Reject
         </button>
-        <button class="action-btn action-btn--approve" data-action="approve-review" data-review-id="${review.id}">
+        <button aria-label="Approve" class="action-btn action-btn--approve" data-action="approve-review" data-review-id="${review.id}">
           Approve
         </button>
       </div>
@@ -623,7 +623,7 @@ function injectStyles(): void {
     .admin-panel {
       position: relative;
       width: 100%;
-      max-width: 900px;
+      max-width: min(900px, 100%);
       margin: var(--space-8, 32px) auto;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl);
@@ -1001,7 +1001,7 @@ function injectStyles(): void {
       margin-top: var(--space-1, 4px);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .admin-panel {
         margin: 0;
         border-radius: 0;

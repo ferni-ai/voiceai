@@ -208,11 +208,11 @@ class CalendarSelectionUI {
             ${this.calendars.map((cal) => this.renderCalendarItem(cal)).join('')}
           </div>
 
-          <div class="calendar-selection__actions">
-            <button class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
+          <div class="calendar-selection__actions" role="button" tabindex="0">
+            <button aria-label="Cancel" class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
+            <button aria-label="Save Selection" class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
               Save Selection
             </button>
           </div>
@@ -390,7 +390,7 @@ class CalendarSelectionUI {
 
       .calendar-selection__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -414,7 +414,7 @@ class CalendarSelectionUI {
         position: sticky;
         top: 0;
         background: var(--color-background-elevated, #fffdfb);
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .calendar-selection__back {
@@ -731,7 +731,7 @@ class CalendarSelectionUI {
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .calendar-selection__wrapper {
           max-width: 100%;
           max-height: 90vh;

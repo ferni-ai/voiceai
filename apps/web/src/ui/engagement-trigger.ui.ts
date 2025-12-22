@@ -84,20 +84,20 @@ class EngagementTriggerUI {
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
         </svg>
-        <span class="engagement-trigger-btn__badge" id="engagementBadge"></span>
+        <span class="engagement-trigger-btn__badge" role="button" tabindex="0" id="engagementBadge"></span>
       </button>
       <button class="engagement-trigger-btn" id="predictionsTriggerBtn" aria-label="${t('accessibility.openPredictions')}" title="${t('titles.predictions')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
-        <span class="engagement-trigger-btn__badge" id="predictionsBadge"></span>
+        <span class="engagement-trigger-btn__badge" role="button" tabindex="0" id="predictionsBadge"></span>
       </button>
       <button class="engagement-trigger-btn" id="insightsTriggerBtn" aria-label="${t('accessibility.openTeamInsights')}" title="${t('titles.teamInsights')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
           <path d="M9 18h6"/><path d="M10 22h4"/>
         </svg>
-        <span class="engagement-trigger-btn__badge" id="insightsBadge"></span>
+        <span class="engagement-trigger-btn__badge" role="button" tabindex="0" id="insightsBadge"></span>
       </button>
     `;
 
@@ -391,7 +391,7 @@ class EngagementTriggerUI {
       }
 
       /* Mobile adjustments */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .engagement-trigger-btn {
           width: 48px;
           height: 48px;

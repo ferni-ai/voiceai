@@ -91,21 +91,21 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Actions -->
-      <div class="admin-card evalops-actions">
+      <div class="admin-card evalops-actions" role="button" tabindex="0">
         <h2 class="admin-section-title">
           <span class="admin-icon">${iconSm(ICON_ZAP)}</span>
           Quick Actions
         </h2>
-        <div class="evalops-actions-grid">
-          <button class="admin-btn admin-btn--primary" data-action="run-suite">
+        <div class="evalops-actions-grid" role="button" tabindex="0">
+          <button aria-label="Run Test Suite" class="admin-btn admin-btn--primary" data-action="run-suite">
             <span class="admin-icon">${iconSm(ICON_EVALOPS)}</span>
             Run Test Suite
           </button>
-          <button class="admin-btn" data-action="quick-check">
+          <button aria-label="Confirm" class="admin-btn" data-action="quick-check">
             <span class="admin-icon">${iconSm(ICON_SEARCH)}</span>
             Quick Voice Check
           </button>
-          <button class="admin-btn" data-action="export-report">
+          <button aria-label="Export Report" class="admin-btn" data-action="export-report">
             <span class="admin-icon">${iconSm(ICON_EXTERNAL)}</span>
             Export Report
           </button>
@@ -176,7 +176,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .evalops-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -448,7 +448,7 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
       </div>
       <label class="admin-toggle">
         <input type="checkbox" ${enabled ? 'checked' : ''} data-setting-id="${id}" data-action="toggle-evalops">
-        <span class="admin-toggle-slider"></span>
+        <span class="admin-toggle-slider" role="button" tabindex="0"></span>
       </label>
     </div>
   `;

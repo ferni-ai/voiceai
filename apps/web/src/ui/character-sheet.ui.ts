@@ -25,7 +25,7 @@ const STYLES = `
   .character-sheet-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +43,7 @@ const STYLES = `
   .character-sheet-modal {
     position: relative;
     width: 100%;
-    max-width: 600px;
+    max-width: clamp(420px, 90vw, 600px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -353,7 +353,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: 640px) {
+  @media (max-width: clamp(448px, 90vw, 640px)) {
     .character-sheet-overlay {
       padding: 0;
     }
@@ -448,7 +448,7 @@ function render(): string {
                 </svg>
                 Backstory
               </h3>
-              <button class="character-edit-btn" data-action="edit-backstory">
+              <button class="character-edit-btn" data-action="edit-backstory" aria-label="Edit backstory">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -511,7 +511,7 @@ function render(): string {
                 </svg>
                 Quirks & Habits
               </h3>
-              <button class="character-edit-btn" data-action="add-quirk">
+              <button aria-label="Add" class="character-edit-btn" data-action="add-quirk">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -550,7 +550,7 @@ function render(): string {
                 </svg>
                 Catchphrases
               </h3>
-              <button class="character-edit-btn" data-action="add-catchphrase">
+              <button aria-label="Add" class="character-edit-btn" data-action="add-catchphrase">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -571,12 +571,12 @@ function render(): string {
             ` : catchphrases.map((c, i) => `
               <div class="character-catchphrase-card" data-index="${i}">
                 <p class="character-catchphrase-text">"${c}"</p>
-                <div class="character-item-actions">
-                  <button class="character-item-btn" data-action="edit-catchphrase" data-index="${i}">
+                <div class="character-item-actions" role="button" tabindex="0">
+                  <button class="character-item-btn" data-action="edit-catchphrase" data-index="${i}" aria-label="Edit catchphrase">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="character-item-btn character-item-btn--delete" data-action="delete-catchphrase" data-index="${i}">
+                  <button class="character-item-btn character-item-btn--delete" data-action="delete-catchphrase" data-index="${i}" aria-label="Delete catchphrase">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -597,7 +597,7 @@ function render(): string {
                 </svg>
                 Relationships
               </h3>
-              <button class="character-edit-btn" data-action="add-relationship">
+              <button aria-label="Add" class="character-edit-btn" data-action="add-relationship">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -629,8 +629,8 @@ function render(): string {
                     <div class="character-relationship-info">
                       <p class="character-relationship-name">${r.personName}</p>
                       <p class="character-relationship-type">${r.relationship}</p>
-                      <div class="character-item-actions">
-                        <button class="character-item-btn character-item-btn--delete" data-action="delete-relationship" data-index="${i}">
+                      <div class="character-item-actions" role="button" tabindex="0">
+                        <button class="character-item-btn character-item-btn--delete" data-action="delete-relationship" data-index="${i}" aria-label="Delete relationship">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                           Remove
                         </button>

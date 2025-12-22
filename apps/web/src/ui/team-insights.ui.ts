@@ -406,7 +406,7 @@ function createPanel(): HTMLElement {
             <h2 id="team-insights-title" class="team-insights-title">What We're Noticing</h2>
           </div>
         </div>
-        <div class="team-insights-header-actions">
+        <div class="team-insights-header-actions" role="button" tabindex="0">
           <button class="team-insights-refresh" aria-label="Refresh insights">
             ${ICONS.refresh}
           </button>
@@ -695,7 +695,7 @@ function injectStyles(): void {
     .team-insights-content {
       position: relative;
       width: 90%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
       background: var(--color-bg-elevated, #faf6f0);
       border-radius: var(--radius-2xl, 24px);

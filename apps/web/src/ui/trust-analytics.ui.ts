@@ -118,7 +118,7 @@ const STYLES = `
   .trust-analytics-card {
     position: relative;
     width: 100%;
-    max-width: 800px;
+    max-width: clamp(560px, 90vw, 800px);
     max-height: 90vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
@@ -573,7 +573,7 @@ class TrustAnalyticsUI {
             <span class="trust-analytics-eyebrow">Admin</span>
             <h2 class="trust-analytics-title">Trust Systems Analytics</h2>
           </div>
-          <div class="trust-analytics-header-actions">
+          <div class="trust-analytics-header-actions" role="button" tabindex="0">
             <button class="trust-analytics-btn-icon" data-action="refresh" aria-label="${t('accessibility.refresh')}">
               ${ICONS.refresh}
             </button>

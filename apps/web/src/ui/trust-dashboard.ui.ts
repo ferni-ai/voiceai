@@ -208,27 +208,27 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="trust-dashboard-tabs">
-        <button class="tab-btn active" data-tab="health">
+        <button aria-label="Health" class="tab-btn active" data-tab="health">
           ${ICONS.heart}
           <span>Health</span>
         </button>
-        <button class="tab-btn" data-tab="timeline">
+        <button aria-label="Timeline" class="tab-btn" data-tab="timeline">
           ${ICONS.timeline}
           <span>Timeline</span>
         </button>
-        <button class="tab-btn" data-tab="events">
+        <button aria-label="Events" class="tab-btn" data-tab="events">
           ${ICONS.calendar}
           <span>Events</span>
         </button>
-        <button class="tab-btn" data-tab="journal">
+        <button aria-label="Journal" class="tab-btn" data-tab="journal">
           ${ICONS.journal}
           <span>Journal</span>
         </button>
-        <button class="tab-btn" data-tab="media">
+        <button aria-label="Media" class="tab-btn" data-tab="media">
           ${ICONS.music}
           <span>Media</span>
         </button>
-        <button class="tab-btn" data-tab="insights">
+        <button aria-label="Insights" class="tab-btn" data-tab="insights">
           ${ICONS.chart}
           <span>Insights</span>
         </button>
@@ -242,7 +242,7 @@ function createDashboardHTML(): string {
       </main>
       
       <footer class="trust-dashboard-footer">
-        <button class="refresh-btn">
+        <button aria-label="Refresh" class="refresh-btn">
           ${ICONS.refresh}
           <span>Refresh</span>
         </button>
@@ -434,7 +434,7 @@ function renderInsightsTab(data: InsightsData | null): string {
       <div class="insights-content">
         <p class="empty-state">Your first insights report will be ready after more conversations.</p>
         ${data?.isDue ? `
-          <button class="generate-report-btn">Generate Report Now</button>
+          <button aria-label="Generate Report Now" class="generate-report-btn">Generate Report Now</button>
         ` : ''}
       </div>
     `;
@@ -473,7 +473,7 @@ function renderInsightsTab(data: InsightsData | null): string {
       ` : ''}
       
       ${data.isDue ? `
-        <button class="generate-report-btn">Generate New Report</button>
+        <button aria-label="Generate New Report" class="generate-report-btn">Generate New Report</button>
       ` : ''}
     </div>
   `;
@@ -669,7 +669,7 @@ function addStyles(): void {
     .trust-dashboard-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -691,7 +691,7 @@ function addStyles(): void {
     .trust-dashboard-modal {
       position: relative;
       width: 90%;
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
       max-height: 85vh;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl);
@@ -834,7 +834,7 @@ function addStyles(): void {
     
     .health-score-ring {
       position: relative;
-      width: 150px;
+      width: min(150px, 100%);
       height: 150px;
       margin: 0 auto;
     }

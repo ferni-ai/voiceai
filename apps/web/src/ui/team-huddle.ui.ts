@@ -395,7 +395,7 @@ class TeamHuddleUI {
          ======================================================================== */
       .team-huddle__wrapper {
         width: 100%;
-        max-width: 520px;
+        max-width: clamp(364px, 90vw, 520px);
         max-height: 80vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -533,7 +533,7 @@ class TeamHuddleUI {
       }
 
       .team-huddle__participant-initials {
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .team-huddle__participant-icon {
@@ -612,7 +612,7 @@ class TeamHuddleUI {
 
       .team-huddle__mini-avatar:hover {
         transform: scale(1.1) translateY(-2px);
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       /* ========================================================================

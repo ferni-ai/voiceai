@@ -68,7 +68,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -91,7 +91,7 @@ const styles = `
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 24px);
   width: calc(100% - 32px);
-  max-width: 560px;
+  max-width: clamp(392px, 90vw, 560px);
   max-height: 90vh;
   box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
@@ -351,7 +351,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   .journey-stats {
     gap: var(--space-4, 16px);
   }
@@ -411,7 +411,7 @@ function createModal(): HTMLElement {
       <div class="journey-backdrop"></div>
       <div class="journey-card">
         <div class="journey-header">
-          <button class="journey-close">${CLOSE_ICON}</button>
+          <button aria-label="Close" class="journey-close">${CLOSE_ICON}</button>
           <p class="journey-eyebrow">Your Journey</p>
           <h2 class="journey-title">Between Seasons</h2>
         </div>
@@ -457,7 +457,7 @@ function renderHeader(season: Season, progress: JourneyProgress): string {
 
   return `
     <div class="journey-header">
-      <button class="journey-close">${CLOSE_ICON}</button>
+      <button aria-label="Close" class="journey-close">${CLOSE_ICON}</button>
       <p class="journey-eyebrow">${season.name}</p>
       <h2 class="journey-title">Your Journey</h2>
       <p class="journey-subtitle">${season.description}</p>
@@ -597,7 +597,7 @@ function renderSupporterBanner(): string {
       <span class="journey-supporter-text">
         <strong>Want to support Ferni?</strong> It means the world.
       </span>
-      <button class="journey-supporter-btn" id="become-companion-btn">
+      <button aria-label="Support ($)" class="journey-supporter-btn" id="become-companion-btn">
         Support ($${(price / 100).toFixed(2)})
       </button>
     </div>
@@ -639,7 +639,7 @@ function showCelebration(milestone: JourneyMilestone): void {
     <div style="
       position: fixed;
       inset: 0;
-      z-index: 10002;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;

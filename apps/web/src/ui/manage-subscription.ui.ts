@@ -210,7 +210,7 @@ class ManageSubscriptionUI {
     // Free tier - show upgrade option
     if (tier === 'free') {
       return `
-        <div class="manage-sub__actions">
+        <div class="manage-sub__actions" role="button" tabindex="0">
           <button class="manage-sub__btn manage-sub__btn--primary" data-action="upgrade">
             ${t('manageSubscription.buttons.upgrade')}
           </button>
@@ -234,7 +234,7 @@ class ManageSubscriptionUI {
     // Apple subscription
     if (provider === 'apple') {
       return `
-        <div class="manage-sub__actions">
+        <div class="manage-sub__actions" role="button" tabindex="0">
           <button class="manage-sub__btn manage-sub__btn--primary" data-action="apple-manage">
             <span>${ICONS.externalLink}</span>
             <span>${t('manageSubscription.buttons.manageApple')}</span>
@@ -258,7 +258,7 @@ class ManageSubscriptionUI {
 
     // Stripe subscription
     return `
-      <div class="manage-sub__actions">
+      <div class="manage-sub__actions" role="button" tabindex="0">
         <button class="manage-sub__btn manage-sub__btn--primary" data-action="billing-portal">
           <span>${ICONS.externalLink}</span>
           <span>${t('manageSubscription.buttons.manageStripe')}</span>
@@ -446,7 +446,7 @@ class ManageSubscriptionUI {
       .manage-sub__card {
         position: relative;
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-2xl, 1.5rem);
         box-shadow: var(--shadow-2xl);

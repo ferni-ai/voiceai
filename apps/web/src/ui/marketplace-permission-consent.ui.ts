@@ -507,10 +507,10 @@ function createModal(item: MarketplaceItem): HTMLElement {
       </div>
 
       <footer class="consent-footer">
-        <button class="consent-btn consent-btn--secondary" data-action="cancel">
+        <button aria-label="Cancel" class="consent-btn consent-btn--secondary" data-action="cancel">
           Cancel
         </button>
-        <button class="consent-btn consent-btn--primary" data-action="confirm">
+        <button aria-label="Add" class="consent-btn consent-btn--primary" data-action="confirm">
           Add ${item.type === 'agent' ? 'to Team' : 'Tool'}
         </button>
       </footer>
@@ -672,7 +672,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       width: 100%;
       max-height: 85vh;
       overflow-y: auto;
@@ -991,7 +991,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .consent-panel {
         max-height: 90vh;
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;

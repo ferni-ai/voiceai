@@ -105,7 +105,7 @@ function ensureStylesExist(): void {
     .confirm-modal-container {
       position: relative;
       width: 90vw;
-      max-width: 400px;
+      max-width: min(400px, 100%);
       background: var(--color-bg-elevated, #1e1e2e);
       border-radius: var(--radius-xl, 20px);
       box-shadow: var(--shadow-2xl);
@@ -227,7 +227,7 @@ function createModal(options: ConfirmModalOptions): HTMLElement {
   const modal = document.createElement('div');
   modal.className = 'confirm-modal-overlay';
   modal.innerHTML = `
-    <div class="confirm-modal-backdrop" data-action="cancel"></div>
+    <div class="confirm-modal-backdrop" data-action="cancel" role="button" tabindex="0"></div>
     <div class="confirm-modal-container" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
       <div class="confirm-modal-content">
         <div class="confirm-modal-icon ${iconClass}">
@@ -236,11 +236,11 @@ function createModal(options: ConfirmModalOptions): HTMLElement {
         <h2 class="confirm-modal-title" id="confirm-title">${options.title}</h2>
         <p class="confirm-modal-message" id="confirm-message">${options.message}</p>
       </div>
-      <div class="confirm-modal-actions">
-        <button class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
+      <div class="confirm-modal-actions" role="button" tabindex="0">
+        <button aria-label="Cancel" class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
           ${options.cancelText || 'Cancel'}
         </button>
-        <button class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
+        <button aria-label="Cancel" class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
           ${options.confirmText || 'Confirm'}
         </button>
       </div>

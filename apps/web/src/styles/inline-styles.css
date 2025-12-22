@@ -157,7 +157,7 @@ body {
   --btn-height-xs: 44px; /* Small mobile */
   --btn-padding-x: 32px; /* Horizontal padding */
   --btn-padding-y: 14px; /* Vertical padding */
-  --btn-min-width: 140px; /* Minimum width */
+  --btn-min-width: min(140px, 100%); /* Minimum width */
   --btn-radius: 26px; /* ~height/2 for pill shape */
 
   /* ========================================
@@ -326,16 +326,16 @@ body {
      ======================================================================== */
 
   /* Panel Width - Slide-in panels (settings menu, etc.) */
-  --panel-width: 360px;
+  --panel-width: min(360px, 100%);
   --panel-max-width: 85vw;
 
   /* Modal Width - Centered modal dialogs */
-  --modal-width: 480px;
+  --modal-width: clamp(336px, 90vw, 480px);
   --modal-max-width: 90vw;
   --modal-fullscreen-breakpoint: 480px; /* Below this, modals go fullscreen */
 
   /* Container Max Width - Main app content container */
-  --container-max-width: 600px;
+  --container-max-width: clamp(420px, 90vw, 600px);
   --container-padding: var(--space-md);
 
   /* Avatar Hero Size - Balanced proportions */
@@ -690,7 +690,7 @@ body {
   background: transparent;
   border: none;
   border-radius: var(--radius-xl, 16px);
-  transition: all 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+  transition: transform 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), opacity 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 [data-theme='zen'] .team-member:hover {
@@ -1338,7 +1338,7 @@ html.theme-transitioning *::after {
   border-radius: var(--radius-full);
 }
 .skeleton-button {
-  width: 120px;
+  width: min(120px, 100%);
   height: 44px;
   border-radius: var(--radius-lg);
 }
@@ -1625,7 +1625,7 @@ html.theme-transitioning *::after {
   height: 8px;
   border-radius: 50%;
   background: var(--color-bg-tertiary);
-  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .connection-step.active {
@@ -1775,7 +1775,7 @@ html.theme-transitioning *::after {
   inset: 0;
   display: flex;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-docked);
 }
 
 .landing-shoji {
@@ -1837,7 +1837,7 @@ html.theme-transitioning *::after {
   left: 50%;
   transform: translate(-50%, -50%) translateZ(100px);
   width: 90%;
-  max-width: 480px;
+  max-width: clamp(336px, 90vw, 480px);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(var(--glass-blur-strong, 24px));
   border-radius: 24px;
@@ -1848,7 +1848,7 @@ html.theme-transitioning *::after {
     0 10px 30px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   opacity: 0;
-  z-index: 20;
+  z-index: var(--z-dropdown);
   transition:
     opacity 0.8s ease,
     transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1962,7 +1962,7 @@ html.theme-transitioning *::after {
   color: rgba(0, 0, 0, 0.55);
   line-height: 1.6;
   margin-bottom: 32px;
-  max-width: 320px;
+  max-width: min(320px, 100%);
   margin-left: auto;
   margin-right: auto;
 }
@@ -1985,7 +1985,7 @@ html.theme-transitioning *::after {
   color: #1a1a1a;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   font-size: 15px;
-  transition: all 200ms ease;
+  transition: transform 200ms ease, opacity 200ms ease;
 }
 
 .landing-input:focus {
@@ -2125,7 +2125,7 @@ html.theme-transitioning *::after {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 30;
+  z-index: var(--z-dropdown);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2140,7 +2140,7 @@ html.theme-transitioning *::after {
 }
 
 .landing-tap-hint-circle {
-  width: 100px;
+  width: min(100px, 100%);
   height: 100px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
@@ -2179,7 +2179,7 @@ html.theme-transitioning *::after {
 }
 
 /* Mobile adjustments */
-@media (max-width: 520px) {
+@media (max-width: clamp(364px, 90vw, 520px)) {
   .landing-content-card {
     padding: 32px 24px;
     border-radius: 20px;
@@ -2641,7 +2641,7 @@ body {
     background 0.8s var(--ease-out-expo),
     opacity 0.8s var(--ease-out-expo);
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 /* Organic texture overlay - Wabi-sabi subtle grain (侘寂) */
@@ -2653,7 +2653,7 @@ body {
   opacity: 0.025;
   mix-blend-mode: overlay;
   pointer-events: none;
-  z-index: 1;
+  z-index: var(--z-docked);
 }
 
 [data-theme='zen'] #app::after {
@@ -2665,14 +2665,14 @@ body {
        ======================================================================== */
 .ambient-orb {
   position: fixed;
-  width: 600px;
+  width: clamp(420px, 90vw, 600px);
   height: 600px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--persona-glow) 0%, transparent 70%);
   filter: blur(80px);
   opacity: 0.4;
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-base);
   animation: ambientFloat 20s ease-in-out infinite;
   transition: background 1s var(--ease-out-expo);
 }
@@ -2686,7 +2686,7 @@ body {
 .ambient-orb--secondary {
   bottom: -300px;
   right: -200px;
-  width: 500px;
+  width: clamp(350px, 90vw, 500px);
   height: 500px;
   opacity: 0.2;
   animation-delay: -10s;
@@ -2762,7 +2762,7 @@ body {
 
 .header {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-docked);
   /* Padding + margin-top to ensure avatar ring isn't clipped by #app overflow:hidden */
   /* Ring extends 10-12px beyond avatar, plus generous breathing room */
   padding: var(--space-sm) var(--space-lg) var(--space-xs);
@@ -2773,7 +2773,7 @@ body {
 
 .main {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-docked);
   /* flex: 1 to fill remaining space, justify-content: center to center contents */
   flex: 1;
   display: flex;
@@ -2793,7 +2793,7 @@ body {
 
 .footer {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-docked);
   padding: var(--space-lg) var(--space-md);
   padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
   text-align: center;
@@ -2837,7 +2837,7 @@ body {
   position: relative;
   /* φ-based sizing: 120px hero size
      Ratio to button (48px) ≈ 2.5 (close to φ²) */
-  width: 120px;
+  width: min(120px, 100%);
   height: 120px;
   /* NOTE: Do NOT add will-change, transform, translateZ, contain, outline, or backface-visibility here - causes visible box in Safari */
   transform-origin: center center;
@@ -3295,7 +3295,7 @@ body {
     opacity 0.25s ease-out,
     transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-  z-index: 10;
+  z-index: var(--z-docked);
 }
 
 #coach.is-thinking .thinking-float {
@@ -3482,7 +3482,7 @@ body {
   border-radius: 50%;
   overflow: hidden;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-docked);
 }
 
 .avatar-lid-overlay .lid-svg {
@@ -3516,7 +3516,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 15;
+  z-index: var(--z-dropdown);
 }
 
 .emotion-sparkle {
@@ -3527,7 +3527,7 @@ body {
 
 /* Morph icon container */
 .morph-icon-container {
-  z-index: 5;
+  z-index: var(--z-docked);
 }
 
 .morph-icon-container svg {
@@ -3576,7 +3576,7 @@ body {
   transition:
     opacity 0.35s ease,
     transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 5;
+  z-index: var(--z-docked);
 }
 
 .ferni-eye__svg {
@@ -3674,7 +3674,7 @@ body {
     transparent 60%
   );
   transition: opacity 0.4s ease;
-  z-index: 4;
+  z-index: var(--z-docked);
 }
 
 .ferni-aware-glow.glow-visible {
@@ -4042,7 +4042,7 @@ body {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: var(--z-docked);
   box-shadow:
     0 1px 3px rgba(44, 37, 32, 0.04),
     0 4px 12px rgba(44, 37, 32, 0.06);
@@ -4336,13 +4336,13 @@ body {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 400px;
+  width: min(400px, 100%);
   height: 300px;
   pointer-events: none;
   overflow: visible;
   opacity: 0;
   transition: opacity 0.6s ease;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 .emotion-particles.active {
@@ -4598,7 +4598,7 @@ body {
 
 /* Transcript indicator (legacy) */
 #transcriptContainer {
-  max-width: 320px;
+  max-width: min(320px, 100%);
 }
 
 #transcriptContainer .transcript-text {
@@ -4638,7 +4638,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 600px;
+  max-width: clamp(420px, 90vw, 600px);
 }
 
 .controls {
@@ -4658,7 +4658,7 @@ body {
      Ratio to avatar (120px) ≈ 2.3 (close to φ²) */
   min-height: 52px;
   padding: 14px 32px;
-  min-width: 140px;
+  min-width: min(140px, 100%);
   border: none;
   border-radius: 26px; /* ~height/2 for perfect pill */
   font-family: var(--font-display);
@@ -4835,7 +4835,7 @@ body {
   position: relative;
   pointer-events: none;
   /* Subtle width expansion to accommodate spinner */
-  min-width: 160px;
+  min-width: min(160px, 100%);
   transition: min-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -5340,7 +5340,7 @@ body {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: 100px;
+  width: min(100px, 100%);
   height: 100px;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -5594,7 +5594,7 @@ body {
   border: var(--roster-ring-width) solid var(--member-color, var(--persona-primary));
   opacity: 0;
   transform: scale(0.85);
-  transition: all 0.35s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+  transition: transform 0.35s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), opacity 0.35s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
   pointer-events: none;
 }
 
@@ -5630,7 +5630,7 @@ body {
     0 2px 8px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-docked);
 }
 
 .team-member:hover .team-avatar {
@@ -5649,7 +5649,7 @@ body {
 
 /* 🎬 PIXAR HOVER - Enhanced hover from magnetic pull animation (JS adds this class) */
 .team-member.pixar-hover {
-  z-index: 10; /* Float above siblings during hover */
+  z-index: var(--z-docked); /* Float above siblings during hover */
 }
 
 .team-member.pixar-hover .team-avatar {
@@ -5888,7 +5888,7 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  z-index: 2;
+  z-index: var(--z-docked);
 }
 
 .team-lock-indicator svg {
@@ -5904,7 +5904,7 @@ body {
   height: calc(100% + 8px);
   transform: rotate(-90deg);
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 .team-progress-ring circle {
@@ -6029,7 +6029,7 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 2;
+  z-index: var(--z-docked);
   color: white;
   transition:
     transform 0.2s ease,
@@ -6098,7 +6098,7 @@ body {
     0 4px 20px rgba(0, 0, 0, 0.25),
     0 0 30px -5px var(--member-color),
     0 0 0 1px rgba(255, 255, 255, 0.15) inset;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .team-member.switching-to .team-avatar-ring {
@@ -6341,11 +6341,11 @@ body {
        ======================================================================== */
 
 /* Tablet Portrait (max 768px) - md breakpoint */
-@media (max-width: 768px) {
+@media (max-width: clamp(538px, 90vw, 768px)) {
   :root {
     /* Layout tokens */
-    --panel-width: 340px;
-    --modal-width: 440px;
+    --panel-width: min(340px, 100%);
+    --modal-width: clamp(308px, 90vw, 440px);
     --container-max-width: 100%;
     --container-padding: var(--space-md);
 
@@ -6381,11 +6381,11 @@ body {
 }
 
 /* Mobile Landscape / Large phones (481px - 767px) - sm-md gap */
-@media (max-width: 767px) and (min-width: 481px) {
+@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
   :root {
     /* Layout tokens */
-    --panel-width: 320px;
-    --modal-width: 400px;
+    --panel-width: min(320px, 100%);
+    --modal-width: min(400px, 100%);
     --container-padding: var(--space-sm);
 
     /* Avatar scaling - hero size on mobile */
@@ -6420,7 +6420,7 @@ body {
 }
 
 /* Mobile Portrait (max 480px) - xs-sm gap */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   :root {
     /* Layout tokens - panels go full-width on mobile */
     --panel-width: 100vw;
@@ -6463,7 +6463,7 @@ body {
 }
 
 /* Small Mobile (max 375px) - xs breakpoint */
-@media (max-width: 375px) {
+@media (max-width: min(375px, 100%)) {
   :root {
     /* Layout tokens - full-width panels */
     --panel-width: 100vw;
@@ -6506,7 +6506,7 @@ body {
 }
 
 /* Very Small (max 320px) - smallest phones */
-@media (max-width: 320px) {
+@media (max-width: min(320px, 100%)) {
   :root {
     /* Layout tokens - full-width, minimal spacing */
     --panel-width: 100vw;
@@ -6552,8 +6552,8 @@ body {
 @media (max-height: 500px) and (orientation: landscape) {
   :root {
     /* Layout tokens - compact landscape */
-    --panel-width: 280px;
-    --modal-width: 360px;
+    --panel-width: min(280px, 100%);
+    --modal-width: min(360px, 100%);
     --container-padding: var(--space-xs);
     --landscape-compact: 1;
 
@@ -6594,8 +6594,8 @@ body {
 @media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) and (pointer: coarse) {
   :root {
     /* Layout tokens */
-    --panel-width: 320px;
-    --modal-width: 420px;
+    --panel-width: min(320px, 100%);
+    --modal-width: clamp(294px, 90vw, 420px);
     --container-padding: var(--space-sm);
 
     /* Avatar scaling */
@@ -6627,11 +6627,11 @@ body {
 
 /* iPad Landscape (height 701px+, width < 1366px, TOUCH DEVICES ONLY)
    NOTE: Added (pointer: coarse) to prevent matching desktop browsers */
-@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
   :root {
     /* Layout tokens */
-    --panel-width: 360px;
-    --modal-width: 480px;
+    --panel-width: min(360px, 100%);
+    --modal-width: clamp(336px, 90vw, 480px);
     --container-padding: var(--space-md);
 
     /* Avatar scaling */
@@ -6662,12 +6662,12 @@ body {
 }
 
 /* Tablet (769px - 1199px) - lg breakpoint */
-@media (max-width: 1199px) and (min-width: 769px) {
+@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
   :root {
     /* Layout tokens */
-    --panel-width: 360px;
-    --modal-width: 480px;
-    --container-max-width: 560px;
+    --panel-width: min(360px, 100%);
+    --modal-width: clamp(336px, 90vw, 480px);
+    --container-max-width: clamp(392px, 90vw, 560px);
     --container-padding: var(--space-lg);
 
     /* Avatar scaling */
@@ -6703,12 +6703,12 @@ body {
 }
 
 /* Large Desktop (1200px+) - xl breakpoint */
-@media (min-width: 1200px) {
+@media (min-width: min(1200px, 100%)) {
   :root {
     /* Layout tokens - generous desktop sizing */
-    --panel-width: 400px;
-    --modal-width: 520px;
-    --container-max-width: 640px;
+    --panel-width: min(400px, 100%);
+    --modal-width: clamp(364px, 90vw, 520px);
+    --container-max-width: clamp(448px, 90vw, 640px);
     --container-padding: var(--space-xl);
 
     /* Avatar scaling - luxurious */
@@ -6756,11 +6756,11 @@ body {
        ======================================================================== */
 
 /* Large Desktop (1200px+) - Match 768px to prevent layout overflow */
-@media (min-width: 1200px) {
+@media (min-width: min(1200px, 100%)) {
   /* Match 768px exactly - larger fonts/avatars cause helper text to disappear */
 
   .app {
-    max-width: 600px;
+    max-width: clamp(420px, 90vw, 600px);
     margin: 0 auto;
     /* Match 768px padding */
     padding: var(--space-md);
@@ -6775,7 +6775,7 @@ body {
 
   .avatar-container {
     /* Match 768px */
-    width: 128px;
+    width: min(128px, 100%);
     height: 128px;
   }
 
@@ -6819,7 +6819,7 @@ body {
 
   /* Scale waveform - match 768px */
   #waveformContainer {
-    max-width: 320px;
+    max-width: min(320px, 100%);
     height: 70px;
     padding: 6px 0;
   }
@@ -6865,7 +6865,7 @@ body {
 
 /* Tablet (768px - 1199px) - Balanced */
 /* MUST match 768px styles to prevent layout breakage */
-@media (max-width: 1199px) and (min-width: 769px) {
+@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
   /* Team roster tokens defined in consolidated section above */
 
   .app {
@@ -6886,7 +6886,7 @@ body {
 
   .avatar-container {
     /* Match 768px size */
-    width: 128px;
+    width: min(128px, 100%);
     height: 128px;
   }
 
@@ -6958,7 +6958,7 @@ body {
 
 /* Tablet portrait and below (768px) */
 /* Tablet portrait and below (768px) - Transition to mobile-first layout */
-@media (max-width: 768px) {
+@media (max-width: clamp(538px, 90vw, 768px)) {
   .app {
     padding: var(--space-md);
   }
@@ -6977,7 +6977,7 @@ body {
   .avatar-container {
     /* Tablet base: 128px - generous but not hero-sized
            Mobile breakpoints override with larger hero avatars */
-    width: 128px;
+    width: min(128px, 100%);
     height: 128px;
   }
 
@@ -7067,7 +7067,7 @@ body {
 }
 
 /* Mobile landscape / Large phones (480px - 767px) */
-@media (max-width: 767px) and (min-width: 481px) {
+@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
   .app {
     min-height: 100dvh;
     padding: var(--space-sm);
@@ -7081,7 +7081,7 @@ body {
   .avatar-container {
     /* HERO AVATAR: Large, prominent, central focus on mobile
            140px - big enough to be the star of the screen */
-    width: 140px;
+    width: min(140px, 100%);
     height: 140px;
   }
 
@@ -7176,7 +7176,7 @@ body {
 /* Mobile portrait (max 480px) - HERO AVATAR FOCUSED
        The avatar becomes the central, prominent element on mobile.
        Instead of shrinking, we make it LARGER for better presence. */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   :root {
     --text-4xl: 1.75rem;
     --text-3xl: 1.375rem;
@@ -7202,7 +7202,7 @@ body {
 
   .avatar-container {
     /* HERO AVATAR: 140px - commanding but fits better on mobile screens */
-    width: 140px;
+    width: min(140px, 100%);
     height: 140px;
   }
 
@@ -7361,7 +7361,7 @@ body {
 /* iPhone Pro / Modern large phones (390px - 430px)
        iPhone 15 Pro: 393px, iPhone 15 Pro Max: 430px
        HERO AVATAR: These phones get premium treatment with large, centered avatar */
-@media (min-width: 390px) and (max-width: 430px) {
+@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
   .header {
     /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
     padding: var(--space-xs) var(--space-sm) var(--space-xs);
@@ -7371,7 +7371,7 @@ body {
 
   .avatar-container {
     /* HERO AVATAR: 150px - balanced size that fits viewport with button visible */
-    width: 150px;
+    width: min(150px, 100%);
     height: 150px;
     /* Scale margin for larger halo expansion */
     margin: 38px;
@@ -7473,11 +7473,11 @@ body {
 }
 
 /* iPhone Pro Max / Extra large phones (431px - 480px) */
-@media (min-width: 431px) and (max-width: 480px) {
+@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
   .avatar-container {
     /* HERO AVATAR: 180px - largest mobile avatar
            Pro Max phones have the real estate for commanding presence */
-    width: 180px;
+    width: min(180px, 100%);
     height: 180px;
     /* Scale margin for larger halo expansion */
     margin: 40px;
@@ -7586,7 +7586,7 @@ body {
 
 /* Small mobile (max 375px) - iPhone SE, etc 
        Even small phones get a HERO AVATAR - just slightly smaller */
-@media (max-width: 375px) {
+@media (max-width: min(375px, 100%)) {
   :root {
     --text-4xl: 1.5rem;
     --text-3xl: 1.25rem;
@@ -7602,7 +7602,7 @@ body {
   .avatar-container {
     /* HERO AVATAR: 140px - still large and commanding on small screens
            The avatar is the focal point, not an afterthought */
-    width: 140px;
+    width: min(140px, 100%);
     height: 140px;
   }
 
@@ -7713,7 +7713,7 @@ body {
 }
 
 /* Very small screens (max 320px) - HERO AVATAR (smaller but still prominent) */
-@media (max-width: 320px) {
+@media (max-width: min(320px, 100%)) {
   .app {
     padding: var(--space-xs);
   }
@@ -7725,7 +7725,7 @@ body {
   .avatar-container {
     /* HERO AVATAR: 120px - still prominent on tiny screens
            We reduce size here but it's still the focal point */
-    width: 120px;
+    width: min(120px, 100%);
     height: 120px;
   }
 
@@ -7967,7 +7967,7 @@ body {
 
   .avatar-container {
     /* Balanced size for tablet landscape */
-    width: 100px;
+    width: min(100px, 100%);
     height: 100px;
   }
 
@@ -8070,7 +8070,7 @@ body {
 
 /* iPad landscape - larger tablets in horizontal orientation
    NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
-@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
   .header {
     flex-direction: row;
     align-items: center;
@@ -8079,7 +8079,7 @@ body {
 
   .avatar-container {
     /* Balanced size for larger tablets */
-    width: 128px;
+    width: min(128px, 100%);
     height: 128px;
   }
 
@@ -8407,7 +8407,7 @@ body {
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-5);
   opacity: 0;
-  transition: all 300ms var(--ease-out-expo);
+  transition: transform 300ms var(--ease-out-expo), opacity 300ms var(--ease-out-expo);
   z-index: var(--z-toast);
   box-shadow: var(--shadow-lg);
 }
@@ -8752,7 +8752,7 @@ body {
 .stats-card {
   position: relative;
   width: 90%;
-  max-width: 400px;
+  max-width: min(400px, 100%);
   padding: var(--space-xl);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
@@ -9053,7 +9053,7 @@ body {
   border-radius: var(--radius-2xl);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
   opacity: 0;
-  transition: all 0.5s var(--ease-out-expo);
+  transition: transform 0.5s var(--ease-out-expo), opacity 0.5s var(--ease-out-expo);
   z-index: var(--z-modal);
 }
 
@@ -9184,7 +9184,7 @@ body {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-full);
   opacity: 0;
-  transition: all 0.5s var(--ease-out-expo);
+  transition: transform 0.5s var(--ease-out-expo), opacity 0.5s var(--ease-out-expo);
   z-index: var(--z-toast);
 }
 
@@ -9218,7 +9218,7 @@ body {
   left: 50%;
   transform: translateX(-50%) rotate(-12deg);
   /* Sized so avatar head fits inside the hat */
-  width: 150px;
+  width: min(150px, 100%);
   height: 90px;
   z-index: var(--z-content, 10);
   pointer-events: none;
@@ -9440,7 +9440,7 @@ body {
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-docked);
   background: var(--color-bg-elevated, rgba(255, 253, 251, 0.9));
   padding: 2px 6px;
   border-radius: 4px;
@@ -9576,7 +9576,7 @@ body {
   inset: 0;
   pointer-events: none;
   overflow: hidden;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 .ambient-particle {
@@ -9710,7 +9710,7 @@ body {
   box-shadow: var(--shadow-sm);
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
-  transition: all 0.4s var(--ease-out-expo);
+  transition: transform 0.4s var(--ease-out-expo), opacity 0.4s var(--ease-out-expo);
   z-index: var(--z-elevated);
   /* MOBILE FIX: Prevent text selection on badge */
   -webkit-user-select: none;
@@ -9784,7 +9784,7 @@ html {
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-base);
-  z-index: 100;
+  z-index: var(--z-docked);
   pointer-events: none;
   box-shadow: var(--shadow-lg);
 }
@@ -9800,7 +9800,7 @@ html {
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-base);
-  z-index: 100;
+  z-index: var(--z-docked);
 }
 
 .team-member:hover::before,
@@ -10296,7 +10296,7 @@ body.ambient-aurora {
   transition:
     opacity 0.3s ease,
     transform 0.3s ease;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
 }
 
 .connection-quality.visible {
@@ -10356,7 +10356,7 @@ body.ambient-aurora {
 }
 
 /* Responsive connection quality */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   .connection-quality {
     top: var(--space-sm);
     right: var(--space-sm);
@@ -10491,7 +10491,7 @@ body.ambient-aurora {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   border-radius: var(--radius-lg);
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   transition: top 0.2s ease;
 }
 
@@ -10530,7 +10530,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP LARGE (≥1200px) - Full experience with generous spacing
    ------------------------------------------------------------------------ */
-@media (min-width: 1200px) {
+@media (min-width: min(1200px, 100%)) {
   .main {
     gap: var(--space-sm);
     padding: var(--space-sm);
@@ -10538,7 +10538,7 @@ body.ambient-aurora {
 
   .avatar-container {
     /* Desktop hero size - balanced */
-    width: 130px;
+    width: min(130px, 100%);
     height: 130px;
   }
 
@@ -10563,7 +10563,7 @@ body.ambient-aurora {
 
   .btn-primary {
     min-height: 54px;
-    min-width: 180px;
+    min-width: min(180px, 100%);
     padding: 16px 40px;
     font-size: var(--text-lg);
   }
@@ -10574,7 +10574,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 400px;
+    max-width: min(400px, 100%);
     height: 56px;
   }
 }
@@ -10582,10 +10582,10 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP / TABLET LANDSCAPE (1025px - 1199px)
    ------------------------------------------------------------------------ */
-@media (min-width: 1025px) and (max-width: 1199px) {
+@media (min-width: min(1025px, 100%)) and (max-width: min(1199px, 100%)) {
   .avatar-container {
     /* Desktop smaller screens */
-    width: 120px;
+    width: min(120px, 100%);
     height: 120px;
   }
 
@@ -10608,7 +10608,7 @@ body.ambient-aurora {
 
   .btn-primary {
     min-height: 52px;
-    min-width: 160px;
+    min-width: min(160px, 100%);
     padding: 14px 32px;
     font-size: var(--text-base);
   }
@@ -10619,7 +10619,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 360px;
+    max-width: min(360px, 100%);
     height: 50px;
   }
 }
@@ -10627,7 +10627,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    TABLET PORTRAIT (768px - 1024px) - Show team roster, hide garden
    ------------------------------------------------------------------------ */
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: clamp(538px, 90vw, 768px)) and (max-width: min(1024px, 100%)) {
   /* Hide garden widget on tablet - access via menu */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10635,7 +10635,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 180px;
+    width: min(180px, 100%);
     height: 180px;
     /* Scale margin for larger halo expansion */
     margin: 45px;
@@ -10660,7 +10660,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 180px;
+    min-width: min(180px, 100%);
     padding: 16px 36px;
     font-size: var(--text-base);
   }
@@ -10671,7 +10671,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 320px;
+    max-width: min(320px, 100%);
     height: 65px;
   }
 
@@ -10688,7 +10688,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    LARGE PHONES / SMALL TABLETS (481px - 767px)
    ------------------------------------------------------------------------ */
-@media (min-width: 481px) and (max-width: 767px) {
+@media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(537px, 90vw, 767px)) {
   /* Hide garden widget */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10696,7 +10696,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 160px;
+    width: min(160px, 100%);
     height: 160px;
   }
 
@@ -10719,7 +10719,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 180px;
+    min-width: min(180px, 100%);
     padding: 14px 32px;
     font-size: var(--text-base);
   }
@@ -10730,7 +10730,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 280px;
+    max-width: min(280px, 100%);
     height: 60px;
   }
 
@@ -10748,7 +10748,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO MAX (431px - 480px) - Premium large phone experience
    ------------------------------------------------------------------------ */
-@media (min-width: 431px) and (max-width: 480px) {
+@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10765,7 +10765,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 180px;
+    width: min(180px, 100%);
     height: 180px;
   }
 
@@ -10789,7 +10789,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 200px;
+    min-width: min(200px, 100%);
     padding: 18px 44px;
     font-size: var(--text-lg);
     box-shadow: 0 4px 24px var(--persona-glow);
@@ -10801,7 +10801,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 300px;
+    max-width: min(300px, 100%);
     height: 70px;
   }
 
@@ -10820,7 +10820,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO (390px - 430px) - Hero avatar, premium feel
    ------------------------------------------------------------------------ */
-@media (min-width: 390px) and (max-width: 430px) {
+@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
   /* Hide secondary elements for focused experience */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10837,7 +10837,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 200px;
+    width: min(200px, 100%);
     height: 200px;
     /* Scale margin for larger halo expansion */
     margin: 50px;
@@ -10863,7 +10863,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 200px;
+    min-width: min(200px, 100%);
     padding: 18px 44px;
     font-size: var(--text-lg);
     box-shadow: 0 4px 24px var(--persona-glow);
@@ -10875,7 +10875,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 320px;
+    max-width: min(320px, 100%);
     height: 70px;
   }
 
@@ -10894,7 +10894,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    STANDARD MOBILE (376px - 389px) - Budget Androids, older phones
    ------------------------------------------------------------------------ */
-@media (min-width: 376px) and (max-width: 389px) {
+@media (min-width: min(376px, 100%)) and (max-width: min(389px, 100%)) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10911,7 +10911,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 160px;
+    width: min(160px, 100%);
     height: 160px;
   }
 
@@ -10934,7 +10934,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 180px;
+    min-width: min(180px, 100%);
     padding: 16px 36px;
     font-size: var(--text-base);
     box-shadow: 0 4px 20px var(--persona-glow);
@@ -10946,7 +10946,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 280px;
+    max-width: min(280px, 100%);
     height: 65px;
   }
 
@@ -10963,7 +10963,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    SMALL PHONES (321px - 375px) - iPhone SE 2/3, iPhone 8
    ------------------------------------------------------------------------ */
-@media (min-width: 321px) and (max-width: 375px) {
+@media (min-width: min(321px, 100%)) and (max-width: min(375px, 100%)) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -10980,7 +10980,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 140px;
+    width: min(140px, 100%);
     height: 140px;
   }
 
@@ -11003,7 +11003,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 160px;
+    min-width: min(160px, 100%);
     min-height: 48px;
     padding: 14px 28px;
     font-size: var(--text-sm);
@@ -11016,7 +11016,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 240px;
+    max-width: min(240px, 100%);
     height: 55px;
   }
 
@@ -11033,7 +11033,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    VERY SMALL PHONES (≤320px) - iPhone SE 1st gen, older devices
    ------------------------------------------------------------------------ */
-@media (max-width: 320px) {
+@media (max-width: min(320px, 100%)) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11050,7 +11050,7 @@ body.ambient-aurora {
   }
 
   .avatar-container {
-    width: 120px;
+    width: min(120px, 100%);
     height: 120px;
   }
 
@@ -11077,7 +11077,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 140px;
+    min-width: min(140px, 100%);
     min-height: 44px;
     padding: 12px 24px;
     font-size: var(--text-xs);
@@ -11090,7 +11090,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 200px;
+    max-width: min(200px, 100%);
     height: 45px;
   }
 
@@ -11148,7 +11148,7 @@ body.ambient-aurora {
   }
 
   .btn-primary {
-    min-width: 140px;
+    min-width: min(140px, 100%);
     min-height: 40px;
     padding: 10px 24px;
     font-size: var(--text-sm);
@@ -11160,7 +11160,7 @@ body.ambient-aurora {
   }
 
   #waveformContainer {
-    max-width: 200px;
+    max-width: min(200px, 100%);
     height: 40px;
   }
 
@@ -11243,7 +11243,7 @@ body.ambient-aurora {
 
   #waveformContainer {
     height: 40px;
-    max-width: 200px;
+    max-width: min(200px, 100%);
   }
 
   .waveform-bars {
@@ -11320,7 +11320,7 @@ body.ambient-aurora {
 
   #waveformContainer {
     height: 32px;
-    max-width: 160px;
+    max-width: min(160px, 100%);
   }
 
   .waveform-bars {
@@ -11396,7 +11396,7 @@ body.ambient-aurora {
 
   #waveformContainer {
     height: 28px;
-    max-width: 140px;
+    max-width: min(140px, 100%);
   }
 
   .btn-primary {
@@ -11427,7 +11427,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    COMMON MOBILE STYLES (≤480px) - Shared optimizations
    ------------------------------------------------------------------------ */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   /* Compact header for mobile */
   .header {
     gap: var(--space-sm);
@@ -11500,10 +11500,10 @@ body.ambient-aurora {
   --ferni-button-height: 52px;
   --ferni-button-padding: 14px 32px;
   --ferni-button-font: 16px;
-  --ferni-button-min-width: 140px;
+  --ferni-button-min-width: min(140px, 100%);
 
   /* Waveform - Slightly smaller than button */
-  --ferni-waveform-width: 280px;
+  --ferni-waveform-width: min(280px, 100%);
   --ferni-waveform-height: 48px;
 
   /* Typography - fixed sizes */
@@ -11648,13 +11648,13 @@ body.ambient-aurora {
    MOBILE ADJUSTMENT - Only for very small screens
    Just reduce padding, keep all component sizes the same
    --------------------------------------------------------------------- */
-@media (max-width: 480px) {
+@media (max-width: clamp(336px, 90vw, 480px)) {
   :root {
     --ferni-container-padding: var(--space-sm, 0.75rem);
   }
 
   /* Slightly smaller waveform width on tiny screens */
   #waveformContainer {
-    max-width: 240px !important;
+    max-width: min(240px, 100%) !important;
   }
 }

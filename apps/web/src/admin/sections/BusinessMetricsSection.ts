@@ -68,7 +68,7 @@ export function render(): string {
     <div class="admin-section business-metrics-section" role="region" aria-label="Business Metrics Dashboard">
       <div class="section-header">
         <h2><span aria-hidden="true">${ICONS.chart}</span> Business Metrics</h2>
-        <div class="header-actions">
+        <div class="header-actions" role="button" tabindex="0">
           <span class="live-indicator" role="status" aria-live="polite" aria-atomic="true">
             <span class="live-dot" aria-hidden="true"></span>
             <span id="concurrent-count" aria-label="Active users now">0</span> active now
@@ -338,7 +338,7 @@ export function render(): string {
         gap: var(--space-lg);
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .two-column {
           grid-template-columns: 1fr;
         }

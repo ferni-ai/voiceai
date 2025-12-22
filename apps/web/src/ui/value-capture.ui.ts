@@ -123,7 +123,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -146,7 +146,7 @@ const styles = `
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 24px);
   padding: var(--space-8, 32px);
-  max-width: 420px;
+  max-width: clamp(294px, 90vw, 420px);
   width: calc(100% - 32px);
   box-shadow: var(--shadow-2xl);
   transform: scale(0.9);
@@ -169,7 +169,7 @@ const styles = `
   border-radius: 50%;
   color: var(--color-text-muted);
   transition: background ${DURATION.FAST}ms;
-  z-index: 10;
+  z-index: var(--z-docked);
 }
 
 .value-capture-close:hover {
@@ -592,11 +592,11 @@ function renderCelebration(
         inputmode="decimal"
       />
 
-      <button class="value-capture-submit-btn" disabled>
+      <button aria-label="Share" class="value-capture-submit-btn" disabled>
         Share the Win
       </button>
 
-      <button class="value-capture-skip-btn">
+      <button aria-label="Just celebrate this moment" class="value-capture-skip-btn">
         Just celebrate this moment
       </button>
 

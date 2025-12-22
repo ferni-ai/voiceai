@@ -53,7 +53,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -76,7 +76,7 @@ const styles = `
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 24px);
   width: calc(100% - 32px);
-  max-width: 700px;
+  max-width: clamp(490px, 90vw, 700px);
   max-height: 90vh;
   box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
@@ -357,7 +357,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: clamp(420px, 90vw, 600px)) {
   .personalize-header {
     padding: var(--space-6, 24px) var(--space-5, 20px);
   }
@@ -646,7 +646,7 @@ function renderItemAction(
 
   if (isOwned) {
     return `
-      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="Use This" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -654,7 +654,7 @@ function renderItemAction(
 
   if (item.priceInSeeds === null) {
     return `
-      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="Use This" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -662,14 +662,14 @@ function renderItemAction(
 
   if (!canBuy) {
     return `
-      <button class="personalize-item-action" disabled>
+      <button aria-label="Need more Seeds" class="personalize-item-action" disabled>
         Need more Seeds
       </button>
     `;
   }
 
   return `
-    <button class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
+    <button aria-label="Get This" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
       Get This
     </button>
   `;

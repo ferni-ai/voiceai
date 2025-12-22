@@ -344,7 +344,7 @@ class MusicDashboardUI {
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
         <p class="music-dashboard__error-title">${message}</p>
         <p class="music-dashboard__error-hint">${t('musicDashboard.error.hint')}</p>
-        <button class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
+        <button aria-label="Play" class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
       </div>
     `;
 
@@ -436,7 +436,7 @@ class MusicDashboardUI {
           <p class="music-dashboard__empty-hint">
             ${t('musicDashboard.empty.hint', { count: insights.gamesNeededForFullInsights })}
           </p>
-          <button class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
+          <button aria-label="Play" class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
         </div>
       </div>
     `;
@@ -460,11 +460,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
 
     return `
       <section class="music-sources music-sources--compact">
@@ -608,11 +608,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.spotify.trackCount || 0} tracks</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.appleMusic.trackCount || 0} tracks</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
 
     return `
       <section class="music-dashboard__section music-sources">
@@ -900,7 +900,7 @@ class MusicDashboardUI {
             <span>${Math.round(challenge.completionRate * 100)}% completion</span>
             <span>${challenge.participantCount} playing</span>
           </div>
-          <button class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
+          <button aria-label="Play" class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
             ${ICONS.play} Start Challenge
           </button>
         </div>
@@ -999,7 +999,7 @@ class MusicDashboardUI {
             <span class="music-dashboard__social-label">Received</span>
           </div>
         </div>
-        <button class="music-dashboard__leaderboard-btn">
+        <button aria-label="View Leaderboard" class="music-dashboard__leaderboard-btn">
           ${ICONS.trophy} View Leaderboard
         </button>
       </section>
@@ -1014,11 +1014,11 @@ class MusicDashboardUI {
           Share Your DNA
         </h3>
         <p class="music-dashboard__share-intro">Show off your musical personality!</p>
-        <div class="music-dashboard__share-buttons">
-          <button class="music-dashboard__share-btn" data-card-type="musical-dna">
+        <div class="music-dashboard__share-buttons" role="button" tabindex="0">
+          <button aria-label="Musical DNA Card" class="music-dashboard__share-btn" data-card-type="musical-dna">
             ${ICONS.sparkles} Musical DNA Card
           </button>
-          <button class="music-dashboard__share-btn" data-card-type="desert-island">
+          <button aria-label="Desert Island Card" class="music-dashboard__share-btn" data-card-type="desert-island">
             ${ICONS.heart} Desert Island Card
           </button>
         </div>
@@ -1181,7 +1181,7 @@ class MusicDashboardUI {
       .music-dashboard {
         position: fixed;
         inset: 0;
-        z-index: 1000;
+        z-index: var(--z-dropdown);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1207,7 +1207,7 @@ class MusicDashboardUI {
       .music-dashboard__card {
         position: relative;
         width: 90%;
-        max-width: 520px;
+        max-width: clamp(364px, 90vw, 520px);
         max-height: 85vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl);
@@ -2270,7 +2270,7 @@ class MusicDashboardUI {
       /* Dark theme - uses CSS variables which auto-switch via [data-theme="midnight"] */
 
       /* Mobile */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .music-dashboard__card {
           width: 100%;
           max-width: none;

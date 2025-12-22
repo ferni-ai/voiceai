@@ -185,7 +185,7 @@ function renderModalContent(): void {
         <label class="gift-seeds-label">Amount</label>
         <div class="gift-seeds-tiers">
           ${GIFT_TIERS.map(tier => `
-            <button 
+            <button aria-label="Go forward" 
               class="gift-seeds-tier ${tier.amount === selectedAmount ? 'gift-seeds-tier--selected' : ''} ${balance < tier.amount ? 'gift-seeds-tier--disabled' : ''}"
               data-amount="${tier.amount}"
               ${balance < tier.amount ? 'disabled' : ''}
@@ -215,7 +215,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Send Button -->
-      <button 
+      <button aria-label="Send Gift" 
         class="gift-seeds-send ${!canAfford || !recipientId ? 'gift-seeds-send--disabled' : ''}"
         ${!canAfford || !recipientId ? 'disabled' : ''}
       >
@@ -424,7 +424,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
     }
@@ -439,7 +439,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted, #70605a);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .gift-seeds-close:hover {
@@ -534,7 +534,7 @@ function injectStyles(): void {
       border: 2px solid transparent;
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .gift-seeds-tier:hover:not(:disabled) {
@@ -623,7 +623,7 @@ function injectStyles(): void {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .gift-seeds-send:hover:not(:disabled) {
@@ -671,7 +671,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .gift-seeds-modal {
         padding: 0;
         align-items: flex-end;

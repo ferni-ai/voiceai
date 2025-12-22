@@ -124,27 +124,27 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Quick Actions -->
-      <div class="admin-card dashboard-actions">
+      <div class="admin-card dashboard-actions" role="button" tabindex="0">
         <h2 class="admin-section-title">
           <span class="admin-icon">${iconSm(ICON_ZAP)}</span>
           Quick Actions
         </h2>
-        <div class="quick-actions-grid">
-          <button class="quick-action" data-action="validate-agents">
-            <span class="quick-action-icon">${iconSm(ICON_SEARCH)}</span>
-            <span class="quick-action-text">Validate Agents</span>
+        <div class="quick-actions-grid" role="button" tabindex="0">
+          <button aria-label="Search" class="quick-action" data-action="validate-agents">
+            <span class="quick-action-icon" role="button" tabindex="0">${iconSm(ICON_SEARCH)}</span>
+            <span class="quick-action-text" role="button" tabindex="0">Validate Agents</span>
           </button>
-          <button class="quick-action" data-action="run-evalops">
-            <span class="quick-action-icon">${iconSm(ICON_EVALOPS)}</span>
-            <span class="quick-action-text">Run EvalOps Suite</span>
+          <button aria-label="Run EvalOps Suite" class="quick-action" data-action="run-evalops">
+            <span class="quick-action-icon" role="button" tabindex="0">${iconSm(ICON_EVALOPS)}</span>
+            <span class="quick-action-text" role="button" tabindex="0">Run EvalOps Suite</span>
           </button>
-          <button class="quick-action" data-action="refresh-flags">
-            <span class="quick-action-icon">${iconSm(ICON_FLAGS)}</span>
-            <span class="quick-action-text">Refresh Flags</span>
+          <button aria-label="Refresh" class="quick-action" data-action="refresh-flags">
+            <span class="quick-action-icon" role="button" tabindex="0">${iconSm(ICON_FLAGS)}</span>
+            <span class="quick-action-text" role="button" tabindex="0">Refresh Flags</span>
           </button>
-          <button class="quick-action" data-action="clear-cache">
-            <span class="quick-action-icon">${iconSm(ICON_DELETE)}</span>
-            <span class="quick-action-text">Clear Cache</span>
+          <button aria-label="Delete" class="quick-action" data-action="clear-cache">
+            <span class="quick-action-icon" role="button" tabindex="0">${iconSm(ICON_DELETE)}</span>
+            <span class="quick-action-text" role="button" tabindex="0">Clear Cache</span>
           </button>
         </div>
       </div>
@@ -171,7 +171,7 @@ export async function render(): Promise<string> {
         color: var(--admin-text-primary, #faf6f0);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .dashboard-section {
           grid-template-columns: 1fr;
         }
@@ -181,7 +181,7 @@ export async function render(): Promise<string> {
         grid-column: span 2;
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .dashboard-health {
           grid-column: span 1;
         }
@@ -304,7 +304,7 @@ export async function render(): Promise<string> {
         grid-column: span 2;
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .dashboard-stats {
           grid-column: span 1;
         }

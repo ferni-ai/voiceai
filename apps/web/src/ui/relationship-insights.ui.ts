@@ -143,7 +143,7 @@ function injectStyles(): void {
     .relationship-insights-modal {
       position: relative;
       width: 94%;
-      max-width: 560px;
+      max-width: clamp(392px, 90vw, 560px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -612,7 +612,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .relationship-insights-modal {
         width: 100%;
         max-width: none;
@@ -670,13 +670,13 @@ function render(): void {
     </div>
     
     <div class="ri-tabs">
-      <button class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+      <button aria-label="Overview" class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
         ${ICONS.chart} Overview
       </button>
-      <button class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
+      <button aria-label="Insights" class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
         ${ICONS.sparkles} Insights
       </button>
-      <button class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
+      <button aria-label="Activity" class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
         ${ICONS.activity} Activity
       </button>
     </div>

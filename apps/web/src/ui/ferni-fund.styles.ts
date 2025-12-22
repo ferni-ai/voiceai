@@ -41,7 +41,7 @@ export const ferniFundStyles = `
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 24px);
   padding: var(--space-8, 32px);
-  max-width: 440px;
+  max-width: clamp(308px, 90vw, 440px);
   width: calc(100% - 32px);
   max-height: 90vh;
   overflow-y: auto;
@@ -599,7 +599,7 @@ export const ferniFundStyles = `
 
 .ferni-fund-stat {
   flex: 1;
-  min-width: 100px;
+  min-width: min(100px, 100%);
   padding: var(--space-4, 16px);
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-lg, 12px);

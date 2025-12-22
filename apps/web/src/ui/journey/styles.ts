@@ -50,7 +50,7 @@ function getJourneyStyles(): string {
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
       width: 100%;
       max-height: 85vh;
       display: flex;
@@ -136,7 +136,7 @@ function getJourneyStyles(): string {
 
     .journey-progress-ring-container {
       position: relative;
-      width: 120px;
+      width: min(120px, 100%);
       height: 120px;
       margin: 0 auto var(--space-4, 16px);
     }
@@ -876,7 +876,7 @@ function getJourneyStyles(): string {
       font-size: var(--text-sm, 0.875rem);
       color: var(--color-text-muted, #70605a);
       line-height: 1.5;
-      max-width: 280px;
+      max-width: min(280px, 100%);
       margin: 0 auto;
     }
 
@@ -1200,7 +1200,7 @@ function getJourneyStyles(): string {
     /* ===================================================================
        MOBILE - Sheet animation from bottom
        =================================================================== */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .journey-modal {
         padding: 0;
         align-items: flex-end;

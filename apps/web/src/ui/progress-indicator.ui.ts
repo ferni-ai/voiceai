@@ -502,7 +502,7 @@ function injectStyles(): void {
        EXPANDED STATE
        ======================================================================== */
     .progress-expanded {
-      width: 260px;
+      width: min(260px, 100%);
       padding: var(--space-4, 16px);
     }
     
@@ -550,7 +550,7 @@ function injectStyles(): void {
     /* Large ring */
     .progress-ring-large {
       position: relative;
-      width: 100px;
+      width: min(100px, 100%);
       height: 100px;
       margin: 0 auto var(--space-4, 16px);
     }
@@ -750,7 +750,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .progress-indicator {
         bottom: var(--space-20, 80px);
         left: var(--space-3, 12px);
@@ -758,7 +758,7 @@ function injectStyles(): void {
       
       .progress-expanded {
         width: calc(100vw - var(--space-6, 24px));
-        max-width: 280px;
+        max-width: min(280px, 100%);
       }
     }
   `;

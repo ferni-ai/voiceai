@@ -60,7 +60,7 @@ function createSkeletonContainer(): void {
           <div class="skeleton__line skeleton__line--title"></div>
           <div class="skeleton__line skeleton__line--subtitle"></div>
         </div>
-        <div class="skeleton__button"></div>
+        <div class="skeleton__button" role="button" tabindex="0"></div>
         <div class="skeleton__team">
           <div class="skeleton__team-member"></div>
           <div class="skeleton__team-member"></div>
@@ -114,7 +114,7 @@ function addSkeletonStyles(): void {
     }
 
     .skeleton__avatar {
-      width: 120px;
+      width: min(120px, 100%);
       height: 120px;
       border-radius: var(--radius-full, 50%);
       background: linear-gradient(
@@ -145,17 +145,17 @@ function addSkeletonStyles(): void {
     }
 
     .skeleton__line--title {
-      width: 180px;
+      width: min(180px, 100%);
       height: 24px;
     }
 
     .skeleton__line--subtitle {
-      width: 120px;
+      width: min(120px, 100%);
       height: 16px;
     }
 
     .skeleton__button {
-      width: 140px;
+      width: min(140px, 100%);
       height: 48px;
       border-radius: var(--radius-full, 24px);
       background: linear-gradient(

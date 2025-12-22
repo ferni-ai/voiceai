@@ -292,12 +292,12 @@ class GroupCoachingUI {
       </header>
 
       <div class="group-coaching__content">
-        <div class="group-coaching__actions">
-          <button class="group-coaching__create-btn" data-action="create">
+        <div class="group-coaching__actions" role="button" tabindex="0">
+          <button aria-label="Add" class="group-coaching__create-btn" data-action="create">
             ${ICONS.plus}
             <span>New Session</span>
           </button>
-          <button class="group-coaching__join-btn" data-action="join-link">
+          <button aria-label="Join with Link" class="group-coaching__join-btn" data-action="join-link">
             ${ICONS.link}
             <span>Join with Link</span>
           </button>
@@ -319,7 +319,7 @@ class GroupCoachingUI {
 
     const typeOptions = getSessionTypes().map(
       (type) => `
-      <button class="group-coaching__type" data-type="${type.id}">
+      <button aria-label="More information" class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
         <div class="group-coaching__type-info">
           <span class="group-coaching__type-name">${type.name}</span>
@@ -332,7 +332,7 @@ class GroupCoachingUI {
 
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
-        <button class="group-coaching__back" data-action="back">←</button>
+        <button aria-label="Go back" class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">New Session</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
@@ -369,7 +369,7 @@ class GroupCoachingUI {
 
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
-        <button class="group-coaching__back" data-action="back">←</button>
+        <button aria-label="Go back" class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">${typeInfo?.name || 'Session'}</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
@@ -392,7 +392,7 @@ class GroupCoachingUI {
             <h3>Invite Link</h3>
             <div class="group-coaching__invite-link">
               <input type="text" value="${joinLink}" readonly>
-              <button class="group-coaching__copy-btn" data-action="copy" data-link="${joinLink}">
+              <button aria-label="Copy" class="group-coaching__copy-btn" data-action="copy" data-link="${joinLink}">
                 ${ICONS.copy}
               </button>
             </div>
@@ -406,11 +406,11 @@ class GroupCoachingUI {
           ${participantsList}
         </div>
 
-        <div class="group-coaching__session-actions">
+        <div class="group-coaching__session-actions" role="button" tabindex="0">
           ${
             session.status === 'waiting'
               ? `
-            <button class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
+            <button aria-label="Play" class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
               ${ICONS.play}
               <span>Start Session</span>
             </button>
@@ -436,7 +436,7 @@ class GroupCoachingUI {
       </header>
       <div class="group-coaching__error">
         <p>${message}</p>
-        <button class="group-coaching__retry">Try Again</button>
+        <button aria-label="Try Again" class="group-coaching__retry">Try Again</button>
       </div>
     `;
 
@@ -602,7 +602,7 @@ class GroupCoachingUI {
 
       .group-coaching__wrapper {
         width: 100%;
-        max-width: 480px;
+        max-width: clamp(336px, 90vw, 480px);
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -1078,7 +1078,7 @@ class GroupCoachingUI {
         background: var(--color-background-secondary, #60504a);
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .group-coaching__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;

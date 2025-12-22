@@ -836,7 +836,7 @@ function injectStyles(): void {
       opacity: 0;
       pointer-events: none;
       transition: opacity ${DURATION.FAST}ms ease, transform ${DURATION.FAST}ms ease;
-      z-index: 10;
+      z-index: var(--z-docked);
     }
 
     .pull-indicator__ring {
@@ -906,7 +906,7 @@ function injectStyles(): void {
     .immersive-overlay {
       position: fixed;
       inset: 0;
-      z-index: 9998;
+      z-index: var(--z-tooltip);
       pointer-events: none;
       opacity: 0;
       transition: opacity ${DURATION.SLOW}ms ease;
@@ -945,8 +945,8 @@ function injectStyles(): void {
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
-      z-index: 9999 !important;
-      width: 240px !important;
+      z-index: var(--z-tooltip) !important;
+      width: min(240px, 100%) !important;
       height: 240px !important;
       transition: all ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
     }
@@ -976,7 +976,7 @@ function injectStyles(): void {
     }
 
     /* Mobile-specific refinements */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .pull-indicator {
         bottom: -50px;
       }
@@ -991,7 +991,7 @@ function injectStyles(): void {
       }
 
       .immersive-avatar {
-        width: 200px !important;
+        width: min(200px, 100%) !important;
         height: 200px !important;
       }
 
@@ -1001,9 +1001,9 @@ function injectStyles(): void {
     }
 
     /* Large mobile (390-430px) - bigger immersive avatar */
-    @media (min-width: 390px) and (max-width: 480px) {
+    @media (min-width: min(390px, 100%)) and (max-width: clamp(336px, 90vw, 480px)) {
       .immersive-avatar {
-        width: 260px !important;
+        width: min(260px, 100%) !important;
         height: 260px !important;
       }
 

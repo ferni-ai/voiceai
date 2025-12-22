@@ -241,7 +241,7 @@ export async function render(): Promise<string> {
     <div class="admin-section finops-section" role="region" aria-label="FinOps Dashboard">
       <div class="section-header">
         <h2><span aria-hidden="true">${ICONS.chart}</span> FinOps Dashboard</h2>
-        <div class="header-actions">
+        <div class="header-actions" role="button" tabindex="0">
           <span class="live-indicator" role="status">
             <span class="live-dot"></span>
             <span id="finops-active-sessions">0</span> active sessions
@@ -355,7 +355,7 @@ export async function render(): Promise<string> {
               <label for="config-churn">Monthly Churn Rate (%)</label>
               <input type="number" id="config-churn" placeholder="e.g. 5" min="0" max="100" step="0.1">
             </div>
-            <button class="btn-small" id="save-ltv-config">Update LTV:CAC</button>
+            <button aria-label="Update LTV:CAC" class="btn-small" id="save-ltv-config">Update LTV:CAC</button>
           </div>
         </section>
 
@@ -485,13 +485,13 @@ export async function render(): Promise<string> {
             <div class="config-item">
               <label for="config-mrr">Monthly Recurring Revenue ($)</label>
               <input type="number" id="config-mrr" placeholder="Enter MRR" min="0" step="100">
-              <button class="btn-small" id="save-mrr">Save</button>
-              <button class="btn-small btn-secondary" id="sync-mrr">Sync from Stripe</button>
+              <button aria-label="Save" class="btn-small" id="save-mrr">Save</button>
+              <button aria-label="Sync from Stripe" class="btn-small btn-secondary" id="sync-mrr">Sync from Stripe</button>
             </div>
             <div class="config-item">
               <label for="config-cash">Cash Reserve ($)</label>
               <input type="number" id="config-cash" placeholder="Enter cash reserve" min="0" step="1000">
-              <button class="btn-small" id="save-cash">Save</button>
+              <button aria-label="Save" class="btn-small" id="save-cash">Save</button>
             </div>
           </div>
         </section>
@@ -813,7 +813,7 @@ export async function render(): Promise<string> {
         padding: var(--space-md, 1rem);
         background: var(--card-bg);
         border-radius: var(--radius-lg, 8px);
-        min-width: 150px;
+        min-width: min(150px, 100%);
       }
 
       .ltv-ratio {
@@ -885,7 +885,7 @@ export async function render(): Promise<string> {
 
       .ltv-config .config-item {
         flex: 1;
-        min-width: 150px;
+        min-width: min(150px, 100%);
       }
 
       /* ============== Power Users Section ============== */

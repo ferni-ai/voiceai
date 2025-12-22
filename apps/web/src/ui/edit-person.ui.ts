@@ -163,7 +163,7 @@ function injectStyles(): void {
     .edit-person-modal {
       position: relative;
       width: 94%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -581,7 +581,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .edit-person-modal {
         width: 100%;
         max-width: none;
@@ -635,13 +635,13 @@ function render(): void {
     </div>
     
     <div class="ep-tabs">
-      <button class="ep-tab ${state.activeTab === 'basic' ? 'active' : ''}" data-tab="basic">
+      <button aria-label="User profile" class="ep-tab ${state.activeTab === 'basic' ? 'active' : ''}" data-tab="basic">
         ${ICONS.user} Basic
       </button>
-      <button class="ep-tab ${state.activeTab === 'preferences' ? 'active' : ''}" data-tab="preferences">
+      <button aria-label="Settings" class="ep-tab ${state.activeTab === 'preferences' ? 'active' : ''}" data-tab="preferences">
         ${ICONS.settings} Preferences
       </button>
-      <button class="ep-tab ${state.activeTab === 'context' ? 'active' : ''}" data-tab="context">
+      <button aria-label="Context" class="ep-tab ${state.activeTab === 'context' ? 'active' : ''}" data-tab="context">
         ${ICONS.brain} Context
       </button>
     </div>
@@ -651,8 +651,8 @@ function render(): void {
     </div>
     
     <div class="ep-footer">
-      <button class="ep-btn ep-btn-secondary" id="ep-cancel">Cancel</button>
-      <button class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button aria-label="Cancel" class="ep-btn ep-btn-secondary" id="ep-cancel">Cancel</button>
+      <button aria-label="Submit" class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Save Changes'}
       </button>
     </div>
@@ -717,16 +717,16 @@ function renderBasicTab(): string {
     
     <!-- Danger Zone -->
     <div class="ep-danger-zone">
-      <button class="ep-danger-btn" id="ep-delete-btn">
+      <button aria-label="Delete" class="ep-danger-btn" id="ep-delete-btn">
         ${ICONS.trash} Remove from Your People
       </button>
       ${state.showDeleteConfirm ? `
         <div class="ep-delete-confirm">
           <div class="ep-delete-confirm-title">${ICONS.alertTriangle} Are you sure?</div>
           <p class="ep-delete-confirm-text">This will remove ${escapeHtml(state.name)} and all their history from Your People. This cannot be undone.</p>
-          <div class="ep-delete-confirm-actions">
-            <button class="ep-delete-confirm-btn ep-delete-confirm-cancel" id="ep-delete-cancel">Cancel</button>
-            <button class="ep-delete-confirm-btn ep-delete-confirm-delete" id="ep-delete-confirm">Remove</button>
+          <div class="ep-delete-confirm-actions" role="button" tabindex="0">
+            <button aria-label="Cancel" class="ep-delete-confirm-btn ep-delete-confirm-cancel" id="ep-delete-cancel">Cancel</button>
+            <button aria-label="Remove" class="ep-delete-confirm-btn ep-delete-confirm-delete" id="ep-delete-confirm">Remove</button>
           </div>
         </div>
       ` : ''}

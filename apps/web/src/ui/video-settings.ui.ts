@@ -224,12 +224,12 @@ class VideoSettingsUI {
         <div class="video-settings__controls">
           <h3>${t('videoSettings.controls.title')}</h3>
 
-          <button class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video">
+          <button aria-label="Settings" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video">
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
             <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
-          <button class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen">
+          <button aria-label="Settings" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen">
             <span class="video-settings__control-icon">${ICONS.screen}</span>
             <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
@@ -241,7 +241,7 @@ class VideoSettingsUI {
             ${modeOptions
               .map(
                 (mode) => `
-              <button class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
+              <button aria-label="Settings" class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
                 <span class="video-settings__mode-icon">${mode.icon}</span>
                 <span class="video-settings__mode-label">${mode.label}</span>
                 <span class="video-settings__mode-desc">${mode.desc}</span>
@@ -283,7 +283,7 @@ class VideoSettingsUI {
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
+        <button aria-label="Settings" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 
@@ -374,7 +374,7 @@ class VideoSettingsUI {
 
       .video-settings__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -648,7 +648,7 @@ class VideoSettingsUI {
         background: var(--color-background-secondary, #60504a);
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .video-settings__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;

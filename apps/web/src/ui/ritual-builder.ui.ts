@@ -485,8 +485,8 @@ class RitualBuilderUI {
         </div>
       </div>
 
-      <div class="ritual-builder__actions">
-        <button class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+      <div class="ritual-builder__actions" role="button" tabindex="0">
+        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
       </div>
     `;
 
@@ -563,11 +563,11 @@ class RitualBuilderUI {
       </header>
 
       <div class="ritual-builder__form">
-        <div class="ritual-builder__calendar-toggle">
+        <div class="ritual-builder__calendar-toggle" role="button" tabindex="0">
           <label class="ritual-builder__toggle-container">
             <input type="checkbox" id="schedule-toggle" ${this.ritual.scheduleInCalendar ? 'checked' : ''} />
-            <span class="ritual-builder__toggle-slider"></span>
-            <span class="ritual-builder__toggle-label">${BUILDER_COPY.fieldLabels.scheduleInCalendar}</span>
+            <span class="ritual-builder__toggle-slider" role="button" tabindex="0"></span>
+            <span class="ritual-builder__toggle-label" role="button" tabindex="0">${BUILDER_COPY.fieldLabels.scheduleInCalendar}</span>
           </label>
           <p class="ritual-builder__toggle-hint">
             ${this.ritual.scheduleInCalendar ? BUILDER_COPY.calendar.enabled : BUILDER_COPY.calendar.disabled}
@@ -584,7 +584,7 @@ class RitualBuilderUI {
                 class="engagement-input"
                 value="${this.ritual.specificTime ? `${String(this.ritual.specificTime.hour).padStart(2, '0')}:${String(this.ritual.specificTime.minute).padStart(2, '0')}` : ''}"
               />
-              <button type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
+              <button aria-label="Copy" type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
                 ${ICONS.clock}
                 ${BUILDER_COPY.buttons.suggestTimes}
               </button>
@@ -626,9 +626,9 @@ class RitualBuilderUI {
         </div>
       </div>
 
-      <div class="ritual-builder__actions">
-        <button class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
-        <button class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+      <div class="ritual-builder__actions" role="button" tabindex="0">
+        <button aria-label="Copy" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
+        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
       </div>
     `;
 
@@ -821,9 +821,9 @@ class RitualBuilderUI {
         </div>
       </div>
 
-      <div class="ritual-builder__actions">
-        <button class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
-        <button class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
+      <div class="ritual-builder__actions" role="button" tabindex="0">
+        <button aria-label="Edit" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
+        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
       </div>
     `;
 
@@ -896,7 +896,7 @@ class RitualBuilderUI {
 
       .ritual-builder__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated);

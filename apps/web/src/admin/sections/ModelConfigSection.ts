@@ -153,7 +153,7 @@ export async function render(): Promise<string> {
               <option value="${id}">${id}</option>
             `).join('')}
           </select>
-          <button class="admin-btn" data-action="load-persona">
+          <button aria-label="Load" class="admin-btn" data-action="load-persona">
             Load
           </button>
         </div>
@@ -167,8 +167,8 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Actions -->
-      <div class="admin-card model-config-actions">
-        <button class="admin-btn admin-btn--danger" data-action="reset-all">
+      <div class="admin-card model-config-actions" role="button" tabindex="0">
+        <button aria-label="Refresh" class="admin-btn admin-btn--danger" data-action="reset-all">
           <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
           Reset All to Defaults
         </button>
@@ -309,7 +309,7 @@ export async function render(): Promise<string> {
 
       .persona-select {
         flex: 1;
-        max-width: 200px;
+        max-width: min(200px, 100%);
         padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
         background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
@@ -453,8 +453,8 @@ function renderDefaultsForm(defaults: GeminiModelConfig): string {
         </div>
       </div>
 
-      <div class="config-actions">
-        <button type="submit" class="admin-btn">
+      <div class="config-actions" role="button" tabindex="0">
+        <button aria-label="Confirm" type="submit" class="admin-btn">
           <span class="admin-icon">${iconSm(ICON_CHECK)}</span>
           Save Defaults
         </button>
@@ -554,13 +554,13 @@ function renderPersonaForm(personaId: string, config: PersonaModelConfig | null)
         </div>
       </div>
 
-      <div class="config-actions">
-        <button type="submit" class="admin-btn">
+      <div class="config-actions" role="button" tabindex="0">
+        <button aria-label="Confirm" type="submit" class="admin-btn">
           <span class="admin-icon">${iconSm(ICON_CHECK)}</span>
           Save Persona Config
         </button>
         ${config ? `
-          <button type="button" class="admin-btn" data-action="delete-persona" data-persona-id="${personaId}">
+          <button aria-label="Refresh" type="button" class="admin-btn" data-action="delete-persona" data-persona-id="${personaId}">
             <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
             Reset to Defaults
           </button>
@@ -691,8 +691,8 @@ function renderToolDefaultsForm(config: ToolConfig): string {
         </div>
       </div>
 
-      <div class="config-actions">
-        <button type="submit" class="admin-btn">
+      <div class="config-actions" role="button" tabindex="0">
+        <button aria-label="Confirm" type="submit" class="admin-btn">
           <span class="admin-icon">${iconSm(ICON_CHECK)}</span>
           Save Tool Config
         </button>

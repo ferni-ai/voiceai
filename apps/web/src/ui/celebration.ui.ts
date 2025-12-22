@@ -160,7 +160,7 @@ export class CelebrationUI {
       right: '0',
       bottom: '0',
       pointerEvents: 'none',
-      zIndex: '10000',
+      zIndex: 'var(--z-tooltip)',
       overflow: 'hidden',
     });
 

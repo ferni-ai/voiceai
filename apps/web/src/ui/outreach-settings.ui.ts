@@ -204,10 +204,10 @@ function createSettingsPanel(): HTMLElement {
       <div class="outreach-settings-content">
         <!-- Master Toggle -->
         <section class="outreach-settings-section">
-          <div class="outreach-settings-toggle-row outreach-settings-master">
-            <div class="outreach-settings-toggle-info">
-              <span class="outreach-settings-toggle-label">Proactive Outreach</span>
-              <span class="outreach-settings-toggle-desc">Allow me to reach out to you between conversations</span>
+          <div class="outreach-settings-toggle-row outreach-settings-master" role="button" tabindex="0">
+            <div class="outreach-settings-toggle-info" role="button" tabindex="0">
+              <span class="outreach-settings-toggle-label" role="button" tabindex="0">Proactive Outreach</span>
+              <span class="outreach-settings-toggle-desc" role="button" tabindex="0">Allow me to reach out to you between conversations</span>
             </div>
             <label class="outreach-settings-switch">
               <input type="checkbox" id="outreach-enabled" ${currentPreferences.enabled ? 'checked' : ''}>
@@ -275,10 +275,10 @@ function createSettingsPanel(): HTMLElement {
           
           <!-- Quiet Hours -->
           <section class="outreach-settings-section">
-            <div class="outreach-settings-toggle-row">
-              <div class="outreach-settings-toggle-info">
-                <span class="outreach-settings-toggle-label">Quiet Hours</span>
-                <span class="outreach-settings-toggle-desc">No outreach during these times</span>
+            <div class="outreach-settings-toggle-row" role="button" tabindex="0">
+              <div class="outreach-settings-toggle-info" role="button" tabindex="0">
+                <span class="outreach-settings-toggle-label" role="button" tabindex="0">Quiet Hours</span>
+                <span class="outreach-settings-toggle-desc" role="button" tabindex="0">No outreach during these times</span>
               </div>
               <label class="outreach-settings-switch">
                 <input type="checkbox" id="quiet-hours-enabled" ${currentPreferences.quietHours.enabled ? 'checked' : ''}>
@@ -358,7 +358,7 @@ function createSettingsPanel(): HTMLElement {
       </div>
       
       <footer class="outreach-settings-footer">
-        <button class="outreach-settings-save">Save Preferences</button>
+        <button aria-label="Save Preferences" class="outreach-settings-save">Save Preferences</button>
       </footer>
     </div>
   `;
@@ -464,7 +464,7 @@ function getStyles(): string {
     .outreach-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -488,7 +488,7 @@ function getStyles(): string {
     .outreach-settings-card {
       position: relative;
       width: 90%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 85vh;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl);

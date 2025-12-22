@@ -40,7 +40,7 @@ const STYLES = `
   .roleplay-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -58,7 +58,7 @@ const STYLES = `
   .roleplay-mode-modal {
     position: relative;
     width: 100%;
-    max-width: 550px;
+    max-width: clamp(385px, 90vw, 550px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -478,7 +478,7 @@ function render(): string {
           
           <div class="roleplay-scenarios-grid">
             ${SCENARIO_TEMPLATES.map(scenario => `
-              <button class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+              <button aria-label="Play" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
                 <div class="roleplay-scenario-icon">${scenario.icon}</div>
                 <p class="roleplay-scenario-name">${scenario.name}</p>
                 <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -504,11 +504,11 @@ function render(): string {
             </div>
           ` : ''}
 
-          <div class="roleplay-actions">
-            <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+          <div class="roleplay-actions" role="button" tabindex="0">
+            <button aria-label="Cancel" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button 
+            <button aria-label="Begin Scene" 
               class="roleplay-btn roleplay-btn--primary" 
               data-action="start-roleplay"
               ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
@@ -669,7 +669,7 @@ function renderContent(): string {
     
     <div class="roleplay-scenarios-grid">
       ${SCENARIO_TEMPLATES.map(scenario => `
-        <button class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+        <button aria-label="Play" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
           <div class="roleplay-scenario-icon">${scenario.icon}</div>
           <p class="roleplay-scenario-name">${scenario.name}</p>
           <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -695,11 +695,11 @@ function renderContent(): string {
       </div>
     ` : ''}
 
-    <div class="roleplay-actions">
-      <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+    <div class="roleplay-actions" role="button" tabindex="0">
+      <button aria-label="Cancel" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
         Cancel
       </button>
-      <button 
+      <button aria-label="Begin Scene" 
         class="roleplay-btn roleplay-btn--primary" 
         data-action="start-roleplay"
         ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}

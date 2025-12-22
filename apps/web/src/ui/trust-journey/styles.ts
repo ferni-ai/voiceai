@@ -60,7 +60,7 @@ function getStyles(): string {
       position: relative;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
-      max-width: 720px;
+      max-width: clamp(504px, 90vw, 720px);
       width: calc(100% - var(--space-8, 32px));
       max-height: calc(100vh - var(--space-12, 48px));
       overflow: hidden;
@@ -177,7 +177,7 @@ function getStyles(): string {
     
     .trust-strength-ring {
       position: relative;
-      width: 180px;
+      width: min(180px, 100%);
       height: 180px;
       margin: 0 auto var(--space-4, 16px);
     }
@@ -229,7 +229,7 @@ function getStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
       color: var(--color-text-secondary, #5C544A);
-      max-width: 400px;
+      max-width: min(400px, 100%);
       margin: 0 auto;
       line-height: var(--leading-relaxed, 1.6);
     }
@@ -575,7 +575,7 @@ function getStyles(): string {
     .trust-journey-skeleton { padding: var(--space-6, 24px); }
     
     .skeleton-ring {
-      width: 180px;
+      width: min(180px, 100%);
       height: 180px;
       margin: 0 auto var(--space-4, 16px);
       background: var(--color-background-secondary, #F5F1E8);
@@ -644,7 +644,7 @@ function getStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
       color: var(--color-text-secondary, #5C544A);
-      max-width: 320px;
+      max-width: min(320px, 100%);
       margin: 0 auto;
     }
     
@@ -804,7 +804,7 @@ function getStyles(): string {
     /* ========================================================================
        RESPONSIVE
        ======================================================================== */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .trust-journey-card {
         max-height: calc(100vh - var(--space-4, 16px));
         border-radius: var(--radius-xl, 20px);
@@ -813,8 +813,8 @@ function getStyles(): string {
       .trust-stats-grid { grid-template-columns: repeat(2, 1fr); }
       .skeleton-stats { grid-template-columns: repeat(2, 1fr); }
       
-      .trust-strength-ring { width: 140px; height: 140px; }
-      .skeleton-ring { width: 140px; height: 140px; }
+      .trust-strength-ring { width: min(140px, 100%); height: 140px; }
+      .skeleton-ring { width: min(140px, 100%); height: 140px; }
       
       .trust-strength-value { font-size: var(--text-3xl, 32px); }
     }

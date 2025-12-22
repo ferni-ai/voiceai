@@ -1326,7 +1326,7 @@ function injectStyles(): void {
       border-radius: 50%;
       overflow: hidden;
       pointer-events: none;
-      z-index: 10;
+      z-index: var(--z-docked);
     }
     
     .lid-svg {
@@ -1370,7 +1370,7 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 15;
+      z-index: var(--z-dropdown);
     }
     
     .emotion-sparkle {
@@ -1381,7 +1381,7 @@ function injectStyles(): void {
     
     /* Morph icon container */
     .morph-icon-container {
-      z-index: 5;
+      z-index: var(--z-docked);
     }
     
     .morph-icon-container svg {

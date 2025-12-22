@@ -96,7 +96,7 @@ const STYLES = `
 .outreach-schedule-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,7 +120,7 @@ const STYLES = `
 .outreach-schedule-modal {
   position: relative;
   width: 90%;
-  max-width: 560px;
+  max-width: clamp(392px, 90vw, 560px);
   max-height: 80vh;
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 20px);
@@ -552,11 +552,11 @@ function createModal(): void {
           </button>
         </div>
         <div class="outreach-schedule-tabs">
-          <button class="outreach-schedule-tab active" data-tab="upcoming">
+          <button aria-label="Upcoming" class="outreach-schedule-tab active" data-tab="upcoming">
             ${ICONS.calendar}
             Upcoming
           </button>
-          <button class="outreach-schedule-tab" data-tab="history">
+          <button aria-label="History" class="outreach-schedule-tab" data-tab="history">
             ${ICONS.history}
             History
           </button>
@@ -711,17 +711,17 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
       </div>
       <p class="outreach-item-preview">${item.preview.body}</p>
       <p class="outreach-item-reason">"${item.reason}"</p>
-      <div class="outreach-item-actions">
-        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+      <div class="outreach-item-actions" role="button" tabindex="0">
+        <button aria-label="Preview" class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
           ${ICONS.eye} Preview
         </button>
         ${item.canReschedule ? `
-          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+          <button aria-label="Edit" class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
             ${ICONS.edit} Reschedule
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+          <button aria-label="Delete" class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
             ${ICONS.trash} Cancel
           </button>
         ` : ''}
@@ -885,7 +885,7 @@ function addPreviewStyles(): void {
     .outreach-preview-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -901,7 +901,7 @@ function addPreviewStyles(): void {
     .outreach-preview-modal {
       position: relative;
       width: 90%;
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.2);
@@ -971,7 +971,7 @@ function addPreviewStyles(): void {
     .outreach-reschedule-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -982,7 +982,7 @@ function addPreviewStyles(): void {
     .outreach-reschedule-modal {
       position: relative;
       width: 90%;
-      max-width: 360px;
+      max-width: min(360px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: 16px;
       padding: 24px;
@@ -1043,17 +1043,17 @@ async function showReschedule(outreachId: string): Promise<void> {
     <div class="outreach-reschedule-modal">
       <h3 class="outreach-reschedule-title">Reschedule check-in</h3>
       <div class="outreach-reschedule-options">
-        <button class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
+        <button aria-label="In 1 hour ()})" class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
           In 1 hour (${in1Hour.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
         </button>
-        <button class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
+        <button aria-label="In 3 hours ()})" class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
           In 3 hours (${in3Hours.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
         </button>
-        <button class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
+        <button aria-label="Tomorrow morning (9:00 AM)" class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
           Tomorrow morning (9:00 AM)
         </button>
       </div>
-      <button class="outreach-reschedule-cancel">Cancel</button>
+      <button aria-label="Cancel" class="outreach-reschedule-cancel">Cancel</button>
     </div>
   `;
 

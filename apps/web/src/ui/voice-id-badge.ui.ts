@@ -42,7 +42,7 @@ const BADGE_STYLES = `
     transform: scale(0);
     transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
                 transform ${DURATION.NORMAL}ms ${EASING.SPRING};
-    z-index: 10;
+    z-index: var(--z-docked);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   

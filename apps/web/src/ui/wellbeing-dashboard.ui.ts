@@ -87,7 +87,7 @@ const styles = `
   .wellbeing-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -111,7 +111,7 @@ const styles = `
   .wellbeing-modal {
     position: relative;
     width: 95%;
-    max-width: 720px;
+    max-width: clamp(504px, 90vw, 720px);
     max-height: 90vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 24px);
@@ -195,7 +195,7 @@ const styles = `
   
   .wellbeing-score-ring {
     position: relative;
-    width: 160px;
+    width: min(160px, 100%);
     height: 160px;
   }
   
@@ -368,7 +368,7 @@ const styles = `
   
   .wellbeing-calendar__cell:hover {
     transform: scale(1.2);
-    z-index: 1;
+    z-index: var(--z-docked);
   }
   
   .wellbeing-calendar__cell--empty {
@@ -1109,7 +1109,7 @@ function createModal(): void {
       </div>
       <footer class="wellbeing-modal__footer">
         <span class="wellbeing-modal__footer-info" id="wellbeing-footer-info"></span>
-        <button class="wellbeing-btn" data-action="close">Done</button>
+        <button aria-label="Done" class="wellbeing-btn" data-action="close">Done</button>
       </footer>
     </div>
   `;
@@ -1160,7 +1160,7 @@ function renderContent(): void {
       <div class="wellbeing-empty">
         <div class="wellbeing-empty__icon">${ICONS.heart}</div>
         <p>Not enough data yet. Keep chatting with Ferni to build your wellbeing profile!</p>
-        <button class="wellbeing-btn wellbeing-btn--secondary" data-action="start-conversation">
+        <button aria-label="Start a Conversation" class="wellbeing-btn wellbeing-btn--secondary" data-action="start-conversation">
           Start a Conversation
         </button>
       </div>

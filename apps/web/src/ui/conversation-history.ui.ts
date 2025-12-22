@@ -393,7 +393,7 @@ class ConversationHistoryUI {
       .history__card {
         position: relative;
         width: 100%;
-        max-width: 480px;
+        max-width: clamp(336px, 90vw, 480px);
         max-height: 80vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 1.5rem);
@@ -806,7 +806,7 @@ class ConversationHistoryUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .history {
           padding: var(--space-4, 16px);
         }

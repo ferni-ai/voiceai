@@ -136,7 +136,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       opacity: 0;
       visibility: hidden;
       transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD},
@@ -161,7 +161,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - 48px);
       max-height: calc(100vh - 48px);
       overflow: hidden;
@@ -246,7 +246,7 @@ function injectStyles(): void {
     
     .voice-enrollment-mic-container {
       position: relative;
-      width: 100px;
+      width: min(100px, 100%);
       height: 100px;
     }
     
@@ -380,7 +380,7 @@ function injectStyles(): void {
     }
     
     .voice-enrollment-quality-bar {
-      width: 100px;
+      width: min(100px, 100%);
       height: 4px;
       background: var(--color-background-subtle, rgba(0,0,0,0.1));
       border-radius: 2px;
@@ -643,8 +643,8 @@ function renderNotAvailableState(): string {
         Voice authentication isn't available right now. 
         This may be a temporary issue—please try again later.
       </p>
-      <div class="voice-enrollment-actions">
-        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+      <div class="voice-enrollment-actions" role="button" tabindex="0">
+        <button aria-label="Got it" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Got it
         </button>
       </div>
@@ -679,11 +679,11 @@ function renderAlreadyEnrolledState(profile: VoiceProfile): string {
         </div>
       </div>
       
-      <div class="voice-enrollment-actions">
-        <button class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
+      <div class="voice-enrollment-actions" role="button" tabindex="0">
+        <button aria-label="Delete" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
           ${ICONS.trash} Delete voiceprint
         </button>
-        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button aria-label="Done" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Done
         </button>
       </div>
@@ -713,11 +713,11 @@ function renderReadyState(): string {
       ${renderProgressDots(0, 5)}
     </div>
     
-    <div class="voice-enrollment-actions">
-      <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
+    <div class="voice-enrollment-actions" role="button" tabindex="0">
+      <button aria-label="Maybe later" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
         Maybe later
       </button>
-      <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
+      <button aria-label="Start enrollment" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
         Start enrollment
       </button>
     </div>
@@ -788,8 +788,8 @@ function renderCompleteState(): string {
         Now I can recognize you and remember our conversations better. 
         It's like you've become a familiar friend.
       </p>
-      <div class="voice-enrollment-actions">
-        <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
+      <div class="voice-enrollment-actions" role="button" tabindex="0">
+        <button aria-label="Let's talk!" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
           Let's talk!
         </button>
       </div>
@@ -805,11 +805,11 @@ function renderErrorState(message: string): string {
       </div>
       <h3 class="voice-enrollment-status-title">Something went wrong</h3>
       <p class="voice-enrollment-status-message">${message}</p>
-      <div class="voice-enrollment-actions">
-        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
+      <div class="voice-enrollment-actions" role="button" tabindex="0">
+        <button aria-label="Try again" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
           Try again
         </button>
-        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button aria-label="Close" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Close
         </button>
       </div>

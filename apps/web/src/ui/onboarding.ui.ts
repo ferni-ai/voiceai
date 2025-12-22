@@ -214,9 +214,9 @@ class OnboardingUI {
           ${this.steps.map((_, i) => `<span class="onboarding__dot ${i === this.currentStep ? 'onboarding__dot--active' : ''}"></span>`).join('')}
         </div>
         
-        <div class="onboarding__actions">
+        <div class="onboarding__actions" role="button" tabindex="0">
           ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
-          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
+          <button aria-label="Next" class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;
@@ -285,7 +285,7 @@ class OnboardingUI {
 
       .onboarding__card {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         padding: var(--ma-vastness, 55px) var(--ma-silence, 34px);
         background: var(--color-background-elevated, #fffdfb);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));

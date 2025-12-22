@@ -190,11 +190,11 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </button>
-    <div class="proactive-outreach__actions">
-      <button class="proactive-outreach__action proactive-outreach__action--respond" type="button">
+    <div class="proactive-outreach__actions" role="button" tabindex="0">
+      <button aria-label="Let's talk" class="proactive-outreach__action proactive-outreach__action--respond" type="button">
         Let's talk
       </button>
-      <button class="proactive-outreach__action proactive-outreach__action--later" type="button">
+      <button aria-label="Later" class="proactive-outreach__action proactive-outreach__action--later" type="button">
         Later
       </button>
     </div>
@@ -244,7 +244,7 @@ function injectStyles(): void {
       top: 80px;
       right: 20px;
       z-index: var(--z-notification, 3000);
-      max-width: 360px;
+      max-width: min(360px, 100%);
       pointer-events: none;
     }
 

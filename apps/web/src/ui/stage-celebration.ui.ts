@@ -190,7 +190,7 @@ function injectStyles(): void {
       border-radius: var(--radius-2xl, 24px);
       padding: var(--space-10, 40px) var(--space-12, 48px);
       text-align: center;
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       width: calc(100% - var(--space-8, 32px));
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25));
       transform: scale(0.9) translateY(20px);
@@ -297,7 +297,7 @@ function injectStyles(): void {
       font-size: var(--text-button-md, 16px);
       font-weight: var(--font-weight-semibold, 600);
       cursor: pointer;
-      transition: all 200ms ease-out;
+      transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .celebration-dismiss:hover {
@@ -344,7 +344,7 @@ function injectStyles(): void {
       position: relative;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - var(--space-8, 32px));
       max-height: calc(100vh - var(--space-16, 64px));
       overflow: hidden;
@@ -406,7 +406,7 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 9999px);
       color: var(--color-text-secondary, #5C544A);
       cursor: pointer;
-      transition: all 200ms ease-out;
+      transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .journey-close:hover {
@@ -550,7 +550,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px) var(--space-3, 12px);
       background: var(--color-background-secondary, #F5F1E8);
       border-radius: var(--radius-lg, 12px);
-      transition: all 200ms ease-out;
+      transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .stat-card:hover {
@@ -629,7 +629,7 @@ function injectStyles(): void {
       padding: var(--space-3, 12px);
       background: var(--color-background-secondary, #F5F1E8);
       border-radius: var(--radius-md, 8px);
-      transition: all 200ms ease-out;
+      transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .memory-item:hover {
@@ -718,7 +718,7 @@ function injectStyles(): void {
       border: 1px solid transparent;
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
-      transition: all 200ms ease-out;
+      transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .memory-filter:hover {
@@ -918,7 +918,7 @@ function injectStyles(): void {
     /* ========================================================================
        RESPONSIVE - Mobile-first adjustments
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .celebration-card,
       .journey-card {
         margin: var(--space-4, 16px);
@@ -976,7 +976,7 @@ function createCelebrationOverlay(): void {
         <span class="stage-arrow">${ICONS.chevronRight}</span>
         <span class="stage-to"></span>
       </div>
-      <button class="celebration-dismiss">Continue our journey</button>
+      <button aria-label="Continue our journey" class="celebration-dismiss">Continue our journey</button>
     </div>
   `;
   
@@ -1100,10 +1100,10 @@ function createProgressPanel(): void {
             <h3 class="memories-title">Moments we share</h3>
           </div>
           <div class="memories-filters">
-            <button class="memory-filter memory-filter--active" data-filter="all">All</button>
-            <button class="memory-filter" data-filter="stage-up">Milestones</button>
-            <button class="memory-filter" data-filter="streak-milestone">Streaks</button>
-            <button class="memory-filter" data-filter="insight">Insights</button>
+            <button aria-label="All" class="memory-filter memory-filter--active" data-filter="all">All</button>
+            <button aria-label="Milestones" class="memory-filter" data-filter="stage-up">Milestones</button>
+            <button aria-label="Streaks" class="memory-filter" data-filter="streak-milestone">Streaks</button>
+            <button aria-label="Insights" class="memory-filter" data-filter="insight">Insights</button>
           </div>
           <div class="memories-list"></div>
         </section>

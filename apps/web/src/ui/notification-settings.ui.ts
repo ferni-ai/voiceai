@@ -101,7 +101,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="enabled" ${this.localPrefs.enabled ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
           </div>
@@ -116,7 +116,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="ritualReminders" ${this.localPrefs.ritualReminders ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -127,7 +127,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="streakMilestones" ${this.localPrefs.streakMilestones ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -138,7 +138,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="predictionResults" ${this.localPrefs.predictionResults ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -149,7 +149,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="teamHuddles" ${this.localPrefs.teamHuddles ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -160,7 +160,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
           </div>
@@ -192,7 +192,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-outreach="emailEnabled" ${this.outreachPrefs?.emailEnabled ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -203,7 +203,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -214,7 +214,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -225,7 +225,7 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-outreach="streakReminders" ${this.outreachPrefs?.streakReminders ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
 
@@ -236,15 +236,15 @@ class NotificationSettingsUI {
               </div>
               <label class="notif-settings__toggle">
                 <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
-                <span class="notif-settings__toggle-track"></span>
+                <span class="notif-settings__toggle-track" role="button" tabindex="0"></span>
               </label>
             </div>
           </div>
         </div>
 
         <div class="notif-settings__footer">
-          <button class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">Cancel</button>
-          <button class="notif-settings__btn notif-settings__btn--primary" data-action="save">Save Settings</button>
+          <button aria-label="Cancel" class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">Cancel</button>
+          <button aria-label="Settings" class="notif-settings__btn notif-settings__btn--primary" data-action="save">Save Settings</button>
         </div>
       </div>
     `;
@@ -366,7 +366,7 @@ class NotificationSettingsUI {
 
       .notif-settings__card {
         width: 100%;
-        max-width: 440px;
+        max-width: clamp(308px, 90vw, 440px);
         max-height: 85vh;
         background: var(--color-background-elevated, #fffdfb);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));

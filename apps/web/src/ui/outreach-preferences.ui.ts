@@ -101,7 +101,7 @@ const STYLES = `
   .outreach-prefs-card {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: clamp(294px, 90vw, 420px);
     max-height: 85vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
@@ -333,7 +333,7 @@ const STYLES = `
   }
 
   .outreach-prefs-slider {
-    width: 100px;
+    width: min(100px, 100%);
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
@@ -588,10 +588,10 @@ class OutreachPreferencesUI {
         </header>
         <div class="outreach-prefs-content"></div>
         <footer class="outreach-prefs-footer">
-          <button class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
+          <button aria-label="Cancel" class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
             Cancel
           </button>
-          <button class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
+          <button aria-label="Save Changes" class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
             Save Changes
           </button>
         </footer>
@@ -626,13 +626,13 @@ class OutreachPreferencesUI {
     content.innerHTML = `
       <!-- Master Toggle -->
       <div class="outreach-prefs-section">
-        <div class="outreach-prefs-toggle-row">
-          <div class="outreach-prefs-toggle-info">
-            <span class="outreach-prefs-toggle-label">Proactive check-ins</span>
-            <span class="outreach-prefs-toggle-desc">Let Ferni reach out when something comes to mind</span>
+        <div class="outreach-prefs-toggle-row" role="button" tabindex="0">
+          <div class="outreach-prefs-toggle-info" role="button" tabindex="0">
+            <span class="outreach-prefs-toggle-label" role="button" tabindex="0">Proactive check-ins</span>
+            <span class="outreach-prefs-toggle-desc" role="button" tabindex="0">Let Ferni reach out when something comes to mind</span>
           </div>
-          <div class="outreach-prefs-toggle ${p.enabled ? 'outreach-prefs-toggle--on' : ''}" data-pref="enabled">
-            <div class="outreach-prefs-toggle-knob"></div>
+          <div class="outreach-prefs-toggle ${p.enabled ? 'outreach-prefs-toggle--on' : ''}" role="button" tabindex="0" data-pref="enabled">
+            <div class="outreach-prefs-toggle-knob" role="button" tabindex="0"></div>
           </div>
         </div>
       </div>

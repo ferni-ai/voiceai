@@ -90,7 +90,7 @@ const STYLES = `
   .digital-twin-modal {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -232,7 +232,7 @@ const STYLES = `
     font-size: 15px;
     color: var(--color-text-secondary, #5a5048);
     line-height: 1.6;
-    max-width: 400px;
+    max-width: min(400px, 100%);
     margin: 0 auto var(--space-6, 24px);
   }
 
@@ -595,7 +595,7 @@ const STYLES = `
     color: var(--color-text-secondary, #5a5048);
     line-height: 1.6;
     margin: 0 0 var(--space-4, 16px);
-    max-width: 320px;
+    max-width: min(320px, 100%);
     margin-left: auto;
     margin-right: auto;
   }
@@ -688,7 +688,7 @@ const STYLES = `
   }
 
   /* Responsive */
-  @media (max-width: 480px) {
+  @media (max-width: clamp(336px, 90vw, 480px)) {
     .digital-twin-modal__container {
       width: 100%;
       height: 100%;
@@ -746,7 +746,7 @@ function renderOnboarding(): string {
         </div>
       </div>
 
-      <button class="digital-twin-create-btn" data-action="create">
+      <button aria-label="Add" class="digital-twin-create-btn" data-action="create">
         ${ICONS.plus}
         Create Your Digital Twin
       </button>
@@ -783,7 +783,7 @@ function renderTwinsList(): string {
         : '';
 
       return `
-        <button class="digital-twin-card" data-twin-id="${twin.id}">
+        <button aria-label="Go forward" class="digital-twin-card" data-twin-id="${twin.id}">
           <div class="digital-twin-card__avatar">
             ${ICONS.journal}
             ${streakBadge}
@@ -801,7 +801,7 @@ function renderTwinsList(): string {
               </span>
             </div>
           </div>
-          <div class="digital-twin-card__action">
+          <div class="digital-twin-card__action" role="button" tabindex="0">
             ${ICONS.chevronRight}
           </div>
         </button>
@@ -815,7 +815,7 @@ function renderTwinsList(): string {
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button class="digital-twin-add-btn" data-action="create">
+    <button aria-label="Add" class="digital-twin-add-btn" data-action="create">
       ${ICONS.plus}
       Create Another Journal
     </button>
@@ -844,11 +844,11 @@ function renderAutoCaptureCard(): string {
           breakthroughs, decisions, gratitude - and add them to your journal. 
           You're always in control.
         </p>
-        <button class="digital-twin-consent__btn" data-action="enable-capture">
+        <button aria-label="Confirm" class="digital-twin-consent__btn" data-action="enable-capture">
           ${ICONS.check}
           Yes, remember what matters
         </button>
-        <button class="digital-twin-consent__skip" data-action="skip-capture">
+        <button aria-label="Maybe later" class="digital-twin-consent__skip" data-action="skip-capture">
           Maybe later
         </button>
       </div>
@@ -865,7 +865,7 @@ function renderAutoCaptureCard(): string {
         </div>
         <label class="digital-twin-toggle">
           <input type="checkbox" ${isEnabled ? 'checked' : ''} data-action="toggle-capture" />
-          <span class="digital-twin-toggle-track"></span>
+          <span class="digital-twin-toggle-track" role="button" tabindex="0"></span>
         </label>
       </div>
       <p class="digital-twin-capture-description">

@@ -195,12 +195,12 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       </div>
       
       <!-- Action -->
-      <div class="unlock-actions">
-        <button class="unlock-button unlock-button--primary" data-action="meet">
+      <div class="unlock-actions" role="button" tabindex="0">
+        <button aria-label="Say Hello" class="unlock-button unlock-button--primary" data-action="meet">
           ${ICONS.heart}
           <span>Say Hello</span>
         </button>
-        <button class="unlock-button unlock-button--secondary" data-action="later">
+        <button aria-label="Maybe Later" class="unlock-button unlock-button--secondary" data-action="later">
           Maybe Later
         </button>
       </div>
@@ -372,7 +372,7 @@ function injectStyles(): void {
       box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.25),
         0 0 0 1px rgba(255, 255, 255, 0.1);
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       text-align: center;
@@ -394,7 +394,7 @@ function injectStyles(): void {
       justify-content: center;
       color: var(--color-text-muted, #7a6f63);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      z-index: 10;
+      z-index: var(--z-docked);
     }
     
     .unlock-close:hover {
@@ -444,7 +444,7 @@ function injectStyles(): void {
     /* Avatar */
     .unlock-avatar-container {
       position: relative;
-      width: 100px;
+      width: min(100px, 100%);
       height: 100px;
       margin: 0 auto var(--space-6, 24px);
       opacity: 0;
@@ -620,7 +620,7 @@ function injectStyles(): void {
     }
     
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .team-unlock-celebration {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -655,7 +655,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .unlock-card {
           max-height: -webkit-fill-available;
         }

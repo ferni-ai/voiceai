@@ -148,7 +148,7 @@ function ensureModalExists(): HTMLElement {
   profileModal = document.createElement('div');
   profileModal.className = 'twin-profile-overlay';
   profileModal.innerHTML = `
-    <div class="profile-backdrop" data-action="close"></div>
+    <div class="profile-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="profile-container" role="dialog" aria-modal="true" aria-labelledby="profile-title">
       <header class="profile-header">
         <div class="profile-header-content">
@@ -178,10 +178,10 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="profile-footer">
-        <button class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
+        <button aria-label="Back" class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
           Back
         </button>
-        <button class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
+        <button aria-label="Continue" class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
           Continue
         </button>
       </footer>
@@ -417,13 +417,13 @@ function renderBackgroundSection(): string {
                      value="${chapter.years}" data-field="years">
               <textarea class="chapter-desc" placeholder="What defined this chapter?" 
                         data-field="description">${chapter.description}</textarea>
-              <button class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
+              <button aria-label="Remove" class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button class="add-btn" data-action="add-chapter">
+        <button aria-label="Add a life chapter" class="add-btn" data-action="add-chapter">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -443,13 +443,13 @@ function renderBackgroundSection(): string {
             <div class="relationship-row" data-index="${i}">
               <input type="text" placeholder="Name" value="${rel.name}" data-field="name">
               <input type="text" placeholder="Relationship" value="${rel.relationship}" data-field="relationship">
-              <button class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
+              <button aria-label="Close" class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button class="add-btn" data-action="add-relationship">
+        <button aria-label="Add a relationship" class="add-btn" data-action="add-relationship">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -491,13 +491,13 @@ function renderMannerismsSection(): string {
                      value="${phrase.phrase}" data-field="phrase">
               <input type="text" class="phrase-context" placeholder="When do you say this?" 
                      value="${phrase.context}" data-field="context">
-              <button class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
+              <button aria-label="Close" class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button class="add-btn" data-action="add-phrase">
+        <button aria-label="Add a phrase" class="add-btn" data-action="add-phrase">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -622,22 +622,22 @@ function renderCommunicationSection(): string {
 
       <div class="form-group">
         <label class="form-label">Communication Tendencies</label>
-        <div class="toggle-grid">
+        <div class="toggle-grid" role="button" tabindex="0">
           <label class="toggle-option">
             <input type="checkbox" id="toggle-storytelling" ${style.storytelling ? 'checked' : ''}>
-            <span class="toggle-text">I often tell stories to make a point</span>
+            <span class="toggle-text" role="button" tabindex="0">I often tell stories to make a point</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-metaphors" ${style.usesMetaphors ? 'checked' : ''}>
-            <span class="toggle-text">I use metaphors and analogies</span>
+            <span class="toggle-text" role="button" tabindex="0">I use metaphors and analogies</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-questions" ${style.askingQuestions ? 'checked' : ''}>
-            <span class="toggle-text">I ask a lot of questions</span>
+            <span class="toggle-text" role="button" tabindex="0">I ask a lot of questions</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-advice" ${style.givingAdvice ? 'checked' : ''}>
-            <span class="toggle-text">I naturally give advice</span>
+            <span class="toggle-text" role="button" tabindex="0">I naturally give advice</span>
           </label>
         </div>
       </div>
@@ -661,7 +661,7 @@ function renderValuesSection(): string {
         </div>
         <div class="custom-value-input">
           <input type="text" id="custom-value" placeholder="Add a custom value...">
-          <button class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
+          <button aria-label="Add" class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
         </div>
       </div>
 
@@ -1340,7 +1340,7 @@ function getProfileStyles(): string {
     .profile-container {
       position: relative;
       width: 90vw;
-      max-width: 640px;
+      max-width: clamp(448px, 90vw, 640px);
       max-height: 90vh;
       background: var(--color-bg-elevated, #1a1a2e);
       border-radius: var(--radius-2xl, 24px);
@@ -1565,7 +1565,7 @@ function getProfileStyles(): string {
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.95rem;
       color: var(--color-text-secondary);
-      max-width: 380px;
+      max-width: min(380px, 100%);
       margin: 0 auto;
       line-height: 1.6;
     }
@@ -1791,7 +1791,7 @@ function getProfileStyles(): string {
     }
     
     .emotion-label {
-      min-width: 120px;
+      min-width: min(120px, 100%);
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.85rem;
       color: var(--color-text-secondary);
@@ -2034,7 +2034,7 @@ function getProfileStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .profile-container {
         width: 100vw;
         height: 100vh;

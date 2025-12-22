@@ -136,7 +136,7 @@ function injectStyles(): void {
       position: relative;
       z-index: var(--z-modal);
       width: 100%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
       overflow-y: auto;
       background: var(--color-bg-elevated);
@@ -441,7 +441,7 @@ function renderProviderCard(status: ProviderStatus): string {
             </div>
           ` : ''}
         </div>
-        <div class="provider-actions">
+        <div class="provider-actions" role="button" tabindex="0">
           <button 
             class="provider-action-btn" 
             data-action="sync" 

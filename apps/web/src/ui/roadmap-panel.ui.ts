@@ -255,7 +255,7 @@ class RoadmapPanelUI {
             <div class="roadmap-panel__seed-balance" data-seeds-info>
               <span class="roadmap-panel__seed-icon">${ICONS.seed}</span>
               <span class="roadmap-panel__seed-count">${seedBalance}</span>
-              <span class="roadmap-panel__seed-info-trigger" title="${t('roadmap.howSeedsWork.title') || 'How do seeds work?'}">?</span>
+              <span class="roadmap-panel__seed-info-trigger" role="button" tabindex="0" title="${t('roadmap.howSeedsWork.title') || 'How do seeds work?'}">?</span>
             </div>
             ${this.renderStreakProgress()}
           </div>
@@ -280,7 +280,7 @@ class RoadmapPanelUI {
           </div>
 
           <!-- Suggest a Feature Button -->
-          <button class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
+          <button aria-label=") || '5 seeds'}" class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
             <span class="roadmap-panel__suggest-icon">${ICONS.lightbulb}</span>
             <span class="roadmap-panel__suggest-text">${t('roadmap.plantNewSeed') || 'Plant a New Seed'}</span>
             <span class="roadmap-panel__suggest-cost">${t('roadmap.costSeeds', { count: 5 }) || '5 seeds'}</span>
@@ -404,7 +404,7 @@ class RoadmapPanelUI {
     const confidenceIcon = rec.confidence === 'high' ? ICONS.target : rec.confidence === 'medium' ? ICONS.lightbulb : ICONS.seed;
 
     return `
-      <button class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
+      <button aria-label="Close" class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
         <div class="roadmap-recommendation__badge">${confidenceIcon}</div>
         <div class="roadmap-recommendation__content">
           <div class="roadmap-recommendation__header">
@@ -438,7 +438,7 @@ class RoadmapPanelUI {
     const totalSeeds = feature.totalSeeds || 0;
 
     return `
-      <button class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
+      <button aria-label="Go forward" class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
         <div class="roadmap-card__header">
           <div class="roadmap-card__icon">${featureIcon}</div>
           <span class="roadmap-card__stage ${stageInfo.colorClass}">
@@ -594,8 +594,8 @@ class RoadmapPanelUI {
                   <button class="roadmap-detail__plant-btn"
                           data-action="plant-multiple"
                           data-feature="${feature.id}">
-                    <span class="roadmap-detail__plant-btn-icon">${ICONS.seed}</span>
-                    <span class="roadmap-detail__plant-btn-text">${t('roadmap.plantNow') || 'Plant Now'}</span>
+                    <span class="roadmap-detail__plant-btn-icon" role="button" tabindex="0">${ICONS.seed}</span>
+                    <span class="roadmap-detail__plant-btn-text" role="button" tabindex="0">${t('roadmap.plantNow') || 'Plant Now'}</span>
                   </button>
                 </div>
               ` : `
@@ -605,7 +605,7 @@ class RoadmapPanelUI {
               `}
 
               ${hasVoted ? `
-                <button class="roadmap-detail__remove-btn"
+                <button aria-label="()" class="roadmap-detail__remove-btn"
                         data-action="unplant"
                         data-feature="${feature.id}">
                   ${t('roadmap.removeSeeds') || 'Remove my seeds'} (${t('roadmap.refund50') || '50% refund'})
@@ -700,7 +700,7 @@ class RoadmapPanelUI {
               </span>
             </div>
 
-            <button
+            <button aria-label="Submit"
               type="submit"
               class="roadmap-suggestion__submit"
               ${seedBalance < 5 ? 'disabled' : ''}>
@@ -1112,7 +1112,7 @@ class RoadmapPanelUI {
       .roadmap-panel__card {
         position: relative;
         width: 100%;
-        max-width: 600px;
+        max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-2xl, 24px);
@@ -1333,8 +1333,8 @@ class RoadmapPanelUI {
          ======================================================================== */
       .roadmap-panel__seeds-tooltip {
         position: absolute;
-        z-index: 100;
-        min-width: 240px;
+        z-index: var(--z-docked);
+        min-width: min(240px, 100%);
         padding: var(--space-4, 16px);
         background: var(--color-background-elevated, #fff);
         border-radius: var(--radius-lg, 12px);
@@ -1592,7 +1592,7 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-3, 12px);
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__icon {
@@ -1668,7 +1668,7 @@ class RoadmapPanelUI {
         margin: 0;
         line-height: 1.3;
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__arrival {
@@ -1677,7 +1677,7 @@ class RoadmapPanelUI {
         color: var(--color-text-muted, #756a5e);
         margin: 0;
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__interest {
@@ -2152,7 +2152,7 @@ class RoadmapPanelUI {
         box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-detail__slider::-webkit-slider-thumb:hover {
@@ -2710,7 +2710,7 @@ class RoadmapPanelUI {
         color: var(--color-text-secondary, #4a423b);
         line-height: 1.6;
         margin: 0;
-        max-width: 280px;
+        max-width: min(280px, 100%);
       }
 
       .roadmap-suggestion__done-btn {
@@ -3216,7 +3216,7 @@ class RoadmapPanelUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .roadmap-panel {
           padding: 0;
           align-items: flex-end;

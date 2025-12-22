@@ -181,7 +181,7 @@ function createModal(): void {
       </div>
 
       <div class="earn-seeds-footer">
-        <button class="earn-seeds-btn earn-seeds-btn--primary" data-action="invite">
+        <button aria-label="Start Growing Together" class="earn-seeds-btn earn-seeds-btn--primary" data-action="invite">
           Start Growing Together
         </button>
         <p class="earn-seeds-note">No grinding required. Just be yourself.</p>
@@ -328,7 +328,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-width: 460px;
+      max-width: clamp(322px, 90vw, 460px);
       width: 100%;
       padding: var(--space-8, 32px);
       max-height: 90vh;
@@ -345,7 +345,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted, #70605a);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .earn-seeds-close:hover {
@@ -457,7 +457,7 @@ function injectStyles(): void {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .earn-seeds-btn--primary {
@@ -486,7 +486,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .earn-seeds-modal {
         padding: 0;
         align-items: flex-end;

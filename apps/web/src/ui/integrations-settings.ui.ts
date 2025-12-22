@@ -235,7 +235,7 @@ class IntegrationsSettingsUI {
             ${this.status.biometrics.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">${this.status.biometrics.platform || 'Connected'}</span>
-                <button class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
+                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -247,7 +247,7 @@ class IntegrationsSettingsUI {
             ` : `
               <div class="integrations-settings__platforms">
                 ${BIOMETRICS_PLATFORMS.map(p => `
-                  <button class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
+                  <button aria-label="Go forward" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
                     <span class="integrations-settings__platform-icon">${p.icon}</span>
                     <span>${p.name}</span>
                     ${ICONS.chevronRight}
@@ -271,7 +271,7 @@ class IntegrationsSettingsUI {
             ${this.status.calendar.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">Google Calendar</span>
-                <button class="integrations-settings__disconnect-btn" data-action="disconnect-calendar">
+                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-calendar">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -281,7 +281,7 @@ class IntegrationsSettingsUI {
                 ${this.renderCapability('Location awareness', capabilities.locationAwareness)}
               </div>
             ` : `
-              <button class="integrations-settings__connect-btn" data-action="connect-calendar">
+              <button aria-label="Connect Google Calendar" class="integrations-settings__connect-btn" data-action="connect-calendar">
                 ${ICONS.link}
                 <span>Connect Google Calendar</span>
               </button>
@@ -306,7 +306,7 @@ class IntegrationsSettingsUI {
             ${this.status.banking.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">${this.status.banking.institution || 'Bank Connected'}</span>
-                <button class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
+                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -315,7 +315,7 @@ class IntegrationsSettingsUI {
                 ${this.renderCapability('Financial prediction', capabilities.financialPrediction)}
               </div>
             ` : `
-              <button class="integrations-settings__connect-btn" data-action="connect-banking">
+              <button aria-label="Connect via Plaid" class="integrations-settings__connect-btn" data-action="connect-banking">
                 ${ICONS.link}
                 <span>Connect via Plaid</span>
               </button>
@@ -342,12 +342,12 @@ class IntegrationsSettingsUI {
                 <span class="integrations-settings__stat-number">${this.status.socialGraph.peopleTracked}</span>
                 <span class="integrations-settings__stat-label">people tracked</span>
               </div>
-              <div class="integrations-settings__social-actions">
-                <button class="integrations-settings__text-btn" data-action="view-social-graph">
+              <div class="integrations-settings__social-actions" role="button" tabindex="0">
+                <button aria-label="View relationships" class="integrations-settings__text-btn" data-action="view-social-graph">
                   View relationships
                 </button>
                 ${this.status.socialGraph.peopleTracked > 0 ? `
-                  <button class="integrations-settings__text-btn integrations-settings__text-btn--danger" data-action="clear-social-graph">
+                  <button aria-label="Clear data" class="integrations-settings__text-btn integrations-settings__text-btn--danger" data-action="clear-social-graph">
                     Clear data
                   </button>
                 ` : ''}
@@ -473,7 +473,7 @@ class IntegrationsSettingsUI {
         left: 50%;
         transform: translate(-50%, -50%) scale(0.95);
         width: 90%;
-        max-width: 520px;
+        max-width: clamp(364px, 90vw, 520px);
         max-height: 85vh;
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-xl, 1rem);
@@ -1059,7 +1059,7 @@ class IntegrationsSettingsUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .integrations-settings__card {
           width: 100%;
           max-width: none;

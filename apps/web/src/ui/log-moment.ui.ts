@@ -187,7 +187,7 @@ function injectStyles(): void {
     .log-moment-modal {
       position: relative;
       width: 94%;
-      max-width: 440px;
+      max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -592,7 +592,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .log-moment-modal {
         width: 100%;
         max-width: none;
@@ -664,13 +664,13 @@ function render(): void {
       <div class="lm-section">
         <label class="lm-label">Who initiated?</label>
         <div class="lm-directions">
-          <button class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
+          <button aria-label="Move up" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
             ${ICONS.arrowUp} You reached out
           </button>
-          <button class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
+          <button aria-label="Move down" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
             ${ICONS.arrowDown} They reached out
           </button>
-          <button class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
+          <button aria-label="Together" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
             ${ICONS.arrowsUpDown} Together
           </button>
         </div>
@@ -697,7 +697,7 @@ function render(): void {
       
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
-        <button class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
+        <button aria-label="Move down" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
           More options ${ICONS.chevronDown}
         </button>
         
@@ -706,13 +706,13 @@ function render(): void {
           <div style="margin-bottom: var(--space-4, 1rem);">
             <label class="lm-label">How did it feel?</label>
             <div class="lm-sentiments">
-              <button class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
+              <button aria-label="Great" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
                 Great
               </button>
-              <button class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
+              <button aria-label="Okay" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
                 Okay
               </button>
-              <button class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
+              <button aria-label="Tough" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
                 Tough
               </button>
             </div>
@@ -734,8 +734,8 @@ function render(): void {
     </div>
     
     <div class="lm-footer">
-      <button class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
-      <button class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button aria-label="Cancel" class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
+      <button aria-label="Submit" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Save Moment'}
       </button>
     </div>

@@ -45,6 +45,91 @@ export interface SynthesisTrigger {
   recommendedPersona: string;
 }
 
+// ============================================================================
+// DATA MAPPING HELPERS
+// ============================================================================
+
+/**
+ * Map backend pattern to frontend CrossDomainPattern type
+ */
+function mapPatternToFrontend(pattern: {
+  description: string;
+  domains: string[];
+  impact: 'positive' | 'negative' | 'neutral';
+}): { pattern: string; severity: 'low' | 'medium' | 'high'; domains: string[]; insight: string } {
+  // Map impact to severity
+  const severityMap: Record<string, 'low' | 'medium' | 'high'> = {
+    positive: 'low',
+    neutral: 'medium',
+    negative: 'high',
+  };
+
+  return {
+    pattern: pattern.description,
+    severity: severityMap[pattern.impact] || 'medium',
+    domains: pattern.domains,
+    insight: pattern.description, // Use description as insight
+  };
+}
+
+/**
+ * Map backend trigger to frontend SynthesisTrigger type
+ */
+function mapTriggerToFrontend(trigger: SynthesisTrigger): {
+  id: string;
+  category: 'support' | 'celebration' | 'warning' | 'connection' | 'rest';
+  priority: 'urgent' | 'high' | 'medium' | 'low';
+  confidence: number;
+  message: string;
+  suggestedResponse: string;
+  recommendedPersona?: string;
+} {
+  return {
+    id: trigger.id,
+    category: trigger.category as 'support' | 'celebration' | 'warning' | 'connection' | 'rest',
+    priority: trigger.priority,
+    confidence: trigger.confidence,
+    message: trigger.suggestedResponse,
+    suggestedResponse: trigger.suggestedResponse,
+    recommendedPersona: trigger.recommendedPersona,
+  };
+}
+
+/**
+ * Map backend snapshot to frontend LifeContextSnapshot type
+ */
+function mapSnapshotToFrontend(
+  userId: string,
+  snapshot: LifeContextSnapshot,
+  triggers: SynthesisTrigger[]
+): {
+  userId: string;
+  timestamp: Date;
+  stressIndicators: LifeContextSnapshot['stressIndicators'];
+  patterns: Array<{ pattern: string; severity: 'low' | 'medium' | 'high'; domains: string[]; insight: string }>;
+  overallLoadScore: number;
+  wellbeingScore: number;
+  triggers: Array<{
+    id: string;
+    category: 'support' | 'celebration' | 'warning' | 'connection' | 'rest';
+    priority: 'urgent' | 'high' | 'medium' | 'low';
+    confidence: number;
+    message: string;
+    suggestedResponse: string;
+    recommendedPersona?: string;
+  }>;
+} {
+  return {
+    userId,
+    timestamp: new Date(snapshot.createdAt),
+    stressIndicators: snapshot.stressIndicators,
+    patterns: snapshot.patterns.map(mapPatternToFrontend),
+    overallLoadScore: snapshot.overallLoadScore,
+    wellbeingScore: snapshot.wellbeingScore,
+    triggers: triggers.map(mapTriggerToFrontend),
+  };
+}
+
 interface LifeContextUpdateEvent {
   type: 'context_update' | 'trigger_alert' | 'scan_complete' | 'heartbeat';
   userId: string;
@@ -205,13 +290,9 @@ async function fetchLifeContext(userId: string): Promise<void> {
       lastSnapshot = data.snapshot;
       lastTriggers = data.triggers || [];
 
-      updateLifeContextDashboard({
-        overallLoad: data.snapshot.overallLoadScore,
-        wellbeingScore: data.snapshot.wellbeingScore,
-        stressIndicators: data.snapshot.stressIndicators,
-        patterns: data.snapshot.patterns,
-        triggers: lastTriggers,
-      });
+      // Map backend data to frontend types
+      const mappedData = mapSnapshotToFrontend(userId, data.snapshot, lastTriggers);
+      updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
     }
 
     setLifeContextLoading(false);
@@ -261,13 +342,9 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
         lastSnapshot = event.snapshot;
         lastTriggers = event.triggers || [];
 
-        updateLifeContextDashboard({
-          overallLoad: event.snapshot.overallLoadScore,
-          wellbeingScore: event.snapshot.wellbeingScore,
-          stressIndicators: event.snapshot.stressIndicators,
-          patterns: event.snapshot.patterns,
-          triggers: lastTriggers,
-        });
+        // Map backend data to frontend types
+        const mappedData = mapSnapshotToFrontend(event.userId, event.snapshot, lastTriggers);
+        updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
       }
       break;
 
@@ -277,13 +354,9 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
         lastTriggers = [event.trigger, ...lastTriggers].slice(0, 10);
 
         if (lastSnapshot) {
-          updateLifeContextDashboard({
-            overallLoad: lastSnapshot.overallLoadScore,
-            wellbeingScore: lastSnapshot.wellbeingScore,
-            stressIndicators: lastSnapshot.stressIndicators,
-            patterns: lastSnapshot.patterns,
-            triggers: lastTriggers,
-          });
+          // Map backend data to frontend types
+          const mappedData = mapSnapshotToFrontend(event.userId, lastSnapshot, lastTriggers);
+          updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
         }
 
         // Log high-priority triggers

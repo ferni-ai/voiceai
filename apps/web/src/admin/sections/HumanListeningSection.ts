@@ -240,7 +240,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .listening-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -288,7 +288,7 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .detection-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -447,7 +447,7 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .features-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -535,7 +535,7 @@ export async function render(): Promise<string> {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .soul-response-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -725,9 +725,9 @@ function renderSoulResponse(trigger: string, response: string, desc: string, cod
   return `
     <div class="soul-response-item">
       <div class="soul-response-header">
-        <span class="soul-response-trigger">${trigger}</span>
+        <span class="soul-response-trigger" role="button" tabindex="0">${trigger}</span>
         <span class="soul-response-arrow">→</span>
-        <span class="soul-response-action">${response}</span>
+        <span class="soul-response-action" role="button" tabindex="0">${response}</span>
       </div>
       <div class="soul-response-desc">${desc}</div>
       <code class="soul-response-code">${code}</code>

@@ -529,21 +529,21 @@ function renderStep(): void {
     }
     
     <!-- Actions -->
-    <div class="persona-intro-actions">
+    <div class="persona-intro-actions" role="button" tabindex="0">
       ${
         !isFirstStep
           ? `
-        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
+        <button aria-label="Back" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           Back
         </button>
       `
           : `
-        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
+        <button aria-label="Skip intro" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           Skip intro
         </button>
       `
       }
-      <button class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
+      <button aria-label="Go forward" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${step.buttonText}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}
@@ -690,7 +690,7 @@ function injectStyles(): void {
       box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.25),
         0 0 0 1px rgba(255, 255, 255, 0.1);
-      max-width: 460px;
+      max-width: clamp(322px, 90vw, 460px);
       width: 100%;
       max-height: calc(100vh - var(--space-8, 32px));
       overflow-y: auto;
@@ -714,7 +714,7 @@ function injectStyles(): void {
       justify-content: center;
       color: var(--color-text-muted, #756A5E);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      z-index: 10;
+      z-index: var(--z-docked);
     }
     
     .persona-intro-close:hover {
@@ -730,7 +730,7 @@ function injectStyles(): void {
     /* Avatar */
     .persona-intro-avatar {
       position: relative;
-      width: 100px;
+      width: min(100px, 100%);
       height: 100px;
       margin: 0 auto var(--space-4, 16px);
       border-radius: var(--radius-full, 9999px);
@@ -747,7 +747,7 @@ function injectStyles(): void {
       color: white;
       letter-spacing: -0.02em;
       position: relative;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
     
     .avatar-glow {
@@ -961,7 +961,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .persona-intro-card {
         padding: var(--space-6, 24px);
       }

@@ -53,7 +53,7 @@ const STYLES = `
   .task-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,7 +71,7 @@ const STYLES = `
   .task-mode-modal {
     position: relative;
     width: 100%;
-    max-width: 550px;
+    max-width: clamp(385px, 90vw, 550px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -540,7 +540,7 @@ function renderSelectStep(): string {
     
     <div class="task-templates-list">
       ${TASK_TEMPLATES.map(template => `
-        <button class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
+        <button aria-label="More information" class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
           <div class="task-template-icon">${template.icon}</div>
           <div class="task-template-info">
             <p class="task-template-name">${template.name}</p>
@@ -557,9 +557,9 @@ function renderSelectStep(): string {
       `).join('')}
     </div>
     
-    <div class="task-actions">
-      <button class="task-btn task-btn--secondary" data-action="cancel">Cancel</button>
-      <button class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
+    <div class="task-actions" role="button" tabindex="0">
+      <button aria-label="Cancel" class="task-btn task-btn--secondary" data-action="cancel">Cancel</button>
+      <button aria-label="Continue" class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -615,14 +615,14 @@ function renderConfigureStep(): string {
       </div>
     `).join('')}
     
-    <div class="task-actions">
-      <button class="task-btn task-btn--secondary" data-action="back">
+    <div class="task-actions" role="button" tabindex="0">
+      <button aria-label="Back" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Back
       </button>
-      <button class="task-btn task-btn--primary" data-action="next">
+      <button aria-label="Continue" class="task-btn task-btn--primary" data-action="next">
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -667,14 +667,14 @@ function renderExecuteStep(): string {
       </div>
     </div>
     
-    <div class="task-actions">
-      <button class="task-btn task-btn--secondary" data-action="back">
+    <div class="task-actions" role="button" tabindex="0">
+      <button aria-label="Edit" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Edit
       </button>
-      <button class="task-btn task-btn--primary" data-action="start-task">
+      <button aria-label="Start Working" class="task-btn task-btn--primary" data-action="start-task">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>

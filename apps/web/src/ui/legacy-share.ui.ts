@@ -25,7 +25,7 @@ const STYLES = `
   .legacy-share-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +43,7 @@ const STYLES = `
   .legacy-share-modal {
     position: relative;
     width: 100%;
-    max-width: 480px;
+    max-width: clamp(336px, 90vw, 480px);
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
     box-shadow: var(--shadow-2xl);
@@ -455,7 +455,7 @@ function render(): string {
                 readonly 
                 id="share-link"
               />
-              <button class="legacy-share-copy-btn" data-action="copy-link">
+              <button aria-label="Copy" class="legacy-share-copy-btn" data-action="copy-link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -466,11 +466,11 @@ function render(): string {
             <p class="legacy-share-hint">Anyone with this link can access ${currentAgent.displayName || currentAgent.name}'s memories.</p>
           </div>
 
-          <div class="legacy-share-actions">
-            <button class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
+          <div class="legacy-share-actions" role="button" tabindex="0">
+            <button aria-label="Cancel" class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
+            <button aria-label="Send Invite" class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
               Send Invite
             </button>
           </div>

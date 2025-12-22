@@ -732,7 +732,7 @@ export class CreativeYouDashboard {
             position: relative;
             background: var(--color-background-elevated);
             border-radius: var(--radius-2xl);
-            max-width: 420px;
+            max-width: clamp(294px, 90vw, 420px);
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
@@ -955,7 +955,7 @@ export class CreativeYouDashboard {
             .join('')}
         </div>
         <div class="track-cta">
-          <button class="start-first-btn">Start with Episode 1</button>
+          <button aria-label="Start with Episode 1" class="start-first-btn">Start with Episode 1</button>
         </div>
       </div>
     `;
@@ -984,7 +984,7 @@ export class CreativeYouDashboard {
           position: relative;
           background: var(--color-background-elevated);
           border-radius: var(--radius-2xl);
-          max-width: 480px;
+          max-width: clamp(336px, 90vw, 480px);
           width: 100%;
           max-height: 80vh;
           overflow: hidden;
@@ -1202,7 +1202,7 @@ export class CreativeYouDashboard {
       .creative-dashboard-content {
         position: relative;
         width: 100%;
-        max-width: 600px;
+        max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl);
@@ -1295,7 +1295,7 @@ export class CreativeYouDashboard {
         gap: var(--space-3);
       }
 
-      @media (max-width: 500px) {
+      @media (max-width: clamp(350px, 90vw, 500px)) {
         .picks-grid {
           grid-template-columns: 1fr;
         }
@@ -1547,7 +1547,7 @@ export class CreativeYouDashboard {
       }
 
       .interest-bar .interest-name {
-        width: 100px;
+        width: min(100px, 100%);
         font-size: var(--text-xs);
         color: var(--color-text-secondary);
         text-transform: capitalize;
@@ -1679,7 +1679,7 @@ export class CreativeYouDashboard {
         color: var(--color-text-muted);
         margin: 0;
         line-height: var(--leading-normal);
-        max-width: 200px;
+        max-width: min(200px, 100%);
       }
 
       /* Reduced motion */

@@ -509,7 +509,7 @@ function injectStyles(): void {
       display: flex;
       flex-direction: column;
       gap: var(--space-3, 12px);
-      max-width: 380px;
+      max-width: min(380px, 100%);
       width: calc(100vw - var(--space-8, 32px));
       pointer-events: none;
     }
@@ -674,7 +674,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .trust-signals-container {
         top: auto;
         bottom: var(--space-20, 80px);

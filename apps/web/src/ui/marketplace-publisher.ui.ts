@@ -301,7 +301,7 @@ function createPortalContainer(): HTMLElement {
       </header>
 
       <nav class="publisher-tabs" role="tablist" aria-label="${t('accessibility.portalSections')}">
-        <button
+        <button aria-label="My Items"
           role="tab"
           class="publisher-tab ${state.activeTab === 'items' ? 'publisher-tab--active' : ''}"
           data-tab="items"
@@ -309,7 +309,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.box} My Items
         </button>
-        <button
+        <button aria-label="Analytics"
           role="tab"
           class="publisher-tab ${state.activeTab === 'analytics' ? 'publisher-tab--active' : ''}"
           data-tab="analytics"
@@ -317,7 +317,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.barChart} Analytics
         </button>
-        <button
+        <button aria-label="Add"
           role="tab"
           class="publisher-tab ${state.activeTab === 'submit' ? 'publisher-tab--active' : ''}"
           data-tab="submit"
@@ -387,7 +387,7 @@ function renderItemsList(content: Element): void {
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.box}</div>
         <h3 class="publisher-empty-title">No items yet</h3>
         <p class="publisher-empty-text">Submit your first tool or agent to get started</p>
-        <button class="publisher-button publisher-button--primary" data-action="submit">
+        <button aria-label="Add" class="publisher-button publisher-button--primary" data-action="submit">
           ${ICONS.plus} Submit New Item
         </button>
       </div>
@@ -501,9 +501,9 @@ function renderAnalytics(content: Element): void {
     </div>
 
     <div class="analytics-period">
-      <button class="period-button period-button--active" data-period="7d">7 days</button>
-      <button class="period-button" data-period="30d">30 days</button>
-      <button class="period-button" data-period="90d">90 days</button>
+      <button aria-label="7 days" class="period-button period-button--active" data-period="7d">7 days</button>
+      <button aria-label="30 days" class="period-button" data-period="30d">30 days</button>
+      <button aria-label="90 days" class="period-button" data-period="90d">90 days</button>
     </div>
 
     <div class="analytics-grid">
@@ -643,11 +643,11 @@ function renderSubmitForm(content: Element): void {
         </div>
       </div>
 
-      <div class="form-actions">
-        <button type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
+      <div class="form-actions" role="button" tabindex="0">
+        <button aria-label="Cancel" type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
           Cancel
         </button>
-        <button type="submit" class="publisher-button publisher-button--primary">
+        <button aria-label="Upload" type="submit" class="publisher-button publisher-button--primary">
           ${ICONS.upload} Submit for Review
         </button>
       </div>
@@ -831,7 +831,7 @@ function injectStyles(): void {
     .publisher-panel {
       position: relative;
       width: 100%;
-      max-width: 900px;
+      max-width: min(900px, 100%);
       margin: 0 auto;
       background: var(--color-background-elevated, #FFFDFB);
       display: flex;
@@ -839,7 +839,7 @@ function injectStyles(): void {
       overflow: hidden;
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: clamp(538px, 90vw, 768px)) {
       .publisher-panel {
         margin: var(--space-8, 32px) auto;
         border-radius: var(--radius-2xl, 24px);
@@ -1284,7 +1284,7 @@ function injectStyles(): void {
 
     /* Submit Form */
     .submit-form {
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
     }
 
     .form-section {
@@ -1433,7 +1433,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .publisher-stats-bar {
         grid-template-columns: repeat(2, 1fr);
       }

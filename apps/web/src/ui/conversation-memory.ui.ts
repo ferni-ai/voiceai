@@ -77,7 +77,7 @@ const styles = `
   .memory-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -101,7 +101,7 @@ const styles = `
   .memory-modal {
     position: relative;
     width: 95%;
-    max-width: 640px;
+    max-width: clamp(448px, 90vw, 640px);
     max-height: 90vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
@@ -461,7 +461,7 @@ const styles = `
   
   .memory-empty__text {
     font-size: 15px;
-    max-width: 280px;
+    max-width: min(280px, 100%);
     margin: 0 auto;
   }
   
@@ -672,9 +672,9 @@ function createModal(): void {
       </div>
       
       <div class="memory-tabs">
-        <button class="memory-tab active" data-tab="conversations">Conversations</button>
-        <button class="memory-tab" data-tab="remembered">Remembered</button>
-        <button class="memory-tab" data-tab="topics">Topics</button>
+        <button aria-label="Conversations" class="memory-tab active" data-tab="conversations">Conversations</button>
+        <button aria-label="Remembered" class="memory-tab" data-tab="remembered">Remembered</button>
+        <button aria-label="Topics" class="memory-tab" data-tab="topics">Topics</button>
       </div>
       
       <div class="memory-content" id="memory-content">
@@ -685,7 +685,7 @@ function createModal(): void {
       
       <footer class="memory-modal__footer">
         <span class="memory-modal__footer-info" id="memory-footer-info"></span>
-        <button class="memory-btn" data-action="close">Done</button>
+        <button aria-label="Done" class="memory-btn" data-action="close">Done</button>
       </footer>
     </div>
   `;

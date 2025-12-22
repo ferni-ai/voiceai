@@ -189,7 +189,7 @@ const STYLES = `
   .voice-clone-recorder-modal {
     position: relative;
     width: 100%;
-    max-width: 560px;
+    max-width: clamp(392px, 90vw, 560px);
     max-height: 90vh;
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-2xl, 24px);
@@ -649,7 +649,7 @@ const STYLES = `
   }
 
   /* Responsive */
-  @media (max-width: 480px) {
+  @media (max-width: clamp(336px, 90vw, 480px)) {
     .voice-clone-recorder-modal {
       max-height: 100vh;
       border-radius: 0;
@@ -779,7 +779,7 @@ function render(): string {
 
           <!-- Controls -->
           <div class="vcr-controls">
-            <button class="vcr-record-btn ${isRecording ? 'recording' : 'idle'}" id="vcr-record-btn" data-action="toggle-recording">
+            <button aria-label="Toggle" class="vcr-record-btn ${isRecording ? 'recording' : 'idle'}" id="vcr-record-btn" data-action="toggle-recording">
               ${isRecording 
                 ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`
                 : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`
@@ -792,14 +792,14 @@ function render(): string {
 
           <!-- Navigation -->
           <div class="vcr-nav">
-            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
+            <button aria-label="Previous" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
               Previous
             </button>
-            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
+            <button aria-label="Skip" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
               Skip
             </button>
-            <button class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
+            <button aria-label="Next" class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
               Next
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -839,10 +839,10 @@ function render(): string {
         </div>
 
         <footer class="vcr-footer">
-          <button class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
+          <button aria-label="Cancel" class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
             Cancel
           </button>
-          <button class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
+          <button aria-label="Save Voice Samples" class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             Save Voice Samples
           </button>

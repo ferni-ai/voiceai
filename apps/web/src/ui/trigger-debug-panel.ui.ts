@@ -31,7 +31,7 @@ const PANEL_STYLES = `
     position: fixed;
     top: 60px;
     left: 20px;
-    width: 420px;
+    width: clamp(294px, 90vw, 420px);
     max-height: 80vh;
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
@@ -312,7 +312,7 @@ async function fetchAnalytics(): Promise<TriggerAnalyticsResponse | null> {
 function renderPanel(data: TriggerAnalyticsResponse | null): string {
   if (!data) {
     return `
-      <div class="trigger-debug-panel__empty">
+      <div class="trigger-debug-panel__empty" role="button" tabindex="0">
         Unable to fetch trigger analytics.
         <br>Make sure the backend API is running.
       </div>
@@ -323,26 +323,26 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
 
   // Summary section
   const summaryHTML = `
-    <div class="trigger-debug-panel__section">
-      <div class="trigger-debug-panel__section-title">
+    <div class="trigger-debug-panel__section" role="button" tabindex="0">
+      <div class="trigger-debug-panel__section-title" role="button" tabindex="0">
         Summary
       </div>
-      <div class="trigger-debug-panel__stat-grid">
-        <div class="trigger-debug-panel__stat">
-          <div class="trigger-debug-panel__stat-label">Checked</div>
-          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--muted">
+      <div class="trigger-debug-panel__stat-grid" role="button" tabindex="0">
+        <div class="trigger-debug-panel__stat" role="button" tabindex="0">
+          <div class="trigger-debug-panel__stat-label" role="button" tabindex="0">Checked</div>
+          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--muted" role="button" tabindex="0">
             ${summary.totalChecked}
           </div>
         </div>
-        <div class="trigger-debug-panel__stat">
-          <div class="trigger-debug-panel__stat-label">Matched</div>
-          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--warning">
+        <div class="trigger-debug-panel__stat" role="button" tabindex="0">
+          <div class="trigger-debug-panel__stat-label" role="button" tabindex="0">Matched</div>
+          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--warning" role="button" tabindex="0">
             ${summary.totalMatched}
           </div>
         </div>
-        <div class="trigger-debug-panel__stat">
-          <div class="trigger-debug-panel__stat-label">Fired</div>
-          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--good">
+        <div class="trigger-debug-panel__stat" role="button" tabindex="0">
+          <div class="trigger-debug-panel__stat-label" role="button" tabindex="0">Fired</div>
+          <div class="trigger-debug-panel__stat-value trigger-debug-panel__stat-value--good" role="button" tabindex="0">
             ${summary.totalFired}
           </div>
         </div>
@@ -357,14 +357,14 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
       .slice(0, 10)
       .map(
         (activation) => `
-        <div class="trigger-debug-panel__trigger trigger-debug-panel__trigger--${activation.fired ? 'fired' : 'matched'}">
-          <div class="trigger-debug-panel__trigger-header">
-            <span class="trigger-debug-panel__trigger-name">${activation.triggerName}</span>
-            <span class="trigger-debug-panel__trigger-badge trigger-debug-panel__trigger-badge--${activation.fired ? 'fired' : 'matched'}">
+        <div class="trigger-debug-panel__trigger trigger-debug-panel__trigger--${activation.fired ? 'fired' : 'matched'}" role="button" tabindex="0">
+          <div class="trigger-debug-panel__trigger-header" role="button" tabindex="0">
+            <span class="trigger-debug-panel__trigger-name" role="button" tabindex="0">${activation.triggerName}</span>
+            <span class="trigger-debug-panel__trigger-badge trigger-debug-panel__trigger-badge--${activation.fired ? 'fired' : 'matched'}" role="button" tabindex="0">
               ${activation.fired ? 'Fired' : 'Matched'}
             </span>
           </div>
-          <div class="trigger-debug-panel__trigger-meta">
+          <div class="trigger-debug-panel__trigger-meta" role="button" tabindex="0">
             <span>${activation.builderSource}</span>
             <span>${formatPercent(activation.confidence)} confidence</span>
             <span>${formatTime(activation.timestamp)}</span>
@@ -375,22 +375,22 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
       .join('');
 
     recentHTML = `
-      <div class="trigger-debug-panel__section">
-        <div class="trigger-debug-panel__section-title">
+      <div class="trigger-debug-panel__section" role="button" tabindex="0">
+        <div class="trigger-debug-panel__section-title" role="button" tabindex="0">
           Recent Activations
         </div>
-        <div class="trigger-debug-panel__trigger-list">
+        <div class="trigger-debug-panel__trigger-list" role="button" tabindex="0">
           ${activationsHTML}
         </div>
       </div>
     `;
   } else {
     recentHTML = `
-      <div class="trigger-debug-panel__section">
-        <div class="trigger-debug-panel__section-title">
+      <div class="trigger-debug-panel__section" role="button" tabindex="0">
+        <div class="trigger-debug-panel__section-title" role="button" tabindex="0">
           Recent Activations
         </div>
-        <div class="trigger-debug-panel__empty">
+        <div class="trigger-debug-panel__empty" role="button" tabindex="0">
           No trigger activations yet. Start a conversation!
         </div>
       </div>
@@ -404,9 +404,9 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
       .slice(0, 5)
       .map(
         (builder) => `
-        <div class="trigger-debug-panel__builder">
-          <span class="trigger-debug-panel__builder-name">${builder.name}</span>
-          <div class="trigger-debug-panel__builder-stats">
+        <div class="trigger-debug-panel__builder" role="button" tabindex="0">
+          <span class="trigger-debug-panel__builder-name" role="button" tabindex="0">${builder.name}</span>
+          <div class="trigger-debug-panel__builder-stats" role="button" tabindex="0">
             <span>${builder.matched} matched</span>
             <span>${builder.fired} fired</span>
             <span>${formatPercent(builder.fireRate)}</span>
@@ -417,11 +417,11 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
       .join('');
 
     builderHTML = `
-      <div class="trigger-debug-panel__section">
-        <div class="trigger-debug-panel__section-title">
+      <div class="trigger-debug-panel__section" role="button" tabindex="0">
+        <div class="trigger-debug-panel__section-title" role="button" tabindex="0">
           By Builder
         </div>
-        <div class="trigger-debug-panel__builder-list">
+        <div class="trigger-debug-panel__builder-list" role="button" tabindex="0">
           ${buildersHTML}
         </div>
       </div>
@@ -459,21 +459,21 @@ async function createPanel(): Promise<HTMLElement> {
   panel.className = 'trigger-debug-panel';
 
   panel.innerHTML = `
-    <div class="trigger-debug-panel__header">
-      <div class="trigger-debug-panel__title">
+    <div class="trigger-debug-panel__header" role="button" tabindex="0">
+      <div class="trigger-debug-panel__title" role="button" tabindex="0">
         Dynamic Triggers
-        <button class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
+        <button aria-label="Refresh" class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
           Refresh
         </button>
       </div>
-      <button class="trigger-debug-panel__close" id="trigger-close-btn">
+      <button aria-label="Close" class="trigger-debug-panel__close" id="trigger-close-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
       </button>
     </div>
-    <div class="trigger-debug-panel__content">
-      <div class="trigger-debug-panel__empty">Loading...</div>
+    <div class="trigger-debug-panel__content" role="button" tabindex="0">
+      <div class="trigger-debug-panel__empty" role="button" tabindex="0">Loading...</div>
     </div>
   `;
 

@@ -1614,7 +1614,7 @@ function injectSoulStyles(): void {
         #2C2520 60%,
         transparent 100%
       );
-      z-index: 5;
+      z-index: var(--z-docked);
       pointer-events: none;
       transform-origin: center center;
     }
@@ -1643,7 +1643,7 @@ function injectSoulStyles(): void {
       inset: 5%;
       border-radius: 50%;
       pointer-events: none;
-      z-index: 4;
+      z-index: var(--z-docked);
       --shimmer-intensity: 0.6;
     }
     
@@ -1719,7 +1719,7 @@ function injectSoulStyles(): void {
       border-radius: 50%;
       opacity: 0.04;
       pointer-events: none;
-      z-index: 6;
+      z-index: var(--z-docked);
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 100px 100px;
       mix-blend-mode: overlay;
@@ -1786,7 +1786,7 @@ function injectSoulStyles(): void {
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 20;
+      z-index: var(--z-dropdown);
       display: none;
     }
     
@@ -1873,7 +1873,7 @@ function injectSoulStyles(): void {
       border: 2px solid var(--persona-primary, rgba(74, 103, 65, 0.5));
       opacity: 0;
       pointer-events: none;
-      z-index: 3;
+      z-index: var(--z-docked);
     }
     
     /* Growth Celebration */
@@ -1885,7 +1885,7 @@ function injectSoulStyles(): void {
       width: 200%;
       height: 200%;
       pointer-events: none;
-      z-index: 25;
+      z-index: var(--z-dropdown);
       display: none;
     }
     

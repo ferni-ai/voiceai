@@ -100,7 +100,7 @@ function ensureModalExists(): HTMLElement {
   twinModal = document.createElement('div');
   twinModal.className = 'talk-twin-overlay';
   twinModal.innerHTML = `
-    <div class="twin-backdrop" data-action="close"></div>
+    <div class="twin-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="twin-container" role="dialog" aria-modal="true" aria-labelledby="twin-title">
       <header class="twin-header">
         <div class="twin-identity">
@@ -669,7 +669,7 @@ function getTwinStyles(): string {
     .twin-container {
       position: relative;
       width: 90vw;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       height: 80vh;
       max-height: 700px;
       background: var(--color-bg-elevated, #1a1a2e);
@@ -917,7 +917,7 @@ function getTwinStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .twin-container {
         width: 100vw;
         height: 100vh;

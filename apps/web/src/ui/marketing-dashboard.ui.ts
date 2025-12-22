@@ -198,15 +198,15 @@ export class MarketingDashboard {
 
       <section class="actions-section">
         <h3>Quick Actions</h3>
-        <div class="action-buttons">
-          <button class="action-btn" data-action="generate">
+        <div class="action-buttons" role="button" tabindex="0">
+          <button aria-label="Generate Content" class="action-btn" data-action="generate">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
             </svg>
             Generate Content
           </button>
-          <button class="action-btn" data-action="ask-alex">
+          <button aria-label="Ask Alex" class="action-btn" data-action="ask-alex">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
@@ -404,7 +404,7 @@ export class MarketingDashboard {
       .marketing-dashboard-overlay {
         position: fixed;
         inset: 0;
-        z-index: 10000;
+        z-index: var(--z-tooltip);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -426,7 +426,7 @@ export class MarketingDashboard {
       .marketing-dashboard-card {
         position: relative;
         width: 90%;
-        max-width: 600px;
+        max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 24px);
@@ -768,7 +768,7 @@ export class MarketingDashboard {
         to { transform: rotate(360deg); }
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .analytics-metrics {
           flex-wrap: wrap;
         }

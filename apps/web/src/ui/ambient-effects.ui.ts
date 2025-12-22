@@ -237,7 +237,7 @@ export function startParticles(container?: HTMLElement): void {
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 0;
+      z-index: var(--z-base);
       overflow: hidden;
     `;
     parent.appendChild(particlesContainer);

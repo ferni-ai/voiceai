@@ -155,7 +155,7 @@ function ensureStylesExist(): void {
     .memory-input-container {
       position: relative;
       width: 90vw;
-      max-width: 520px;
+      max-width: clamp(364px, 90vw, 520px);
       max-height: 85vh;
       background: var(--color-bg-elevated, #1e1e2e);
       border-radius: var(--radius-xl, 20px);
@@ -389,7 +389,7 @@ function ensureStylesExist(): void {
     }
     
     /* Responsive */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .memory-type-grid {
         grid-template-columns: 1fr;
       }
@@ -480,7 +480,7 @@ function createModal(initialType?: MemoryType): HTMLElement {
   const modal = document.createElement('div');
   modal.className = 'memory-input-overlay';
   modal.innerHTML = `
-    <div class="memory-input-backdrop" data-action="cancel"></div>
+    <div class="memory-input-backdrop" data-action="cancel" role="button" tabindex="0"></div>
     <div class="memory-input-container" role="dialog" aria-modal="true" aria-labelledby="memory-input-title">
       <header class="memory-input-header">
         <h2 class="memory-input-title" id="memory-input-title">Add Memory</h2>
@@ -496,10 +496,10 @@ function createModal(initialType?: MemoryType): HTMLElement {
         ${renderForm()}
       </div>
       <footer class="memory-input-footer">
-        <button class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
+        <button aria-label="Cancel" class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
           Cancel
         </button>
-        <button class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
+        <button aria-label="Add Memory" class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
           Add Memory
         </button>
       </footer>

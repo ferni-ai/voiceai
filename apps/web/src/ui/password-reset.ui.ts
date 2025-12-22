@@ -83,7 +83,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
               placeholder="${t('placeholders.emailExample')}"
             />
           </div>
-          <button type="submit" class="submit-btn">Send Reset Link</button>
+          <button aria-label="Send Reset Link" type="submit" class="submit-btn">Send Reset Link</button>
         </form>
       </div>
       
@@ -100,7 +100,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
       
       <div class="password-reset-error" style="display: none;">
         <p class="error-message"></p>
-        <button class="retry-btn">Try Again</button>
+        <button aria-label="Try Again" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;
@@ -147,7 +147,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -163,7 +163,7 @@ function applyResetStyles(overlay: HTMLElement): void {
     .password-reset-card {
       position: relative;
       width: 90%;
-      max-width: 400px;
+      max-width: min(400px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0,0,0,0.2));

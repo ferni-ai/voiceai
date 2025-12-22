@@ -201,7 +201,7 @@ function ensureModalExists(): HTMLElement {
   marketplaceModal.setAttribute('aria-labelledby', 'marketplace-title');
   marketplaceModal.setAttribute('aria-modal', 'true');
   marketplaceModal.innerHTML = `
-    <div class="marketplace-backdrop" data-action="close"></div>
+    <div class="marketplace-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="marketplace-container">
       <header class="marketplace-header">
         <div class="marketplace-title-row">
@@ -218,13 +218,13 @@ function ensureModalExists(): HTMLElement {
         <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
         
         <div class="marketplace-tabs">
-          <button class="marketplace-tab active" data-tab="browse">
+          <button aria-label="Discover" class="marketplace-tab active" data-tab="browse">
             Discover
           </button>
-          <button class="marketplace-tab" data-tab="installed">
+          <button aria-label="Your Team" class="marketplace-tab" data-tab="installed">
             Your Team
           </button>
-          <button class="marketplace-tab" data-tab="creations">
+          <button aria-label="My Creations" class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -666,7 +666,7 @@ async function renderCreationsTab(): Promise<void> {
           <h3 class="creations-title">Your Custom Agents</h3>
           <p class="creations-subtitle">Create companions with custom voices and personalities</p>
         </div>
-        <button class="creations-create-btn" data-action="create-agent">
+        <button aria-label="Create Agent" class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -686,7 +686,7 @@ async function renderCreationsTab(): Promise<void> {
           </div>
           <h4 class="creations-empty-title">No agents yet</h4>
           <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
-          <button class="creations-empty-btn" data-action="create-agent">
+          <button aria-label="Create Your First Agent" class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -848,15 +848,15 @@ function getAgentTypeButtons(agent: CustomAgent): string {
   switch (agent.type) {
     case 'twin':
       return `
-        <button class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
+        <button aria-label="Profile" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
           ${icons.profile}
           Profile
         </button>
-        <button class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+        <button aria-label="Journal" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
           ${icons.journal}
           Journal
         </button>
-        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
+        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -864,19 +864,19 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'legacy':
       return `
-        <button class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
+        <button aria-label="Stories" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
           ${icons.stories}
           Stories
         </button>
-        <button class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
+        <button aria-label="Voice" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
           Voice
         </button>
-        <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+        <button aria-label="Share" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Share
         </button>
-        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
+        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -884,11 +884,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'mentor':
       return `
-        <button class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
+        <button aria-label="Teachings" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
           ${icons.teachings}
           Teachings
         </button>
-        <button class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
+        <button aria-label="Coach Me" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           Coach Me
         </button>
@@ -896,11 +896,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'fictional':
       return `
-        <button class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
+        <button aria-label="Character" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
           ${icons.character}
           Character
         </button>
-        <button class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
+        <button aria-label="Play" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
           Roleplay
         </button>
@@ -908,11 +908,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'professional':
       return `
-        <button class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
+        <button aria-label="Tasks" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
           ${icons.tasks}
           Tasks
         </button>
-        <button class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
+        <button aria-label="Work Mode" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Work Mode
         </button>
@@ -920,7 +920,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     default:
       return `
-        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
+        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -981,7 +981,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
       </div>
       <footer class="custom-agent-footer">
         ${getAgentTypeButtons(agent)}
-        <button class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
+        <button aria-label="Edit" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
           Edit
         </button>
         <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
@@ -1530,8 +1530,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? '<span class="agent-badge installed">Installed</span>'
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-        : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+        ? `<button aria-label="Remove" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
+        : `<button aria-label="Add to Team" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
 
       // Rating display
       const ratingHtml = agent.rating
@@ -2342,7 +2342,7 @@ function getDetailStyles(): string {
     .marketplace-detail {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2366,7 +2366,7 @@ function getDetailStyles(): string {
     .detail-panel {
       position: relative;
       width: 90%;
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
       background: var(--color-background-elevated, #1a1614);
       border-radius: var(--radius-2xl, 24px);
@@ -2397,7 +2397,7 @@ function getDetailStyles(): string {
       align-items: center;
       justify-content: center;
       transition: background ${DURATION.FAST}ms;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .detail-close:hover {
@@ -2745,7 +2745,7 @@ function getMarketplaceStyles(): string {
     .marketplace-container {
       position: relative;
       width: 90vw;
-      max-width: 900px;
+      max-width: min(900px, 100%);
       max-height: 85vh;
       background: var(--color-bg-elevated, #1a1a1a);
       border-radius: var(--radius-2xl, 24px);
@@ -2799,7 +2799,7 @@ function getMarketplaceStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
       /* iOS touch fixes */
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
@@ -2842,7 +2842,7 @@ function getMarketplaceStyles(): string {
       font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .marketplace-tab:hover {
@@ -2891,7 +2891,7 @@ function getMarketplaceStyles(): string {
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.9rem;
       outline: none;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .marketplace-search-input:focus {
@@ -2918,7 +2918,7 @@ function getMarketplaceStyles(): string {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .marketplace-category-select:focus {
@@ -3181,7 +3181,7 @@ function getMarketplaceStyles(): string {
 
     .discover-card .agent-action {
       width: 100%;
-      max-width: 180px;
+      max-width: min(180px, 100%);
     }
 
     .marketplace-agent:nth-child(1) { animation-delay: 0ms; }
@@ -3699,7 +3699,7 @@ function getMarketplaceStyles(): string {
       background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
       border-radius: var(--radius-lg, 12px);
       border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-      max-width: 400px;
+      max-width: min(400px, 100%);
     }
 
     .ceo-card .leader-avatar {
@@ -3834,7 +3834,7 @@ function getMarketplaceStyles(): string {
       background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
       border-radius: var(--radius-md, 10px);
       min-width: 70px;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .employee-card:hover {
@@ -4539,7 +4539,7 @@ function getMarketplaceStyles(): string {
       background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
       border-radius: var(--radius-md, 10px);
       min-width: 64px;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .team-progress-member.unlocked {
@@ -4645,7 +4645,7 @@ function getMarketplaceStyles(): string {
         var(--color-bg-elevated, rgba(26, 26, 26, 0.4)) 100%
       );
       backdrop-filter: blur(1px);
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .marketplace-agent--locked .agent-header,
@@ -4666,7 +4666,7 @@ function getMarketplaceStyles(): string {
       align-items: center;
       justify-content: center;
       color: var(--color-warm-amber, #C4A265);
-      z-index: 2;
+      z-index: var(--z-docked);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
@@ -4832,7 +4832,7 @@ function getMarketplaceStyles(): string {
     }
 
     /* Zen theme mobile close button */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       [data-theme="zen"] .marketplace-close {
         background: rgba(44, 37, 32, 0.08);
       }
@@ -4843,7 +4843,7 @@ function getMarketplaceStyles(): string {
     }
 
     /* Responsive */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .marketplace-container {
         width: 100vw;
         max-height: 100vh;
@@ -4877,7 +4877,7 @@ function getMarketplaceStyles(): string {
         min-width: 44px;
         flex-shrink: 0;
         position: relative;
-        z-index: 10;
+        z-index: var(--z-docked);
         background: var(--color-bg-subtle, rgba(255, 255, 255, 0.1));
       }
 
@@ -4924,7 +4924,7 @@ function getMarketplaceStyles(): string {
     }
 
     /* Extra small devices - even more compact */
-    @media (max-width: 380px) {
+    @media (max-width: min(380px, 100%)) {
       .marketplace-title {
         font-size: 1.1rem;
       }
@@ -4984,7 +4984,7 @@ function getMarketplaceStyles(): string {
       font-size: 0.9rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .creations-create-btn:hover {
@@ -5020,7 +5020,7 @@ function getMarketplaceStyles(): string {
       font-size: 0.9rem;
       color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
       margin: 0 0 var(--space-lg, 24px);
-      max-width: 400px;
+      max-width: min(400px, 100%);
       margin-left: auto;
       margin-right: auto;
       line-height: 1.5;
@@ -5039,7 +5039,7 @@ function getMarketplaceStyles(): string {
       font-size: 0.95rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .creations-empty-btn:hover {
@@ -5078,7 +5078,7 @@ function getMarketplaceStyles(): string {
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-lg, 24px) var(--space-md, 16px);
       text-align: center;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .creation-type-card:hover {
@@ -5130,7 +5130,7 @@ function getMarketplaceStyles(): string {
       border-radius: var(--radius-lg, 16px);
       padding: var(--space-lg, 20px);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .custom-agent-card:hover {
@@ -5268,7 +5268,7 @@ function getMarketplaceStyles(): string {
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.8rem;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
     .custom-agent-action--edit {
@@ -5487,7 +5487,7 @@ function getMarketplaceStyles(): string {
     }
 
     /* Responsive - Creations Tab */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .creations-header {
         flex-direction: column;
         gap: var(--space-md, 16px);
@@ -5499,7 +5499,7 @@ function getMarketplaceStyles(): string {
       }
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .creations-types-grid {
         grid-template-columns: 1fr;
       }

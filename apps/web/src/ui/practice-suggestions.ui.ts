@@ -368,11 +368,11 @@ class PracticeSuggestionsUI {
             </span>
           </div>
           <p class="practice-suggestions__card-reasoning">${escapeHtml(suggestion.reasoning)}</p>
-          <div class="practice-suggestions__card-actions">
-            <button class="practice-suggestions__card-btn practice-suggestions__card-btn--secondary" data-action="dismiss" type="button">
+          <div class="practice-suggestions__card-actions" role="button" tabindex="0">
+            <button aria-label="Copy" class="practice-suggestions__card-btn practice-suggestions__card-btn--secondary" data-action="dismiss" type="button">
               ${SUGGESTIONS_COPY.dismiss}
             </button>
-            <button class="practice-suggestions__card-btn practice-suggestions__card-btn--primary" data-action="accept" type="button">
+            <button aria-label="Copy" class="practice-suggestions__card-btn practice-suggestions__card-btn--primary" data-action="accept" type="button">
               ${SUGGESTIONS_COPY.cta}
             </button>
           </div>

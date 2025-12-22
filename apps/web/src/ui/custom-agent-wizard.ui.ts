@@ -82,7 +82,7 @@ function ensureWizardExists(): HTMLElement {
   wizardModal = document.createElement('div');
   wizardModal.className = 'custom-agent-wizard-overlay';
   wizardModal.innerHTML = `
-    <div class="wizard-backdrop" data-action="close"></div>
+    <div class="wizard-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="wizard-container" role="dialog" aria-modal="true" aria-labelledby="wizard-title">
       <header class="wizard-header">
         <div class="wizard-progress">
@@ -111,14 +111,14 @@ function ensureWizardExists(): HTMLElement {
       </main>
 
       <footer class="wizard-footer">
-        <button class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
+        <button aria-label="Back" class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           Back
         </button>
-        <button class="wizard-btn wizard-btn--primary" data-action="next">
+        <button aria-label="Continue" class="wizard-btn wizard-btn--primary" data-action="next">
           Continue
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -329,7 +329,7 @@ function renderTypeStep(): string {
         ${types
           .map(
             (type) => `
-          <button 
+          <button aria-label="${type.name}"
             class="type-card ${selectedType === type.id ? 'type-card--selected' : ''}" 
             data-type="${type.id}"
             aria-pressed="${selectedType === type.id}"
@@ -459,7 +459,7 @@ function renderVoiceStep(): string {
       </div>
       
       <div class="voice-options">
-        <button 
+        <button aria-label="Upload" 
           class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}" 
           data-voice-option="clone"
         >
@@ -539,7 +539,7 @@ function renderVoiceCloneUI(): string {
         </div>
         
         <div class="recording-controls">
-          <button class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
+          <button aria-label="Stop" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
             ${isRecording ? 'Stop Recording' : 'Start Recording'}
           </button>
           <p class="recording-hint">Record 10-30 seconds of clear speech</p>
@@ -550,7 +550,7 @@ function renderVoiceCloneUI(): string {
             ? `
           <div class="recorded-preview">
             <audio id="recorded-audio" controls src="${URL.createObjectURL(recordedAudioBlob)}"></audio>
-            <button class="preview-action" id="clear-recording">Clear & Re-record</button>
+            <button aria-label="Clear & Re-record" class="preview-action" id="clear-recording">Clear & Re-record</button>
           </div>
         `
             : ''
@@ -583,7 +583,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
         ${voices
           .map(
             (voice) => `
-          <button 
+          <button aria-label="More information" 
             class="voice-card ${draft.selectedVoiceId === voice.id ? 'voice-card--selected' : ''}" 
             data-voice-id="${voice.id}"
           >
@@ -749,7 +749,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">Empathetic</span>
               <span class="profile-desc">Prioritizes feelings and emotional support</span>
             </button>
-            <button 
+            <button aria-label="Analytical Focuses on logic and problem-solving" 
               type="button"
               class="profile-option ${personality.cognitiveProfile === 'analytical' ? 'profile-option--selected' : ''}" 
               data-profile="analytical"
@@ -769,7 +769,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">Analytical</span>
               <span class="profile-desc">Focuses on logic and problem-solving</span>
             </button>
-            <button 
+            <button aria-label="Balanced Adapts approach to the situation" 
               type="button"
               class="profile-option ${(personality.cognitiveProfile || 'balanced') === 'balanced' ? 'profile-option--selected' : ''}" 
               data-profile="balanced"
@@ -815,7 +815,7 @@ function renderMemoriesStep(): string {
           <div class="journal-prompt">
             <p class="journal-hint">Record a short entry about how you're feeling today, or what's on your mind. This will be your first journal entry.</p>
             <div class="recording-area" id="memory-recording-area">
-              <button class="recording-btn large-btn" id="journal-record-btn">
+              <button aria-label="Record Journal Entry" class="recording-btn large-btn" id="journal-record-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -827,14 +827,14 @@ function renderMemoriesStep(): string {
         `
             : `
           <div class="memory-types">
-            <button class="memory-type-btn" data-memory-type="story">
+            <button aria-label="Add Story" class="memory-type-btn" data-memory-type="story">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
               </svg>
               Add Story
             </button>
-            <button class="memory-type-btn" data-memory-type="wisdom">
+            <button aria-label="Add Wisdom" class="memory-type-btn" data-memory-type="wisdom">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -842,7 +842,7 @@ function renderMemoriesStep(): string {
               </svg>
               Add Wisdom
             </button>
-            <button class="memory-type-btn" data-memory-type="sharedMoment">
+            <button aria-label="Add Moment" class="memory-type-btn" data-memory-type="sharedMoment">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
@@ -1487,7 +1487,7 @@ function getWizardStyles(): string {
     .wizard-container {
       position: relative;
       width: 90vw;
-      max-width: 720px;
+      max-width: clamp(504px, 90vw, 720px);
       max-height: 85vh;
       background: var(--color-bg-elevated, #1a1a2e);
       border-radius: var(--radius-2xl, 24px);
@@ -1525,7 +1525,7 @@ function getWizardStyles(): string {
       flex-direction: column;
       align-items: center;
       gap: var(--space-xs, 4px);
-      z-index: 1;
+      z-index: var(--z-docked);
     }
     
     .progress-dot {
@@ -1562,7 +1562,7 @@ function getWizardStyles(): string {
       right: 6px;
       height: 2px;
       background: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-      z-index: 0;
+      z-index: var(--z-base);
     }
     
     .progress-bar-fill {
@@ -2350,7 +2350,7 @@ function getWizardStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .wizard-container {
         width: 100vw;
         height: 100vh;

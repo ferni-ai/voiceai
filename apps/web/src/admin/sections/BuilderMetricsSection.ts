@@ -418,7 +418,7 @@ export function render(): string {
       <h2>
         ${iconSm(ICON_ACTIVITY)}
         Context Builder Metrics
-        <button class="refresh-btn" id="refresh-builder-metrics">
+        <button aria-label="Refresh" class="refresh-btn" id="refresh-builder-metrics">
           ${iconSm(ICON_REFRESH)}
           Refresh
         </button>

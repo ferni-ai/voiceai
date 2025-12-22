@@ -144,7 +144,7 @@ function injectStyles(): void {
     .conversation-starters-modal {
       position: relative;
       width: 94%;
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -502,7 +502,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .conversation-starters-modal {
         width: 100%;
         max-width: none;
@@ -563,10 +563,10 @@ function render(): void {
     
     ${state.hasGenerated && state.starters.length > 0 ? `
       <div class="cs-footer">
-        <button class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
+        <button aria-label="Refresh" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
           ${ICONS.refresh} New ideas
         </button>
-        <button class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
+        <button aria-label="Copy" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
           ${ICONS.copy} Copy opener
         </button>
       </div>
@@ -590,7 +590,7 @@ function renderContent(): string {
     return `
       <div class="cs-error">
         <p class="cs-error-text">${escapeHtml(state.error)}</p>
-        <button class="cs-retry-btn" id="cs-retry">
+        <button aria-label="Refresh" class="cs-retry-btn" id="cs-retry">
           ${ICONS.refresh} Try again
         </button>
       </div>
@@ -606,7 +606,7 @@ function renderContent(): string {
           Based on what you've talked about before, Ferni will suggest
           thoughtful ways to reconnect.
         </p>
-        <button class="cs-generate-btn" id="cs-generate">
+        <button aria-label="Get Ideas" class="cs-generate-btn" id="cs-generate">
           ${ICONS.sparkles} Get Ideas
         </button>
       </div>

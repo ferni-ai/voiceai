@@ -277,7 +277,7 @@ function createMemberCard(member: TeamMemberInfo): string {
               ${isInRoster ? `
                 <span class="team-member-card__added">${ICONS.check} In your roster</span>
               ` : `
-                <button class="team-member-card__action" data-member="${member.id}">
+                <button aria-label="Add" class="team-member-card__action" data-member="${member.id}">
                   ${ICONS.plus} Add to Roster
                 </button>
               `}
@@ -391,7 +391,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 800px;
+      max-width: clamp(560px, 90vw, 800px);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -431,7 +431,7 @@ function injectStyles(): void {
     .team-intro__subtitle {
       font-size: 0.95rem;
       color: var(--color-text-secondary, #5a5048);
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       margin: 0 auto;
       line-height: 1.5;
     }
@@ -717,7 +717,7 @@ function injectStyles(): void {
     }
     
     /* Mobile responsive */
-    @media (max-width: 600px) {
+    @media (max-width: clamp(420px, 90vw, 600px)) {
       .team-intro__card {
         max-height: 95vh;
         border-radius: var(--radius-xl, 16px);

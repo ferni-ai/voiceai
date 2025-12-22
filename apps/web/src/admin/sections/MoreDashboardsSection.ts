@@ -261,7 +261,7 @@ export async function render(): Promise<string> {
         border-radius: var(--radius-md, 8px);
         text-decoration: none;
         color: inherit;
-        transition: all 150ms ease;
+        transition: transform 150ms ease, opacity 150ms ease;
       }
 
       .dashboard-link:hover {

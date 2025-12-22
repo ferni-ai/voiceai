@@ -331,7 +331,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
-        <button class="celebration-button" data-action="start" autofocus>
+        <button aria-label="Let's Talk" class="celebration-button" data-action="start" autofocus>
           ${ICONS.heart}
           <span>Let's Talk</span>
         </button>
@@ -693,11 +693,11 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
-        <button class="limit-button limit-button--primary" data-action="upgrade">
+        <button aria-label="Become a Founding Member" class="limit-button limit-button--primary" data-action="upgrade">
           ${ICONS.heart}
           <span>Become a Founding Member</span>
         </button>
-        <button class="limit-button limit-button--secondary" data-action="close">
+        <button aria-label="Next" class="limit-button limit-button--secondary" data-action="close">
           See you next time 💚
         </button>
       </div>
@@ -1032,7 +1032,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 900px;
+      max-width: min(900px, 100%);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -1040,7 +1040,7 @@ function injectStyles(): void {
     }
     
     .subscription-card--limit {
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       text-align: center;
     }
     
@@ -1112,7 +1112,7 @@ function injectStyles(): void {
       font-size: 1.125rem;
       color: var(--color-text-secondary, #5a5048);
       margin: 0;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       margin-inline: auto;
       line-height: 1.5;
     }
@@ -1399,7 +1399,7 @@ function injectStyles(): void {
     
     /* Celebration Modal */
     .celebration-card {
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       text-align: center;
       padding: var(--space-10, 40px);
     }
@@ -1615,7 +1615,7 @@ function injectStyles(): void {
     }
     
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .subscription-modal {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -1653,7 +1653,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .subscription-card {
           max-height: -webkit-fill-available;
         }

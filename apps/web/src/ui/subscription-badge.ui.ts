@@ -525,7 +525,7 @@ function injectStyles(): void {
     }
     
     /* Mobile - slightly larger touch target */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .subscription-badge {
         padding: var(--space-2, 8px) var(--space-3, 12px);
         font-size: 0.8125rem;

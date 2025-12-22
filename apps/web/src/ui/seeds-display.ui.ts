@@ -416,16 +416,16 @@ export function renderSeedsSettingsCard(): string {
           : ''
       }
 
-      <div class="seeds-actions">
-        <button class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
+      <div class="seeds-actions" role="button" tabindex="0">
+        <button aria-label="My Garden" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
           <span>My Garden</span>
         </button>
-        <button class="seeds-action-btn" data-action="gift">
+        <button aria-label="Gift Seeds" class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
           <span>Gift Seeds</span>
         </button>
-        <button class="seeds-action-btn" data-action="invite">
+        <button aria-label="Share" class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
           <span>Invite</span>
         </button>

@@ -216,8 +216,8 @@ class CalendarConflictsUI {
         ${
           hasConflicts
             ? `
-          <div class="calendar-conflicts__actions">
-            <button class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
+          <div class="calendar-conflicts__actions" role="button" tabindex="0">
+            <button aria-label="Refresh" class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
               ${ICONS.refresh}
               <span>Auto-resolve All</span>
             </button>
@@ -273,14 +273,14 @@ class CalendarConflictsUI {
           </div>
         </div>
 
-        <div class="calendar-conflicts__card-actions">
-          <button class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
+        <div class="calendar-conflicts__card-actions" role="button" tabindex="0">
+          <button aria-label="Keep Ferni" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
             Keep Ferni
           </button>
-          <button class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
+          <button aria-label="Keep" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
             Keep ${providerName}
           </button>
-          <button class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
+          <button aria-label="Dismiss" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
             Dismiss
           </button>
         </div>
@@ -520,7 +520,7 @@ class CalendarConflictsUI {
 
       .calendar-conflicts__wrapper {
         width: 100%;
-        max-width: 560px;
+        max-width: clamp(392px, 90vw, 560px);
         max-height: 80vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -544,7 +544,7 @@ class CalendarConflictsUI {
         position: sticky;
         top: 0;
         background: var(--color-background-elevated, #fffdfb);
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .calendar-conflicts__icon {
@@ -889,7 +889,7 @@ class CalendarConflictsUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .calendar-conflicts__wrapper {
           max-width: 100%;
           max-height: 90vh;

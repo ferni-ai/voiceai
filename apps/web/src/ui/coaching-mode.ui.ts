@@ -43,7 +43,7 @@ const STYLES = `
   .coaching-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -61,7 +61,7 @@ const STYLES = `
   .coaching-mode-modal {
     position: relative;
     width: 100%;
-    max-width: 550px;
+    max-width: clamp(385px, 90vw, 550px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -511,9 +511,9 @@ function renderTopicStep(): string {
       `).join('')}
     </div>
     
-    <div class="coaching-actions">
-      <button class="coaching-btn coaching-btn--secondary" data-action="cancel">Cancel</button>
-      <button class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
+    <div class="coaching-actions" role="button" tabindex="0">
+      <button aria-label="Cancel" class="coaching-btn coaching-btn--secondary" data-action="cancel">Cancel</button>
+      <button aria-label="Continue" class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -563,14 +563,14 @@ function renderContextStep(): string {
       >${sessionData.goal}</textarea>
     </div>
     
-    <div class="coaching-actions">
-      <button class="coaching-btn coaching-btn--secondary" data-action="back">
+    <div class="coaching-actions" role="button" tabindex="0">
+      <button aria-label="Back" class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Back
       </button>
-      <button class="coaching-btn coaching-btn--primary" data-action="next">
+      <button aria-label="Continue" class="coaching-btn coaching-btn--primary" data-action="next">
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -622,14 +622,14 @@ function renderSessionStep(): string {
       ` : ''}
     </div>
     
-    <div class="coaching-actions">
-      <button class="coaching-btn coaching-btn--secondary" data-action="back">
+    <div class="coaching-actions" role="button" tabindex="0">
+      <button aria-label="Edit" class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Edit
       </button>
-      <button class="coaching-btn coaching-btn--primary" data-action="start-session">
+      <button aria-label="Start Session" class="coaching-btn coaching-btn--primary" data-action="start-session">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>

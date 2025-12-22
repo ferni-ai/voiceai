@@ -535,7 +535,7 @@ class NowPlayingUI {
         position: fixed;
         top: 280px;
         right: var(--space-4);
-        z-index: 90;
+        z-index: var(--z-dropdown);
         
         display: none;
         align-items: center;
@@ -553,7 +553,7 @@ class NowPlayingUI {
         font-family: var(--font-body);
         color: var(--color-text-primary);
         
-        max-width: 240px;
+        max-width: min(240px, 100%);
         overflow: hidden;
         transition: width var(--duration-normal, 200ms) var(--ease-standard, ease-out),
                     max-width var(--duration-normal, 200ms) var(--ease-standard, ease-out);
@@ -783,13 +783,13 @@ class NowPlayingUI {
       }
       
       /* Mobile adjustments - position below avatar area */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .now-playing {
           top: auto;
           bottom: 160px;
           right: var(--space-3);
           left: auto;
-          max-width: 200px;
+          max-width: min(200px, 100%);
         }
         
         .now-playing--collapsed {
@@ -821,7 +821,7 @@ class NowPlayingUI {
         transition: transform var(--duration-fast) ease,
                     background var(--duration-fast) ease,
                     color var(--duration-fast) ease;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
       
       .now-playing__dismiss svg {

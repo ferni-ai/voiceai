@@ -114,7 +114,7 @@ function injectStyles(): void {
     .ic-modal {
       position: relative;
       width: 90%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
       background: var(--color-background-elevated, #faf6f0);
       border-radius: var(--radius-2xl, 1rem);
@@ -463,7 +463,7 @@ function render(): void {
 function renderSourceSelection(): string {
   return `
     <div class="ic-sources">
-      <button class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
+      <button aria-label="More information" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">Google Contacts</div>
@@ -471,7 +471,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
       
-      <button class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
+      <button aria-label="More information" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">CSV File</div>
@@ -479,7 +479,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
       
-      <button class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
+      <button aria-label="More information" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">vCard File</div>
@@ -522,7 +522,7 @@ function renderPreview(): string {
     <div class="ic-preview-section">
       <div class="ic-preview-header">
         <span class="ic-preview-title">${state.selectedCount} of ${state.preview.length} selected</span>
-        <button class="ic-select-all" id="ic-select-all">Select All</button>
+        <button aria-label="Select All" class="ic-select-all" id="ic-select-all">Select All</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -886,8 +886,8 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button class="ic-btn ic-btn-secondary">Cancel</button>
-        <button class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
+        <button aria-label="Cancel" class="ic-btn ic-btn-secondary">Cancel</button>
+        <button aria-label="Import Selected" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
           Import Selected
         </button>
       </div>

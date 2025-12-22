@@ -164,7 +164,7 @@ function injectStyles(): void {
     .accent-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -188,7 +188,7 @@ function injectStyles(): void {
     .accent-settings-modal {
       position: relative;
       width: 90%;
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       max-height: 90vh;
       overflow-y: auto;
       background: var(--color-background-elevated, #FFFDFB);
@@ -558,7 +558,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .accent-settings-modal {
         max-width: 100%;
         max-height: 100%;
@@ -636,7 +636,7 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button aria-label="Confirm" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
@@ -654,15 +654,15 @@ function render(): void {
               <span class="accent-auto-detect-icon">${ICONS.globe}</span>
               <span class="accent-auto-detect-label">Auto-detect from location</span>
             </div>
-            <button class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
-              <span class="accent-toggle-knob"></span>
+            <button aria-label="Toggle" class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
+              <span class="accent-toggle-knob" role="button" tabindex="0"></span>
             </button>
           </div>
 
           ${state.error ? `<div class="accent-message error">${state.error}</div>` : ''}
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
-          <button class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
+          <button aria-label="Save" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
             ${state.isSaving ? t('common.saving') : 'Save Preference'}
           </button>
         </div>

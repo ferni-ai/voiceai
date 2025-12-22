@@ -192,20 +192,20 @@ function createModal(): void {
         <span class="referral-link-url">${shortUrl}</span>
       </div>
 
-      <div class="referral-actions">
-        <button class="referral-btn referral-btn--primary" data-action="share">
+      <div class="referral-actions" role="button" tabindex="0">
+        <button aria-label="Share" class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>Share</span>
         </button>
-        <button class="referral-btn" data-action="copy">
+        <button aria-label="Copy" class="referral-btn" data-action="copy">
           ${ICONS.copy}
           <span>Copy Link</span>
         </button>
-        <button class="referral-btn" data-action="email">
+        <button aria-label="Email" class="referral-btn" data-action="email">
           ${ICONS.mail}
           <span>Email</span>
         </button>
-        <button class="referral-btn" data-action="sms">
+        <button aria-label="Text" class="referral-btn" data-action="sms">
           ${ICONS.message}
           <span>Text</span>
         </button>
@@ -416,7 +416,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       text-align: center;
@@ -432,7 +432,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted, #70605a);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-close:hover {
@@ -505,7 +505,7 @@ function injectStyles(): void {
       font-weight: 500;
       color: var(--color-text-primary, #2c2520);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-btn:hover {
@@ -640,8 +640,8 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       opacity: 0;
-      transition: all 0.2s ease;
-      z-index: 10001;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: var(--z-tooltip);
     }
 
     .referral-toast--visible {
@@ -663,7 +663,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .referral-modal {
         padding: 0;
         align-items: flex-end;

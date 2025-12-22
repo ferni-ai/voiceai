@@ -204,8 +204,8 @@ class PersonaTransitionUI {
 
       .persona-transition__banter {
         position: relative;
-        z-index: 1;
-        max-width: 400px;
+        z-index: var(--z-docked);
+        max-width: min(400px, 100%);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
         background: var(--color-background-elevated, rgba(255, 253, 251, 0.95));
         border-radius: var(--radius-xl, 1.5rem);

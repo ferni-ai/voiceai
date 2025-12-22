@@ -144,7 +144,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .diagnostics-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -195,7 +195,7 @@ export async function render(): Promise<string> {
         background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border: 2px solid var(--node-color, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-lg, 12px);
-        min-width: 100px;
+        min-width: min(100px, 100%);
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 

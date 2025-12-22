@@ -47,7 +47,7 @@ export async function render(): Promise<string> {
   return `
     <div class="flags-section">
       <!-- Actions -->
-      <div class="flags-actions">
+      <div class="flags-actions" role="button" tabindex="0">
         <div class="flags-search">
           <span class="flags-search-icon" aria-hidden="true">${iconSm(ICON_SEARCH)}</span>
           <input
@@ -58,16 +58,16 @@ export async function render(): Promise<string> {
             aria-label="Search feature flags"
           >
         </div>
-        <div class="flags-action-btns">
-          <button class="admin-btn" data-action="enable-all-flags">
+        <div class="flags-action-btns" role="button" tabindex="0">
+          <button aria-label="Enable All" class="admin-btn" data-action="enable-all-flags">
             <span class="admin-icon">${iconSm(ICON_SUCCESS)}</span>
             Enable All
           </button>
-          <button class="admin-btn" data-action="disable-all-flags">
+          <button aria-label="Disable All" class="admin-btn" data-action="disable-all-flags">
             <span class="admin-icon">${iconSm(ICON_ERROR)}</span>
             Disable All
           </button>
-          <button class="admin-btn" data-action="reset-flags">
+          <button aria-label="Refresh" class="admin-btn" data-action="reset-flags">
             <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
             Reset to Defaults
           </button>
@@ -115,7 +115,7 @@ export async function render(): Promise<string> {
 
       .flags-search {
         flex: 1;
-        max-width: 400px;
+        max-width: min(400px, 100%);
         position: relative;
       }
 
@@ -314,7 +314,7 @@ function renderFlagItem(flag: FeatureFlag): string {
             data-action="toggle"
             aria-label="Toggle ${flag.name}"
           >
-          <span class="admin-toggle-slider" aria-hidden="true"></span>
+          <span class="admin-toggle-slider" role="button" tabindex="0" aria-hidden="true"></span>
         </label>
       </div>
     </div>

@@ -170,7 +170,7 @@ function injectStyles(): void {
       transform: translateX(-50%) translateY(100%);
       z-index: var(--z-notification, 3000);
       width: calc(100% - var(--ma-silence) * 2);
-      max-width: 400px;
+      max-width: min(400px, 100%);
       padding: var(--ma-rest);
       background: var(--color-background-elevated);
       border: 1px solid var(--color-border-subtle);
@@ -612,11 +612,11 @@ class PracticeBriefingToast {
       ${streakHtml}
       <p class="practice-briefing-toast__encouragement">${escapeHtml(briefing.encouragement)}</p>
       ${tipsHtml}
-      <div class="practice-briefing-toast__actions">
-        <button class="practice-briefing-toast__btn practice-briefing-toast__btn--secondary" type="button">
+      <div class="practice-briefing-toast__actions" role="button" tabindex="0">
+        <button aria-label="Dismiss" class="practice-briefing-toast__btn practice-briefing-toast__btn--secondary" type="button">
           Dismiss
         </button>
-        <button class="practice-briefing-toast__btn practice-briefing-toast__btn--primary" type="button">
+        <button aria-label="Start Practice" class="practice-briefing-toast__btn practice-briefing-toast__btn--primary" type="button">
           Start Practice
         </button>
       </div>

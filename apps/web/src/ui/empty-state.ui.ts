@@ -277,7 +277,7 @@ export class EmptyStateUI {
     wrapper.className = 'empty-state-illustration';
     
     Object.assign(wrapper.style, {
-      width: '120px',
+      width: 'min(120px, 100%)',
       height: '120px',
       marginBottom: 'var(--space-4, 16px)',
     });

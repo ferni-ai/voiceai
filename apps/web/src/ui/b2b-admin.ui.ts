@@ -99,7 +99,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -122,7 +122,7 @@ const styles = `
   background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   width: calc(100% - 48px);
-  max-width: 900px;
+  max-width: min(900px, 100%);
   max-height: 85vh;
   box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
@@ -520,7 +520,7 @@ const styles = `
   border-radius: var(--radius-md, 8px);
   font-size: 0.9rem;
   background: white;
-  min-width: 100px;
+  min-width: min(100px, 100%);
 }
 
 .b2b-admin-invite-btn {
@@ -655,7 +655,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: clamp(538px, 90vw, 768px)) {
   .b2b-admin-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1037,7 +1037,7 @@ function renderTeam(): string {
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
-          <button class="b2b-admin-invite-btn" id="send-invite-btn">Send Invite</button>
+          <button aria-label="Send Invite" class="b2b-admin-invite-btn" id="send-invite-btn">Send Invite</button>
         </div>
         <p class="b2b-admin-form-help">
           ${currentOrg?.seatCount ? currentOrg.seatCount - (currentOrg.activeSeats || 0) : 0} seats remaining
@@ -1064,9 +1064,9 @@ function renderTeam(): string {
                 </div>
               </div>
               <span class="b2b-admin-team-badge ${member.role}">${member.role}</span>
-              <div class="b2b-admin-team-actions">
-                ${member.role === 'member' ? `<button class="b2b-admin-team-action-btn" data-action="promote" data-user="${member.userId}">Make Admin</button>` : ''}
-                <button class="b2b-admin-team-action-btn danger" data-action="remove" data-user="${member.userId}">Remove</button>
+              <div class="b2b-admin-team-actions" role="button" tabindex="0">
+                ${member.role === 'member' ? `<button aria-label="Make Admin" class="b2b-admin-team-action-btn" data-action="promote" data-user="${member.userId}">Make Admin</button>` : ''}
+                <button aria-label="Remove" class="b2b-admin-team-action-btn danger" data-action="remove" data-user="${member.userId}">Remove</button>
               </div>
             </li>
           `
@@ -1105,7 +1105,7 @@ function renderSettings(): string {
           <p class="b2b-admin-form-help">Ferni will incorporate these values in relevant conversations.</p>
         </div>
 
-        <button class="b2b-admin-save-btn" id="save-settings-btn">Save Settings</button>
+        <button aria-label="Settings" class="b2b-admin-save-btn" id="save-settings-btn">Save Settings</button>
       </div>
     </div>
   `;
@@ -1153,7 +1153,7 @@ function renderBilling(roi: ROIEstimate): string {
             Net benefit: $${((roi.estimatedSavings - roi.monthlyInvestment) / 100).toLocaleString()}/month
           </p>
         </div>
-        <button class="b2b-admin-save-btn" onclick="window.open('/api/subscription/portal?userId=${currentUserId}', '_blank')">
+        <button aria-label="Manage Billing" class="b2b-admin-save-btn" onclick="window.open('/api/subscription/portal?userId=${currentUserId}', '_blank')">
           Manage Billing
         </button>
       </div>

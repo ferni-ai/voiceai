@@ -444,7 +444,7 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
       ${
         hint.ctaText
           ? `
-        <button class="hint-cta">
+        <button aria-label="Go forward" class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
@@ -496,14 +496,14 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       ${
         hint.ctaText
           ? `
-        <button class="hint-cta">
+        <button aria-label="Go forward" class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
       `
           : ''
       }
-      <button class="hint-dismiss-text">Maybe later</button>
+      <button aria-label="Maybe later" class="hint-dismiss-text">Maybe later</button>
     </div>
   `;
 
@@ -849,7 +849,7 @@ function injectStyles(): void {
        TOOLTIP HINT
        ======================================================================== */
     .feature-hint--tooltip .hint-content {
-      max-width: 260px;
+      max-width: min(260px, 100%);
       padding: var(--space-3, 12px);
     }
     
@@ -889,7 +889,7 @@ function injectStyles(): void {
        CARD HINT
        ======================================================================== */
     .feature-hint--card .hint-content {
-      max-width: 280px;
+      max-width: min(280px, 100%);
     }
     
     /* ========================================================================
@@ -919,7 +919,7 @@ function injectStyles(): void {
     }
     
     .feature-hint--spotlight-card .hint-content {
-      max-width: 300px;
+      max-width: min(300px, 100%);
     }
     
     /* ========================================================================
@@ -960,7 +960,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .feature-hint--card .hint-content,
       .feature-hint--spotlight-card .hint-content {
         max-width: calc(100vw - var(--space-8, 32px));

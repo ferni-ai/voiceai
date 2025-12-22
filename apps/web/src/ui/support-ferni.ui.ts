@@ -292,7 +292,7 @@ function renderUpgradeOptions(currentTier: string): string {
         ${upgradeTiers
           .map(
             (tier) => `
-          <button class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--popular' : ''}" data-upgrade-tier="${tier.id}">
+          <button aria-label="Confirm" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--popular' : ''}" data-upgrade-tier="${tier.id}">
             ${tier.id === 'friend' ? '<span class="support-ferni-popular-badge">Most Chosen</span>' : ''}
             <div class="support-ferni-tier-header">
               <span class="support-ferni-tier-name">${tier.name}</span>
@@ -367,7 +367,7 @@ function renderPlantASeed(): string {
 function renderBillingLink(): string {
   return `
     <section class="support-ferni-section support-ferni-billing">
-      <button class="support-ferni-billing-btn" data-action="billing">
+      <button aria-label="Edit" class="support-ferni-billing-btn" data-action="billing">
         ${ICONS.creditCard}
         <span>${t('support.manageBilling')}</span>
         ${ICONS.externalLink}
@@ -574,7 +574,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
-      max-width: 520px;
+      max-width: clamp(364px, 90vw, 520px);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -1065,7 +1065,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .support-ferni-card {
         padding: var(--space-5, 20px);
         max-height: 85vh;

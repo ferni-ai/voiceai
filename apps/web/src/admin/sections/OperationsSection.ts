@@ -105,7 +105,7 @@ export async function render(): Promise<string> {
           <span class="ops-banner-indicator"></span>
           <span class="ops-banner-text">${getStatusText(overallStatus, healthyCount, totalCount)}</span>
         </div>
-        <div class="ops-banner-actions">
+        <div class="ops-banner-actions" role="button" tabindex="0">
           <button class="admin-btn admin-btn--icon" data-action="refresh-ops" aria-label="Refresh">
             <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
           </button>
@@ -339,7 +339,7 @@ export async function render(): Promise<string> {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .ops-metrics-row {
           grid-template-columns: 1fr;
         }
@@ -426,7 +426,7 @@ export async function render(): Promise<string> {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .ops-bottom-row {
           grid-template-columns: 1fr;
         }

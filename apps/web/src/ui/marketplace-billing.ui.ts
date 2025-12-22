@@ -298,7 +298,7 @@ function renderDashboard(): void {
         <span class="tier-name">${tierConfig.name} Plan</span>
         <span class="tier-desc">${tierConfig.description}</span>
       </div>
-      ${state.tier === 'free' ? `<button class="tier-upgrade">Upgrade</button>` : ''}
+      ${state.tier === 'free' ? `<button aria-label="Upgrade" class="tier-upgrade">Upgrade</button>` : ''}
     </div>
 
     <!-- Overall Usage Summary -->
@@ -543,7 +543,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
       width: 100%;
       max-height: 85vh;
       overflow-y: auto;
@@ -907,7 +907,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 600px) {
+    @media (max-width: clamp(420px, 90vw, 600px)) {
       .usage-cards {
         grid-template-columns: 1fr;
       }

@@ -1273,7 +1273,7 @@ function injectMilestoneStyles(): void {
       box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.12),
         0 2px 8px rgba(0, 0, 0, 0.08);
-      max-width: 340px;
+      max-width: min(340px, 100%);
     }
 
     .ferni-milestone__icon {
@@ -1326,7 +1326,7 @@ function injectMilestoneStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .ferni-milestone {
         bottom: 80px;
         left: var(--space-4, 16px);

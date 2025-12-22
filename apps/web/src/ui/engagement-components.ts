@@ -361,7 +361,7 @@ export const SHARED_STYLES = `
   .ferni-modal__card {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: clamp(294px, 90vw, 420px);
     max-height: 80vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 1.5rem);
@@ -455,7 +455,7 @@ export const SHARED_STYLES = `
     top: 0;
     right: 0;
     bottom: 0;
-    width: 320px;
+    width: min(320px, 100%);
     max-width: 85vw;
     background: var(--color-background-elevated);
     box-shadow: var(--shadow-2xl);
@@ -474,7 +474,7 @@ export const SHARED_STYLES = `
   /* ========================================
      RESPONSIVE - Modal/Menu adjustments
      ======================================== */
-  @media (max-width: 480px) {
+  @media (max-width: clamp(336px, 90vw, 480px)) {
     .ferni-modal {
       /* Respect safe areas on notched devices */
       padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -511,7 +511,7 @@ export const SHARED_STYLES = `
   
   /* iOS Safari specific fixes */
   @supports (-webkit-touch-callout: none) {
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .ferni-modal__card {
         max-height: -webkit-fill-available;
       }
@@ -822,7 +822,7 @@ export const SHARED_STYLES = `
   .engagement-empty-message {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    max-width: 200px;
+    max-width: min(200px, 100%);
     line-height: var(--leading-normal);
     margin: 0;
   }

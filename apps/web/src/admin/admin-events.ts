@@ -216,8 +216,8 @@ export async function editAgent(agentId: string): Promise<void> {
           </div>
         </div>
         <footer class="admin-modal-footer">
-          <button class="admin-btn" data-action="close-modal">Cancel</button>
-          <button class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agentId}">Save Changes</button>
+          <button aria-label="Cancel" class="admin-btn" data-action="close-modal">Cancel</button>
+          <button aria-label="Save Changes" class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agentId}">Save Changes</button>
         </footer>
       </div>
     `;
@@ -455,8 +455,8 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
         </div>
       </div>
       <footer class="admin-modal-footer">
-        <button class="admin-btn" data-action="close-modal">Cancel</button>
-        <button class="admin-btn admin-btn--primary" data-action="create-from-template" data-template="${templateId}">Create Agent</button>
+        <button aria-label="Cancel" class="admin-btn" data-action="close-modal">Cancel</button>
+        <button aria-label="Create Agent" class="admin-btn admin-btn--primary" data-action="create-from-template" data-template="${templateId}">Create Agent</button>
       </footer>
     </div>
   `;
@@ -863,8 +863,8 @@ export async function openCreateAgentModal(): Promise<void> {
         </div>
       </div>
       <footer class="admin-modal-footer">
-        <button class="admin-btn" data-action="close-modal">Cancel</button>
-        <button class="admin-btn admin-btn--primary" data-action="create-new-agent">Create Agent</button>
+        <button aria-label="Cancel" class="admin-btn" data-action="close-modal">Cancel</button>
+        <button aria-label="Create Agent" class="admin-btn admin-btn--primary" data-action="create-new-agent">Create Agent</button>
       </footer>
     </div>
   `;
@@ -945,7 +945,7 @@ function showResultsModal(title: string, data: unknown): void {
         <pre class="admin-code-block">${JSON.stringify(data, null, 2)}</pre>
       </div>
       <footer class="admin-modal-footer">
-        <button class="admin-btn admin-btn--primary" data-action="close-modal">Close</button>
+        <button aria-label="Close" class="admin-btn admin-btn--primary" data-action="close-modal">Close</button>
       </footer>
     </div>
   `;
@@ -983,8 +983,8 @@ export function showConfirmDialog(
         <p class="admin-confirm-message">${message}</p>
       </div>
       <footer class="admin-modal-footer">
-        <button class="admin-btn" data-action="cancel">Cancel</button>
-        <button class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
+        <button aria-label="Cancel" class="admin-btn" data-action="cancel">Cancel</button>
+        <button aria-label="Cancel" class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
       </footer>
     </div>
   `;

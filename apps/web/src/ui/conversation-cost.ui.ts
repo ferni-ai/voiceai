@@ -77,7 +77,7 @@ function injectStyles(): void {
       box-shadow: var(--shadow-xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
       border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
       z-index: var(--z-notification, 3000);
-      max-width: 320px;
+      max-width: min(320px, 100%);
       text-align: center;
       pointer-events: auto;
       transition: all ${DURATION.SLOW}ms ${EASING.SPRING};

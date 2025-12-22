@@ -458,7 +458,7 @@ function injectStyles(): void {
       position: absolute;
       bottom: -4px;
       right: -4px;
-      z-index: 10;
+      z-index: var(--z-docked);
       
       display: flex;
       align-items: center;
@@ -712,7 +712,7 @@ function injectStyles(): void {
     }
     
     /* ===== MOBILE ===== */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .connection-heart {
         width: 40px;
         height: 40px;

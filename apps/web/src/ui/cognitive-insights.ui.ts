@@ -656,7 +656,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__card {
         position: relative;
         width: 100%;
-        max-width: 440px;
+        max-width: clamp(308px, 90vw, 440px);
         max-height: 80vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 1.5rem);
@@ -1288,7 +1288,7 @@ class CognitiveInsightsUI {
       }
 
       /* Responsive */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .cognitive-insights {
           padding: var(--space-4, 16px);
         }

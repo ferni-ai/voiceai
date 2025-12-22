@@ -208,7 +208,7 @@ class AnalyticsDashboardUI {
     this.wrapper.innerHTML = `
       <header class="analytics__header">
         <h2 class="analytics__title">Your Journey</h2>
-        <div class="analytics__actions">
+        <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -238,7 +238,7 @@ class AnalyticsDashboardUI {
     this.wrapper.innerHTML = `
       <header class="analytics__header">
         <h2 class="analytics__title">Your Journey</h2>
-        <div class="analytics__actions">
+        <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -315,7 +315,7 @@ class AnalyticsDashboardUI {
     this.wrapper.innerHTML = `
       <header class="analytics__header">
         <h2 class="analytics__title">Your Journey</h2>
-        <div class="analytics__actions">
+        <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__export" aria-label="${t('accessibility.exportData')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -793,7 +793,7 @@ class AnalyticsDashboardUI {
 
       .analytics__wrapper {
         width: 100%;
-        max-width: 680px;
+        max-width: clamp(476px, 90vw, 680px);
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated);
@@ -864,7 +864,7 @@ class AnalyticsDashboardUI {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: clamp(420px, 90vw, 600px)) {
         .analytics__overview {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -912,7 +912,7 @@ class AnalyticsDashboardUI {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: clamp(420px, 90vw, 600px)) {
         .analytics__charts {
           grid-template-columns: 1fr;
         }
@@ -1381,7 +1381,7 @@ class AnalyticsDashboardUI {
       /* ========================================================================
          MOBILE RESPONSIVE - Small Screens
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .analytics__wrapper {
           max-height: 95vh;
           border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
@@ -1425,7 +1425,7 @@ class AnalyticsDashboardUI {
       }
 
       /* Very small screens (320px) */
-      @media (max-width: 375px) {
+      @media (max-width: min(375px, 100%)) {
         .analytics__wrapper {
           max-height: 100vh;
           border-radius: 0;

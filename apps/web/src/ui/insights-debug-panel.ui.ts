@@ -32,7 +32,7 @@ const PANEL_STYLES = `
     position: fixed;
     top: 60px;
     right: 20px;
-    width: 400px;
+    width: min(400px, 100%);
     max-height: 80vh;
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
@@ -324,11 +324,11 @@ function createPanel(): HTMLElement {
         <div class="insights-debug-panel__insight-list" id="insights-list"></div>
       </div>
       
-      <div class="insights-debug-panel__actions">
-        <button class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
+      <div class="insights-debug-panel__actions" role="button" tabindex="0">
+        <button aria-label="Refresh" class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
           Refresh
         </button>
-        <button class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
+        <button aria-label="Clear Cache" class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
           Clear Cache
         </button>
       </div>

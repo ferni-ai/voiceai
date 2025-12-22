@@ -228,7 +228,7 @@ function addStyles(): void {
       color: inherit;
       font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .lang-selector-trigger:hover {
@@ -265,7 +265,7 @@ function addStyles(): void {
       top: 100%;
       right: 0;
       margin-top: 0.5rem;
-      min-width: 180px;
+      min-width: min(180px, 100%);
       max-height: 300px;
       overflow-y: auto;
       padding: 0.5rem 0;
@@ -277,8 +277,8 @@ function addStyles(): void {
       opacity: 0;
       visibility: hidden;
       transform: translateY(-0.5rem);
-      transition: all 0.2s ease;
-      z-index: 1000;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: var(--z-dropdown);
     }
 
     /* RTL support */

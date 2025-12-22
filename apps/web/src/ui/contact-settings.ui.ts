@@ -141,7 +141,7 @@ function injectStyles(): void {
     .contact-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -165,7 +165,7 @@ function injectStyles(): void {
     .contact-settings-modal {
       position: relative;
       width: 90%;
-      max-width: 440px;
+      max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
       overflow-y: auto;
       background: var(--color-background-elevated, #FFFDFB);
@@ -640,7 +640,7 @@ function render(): void {
             ` : ''}
           </div>
           ${!state.contactInfo.phoneVerified && state.contactInfo.phone ? `
-            <button type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
+            <button aria-label="Settings" type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
               ${state.isVerifying ? 'Sending code...' : 'Verify with code'}
             </button>
           ` : ''}
@@ -716,7 +716,7 @@ function render(): void {
               aria-pressed="${state.contactInfo.quietHoursEnabled !== false}"
               aria-label="${t('accessibility.toggleQuietHours')}"
             >
-              <span class="contact-settings-toggle-knob"></span>
+              <span class="contact-settings-toggle-knob" role="button" tabindex="0"></span>
             </button>
           </div>
           
@@ -746,11 +746,11 @@ function render(): void {
       </form>
     </div>
     
-    <div class="contact-settings-actions">
-      <button class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
+    <div class="contact-settings-actions" role="button" tabindex="0">
+      <button aria-label="Maybe later" class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
         Maybe later
       </button>
-      <button class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
+      <button aria-label="Save" class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
         ${state.isSaving ? t('common.saving') : 'Save'}
       </button>
     </div>

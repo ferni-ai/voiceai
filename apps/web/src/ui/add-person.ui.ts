@@ -148,7 +148,7 @@ function injectStyles(): void {
     .add-person-modal {
       position: relative;
       width: 94%;
-      max-width: 440px;
+      max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -459,7 +459,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .add-person-modal {
         width: 100%;
         max-width: none;
@@ -534,7 +534,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="ap-section">
-        <button class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
+        <button aria-label="Move down" class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
           Add more details ${ICONS.chevronDown}
         </button>
         
@@ -569,8 +569,8 @@ function render(): void {
     </div>
     
     <div class="ap-footer">
-      <button class="ap-btn ap-btn-secondary" id="ap-cancel">Cancel</button>
-      <button class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
+      <button aria-label="Cancel" class="ap-btn ap-btn-secondary" id="ap-cancel">Cancel</button>
+      <button aria-label="Submit" class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Adding...' : 'Add Person'}
       </button>
     </div>

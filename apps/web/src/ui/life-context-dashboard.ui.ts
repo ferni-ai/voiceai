@@ -156,7 +156,7 @@ const styles = `
   .life-context-modal {
     position: relative;
     width: 95%;
-    max-width: 680px;
+    max-width: clamp(476px, 90vw, 680px);
     max-height: 90vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 24px);
@@ -835,16 +835,16 @@ function renderTrigger(trigger: SynthesisTrigger): string {
   };
 
   return `
-    <div class="life-context-trigger" style="border-color: ${categoryConfig.color}; background: ${categoryConfig.bgColor}">
-      <div class="life-context-trigger__header">
-        <span class="life-context-trigger__category" style="background: ${categoryConfig.color}; color: white">
+    <div class="life-context-trigger" role="button" tabindex="0" style="border-color: ${categoryConfig.color}; background: ${categoryConfig.bgColor}">
+      <div class="life-context-trigger__header" role="button" tabindex="0">
+        <span class="life-context-trigger__category" role="button" tabindex="0" style="background: ${categoryConfig.color}; color: white">
           ${categoryConfig.label}
         </span>
-        <span class="life-context-trigger__priority">${trigger.priority}</span>
+        <span class="life-context-trigger__priority" role="button" tabindex="0">${trigger.priority}</span>
       </div>
-      <div class="life-context-trigger__message">${trigger.message}</div>
-      <div class="life-context-trigger__response">"${trigger.suggestedResponse}"</div>
-      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona">Recommended: ${trigger.recommendedPersona}</div>` : ''}
+      <div class="life-context-trigger__message" role="button" tabindex="0">${trigger.message}</div>
+      <div class="life-context-trigger__response" role="button" tabindex="0">"${trigger.suggestedResponse}"</div>
+      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">Recommended: ${trigger.recommendedPersona}</div>` : ''}
     </div>
   `;
 }
@@ -861,7 +861,7 @@ function renderTriggers(triggers?: SynthesisTrigger[]): string {
   );
 
   return `
-    <div class="life-context-triggers">
+    <div class="life-context-triggers" role="button" tabindex="0">
       <div class="life-context-section-title">Synthesis Triggers</div>
       ${sorted.map((t) => renderTrigger(t)).join('')}
     </div>

@@ -146,7 +146,7 @@ function injectStyles(): void {
     .important-dates-modal {
       position: relative;
       width: 94%;
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -510,7 +510,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .important-dates-modal {
         width: 100%;
         max-width: none;
@@ -566,14 +566,14 @@ function render(): void {
       ${state.showAddForm || state.editingIndex !== null ? renderForm() : ''}
       ${renderDateList()}
       ${!state.showAddForm && state.editingIndex === null ? `
-        <button class="id-add-btn" id="id-add-btn">
+        <button aria-label="Add" class="id-add-btn" id="id-add-btn">
           ${ICONS.plus} Add Important Date
         </button>
       ` : ''}
     </div>
     
     <div class="id-footer">
-      <button class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
+      <button aria-label="Submit" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Done'}
       </button>
     </div>
@@ -632,9 +632,9 @@ function renderForm(): string {
         Repeats every year
       </label>
       
-      <div class="id-form-actions">
-        <button class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
-        <button class="id-form-btn id-form-btn-save" id="id-form-save">
+      <div class="id-form-actions" role="button" tabindex="0">
+        <button aria-label="Cancel" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
+        <button aria-label="Confirm" class="id-form-btn id-form-btn-save" id="id-form-save">
           ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
         </button>
       </div>
@@ -669,7 +669,7 @@ function renderDateList(): string {
             ${date.reminder ? `<span>${ICONS.bell} ${date.reminder}d</span>` : ''}
           </div>
         </div>
-        <div class="id-date-actions">
+        <div class="id-date-actions" role="button" tabindex="0">
           <button class="id-date-action" data-action="edit" data-index="${index}" aria-label="Edit">
             ${ICONS.edit}
           </button>

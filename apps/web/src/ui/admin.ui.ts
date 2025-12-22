@@ -183,7 +183,7 @@ function renderError(message: string): string {
     <div class="admin-error">
       <h2>Error Loading Agents</h2>
       <p>${message}</p>
-      <button onclick="window.location.reload()">Retry</button>
+      <button aria-label="Retry" onclick="window.location.reload()">Retry</button>
     </div>
   `;
 }
@@ -196,14 +196,14 @@ function renderDashboard(): string {
     <div class="admin-dashboard">
       <header class="admin-header">
         <h1>Agent Management</h1>
-        <div class="admin-actions">
-          <button class="admin-btn admin-btn--primary" data-action="create">
+        <div class="admin-actions" role="button" tabindex="0">
+          <button aria-label="+ Create Agent" class="admin-btn admin-btn--primary" data-action="create">
             + Create Agent
           </button>
-          <button class="admin-btn" data-action="validate">
+          <button aria-label="Validate All" class="admin-btn" data-action="validate">
             Validate All
           </button>
-          <button class="admin-btn" data-action="refresh">
+          <button aria-label="Refresh" class="admin-btn" data-action="refresh">
             Refresh
           </button>
         </div>
@@ -235,17 +235,17 @@ function renderDashboard(): string {
 
       <section class="admin-section">
         <h2>Quick Actions</h2>
-        <div class="admin-quick-actions">
-          <div class="admin-action-card" data-action="upload">
-            <span class="admin-action-icon">${ICONS.package}</span>
+        <div class="admin-quick-actions" role="button" tabindex="0">
+          <div class="admin-action-card" role="button" tabindex="0" data-action="upload">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.package}</span>
             <span>Upload Bundle</span>
           </div>
-          <div class="admin-action-card" data-action="export">
-            <span class="admin-action-icon">${ICONS.database}</span>
+          <div class="admin-action-card" role="button" tabindex="0" data-action="export">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.database}</span>
             <span>Export Config</span>
           </div>
-          <div class="admin-action-card" data-action="migrate">
-            <span class="admin-action-icon">${ICONS.refresh}</span>
+          <div class="admin-action-card" role="button" tabindex="0" data-action="migrate">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.refresh}</span>
             <span>Run Migration</span>
           </div>
         </div>
@@ -283,7 +283,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
         <div class="admin-agent-subtitle">${agent.subtitle || agent.roleId}</div>
       </div>
 
-      <div class="admin-agent-actions">
+      <div class="admin-agent-actions" role="button" tabindex="0">
         <button 
           class="admin-agent-edit" 
           data-action="edit" 
@@ -310,7 +310,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
               data-action="toggle"
               data-agent-id="${agent.id}"
             >
-            <span class="admin-toggle-slider"></span>
+            <span class="admin-toggle-slider" role="button" tabindex="0"></span>
           </label>
         `
             : ''
@@ -330,7 +330,7 @@ function renderTemplateCard(id: string, name: string, description: string): stri
         <div class="admin-template-name">${name}</div>
         <div class="admin-template-desc">${description}</div>
       </div>
-      <button class="admin-btn admin-btn--small" data-action="use-template" data-template="${id}">
+      <button aria-label="Use" class="admin-btn admin-btn--small" data-action="use-template" data-template="${id}">
         Use
       </button>
     </div>
@@ -340,9 +340,9 @@ function renderTemplateCard(id: string, name: string, description: string): stri
 function renderAgentDetailPanel(): string {
   return `
     <div class="admin-detail-panel" id="adminDetailPanel" hidden>
-      <div class="admin-detail-backdrop" data-action="close-panel"></div>
+      <div class="admin-detail-backdrop" data-action="close-panel" role="button" tabindex="0"></div>
       <div class="admin-detail-content">
-        <button class="admin-detail-close" data-action="close-panel">×</button>
+        <button aria-label="Close" class="admin-detail-close" data-action="close-panel">×</button>
         <div id="adminDetailBody">
           <!-- Populated when agent is selected -->
         </div>
@@ -361,8 +361,8 @@ function renderTTSMonitoringSection(): string {
         <div class="admin-tts-loading">Loading TTS stats...</div>
       </div>
 
-      <div class="admin-tts-actions">
-        <button class="admin-btn admin-btn--small" data-action="refresh-tts-stats">
+      <div class="admin-tts-actions" role="button" tabindex="0">
+        <button aria-label="Refresh" class="admin-btn admin-btn--small" data-action="refresh-tts-stats">
           Refresh Stats
         </button>
       </div>
@@ -517,11 +517,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Pupil Dilation</h3>
           <p>Interest & connection signals</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="CONTRACTED">Thinking</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="NEUTRAL">Neutral</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="DILATED">Connected</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="INTERESTED">Interested</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Thinking" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="CONTRACTED">Thinking</button>
+            <button aria-label="Neutral" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="NEUTRAL">Neutral</button>
+            <button aria-label="Connected" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="DILATED">Connected</button>
+            <button aria-label="Interested" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="INTERESTED">Interested</button>
           </div>
         </div>
 
@@ -529,11 +529,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Emotional Glow</h3>
           <p>Glow bleeding for intense emotions</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="none">None</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="warmth">Warmth</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="joy">Joy</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="concern">Concern</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="None" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="none">None</button>
+            <button aria-label="Warmth" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="warmth">Warmth</button>
+            <button aria-label="Joy" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="joy">Joy</button>
+            <button aria-label="Concern" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="concern">Concern</button>
           </div>
         </div>
 
@@ -541,11 +541,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>One-Shot Effects</h3>
           <p>Trigger momentary animations</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="memorySpark">Memory Spark</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="anticipation">Anticipation</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="comfortPulse">Comfort Pulse</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="growthCelebration">Celebrate Growth</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Memory Spark" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="memorySpark">Memory Spark</button>
+            <button aria-label="Anticipation" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="anticipation">Anticipation</button>
+            <button aria-label="Comfort Pulse" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="comfortPulse">Comfort Pulse</button>
+            <button aria-label="Celebrate Growth" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="growthCelebration">Celebrate Growth</button>
           </div>
         </div>
 
@@ -553,10 +553,10 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Protective Mode</h3>
           <p>Avatar draws closer during distress</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="mild">Mild</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="moderate">Moderate</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="significant">Full</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Mild" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="mild">Mild</button>
+            <button aria-label="Moderate" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="moderate">Moderate</button>
+            <button aria-label="Full" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="significant">Full</button>
           </div>
         </div>
 
@@ -564,10 +564,10 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Thought Processing</h3>
           <p>Visual patterns when thinking</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="simple">Simple</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="complex">Complex</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="deep">Deep</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Simple" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="simple">Simple</button>
+            <button aria-label="Complex" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="complex">Complex</button>
+            <button aria-label="Deep" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="deep">Deep</button>
           </div>
         </div>
 
@@ -575,11 +575,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Gaze Patterns</h3>
           <p>Natural eye movements</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="center">Center</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="left">Left</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="right">Right</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="thinking">Thinking</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Center" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="center">Center</button>
+            <button aria-label="Left" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="left">Left</button>
+            <button aria-label="Right" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="right">Right</button>
+            <button aria-label="Thinking" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="thinking">Thinking</button>
           </div>
         </div>
 
@@ -611,7 +611,7 @@ function renderAvatarSoulLab(): string {
             <label>Breath Rate (BPM): <span id="breathValue">15</span></label>
             <input type="range" min="8" max="24" step="1" value="15" id="breathSlider" data-soul-slider="breath">
           </div>
-          <button class="admin-btn admin-btn--small" data-soul-action="breathSync" data-value="toggle" style="margin-top: var(--space-2, 8px)">Toggle Visualization</button>
+          <button aria-label="Toggle Visualization" class="admin-btn admin-btn--small" data-soul-action="breathSync" data-value="toggle" style="margin-top: var(--space-2, 8px)">Toggle Visualization</button>
         </div>
       </div>
     </section>
@@ -671,7 +671,7 @@ function renderAgentDetail(agent: ApiAgent): string {
         <label>Voice ID</label>
         <input type="text" value="${agent.voiceId || ''}" data-field="voiceId" readonly>
       </div>
-      <button class="admin-btn" data-action="preview-voice" data-agent-id="${agent.id}">
+      <button aria-label="Volume" class="admin-btn" data-action="preview-voice" data-agent-id="${agent.id}">
         🔊 Preview Voice
       </button>
     </div>
@@ -688,11 +688,11 @@ function renderAgentDetail(agent: ApiAgent): string {
       </div>
     </div>
 
-    <div class="admin-detail-actions">
-      <button class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agent.id}">
+    <div class="admin-detail-actions" role="button" tabindex="0">
+      <button aria-label="Save Changes" class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agent.id}">
         Save Changes
       </button>
-      <button class="admin-btn admin-btn--danger" data-action="delete-agent" data-agent-id="${agent.id}">
+      <button aria-label="Delete" class="admin-btn admin-btn--danger" data-action="delete-agent" data-agent-id="${agent.id}">
         Delete Agent
       </button>
     </div>
@@ -1313,7 +1313,7 @@ export function injectAdminStyles(): void {
   styles.textContent = `
     .admin-dashboard {
       padding: 2rem;
-      max-width: 1200px;
+      max-width: min(1200px, 100%);
       margin: 0 auto;
       font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
       min-height: 100vh;
@@ -1369,7 +1369,7 @@ export function injectAdminStyles(): void {
       color: var(--color-text-primary);
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-btn:hover {
@@ -1428,7 +1428,7 @@ export function injectAdminStyles(): void {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-agent-card:hover {
@@ -1620,7 +1620,7 @@ export function injectAdminStyles(): void {
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-action-card:hover {
@@ -1653,7 +1653,7 @@ export function injectAdminStyles(): void {
 
     .admin-detail-content {
       position: relative;
-      width: 400px;
+      width: min(400px, 100%);
       max-width: 90vw;
       background: var(--color-background-elevated);
       overflow-y: auto;
@@ -1674,7 +1674,7 @@ export function injectAdminStyles(): void {
       color: var(--color-text-primary);
       font-size: 1.5rem;
       cursor: pointer;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .admin-detail-header {
@@ -1841,7 +1841,7 @@ export function injectAdminStyles(): void {
       margin-bottom: 1rem;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .admin-tts-grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -1987,7 +1987,7 @@ export function injectAdminStyles(): void {
 
     .admin-soul-preview-container {
       position: relative;
-      width: 120px;
+      width: min(120px, 100%);
       height: 120px;
       display: flex;
       align-items: center;
@@ -2001,7 +2001,7 @@ export function injectAdminStyles(): void {
       background: radial-gradient(circle, rgba(196, 162, 101, 0) 0%, transparent 70%);
       filter: blur(15px);
       opacity: 0;
-      transition: all 0.5s ease-out;
+      transition: transform 0.5s ease-out, opacity 0.5s ease-out;
       pointer-events: none;
     }
 
@@ -2046,7 +2046,7 @@ export function injectAdminStyles(): void {
       justify-content: center;
       box-shadow: 0 0 30px rgba(74, 103, 65, 0.4);
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
-      z-index: 2;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-avatar.protective {
@@ -2058,7 +2058,7 @@ export function injectAdminStyles(): void {
       font-size: 1.75rem;
       font-weight: bold;
       color: white;
-      z-index: 3;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-eye {
@@ -2081,7 +2081,7 @@ export function injectAdminStyles(): void {
       height: 12px;
       border-radius: 50%;
       background: radial-gradient(circle, #1a1612, #2c2520);
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .admin-soul-preview-pupil.contracted { width: 8px; height: 8px; }
@@ -2116,7 +2116,7 @@ export function injectAdminStyles(): void {
       opacity: 0;
       transform: scale(0.5);
       pointer-events: none;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-spark.active {
@@ -2182,7 +2182,7 @@ export function injectAdminStyles(): void {
       grid-column: span 2;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .admin-soul-card--wide {
         grid-column: span 1;
       }

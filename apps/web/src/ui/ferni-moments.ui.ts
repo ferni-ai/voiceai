@@ -446,7 +446,7 @@ function ensureContainer(): HTMLElement | null {
     width: ${size}px;
     height: ${size}px;
     pointer-events: none;
-    z-index: 15;
+    z-index: var(--z-dropdown);
     display: flex;
     align-items: center;
     justify-content: center;

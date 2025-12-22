@@ -356,14 +356,14 @@ function ensureModalExists(): HTMLElement {
   journalModal = document.createElement('div');
   journalModal.className = 'voice-journal-overlay';
   journalModal.innerHTML = `
-    <div class="journal-backdrop" data-action="close"></div>
+    <div class="journal-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="journal-container" role="dialog" aria-modal="true" aria-labelledby="journal-title">
       <header class="journal-header">
         <div class="journal-header-content">
           <h2 class="journal-title" id="journal-title">Voice Journal</h2>
           <p class="journal-subtitle">Record your thoughts and feelings</p>
         </div>
-        <div class="journal-header-actions">
+        <div class="journal-header-actions" role="button" tabindex="0">
           <button class="journal-action-btn" data-action="export" aria-label="Export journal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -391,14 +391,14 @@ function ensureModalExists(): HTMLElement {
 
       <!-- Tabs -->
       <nav class="journal-tabs" role="tablist">
-        <button class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
+        <button aria-label="Record" class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           </svg>
           Record
         </button>
-        <button class="journal-tab" data-tab="history" role="tab" aria-selected="false">
+        <button aria-label="History" class="journal-tab" data-tab="history" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -407,7 +407,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           History
         </button>
-        <button class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
+        <button aria-label="Insights" class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
@@ -431,14 +431,14 @@ function ensureModalExists(): HTMLElement {
             </div>
             
             <div class="recorder-controls">
-              <button class="recorder-btn" id="record-btn">
+              <button aria-label="Start Recording" class="recorder-btn" id="record-btn">
                 <svg class="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                   <line x1="12" y1="19" x2="12" y2="23"></line>
                   <line x1="8" y1="23" x2="16" y2="23"></line>
                 </svg>
-                <span class="btn-label">Start Recording</span>
+                <span class="btn-label" role="button" tabindex="0">Start Recording</span>
               </button>
             </div>
 
@@ -869,7 +869,7 @@ function renderInsights(): void {
         </div>
         <h3 class="insights-empty-title">More entries needed</h3>
         <p class="insights-empty-text">Record at least 3 journal entries to start seeing insights about your patterns.</p>
-        <button class="insights-cta" data-action="go-to-record">
+        <button aria-label="Start journaling" class="insights-cta" data-action="go-to-record">
           Start journaling
         </button>
       </div>
@@ -1548,7 +1548,7 @@ function getJournalStyles(): string {
     .journal-container {
       position: relative;
       width: 90vw;
-      max-width: 680px;
+      max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
       background: var(--color-bg-elevated, #1a1a2e);
       border-radius: var(--radius-2xl, 24px);
@@ -1763,7 +1763,7 @@ function getJournalStyles(): string {
     
     .recorder-visualizer {
       position: relative;
-      width: 180px;
+      width: min(180px, 100%);
       height: 180px;
       margin: 0 auto var(--space-lg, 24px);
     }
@@ -2142,7 +2142,7 @@ function getJournalStyles(): string {
       font-size: 0.9rem;
       color: var(--color-text-muted);
       margin: 0 0 var(--space-lg, 24px);
-      max-width: 280px;
+      max-width: min(280px, 100%);
       margin-inline: auto;
     }
     
@@ -2223,7 +2223,7 @@ function getJournalStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .journal-container {
         width: 100vw;
         height: 100vh;
@@ -2232,7 +2232,7 @@ function getJournalStyles(): string {
       }
       
       .recorder-visualizer {
-        width: 150px;
+        width: min(150px, 100%);
         height: 150px;
       }
       

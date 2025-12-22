@@ -115,7 +115,7 @@ const styles = `
   .household-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -140,7 +140,7 @@ const styles = `
   .household-modal {
     position: relative;
     width: 90%;
-    max-width: 480px;
+    max-width: clamp(336px, 90vw, 480px);
     max-height: 85vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
@@ -365,7 +365,7 @@ const styles = `
     font-size: 15px;
     line-height: 1.5;
     margin-bottom: var(--space-5, 20px);
-    max-width: 280px;
+    max-width: min(280px, 100%);
     margin-left: auto;
     margin-right: auto;
   }
@@ -473,7 +473,7 @@ const styles = `
     font-size: 15px;
     background: var(--color-background-elevated, #fffdfb);
     color: var(--color-text-primary, #2c2520);
-    min-width: 100px;
+    min-width: min(100px, 100%);
     cursor: pointer;
   }
   
@@ -909,7 +909,7 @@ function createModal(): void {
         </div>
       </div>
       <footer class="household-modal__footer">
-        <button class="household-btn household-btn--secondary" data-action="close">Done</button>
+        <button aria-label="Done" class="household-btn household-btn--secondary" data-action="close">Done</button>
       </footer>
     </div>
   `;
@@ -976,7 +976,7 @@ function renderMainView(content: HTMLElement): void {
         <p class="household-empty__text">
           When you share this device with family, I can recognize each person's voice and remember everyone individually.
         </p>
-        <button class="household-btn household-btn--primary" data-action="show-create">
+        <button aria-label="Create Household" class="household-btn household-btn--primary" data-action="show-create">
           ${ICONS.home}
           <span>Create Household</span>
         </button>
@@ -1022,7 +1022,7 @@ function renderMainView(content: HTMLElement): void {
             <option value="guest">Guest</option>
           </select>
         </div>
-        <button class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
+        <button aria-label="Add to Household" class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
           Add to Household
         </button>
         <p class="household-add-form__hint">
@@ -1098,11 +1098,11 @@ function renderCreateForm(content: HTMLElement): void {
           autofocus
         />
       </div>
-      <div class="household-create-form__actions">
-        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
+      <div class="household-create-form__actions" role="button" tabindex="0">
+        <button aria-label="Maybe later" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
           Maybe later
         </button>
-        <button class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
+        <button aria-label="Create" class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
           Create
         </button>
       </div>
@@ -1145,11 +1145,11 @@ function renderConfirmRemove(content: HTMLElement): void {
         I'll forget ${memberToRemove.displayName}'s voice, but their conversation history will stay safe. 
         They can always re-enroll later if needed.
       </p>
-      <div class="household-confirm__actions">
-        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
+      <div class="household-confirm__actions" role="button" tabindex="0">
+        <button aria-label="Keep them" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
           Keep them
         </button>
-        <button class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
+        <button aria-label="Remove" class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
           Remove
         </button>
       </div>
@@ -1189,7 +1189,7 @@ function renderMember(member: HouseholdMember): string {
           <span>${lastSeenText}</span>
         </div>
       </div>
-      <div class="household-member__actions">
+      <div class="household-member__actions" role="button" tabindex="0">
         ${
           !isOwner
             ? `
@@ -1221,7 +1221,7 @@ function renderSetting(key: keyof Household['settings'], label: string, descript
       </div>
       <label class="toggle-switch">
         <input type="checkbox" data-setting="${key}" ${checked ? 'checked' : ''} />
-        <span class="toggle-switch__slider"></span>
+        <span class="toggle-switch__slider" role="button" tabindex="0"></span>
       </label>
     </div>
   `;

@@ -25,7 +25,7 @@ const STYLES = `
   .mentor-teachings-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +43,7 @@ const STYLES = `
   .mentor-teachings-modal {
     position: relative;
     width: 100%;
-    max-width: 600px;
+    max-width: clamp(420px, 90vw, 600px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -300,7 +300,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: 640px) {
+  @media (max-width: clamp(448px, 90vw, 640px)) {
     .mentor-teachings-overlay {
       padding: 0;
     }
@@ -381,7 +381,7 @@ function render(): string {
                 </svg>
                 Core Principles
               </h3>
-              <button class="mentor-add-btn" data-action="add-principle">
+              <button aria-label="Add Principle" class="mentor-add-btn" data-action="add-principle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -403,12 +403,12 @@ function render(): string {
             ` : principles.map((p, i) => `
               <div class="mentor-principle-card" data-index="${i}">
                 <h4 class="mentor-principle-title">${p}</h4>
-                <div class="mentor-card-actions">
-                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}">
+                <div class="mentor-card-actions" role="button" tabindex="0">
+                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}" aria-label="Edit principle">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}" aria-label="Delete principle">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -427,7 +427,7 @@ function render(): string {
                 </svg>
                 Key Quotes
               </h3>
-              <button class="mentor-add-btn" data-action="add-quote">
+              <button aria-label="Add Quote" class="mentor-add-btn" data-action="add-quote">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -450,12 +450,12 @@ function render(): string {
               <div class="mentor-quote-card" data-index="${i}">
                 <p class="mentor-quote-text">${q.quote}</p>
                 ${q.source ? `<span class="mentor-quote-source">— ${q.source}</span>` : ''}
-                <div class="mentor-card-actions">
-                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}">
+                <div class="mentor-card-actions" role="button" tabindex="0">
+                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}" aria-label="Edit quote">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}" aria-label="Delete quote">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>

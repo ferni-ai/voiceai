@@ -99,7 +99,7 @@ const STYLES = `
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9998;
+    z-index: var(--z-tooltip);
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 13px;
     pointer-events: auto;
@@ -168,7 +168,7 @@ const STYLES = `
     position: absolute;
     bottom: calc(100% + 8px);
     right: 0;
-    width: 280px;
+    width: min(280px, 100%);
     background: var(--color-background-elevated, #FFFDFB);
     border-radius: var(--radius-lg, 12px);
     box-shadow: var(--shadow-xl, 0 12px 36px rgba(0,0,0,0.2));

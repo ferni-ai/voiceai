@@ -183,7 +183,7 @@ export class PerformanceDashboard {
       <div class="perf-dashboard">
         <header class="perf-header">
           <h2>Voice Agent Performance</h2>
-          <button class="refresh-btn" onclick="window.perfDashboard?.refresh()">↻ Refresh</button>
+          <button aria-label="Refresh" class="refresh-btn" onclick="window.perfDashboard?.refresh()">↻ Refresh</button>
         </header>
 
         ${this.renderSummaryCards()}
@@ -197,7 +197,7 @@ export class PerformanceDashboard {
         .perf-dashboard {
           font-family: var(--font-body);
           padding: var(--space-4);
-          max-width: 1200px;
+          max-width: min(1200px, 100%);
           margin: 0 auto;
         }
 
@@ -626,11 +626,11 @@ export class PerformanceDashboard {
         ${topTriggers.length > 0 ? `
           <div style="margin-top: var(--space-4);">
             <div class="metric-label" style="margin-bottom: var(--space-2);">Top Triggers</div>
-            <div class="trigger-list">
+            <div class="trigger-list" role="button" tabindex="0">
               ${topTriggers.map(t => `
-                <div class="trigger-item">
-                  <span class="trigger-name">${t.name}</span>
-                  <span class="trigger-stats">
+                <div class="trigger-item" role="button" tabindex="0">
+                  <span class="trigger-name" role="button" tabindex="0">${t.name}</span>
+                  <span class="trigger-stats" role="button" tabindex="0">
                     ${t.fired} fired / ${t.matched} matched (${(t.fireRate * 100).toFixed(0)}%)
                   </span>
                 </div>
@@ -642,11 +642,11 @@ export class PerformanceDashboard {
         ${topBuilders.length > 0 ? `
           <div style="margin-top: var(--space-3);">
             <div class="metric-label" style="margin-bottom: var(--space-2);">By Builder</div>
-            <div class="trigger-list">
+            <div class="trigger-list" role="button" tabindex="0">
               ${topBuilders.map(b => `
-                <div class="trigger-item">
-                  <span class="trigger-name">${b.name}</span>
-                  <span class="trigger-stats">
+                <div class="trigger-item" role="button" tabindex="0">
+                  <span class="trigger-name" role="button" tabindex="0">${b.name}</span>
+                  <span class="trigger-stats" role="button" tabindex="0">
                     ${b.fired} fired / ${b.checked} checked
                   </span>
                 </div>
@@ -677,7 +677,7 @@ export class PerformanceDashboard {
       <div class="error-state">
         <p>Failed to load metrics</p>
         <p style="font-size:var(--text-sm)">${error}</p>
-        <button class="refresh-btn" onclick="window.perfDashboard?.refresh()">Retry</button>
+        <button aria-label="Retry" class="refresh-btn" onclick="window.perfDashboard?.refresh()">Retry</button>
       </div>
     `;
   }

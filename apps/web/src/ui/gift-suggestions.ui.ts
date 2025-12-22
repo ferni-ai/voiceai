@@ -152,7 +152,7 @@ function injectStyles(): void {
     .gift-suggestions-modal {
       position: relative;
       width: 94%;
-      max-width: 520px;
+      max-width: clamp(364px, 90vw, 520px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -557,7 +557,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .gift-suggestions-modal {
         width: 100%;
         max-width: none;
@@ -640,7 +640,7 @@ function render(): void {
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
         <span class="gs-footer-hint">Tap a gift to record it</span>
-        <button class="gs-regenerate-btn" id="gs-regenerate">
+        <button aria-label="Refresh" class="gs-regenerate-btn" id="gs-regenerate">
           ${ICONS.refresh} New ideas
         </button>
       </div>
@@ -664,7 +664,7 @@ function renderContent(): string {
     return `
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
-        <button class="gs-retry-btn" id="gs-retry">
+        <button aria-label="Refresh" class="gs-retry-btn" id="gs-retry">
           ${ICONS.refresh} Try again
         </button>
       </div>
@@ -680,7 +680,7 @@ function renderContent(): string {
           Based on ${escapeHtml(state.contactName)}'s interests and your relationship,
           Ferni will suggest thoughtful gift ideas.
         </p>
-        <button class="gs-generate-btn" id="gs-generate">
+        <button aria-label="Generate Ideas" class="gs-generate-btn" id="gs-generate">
           ${ICONS.sparkles} Generate Ideas
         </button>
       </div>

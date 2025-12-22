@@ -256,7 +256,7 @@ class WearableSettingsUI {
             <span class="wearable-settings__provider-name">${t(`wearableSettings.providers.${provider.id}.name`)}</span>
             <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
-          <button
+          <button aria-label="Settings"
             class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
             data-provider="${provider.id}"
             data-connected="${isConnected}"
@@ -323,7 +323,7 @@ class WearableSettingsUI {
       </header>
       <div class="wearable-settings__error">
         <p>${message}</p>
-        <button class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
+        <button aria-label="Settings" class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
       </div>
     `;
 
@@ -427,7 +427,7 @@ class WearableSettingsUI {
 
       .wearable-settings__wrapper {
         width: 100%;
-        max-width: 480px;
+        max-width: clamp(336px, 90vw, 480px);
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -726,7 +726,7 @@ class WearableSettingsUI {
         color: var(--persona-primary, #6b9b5a);
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .wearable-settings__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;

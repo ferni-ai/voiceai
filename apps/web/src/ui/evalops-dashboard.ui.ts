@@ -232,8 +232,8 @@ function createDashboardHTML(): string {
           <span class="eyebrow">QUALITY ASSURANCE</span>
           <h2>EvalOps Dashboard</h2>
         </div>
-        <div class="header-actions">
-          <button class="refresh-btn" title="${t('accessibility.refreshData')}">
+        <div class="header-actions" role="button" tabindex="0">
+          <button aria-label="Refresh" class="refresh-btn" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
           <button class="close-btn" aria-label="${t('common.close')}">
@@ -243,23 +243,23 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="evalops-tabs">
-        <button class="tab-btn ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+        <button aria-label="Overview" class="tab-btn ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
           ${ICONS.chart}
           <span>Overview</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'personas' ? 'active' : ''}" data-tab="personas">
+        <button aria-label="User profile" class="tab-btn ${state.activeTab === 'personas' ? 'active' : ''}" data-tab="personas">
           ${ICONS.user}
           <span>Personas</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'scenarios' ? 'active' : ''}" data-tab="scenarios">
+        <button aria-label="Scenarios" class="tab-btn ${state.activeTab === 'scenarios' ? 'active' : ''}" data-tab="scenarios">
           ${ICONS.list}
           <span>Scenarios</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'flagged' ? 'active' : ''}" data-tab="flagged">
+        <button aria-label="Flagged" class="tab-btn ${state.activeTab === 'flagged' ? 'active' : ''}" data-tab="flagged">
           ${ICONS.flag}
           <span>Flagged</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'config' ? 'active' : ''}" data-tab="config">
+        <button aria-label="Settings" class="tab-btn ${state.activeTab === 'config' ? 'active' : ''}" data-tab="config">
           ${ICONS.settings}
           <span>Config</span>
         </button>
@@ -299,7 +299,7 @@ function renderContent(): void {
       <div class="evalops-error">
         ${ICONS.alert}
         <p>${state.error}</p>
-        <button class="retry-btn" onclick="window.evalopsDashboard?.refresh()">Try Again</button>
+        <button aria-label="Try Again" class="retry-btn" onclick="window.evalopsDashboard?.refresh()">Try Again</button>
       </div>
     `;
     return;
@@ -398,14 +398,14 @@ function renderOverviewTab(): string {
       
       <div class="overview-section">
         <h3>Quick Actions</h3>
-        <div class="quick-actions">
-          <button class="action-btn" data-action="run-critical">
+        <div class="quick-actions" role="button" tabindex="0">
+          <button aria-label="Play" class="action-btn" data-action="run-critical">
             ${ICONS.play} Run Critical Tests
           </button>
-          <button class="action-btn" data-action="run-full">
+          <button aria-label="Play" class="action-btn" data-action="run-full">
             ${ICONS.play} Run Full Suite
           </button>
-          <button class="action-btn" data-action="export">
+          <button aria-label="Download" class="action-btn" data-action="export">
             ${ICONS.download} Export Report
           </button>
         </div>
@@ -446,11 +446,11 @@ function renderPersonasTab(): string {
               </div>
             </div>
             
-            <div class="persona-actions">
-              <button class="persona-action-btn" data-action="test-voice" data-persona="${p.personaId}">
+            <div class="persona-actions" role="button" tabindex="0">
+              <button aria-label="Test Voice" class="persona-action-btn" data-action="test-voice" data-persona="${p.personaId}">
                 ${ICONS.mic} Test Voice
               </button>
-              <button class="persona-action-btn" data-action="view-fingerprint" data-persona="${p.personaId}">
+              <button aria-label="Search" class="persona-action-btn" data-action="view-fingerprint" data-persona="${p.personaId}">
                 ${ICONS.search} View Fingerprint
               </button>
             </div>
@@ -484,7 +484,7 @@ function renderScenariosTab(): string {
                   <span class="scenario-status">${s.passed ? ICONS.check : ICONS.alert}</span>
                   <span class="scenario-name">${s.name}</span>
                   <span class="scenario-score">${s.score}%</span>
-                  <button class="scenario-run-btn" data-scenario="${s.scenarioId}" title="${t('titles.runScenario')}">
+                  <button aria-label="Play" class="scenario-run-btn" data-scenario="${s.scenarioId}" title="${t('titles.runScenario')}">
                     ${ICONS.play}
                   </button>
                 </div>
@@ -494,8 +494,8 @@ function renderScenariosTab(): string {
         `).join('')}
       </div>
       
-      <div class="scenarios-actions">
-        <button class="action-btn action-btn--primary" data-action="run-all-scenarios">
+      <div class="scenarios-actions" role="button" tabindex="0">
+        <button aria-label="Play" class="action-btn action-btn--primary" data-action="run-all-scenarios">
           ${ICONS.play} Run All Scenarios
         </button>
       </div>
@@ -534,9 +534,9 @@ function renderFlaggedTab(): string {
               <strong>Response:</strong> ${f.aiResponse.slice(0, 150)}...
             </div>
           </div>
-          <div class="flagged-actions">
-            <button class="flagged-action" data-action="view-full" data-id="${f.id}">View Full</button>
-            <button class="flagged-action" data-action="mark-reviewed" data-id="${f.id}">Mark Reviewed</button>
+          <div class="flagged-actions" role="button" tabindex="0">
+            <button aria-label="View Full" class="flagged-action" data-action="view-full" data-id="${f.id}">View Full</button>
+            <button aria-label="Mark Reviewed" class="flagged-action" data-action="mark-reviewed" data-id="${f.id}">Mark Reviewed</button>
           </div>
         </div>
       `).join('')}
@@ -557,7 +557,7 @@ function renderConfigTab(): string {
           </div>
           <label class="toggle">
             <input type="checkbox" ${state.config.enabled ? 'checked' : ''} data-config="enabled">
-            <span class="toggle-slider"></span>
+            <span class="toggle-slider" role="button" tabindex="0"></span>
           </label>
         </div>
         
@@ -821,7 +821,7 @@ function injectStyles(): void {
     .evalops-container {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -843,7 +843,7 @@ function injectStyles(): void {
     .evalops-modal {
       position: relative;
       width: 90%;
-      max-width: 1000px;
+      max-width: min(1000px, 100%);
       max-height: 85vh;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
@@ -1188,7 +1188,7 @@ function injectStyles(): void {
     }
     
     .config-input input[type="range"] {
-      width: 150px;
+      width: min(150px, 100%);
       accent-color: var(--color-text-secondary);
     }
     
@@ -1235,7 +1235,7 @@ function injectStyles(): void {
       font-size: 14px;
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.STANDARD};
-      z-index: 10001;
+      z-index: var(--z-tooltip);
     }
     
     .evalops-toast--visible {

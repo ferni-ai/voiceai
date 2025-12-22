@@ -252,8 +252,8 @@ export class PredictionsUI {
           </div>
         </div>
         <footer class="prediction-resolution-modal__footer">
-          <button class="prediction-resolution-modal__cancel">Cancel</button>
-          <button class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
+          <button aria-label="Cancel" class="prediction-resolution-modal__cancel">Cancel</button>
+          <button aria-label="Save Result" class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
         </footer>
       </div>
     `;
@@ -394,7 +394,7 @@ export class PredictionsUI {
       resultHtml = `
         <div class="prediction-card__pending">
           <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}</span>
-          <button class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
+          <button aria-label="Record Actual" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
             Record Actual
           </button>
         </div>
@@ -580,7 +580,7 @@ export class PredictionsUI {
       .predictions-panel__card {
         position: relative;
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
         background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 1.5rem);
@@ -826,7 +826,7 @@ export class PredictionsUI {
       .prediction-resolution-modal__card {
         position: relative;
         width: 100%;
-        max-width: 360px;
+        max-width: min(360px, 100%);
         background: var(--color-background-elevated);
         border-radius: var(--radius-xl, 1.25rem);
         box-shadow: var(--shadow-2xl);
@@ -999,7 +999,7 @@ export class PredictionsUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         line-height: var(--leading-relaxed);
-        max-width: 280px;
+        max-width: min(280px, 100%);
         margin: 0;
       }
 
@@ -1027,7 +1027,7 @@ export class PredictionsUI {
       }
 
       /* Responsive */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .predictions-panel {
           padding: var(--space-4, 16px);
         }

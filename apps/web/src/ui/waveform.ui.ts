@@ -264,7 +264,7 @@ function createParticleContainer(): void {
     height: 100%;
     pointer-events: none;
     overflow: visible;
-    z-index: 10;
+    z-index: var(--z-docked);
   `;
   container.appendChild(particleContainer);
 }

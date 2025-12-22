@@ -643,7 +643,7 @@ function injectCameoRosterStyles(): void {
       border-radius: 50%;
       border: 2px solid var(--cameo-color);
       animation: cameo-halo-pulse 1.2s ease-in-out infinite;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     /* Glow on avatar - matches persona color */
@@ -687,7 +687,7 @@ function injectCameoRosterStyles(): void {
     }
 
     /* Mobile: ensure cameo is visible */
-    @media (max-width: 767px) {
+    @media (max-width: clamp(537px, 90vw, 767px)) {
       .team-member--cameo {
         /* Ensure visible on mobile too */
         display: flex !important;
@@ -701,7 +701,7 @@ function injectCameoRosterStyles(): void {
     }
     
     /* Even on tiny screens, show the cameo name */
-    @media (max-width: 380px) {
+    @media (max-width: min(380px, 100%)) {
       .team-member--cameo .team-name {
         display: block !important;
         font-size: 8px;

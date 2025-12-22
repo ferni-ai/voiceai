@@ -316,7 +316,7 @@ function renderPortal(): string {
             <h1 id="adminSectionTitle">Dashboard</h1>
             <p id="adminSectionDesc" class="admin-tagline">System overview and health</p>
           </div>
-          <div class="admin-header-actions">
+          <div class="admin-header-actions" role="button" tabindex="0">
             <button class="admin-btn admin-btn--icon" data-action="refresh" aria-label="Refresh">
               <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
             </button>
@@ -376,7 +376,7 @@ function renderNavItem(section: AdminSection): string {
 
   return `
     <li class="admin-nav-item" role="listitem">
-      <button 
+      <button aria-label="${section.name}"
         class="admin-nav-btn ${isActive ? 'active' : ''}"
         data-section="${section.id}"
         aria-current="${isActive ? 'page' : 'false'}"
@@ -459,7 +459,7 @@ function renderError(message: string, error?: Error): string {
       <div class="admin-error-icon">${ICON_WARNING}</div>
       <h2>${message}</h2>
       ${error ? `<p class="admin-error-details">${error.message}</p>` : ''}
-      <button class="admin-btn admin-btn--primary" onclick="window.location.reload()">
+      <button aria-label="Retry" class="admin-btn admin-btn--primary" onclick="window.location.reload()">
         Retry
       </button>
     </div>
@@ -624,8 +624,8 @@ function injectAdminPortalStyles(): void {
 
     /* Sidebar */
     .admin-sidebar {
-      width: 260px;
-      min-width: 260px;
+      width: min(260px, 100%);
+      min-width: min(260px, 100%);
       height: 100%; /* Fill parent height */
       background: var(--admin-bg-elevated) !important;
       border-right: 1px solid var(--admin-border);
@@ -834,7 +834,7 @@ function injectAdminPortalStyles(): void {
       outline-offset: 2px;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .admin-sidebar-toggle {
         display: flex;
         align-items: center;
@@ -1019,7 +1019,7 @@ function injectAdminPortalStyles(): void {
     .admin-error-details {
       font-size: 0.875rem;
       color: var(--admin-text-secondary);
-      max-width: 400px;
+      max-width: min(400px, 100%);
     }
 
     /* Utility Classes */
@@ -1053,7 +1053,7 @@ function injectAdminPortalStyles(): void {
     .admin-modal-card {
       position: relative;
       width: 90%;
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       background: #352e28;
       border: 1px solid rgba(250, 246, 240, 0.12);
       border-radius: var(--radius-xl, 16px);
@@ -1158,11 +1158,11 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-modal-card--small {
-      max-width: 400px;
+      max-width: min(400px, 100%);
     }
 
     .admin-modal-card--wide {
-      max-width: 800px;
+      max-width: clamp(560px, 90vw, 800px);
     }
 
     .admin-confirm-message {

@@ -178,8 +178,8 @@ class PredictionTrackerUI {
         </div>
       ` : ''}
 
-      <div class="pred-tracker__actions">
-        <button class="pred-tracker__btn pred-tracker__btn--primary">View All Predictions</button>
+      <div class="pred-tracker__actions" role="button" tabindex="0">
+        <button aria-label="View All Predictions" class="pred-tracker__btn pred-tracker__btn--primary">View All Predictions</button>
       </div>
     `;
 
@@ -251,7 +251,7 @@ class PredictionTrackerUI {
 
       .pred-tracker__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 85vh;
         overflow-y: auto;
         background: var(--color-background-elevated, #fffdfb);
@@ -300,7 +300,7 @@ class PredictionTrackerUI {
       }
 
       .pred-tracker__ring {
-        width: 120px;
+        width: min(120px, 100%);
         height: 120px;
         margin: 0 auto var(--ma-breath, 13px);
         border-radius: 50%;

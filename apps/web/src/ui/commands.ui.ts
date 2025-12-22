@@ -302,7 +302,7 @@ class CommandsPanelUI {
       <div class="ferni-commands__error">
         <h3>${COMMANDS_COPY.error.title}</h3>
         <p>${COMMANDS_COPY.error.message}</p>
-        <button class="ferni-commands__retry engagement-btn-primary" type="button">
+        <button aria-label="Copy" class="ferni-commands__retry engagement-btn-primary" type="button">
           ${COMMANDS_COPY.error.retry}
         </button>
       </div>
@@ -542,7 +542,7 @@ class CommandsPanelUI {
       .ferni-commands__wrapper {
         position: relative;
         width: 100%;
-        max-width: 380px;
+        max-width: min(380px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -855,7 +855,7 @@ class CommandsPanelUI {
       /* ========================================
          MOBILE RESPONSIVE
          ======================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .ferni-commands__wrapper {
           max-width: 100%;
         }

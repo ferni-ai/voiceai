@@ -155,7 +155,7 @@ export class EngagementUI {
           Daily practices help you build consistency and self-awareness. 
           Start a conversation with Ferni to set up your first ritual.
         </p>
-        <button class="engagement-empty__cta" onclick="document.querySelector('.engagement-panel')?.classList.remove('engagement-panel--visible')">
+        <button aria-label="Talk to Ferni" class="engagement-empty__cta" onclick="document.querySelector('.engagement-panel')?.classList.remove('engagement-panel--visible')">
           Talk to Ferni
         </button>
       </div>
@@ -539,7 +539,7 @@ export class EngagementUI {
       .engagement-panel__card {
         position: relative;
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-2xl, 1.5rem);
@@ -933,7 +933,7 @@ export class EngagementUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         line-height: var(--leading-relaxed);
-        max-width: 280px;
+        max-width: min(280px, 100%);
         margin: 0 0 var(--space-5, 20px) 0;
       }
 
@@ -1009,7 +1009,7 @@ export class EngagementUI {
       }
 
       /* Responsive */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .engagement-panel {
           padding: var(--space-4, 16px);
         }

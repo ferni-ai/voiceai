@@ -248,7 +248,7 @@ class NotificationsUI {
         <div class="notification__title">${escapeHtml(notification.title)}</div>
         <div class="notification__message">${escapeHtml(notification.message)}</div>
         ${notification.action ? `
-          <button class="notification__action" type="button">
+          <button aria-label="Close" class="notification__action" type="button">
             ${escapeHtml(notification.action.label)}
           </button>
         ` : ''}
@@ -291,7 +291,7 @@ class NotificationsUI {
         display: flex;
         flex-direction: column;
         gap: var(--ma-pause);
-        max-width: 380px;
+        max-width: min(380px, 100%);
         pointer-events: none;
       }
 
@@ -483,7 +483,7 @@ class NotificationsUI {
       /* ========================================
          RESPONSIVE
          ======================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .notifications-container {
           right: var(--ma-pause);
           left: var(--ma-pause);

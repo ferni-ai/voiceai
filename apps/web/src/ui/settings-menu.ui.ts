@@ -525,7 +525,7 @@ class SettingsMenuUI {
     if (isLocked) {
       const hint = this.getUnlockHint(action);
       return `
-        <button class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
+        <button aria-label="Settings" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
@@ -537,7 +537,7 @@ class SettingsMenuUI {
     }
 
     return `
-      <button class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
+      <button aria-label="Settings" class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
       </button>
@@ -671,7 +671,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
             ${this.renderLanguageSelector()}
-            <button class="settings-menu__item" data-action="spotify" style="display: none;">
+            <button aria-label="Settings" class="settings-menu__item" data-action="spotify" style="display: none;">
               <span class="settings-menu__icon">${ICONS.music}</span>
               <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
             </button>
@@ -703,7 +703,7 @@ class SettingsMenuUI {
           ${this.renderAdminSection(expandedSections)}
 
           <!-- Bottom Quick Actions -->
-          <div class="settings-menu__quick-actions">
+          <div class="settings-menu__quick-actions" role="button" tabindex="0">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
@@ -843,7 +843,7 @@ class SettingsMenuUI {
   ): string {
     return `
       <section class="settings-menu__section ${isExpanded ? 'settings-menu__section--expanded' : ''}">
-        <button class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
+        <button aria-label="Go forward" class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
           <h3>${title}</h3>
           <span class="settings-menu__section-chevron">${ICONS.chevronRight}</span>
         </button>
@@ -902,7 +902,7 @@ class SettingsMenuUI {
       .map((action) => {
         const item = menuItems[action];
         return `
-          <button class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
+          <button aria-label="Settings" class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
             <span class="settings-menu__icon">${item.icon}</span>
             <span class="settings-menu__label">${item.label}</span>
             <button class="settings-menu__unpin-btn" data-unpin="${action}" aria-label="${t('menu.unpinItem')}">
@@ -963,7 +963,7 @@ class SettingsMenuUI {
 
     if (isLocked) {
       return `
-        <button class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
+        <button aria-label="Settings" class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
@@ -975,7 +975,7 @@ class SettingsMenuUI {
     }
 
     return `
-      <button class="settings-menu__item" data-action="${action}">
+      <button aria-label="Settings" class="settings-menu__item" data-action="${action}">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
         <span class="settings-menu__badge">${badge}</span>
@@ -994,7 +994,7 @@ class SettingsMenuUI {
 
     return `
       <div class="settings-menu__language-selector">
-        <button class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
+        <button aria-label="Go forward" class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
@@ -1009,7 +1009,7 @@ class SettingsMenuUI {
           <div class="settings-menu__language-list-inner">
             ${SUPPORTED_LOCALES.map(
               (lang) => `
-              <button
+              <button aria-label="Confirm"
                 class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
                 data-action="set-language"
                 data-locale="${lang.code}"
@@ -1847,7 +1847,7 @@ class SettingsMenuUI {
         flex-direction: column;
         align-items: flex-end;
         gap: 4px;
-        min-width: 100px;
+        min-width: min(100px, 100%);
       }
 
       .settings-menu__stage-bar {
@@ -2013,23 +2013,23 @@ class SettingsMenuUI {
          ======================================================================== */
       
       /* Tablet (769px - 1024px) - Wider panel for more content */
-      @media (min-width: 769px) and (max-width: 1024px) {
+      @media (min-width: clamp(538px, 90vw, 769px)) and (max-width: min(1024px, 100%)) {
         .settings-menu__card {
-          width: 380px;
+          width: min(380px, 100%);
           max-width: 50vw;
         }
       }
       
       /* Large phones / Small tablets (481px - 768px) */
-      @media (min-width: 481px) and (max-width: 768px) {
+      @media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(538px, 90vw, 768px)) {
         .settings-menu__card {
-          width: 340px;
+          width: min(340px, 100%);
           max-width: 65vw;
         }
       }
       
       /* Mobile (max 480px) - Full width panel */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .settings-trigger {
           /* Position respecting safe areas on notched devices */
           top: calc(var(--ma-breath, 13px) + env(safe-area-inset-top, 0px));
@@ -2093,7 +2093,7 @@ class SettingsMenuUI {
       }
       
       /* iPhone Pro specific (390-430px) - Same as mobile */
-      @media (min-width: 390px) and (max-width: 430px) {
+      @media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
         .settings-menu__card {
           width: 100%;
           max-width: none;
@@ -2102,7 +2102,7 @@ class SettingsMenuUI {
       
       /* iOS Safari specific fixes using @supports */
       @supports (-webkit-touch-callout: none) {
-        @media (max-width: 480px) {
+        @media (max-width: clamp(336px, 90vw, 480px)) {
           /* iOS Safari only on mobile */
           .settings-menu__card {
             /* Use -webkit-fill-available for iOS Safari */

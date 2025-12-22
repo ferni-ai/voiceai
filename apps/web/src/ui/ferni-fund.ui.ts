@@ -225,7 +225,7 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
     <div class="ferni-fund-amounts ferni-fund-amounts--vertical">
       ${SEED_TIERS.map(
         (tier) => `
-        <button class="ferni-fund-amount-btn" data-amount="${tier.amount}">
+        <button aria-label="More information" class="ferni-fund-amount-btn" data-amount="${tier.amount}">
           <div class="tier-info">
             <span class="tier-name">${tier.name}</span>
             <span class="tier-desc">${tier.description}</span>
@@ -245,7 +245,7 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
     <div class="ferni-fund-monthly-options">
       ${MONTHLY_TIERS.map(
         (tier) => `
-        <button class="ferni-fund-monthly-btn" data-monthly-amount="${tier.amount}">
+        <button aria-label="More information" class="ferni-fund-monthly-btn" data-monthly-amount="${tier.amount}">
           <div class="tier-info">
             <span class="tier-name">${tier.name}</span>
             <span class="tier-desc">${tier.description}</span>
@@ -261,7 +261,7 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
       <div class="ferni-fund-impact-text">seeds you'll plant</div>
     </div>
 
-    <button class="ferni-fund-submit-btn" disabled>
+    <button aria-label="Plant Seeds" class="ferni-fund-submit-btn" disabled>
       Plant Seeds
     </button>
 
@@ -569,8 +569,8 @@ function renderUserImpact(
           </div>
         ` : ''}
 
-        <div class="ferni-fund-actions">
-          <button class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
+        <div class="ferni-fund-actions" role="button" tabindex="0">
+          <button aria-label="Plant More Seeds" class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
             ${SEED_ICON}
             <span>Plant More Seeds</span>
           </button>
@@ -594,8 +594,8 @@ function renderUserImpact(
             </div>
           ` : ''}
 
-          <div class="ferni-fund-actions">
-            <button class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
+          <div class="ferni-fund-actions" role="button" tabindex="0">
+            <button aria-label="Plant Your First Seed" class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
               ${SEED_ICON}
               <span>Plant Your First Seed</span>
             </button>

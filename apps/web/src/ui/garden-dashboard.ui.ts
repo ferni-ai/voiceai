@@ -236,14 +236,14 @@ function renderModalContent(): void {
       <div class="garden-link">
         <span class="garden-link-label">Your link:</span>
         <span class="garden-link-url">${shortUrl}</span>
-        <button class="garden-link-copy" data-action="copy">
+        <button aria-label="Copy" class="garden-link-copy" data-action="copy">
           ${ICONS.copy}
         </button>
       </div>
 
       <!-- Actions -->
-      <div class="garden-actions">
-        <button class="garden-action garden-action--primary" data-action="invite">
+      <div class="garden-actions" role="button" tabindex="0">
+        <button aria-label="Share" class="garden-action garden-action--primary" data-action="invite">
           ${ICONS.share}
           <span>Invite Friends</span>
         </button>
@@ -393,7 +393,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       max-height: 90vh;
@@ -410,7 +410,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .garden-close:hover {
@@ -599,7 +599,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted);
       border-radius: var(--radius-md, 8px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .garden-link-copy:hover {
@@ -624,7 +624,7 @@ function injectStyles(): void {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .garden-action--primary {
@@ -665,7 +665,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .garden-dashboard-modal {
         padding: 0;
         align-items: flex-end;

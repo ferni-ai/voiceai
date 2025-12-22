@@ -174,7 +174,7 @@ export class ToastManager {
       fontWeight: '500',
       letterSpacing: '0.01em',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      zIndex: '10001',
+      zIndex: 'var(--z-tooltip)',
       animation: `toast-in ${DURATION.SLOW}ms ${EASING.SPRING}`,
       whiteSpace: 'nowrap',
       maxWidth: 'calc(100vw - 48px)',

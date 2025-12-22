@@ -487,7 +487,7 @@ function startMatrixRain(): void {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 0;
+    z-index: var(--z-base);
     opacity: 0.15;
   `;
   

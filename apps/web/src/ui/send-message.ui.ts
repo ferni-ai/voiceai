@@ -117,7 +117,7 @@ function injectStyles(): void {
     .send-message-modal {
       position: relative;
       width: 94%;
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       max-height: 85vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -415,7 +415,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .send-message-modal {
         width: 100%;
         max-width: none;
@@ -481,17 +481,17 @@ function renderChannelSelector(): string {
 
   return `
     <div class="sm-channels">
-      <button class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
+      <button aria-label="More information" class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.phone}</span>
         <span class="sm-channel-label">Call</span>
         ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
       </button>
-      <button class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
+      <button aria-label="More information" class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.message}</span>
         <span class="sm-channel-label">Text</span>
         ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
       </button>
-      <button class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
+      <button aria-label="More information" class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.mail}</span>
         <span class="sm-channel-label">Email</span>
         ${!hasEmail ? '<span class="sm-no-info">No email</span>' : ''}

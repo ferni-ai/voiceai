@@ -234,7 +234,7 @@ function injectStyles(): void {
     .relationship-card {
       position: relative;
       width: 94%;
-      max-width: 680px;
+      max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -376,7 +376,7 @@ function injectStyles(): void {
 
     .rc-strength-bar {
       flex: 1;
-      max-width: 140px;
+      max-width: min(140px, 100%);
       height: 6px;
       background: var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-full, 50%);
@@ -944,7 +944,7 @@ function injectStyles(): void {
     .rc-empty-text {
       font-size: var(--text-sm, 0.875rem);
       line-height: 1.5;
-      max-width: 280px;
+      max-width: min(280px, 100%);
       margin: 0 auto;
     }
 
@@ -1001,7 +1001,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .relationship-card {
         width: 100%;
         max-width: none;
@@ -1122,12 +1122,12 @@ function renderHeader(): string {
         </div>
       </div>
       
-      <div class="rc-quick-actions">
-        ${person.phone ? `<button class="rc-quick-action" data-action="call">${ICONS.phone} Call</button>` : ''}
-        ${person.phone ? `<button class="rc-quick-action" data-action="text">${ICONS.message} Text</button>` : ''}
-        ${person.email ? `<button class="rc-quick-action" data-action="email">${ICONS.mail} Email</button>` : ''}
-        <button class="rc-quick-action" data-action="record">${ICONS.plus} Log Moment</button>
-        <button class="rc-quick-action" data-action="edit">${ICONS.edit} Edit</button>
+      <div class="rc-quick-actions" role="button" tabindex="0">
+        ${person.phone ? `<button aria-label="Call" class="rc-quick-action" data-action="call">${ICONS.phone} Call</button>` : ''}
+        ${person.phone ? `<button aria-label="Text" class="rc-quick-action" data-action="text">${ICONS.message} Text</button>` : ''}
+        ${person.email ? `<button aria-label="Email" class="rc-quick-action" data-action="email">${ICONS.mail} Email</button>` : ''}
+        <button aria-label="Add" class="rc-quick-action" data-action="record">${ICONS.plus} Log Moment</button>
+        <button aria-label="Edit" class="rc-quick-action" data-action="edit">${ICONS.edit} Edit</button>
       </div>
     </div>
   `;
@@ -1227,7 +1227,7 @@ function renderOverviewTab(): string {
           `;
         }).join('')}
         ${upcomingMeetings.length > 3 ? `
-          <button class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
+          <button aria-label="View all scheduled meetings" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
             View all ${upcomingMeetings.length} scheduled meetings
           </button>
         ` : ''}
@@ -1261,7 +1261,7 @@ function renderOverviewTab(): string {
         </div>`
       }
       ${state.timeline.length > 5 ? `
-        <button class="rc-add-btn" data-action="view-all-timeline">
+        <button aria-label="View all moments" class="rc-add-btn" data-action="view-all-timeline">
           View all ${state.timeline.length} moments
         </button>
       ` : ''}
@@ -1292,7 +1292,7 @@ function renderTimelineTab(): string {
         <div class="rc-empty-title">No moments recorded</div>
         <p class="rc-empty-text">Every call, text, coffee date, and hangout becomes part of your story together.</p>
       </div>
-      <button class="rc-add-btn" data-action="add-interaction">
+      <button aria-label="Add" class="rc-add-btn" data-action="add-interaction">
         ${ICONS.plus} Log a Moment
       </button>
     `;
@@ -1307,7 +1307,7 @@ function renderTimelineTab(): string {
       ${items.map(item => renderTimelineItem(item)).join('')}
     </div>
   `).join('') + `
-    <button class="rc-add-btn" data-action="add-interaction">
+    <button aria-label="Add" class="rc-add-btn" data-action="add-interaction">
       ${ICONS.plus} Log a Moment
     </button>
   `;
@@ -1356,7 +1356,7 @@ function renderGiftsTab(): string {
         <div class="rc-empty-title">No gifts recorded</div>
         <p class="rc-empty-text">Track what you give and receive. Never repeat a gift or forget a reaction.</p>
       </div>
-      <button class="rc-add-btn" data-action="add-gift">
+      <button aria-label="Add" class="rc-add-btn" data-action="add-gift">
         ${ICONS.plus} Record a Gift
       </button>
     `;
@@ -1377,7 +1377,7 @@ function renderGiftsTab(): string {
       </div>
     ` : ''}
     
-    <button class="rc-add-btn" data-action="add-gift">
+    <button aria-label="Add" class="rc-add-btn" data-action="add-gift">
       ${ICONS.plus} Record a Gift
     </button>
   `;
@@ -1402,7 +1402,7 @@ function renderGiftItem(gift: Gift): string {
           ${gift.price ? ` · $${gift.price}` : ''}
         </div>
         ${reactionLabel && gift.direction === 'given' ? `
-          <span class="rc-gift-reaction ${gift.reaction}">${reactionLabel}</span>
+          <span class="rc-gift-reaction ${gift.reaction}" role="button" tabindex="0">${reactionLabel}</span>
         ` : ''}
       </div>
     </div>
@@ -1441,7 +1441,7 @@ function renderEventsTab(): string {
       ` : `
         <p class="rc-empty-inline">No important dates yet</p>
       `}
-      <button class="rc-add-btn" data-action="manage-dates">
+      <button aria-label="Edit" class="rc-add-btn" data-action="manage-dates">
         ${ICONS.edit} ${importantDates.length > 0 ? 'Manage Dates' : 'Add Birthday, Anniversary...'}
       </button>
     </div>
@@ -1531,7 +1531,7 @@ function renderNotesTab(): string {
       </div>
     ` : ''}
     
-    <button class="rc-add-btn" data-action="edit-notes">
+    <button aria-label="Edit" class="rc-add-btn" data-action="edit-notes">
       ${ICONS.edit} ${person.notes ? 'Edit Notes' : 'Add Notes'}
     </button>
   `;

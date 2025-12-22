@@ -222,7 +222,7 @@ styleSheet.textContent = `
   }
   
   #${SPLASH_ID} .splash-logo {
-    width: 120px;
+    width: min(120px, 100%);
     height: 120px;
   }
   

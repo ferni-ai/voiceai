@@ -25,7 +25,7 @@ const STYLES = `
   .professional-tasks-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000;
+    z-index: var(--z-tooltip);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +43,7 @@ const STYLES = `
   .professional-tasks-modal {
     position: relative;
     width: 100%;
-    max-width: 600px;
+    max-width: clamp(420px, 90vw, 600px);
     max-height: 85vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl);
@@ -384,7 +384,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: 640px) {
+  @media (max-width: clamp(448px, 90vw, 640px)) {
     .professional-tasks-overlay {
       padding: 0;
     }
@@ -486,19 +486,19 @@ function render(): string {
                 Quick Actions
               </h3>
             </div>
-            <div class="professional-quick-actions">
-              <button class="professional-quick-action" data-action="start-task" data-task="brainstorm">
-                <div class="professional-quick-action-icon">
+            <div class="professional-quick-actions" role="button" tabindex="0">
+              <button aria-label="Brainstorm" class="professional-quick-action" data-action="start-task" data-task="brainstorm">
+                <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                     <path d="M12 17h.01"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label">Brainstorm</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">Brainstorm</span>
               </button>
-              <button class="professional-quick-action" data-action="start-task" data-task="review">
-                <div class="professional-quick-action-icon">
+              <button aria-label="Review Work" class="professional-quick-action" data-action="start-task" data-task="review">
+                <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
@@ -506,26 +506,26 @@ function render(): string {
                     <line x1="16" y1="17" x2="8" y2="17"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label">Review Work</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">Review Work</span>
               </button>
-              <button class="professional-quick-action" data-action="start-task" data-task="draft">
-                <div class="professional-quick-action-icon">
+              <button aria-label="Draft Content" class="professional-quick-action" data-action="start-task" data-task="draft">
+                <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label">Draft Content</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">Draft Content</span>
               </button>
-              <button class="professional-quick-action" data-action="start-task" data-task="analyze">
-                <div class="professional-quick-action-icon">
+              <button aria-label="Analyze Data" class="professional-quick-action" data-action="start-task" data-task="analyze">
+                <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
                     <line x1="12" y1="20" x2="12" y2="4"/>
                     <line x1="6" y1="20" x2="6" y2="14"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label">Analyze Data</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">Analyze Data</span>
               </button>
             </div>
           </section>
@@ -540,7 +540,7 @@ function render(): string {
                 </svg>
                 Skills & Expertise
               </h3>
-              <button class="professional-add-btn" data-action="add-skill">
+              <button aria-label="Add Skill" class="professional-add-btn" data-action="add-skill">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -567,14 +567,14 @@ function render(): string {
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                     ${s}
-                    <span class="skill-actions">
-                      <button class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
+                    <span class="skill-actions" role="button" tabindex="0">
+                      <button aria-label="Delete" class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
-                      <button class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
+                      <button aria-label="Delete" class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18"/>
                           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -598,7 +598,7 @@ function render(): string {
                 </svg>
                 Domain Knowledge
               </h3>
-              <button class="professional-add-btn" data-action="add-domain">
+              <button aria-label="Add Domain" class="professional-add-btn" data-action="add-domain">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -621,14 +621,14 @@ function render(): string {
               <div class="professional-domain-card">
                 <div class="professional-domain-header">
                   <h4 class="professional-domain-title">${d.name}</h4>
-                  <div class="professional-domain-actions">
-                    <button class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
+                  <div class="professional-domain-actions" role="button" tabindex="0">
+                    <button aria-label="Delete" class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
-                    <button class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
+                    <button aria-label="Delete" class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 6h18"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -655,7 +655,7 @@ function render(): string {
               </h3>
             </div>
             ${taskTemplates.map(t => `
-              <div class="professional-task-card" data-action="use-template" data-template-id="${t.id}">
+              <div class="professional-task-card" data-action="use-template" role="button" tabindex="0" data-template-id="${t.id}">
                 <div class="professional-task-icon">
                   ${t.icon}
                 </div>

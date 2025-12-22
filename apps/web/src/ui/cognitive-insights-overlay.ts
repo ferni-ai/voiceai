@@ -68,7 +68,7 @@ const STYLES = `
   .cognitive-insight {
     position: fixed;
     z-index: var(--z-notification);
-    max-width: 320px;
+    max-width: min(320px, 100%);
     padding: var(--ma-pause, 13px) var(--ma-rest, 21px);
     background: var(--glass-surface-2, rgba(26, 26, 46, 0.8));
     backdrop-filter: blur(var(--glass-blur-medium, 16px));

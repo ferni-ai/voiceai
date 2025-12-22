@@ -104,7 +104,7 @@ function createAccountButton(): void {
   container.innerHTML = `
     <button class="account-button" aria-label="${t('accessibility.accountSettings')}">
       ${LUCIDE_USER_ICON}
-      <span class="account-button-text">Remember me</span>
+      <span class="account-button-text" role="button" tabindex="0">Remember me</span>
     </button>
   `;
 
@@ -113,7 +113,7 @@ function createAccountButton(): void {
     position: 'fixed',
     top: 'var(--space-4, 16px)',
     right: 'var(--space-4, 16px)',
-    zIndex: '100',
+    zIndex: 'var(--z-docked)',
   });
 
   // Style the button
@@ -211,12 +211,12 @@ function showLinkAccountModal(): void {
       </header>
       
       <div class="account-modal-content">
-        <div class="social-buttons">
-          <button class="social-btn google-btn" data-provider="google">
+        <div class="social-buttons" role="button" tabindex="0">
+          <button aria-label="Continue with Google" class="social-btn google-btn" data-provider="google">
             ${GOOGLE_ICON}
             <span>Continue with Google</span>
           </button>
-          <button class="social-btn apple-btn" data-provider="apple">
+          <button aria-label="Continue with Apple" class="social-btn apple-btn" data-provider="apple">
             ${APPLE_ICON}
             <span>Continue with Apple</span>
           </button>
@@ -235,7 +235,7 @@ function showLinkAccountModal(): void {
             <label for="account-password">Password</label>
             <input type="password" id="account-password" name="password" required minlength="6" autocomplete="new-password" />
           </div>
-          <button type="submit" class="submit-btn">Remember me</button>
+          <button aria-label="Remember me" type="submit" class="submit-btn">Remember me</button>
         </form>
         
         <p class="privacy-note">
@@ -255,7 +255,7 @@ function showLinkAccountModal(): void {
       
       <div class="account-modal-error" style="display: none;">
         <p class="error-message"></p>
-        <button class="retry-btn">Try Again</button>
+        <button aria-label="Try Again" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;
@@ -303,7 +303,7 @@ function applyModalStyles(overlay: HTMLElement): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -319,7 +319,7 @@ function applyModalStyles(overlay: HTMLElement): void {
     .account-modal-card {
       position: relative;
       width: 90%;
-      max-width: 400px;
+      max-width: min(400px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0,0,0,0.2));
@@ -650,7 +650,7 @@ function showAccountMenu(): void {
       <span class="account-label">I'll remember you as</span>
       <span class="account-email">${currentAuthState.email || currentAuthState.displayName || 'You'}</span>
     </div>
-    <button class="account-menu-item" data-action="signout">Forget this device</button>
+    <button aria-label="Forget this device" class="account-menu-item" data-action="signout">Forget this device</button>
   `;
 
   Object.assign(menu.style, {
@@ -661,8 +661,8 @@ function showAccountMenu(): void {
     borderRadius: 'var(--radius-lg, 12px)',
     boxShadow: 'var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.15))',
     overflow: 'hidden',
-    zIndex: '101',
-    minWidth: '200px',
+    zIndex: 'var(--z-dropdown)',
+    minWidth: 'min(200px, 100%)',
   });
 
   const style = document.createElement('style');

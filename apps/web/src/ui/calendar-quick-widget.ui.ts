@@ -164,7 +164,7 @@ function injectStyles(): void {
     /* Expanded State - Card */
     .cqw-card {
       display: none;
-      width: 280px;
+      width: min(280px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-xl, 1.25rem);
@@ -373,14 +373,14 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .calendar-quick-widget {
         right: var(--space-3, 0.75rem);
         bottom: var(--space-16, 4rem);
       }
 
       .cqw-card {
-        width: 260px;
+        width: min(260px, 100%);
       }
     }
 
@@ -512,8 +512,8 @@ function renderCard(): string {
         </div>
       </div>
 
-      <div class="cqw-actions">
-        <button class="cqw-action-btn" data-action="block-focus">
+      <div class="cqw-actions" role="button" tabindex="0">
+        <button aria-label="Block Focus Time" class="cqw-action-btn" data-action="block-focus">
           ${ICONS.focus}
           Block Focus Time
         </button>
