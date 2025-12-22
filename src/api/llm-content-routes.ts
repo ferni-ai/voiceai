@@ -114,22 +114,22 @@ export async function handleLLMContentRoutes(
     if (pathname === '/api/llm-content/prewarm' && req.method === 'POST') {
       try {
         const { prewarmContent } = await import('../services/llm-dynamic-content.js');
-        type ContentType =
-          | 'thinking_phrase'
-          | 'greeting'
-          | 'empathetic_reflection'
-          | 'active_listening'
-          | 'encouragement';
 
         // All personas to pre-warm
         const personas = ['ferni', 'peter', 'maya', 'alex', 'jordan', 'nayan'];
-        const contentTypes: ContentType[] = [
+
+        // High-priority content types used frequently in conversations
+        const contentTypes = [
           'thinking_phrase',
           'greeting',
+          'closing',
           'empathetic_reflection',
           'active_listening',
           'encouragement',
-        ];
+          'celebration',
+          'proactive_starter',
+          'transition',
+        ] as const;
 
         const contexts = personas.flatMap((personaId) =>
           contentTypes.map((contentType) => ({
