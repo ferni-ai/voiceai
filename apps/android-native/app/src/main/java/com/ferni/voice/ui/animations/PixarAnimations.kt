@@ -3,32 +3,35 @@ package com.ferni.voice.ui.animations
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import kotlin.math.pow
+import kotlin.math.PI
 
 /**
  * Pixar-quality animation timing constants.
- * Based on Luxo Jr. animation principles.
+ * Based on Luxo Jr. animation principles and design-system/tokens/animation.json
  */
 object PixarTiming {
-    // Breathing cycles
-    const val BREATH_CYCLE_IDLE = 6000L       // 6s - slow, contemplative
-    const val BREATH_CYCLE_ACTIVE = 5000L    // 5s - normal connection
-    const val BREATH_CYCLE_SPEAKING = 4500L  // 4.5s - engaged
+    // Breathing cycles (in seconds for math, convert to ms when needed)
+    const val BREATH_CYCLE_IDLE = 6.0        // 6s - slow, contemplative
+    const val BREATH_CYCLE_ACTIVE = 5.0      // 5s - normal connection
+    const val BREATH_CYCLE_SPEAKING = 4.5    // 4.5s - engaged
 
-    // Reaction durations
-    const val NOD_DURATION = 280L            // Quick ack
-    const val TILT_DURATION = 400L           // Curious lean
-    const val BOUNCE_DURATION = 600L         // Full hop
-    const val PERK_UP_DURATION = 300L        // "Aha!" moment
+    // Reaction durations (seconds)
+    const val NOD_DURATION = 0.28            // Quick ack
+    const val TILT_DURATION = 0.4            // Curious lean
+    const val BOUNCE_DURATION = 0.6          // Full hop
+    const val PERK_UP_DURATION = 0.3         // "Aha!" moment
 
-    // Glow cycles
-    const val HEARTBEAT_CYCLE = 1800L        // 1.8s - 66 BPM
-    const val OUTER_GLOW_CYCLE = 8000L       // 8s - slow ambient
-    const val INNER_GLOW_CYCLE = 5000L       // 5s - synced with avatar
+    // Glow cycles (seconds)
+    const val HEARTBEAT_CYCLE = 1.8          // 1.8s - ~66 BPM resting heart rate
+    const val HALO_OUTER_CYCLE = 8.0         // 8s - slow ambient
+    const val HALO_INNER_CYCLE = 5.0         // 5s - synced with avatar
+    const val HALO_PULSE_EXPAND = 1.2        // 1.2s expansion time
 
-    // Soul effects
-    const val IRIS_SHIMMER_CYCLE = 2000L     // 2s continuous glow pulse
-    const val WARMTH_BLOOM_DURATION = 600L   // 600ms connection moment
-    const val MEMORY_SPARK_DURATION = 80L    // 80ms subliminal flash
+    // Soul effects (seconds)
+    const val SHIMMER_CYCLE = 2.0            // 2s iris shimmer
+    const val WARMTH_BLOOM = 0.6             // 600ms connection moment
+    const val MEMORY_SPARK = 0.3             // Recognition flash
+    const val MICRO_EXPRESSION = 0.08        // 80ms subliminal flash
 
     // Audio wave
     const val WAVE_RING_SEGMENTS = 64

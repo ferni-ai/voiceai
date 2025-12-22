@@ -16,30 +16,19 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="FE" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="logo-label">
-                                <rect key="frame" x="146.66666666666666" y="376" width="100" height="100"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="logo-image">
+                                <rect key="frame" x="136.5" y="366" width="120" height="120"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="100" id="width"/>
-                                    <constraint firstAttribute="height" constant="100" id="height"/>
+                                    <constraint firstAttribute="width" constant="120" id="logo-w"/>
+                                    <constraint firstAttribute="height" constant="120" id="logo-h"/>
                                 </constraints>
-                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Semibold" family=".AppleSystemUIFontRounded" pointSize="48"/>
-                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Ferni" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="name-label">
-                                <rect key="frame" x="146.66666666666666" y="496" width="100" height="30"/>
-                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Medium" family=".AppleSystemUIFontRounded" pointSize="24"/>
-                                <color key="textColor" white="1" alpha="0.8" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
-                            <constraint firstItem="logo-label" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="centerX"/>
-                            <constraint firstItem="logo-label" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="centerY"/>
-                            <constraint firstItem="name-label" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="nameX"/>
-                            <constraint firstItem="name-label" firstAttribute="top" secondItem="logo-label" secondAttribute="bottom" constant="20" id="nameY"/>
+                            <constraint firstItem="logo-image" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="logo-cx"/>
+                            <constraint firstItem="logo-image" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="logo-cy"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -49,6 +38,7 @@
         </scene>
     </scenes>
     <resources>
+        <image name="LaunchLogo" width="60" height="60"/>
         <systemColor name="systemBackgroundColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

@@ -190,7 +190,8 @@ export {
  * // Create coordinator for session
  * const coordinator = new HandoffCoordinator({
  *   sessionId,
- *   onVoiceSwitch: async (voiceId, personaId) => voiceManager.switchVoice(voiceId),
+ *   // IMPORTANT: Use personaId (not voiceUUID) for VoiceManager.switchVoice()!
+ *   onVoiceSwitch: async (voiceUUID, personaId) => voiceManager.switchVoice(personaId),
  *   onLLMUpdate: async (personaId, instructions) => agent.setPersona(personaId, instructions),
  *   onUINotify: (event) => sendDataMessage(event),
  * });

@@ -173,21 +173,16 @@ export function shouldShowDebugFeatures(): boolean {
 
 /**
  * Get handoff timeout based on environment.
- * Development: 8 seconds (faster iteration)
- * Staging: 12 seconds (slightly longer for testing)
- * Production: 15 seconds (account for real network conditions)
+ * All environments: 15 seconds to account for intelligent banter.
+ * Banter includes:
+ * - Soft-open: ~5 seconds (outgoing persona's farewell)
+ * - Arriving welcome: ~5 seconds (incoming persona's greeting)
+ * Plus network/processing time.
  */
 export function getHandoffTimeoutMs(): number {
-  const env = getCachedEnvironment();
-  switch (env) {
-    case 'development':
-      return 8_000;
-    case 'staging':
-      return 12_000;
-    case 'production':
-    default:
-      return 15_000;
-  }
+  // All environments need 15s to accommodate intelligent banter
+  // Previously dev was 8s which caused timeouts during banter
+  return 15_000;
 }
 
 /**

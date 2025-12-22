@@ -115,6 +115,10 @@ class IOSLiveKitSession: ObservableObject {
         state = .connecting
         connectionProgress = "Checking connection..."
 
+        // Track when we started connecting for minimum animation time
+        let connectStartTime = Date()
+        let minimumConnectingDuration: TimeInterval = 2.5  // Show animation for at least 2.5s
+
         // Health check
         guard await checkServerHealth() else {
             sessionLog.error("Health check failed")
@@ -181,6 +185,13 @@ class IOSLiveKitSession: ObservableObject {
                 self.room = nil
                 deactivateAudioSession()
                 return
+            }
+
+            // Ensure minimum animation time for the magical connecting experience
+            let elapsed = Date().timeIntervalSince(connectStartTime)
+            if elapsed < minimumConnectingDuration {
+                let remaining = minimumConnectingDuration - elapsed
+                try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
             }
 
             connectionProgress = ""

@@ -44,7 +44,7 @@ import {
   trackResponseLatency,
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
-import { SILENCE_THRESHOLDS } from '../shared/constants.js';
+import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
 import { safeGenerateReply } from '../shared/safe-generate-reply.js';
 import type { UserData } from '../shared/types.js';
 
@@ -63,6 +63,11 @@ export interface SessionStateContext {
   userData: UserData;
   /** Session ID for logging and metrics */
   sessionId: string;
+  /**
+   * Callback to disconnect the room due to idle timeout.
+   * If provided, idle timeout will auto-disconnect after extended silence.
+   */
+  onIdleTimeout?: () => void;
 }
 
 export interface SessionStateResult {
@@ -89,7 +94,7 @@ const getLogger = () => log();
  * Returns the silenceContext which is shared with the transcript handler.
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
-  const { session, sessionPersona, conversationManager, userData, sessionId } = ctx;
+  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout } = ctx;
 
   // ============================================================
   // INTERRUPT-AWARE SPEECH HELPER
@@ -137,9 +142,108 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let liveBackchannelInterval: ReturnType<typeof setInterval> | null = null;
   let liveBackchannelFailsafeTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Idle timeout tracking - auto-disconnect after extended silence
+  let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  let idleWarningTimer: ReturnType<typeof setTimeout> | null = null;
+  let hasWarnedAboutIdle = false;
+  let isDisconnectingDueToIdle = false;
+
   // Backchannel timing constants
   const BACKCHANNEL_MIN_INTERVAL_MS = 4000; // 4s feels more natural than 5s
   const BACKCHANNEL_TRIGGER_MS = 3000; // 3s better than 3.5s for responsiveness
+
+  // ============================================================
+  // IDLE TIMEOUT HELPER - Auto-disconnect after extended silence
+  // ============================================================
+  /**
+   * Start or reset the idle timeout timers.
+   * Called when user stops speaking to track extended silence.
+   */
+  const startIdleTimeout = () => {
+    // Don't start idle timeout if no callback provided
+    if (!onIdleTimeout) return;
+
+    // Don't restart if we're already disconnecting
+    if (isDisconnectingDueToIdle) return;
+
+    // Clear existing timers
+    if (idleWarningTimer) {
+      clearTimeout(idleWarningTimer);
+      idleWarningTimer = null;
+    }
+    if (idleTimeoutTimer) {
+      clearTimeout(idleTimeoutTimer);
+      idleTimeoutTimer = null;
+    }
+    hasWarnedAboutIdle = false;
+
+    // Warning timer: gentle check-in at 90 seconds
+    idleWarningTimer = setTimeout(() => {
+      if (isDisconnectingDueToIdle) return;
+
+      hasWarnedAboutIdle = true;
+      diag.state('⏰ Idle warning triggered', {
+        threshold: IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS,
+      });
+
+      // Gentle check-in using the session
+      try {
+        session.say(
+          `<break time="300ms"/>Hey, I'm still here if you need me. <break time="200ms"/>Just let me know when you want to continue.`,
+          { allowInterruptions: true }
+        );
+      } catch (e) {
+        getLogger().debug({ error: e }, 'Failed to say idle warning');
+      }
+    }, IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS * 1000);
+
+    // Disconnect timer: goodbye and disconnect at 120 seconds
+    idleTimeoutTimer = setTimeout(() => {
+      if (isDisconnectingDueToIdle) return;
+
+      isDisconnectingDueToIdle = true;
+      diag.state('⏰ Idle timeout triggered - disconnecting', {
+        threshold: IDLE_TIMEOUT.DISCONNECT_THRESHOLD_SECONDS,
+      });
+
+      // Say goodbye, then trigger disconnect
+      try {
+        session.say(
+          `<break time="200ms"/>Looks like you might be busy. <break time="150ms"/>I'll be here whenever you're ready to chat again. <break time="300ms"/>Take care!`,
+          { allowInterruptions: false }
+        );
+
+        // Give time for TTS to complete, then disconnect
+        setTimeout(() => {
+          if (onIdleTimeout) {
+            onIdleTimeout();
+          }
+        }, IDLE_TIMEOUT.DISCONNECT_DELAY_MS);
+      } catch (e) {
+        getLogger().debug({ error: e }, 'Failed to say idle goodbye');
+        // Still disconnect even if speech fails
+        if (onIdleTimeout) {
+          onIdleTimeout();
+        }
+      }
+    }, IDLE_TIMEOUT.DISCONNECT_THRESHOLD_SECONDS * 1000);
+  };
+
+  /**
+   * Clear idle timeout timers - called when user speaks
+   */
+  const clearIdleTimeout = () => {
+    if (idleWarningTimer) {
+      clearTimeout(idleWarningTimer);
+      idleWarningTimer = null;
+    }
+    if (idleTimeoutTimer) {
+      clearTimeout(idleTimeoutTimer);
+      idleTimeoutTimer = null;
+    }
+    hasWarnedAboutIdle = false;
+    isDisconnectingDueToIdle = false;
+  };
 
   // Silence context for meaningful silence responses
   const silenceContext: SilenceContext = {
@@ -486,6 +590,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       silenceResponseCount = 0;
       lastSilenceResponseAt = 0;
 
+      // Clear idle timeout - user is active
+      clearIdleTimeout();
+
       // Stop ambient music when user starts speaking
       stopAmbientMusic();
       conversationManager.handleUserStartedSpeaking();
@@ -669,6 +776,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     if (event.newState === 'away') {
       const silenceDurationMs = Date.now() - userLastSpokeAt;
       const silenceDurationSec = silenceDurationMs / 1000;
+
+      // Start idle timeout - will warn then disconnect after extended silence
+      // Only starts timer if onIdleTimeout callback is provided
+      startIdleTimeout();
 
       // Track negative backchannel reaction if user went silent after our backchannel
       if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > 5000) {
@@ -901,6 +1012,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       clearTimeout(liveBackchannelFailsafeTimer);
       liveBackchannelFailsafeTimer = null;
     }
+    // Clear idle timeout timers
+    clearIdleTimeout();
   };
 
   return {

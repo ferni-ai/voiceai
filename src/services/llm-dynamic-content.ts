@@ -445,6 +445,14 @@ export function registerContentGenerator(
  * Generate dynamic content with LLM, using cache and fallbacks
  */
 export async function generateContent(context: ContentContext): Promise<GeneratedContent | null> {
+  // 🚨 COST CONTROL: Skip LLM calls entirely when disabled
+  // Set LLM_DYNAMIC_CONTENT_ENABLED=false to force template-only mode
+  // This can save 1-3 LLM API calls per turn!
+  if (process.env.LLM_DYNAMIC_CONTENT_ENABLED === 'false') {
+    log.debug({ contentType: context.contentType }, '📝 LLM content disabled, using templates');
+    return null; // Will fall back to templates via getContentWithFallback()
+  }
+
   const generator = generators.get(context.contentType);
   if (!generator) {
     log.warn({ contentType: context.contentType }, 'No generator registered for content type');

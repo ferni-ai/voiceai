@@ -136,13 +136,18 @@ import { getWaveformProfile } from '@design-system/tokens';
 /**
  * Get persona color from CSS variable (design system integration)
  * Falls back to accent color if persona not set
+ * 
+ * IMPORTANT: Reads from document.body because persona CSS variables
+ * are set via [data-persona='...'] selectors on the body element.
  */
 function getPersonaColor(): string {
-  const style = getComputedStyle(document.documentElement);
+  // Read from body where persona-specific CSS variables are applied
+  const style = getComputedStyle(document.body);
   const personaColor = style.getPropertyValue('--persona-primary').trim();
   if (personaColor) return personaColor;
-  // Fallback to accent color
-  return style.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
+  // Fallback to accent color (from documentElement since it's a global token)
+  const rootStyle = getComputedStyle(document.documentElement);
+  return rootStyle.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
 }
 
 // ============================================================================

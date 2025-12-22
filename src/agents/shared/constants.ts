@@ -47,6 +47,30 @@ export const SILENCE_THRESHOLDS = {
 } as const;
 
 // ============================================================================
+// IDLE TIMEOUT - Auto-disconnect on extended silence
+// ============================================================================
+
+export const IDLE_TIMEOUT = {
+  /**
+   * Duration of silence before warning the user (seconds)
+   * At this point, we gently check if they're still there
+   */
+  WARNING_THRESHOLD_SECONDS: 90,
+
+  /**
+   * Duration of silence before auto-disconnecting (seconds)
+   * After 2 minutes of complete silence, we assume they've stepped away
+   */
+  DISCONNECT_THRESHOLD_SECONDS: 120,
+
+  /**
+   * Delay after saying goodbye before disconnecting (ms)
+   * Gives the TTS time to finish speaking
+   */
+  DISCONNECT_DELAY_MS: 3000,
+} as const;
+
+// ============================================================================
 // RESPONSE PROCESSING
 // ============================================================================
 

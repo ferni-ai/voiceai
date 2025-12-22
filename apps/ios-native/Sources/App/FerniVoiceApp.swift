@@ -13,13 +13,24 @@ import UIKit
 struct FerniVoiceApp: App {
     @StateObject private var session = IOSLiveKitSession()
     @StateObject private var appState = AppState()
+    @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(session)
-                .environmentObject(appState)
-                .preferredColorScheme(.dark)
+            ZStack {
+                ContentView()
+                    .environmentObject(session)
+                    .environmentObject(appState)
+                    .preferredColorScheme(.dark)
+
+                // Animated splash screen overlay
+                if showSplash {
+                    SplashView(showSplash: $showSplash)
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: showSplash)
         }
     }
 }

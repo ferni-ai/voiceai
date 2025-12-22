@@ -68,6 +68,8 @@ export interface CoordinatorAdapterConfig {
   getVoiceAgentRef: () => {
     setPersona: (personaId: string, instructions: string) => void;
   } | null;
+  /** CRITICAL: Initial agent for the session. Must match sessionPersona.id! */
+  initialAgent?: string;
 }
 
 /**
@@ -105,7 +107,7 @@ export class CoordinatorAdapter {
   private readonly sessionId: string;
 
   constructor(config: CoordinatorAdapterConfig) {
-    const { ctx, session, services, room, getVoiceAgentRef } = config;
+    const { ctx, session, services, room, getVoiceAgentRef, initialAgent } = config;
     this.session = session;
     this.services = services;
     this.room = room;
@@ -113,8 +115,10 @@ export class CoordinatorAdapter {
     this.sessionId = ctx.room?.name || `adapter-${Date.now()}`;
 
     // Create the coordinator with our callbacks
+    // CRITICAL: Pass initialAgent so state manager knows the starting persona
     this.coordinator = createHandoffCoordinator({
       sessionId: this.sessionId,
+      initialAgent: initialAgent || 'ferni', // Default to ferni if not provided
       onVoiceSwitch: this.handleVoiceSwitch.bind(this),
       onLLMUpdate: this.handleLLMUpdate.bind(this),
       onUINotify: this.handleUINotify.bind(this),
@@ -122,7 +126,7 @@ export class CoordinatorAdapter {
       onAfterVoiceSwitch: this.handleArrivingWelcome.bind(this),
     });
 
-    log.info({ sessionId: this.sessionId }, '🔌 CoordinatorAdapter created');
+    log.info({ sessionId: this.sessionId, initialAgent }, '🔌 CoordinatorAdapter created');
   }
 
   // ========================================================================
@@ -196,6 +200,9 @@ export class CoordinatorAdapter {
 
   /**
    * Handle voice switch - called by coordinator.
+   * 
+   * CRITICAL FIX: VoiceManager.switchVoice() expects an agent ID (like 'peter-john'),
+   * NOT a voice UUID. The coordinator passes voiceId for reference but we use personaId.
    */
   private async handleVoiceSwitch(voiceId: string, personaId: string): Promise<void> {
     log.debug({ voiceId, personaId }, '🎤 Switching voice');
@@ -208,9 +215,11 @@ export class CoordinatorAdapter {
     // Small delay to prevent race conditions
     await new Promise((resolve) => setTimeout(resolve, 150));
 
-    await voiceManager.switchVoice(voiceId);
+    // FIX BUG: Use personaId (agent ID like 'peter-john'), NOT voiceId (UUID)!
+    // VoiceManager.switchVoice() looks up the voice ID from VOICES[agentId].id
+    voiceManager.switchVoice(personaId);
 
-    log.info({ voiceId, personaId }, '✅ Voice switched');
+    log.info({ voiceId, personaId, usedAgentId: personaId }, '✅ Voice switched');
   }
 
   /**

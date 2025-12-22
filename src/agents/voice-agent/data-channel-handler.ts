@@ -241,12 +241,14 @@ async function handleHandoffRequest(
 
     if (!adapter && ctx.ctx) {
       // Create adapter if we have job context
+      // CRITICAL: Pass sessionPersona.id so coordinator knows the starting agent
       adapter = getSessionAdapter(sessionId, {
         ctx: ctx.ctx,
         session,
         services,
         room,
         getVoiceAgentRef: () => voiceAgentRef || null,
+        initialAgent: ctx.sessionPersona.id,
       });
     }
 

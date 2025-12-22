@@ -12,11 +12,12 @@
 # Deploy with gcloud commands below or via Terraform.
 
 jobs:
-  # LLM Content Pre-warm - runs every 5 minutes
+  # LLM Content Pre-warm - runs every 6 hours
   # Keeps cache warm for all personas and common content types
+  # Budget-friendly: 4 runs/day × 54 items = 216 LLM calls/day
   - name: llm-content-prewarm
-    description: Keep LLM content cache warm for fast responses
-    schedule: "*/5 * * * *"  # Every 5 minutes
+    description: Pre-warm LLM content cache every 6 hours
+    schedule: "0 */6 * * *"  # Every 6 hours (midnight, 6am, noon, 6pm)
     timeZone: America/Los_Angeles
     httpTarget:
       uri: https://app.ferni.ai/api/llm-content/prewarm

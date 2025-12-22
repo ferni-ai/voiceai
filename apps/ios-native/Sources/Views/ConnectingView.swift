@@ -96,7 +96,7 @@ struct ConnectingView: View {
 
         return HStack(spacing: 4) {
             Text("Connecting")
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(FerniFont.body(size: 15, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
 
             HStack(spacing: 2) {

@@ -97,10 +97,11 @@ fun ControlBar(
 /**
  * Primary connect/disconnect button.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun ConnectButton(
     voiceState: VoiceState,
-    persona: Persona,
+    persona: Persona, // Reserved for future persona-specific button styling
     onClick: () -> Unit
 ) {
     val isConnecting = voiceState is VoiceState.Connecting

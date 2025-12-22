@@ -42,10 +42,11 @@ import kotlinx.coroutines.launch
 /**
  * Main voice conversation screen.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun VoiceScreen(
     session: LiveKitSession,
-    onNavigateToSettings: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}, // Reserved for future settings navigation
     onNavigateToTranscript: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {

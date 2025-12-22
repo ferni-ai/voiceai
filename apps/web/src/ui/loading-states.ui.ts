@@ -44,7 +44,8 @@ export function initLoadingStates(): void {
   if (isInitialized) return;
   
   // Initialize persona color from CSS variables
-  const style = getComputedStyle(document.documentElement);
+  // Read from body where persona-specific CSS variables are applied via [data-persona] selectors
+  const style = getComputedStyle(document.body);
   currentPersonaColor = style.getPropertyValue('--persona-primary').trim() || '#4a6741';
   
   // Check reduced motion preference

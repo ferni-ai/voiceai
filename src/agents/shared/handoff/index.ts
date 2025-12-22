@@ -1,8 +1,8 @@
 /**
  * Handoff Module
  *
- * Unified exports for handoff functionality.
- * The main handler is still in handoff-handler.ts for backward compatibility.
+ * Unified exports for the coordinator-based handoff system.
+ * This replaces the old handoff-handler.ts with a cleaner architecture.
  *
  * @module agents/shared/handoff
  */
@@ -45,7 +45,7 @@ export {
   clearCachedModules,
 } from './cached-modules.js';
 
-// NEW: Coordinator-based handoff system (replaces handoff-handler.ts)
+// Coordinator-based handoff system
 export {
   CoordinatorAdapter,
   createCoordinatorAdapter,
@@ -54,3 +54,11 @@ export {
   type CoordinatorAdapterConfig,
   type AdapterHandoffResult,
 } from './coordinator-adapter.js';
+
+// NEW: Event handler for voiceSwitch events (drop-in replacement for createHandoffHandler)
+export {
+  createEventHandler,
+  createHandoffEventHandler,
+  type EventHandlerConfig,
+  type EventHandlerResult,
+} from './event-handler.js';

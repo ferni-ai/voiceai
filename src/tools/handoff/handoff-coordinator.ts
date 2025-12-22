@@ -4,9 +4,8 @@
  * Single orchestration point for all handoffs.
  * Coordinates validation, state, voice, LLM, and UI updates.
  *
- * This replaces the scattered logic across:
+ * This consolidates the scattered logic that was previously across:
  * - executor.ts
- * - handoff-handler.ts
  * - data-channel-handler.ts
  * - state.ts
  *
@@ -19,7 +18,8 @@
  * ```typescript
  * const coordinator = createHandoffCoordinator({
  *   sessionId,
- *   onVoiceSwitch: async (voiceId, personaId) => voiceManager.switchVoice(voiceId),
+ *   // IMPORTANT: Use personaId (not voiceUUID) for VoiceManager.switchVoice()!
+ *   onVoiceSwitch: async (voiceUUID, personaId) => voiceManager.switchVoice(personaId),
  *   onLLMUpdate: async (personaId, instructions) => agent.setPersona(personaId, instructions),
  *   onBeforeVoiceSwitch: async (fromPersona, toPersona) => {
  *     // Soft open - departing persona's goodbye
@@ -101,8 +101,15 @@ export interface HandoffResult {
 
 /**
  * Voice switch callback signature.
+ * 
+ * IMPORTANT: The first parameter (voiceUUID) is the Cartesia voice UUID for reference/logging.
+ * The actual voice switch should use personaId (agent ID like 'peter-john') because
+ * VoiceManager.switchVoice() looks up the voice from its internal VOICES registry.
+ * 
+ * @param voiceUUID - The Cartesia voice UUID (for logging/reference only)
+ * @param personaId - The canonical persona ID (e.g., 'peter-john') - USE THIS for VoiceManager
  */
-export type VoiceSwitchCallback = (voiceId: string, personaId: string) => Promise<void>;
+export type VoiceSwitchCallback = (voiceUUID: string, personaId: string) => Promise<void>;
 
 /**
  * LLM update callback signature.
@@ -155,6 +162,8 @@ export type AfterVoiceSwitchCallback = (
 export interface CoordinatorConfig {
   /** Session ID */
   sessionId: string;
+  /** CRITICAL: Initial agent for the session. Defaults to 'ferni' if not provided. */
+  initialAgent?: string;
   /** Callback to switch voice */
   onVoiceSwitch: VoiceSwitchCallback;
   /** Callback to update LLM instructions */
@@ -202,8 +211,9 @@ export interface CoordinatorConfig {
  * ```typescript
  * const coordinator = new HandoffCoordinator({
  *   sessionId: 'session-123',
- *   onVoiceSwitch: async (voiceId, personaId) => {
- *     await voiceManager.switchVoice(voiceId);
+ *   // IMPORTANT: Use personaId (not voiceUUID) for VoiceManager.switchVoice()!
+ *   onVoiceSwitch: async (voiceUUID, personaId) => {
+ *     await voiceManager.switchVoice(personaId);
  *   },
  *   onLLMUpdate: async (personaId, instructions) => {
  *     await agent.setPersona(personaId, instructions);
@@ -254,12 +264,19 @@ export class HandoffCoordinator {
     this.onUINotify = config.onUINotify;
     this.handoffTimeoutMs = config.handoffTimeoutMs || HANDOFF_TIMING.HANDOFF_TIMEOUT_MS;
 
+    // CRITICAL: Reset state manager with the correct initial agent
+    // This fixes the bug where handoffs fail with "Already with X" when starting on a non-ferni persona
+    if (config.initialAgent) {
+      this.stateManager.reset(config.initialAgent as AgentId);
+      log.info({ sessionId: config.sessionId, initialAgent: config.initialAgent }, '🎯 State manager reset to initial agent');
+    }
+
     // Banter configuration
     this.onBeforeVoiceSwitch = config.onBeforeVoiceSwitch;
     this.onAfterVoiceSwitch = config.onAfterVoiceSwitch;
     this.skipBanter = config.skipBanter || false;
 
-    log.info({ sessionId: config.sessionId, hasBanterHooks: !!(config.onBeforeVoiceSwitch || config.onAfterVoiceSwitch) }, '🎯 HandoffCoordinator created');
+    log.info({ sessionId: config.sessionId, initialAgent: config.initialAgent || 'ferni', hasBanterHooks: !!(config.onBeforeVoiceSwitch || config.onAfterVoiceSwitch) }, '🎯 HandoffCoordinator created');
   }
 
   // ========================================================================
@@ -295,7 +312,8 @@ export class HandoffCoordinator {
       // ====================================================================
       // PHASE 1: VALIDATION
       // ====================================================================
-      this.emitUIEvent('handoff_acknowledged', { traceId, targetAgent: canonicalId });
+      // CRITICAL: Frontend expects 'target' not 'targetAgent'
+      this.emitUIEvent('handoff_acknowledged', { traceId, target: canonicalId });
 
       if (!request.skipValidation) {
         const validation = await validateHandoffPreconditions(canonicalId, {
@@ -351,7 +369,8 @@ export class HandoffCoordinator {
         };
       }
 
-      this.emitUIEvent('handoff_started', { traceId, targetAgent: canonicalId, displayName });
+      // CRITICAL: Frontend expects 'target' not 'targetAgent'
+      this.emitUIEvent('handoff_started', { traceId, target: canonicalId, displayName });
 
       // ====================================================================
       // PHASE 3: LOAD PERSONA DATA
@@ -406,7 +425,8 @@ export class HandoffCoordinator {
           execute: async () => {
             this.emitUIEvent('handoff_progress', { traceId, phase: 'soft_open', progress: 0.35 });
             await this.onBeforeVoiceSwitch!(previousAgent, canonicalId, banterContext);
-            this.emitUIEvent('soft_open_complete', { traceId, fromAgent: previousAgent, toAgent: canonicalId });
+            // CRITICAL: Frontend expects 'target' (uses 'previousAgent' for from)
+            this.emitUIEvent('soft_open_complete', { traceId, previousAgent, target: canonicalId });
           },
           rollback: async () => {
             // Can't unsay banter, but that's okay
@@ -508,9 +528,10 @@ export class HandoffCoordinator {
 
       const durationMs = Date.now() - startTime;
 
+      // CRITICAL: Frontend expects 'target' not 'targetAgent'
       this.emitUIEvent('handoff_complete', {
         traceId,
-        targetAgent: canonicalId,
+        target: canonicalId,
         displayName,
         voiceId: voiceResult.voiceId,
         durationMs,

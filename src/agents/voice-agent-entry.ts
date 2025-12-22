@@ -519,7 +519,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         sessionId,
         enablePubSub,
         enableSpeculativeTTS: true,
-        enableBatchedAnalysis: true,
+        // 🚨 DISABLED: batchedAnalysis makes redundant LLM calls per turn
+        // The turn processor already does emotion/intent detection
+        // This was doubling API costs! Re-enable only if you need it for specific analytics.
+        enableBatchedAnalysis: false,
         enableParallelMemory: true,
         enableContextCache: true,
         enableProfiling: true,
@@ -751,7 +754,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { createTranscriptHandler },
       { setupSessionStateHandlers },
       { setupToolTrackingHandler },
-      { createHandoffHandler },
+      { createEventHandler }, // NEW: Uses coordinator-based handoff system
       { registerCameoHandlers },
       { generateAndSpeakGreeting },
       { handleSessionCleanup },
@@ -761,7 +764,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       import('./voice-agent/transcript-handler.js'),
       import('./voice-agent/session-state-handler.js'),
       import('./voice-agent/tool-tracking-handler.js'),
-      import('./shared/handoff-handler.js'),
+      import('./shared/handoff/event-handler.js'), // NEW: Coordinator-based
       import('./shared/cameo-handler.js'),
       import('./voice-agent/greeting-handler.js'),
       import('./voice-agent/cleanup-handler.js'),
@@ -1000,13 +1003,36 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sendDataMessage,
     });
 
-    // SESSION STATE HANDLERS (silence detection, engagement)
+    // SESSION STATE HANDLERS (silence detection, engagement, idle timeout)
     const { silenceContext } = setupSessionStateHandlers({
       session,
       sessionPersona: sessionPersona,
       conversationManager,
       userData,
       sessionId,
+      // Idle timeout callback - disconnect after extended silence
+      onIdleTimeout: async () => {
+        process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
+        try {
+          // Signal frontend that we're disconnecting due to idle
+          const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+          await sendFrontendSignal('conversation_end', {
+            reason: 'idle_timeout',
+            disconnectDelay: 0, // Disconnect immediately after TTS finishes
+            timestamp: Date.now(),
+          });
+        } catch {
+          // Non-critical - still disconnect
+        }
+        try {
+          // Disconnect the room
+          if (ctx.room.isConnected) {
+            await ctx.room.disconnect();
+          }
+        } catch (disconnectErr) {
+          process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
+        }
+      },
     });
 
     // TRANSCRIPT HANDLER
@@ -1053,24 +1079,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
 
     // HANDOFF HANDLER
-    // FIX: Now using voiceAgentRef to enable LLM instruction updates during handoffs
-    const handoffHandler = createHandoffHandler({
+    // NEW: Coordinator-based handoff handler with intelligent banter
+    const eventHandlerResult = createEventHandler({
       ctx,
       session,
       tts: session.tts as { switchVoice?: (name: string, id: string) => void },
       services,
       userData,
-      getVoiceAgentRef: () => voiceAgentRef, // FIX: Enable persona/instruction switching
+      getVoiceAgentRef: () => voiceAgentRef as { setPersona: (personaId: string, instructions: string) => void } | null,
+      sessionId, // CRITICAL: Must match data-channel-handler's sessionId
     });
-    const wrappedHandoffHandler = (data: Parameters<typeof handoffHandler>[0]) => {
-      void handoffHandler(data).catch((err) => {
-        process.stderr.write(`[voice-agent-entry] Handoff handler error: ${err}\n`);
-      });
-    };
-    handoffEvents.on('voiceSwitch', wrappedHandoffHandler);
-    cleanupTracker.register('event', 'handoffEvents.voiceSwitch', () => {
-      void handoffEvents.off('voiceSwitch', wrappedHandoffHandler);
-    });
+    cleanupTracker.register('event', 'handoffEvents.voiceSwitch', eventHandlerResult.cleanup);
 
     // CAMEO HANDLERS
     // FIX: Now using voiceAgentRef to enable LLM instruction updates during cameos
@@ -1098,6 +1117,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Without this, clicking a persona in the UI changes the voice but keeps the LLM identity!
     const dataChannelResult = setupDataChannelHandler({
       room: ctx.room,
+      ctx, // Pass JobContext for coordinator adapter fallback creation
       session,
       services,
       sessionPersona,
@@ -1458,7 +1478,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       autoOptimizer,
       feedbackCollector,
       dataChannelCleanup: dataChannelResult.cleanup,
-      handoffHandler: wrappedHandoffHandler,
+      handoffHandler: eventHandlerResult.handler,
       cameoCleanup: undefined,
       musicCleanup: musicResult.clearTimers,
       userData,

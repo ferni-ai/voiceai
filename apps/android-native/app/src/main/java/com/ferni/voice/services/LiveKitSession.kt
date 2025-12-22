@@ -1,3 +1,5 @@
+@file:OptIn(io.livekit.android.annotations.Beta::class)
+
 package com.ferni.voice.services
 
 import android.content.Context
@@ -278,7 +280,8 @@ class LiveKitSession(private val context: Context) {
                     }
                     is RoomEvent.TranscriptionReceived -> {
                         val isAgent = event.participant?.identity?.value?.contains("agent") == true
-                        event.segments.forEach { segment ->
+                        // Process transcription segments
+                        event.transcriptionSegments.forEach { segment ->
                             if (segment.final && segment.text.isNotBlank()) {
                                 handleTranscription(segment.text, isAgent)
                             }

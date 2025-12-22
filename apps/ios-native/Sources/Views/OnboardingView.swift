@@ -36,7 +36,7 @@ struct OnboardingView: View {
                 // Next/Continue button
                 Button(action: handleNextTap) {
                     Text(buttonTitle)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(FerniFont.buttonPrimary)
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
@@ -83,11 +83,11 @@ struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Text("Meet Ferni")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(FerniFont.largeTitle)
                     .foregroundColor(.white)
 
                 Text("Your AI life coach and team coordinator.\nHave natural voice conversations anytime.")
-                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .font(FerniFont.body(size: 17))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -116,11 +116,11 @@ struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Text("Voice Access")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(FerniFont.largeTitle)
                     .foregroundColor(.white)
 
                 Text("Ferni needs microphone access to hear you.\nYour conversations stay private.")
-                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .font(FerniFont.body(size: 17))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -134,7 +134,7 @@ struct OnboardingView: View {
                     Text("Microphone enabled")
                         .foregroundColor(.green)
                 }
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(FerniFont.body(size: 15, weight: .medium))
             }
 
             Spacer()
@@ -159,11 +159,11 @@ struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Text("You're Ready")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(FerniFont.largeTitle)
                     .foregroundColor(.white)
 
                 Text("Tap the orb to start a conversation.\nFerni and the team are here for you.")
-                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .font(FerniFont.body(size: 17))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)

@@ -62,7 +62,7 @@ import { finops } from '../../services/observability/finops.js';
 import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
-import type { HandoffEventPayload } from '../shared/handoff-handler.js';
+import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
 // ============================================================================
 // CLEANUP TIMEOUT PROTECTION
@@ -381,8 +381,14 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     const serviceGroup = await Promise.allSettled([
       // Session-scoped state cleanup
       (async () => {
-        const { clearHandoffSessionState } = await import('../shared/handoff-handler.js');
+        const { clearHandoffSessionState } = await import('../shared/handoff/session-state.js');
         clearHandoffSessionState(sessionId);
+      })(),
+
+      // Coordinator adapter cleanup (prevents memory leaks)
+      (async () => {
+        const { removeSessionAdapter } = await import('../shared/handoff/coordinator-adapter.js');
+        removeSessionAdapter(sessionId);
       })(),
 
       (async () => {

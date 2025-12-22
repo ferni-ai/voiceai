@@ -66,16 +66,30 @@ export {
   type EmotionalArcSummary,
 } from './context-helpers.js';
 
-// Handoff Handler
+// Handoff System (NEW: Coordinator-based)
 export {
-  createHandoffHandler,
+  // Types
   type HandoffPersona,
   type HandoffEventPayload,
   type LegacyHandoffData,
   type NewHandoffData,
   type VoiceAgentRef,
-  type HandoffHandlerConfig,
-} from './handoff-handler.js';
+} from './handoff/types.js';
+
+export {
+  // Event handler (replaces createHandoffHandler)
+  createEventHandler,
+  createHandoffEventHandler, // Backward-compatible alias
+  type EventHandlerConfig,
+  type EventHandlerResult,
+  // Coordinator adapter
+  CoordinatorAdapter,
+  createCoordinatorAdapter,
+  getSessionAdapter,
+  removeSessionAdapter,
+  type CoordinatorAdapterConfig,
+  type AdapterHandoffResult,
+} from './handoff/index.js';
 
 // Cached Imports (performance optimization)
 export {

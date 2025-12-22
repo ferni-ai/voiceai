@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Colors -->
+    <color name="ferni_primary">#4a6741</color>
+    <color name="ferni_secondary">#3d5a35</color>
+    <color name="accent">#3D5A45</color>
+
+    <!-- Persona Colors -->
+    <color name="maya_primary">#a67a6a</color>
+    <color name="alex_primary">#5a6b8a</color>
+    <color name="jordan_primary">#c4856a</color>
+    <color name="peter_primary">#3a6b73</color>
+    <color name="nayan_primary">#9a7b5a</color>
+
+    <!-- System Colors -->
+    <color name="surface_dark">#1A1A1A</color>
+    <color name="surface_light">#F5F1EB</color>
+    <color name="natural_ink">#2C2520</color>
+    <color name="warm_gold">#c4a265</color>
+</resources>

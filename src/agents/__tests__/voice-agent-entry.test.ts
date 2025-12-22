@@ -45,7 +45,7 @@ describe('Voice Agent Entry - Module Structure', () => {
       'createTranscriptHandler',
       'setupSessionStateHandlers',
       'setupToolTrackingHandler',
-      'createHandoffHandler',
+      'createEventHandler', // NEW: Coordinator-based handoff
       'registerCameoHandlers',
       'generateAndSpeakGreeting',
       'handleSessionCleanup',
@@ -290,7 +290,7 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Transcript Handler', pattern: 'createTranscriptHandler' },
       { name: 'Session State Handlers', pattern: 'setupSessionStateHandlers' },
       { name: 'Tool Tracking Handler', pattern: 'setupToolTrackingHandler' },
-      { name: 'Handoff Handler', pattern: 'createHandoffHandler' },
+      { name: 'Handoff Handler', pattern: 'createEventHandler' }, // NEW: Coordinator-based
       { name: 'Cameo Handlers', pattern: 'registerCameoHandlers' },
       { name: 'Greeting Handler', pattern: 'generateAndSpeakGreeting' },
       { name: 'Cleanup Handler', pattern: 'handleSessionCleanup' },

@@ -1064,6 +1064,7 @@ class HandoffService {
    * - Full IDs: 'jack-bogle', 'peter-lynch', 'comm-specialist', etc.
    * - Short aliases: 'jack', 'peter', 'alex', 'maya', 'jordan'
    * - Legacy names: 'generic-advisor', 'debt-counselor', 'retirement-specialist'
+   * - New format: 'target' field (from coordinator)
    */
   private normalizeHandoff(event: HandoffEvent): NormalizedHandoff {
     // Use previousAgent from event if available, otherwise get from current state
@@ -1071,7 +1072,12 @@ class HandoffService {
     const fromPersona = eventWithPrevious.previousAgent
       ? normalizeAgentId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
-    const toPersona = normalizeAgentId(event.newAgent);
+    
+    // FIX BUG: Backend sends 'target' (from coordinator) OR 'newAgent' (legacy)
+    // Accept either field to prevent undefined being passed to normalizeAgentId
+    const eventWithTarget = event as HandoffEvent & { target?: string };
+    const agentId = event.newAgent || eventWithTarget.target;
+    const toPersona = normalizeAgentId(agentId);
 
     log.debug('Normalizing handoff:', {
       rawNewAgent: event.newAgent,

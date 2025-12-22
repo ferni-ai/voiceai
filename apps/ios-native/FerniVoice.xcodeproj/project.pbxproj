@@ -18,6 +18,8 @@
 		C0NNECT1NGV1EW1NBUILD0001 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
 		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
+		TYP0GRAPHY1NBUILD00000001 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = TYP0GRAPHYREF000000000001 /* Typography.swift */; };
+		SPLASHV1EW1NBUILD00000001 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPLASHV1EWREF0000000000001 /* SplashView.swift */; };
 		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
 		F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03DE09C41C69126019ADA01 /* SettingsView.swift */; };
 		FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */; };
@@ -38,6 +40,7 @@
 		102C31505053144B48576C2E /* FerniVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniVoice.entitlements; sourceTree = "<group>"; };
 		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
 		1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
+		TYP0GRAPHYREF000000000001 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectingView.swift; sourceTree = "<group>"; };
 		32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -50,6 +53,7 @@
 		C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
 		E03DE09C41C69126019ADA01 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSLiveKitSession.swift; sourceTree = "<group>"; };
+		SPLASHV1EWREF0000000000001 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -80,6 +84,7 @@
 				2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */,
 				A7209647670485E81A61C468 /* PersonaPickerSheet.swift */,
 				E03DE09C41C69126019ADA01 /* SettingsView.swift */,
+				SPLASHV1EWREF0000000000001 /* SplashView.swift */,
 				1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */,
 				C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */,
 			);
@@ -117,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */,
+				TYP0GRAPHYREF000000000001 /* Typography.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -276,7 +282,9 @@
 				A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */,
 				B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */,
 				F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */,
+				SPLASHV1EW1NBUILD00000001 /* SplashView.swift in Sources */,
 				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
+				TYP0GRAPHY1NBUILD00000001 /* Typography.swift in Sources */,
 				FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
