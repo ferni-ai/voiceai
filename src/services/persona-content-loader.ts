@@ -149,9 +149,7 @@ export interface SilenceResponses {
     evening?: string[];
     weekend?: string[];
   };
-  topic_specific?: {
-    [topic: string]: string[];
-  };
+  topic_specific?: Record<string, string[]>;
   llm_guidance?: {
     presence?: { instruction_template?: string; examples?: string[] };
     memory_callback?: { instruction_template?: string; examples?: string[] };
