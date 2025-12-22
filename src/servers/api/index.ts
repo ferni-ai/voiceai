@@ -78,6 +78,7 @@ import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
 import { handleMonitoringRoutes } from '../../api/monitoring-routes.js';
 import { handlePerformanceRoutes } from '../../api/performance-routes.js';
+import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
@@ -576,6 +577,12 @@ const server = http.createServer(async (req, res) => {
     // Performance routes
     if (pathname.startsWith('/api/performance')) {
       const handled = await handlePerformanceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // LLM content routes (metrics, cache stats, prewarm)
+    if (pathname.startsWith('/api/llm-content')) {
+      const handled = await handleLLMContentRoutes(req, res, pathname);
       if (handled) return;
     }
 
