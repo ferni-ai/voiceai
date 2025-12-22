@@ -56,6 +56,30 @@ import { modelConfig } from '../services/model-config.js';
 // FinOps cost tracking for session economics
 import { finops } from '../services/observability/finops.js';
 
+// Multi-agent system for natural persona handoffs
+// Each persona gets its own Gemini session + TTS voice
+import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './multi-agent/index.js';
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+/**
+ * Multi-agent mode: Each persona runs as a separate agent with its own Gemini session.
+ * This enables natural handoffs where both personas speak with their real voices.
+ *
+ * Set MULTI_AGENT_MODE=true in environment to enable.
+ *
+ * NOTE: Multi-agent mode is implemented in ./multi-agent/. See CLAUDE.md there for details.
+ * The full integration replaces the single-session approach with the orchestrator pattern.
+ */
+const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE === 'true';
+
+// Log multi-agent status at module load
+if (MULTI_AGENT_MODE) {
+  process.stderr.write(`[voice-agent-entry] 🎭 MULTI_AGENT_MODE=true - Using multi-agent orchestrator\n`);
+}
+
 // ============================================================================
 // LIGHTWEIGHT VOICE AGENT REF (For Handoff Support)
 // ============================================================================
@@ -76,8 +100,25 @@ function createLightweightVoiceAgentRef(
   let bundleRuntime: BundleRuntimeEngine | undefined;
 
   return {
-    setPersona(persona: unknown): void {
-      const p = persona as PersonaConfig;
+    /**
+     * Set persona - supports two signatures:
+     * 1. setPersona(personaConfig: PersonaConfig) - full persona config with systemPrompt
+     * 2. setPersona(personaId: string, instructions: string) - direct ID + instructions
+     */
+    setPersona(personaOrId: unknown, instructions?: string): void {
+      // Handle both signatures
+      if (typeof personaOrId === 'string' && typeof instructions === 'string') {
+        // Signature 2: setPersona(personaId, instructions)
+        // CRITICAL: This is how coordinator-adapter calls us during handoff!
+        agent._instructions = instructions;
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 LLM instructions updated for ${personaOrId} (${instructions.length} chars)\n`
+        );
+        return;
+      }
+
+      // Signature 1: setPersona(personaConfig)
+      const p = personaOrId as PersonaConfig;
       currentPersona = p;
 
       // CRITICAL: Update the agent's instructions for the new persona
@@ -592,6 +633,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
+    // 🔍 DEBUG: Log voice configuration before TTS creation
+    process.stderr.write(
+      `[TTS-DEBUG] 📋 Creating TTS | persona="${sessionPersona.name}" | personaId="${sessionPersona.id}" | voiceConfig.voiceId="${voiceConfig.voiceId}" | effectiveVoiceId="${effectiveVoiceId}"\n`
+    );
     const voiceManager = await import('../speech/voice-manager.js');
     const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
       ...voiceConfig,
@@ -874,18 +919,138 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // Wait for participant before starting session
-    process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant...\n`);
+    // Multi-agent mode REQUIRES participant, so wait longer when enabled
+    const participantTimeout = MULTI_AGENT_MODE ? 10000 : 2000;
+    process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`);
     const participant = await Promise.race([
       ctx.waitForParticipant(),
       new Promise<null>((resolve) => {
         setTimeout(() => {
+          process.stderr.write(`[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`);
           resolve(null);
-        }, 2000);
+        }, participantTimeout);
       }),
     ]);
 
     if (participant) {
       process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
+    }
+
+    // =========================================================================
+    // MULTI-AGENT MODE (Experimental)
+    // When enabled, each persona runs as a separate agent with its own Gemini session.
+    // This provides natural handoffs with real voices and no prompt leakage.
+    // =========================================================================
+    if (MULTI_AGENT_MODE && participant) {
+      process.stderr.write(`[voice-agent-entry] 🎭 Starting multi-agent session\n`);
+
+      try {
+        const multiAgentResult = await initializeMultiAgentSession({
+          ctx,
+          room: ctx.room!,
+          userParticipant: participant,
+          initialPersonaId: sessionPersona.id,
+          services,
+          userData,
+          sessionId,
+          userId,
+          onHandoffComplete: (from, to) => {
+            process.stderr.write(`[voice-agent-entry] 🎭 Handoff complete: ${from} → ${to}\n`);
+            // Notify frontend
+            const encoder = new TextEncoder();
+            void ctx.room?.localParticipant?.publishData(
+              encoder.encode(
+                JSON.stringify({
+                  type: 'handoff_complete',
+                  from,
+                  target: to,
+                  timestamp: Date.now(),
+                })
+              ),
+              { reliable: true }
+            );
+          },
+        });
+
+        // Set up data channel handler for multi-agent handoffs
+        const dataHandler = (
+          data: Uint8Array,
+          _participant?: { identity: string }
+        ): void => {
+          void (async () => {
+            try {
+              const decoder = new TextDecoder();
+              const message = JSON.parse(decoder.decode(data));
+
+              if (message.type === 'handoff_request') {
+                process.stderr.write(
+                  `[voice-agent-entry] 🎭 Multi-agent handoff request: ${message.target}\n`
+                );
+
+                // Send handoff_acknowledged immediately (frontend expects this)
+                const encoder = new TextEncoder();
+                await ctx.room?.localParticipant?.publishData(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: 'handoff_acknowledged',
+                      target: message.target,
+                      success: true,
+                      timestamp: Date.now(),
+                    })
+                  ),
+                  { reliable: true }
+                );
+
+                const result = await handleHandoffFromDataChannel(
+                  multiAgentResult.orchestrator,
+                  message.target,
+                  message.reason || 'User requested via UI',
+                  services
+                );
+                if (!result.success) {
+                  process.stderr.write(
+                    `[voice-agent-entry] 🎭 Handoff failed: ${result.error}\n`
+                  );
+                  // Send handoff_failed to frontend
+                  await ctx.room?.localParticipant?.publishData(
+                    encoder.encode(
+                      JSON.stringify({
+                        type: 'handoff_failed',
+                        target: message.target,
+                        error: result.error,
+                        timestamp: Date.now(),
+                      })
+                    ),
+                    { reliable: true }
+                  );
+                }
+              }
+            } catch {
+              // Ignore non-JSON messages
+            }
+          })();
+        };
+
+        ctx.room?.on('dataReceived', dataHandler);
+
+        // Wait for disconnect
+        await new Promise<void>((resolve) => {
+          ctx.room?.once('disconnected', () => {
+            process.stderr.write(`[voice-agent-entry] 🎭 Room disconnected\n`);
+            resolve();
+          });
+        });
+
+        // Cleanup
+        await multiAgentResult.cleanup();
+        process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
+        return;
+      } catch (err) {
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 Multi-agent mode failed, falling back to single-agent: ${err}\n`
+        );
+        // Fall through to single-agent mode
+      }
     }
 
     // MUSIC HANDLER - Initialize music player
@@ -1011,27 +1176,29 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userData,
       sessionId,
       // Idle timeout callback - disconnect after extended silence
-      onIdleTimeout: async () => {
-        process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
-        try {
-          // Signal frontend that we're disconnecting due to idle
-          const { sendFrontendSignal } = await import('../services/frontend-signal.js');
-          await sendFrontendSignal('conversation_end', {
-            reason: 'idle_timeout',
-            disconnectDelay: 0, // Disconnect immediately after TTS finishes
-            timestamp: Date.now(),
-          });
-        } catch {
-          // Non-critical - still disconnect
-        }
-        try {
-          // Disconnect the room
-          if (ctx.room.isConnected) {
-            await ctx.room.disconnect();
+      onIdleTimeout: () => {
+        void (async () => {
+          process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
+          try {
+            // Signal frontend that we're disconnecting due to idle
+            const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+            await sendFrontendSignal('conversation_end', {
+              reason: 'idle_timeout',
+              disconnectDelay: 0, // Disconnect immediately after TTS finishes
+              timestamp: Date.now(),
+            });
+          } catch {
+            // Non-critical - still disconnect
           }
-        } catch (disconnectErr) {
-          process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
-        }
+          try {
+            // Disconnect the room
+            if (ctx.room.isConnected) {
+              await ctx.room.disconnect();
+            }
+          } catch (disconnectErr) {
+            process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
+          }
+        })();
       },
     });
 
@@ -1088,6 +1255,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userData,
       getVoiceAgentRef: () => voiceAgentRef as { setPersona: (personaId: string, instructions: string) => void } | null,
       sessionId, // CRITICAL: Must match data-channel-handler's sessionId
+      initialAgent: sessionPersona.id, // CRITICAL: State manager needs to know starting persona!
     });
     cleanupTracker.register('event', 'handoffEvents.voiceSwitch', eventHandlerResult.cleanup);
 
@@ -1115,6 +1283,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // DATA CHANNEL HANDLER (frontend communication)
     // FIX BUG: Pass voiceAgentRef so UI-initiated handoffs can update LLM instructions
     // Without this, clicking a persona in the UI changes the voice but keeps the LLM identity!
+    // CRITICAL: Pass tts so the actual Cartesia voice can be changed during handoff!
     const dataChannelResult = setupDataChannelHandler({
       room: ctx.room,
       ctx, // Pass JobContext for coordinator adapter fallback creation
@@ -1124,6 +1293,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userId,
       sessionId,
       voiceAgentRef,
+      tts: session.tts as { switchVoice?: (name: string, voiceId: string, accent?: string) => void },
     });
     cleanupHandlers.push(dataChannelResult.cleanup);
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);

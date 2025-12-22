@@ -70,6 +70,11 @@ export function createCartesiaTTS(voiceId: string, options?: Partial<TTSOptions>
   const sampleRate = options?.sampleRate || 24000;
   const language = options?.language || 'en';
 
+  // 🔍 DEBUG: Log Cartesia TTS creation with voice ID
+  process.stderr.write(
+    `[TTS-DEBUG] 🔧 createCartesiaTTS() | voiceId="${voiceId}" | model="${model}"\n`
+  );
+
   return new cartesia.TTS({
     voice: voiceId,
     model,
