@@ -78,13 +78,16 @@ async function getGoogleAIClient(): Promise<unknown> {
 async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
   // Check circuit breaker first
   if (!googleAICircuitBreaker.canRequest()) {
-    getLogger().debug('Google AI circuit breaker is open, skipping request');
+    getLogger().warn('Google AI circuit breaker is open, skipping request');
     return null;
   }
 
   try {
     const client = await getGoogleAIClient();
-    if (!client) return null;
+    if (!client) {
+      getLogger().warn('Google AI client is null - API key missing or initialization failed');
+      return null;
+    }
 
     const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
 
