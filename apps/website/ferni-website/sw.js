@@ -13,7 +13,7 @@
  * - API responses: Network First with Cache Fallback
  */
 
-const CACHE_VERSION = 'ferni-v2.0.0';
+const CACHE_VERSION = 'ferni-v2.0.1';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const AI_CONTENT_CACHE = `ai-content-${CACHE_VERSION}`;
 
