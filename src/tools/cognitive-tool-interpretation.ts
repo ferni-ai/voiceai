@@ -280,18 +280,21 @@ export function formatToolResultWithCognition(
 
 /**
  * Get thinking sound for processing a tool result
+ *
+ * HUMANIZATION FIX: Removed "Let me see/think/sit with this" - too robotic.
+ * Keep conversational sounds that feel natural, not meta-commentary about processing.
  */
 export function getToolProcessingSound(personaId: string): string {
   const profile = getCognitiveProfile(personaId);
   if (!profile) return 'Hmm';
 
   const sounds: Record<ReasoningStyle, string[]> = {
-    analytical: ['Let me see...', 'Interesting...', 'Looking at this...'],
-    empathetic: ['I hear you...', 'Let me sit with this...', 'Mmm...'],
+    analytical: ['Interesting...', 'So...', 'Hmm...'],
+    empathetic: ['I hear you...', 'Mmm...', 'Yeah...'],
     narrative: ['So...', "Here's what I'm seeing...", 'The story here...'],
-    systematic: ['Okay...', 'Let me organize this...', 'Step by step...'],
+    systematic: ['Okay...', 'Right...', 'So...'],
     pragmatic: ['Alright...', 'Okay so...', "Here's the deal..."],
-    intuitive: ['Hmm...', "There's something here...", 'I sense...'],
+    intuitive: ['Hmm...', "There's something here...", 'Mm...'],
   };
 
   const options = sounds[profile.reasoningStyle] || sounds.narrative;

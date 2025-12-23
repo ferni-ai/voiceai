@@ -32,19 +32,22 @@ const log = createLogger({ module: 'AdvancedHumanization' });
 
 /**
  * Fillers categorized by their conversational function
+ *
+ * HUMANIZATION FIX: Removed "Let me see/think" - too robotic.
+ * Keep only natural conversational sounds.
  */
 export const FILLERS = {
-  /** Thinking/hesitation fillers */
-  thinking: ['Hmm', 'Um', 'Let me see', 'Let me think'],
+  /** Thinking/hesitation fillers - natural sounds only */
+  thinking: ['Hmm', 'Um', 'Mm', 'Hm'],
 
   /** Transition fillers */
-  transition: ['So', 'Well', 'Okay so', 'Alright'],
+  transition: ['So', 'Okay so', 'Alright'],
 
   /** Connection/engagement fillers */
   connection: ['You know', 'I mean', 'Actually'],
 
-  /** Consideration fillers */
-  consideration: ['Well', 'I think', 'It seems like'],
+  /** Consideration fillers - removed "Well" at start (anti-pattern) */
+  consideration: ['I think', 'It seems like', 'Maybe'],
 } as const;
 
 /**

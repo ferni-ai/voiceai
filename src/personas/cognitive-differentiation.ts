@@ -776,7 +776,8 @@ export const jordanDifferentiation: CognitiveDifferentiation = {
       '<break time="250ms"/>Okay...',
       '<break time="200ms"/>',
     ],
-    processingSignals: ["I'm thinking...", 'Let me see...', 'Picture this...'],
+    // HUMANIZATION FIX: Removed "Let me see" - too robotic
+    processingSignals: ['Hmm...', 'Okay so...', 'Picture this...'],
   },
 };
 

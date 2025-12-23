@@ -36,14 +36,17 @@ const TIMEOUT_SYMBOL = Symbol('TIMEOUT');
 
 /**
  * Natural acknowledgment phrases - varies to avoid robotic repetition
+ *
+ * HUMANIZATION FIX: Removed "Let me see/check/find" patterns - too voice-assistant-y.
+ * Keep simple confirmations that don't sound like Alexa/Siri.
  */
 const ACKNOWLEDGMENTS: Record<string, string[]> = {
-  news: ['Let me check the latest...', 'Checking the news...', 'One moment...'],
-  weather: ['Checking the weather...', 'Let me see...'],
-  stocks: ['Checking the markets...', 'Let me look that up...'],
-  search: ['Searching...', 'Let me find that...'],
+  news: ['Checking the news...', 'One moment...', 'On it...'],
+  weather: ['Checking the weather...', 'One sec...'],
+  stocks: ['Checking the markets...', 'One moment...'],
+  search: ['Searching...', 'Looking...', 'On it...'],
   calendar: ['Checking your calendar...', 'One moment...'],
-  default: ['One moment...', 'Let me check...', 'Just a sec...'],
+  default: ['One moment...', 'One sec...', 'Checking...'],
 };
 
 /**

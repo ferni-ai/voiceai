@@ -66,8 +66,9 @@ export interface BackchannelInstructions {
 /**
  * Generate instructions for the LLM to produce a natural backchannel.
  *
- * These instructions tell the LLM exactly what kind of response to give,
- * ensuring it stays brief and contextual.
+ * HUMANIZATION FIX: Prompts are now less prescriptive - we give context about
+ * what the user said and let the LLM generate a genuinely contextual response
+ * instead of just picking from examples.
  *
  * Uses speak pseudo-tool pattern to prevent echoing of meta-instructions.
  * The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say().
@@ -84,58 +85,66 @@ function getBackchannelInstructions(context: BackchannelContext): string {
 
   switch (type) {
     case 'acknowledgment':
-      return `User is speaking: "${snippet}"
+      return `User said: "${snippet}"
 
-Generate a brief listening sound (1-3 words). Examples: "Mm-hmm" "Yeah" "Right"
+React naturally to what they just said. Be brief (1-4 words max). Sound like a friend, not an assistant.
+Don't use generic fillers like "Mm-hmm" - react to the CONTENT.
 
 ${jsonFormat}`;
 
     case 'empathy':
       return `User shared something difficult: "${snippet}"
-Tone: ${emotionalTone || 'heavy'}
+Emotional tone: ${emotionalTone || 'heavy'}
 
-Generate a brief empathetic sound (1-4 words). Examples: "That's hard" "I hear you" "Yeah..."
+React with genuine empathy to what they shared. Be brief (2-5 words). 
+Sound like a friend who really heard them, not a bot saying "I hear you".
 
 ${jsonFormat}`;
 
     case 'encouragement':
-      return `User needs gentle encouragement to continue.
+      return `The user seems to need encouragement to continue.
 
-Generate a presence sound (1-3 words). Examples: "I'm here" "Take your time" "No rush"
+Say something warm and brief (2-4 words) that invites them to continue without pressure.
+Sound like a patient friend, not a therapist.
 
 ${jsonFormat}`;
 
     case 'excitement':
-      return `User shared good news: "${snippet}"
+      return `User shared something positive: "${snippet}"
 
-Generate a brief excited reaction (1-4 words). Examples: "Oh!" "Yes!" "That's huge!"
+React with genuine excitement (2-4 words). Match their energy.
+Don't be generic - react to what they actually said.
 
 ${jsonFormat}`;
 
     case 'curiosity':
       return `User said something interesting: "${snippet}"
 
-Generate a brief curious sound (1-2 words). Examples: "Huh" "Hmm" "Oh?"
+React with genuine curiosity (1-3 words). Sound intrigued, not robotic.
 
 ${jsonFormat}`;
 
     case 'silence_presence':
       if (!silenceDurationMs || silenceDurationMs < 5000) {
+        // Short silence - often just give space
         return `User has been quiet for ${Math.round((silenceDurationMs || 0) / 1000)} seconds.
 
-Generate "..." for intentional silence, or a brief presence sound (1-3 words): "I'm here"
+Either stay silent (output just "...") or give a brief, warm presence signal.
+Don't interrupt their thinking.
 
 ${jsonFormat}`;
       } else {
+        // Longer silence - gentle check-in
         return `User has been quiet for ${Math.round((silenceDurationMs || 0) / 1000)} seconds.
 
-Generate a gentle presence acknowledgment (3-5 words). Examples: "I'm here" "Still with you"
+Check in gently (3-6 words). Sound like a friend, not an assistant.
+Don't say "I'm here" - be more natural.
 
 ${jsonFormat}`;
       }
 
     default:
-      return `Generate a brief listening sound (1-3 words): "Mm-hmm" "Yeah" "Mm"
+      return `React naturally to the conversation (1-3 words). Sound human, not robotic.
 
 ${jsonFormat}`;
   }

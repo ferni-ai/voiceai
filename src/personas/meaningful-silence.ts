@@ -1269,14 +1269,17 @@ function findRelevantStoryForSilence(stories: StoryConfig[], topic: string): Sto
 
 /**
  * Get time-aware response based on hour
+ *
+ * HUMANIZATION FIX: Removed weekend injection entirely.
+ * Random "weekend time moves differently" comments felt forced and robotic.
+ * The LLM naturally knows what day it is and can reference it contextually.
  */
-function getTimeAwareResponse(hour: number, isWeekend: boolean): string | null {
-  // Weekend awareness
-  if (isWeekend && Math.random() < 0.3) {
-    return randomFrom(TIME_AWARE_RESPONSES.weekend);
-  }
+function getTimeAwareResponse(hour: number, _isWeekend: boolean): string | null {
+  // REMOVED: Weekend awareness injection (30% random)
+  // This was causing robotic "consistent quotes about the weekend"
+  // Let the LLM handle weekend context naturally instead of injecting static phrases.
 
-  // Late night (10pm - 5am)
+  // Late night (10pm - 5am) - still useful for presence
   if (hour >= 22 || hour < 5) {
     return randomFrom(TIME_AWARE_RESPONSES.lateNight);
   }
@@ -1482,20 +1485,20 @@ export async function getMusicOfferingAsync(persona: PersonaConfig): Promise<str
 
 /**
  * Get time-aware response using dynamic content if available
+ *
+ * HUMANIZATION FIX: Removed weekend injection entirely.
+ * Let the LLM handle weekend context naturally instead of injecting static phrases.
  */
 export async function getTimeAwareResponseAsync(
   persona: PersonaConfig,
   hour: number,
-  isWeekend: boolean
+  _isWeekend: boolean
 ): Promise<string | null> {
   const canonicalId = getCanonicalPersonaId(persona.id);
   const dynamicContent = await getSilenceContent(canonicalId);
 
-  // Weekend awareness
-  if (isWeekend && Math.random() < 0.3) {
-    const weekend = dynamicContent?.time_aware?.weekend || TIME_AWARE_RESPONSES.weekend;
-    return randomFrom(weekend);
-  }
+  // REMOVED: Weekend awareness injection (30% random)
+  // This was causing robotic "consistent quotes about the weekend"
 
   // Late night (10pm - 5am)
   if (hour >= 22 || hour < 5) {

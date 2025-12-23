@@ -265,18 +265,21 @@ export function buildPauseSSML(pause: SpeechAdjustments['additionalPauses'][0]):
 
 /**
  * Get thinking sounds based on cognitive state
+ *
+ * HUMANIZATION FIX: Removed "Let me see/think" - too robotic.
+ * Keep only natural conversational sounds that don't feel like voice assistant responses.
  */
 export function getCognitiveThinkingSound(
   reasoningStyle: ReasoningStyle,
   confidence: number
 ): string {
   const sounds: Record<ReasoningStyle, string[]> = {
-    analytical: ['Hmm', 'Let me see', 'Interesting'],
-    empathetic: ['Mmm', 'I hear you', 'Ahh'],
-    narrative: ['You know', 'So', 'Well'],
-    systematic: ['Okay', 'Right', 'Let me think'],
+    analytical: ['Hmm', 'Interesting', 'So...'],
+    empathetic: ['Mmm', 'I hear you', 'Yeah...'],
+    narrative: ['You know', 'So', 'Right'],
+    systematic: ['Okay', 'Right', 'So...'],
     pragmatic: ['Alright', 'Okay so', 'Right'],
-    intuitive: ['Hmm', '...', 'I sense'],
+    intuitive: ['Hmm', '...', 'Mm'],
   };
 
   const options = sounds[reasoningStyle] || sounds.analytical;

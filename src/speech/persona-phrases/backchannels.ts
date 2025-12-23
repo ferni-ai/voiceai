@@ -80,6 +80,7 @@ export const SOFT_BACKCHANNELS: Record<string, Record<BackchannelEmotionType, st
 // - No questions without context ("Really?" "Is that so?" "And then?")
 // - No commands ("Tell me more" "Go on" - these feel bossy)
 // - Breath sounds that BLEND into silence, not interrupt it
+// - No meta-commentary about thinking ("Let me see/think" = robotic)
 export const BACKCHANNEL_LIBRARY: Record<BackchannelCategory, string[]> = {
   acknowledgment: ['Mm-hmm', 'Mm', 'Yeah', 'Mhm'],
   understanding: ['I see', 'Got it', 'Okay', 'Right'],
@@ -87,7 +88,9 @@ export const BACKCHANNEL_LIBRARY: Record<BackchannelCategory, string[]> = {
   empathy: ['Mm', 'Yeah...', 'I hear you', 'I feel that'],
   agreement: ['Yeah', 'Right', 'Absolutely', "That's right"],
   surprise: ['Oh', 'Wow', 'Hm'],
-  thinking: ['Hmm', 'Let me think', 'Hm', 'Let me see'],
+  // HUMANIZATION FIX: Removed "Let me think/see" - too robotic.
+  // Natural thinking sounds only.
+  thinking: ['Hmm', 'Hm', 'Mm', 'So...'],
 };
 
 // ============================================================================

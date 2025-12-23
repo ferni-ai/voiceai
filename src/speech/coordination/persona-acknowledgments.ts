@@ -78,49 +78,56 @@ export interface AcknowledgmentContext {
 // These serve as fallbacks - should be loaded from persona bundles
 // ============================================================================
 
+// ============================================================================
+// HUMANIZATION FIX: Removed robotic phrases like "Let me see", "Let me think"
+// These made Ferni sound like a voice assistant, not a friend.
+// Philosophy: Use natural conversational sounds, not meta-commentary about thinking.
+// ============================================================================
+
 const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
   ferni: {
     personaId: 'ferni',
     phrases: {
       thinking: [
-        'Let me think about that',
-        'Hmm, give me a moment',
-        'Just a sec',
-        'Let me see here',
+        'Hmm, give me a sec',
+        'Just a moment',
+        'One sec',
+        'Okay...',
       ],
-      searching: ['Let me look that up', 'Checking on that now', 'One moment while I find that'],
-      calculating: ['Running the numbers', 'Let me work that out', 'Calculating...'],
-      creating: ['Working on that for you', 'Let me put that together', 'Creating that now'],
-      connecting: ['Just connecting...', 'Reaching out now', 'One moment'],
-      remembering: ['Let me recall...', 'Thinking back...', 'I remember...'],
+      searching: ['Checking on that', 'One moment', 'Pulling that up'],
+      calculating: ['Running the numbers', 'One sec', 'Hmm...'],
+      creating: ['Working on that', 'One moment', 'Almost there'],
+      connecting: ['Connecting...', 'One sec', 'Almost there'],
+      remembering: ['Oh yeah...', 'I remember...', 'Right...'],
     },
-    fillers: ['Hmm...', 'Let me see...', 'Okay...'],
+    // Natural sounds, not meta-commentary. No "Let me see/think" - too robotic!
+    fillers: ['Hmm...', 'Mm...', 'Yeah...'],
     pauseMarker: '...',
   },
   peter: {
     personaId: 'peter',
     phrases: {
-      thinking: ['Analyzing that', 'Processing the data', 'Let me evaluate this'],
-      searching: ['Researching now', 'Pulling up the information', 'Checking my sources'],
-      calculating: ['Running the analysis', 'Crunching the numbers', 'Computing...'],
-      creating: ['Preparing that report', 'Building the summary', 'Compiling...'],
-      connecting: ['Accessing the data', 'Connecting to source', 'One moment...'],
-      remembering: ['Checking the records', 'Looking at history', 'Based on previous data...'],
+      thinking: ['Hmm, interesting', 'One moment', 'Processing that'],
+      searching: ['Researching now', 'Pulling up the data', 'Checking on that'],
+      calculating: ['Running the analysis', 'Crunching numbers', 'One sec'],
+      creating: ['Preparing that', 'Building the summary', 'Almost there'],
+      connecting: ['Accessing that now', 'Connecting', 'One moment'],
+      remembering: ['Checking the records', 'Looking at history', 'Based on what I recall...'],
     },
-    fillers: ['Hmm...', 'Interesting...', 'Let me see...'],
+    fillers: ['Hmm...', 'Interesting...', 'So...'],
     pauseMarker: '...',
   },
   maya: {
     personaId: 'maya',
     phrases: {
-      thinking: ['Considering that', 'Let me reflect on this', 'Thinking...'],
+      thinking: ['Hmm, considering that', 'One moment', 'Thinking...'],
       searching: ['Looking into that', 'Finding what works for you', 'Checking on that'],
-      calculating: ['Tracking the pattern', 'Looking at your progress', 'Let me see...'],
+      calculating: ['Tracking the pattern', 'Looking at your progress', 'One sec'],
       creating: ['Designing something for you', 'Putting together a plan', 'Working on it'],
       connecting: ['Connecting...', 'Just a moment', 'Almost there'],
-      remembering: ['Reflecting on your journey', 'Looking at your growth', 'Remembering...'],
+      remembering: ['Reflecting on your journey', 'Looking at your growth', 'I remember...'],
     },
-    fillers: ['Mmm...', 'Let me think...', 'Okay...'],
+    fillers: ['Mmm...', 'Yeah...', 'Okay...'],
     pauseMarker: '...',
   },
   // Alex, Jordan, Nayan would follow similar patterns

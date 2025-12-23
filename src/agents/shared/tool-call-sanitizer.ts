@@ -482,8 +482,52 @@ interface JsonFunctionCall {
 }
 
 /**
+ * Extract a balanced JSON object starting from a given position.
+ * Handles nested braces properly.
+ */
+function extractBalancedJson(text: string, startIndex: number): string | null {
+  if (text[startIndex] !== '{') return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === '{') depth++;
+      if (char === '}') {
+        depth--;
+        if (depth === 0) {
+          return text.slice(startIndex, i + 1);
+        }
+      }
+    }
+  }
+
+  return null; // Unbalanced braces
+}
+
+/**
  * Detect our instructed JSON format: {"fn":"playMusic","args":{"query":"jazz"}}
  * Also handles markdown-wrapped JSON: ```json\n{...}\n```
+ * Now handles nested args objects properly with balanced brace matching.
  * Returns the parsed call if found, null otherwise.
  */
 function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
@@ -501,36 +545,80 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
     );
   }
 
-  // Look for JSON pattern - handles both inline and multiline
+  // STRATEGY 1: Find "fn" and extract the complete JSON object with balanced braces
+  // This handles nested args like {"fn":"tool","args":{"nested":{"key":"value"}}}
+  const fnMatch = cleanText.match(/"fn"\s*:\s*"(\w+)"/);
+  if (fnMatch) {
+    // Find the opening brace before "fn"
+    const fnIndex = fnMatch.index!;
+    let braceIndex = cleanText.lastIndexOf('{', fnIndex);
+
+    if (braceIndex !== -1) {
+      const jsonStr = extractBalancedJson(cleanText, braceIndex);
+      if (jsonStr) {
+        try {
+          const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+          if (
+            typeof parsed.fn === 'string' &&
+            typeof parsed.args === 'object' &&
+            parsed.args !== null
+          ) {
+            log.info(
+              { fn: parsed.fn, args: parsed.args, method: 'balanced-brace' },
+              '🎯 JSON function call detected (balanced brace extraction)'
+            );
+            return { fn: parsed.fn, args: parsed.args as Record<string, unknown> };
+          }
+        } catch (parseErr) {
+          log.debug(
+            { error: String(parseErr), jsonStr: jsonStr.slice(0, 100) },
+            '🔧 Balanced brace extraction found invalid JSON, trying fallback'
+          );
+        }
+      }
+    }
+  }
+
+  // STRATEGY 2 (FALLBACK): Simple regex for flat args objects
+  // This is faster but only works with non-nested args
   const jsonMatch = cleanText.match(
     /\{\s*"?fn"?\s*:\s*"(\w+)"\s*,\s*"?args"?\s*:\s*(\{[^}]*\})\s*\}/i
   );
-  if (!jsonMatch) {
-    // Try a more permissive match for split chunks
-    const looseMatch = cleanText.match(/"fn"\s*:\s*"(\w+)".*"args"\s*:\s*(\{[^}]*\})/is);
-    if (!looseMatch) return null;
+  if (jsonMatch) {
+    try {
+      const fn = jsonMatch[1];
+      const argsStr = jsonMatch[2];
+      const args = JSON.parse(argsStr) as Record<string, unknown>;
+      log.info({ fn, args, method: 'simple-regex' }, '🎯 JSON function call detected in text stream');
+      return { fn, args };
+    } catch {
+      // Fall through to loose match
+    }
+  }
 
+  // STRATEGY 3 (LAST RESORT): More permissive match for split chunks
+  const looseMatch = cleanText.match(/"fn"\s*:\s*"(\w+)".*"args"\s*:\s*(\{[^}]*\})/is);
+  if (looseMatch) {
     try {
       const fn = looseMatch[1];
       const argsStr = looseMatch[2];
       const args = JSON.parse(argsStr) as Record<string, unknown>;
-      log.info({ fn, args }, '🎯 JSON function call detected (loose match)');
+      log.info({ fn, args, method: 'loose-match' }, '🎯 JSON function call detected (loose match)');
       return { fn, args };
     } catch {
       return null;
     }
   }
 
-  try {
-    const fn = jsonMatch[1];
-    const argsStr = jsonMatch[2];
-    const args = JSON.parse(argsStr) as Record<string, unknown>;
-
-    log.info({ fn, args }, '🎯 JSON function call detected in text stream');
-    return { fn, args };
-  } catch {
-    return null;
+  // Log when we don't detect JSON (helps diagnose failures)
+  if (cleanText.includes('"fn"') || cleanText.includes('"args"')) {
+    log.debug(
+      { text: cleanText.slice(0, 150) },
+      '🔍 Text contains fn/args but no valid JSON detected - may be partial'
+    );
   }
+
+  return null;
 }
 
 /** Result from tool execution */
@@ -1191,6 +1279,13 @@ export function createSanitizerTransformStream(): AnyTransformStream {
       // Pass through if buffer is long enough and no pattern detected
       // Increased threshold to give more context for detection
       if (buffer.length > 150 && !waitForMoreContext) {
+        // 🔍 DIAGNOSTIC: Check for suspicious patterns before passing through (basic sanitizer)
+        if (buffer.includes('{"fn"') || buffer.includes('"fn":') || buffer.includes('"args":')) {
+          log.warn(
+            { buffer: buffer.slice(0, 200), length: buffer.length },
+            '🚨 POTENTIAL JSON LEAKAGE (basic sanitizer): Buffer contains fn/args patterns!'
+          );
+        }
         controller.enqueue(buffer);
         buffer = '';
       }
@@ -1916,6 +2011,48 @@ export function createSanitizerWithMusicFallback(
       }
 
       if (buffer.length > 150 && !waitForMoreContext) {
+        // 🔍 DIAGNOSTIC: Last-chance check for JSON before passing to TTS
+        if (buffer.includes('{"fn"') || buffer.includes('"fn":') || buffer.includes('"args":')) {
+          log.warn(
+            { buffer: buffer.slice(0, 200), length: buffer.length },
+            '🚨 POTENTIAL JSON LEAKAGE: Buffer contains fn/args patterns but about to pass to TTS!'
+          );
+          // Try one more time to detect JSON before passing through
+          const lastChanceJson = detectJsonFunctionCall(buffer);
+          if (lastChanceJson) {
+            log.info(
+              { fn: lastChanceJson.fn },
+              '🎯 LAST-CHANCE SAVE: Detected JSON that earlier checks missed!'
+            );
+            // Execute the tool
+            executeJsonFunctionCall(lastChanceJson)
+              .then(async (result) => {
+                log.info({ fn: lastChanceJson.fn, success: result?.success }, '✅ Last-chance tool executed');
+                // Speak the result if we have a session
+                if (result?.success && result.result && session) {
+                  try {
+                    const { safeGenerateReply, formatToolResult } = await import('./safe-generate-reply.js');
+                    const resultText = typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
+                    const instructions = formatToolResult(lastChanceJson.fn, resultText);
+                    await safeGenerateReply(session, {
+                      instructions,
+                      allowInterruptions: true,
+                      context: `last-chance-tool-${lastChanceJson.fn}`,
+                    });
+                  } catch (speakErr) {
+                    log.warn({ error: String(speakErr) }, 'Last-chance tool result speak failed');
+                  }
+                }
+              })
+              .catch((err) => {
+                log.error({ fn: lastChanceJson.fn, error: String(err) }, '❌ Last-chance tool failed');
+              });
+            suppressMode = true;
+            suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;
+            buffer = '';
+            return;
+          }
+        }
         controller.enqueue(buffer);
         buffer = '';
       }
