@@ -27,10 +27,10 @@
     showcaseRotationInterval: 12000,   // 12 seconds
     useCaseRotationInterval: 10000,    // 10 seconds per use case
     
-    // Backend API
+    // Backend API - relative URL proxied through Firebase Hosting → Cloud Run
     apiBase: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3002/api/landing/ai'
-      : 'https://bogle-ui-513015479498.us-central1.run.app/api/landing/ai',
+      : '/api/landing/ai',
     
     // Enable/disable features
     enableMemoryStories: true,

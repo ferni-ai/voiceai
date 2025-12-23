@@ -24,13 +24,13 @@
   const CONFIG = {
     // Backend API - detect environment automatically
     // Development: Direct to API server (localhost:3002)
-    // Production: Proxied through Firebase/Cloud Run
+    // Production: Relative URL proxied through Firebase Hosting → Cloud Run
     apiBase: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3002/api/landing'
-      : 'https://bogle-ui-513015479498.us-central1.run.app/api/landing',
+      : '/api/landing',
     aiApiBase: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3002/api/landing/ai'
-      : 'https://bogle-ui-513015479498.us-central1.run.app/api/landing/ai',
+      : '/api/landing/ai',
     
     // Feature toggles
     enablePersonalizedHero: true,
