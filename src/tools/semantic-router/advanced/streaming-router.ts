@@ -517,9 +517,8 @@ export function initializeStreamingRouter(
 export function hasStreamingDetection(sessionId: string): boolean {
   const router = getStreamingRouter();
   const state = router.getState(sessionId);
-  return (
-    state?.currentBest.toolId !== null && (state?.currentBest.confidence ?? 0) > 0.5
-  );
+  if (!state) return false;
+  return state.currentBest.toolId !== null && state.currentBest.confidence > 0.5;
 }
 
 /**
