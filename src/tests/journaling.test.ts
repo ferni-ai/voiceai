@@ -348,4 +348,3 @@ describe('Contextual Prompts', () => {
     expect(hasPersonalized).toBe(true);
   });
 });
-

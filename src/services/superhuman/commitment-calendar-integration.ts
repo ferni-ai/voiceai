@@ -322,6 +322,8 @@ export async function checkCommitmentConflicts(
 
 /**
  * Handler for calendar changes that might affect commitments
+ *
+ * If commitments are not provided, will fetch them from the commitment keeper.
  */
 export async function onCalendarChange(
   userId: string,
@@ -329,28 +331,123 @@ export async function onCalendarChange(
     type: 'created' | 'updated' | 'deleted';
     event: Partial<CalendarEvent>;
   },
-  commitments: Commitment[]
+  commitments?: Commitment[]
 ): Promise<CommitmentConflict[]> {
+  // Fetch commitments if not provided
+  let userCommitments: Commitment[] = commitments || [];
+  if (!commitments || commitments.length === 0) {
+    try {
+      const { loadUserCommitments } = await import('./commitment-keeper.js');
+      userCommitments = await loadUserCommitments(userId);
+      log.debug(
+        { userId, count: userCommitments.length },
+        'Fetched commitments for conflict check'
+      );
+    } catch (error) {
+      log.warn(
+        { error: String(error), userId },
+        'Could not fetch commitments, skipping conflict check'
+      );
+      return [];
+    }
+  }
+
   if (change.type === 'deleted') {
     // Check if deleted event was a commitment block
-    const affectedCommitments = commitments.filter((c) =>
+    const affectedCommitments = userCommitments.filter((c) =>
       c.calendarEventIds?.includes(change.event.id || '')
     );
 
-    return affectedCommitments.map((c) => ({
+    const conflicts = affectedCommitments.map((c) => ({
       commitmentId: c.id,
       commitmentText: c.text,
       conflictingEvent: change.event,
       severity: 'at_risk' as const,
       suggestion: 'Calendar block for your commitment was deleted. Want to reschedule?',
     }));
+
+    // Emit conflict event for proactive notification
+    if (conflicts.length > 0) {
+      emitCommitmentConflictEvent(userId, conflicts);
+    }
+
+    return conflicts;
   }
 
   if (change.type === 'created') {
-    return checkCommitmentConflicts(userId, change.event, commitments);
+    const conflicts = await checkCommitmentConflicts(userId, change.event, userCommitments);
+
+    // Emit conflict event for proactive notification
+    if (conflicts.length > 0) {
+      emitCommitmentConflictEvent(userId, conflicts);
+    }
+
+    return conflicts;
   }
 
   return [];
+}
+
+/**
+ * Emit a commitment conflict event for proactive notification
+ */
+function emitCommitmentConflictEvent(userId: string, conflicts: CommitmentConflict[]): void {
+  try {
+    // Store conflict for next conversation turn
+    // This will be picked up by the cross-persona insight system
+    const highPriorityConflicts = conflicts.filter((c) => c.severity === 'blocked');
+
+    if (highPriorityConflicts.length > 0) {
+      log.info(
+        {
+          userId,
+          count: highPriorityConflicts.length,
+          commitments: highPriorityConflicts.map((c) => c.commitmentText),
+        },
+        '⚠️ High-priority commitment conflicts detected'
+      );
+
+      // Store for proactive mention in next conversation
+      storeCommitmentAlert(userId, highPriorityConflicts).catch((err) =>
+        log.warn({ error: String(err) }, 'Failed to store commitment alert')
+      );
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to emit commitment conflict event');
+  }
+}
+
+/**
+ * Store a commitment alert for proactive notification
+ */
+async function storeCommitmentAlert(
+  userId: string,
+  conflicts: CommitmentConflict[]
+): Promise<void> {
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    const db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+
+    await db
+      .collection(`users/${userId}/superhuman_alerts`)
+      .doc(`commitment_conflicts_${Date.now()}`)
+      .set({
+        type: 'commitment_conflict',
+        conflicts: conflicts.map((c) => ({
+          commitmentId: c.commitmentId,
+          commitmentText: c.commitmentText,
+          severity: c.severity,
+          suggestion: c.suggestion,
+        })),
+        createdAt: new Date().toISOString(),
+        acknowledged: false,
+      });
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to store commitment alert');
+  }
 }
 
 // ============================================================================

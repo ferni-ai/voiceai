@@ -61,4 +61,3 @@ export interface PersonaBackchannelStyle {
   energyBias: 'high' | 'medium' | 'low';
   uniquePhrases: Array<{ phrase: string; type: Backchannel['type']; ssml: string }>;
 }
-

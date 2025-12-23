@@ -123,4 +123,3 @@ export interface UserProfile {
   smallDetails?: Array<{ type: string; value: string }>;
   keyMoments?: Array<{ type: string; description: string }>;
 }
-

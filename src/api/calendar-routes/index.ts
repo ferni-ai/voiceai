@@ -323,4 +323,3 @@ export async function handleCalendarRoutes(
 
 // Re-export for backward compatibility
 export default handleCalendarRoutes;
-

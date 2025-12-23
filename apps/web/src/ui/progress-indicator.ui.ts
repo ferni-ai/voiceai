@@ -28,7 +28,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
-  STAGE_NAMES,
+  getTranslatedStageName,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
 
@@ -219,7 +219,7 @@ function updateIndicator(): void {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
-  const stageName = STAGE_NAMES[stage];
+  const stageName = getTranslatedStageName(stage);
   const stageDesc = STAGE_DESCRIPTIONS[stage];
   
   const progressPercent = Math.round(progress.progress * 100);
@@ -325,7 +325,7 @@ function renderExpanded(
       <!-- Next stage -->
       ${!isMaxStage && progress.nextStage ? `
         <div class="progress-next">
-          <span class="progress-next-label">Next: ${STAGE_NAMES[progress.nextStage]}</span>
+          <span class="progress-next-label">Next: ${getTranslatedStageName(progress.nextStage)}</span>
           <p class="progress-next-requirement">${progress.requirement}</p>
         </div>
       ` : `

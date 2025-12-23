@@ -50,20 +50,21 @@ export async function handleLLMContentRoutes(
           ...metrics,
           hitRate:
             metrics.totalRequests > 0
-              ? (((metrics.llmHits + metrics.cacheHits) / metrics.totalRequests) * 100).toFixed(1) +
-                '%'
+              ? `${(((metrics.llmHits + metrics.cacheHits) / metrics.totalRequests) * 100).toFixed(
+                  1
+                )}%`
               : '0%',
           cacheHitRate:
             metrics.totalRequests > 0
-              ? ((metrics.cacheHits / metrics.totalRequests) * 100).toFixed(1) + '%'
+              ? `${((metrics.cacheHits / metrics.totalRequests) * 100).toFixed(1)}%`
               : '0%',
           llmHitRate:
             metrics.totalRequests > 0
-              ? ((metrics.llmHits / metrics.totalRequests) * 100).toFixed(1) + '%'
+              ? `${((metrics.llmHits / metrics.totalRequests) * 100).toFixed(1)}%`
               : '0%',
           templateFallbackRate:
             metrics.totalRequests > 0
-              ? ((metrics.templateFallbacks / metrics.totalRequests) * 100).toFixed(1) + '%'
+              ? `${((metrics.templateFallbacks / metrics.totalRequests) * 100).toFixed(1)}%`
               : '0%',
         },
         cache: cacheStats,

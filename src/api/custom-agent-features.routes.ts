@@ -11,7 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import {
   handleCorsPreflightIfNeeded,
   parseBody,

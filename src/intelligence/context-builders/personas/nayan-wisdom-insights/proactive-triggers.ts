@@ -71,7 +71,8 @@ export function detectProactiveTriggers(
   if (lifeSynthesis.growthPattern === 'striving') {
     triggers.push({
       type: 'story',
-      message: 'Striving mode active. Perhaps a story about the seed: it grows by resting, not rushing.',
+      message:
+        'Striving mode active. Perhaps a story about the seed: it grows by resting, not rushing.',
       priority: 'medium',
       timing: 'when_ready',
     });
@@ -95,7 +96,10 @@ export function detectProactiveTriggers(
   }
 
   // Silence triggers
-  if (existentialContext.currentExistentialTheme && existentialContext.meaningSeekingIntensity === 'high') {
+  if (
+    existentialContext.currentExistentialTheme &&
+    existentialContext.meaningSeekingIntensity === 'high'
+  ) {
     triggers.push({
       type: 'silence',
       message: 'Heavy theme emerging. Sometimes the most powerful response is spacious silence.',
@@ -108,7 +112,8 @@ export function detectProactiveTriggers(
   if (existentialContext.spiritualOpenness === 'exploring') {
     triggers.push({
       type: 'question',
-      message: 'Spiritual curiosity present. They may be ready for deeper questions about practice.',
+      message:
+        'Spiritual curiosity present. They may be ready for deeper questions about practice.',
       priority: 'low',
       timing: 'later',
     });
@@ -116,4 +121,3 @@ export function detectProactiveTriggers(
 
   return triggers;
 }
-

@@ -52,37 +52,37 @@ export type UserEmotionalMoment = EmotionalMoment;
  * Interface for user emotion tracking engine
  */
 export interface UserEmotionEngine {
-  startSession(sessionId: string): void;
-  recordMoment(
+  startSession: (sessionId: string) => void;
+  recordMoment: (
     emotion: PrimaryEmotion,
     topic: string,
     trigger: string,
     userStatement: string,
     intensity?: 'mild' | 'moderate' | 'strong'
-  ): string;
-  resolveEmotion(momentId: string, note?: string): void;
-  markFollowedUp(momentId: string): void;
-  buildEmotionalContext(): EmotionalContext;
-  detectPatterns(): EmotionalPattern[];
-  getCheckInSuggestions(): EmotionalCheckIn[];
-  formatForPrompt(): string;
-  exportMoments(): EmotionalMoment[];
-  importMoments(moments: EmotionalMoment[]): void;
-  getStats(): Record<string, unknown>;
+  ) => string;
+  resolveEmotion: (momentId: string, note?: string) => void;
+  markFollowedUp: (momentId: string) => void;
+  buildEmotionalContext: () => EmotionalContext;
+  detectPatterns: () => EmotionalPattern[];
+  getCheckInSuggestions: () => EmotionalCheckIn[];
+  formatForPrompt: () => string;
+  exportMoments: () => EmotionalMoment[];
+  importMoments: (moments: EmotionalMoment[]) => void;
+  getStats: () => Record<string, unknown>;
 }
 
 /**
  * Interface for persona bonding engine
  */
 export interface BondingEngine {
-  setPersonaId(personaId: string): void;
-  recordSessionEnd(): void;
-  recordEvent(
+  setPersonaId: (personaId: string) => void;
+  recordSessionEnd: () => void;
+  recordEvent: (
     event: string,
     context?: { topic?: string; description?: string; intensity?: number }
-  ): void;
-  updateConcern(level: number): void;
-  getBondMetrics(): {
+  ) => void;
+  updateConcern: (level: number) => void;
+  getBondMetrics: () => {
     warmth: number;
     trust: number;
     protectiveness: number;
@@ -90,13 +90,13 @@ export interface BondingEngine {
     concern: number;
     stage: string;
   };
-  getBond(): EmotionalBond;
-  getGreetingModifier(): string | null;
-  getEmotionalMemoryCallback(): string | null;
-  getBondPhrase(context: { turnCount: number }): { phrase: string } | null;
-  getRelationshipStage(): string;
-  export(): EmotionalBond;
-  import(bond: EmotionalBond): void;
+  getBond: () => EmotionalBond;
+  getGreetingModifier: () => string | null;
+  getEmotionalMemoryCallback: () => string | null;
+  getBondPhrase: (context: { turnCount: number }) => { phrase: string } | null;
+  getRelationshipStage: () => string;
+  export: () => EmotionalBond;
+  import: (bond: EmotionalBond) => void;
 }
 
 /**

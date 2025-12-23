@@ -1,11 +1,23 @@
 /**
- * JSON Function Executor
+ * JSON Function Executor (LEGACY FALLBACK)
  *
  * General-purpose executor for JSON function calls from LLM output.
  *
- * WORKAROUND (Dec 2024): Gemini Live API's function calling is unreliable.
- * We instruct the LLM to output JSON like: {"fn":"playMusic","args":{"query":"jazz"}}
- * This module parses that JSON and executes the corresponding tool.
+ * ⚠️ LEGACY STATUS (Dec 2024):
+ * This is a FALLBACK system. The primary tool calling path is now:
+ *
+ *   1. SEMANTIC ROUTER (src/tools/semantic-router/) - Pre-LLM routing
+ *      - Pattern matching, keyword scoring, embedding similarity
+ *      - High confidence → Direct execution, bypass LLM
+ *      - <20ms latency for common tool requests
+ *
+ *   2. JSON FUNCTION CALLING (this module) - LLM-instructed fallback
+ *      - Used when semantic router has low confidence
+ *      - Used for complex/multi-tool scenarios
+ *      - LLM outputs JSON like: {"fn":"playMusic","args":{"query":"jazz"}}
+ *
+ * WORKAROUND CONTEXT: Gemini Live API's native function calling is unreliable.
+ * The semantic router + JSON fallback provides a reliable alternative.
  *
  * Features:
  * - Robust JSON parsing (handles formatted/minified JSON)
@@ -23,6 +35,7 @@ import {
   invalidateToolCache,
 } from './performance/tool-response-cache.js';
 import { executeWithReliability } from './tool-execution-reliability.js';
+import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -45,6 +58,12 @@ export interface FunctionExecutionResult {
   result?: unknown;
   error?: string;
   durationMs: number;
+  /**
+   * If true, the result should be spoken directly via session.say()
+   * without going through safeGenerateReply() for LLM summarization.
+   * Used by the "speak" pseudo-tool for dynamic silence responses.
+   */
+  speakDirectly?: boolean;
 }
 
 /** Context for tool execution */
@@ -184,9 +203,13 @@ export async function executeJsonFunction(
 ): Promise<FunctionExecutionResult> {
   const { fn, args } = call;
   const startTime = Date.now();
+  const sessionId = ctx.sessionId || 'unknown';
 
   log.info({ fn, args }, '🔧 Executing JSON function call');
   ctx.onToolStart?.(fn, args);
+
+  // Telemetry: Log that a JSON function call was detected
+  logJsonDetected(sessionId, fn, args);
 
   // ================================================================
   // PERFORMANCE: Check tool response cache for read-only tools
@@ -226,12 +249,23 @@ export async function executeJsonFunction(
       log.warn({ fn }, '⚠️ Tool returned fallback response');
     }
 
+    // Check if this is a "speak directly" result from the speak pseudo-tool
+    const speakDirectlyResult = result as { __speakDirectly?: boolean; text?: string } | null;
+    const isSpeakDirectly =
+      speakDirectlyResult &&
+      typeof speakDirectlyResult === 'object' &&
+      speakDirectlyResult.__speakDirectly === true &&
+      typeof speakDirectlyResult.text === 'string';
+
     const executionResult: FunctionExecutionResult = {
       success: true,
       fn,
       args,
-      result,
+      // For speak pseudo-tool, extract the text; otherwise use the result as-is
+      result: isSpeakDirectly ? speakDirectlyResult.text : result,
       durationMs: Date.now() - startTime,
+      // Flag to tell the sanitizer to use session.say() directly
+      speakDirectly: isSpeakDirectly || undefined,
     };
 
     // ================================================================
@@ -245,18 +279,27 @@ export async function executeJsonFunction(
     }
 
     log.info({ fn, durationMs: executionResult.durationMs }, '✅ JSON function executed');
+
+    // Telemetry: Log successful execution
+    logJsonExecuted(sessionId, fn, true, executionResult.durationMs);
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   } catch (err) {
+    const durationMs = Date.now() - startTime;
     const executionResult: FunctionExecutionResult = {
       success: false,
       fn,
       args,
       error: String(err),
-      durationMs: Date.now() - startTime,
+      durationMs,
     };
 
     log.error({ fn, args, error: String(err) }, '❌ JSON function execution failed');
+
+    // Telemetry: Log failed execution
+    logJsonExecuted(sessionId, fn, false, durationMs, String(err));
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   }
@@ -307,6 +350,26 @@ async function routeToTool(
   ctx: ToolExecutionContext
 ): Promise<unknown> {
   const fnLower = fn.toLowerCase();
+
+  // ========================================
+  // SPEAK PSEUDO-TOOL (Dynamic silence responses)
+  // Returns text to be spoken directly via session.say()
+  // Used by generateReply() for dynamic content without echoing
+  // Format: {"fn":"speak","args":{"text":"I'm here with you."}}
+  // ========================================
+  if (fnLower === 'speak' || fnLower === 'dynamicresponse' || fnLower === 'say') {
+    const text = args.text as string;
+    if (text && typeof text === 'string' && text.trim()) {
+      log.info(
+        { textLength: text.length, preview: text.slice(0, 50) },
+        '🎤 Speak pseudo-tool - returning text for direct speech'
+      );
+      // Return a special marker object that the sanitizer will recognize
+      return { __speakDirectly: true, text: text.trim() };
+    }
+    log.warn({ args }, '🎤 Speak pseudo-tool called without valid text');
+    return null;
+  }
 
   // ========================================
   // MODULAR EXECUTORS (Refactored domains)
@@ -999,7 +1062,7 @@ async function routeToTool(
             { userId: ctx.userId, deleted: docsToDelete.length },
             '✅ Memories deleted from Firestore'
           );
-          return `Done. I've forgotten about that. Your privacy matters.`;
+          return `I've forgotten about that. Your privacy matters.`;
         }
 
         return `I didn't find specific memories about "${target}" to remove.`;
@@ -1615,7 +1678,7 @@ async function routeToTool(
       const mmsData = (await response.json()) as { sid: string };
       log.info({ sid: mmsData.sid, to: contact.phone }, '📱 Voice message sent via MMS');
 
-      return `Done! I sent a voice message to ${contact.name}. They'll receive it as an audio message.`;
+      return `I sent a voice message to ${contact.name}. They'll receive it as an audio message.`;
     } catch (err) {
       log.error({ error: String(err) }, '🎤 Voice message failed');
       return `Something went wrong sending the voice message. ${String(err)}`;
@@ -1695,7 +1758,7 @@ async function routeToTool(
       const smsData = (await response.json()) as { sid: string };
       log.info({ sid: smsData.sid, to: contact.phone }, '📱 SMS sent');
 
-      return `Done! I sent your message to ${contact.name}.`;
+      return `I sent your message to ${contact.name}.`;
     } catch (err) {
       log.error({ error: String(err) }, '📱 Text message failed');
       return `Something went wrong sending the text. ${String(err)}`;
@@ -1752,7 +1815,7 @@ async function routeToTool(
 
       log.info({ to: contact.email, result }, '📧 Email sent');
 
-      return `Done! I sent your email to ${contact.name}.`;
+      return `I sent your email to ${contact.name}.`;
     } catch (err) {
       log.error({ error: String(err) }, '📧 Email failed');
       if (String(err).includes('not configured')) {
@@ -1858,7 +1921,7 @@ async function routeToTool(
           month: 'long',
           day: 'numeric',
         });
-        return `Done! I've scheduled "${title}" for ${timeStr} on ${dateStr}.`;
+        return `I've scheduled "${title}" for ${timeStr} on ${dateStr}.`;
       }
 
       return `I ran into an issue scheduling "${title}". Want me to try again?`;
@@ -2083,7 +2146,7 @@ async function routeToTool(
           hour: 'numeric',
           minute: '2-digit',
         });
-        return `Done! I've blocked ${duration} minutes of focus time starting at ${timeStr}. Protect that time!`;
+        return `I've blocked ${duration} minutes of focus time starting at ${timeStr}. Protect that time!`;
       }
 
       return "I couldn't block that time. Want me to try a different slot?";
@@ -2554,13 +2617,20 @@ async function routeToTool(
   // ========================================
   // UNKNOWN TOOL
   // ========================================
-  log.warn({ fn, args }, '⚠️ Unknown function - no route defined');
-  return {
-    tool: fn,
-    args,
-    success: false,
-    error: `Unknown function: ${fn}`,
-  };
+  // Log with details for monitoring and debugging (helps identify missing tool routes)
+  log.warn(
+    {
+      fn,
+      args,
+      userId: ctx.userId,
+      personaId: ctx.personaId,
+    },
+    '⚠️ Unknown function - no route defined. Add route in json-function-executor.ts if this is a valid tool.'
+  );
+
+  // Return a human-friendly response that can be spoken by TTS
+  // Note: Returning a string (not an object) ensures the agent can speak naturally
+  return `I'm not able to do that specific action right now, but I'm happy to help in another way. What would you like to do?`;
 }
 
 // ============================================================================

@@ -262,11 +262,6 @@ export function createMinimalCompositeProfile(id: string, name?: string): Compos
 // ============================================================================
 // MIGRATION UTILITIES
 // ============================================================================
-
-export {
-  ensureCompositeProfile,
-  isCompositeProfile,
-  isLegacyProfile,
-  migrateUserProfile,
-  toLegacyProfile,
-} from './migration.js';
+// For migration utilities, import directly from:
+//   import { detectProfileFormat, migrateToComposite, migrateToLegacy } from '../migration/profile-migrator.js';
+// ============================================================================

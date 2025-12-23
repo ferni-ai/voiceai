@@ -5,7 +5,7 @@
  * Extracts direct Firestore access from roadmap-routes.ts.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {

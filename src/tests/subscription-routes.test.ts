@@ -130,7 +130,7 @@ describe('Subscription Routes', () => {
   // ============================================================================
 
   describe('GET /api/subscription/status', () => {
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 if userId is missing', async () => {
       const response = await handleSubscriptionRequest({
         method: 'GET',
         pathname: '/api/subscription/status',
@@ -138,8 +138,9 @@ describe('Subscription Routes', () => {
         headers: {},
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId is required' });
+      // 401 Unauthorized is more semantically correct for missing auth
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
     it('should return subscription info for valid userId from query', async () => {
@@ -197,7 +198,7 @@ describe('Subscription Routes', () => {
   // ============================================================================
 
   describe('GET /api/subscription/can-start', () => {
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 if userId is missing', async () => {
       const response = await handleSubscriptionRequest({
         method: 'GET',
         pathname: '/api/subscription/can-start',
@@ -205,8 +206,9 @@ describe('Subscription Routes', () => {
         headers: {},
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId is required' });
+      // 401 Unauthorized is more semantically correct for missing auth
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
     it('should return can-start result for valid user', async () => {

@@ -10,7 +10,7 @@
  * - GET /api/seeds/history - Get seed transaction history
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError } from './helpers.js';

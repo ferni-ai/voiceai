@@ -153,5 +153,3 @@ export async function handleSetPreference(
     sendError(res, 'Failed to set preference', 500);
   }
 }
-
-

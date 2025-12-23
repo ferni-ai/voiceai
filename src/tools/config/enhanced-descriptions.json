@@ -216,6 +216,328 @@
       "parameters": {
         "habitName": "Which habit was done. Partial match works. Examples: 'meditation', 'exercise', 'reading', 'water'"
       }
+    },
+
+    "_comment_lifecoaching": "========== LIFE COACHING DOMAIN TOOLS ==========",
+
+    "identifyBoundaryNeeds": {
+      "description": "Help user identify areas where they need to set boundaries. Call when user mentions feeling drained, overwhelmed by others, inability to say no, or feeling like a pushover. Uses Four Tendencies framework for personalized guidance.",
+      "parameters": {
+        "situation": "The situation or relationship causing strain. Examples: 'my mother calls every day', 'boss expects overtime constantly', 'friend always asks for favors'"
+      }
+    },
+    "setBoundary": {
+      "description": "Help user script and practice setting a specific boundary. Provides exact words and role-play practice. Call when user needs help with the actual conversation or language.",
+      "parameters": {
+        "boundaryType": "Type of boundary. Options: 'physical', 'emotional', 'time', 'digital', 'material', 'intellectual', 'sexual'",
+        "personType": "Relationship with person. Options: 'parent', 'family', 'partner', 'boss', 'coworker', 'friend', 'acquaintance'",
+        "situation": "Specific situation. Examples: 'they keep borrowing money', 'won't respect my work hours', 'criticizes my choices'"
+      }
+    },
+    "practiceBoundaryScript": {
+      "description": "Practice saying boundary-setting words out loud. Role-play the conversation. Call when user wants to rehearse before having the actual conversation.",
+      "parameters": {
+        "personType": "Who they're setting boundary with. Options: 'boss', 'family', 'friend', 'partner', 'coworker'",
+        "boundaryType": "Type of boundary. Options: 'time', 'emotional', 'physical', 'digital'"
+      }
+    },
+    "handleBoundaryPushback": {
+      "description": "Help user navigate pushback when someone resists their boundary. Call when user reports the other person got upset, guilt-tripped, or didn't accept the boundary.",
+      "parameters": {
+        "pushbackType": "Type of resistance. Options: 'guilt', 'anger', 'tears', 'persistence', 'silent-treatment'"
+      }
+    },
+
+    "buildConversationSkills": {
+      "description": "Help user improve their conversation and social skills. Call when user feels awkward socially, doesn't know what to say, struggles at parties, or wants to make friends.",
+      "parameters": {
+        "situation": "Where they struggle. Options: 'parties', 'meetings', 'networking', 'dates', 'small-talk', 'groups'",
+        "challenge": "What specifically is hard. Examples: 'starting conversations', 'keeping them going', 'feeling natural'"
+      }
+    },
+    "practiceSmallTalk": {
+      "description": "Practice casual conversation with role-play scenarios. Call when user wants to rehearse social interactions before an event.",
+      "parameters": {
+        "scenario": "Type of scenario. Options: 'party', 'work-event', 'coffee-shop', 'networking', 'date'"
+      }
+    },
+    "navigateSocialAnxiety": {
+      "description": "Help user cope with social anxiety before or during social situations. Call when user expresses nervousness about upcoming social events.",
+      "parameters": {
+        "situation": "What's coming up. Examples: 'work party tomorrow', 'meeting new people', 'presentation'"
+      }
+    },
+    "developFriendships": {
+      "description": "Help user build deeper friendships or make new friends. Call when user mentions loneliness or wanting closer connections.",
+      "parameters": {
+        "stage": "Friendship stage. Options: 'making-new', 'deepening-existing', 'reconnecting', 'maintaining'"
+      }
+    },
+
+    "understandAnger": {
+      "description": "Help user understand their anger patterns. Call when user is angry, mentions losing temper, or wants to manage anger better.",
+      "parameters": {
+        "pattern": "Anger style. Options: 'explosive', 'suppressed', 'passive-aggressive', 'chronic', 'unsure'"
+      }
+    },
+    "identifyAngerTriggers": {
+      "description": "Help user identify what triggers their anger. Call when user wants to understand why they get angry or prevent future outbursts.",
+      "parameters": {
+        "recentExample": "Recent anger episode. Examples: 'blew up at my partner yesterday', 'got furious at a driver'"
+      }
+    },
+    "angerCoolingTechniques": {
+      "description": "Provide immediate anger management techniques. Call when user is currently angry and needs to calm down NOW.",
+      "parameters": {
+        "intensity": "How angry. Options: 'mild', 'moderate', 'high', 'intense'"
+      }
+    },
+    "repairAfterAnger": {
+      "description": "Help user repair relationship damage after an anger outburst. Call when user regrets how they acted while angry.",
+      "parameters": {
+        "situation": "What happened. Examples: 'yelled at my kids', 'said hurtful things to partner', 'sent angry email to boss'"
+      }
+    },
+
+    "understandProcrastination": {
+      "description": "Help user understand why they procrastinate. Call when user can't start tasks, keeps putting things off, or feels stuck.",
+      "parameters": {
+        "task": "What they're avoiding. Examples: 'big project at work', 'cleaning the house', 'making a phone call'",
+        "reason": "Why they think. Options: 'fear', 'overwhelm', 'perfectionism', 'boredom', 'unclear', 'unsure'"
+      }
+    },
+    "breakDownTask": {
+      "description": "Break overwhelming task into tiny actionable steps. Call when user is procrastinating because task feels too big.",
+      "parameters": {
+        "task": "The overwhelming task. Examples: 'file taxes', 'write thesis', 'organize garage'"
+      }
+    },
+    "buildMomentum": {
+      "description": "Help user build momentum through small wins. Call when user is stuck and needs to get started with anything.",
+      "parameters": {
+        "context": "What they're trying to do. Examples: 'working on a project', 'getting back into exercise', 'job searching'"
+      }
+    },
+    "overcomeProcrastinationBlock": {
+      "description": "Help user push through a specific procrastination block right now. Call when user wants to start but can't.",
+      "parameters": {
+        "block": "What's blocking them. Options: 'fear-of-failure', 'overwhelm', 'perfectionism', 'unclear-start', 'energy'"
+      }
+    },
+
+    "recognizePerfectionism": {
+      "description": "Help user recognize perfectionist patterns. Call when nothing is ever good enough, they can't finish things, or they're paralyzed by high standards.",
+      "parameters": {
+        "pattern": "What they're experiencing. Examples: 'rewriting emails 10 times', 'can't ship anything', 'harsh self-criticism'"
+      }
+    },
+    "challengePerfectionistThoughts": {
+      "description": "Challenge specific perfectionist thoughts. Call when user expresses all-or-nothing thinking about their work or self.",
+      "parameters": {
+        "thought": "The perfectionist thought. Examples: 'if it's not perfect no one will respect me', 'I should be able to do this perfectly'"
+      }
+    },
+    "embraceGoodEnough": {
+      "description": "Practice accepting good enough over perfect. Call when user needs permission to release something that's not perfect.",
+      "parameters": {
+        "situation": "What needs to be good-enough. Examples: 'this presentation', 'my house before guests', 'my parenting'"
+      }
+    },
+
+    "assessScreenTime": {
+      "description": "Assess user's digital habits and screen time concerns. Call when user mentions phone addiction, doomscrolling, or too much screen time.",
+      "parameters": {
+        "concern": "Main concern. Examples: 'on phone all day', 'can't stop scrolling', 'affects my sleep', 'losing time to social media'"
+      }
+    },
+    "createDigitalBoundaries": {
+      "description": "Help user set boundaries with technology. Call when user wants to limit app usage or create tech-free times.",
+      "parameters": {
+        "app": "What to limit. Examples: 'social media', 'TikTok', 'work email', 'phone overall'"
+      }
+    },
+    "addressDoomscrolling": {
+      "description": "Help user break doomscrolling habit. Call when user mentions compulsive scrolling, especially of negative news.",
+      "parameters": {
+        "trigger": "When it happens. Options: 'boredom', 'anxiety', 'bedtime', 'morning', 'throughout-day'"
+      }
+    },
+
+    "assessBurnout": {
+      "description": "Assess user's burnout level and symptoms. Call when user mentions exhaustion, can't keep up, depleted, or thinks they're burning out.",
+      "parameters": {
+        "symptoms": "What they're experiencing. Examples: 'exhausted all the time', 'cynical about work', 'nothing feels meaningful'"
+      }
+    },
+    "createRecoveryPlan": {
+      "description": "Help create a burnout recovery plan. Call when user is in burnout and needs a path forward.",
+      "parameters": {
+        "priorities": "What matters most. Examples: 'keeping my job', 'my health', 'my family', 'not sure'"
+      }
+    },
+    "identifyEnergyDrains": {
+      "description": "Help identify what's draining the user's energy. Call when user feels depleted and wants to understand why.",
+      "parameters": {
+        "area": "Where to look. Options: 'work', 'relationships', 'commitments', 'home', 'all'"
+      }
+    },
+
+    "exploreBodyImage": {
+      "description": "Help user explore their relationship with their body. Call when user expresses body dissatisfaction, negative self-talk about appearance, or body image struggles.",
+      "parameters": {
+        "feeling": "What they're experiencing. Examples: 'hate how I look', 'uncomfortable in my body', 'compare myself to others'"
+      }
+    },
+    "buildBodyGratitude": {
+      "description": "Help build appreciation for what the body does (vs. how it looks). Call when user needs to shift from appearance to function/capability.",
+      "parameters": {
+        "focus": "What to appreciate. Options: 'function', 'capability', 'resilience', 'senses', 'healing'"
+      }
+    },
+
+    "clarifyDatingGoals": {
+      "description": "Help user get clear on what they want in dating/relationships. Call when user is confused about what they want, just starting to date, or unsure about relationship goals.",
+      "parameters": {
+        "currentStatus": "Where they are. Options: 'single', 'dating-casually', 'in-relationship-questioning', 'recently-single'"
+      }
+    },
+    "buildDatingConfidence": {
+      "description": "Help build user's dating confidence. Call when user feels unworthy of love, nervous about dating, or lacks confidence.",
+      "parameters": {
+        "concern": "What's holding them back. Examples: 'not attractive enough', 'don't know how to flirt', 'fear of rejection'"
+      }
+    },
+    "navigateDatingAnxiety": {
+      "description": "Help manage dating anxiety before or during dates. Call when user is nervous about an upcoming date or dating situation.",
+      "parameters": {
+        "situation": "What's causing anxiety. Examples: 'first date tomorrow', 'waiting for text back', 'asking someone out'"
+      }
+    },
+    "processRejection": {
+      "description": "Help user process dating rejection. Call when user was rejected, ghosted, or turned down.",
+      "parameters": {
+        "situation": "What happened. Examples: 'got ghosted', 'they said they just want to be friends', 'date went badly'"
+      }
+    },
+
+    "understandNeurodivergence": {
+      "description": "Help user understand their neurodivergent experience. Call when user mentions ADHD, autism, dyslexia, or feeling like their brain works differently.",
+      "parameters": {
+        "type": "What they identify with. Options: 'ADHD', 'autism', 'dyslexia', 'anxiety', 'multiple', 'exploring'"
+      }
+    },
+    "buildNeurodivergentStrategies": {
+      "description": "Build personalized strategies for neurodivergent challenges. Call when user needs coping strategies for their specific brain.",
+      "parameters": {
+        "challenge": "What they need help with. Options: 'focus', 'organization', 'time', 'social', 'overwhelm', 'routines'"
+      }
+    },
+    "celebrateNeurodivergentStrengths": {
+      "description": "Celebrate and leverage neurodivergent strengths. Call when user needs to see the positive side of how their brain works.",
+      "parameters": {
+        "strength": "Strength to explore. Options: 'creativity', 'hyperfocus', 'pattern-recognition', 'unique-perspective', 'intensity'"
+      }
+    },
+
+    "assessTraumaReadiness": {
+      "description": "Assess user's readiness to explore trauma-related topics. SAFETY CRITICAL. Call BEFORE any deeper trauma work to ensure they have support and grounding.",
+      "parameters": {
+        "safety": "Current safety status. Examples: 'doing okay', 'having a hard time', 'feel stable today'"
+      }
+    },
+    "buildSafetyResources": {
+      "description": "Help user build trauma-safe resources and coping strategies. Call when user needs grounding tools or safety planning.",
+      "parameters": {
+        "type": "What to build. Options: 'grounding', 'support-people', 'safe-places', 'coping-practices'"
+      }
+    },
+    "navigateTraumaTriggers": {
+      "description": "Help user navigate when they've been triggered. Call when user is activated/triggered and needs to regulate.",
+      "parameters": {
+        "trigger": "What triggered them. Examples: 'saw something on TV', 'argument reminded me', 'anniversary of event'"
+      }
+    },
+
+    "exploreIntimacyNeeds": {
+      "description": "Help user explore their intimacy needs and desires. Call when user wants to talk about closeness, vulnerability, or connection in relationships.",
+      "parameters": {
+        "type": "Type of intimacy. Options: 'emotional', 'physical', 'intellectual', 'spiritual', 'unsure'"
+      }
+    },
+    "navigateIntimacyFears": {
+      "description": "Help user navigate fears around intimacy. Call when user is scared of getting close, being vulnerable, or being truly seen.",
+      "parameters": {
+        "fear": "What they're afraid of. Examples: 'being rejected', 'being hurt again', 'losing myself', 'being too much'"
+      }
+    },
+    "communicateIntimacyNeeds": {
+      "description": "Help user communicate intimacy needs to partner. Call when user needs to talk to partner about closeness, touch, or emotional needs.",
+      "parameters": {
+        "need": "What they need to communicate. Examples: 'need more emotional connection', 'want different physical intimacy', 'need space'"
+      }
+    },
+
+    "manageChronicCondition": {
+      "description": "Support user in managing life with a chronic condition. Call when user mentions chronic illness, chronic pain, or ongoing health condition.",
+      "parameters": {
+        "condition": "Their condition. Examples: 'chronic fatigue', 'fibromyalgia', 'autoimmune', 'chronic pain', 'diabetes'"
+      }
+    },
+    "processChronicConditionEmotions": {
+      "description": "Help process emotions around chronic illness. Call when user expresses grief, frustration, or difficulty accepting their condition.",
+      "parameters": {
+        "emotion": "What they're feeling. Examples: 'angry at my body', 'grieving my old life', 'frustrated with limitations'"
+      }
+    },
+    "navigateFlareUps": {
+      "description": "Help user cope during a condition flare-up. Call when user reports their condition is worse or they're having a bad health day.",
+      "parameters": {
+        "situation": "Current state. Examples: 'pain is really bad today', 'exhausted and frustrated', 'symptoms acting up'"
+      }
+    },
+
+    "exploreMidlifeQuestions": {
+      "description": "Help user explore midlife questions and transitions. Call when user questions their life choices, wonders 'is this all there is', or mentions midlife crisis.",
+      "parameters": {
+        "question": "What they're grappling with. Examples: 'what have I accomplished', 'is this the right path', 'what do I want the rest of my life to look like'"
+      }
+    },
+    "redefineSuccess": {
+      "description": "Help user redefine what success means for them now. Call when user's old definition of success no longer fits.",
+      "parameters": {
+        "oldDefinition": "What success used to mean. Examples: 'career achievement', 'making money', 'being the best'"
+      }
+    },
+    "buildMidlifeMeaning": {
+      "description": "Help user find meaning and purpose in midlife. Call when user wants to figure out what matters now or build a meaningful second half of life.",
+      "parameters": {
+        "focus": "Area to explore. Options: 'legacy', 'purpose', 'values', 'relationships', 'contribution'"
+      }
+    },
+
+    "processBreakupPain": {
+      "description": "Help user process breakup pain and grief. Call when user just went through a breakup, divorce, or relationship ending.",
+      "parameters": {
+        "stage": "Where they are. Options: 'fresh-wound', 'grieving', 'anger-phase', 'acceptance', 'moving-forward'"
+      }
+    },
+    "navigateBreakupEmotions": {
+      "description": "Help navigate the emotional waves after breakup. Call when user is hit by waves of emotion related to breakup.",
+      "parameters": {
+        "emotion": "Current emotion. Options: 'sadness', 'anger', 'relief', 'confusion', 'longing', 'despair'"
+      }
+    },
+    "buildPostBreakupIdentity": {
+      "description": "Help user rebuild identity after relationship ends. Call when user doesn't know who they are without their ex.",
+      "parameters": {
+        "focus": "What to focus on. Options: 'career', 'friendships', 'hobbies', 'self-discovery', 'values'"
+      }
+    },
+    "moveForwardFromBreakup": {
+      "description": "Help user move forward and date again after breakup. Call when user is ready (or questioning if ready) to start dating again.",
+      "parameters": {
+        "readiness": "Readiness level. Options: 'just-curious', 'starting-to-feel-ready', 'definitely-ready', 'scared-but-willing'"
+      }
     }
   }
 }

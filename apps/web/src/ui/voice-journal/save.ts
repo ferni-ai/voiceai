@@ -57,6 +57,8 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
 
     // Transcribe the audio
     let transcript = '';
+    let transcriptionFailed = false;
+    
     try {
       const response = await fetch('/api/journal/transcribe', {
         method: 'POST',
@@ -71,10 +73,25 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
         const result = (await response.json()) as { transcript: string; success: boolean };
         if (result.success && result.transcript) {
           transcript = result.transcript;
+        } else {
+          // API returned but transcription was unsuccessful
+          transcriptionFailed = true;
+          log.warn('Transcription returned empty or unsuccessful');
         }
+      } else {
+        // API error (non-200 response)
+        transcriptionFailed = true;
+        log.warn('Transcription API returned:', response.status);
       }
     } catch (transcribeError) {
-      log.warn('Transcription failed, saving without transcript:', transcribeError);
+      // Network error or other failure
+      transcriptionFailed = true;
+      log.warn('Transcription failed:', transcribeError);
+    }
+
+    // Notify user if transcription failed but we're still saving
+    if (transcriptionFailed) {
+      toast.warning('Transcription unavailable. Saving audio only.');
     }
 
     // Build entry content
@@ -102,6 +119,7 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
       mood,
       transcript, // Store transcript separately for analysis
       durationSeconds: recordingDuration,
+      transcriptionFailed, // Track if transcription was unavailable
       // audioUrl would be set after uploading to storage
     });
 
@@ -126,10 +144,15 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     setCurrentPrompt(newPrompt);
     renderPromptSection();
 
-    toast.success('Entry saved!');
+    // Show appropriate success message
+    if (transcriptionFailed) {
+      toast.success('Audio saved!');
+    } else {
+      toast.success('Entry saved!');
+    }
   } catch (error) {
     log.error('Failed to save entry:', error);
-    toast.error('Could not save entry');
+    toast.error("Couldn't save entry. Try again?");
   }
 }
 

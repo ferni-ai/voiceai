@@ -34,6 +34,7 @@ interface Person {
   email?: string;
   phone?: string;
   relationship?: string;
+  notes?: string;
   strengthScore?: number;
   strengthTrend?: 'growing' | 'stable' | 'fading';
   lastInteraction?: Date | string;
@@ -1158,7 +1159,7 @@ async function loadPeopleData(): Promise<void> {
     if (nudgesRes.ok) {
       state.nudges = await nudgesRes.json();
     } else if (useMockData) {
-      state.nudges = MOCK_NUDGES;
+      state.nudges = MOCK_NUDGES as unknown as Nudge[];
       log.debug('Using mock nudge data');
     }
   } catch (error) {
@@ -1166,7 +1167,7 @@ async function loadPeopleData(): Promise<void> {
     // Use mock data in dev mode when API fails
     if (useMockData) {
       state.people = getAllMockContacts();
-      state.nudges = MOCK_NUDGES;
+      state.nudges = MOCK_NUDGES as unknown as Nudge[];
       log.debug('Using mock data due to API error');
     }
   } finally {

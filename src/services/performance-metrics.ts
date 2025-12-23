@@ -101,10 +101,26 @@ class MetricsStore {
   private memoryRetrievalTimings: number[] = [];
   private trustSystemTimings: number[] = [];
 
+  // Bounds for Maps with dynamic keys to prevent unbounded memory growth
+  private static readonly MAX_CONTEXT_BUILDERS = 200; // Max unique builder names tracked
+  private static readonly MAX_CACHE_NAMES = 100; // Max unique cache names tracked
+
   constructor() {
     // Initialize phase timing arrays
     for (const phase of PHASE_NAMES) {
       this.phaseTimings.set(phase, []);
+    }
+  }
+
+  /**
+   * Enforce bounds on a Map by evicting oldest entries (FIFO order)
+   */
+  private enforceMapBounds<K, V>(map: Map<K, V>, maxSize: number): void {
+    if (map.size > maxSize) {
+      const keysToDelete = Array.from(map.keys()).slice(0, map.size - maxSize);
+      for (const key of keysToDelete) {
+        map.delete(key);
+      }
     }
   }
 
@@ -146,6 +162,8 @@ class MetricsStore {
     if (!timings) {
       timings = [];
       this.contextInjectionTimings.set(builder, timings);
+      // Enforce bounds on Map when adding new builder
+      this.enforceMapBounds(this.contextInjectionTimings, MetricsStore.MAX_CONTEXT_BUILDERS);
     }
     timings.push(durationMs);
     if (timings.length > WINDOW_SIZE) {
@@ -156,6 +174,8 @@ class MetricsStore {
   recordContextInjectionError(builder: string): void {
     const count = this.contextInjectionErrors.get(builder) || 0;
     this.contextInjectionErrors.set(builder, count + 1);
+    // Enforce bounds on Map when adding new builder
+    this.enforceMapBounds(this.contextInjectionErrors, MetricsStore.MAX_CONTEXT_BUILDERS);
   }
 
   getContextInjectionMetrics(): ContextInjectionMetrics[] {
@@ -176,21 +196,33 @@ class MetricsStore {
   // ---- Cache Metrics ----
 
   recordCacheHit(cacheName: string): void {
+    const isNewEntry = !this.cacheStats.has(cacheName);
     const stats = this.cacheStats.get(cacheName) || { hits: 0, misses: 0, evictions: 0 };
     stats.hits++;
     this.cacheStats.set(cacheName, stats);
+    if (isNewEntry) {
+      this.enforceMapBounds(this.cacheStats, MetricsStore.MAX_CACHE_NAMES);
+    }
   }
 
   recordCacheMiss(cacheName: string): void {
+    const isNewEntry = !this.cacheStats.has(cacheName);
     const stats = this.cacheStats.get(cacheName) || { hits: 0, misses: 0, evictions: 0 };
     stats.misses++;
     this.cacheStats.set(cacheName, stats);
+    if (isNewEntry) {
+      this.enforceMapBounds(this.cacheStats, MetricsStore.MAX_CACHE_NAMES);
+    }
   }
 
   recordCacheEviction(cacheName: string): void {
+    const isNewEntry = !this.cacheStats.has(cacheName);
     const stats = this.cacheStats.get(cacheName) || { hits: 0, misses: 0, evictions: 0 };
     stats.evictions++;
     this.cacheStats.set(cacheName, stats);
+    if (isNewEntry) {
+      this.enforceMapBounds(this.cacheStats, MetricsStore.MAX_CACHE_NAMES);
+    }
   }
 
   getCacheMetrics(cacheName: string): CacheMetrics | null {
@@ -563,13 +595,13 @@ export default {
 export {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
-} from '../agents/shared/performance/turn-profiler.js';
+} from './performance/turn-profiler.js';
 
 // Tool response caching metrics
-export { getToolCacheMetrics } from '../agents/shared/performance/tool-response-cache.js';
+export { getToolCacheMetrics } from './performance/tool-response-cache.js';
 
 // Speculative TTS metrics
-export { getSpeculativeTTSMetrics } from '../agents/shared/performance/speculative-tts.js';
+export { getSpeculativeTTSMetrics } from './performance/speculative-tts.js';
 
 // Tool execution reliability (retries, circuit breakers)
-export { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';
+export { getReliabilityDashboard } from './performance/tool-execution-reliability.js';

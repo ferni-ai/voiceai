@@ -17,7 +17,7 @@
  *   startHealthCheckServer,
  *   identifyUserFromMetadata,
  *   setupSessionServices,
- *   getContextBuilders,  // Cached import
+ *   getBehavioralContextBuilder,  // Cached import
  * } from './shared/index.js';
  * ```
  */
@@ -93,7 +93,7 @@ export {
 
 // Cached Imports (performance optimization)
 export {
-  getContextBuilders,
+  getBehavioralContextBuilder,
   getEasterEggChecker,
   getTaskManagerCached,
   getPersonaAsyncCached,

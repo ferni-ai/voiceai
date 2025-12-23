@@ -13,6 +13,7 @@
 // ============================================================================
 
 import { apiGet, apiPost } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Relationship');
@@ -154,7 +155,7 @@ const SPECIAL_SUBTITLES = {
   birthday: 'Happy birthday!',
 };
 
-/** Human-readable stage names */
+/** Human-readable stage names (fallback English) */
 export const STAGE_NAMES: Record<RelationshipStage, string> = {
   'first-meeting': 'New Friends',
   'getting-started': 'Getting Started',
@@ -162,6 +163,77 @@ export const STAGE_NAMES: Record<RelationshipStage, string> = {
   established: 'Trusted Guide',
   'deep-partnership': 'Life Partners',
 };
+
+/** i18n keys for stage names */
+const STAGE_I18N_KEYS: Record<RelationshipStage, string> = {
+  'first-meeting': 'relationshipStages.names.firstMeeting',
+  'getting-started': 'relationshipStages.names.gettingStarted',
+  'building-trust': 'relationshipStages.names.buildingTrust',
+  established: 'relationshipStages.names.established',
+  'deep-partnership': 'relationshipStages.names.deepPartnership',
+};
+
+/** i18n keys for stage descriptions */
+const STAGE_DESCRIPTION_I18N_KEYS: Record<RelationshipStage, string> = {
+  'first-meeting': 'relationshipStages.descriptions.firstMeeting',
+  'getting-started': 'relationshipStages.descriptions.gettingStarted',
+  'building-trust': 'relationshipStages.descriptions.buildingTrust',
+  established: 'relationshipStages.descriptions.established',
+  'deep-partnership': 'relationshipStages.descriptions.deepPartnership',
+};
+
+/** i18n keys for stage taglines */
+const STAGE_TAGLINE_I18N_KEYS: Record<RelationshipStage, string> = {
+  'first-meeting': 'relationshipStages.taglines.firstMeeting',
+  'getting-started': 'relationshipStages.taglines.gettingStarted',
+  'building-trust': 'relationshipStages.taglines.buildingTrust',
+  established: 'relationshipStages.taglines.established',
+  'deep-partnership': 'relationshipStages.taglines.deepPartnership',
+};
+
+/**
+ * Get translated stage name (with fallback)
+ */
+export function getTranslatedStageName(stage: RelationshipStage): string {
+  const key = STAGE_I18N_KEYS[stage];
+  const translated = t(key);
+  // If translation returns the key itself, fallback to English
+  return translated === key ? STAGE_NAMES[stage] : translated;
+}
+
+/**
+ * Get translated stage description (with fallback)
+ */
+export function getTranslatedStageDescription(stage: RelationshipStage): string {
+  const key = STAGE_DESCRIPTION_I18N_KEYS[stage];
+  const translated = t(key);
+  // Fallback descriptions in English
+  const fallbacks: Record<RelationshipStage, string> = {
+    'first-meeting': "We're just meeting! I can't wait to learn about you.",
+    'getting-started': "We're starting to understand each other.",
+    'building-trust': 'Our relationship is growing stronger.',
+    established: "You can count on me. I'm here for the long haul.",
+    'deep-partnership': "We've been through a lot together. I'm honored to be your guide.",
+  };
+  return translated === key ? fallbacks[stage] : translated;
+}
+
+/**
+ * Get translated stage tagline (with fallback)
+ */
+export function getTranslatedStageTagline(stage: RelationshipStage): string {
+  const key = STAGE_TAGLINE_I18N_KEYS[stage];
+  const translated = t(key);
+  // Fallback taglines in English
+  const fallbacks: Record<RelationshipStage, string> = {
+    'first-meeting': 'A new beginning',
+    'getting-started': 'Getting to know you',
+    'building-trust': 'Building something real',
+    established: 'Your Life Coach',
+    'deep-partnership': 'Partners for life',
+  };
+  return translated === key ? fallbacks[stage] : translated;
+}
 
 /** Friendly unlock messages for each stage */
 export const STAGE_UNLOCK_MESSAGES: Record<RelationshipStage, string> = {

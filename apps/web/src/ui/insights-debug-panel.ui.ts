@@ -639,7 +639,8 @@ export function toggleInsightsDebugPanel(): void {
 }
 
 /**
- * Initialize keyboard shortcut (Cmd/Ctrl+Shift+I)
+ * Initialize keyboard shortcut (Cmd/Ctrl+Shift+O for "Observations")
+ * Changed from Cmd+Shift+I to avoid conflict with browser DevTools
  */
 export function initInsightsDebugPanel(): void {
   // Only in dev mode
@@ -654,14 +655,14 @@ export function initInsightsDebugPanel(): void {
   }
 
   document.addEventListener('keydown', (e) => {
-    // Cmd/Ctrl + Shift + I
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'I') {
+    // Cmd/Ctrl + Shift + O (for "Observations")
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'O') {
       e.preventDefault();
       toggleInsightsDebugPanel();
     }
   });
 
-  log.info('Insights debug panel initialized (Cmd/Ctrl+Shift+I to open)');
+  log.info('Insights debug panel initialized (Cmd/Ctrl+Shift+O to open)');
 }
 
 /**

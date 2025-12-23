@@ -265,6 +265,15 @@ class ConnectionService {
   }
 
   /**
+   * Check if we're expecting a music track (music_state: playing was received).
+   * Used by fallback UI logic to distinguish real music from system stingers.
+   * System stingers (sound-*) don't send music_state messages.
+   */
+  isExpectingMusic(): boolean {
+    return this.expectingMusicTrack;
+  }
+
+  /**
    * Connect to a LiveKit room.
    */
   async connect(): Promise<boolean> {

@@ -530,12 +530,12 @@ class NowPlayingUI {
     const styles = document.createElement('style');
     styles.id = 'now-playing-styles';
     styles.textContent = `
-      /* 🎧 Compact Now Playing - positioned near avatar, minimal footprint */
+      /* 🎧 Compact Now Playing - positioned at bottom-right for visibility */
       .now-playing {
         position: fixed;
-        top: 280px;
+        bottom: 140px;
         right: var(--space-4);
-        z-index: var(--z-dropdown);
+        z-index: 1900; /* Above dev panel (--z-tooltip: 1800) for visibility during testing */
         
         display: none;
         align-items: center;
@@ -700,9 +700,35 @@ class NowPlayingUI {
         50% { opacity: 0.5; }
       }
       
-      /* State: Paused */
+      /* State: Paused - show play icon */
       .now-playing--paused .now-playing__bar {
         height: 3px !important;
+      }
+      
+      /* Hide music icon, show play icon when paused */
+      .now-playing--paused .now-playing__icon--music {
+        display: none;
+      }
+      
+      .now-playing__icon--play {
+        display: none;
+      }
+      
+      .now-playing--paused .now-playing__icon--play {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      
+      .now-playing--paused .now-playing__icon--play:hover {
+        background: var(--color-accent);
+        color: var(--color-text-on-accent, #fff);
+        transform: scale(1.05);
+      }
+      
+      .now-playing--paused .now-playing__icon--play:active {
+        transform: scale(0.95);
       }
       
       /* State: Changing (DJ crossfade) */
@@ -931,8 +957,11 @@ class NowPlayingUI {
       <button class="now-playing__dismiss" aria-label="${t('accessibility.dismiss')}" title="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
-      <div class="now-playing__icon">
+      <div class="now-playing__icon now-playing__icon--music">
         ${ICONS.music}
+      </div>
+      <div class="now-playing__icon now-playing__icon--play" role="button" tabindex="0" aria-label="${t('accessibility.play')}" title="Resume playback">
+        ${ICONS.play}
       </div>
       <div class="now-playing__info">
         <p class="now-playing__track">Loading...</p>
@@ -991,6 +1020,29 @@ class NowPlayingUI {
         e.stopPropagation(); // Don't trigger expand
         log.debug('Now Playing dismissed by user');
         this.hide();
+      });
+    }
+
+    // ▶️ Play button (visible when paused) - triggers resume callback
+    const playBtn = this.container.querySelector('.now-playing__icon--play');
+    if (playBtn) {
+      playBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger expand
+        log.debug('Play button clicked - resuming playback');
+        if (this._callbacks.onResume) {
+          this._callbacks.onResume();
+        }
+      });
+      // Also handle keyboard activation for accessibility
+      playBtn.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          log.debug('Play button activated via keyboard - resuming playback');
+          if (this._callbacks.onResume) {
+            this._callbacks.onResume();
+          }
+        }
       });
     }
 

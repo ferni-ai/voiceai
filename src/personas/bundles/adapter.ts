@@ -40,7 +40,10 @@ import type { BundleBehaviors, LoadedPersonaBundle, PersonaBundleManifest } from
 // ============================================================================
 
 /**
- * Extract catchphrases from either array format or structured format
+ * Extract catchphrases from various formats:
+ * 1. Array of strings: ["phrase1", "phrase2"]
+ * 2. Object with catchphrases array: { catchphrases: [{ phrase: "..." }] }
+ * 3. Object with catchphrases as categorized object: { catchphrases: { core_phrases: [...], ... } }
  */
 function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): string[] {
   if (!catchphrases) return [];
@@ -50,18 +53,40 @@ function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): str
     return catchphrases;
   }
 
-  // New structured format - extract from catchphrases array
   const result: string[] = [];
+
+  // Handle nested catchphrases property
   if (catchphrases.catchphrases) {
-    for (const cp of catchphrases.catchphrases) {
-      result.push(cp.phrase);
+    const nestedCatchphrases = catchphrases.catchphrases;
+
+    // Format 2: Array of objects with .phrase property
+    if (Array.isArray(nestedCatchphrases)) {
+      for (const cp of nestedCatchphrases) {
+        if (typeof cp === 'string') {
+          result.push(cp);
+        } else if (cp && typeof cp === 'object' && 'phrase' in cp) {
+          result.push((cp as { phrase: string }).phrase);
+        }
+      }
+    }
+    // Format 3: Object with category arrays (marketplace agents)
+    // e.g., { core_phrases: [...], encouragement_phrases: [...] }
+    else if (typeof nestedCatchphrases === 'object') {
+      for (const [_category, phrases] of Object.entries(nestedCatchphrases)) {
+        if (Array.isArray(phrases)) {
+          // Add first few from each category to avoid overwhelming
+          result.push(...phrases.slice(0, 5));
+        }
+      }
     }
   }
 
   // Also include natural_responses if available
   if (catchphrases.natural_responses) {
     for (const phrases of Object.values(catchphrases.natural_responses)) {
-      result.push(...phrases.slice(0, 2)); // Add first 2 from each category
+      if (Array.isArray(phrases)) {
+        result.push(...phrases.slice(0, 2)); // Add first 2 from each category
+      }
     }
   }
 

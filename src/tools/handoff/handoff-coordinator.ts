@@ -41,15 +41,24 @@ import { EventEmitter } from 'events';
 import type { AgentId } from '../../services/agent-bus.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { getPersonaAsyncCached } from '../../agents/shared/cached-imports.js';
+import { getPersonaAsyncCached } from '../../services/cached-imports.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 
 // Internal modules
-import { validateHandoffPreconditions, type ValidationSuccess, type ValidationOptions } from './pre-validation.js';
+import {
+  validateHandoffPreconditions,
+  type ValidationSuccess,
+  type ValidationOptions,
+} from './pre-validation.js';
 import { resolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
 import { HandoffTransaction, createTransaction } from './handoff-transaction.js';
-import { EventSequencer, sequenceGenerator, type SequencedEvent, type HandoffEventType } from './event-sequencer.js';
+import {
+  EventSequencer,
+  sequenceGenerator,
+  type SequencedEvent,
+  type HandoffEventType,
+} from './event-sequencer.js';
 import { HandoffStateManager, getHandoffManager } from './handoff-state-manager.js';
 import { recordHandoffMetrics, type HandoffMetricsData } from '../../services/handoff-metrics.js';
 
@@ -85,13 +94,13 @@ export interface HandoffRequest {
   source?: 'user' | 'llm' | 'system';
   /**
    * FAST MODE: Instant switch with async welcome (Option D)
-   * 
+   *
    * When true:
    * - Skip soft-open banter (no goodbye from departing persona)
    * - Voice switch + LLM update happen immediately (~250ms)
    * - handoff_complete sent to frontend immediately
    * - Arriving welcome spoken ASYNC (non-blocking)
-   * 
+   *
    * Best for: User-initiated transfers (they clicked, they want it NOW)
    * Default: true for user-initiated, false for LLM-initiated
    */
@@ -114,11 +123,11 @@ export interface HandoffResult {
 
 /**
  * Voice switch callback signature.
- * 
+ *
  * IMPORTANT: The first parameter (voiceUUID) is the Cartesia voice UUID for reference/logging.
  * The actual voice switch should use personaId (agent ID like 'peter-john') because
  * VoiceManager.switchVoice() looks up the voice from its internal VOICES registry.
- * 
+ *
  * @param voiceUUID - The Cartesia voice UUID (for logging/reference only)
  * @param personaId - The canonical persona ID (e.g., 'peter-john') - USE THIS for VoiceManager
  */
@@ -281,7 +290,10 @@ export class HandoffCoordinator {
     // This fixes the bug where handoffs fail with "Already with X" when starting on a non-ferni persona
     if (config.initialAgent) {
       this.stateManager.reset(config.initialAgent as AgentId);
-      log.info({ sessionId: config.sessionId, initialAgent: config.initialAgent }, '🎯 State manager reset to initial agent');
+      log.info(
+        { sessionId: config.sessionId, initialAgent: config.initialAgent },
+        '🎯 State manager reset to initial agent'
+      );
     }
 
     // Banter configuration
@@ -289,7 +301,14 @@ export class HandoffCoordinator {
     this.onAfterVoiceSwitch = config.onAfterVoiceSwitch;
     this.skipBanter = config.skipBanter || false;
 
-    log.info({ sessionId: config.sessionId, initialAgent: config.initialAgent || 'ferni', hasBanterHooks: !!(config.onBeforeVoiceSwitch || config.onAfterVoiceSwitch) }, '🎯 HandoffCoordinator created');
+    log.info(
+      {
+        sessionId: config.sessionId,
+        initialAgent: config.initialAgent || 'ferni',
+        hasBanterHooks: !!(config.onBeforeVoiceSwitch || config.onAfterVoiceSwitch),
+      },
+      '🎯 HandoffCoordinator created'
+    );
   }
 
   // ========================================================================
@@ -364,7 +383,10 @@ export class HandoffCoordinator {
       // ====================================================================
       // PHASE 2: STATE UPDATE (START)
       // ====================================================================
-      const stateStart = this.stateManager.startHandoff(canonicalId, request.reason || 'user request');
+      const stateStart = this.stateManager.startHandoff(
+        canonicalId,
+        request.reason || 'user request'
+      );
 
       if (!stateStart.allowed) {
         log.warn({ traceId, error: stateStart.error }, '❌ State manager rejected handoff');
@@ -437,8 +459,8 @@ export class HandoffCoordinator {
       // FAST MODE DETECTION (Option D: Instant Switch + Async Welcome)
       // ====================================================================
       // Default: user-initiated = fast, LLM-initiated = normal banter
-      const useFastMode = request.fastMode ?? (request.source === 'user');
-      
+      const useFastMode = request.fastMode ?? request.source === 'user';
+
       if (useFastMode) {
         log.info({ traceId, target: canonicalId }, '⚡ FAST MODE: Instant switch enabled');
       }
@@ -464,7 +486,11 @@ export class HandoffCoordinator {
       tx.addStep({
         name: 'switch-voice',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'switching_voice', progress: useFastMode ? 0.5 : 0.5 });
+          this.emitUIEvent('handoff_progress', {
+            traceId,
+            phase: 'switching_voice',
+            progress: useFastMode ? 0.5 : 0.5,
+          });
           await this.onVoiceSwitch(voiceResult.voiceId, canonicalId);
         },
         rollback: async () => {
@@ -479,7 +505,11 @@ export class HandoffCoordinator {
       tx.addStep({
         name: 'update-llm',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'updating_llm', progress: useFastMode ? 0.75 : 0.75 });
+          this.emitUIEvent('handoff_progress', {
+            traceId,
+            phase: 'updating_llm',
+            progress: useFastMode ? 0.75 : 0.75,
+          });
           const instructions = await this.buildInstructions(canonicalId, personaConfig, request);
           await this.onLLMUpdate(canonicalId, instructions);
         },
@@ -506,7 +536,10 @@ export class HandoffCoordinator {
               setImmediate(() => {
                 log.info({ traceId, target: canonicalId }, '🎭 FAST MODE: Async welcome starting');
                 this.onAfterVoiceSwitch!(canonicalId, banterContext).catch((err) => {
-                  log.warn({ traceId, error: String(err) }, '⚠️ Async welcome failed (non-critical)');
+                  log.warn(
+                    { traceId, error: String(err) },
+                    '⚠️ Async welcome failed (non-critical)'
+                  );
                 });
               });
             },
@@ -520,7 +553,11 @@ export class HandoffCoordinator {
           tx.addStep({
             name: 'arriving-welcome-banter',
             execute: async () => {
-              this.emitUIEvent('handoff_progress', { traceId, phase: 'arriving_welcome', progress: 0.6 });
+              this.emitUIEvent('handoff_progress', {
+                traceId,
+                phase: 'arriving_welcome',
+                progress: 0.6,
+              });
               await this.onAfterVoiceSwitch!(canonicalId, banterContext);
             },
             rollback: async () => {
@@ -611,10 +648,7 @@ export class HandoffCoordinator {
       const durationMs = Date.now() - startTime;
       const errorMsg = err instanceof Error ? err.message : String(err);
 
-      log.error(
-        { traceId, error: errorMsg, durationMs },
-        '🚨 Handoff execution error'
-      );
+      log.error({ traceId, error: errorMsg, durationMs }, '🚨 Handoff execution error');
 
       // Fail state if in progress
       if (this.stateManager.isHandoffInProgress()) {
@@ -819,4 +853,3 @@ export function createHandoffCoordinator(config: CoordinatorConfig): HandoffCoor
 // ============================================================================
 
 export default HandoffCoordinator;
-

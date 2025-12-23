@@ -42,14 +42,17 @@
 
 # ===================
 
-# Apps - Electron, iOS, Android builds (1.4GB)
+# Apps - Electron, iOS, Android builds (1.4GB+)
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
+apps/android-native/
 apps/electron/
 apps/ios/
+apps/ios-native/
 apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
+apps/shared/
 # apps/web - keep for UI server build (frontend code)
 # Only exclude large generated/cache directories
 apps/web/dist/
@@ -81,8 +84,17 @@ design-system/choreography/
 design-system/node_modules/
 design-system/preview/
 design-system/stories/
-design-system/tests/
+design-system/tests/**
 design-system/tokens/
+design-system/playground/
+design-system/site/
+design-system/dashboard/
+# Brand - only keep logos and favicons (exclude 27MB of social media exports)
+# Note: logos/ and favicons/ must be INCLUDED for Dockerfile.ui COPY commands
+design-system/brand/exports/
+design-system/brand/icons/
+design-system/brand/social/
+# Keep *.md files - Dockerfile.ui copies them
 
 # Exclude root files
 
@@ -91,6 +103,9 @@ design-system/*.js
 design-system/*.ts
 design-system/*.json
 design-system/*.md
+
+# Test files (5.2MB) - not needed in production
+src/tests/
 
 # ===================
 
@@ -108,14 +123,21 @@ node_modules/
 
 # ===================
 
-# Use /dist/ to only match root dist, preserve design-system/dist
+# Use /dist to only match root dist (saves 300MB!), preserve design-system/dist
 
-/dist/
+/dist
 frontend-typescript/dist/
 coverage/
 .nyc_output/
-playwright-report/
-test-results/
+
+# Root level test directory
+tests/
+
+# Deploy logs
+.deploy-logs/
+
+# Audit reports
+.audit-reports/
 
 # ===================
 
@@ -198,10 +220,21 @@ reference/
 
 e2e/
 **tests**/
-_.test.ts
-_.spec.ts
-jest.config._
-playwright.config._
+*.test.ts
+*.spec.ts
+jest.config.*
+playwright.config.*
+playwright-report/
+test-reports/
+test-results/
+.debug-captures/
+coverage/
+.nyc_output/
+
+# Apps build artifacts
+apps/web/.firebase/
+apps/web/*.html
+!apps/web/index.html
 
 # ===================
 
@@ -229,5 +262,17 @@ ferni-speaker/
 # Note: data/ exclusion removed - apps/web/src/data/ needs to be included
 # scripts/ - now allowing for build-fast.ts
 # !scripts/patch-livekit-timeout.js
-_.tgz
-_.tar.gz
+*.tgz
+*.tar.gz
+
+# Large unused directories
+# Use /brand/ to only match root level, not design-system/brand/
+/brand/
+vendor/
+infra/
+infrastructure/
+KMS/
+
+# iOS/Android build caches
+**/.build/
+**/build/intermediates/

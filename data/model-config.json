@@ -20,7 +20,7 @@
       "calendar"
     ],
     "excludedTools": [],
-    "includedTools": ["playMusic", "musicControl", "musicInfo"],
+    "includedTools": ["playMusic", "musicControl", "musicInfo", "getNews", "getWeather"],
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true

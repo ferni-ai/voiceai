@@ -155,8 +155,21 @@ export function handleDataMessage(message: DataMessage): void {
 
   // Try to process as music event (for avatar dancing)
   // Backend sends 'music_state', we normalize to MusicEvent
+  // 🎧 DEBUG: Log all incoming messages to trace music state flow
+  if ((message as { type?: string }).type === 'music_state') {
+    log.info('🎧 [FRONTEND] Received music_state message', {
+      rawMessage: JSON.stringify(message).slice(0, 500),
+    });
+  }
+
   if (isMusicMessage(message)) {
+    log.info('🎧 [FRONTEND] isMusicMessage passed, normalizing...');
     const normalizedMusic = normalizeMusicMessage(message);
+    log.info('🎧 [FRONTEND] Normalized music message', {
+      hasNormalized: !!normalizedMusic,
+      state: normalizedMusic?.state,
+      trackName: normalizedMusic?.trackName,
+    });
     if (normalizedMusic) {
       handleMusic(normalizedMusic);
       return;

@@ -411,4 +411,3 @@ export class PatternDetector {
     this.emotionHistory = [];
   }
 }
-

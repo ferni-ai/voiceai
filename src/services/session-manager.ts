@@ -456,16 +456,12 @@ export async function createSessionServices(
         buildMemoryIndex(validatedUserId, userProfile);
 
         // Get salient memories for session priming (commitments, emotional moments, recent topics)
-        primingMemories = getConversationPrimingMemories(
-          validatedUserId,
-          personaId || 'ferni',
-          {
-            maxMemories: 5,
-            includeCommitments: true,
-            includeRecentTopics: true,
-            sessionCount: userProfile.totalConversations || 0,
-          }
-        );
+        primingMemories = getConversationPrimingMemories(validatedUserId, personaId || 'ferni', {
+          maxMemories: 5,
+          includeCommitments: true,
+          includeRecentTopics: true,
+          sessionCount: userProfile.totalConversations || 0,
+        });
 
         if (primingMemories.length > 0) {
           getLogger().info(
@@ -1513,6 +1509,13 @@ export async function createSessionServices(
       getLogger().info(`Ending session: ${sessionId}`);
       const sessionEndStartTime = Date.now();
 
+      // FIX: Stop auto-save FIRST to prevent race conditions during session end
+      // Auto-save running during final saves can cause data corruption or double-writes
+      if (validatedUserId) {
+        stopAutoSave(validatedUserId);
+        getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save at session start');
+      }
+
       if (validatedUserId && userProfile) {
         try {
           const turns = historyTracker.getSimpleTurns();
@@ -2012,11 +2015,7 @@ export async function createSessionServices(
         }
       }
 
-      // FIX: Stop auto-save before cleanup
-      if (validatedUserId) {
-        stopAutoSave(validatedUserId);
-        getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save');
-      }
+      // NOTE: Auto-save already stopped at session start (line ~1515)
 
       // Cleanup core components
       removeHistoryTracker(sessionId);

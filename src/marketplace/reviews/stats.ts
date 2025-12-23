@@ -69,4 +69,3 @@ function calculateStats(itemId: MarketplaceId): ReviewStats {
     recommendationRate: Math.round(recommendationRate),
   };
 }
-

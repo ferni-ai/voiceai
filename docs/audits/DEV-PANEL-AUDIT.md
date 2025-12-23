@@ -1,12 +1,14 @@
 # Dev Panel Functionality Audit
 
-**Date:** December 14, 2025
+**Date:** December 22, 2025 (Updated from December 14, 2025)
 
 ---
 
 ## Overview
 
-The dev panel (`apps/web/src/ui/dev-panel.ui.ts`) is a developer tool with 39 sections and 5500+ lines of code. This audit evaluates which features work vs. are broken.
+The dev panel (`apps/web/src/ui/dev-panel.ui.ts`) is a developer tool with **30+ sections** and **~2,700 lines** of code. This audit evaluates which features work, need fixing, and require E2E testing.
+
+**Test Coverage:** 0% (no dedicated test file exists)
 
 ---
 
@@ -176,4 +178,441 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 ---
 
-_Audit Date: December 14, 2025_
+## E2E Testing Requirements (NEW)
+
+### Priority 1: Critical Functionality (Must Work)
+
+| Test Case | Implementation | Expected Result |
+|-----------|---------------|-----------------|
+| Panel opens with Cmd+Shift+D | Keyboard shortcut | Panel visible |
+| Panel opens with ?dev URL param | URL parameter | DEV badge appears |
+| Tier switching updates state | Click tier buttons | `teamUnlockService.getTier()` returns selected |
+| Stage override updates conversations | Click stage buttons | Conversation count matches stage |
+| Quick unlock all | Click "Unlock All Members" | All personas unlocked |
+| Reset to free | Cmd+Shift+0 | Back to free tier |
+
+### Priority 2: Animation Systems (Visual Verification)
+
+| Test Case | Section | Verify |
+|-----------|---------|--------|
+| Avatar Lamp bounce | Avatar Lamp | Avatar moves up/down |
+| Avatar Lamp tilt | Avatar Lamp | Avatar tilts sideways |
+| Ferni expressions | Ferni Expressions | Eye lids change |
+| Micro-expressions | Ferni EQ | Brief flash visible |
+| Celebration burst | Soul & Delight | Particles appear |
+| Milestone animation | Ferni Milestones | Celebration displays |
+
+### Priority 3: Backend Integrations (Requires Active Connection)
+
+| Test Case | Dependency | Skip Condition |
+|-----------|-----------|----------------|
+| Music games start | Voice session | No voice connection |
+| Handoff triggers | Voice session | No voice connection |
+| Outreach sends | Backend API | API unavailable |
+| Dev mode sync | Voice session | No voice connection |
+
+### Priority 4: Dashboard Links (URL Validation)
+
+All dashboard links should return 200 or redirect:
+
+| Dashboard | URL | Expected |
+|-----------|-----|----------|
+| Analytics | `/analytics-dashboard.html` | 200 or 404 |
+| Metrics | `/metrics-dashboard.html` | 200 or 404 |
+| UX | `/ux-dashboard.html` | 200 or 404 |
+| Errors | `/error-dashboard.html` | 200 or 404 |
+| LLM | `/llm-dashboard.html` | 200 or 404 |
+| Voice | `/voice-presence-dashboard.html` | 200 or 404 |
+| Personas | `/persona-dashboard.html` | 200 or 404 |
+| Cognitive | `/cognitive-dashboard.html` | 200 or 404 |
+| Connection | `/connection-dashboard.html` | 200 or 404 |
+| Memory | `/memory-dashboard.html` | 200 or 404 |
+| Costs | `/cost-dashboard.html` | 200 or 404 |
+| DORA | `/dora-dashboard.html` | 200 or 404 |
+| Handoffs | `/handoff-dashboard.html` | 200 or 404 |
+| Outreach | `/outreach-dashboard.html` | 200 or 404 |
+| Tools | `/tools-dashboard.html` | 200 or 404 |
+| Experiments | `/experiments-dashboard.html` | 200 or 404 |
+| Feature Flags | `/feature-flags.html` | 200 or 404 |
+| Admin | `/admin.html` | 200 or 404 |
+| Observability | `/observability-hub.html` | 200 or 404 |
+| Animations | `/animation-playground.html` | 200 or 404 |
+
+---
+
+## E2E Test File Template
+
+Create: `e2e/dev-panel.spec.ts`
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Dev Panel', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/?dev=ferni2024');
+  });
+
+  test.describe('Initialization', () => {
+    test('shows DEV badge when dev mode enabled', async ({ page }) => {
+      await expect(page.locator('.dev-indicator')).toBeVisible();
+    });
+
+    test('opens panel with keyboard shortcut', async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+      await expect(page.locator('.dev-panel')).toBeVisible();
+    });
+  });
+
+  test.describe('Core State Management', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('tier switching updates UI', async ({ page }) => {
+      await page.click('[data-tier="partner"]');
+      await expect(page.locator('[data-tier="partner"]')).toHaveClass(/active/);
+    });
+
+    test('stage override updates display', async ({ page }) => {
+      await page.click('[data-stage="deep-partnership"]');
+      await expect(page.locator('[data-stage="deep-partnership"]')).toHaveClass(/active/);
+    });
+
+    test('quick unlock all sets partner tier', async ({ page }) => {
+      await page.click('[data-action="unlock-all"]');
+      await expect(page.locator('[data-tier="partner"]')).toHaveClass(/active/);
+    });
+
+    test('reset clears all overrides', async ({ page }) => {
+      await page.click('[data-action="unlock-all"]');
+      await page.click('[data-action="reset"]');
+      await expect(page.locator('[data-tier="free"]')).toHaveClass(/active/);
+    });
+  });
+
+  test.describe('Team Management', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('shows all team members', async ({ page }) => {
+      const members = page.locator('.dev-team-member');
+      await expect(members).toHaveCount(6); // Ferni + 5 personas
+    });
+
+    test('celebration button triggers animation', async ({ page }) => {
+      await page.click('[data-member="maya"] .dev-team-member__celebrate');
+      await expect(page.locator('.team-unlock-celebration')).toBeVisible();
+    });
+  });
+
+  test.describe('Animation Triggers', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('avatar lamp bounce triggers', async ({ page }) => {
+      await page.click('[data-lamp="bounce"]');
+      // Animation plays - visual verification
+    });
+
+    test('celebration burst triggers', async ({ page }) => {
+      await page.click('[data-soul="celebrate"]');
+      // Particles appear - visual verification
+    });
+  });
+
+  test.describe('Modal Triggers', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('upgrade modal opens', async ({ page }) => {
+      await page.click('[data-action="trigger-upgrade"]');
+      await expect(page.locator('.upgrade-modal, .subscription-modal')).toBeVisible();
+    });
+
+    test('limit modal opens', async ({ page }) => {
+      await page.click('[data-action="trigger-limit"]');
+      await expect(page.locator('.limit-modal, .subscription-modal')).toBeVisible();
+    });
+  });
+
+  test.describe('Toast Notifications', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('success toast displays', async ({ page }) => {
+      await page.click('[data-toast="success"]');
+      await expect(page.locator('.toast--success')).toBeVisible();
+    });
+
+    test('error toast displays', async ({ page }) => {
+      await page.click('[data-toast="error"]');
+      await expect(page.locator('.toast--error')).toBeVisible();
+    });
+  });
+
+  test.describe('FTUE Controls', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('reset to first-time user works', async ({ page }) => {
+      await page.click('[data-ftue="reset"]');
+      await expect(page.locator('.toast')).toBeVisible();
+    });
+
+    test('simulate conversations updates display', async ({ page }) => {
+      await page.click('[data-ftue="simulate-5"]');
+      await expect(page.locator('.toast')).toBeVisible();
+    });
+  });
+
+  test.describe('Subscription Controls', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.keyboard.press('Meta+Shift+D');
+    });
+
+    test('bypass toggle changes state', async ({ page }) => {
+      const toggle = page.locator('#dev-subscription-bypass');
+      await toggle.click();
+      const isChecked = await toggle.isChecked();
+      expect(isChecked).toBe(true);
+    });
+
+    test('whitelist input accepts values', async ({ page }) => {
+      await page.fill('#dev-whitelist-ids', 'user123, user456');
+      await page.click('[data-action="save-whitelist"]');
+      // Verify localStorage updated
+    });
+  });
+});
+
+// Dashboard URL validation
+test.describe('Dashboard Links', () => {
+  const dashboards = [
+    '/analytics-dashboard.html',
+    '/metrics-dashboard.html',
+    '/ux-dashboard.html',
+    '/error-dashboard.html',
+    '/llm-dashboard.html',
+    '/voice-presence-dashboard.html',
+    '/persona-dashboard.html',
+    '/cognitive-dashboard.html',
+    '/connection-dashboard.html',
+    '/memory-dashboard.html',
+    '/cost-dashboard.html',
+    '/dora-dashboard.html',
+    '/handoff-dashboard.html',
+    '/outreach-dashboard.html',
+    '/tools-dashboard.html',
+    '/experiments-dashboard.html',
+    '/feature-flags.html',
+    '/admin.html',
+    '/observability-hub.html',
+    '/animation-playground.html',
+  ];
+
+  for (const url of dashboards) {
+    test(`${url} returns valid response`, async ({ page }) => {
+      const response = await page.goto(url);
+      // Accept 200 or graceful 404
+      expect([200, 404]).toContain(response?.status());
+    });
+  }
+});
+```
+
+---
+
+## Unit Test File Template
+
+Create: `apps/web/src/ui/__tests__/dev-panel.ui.test.ts`
+
+```typescript
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+
+// Mock dependencies
+vi.mock('../services/team-unlock.service', () => ({
+  teamUnlockService: {
+    setTier: vi.fn(),
+    getMemberStatus: vi.fn(() => ({ unlocked: false })),
+    update: vi.fn(),
+  },
+  TEAM_MEMBERS: [
+    { id: 'ferni', displayName: 'Ferni', role: 'coordinator' },
+    { id: 'maya', displayName: 'Maya', role: 'wellness' },
+  ],
+}));
+
+vi.mock('../services/relationship-stage.service', () => ({
+  relationshipStageService: {
+    getStage: vi.fn(() => 'first-meeting'),
+    getMetrics: vi.fn(() => ({
+      totalConversations: 0,
+      daysSinceFirstMeeting: 0,
+      currentStreak: 0,
+    })),
+    recordConversation: vi.fn(),
+    reset: vi.fn(),
+  },
+  STAGE_NAMES: {
+    'first-meeting': 'First Meeting',
+    'getting-started': 'Getting Started',
+    'building-trust': 'Building Trust',
+    'established': 'Established',
+    'deep-partnership': 'Deep Partnership',
+  },
+}));
+
+describe('DevPanel', () => {
+  beforeEach(() => {
+    // Clear localStorage
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  describe('shouldBypassSubscription', () => {
+    test('returns true when bypass flag is set', () => {
+      localStorage.setItem('ferni_subscription_bypass', 'true');
+      // Import and test function
+    });
+
+    test('returns true when gating is disabled', () => {
+      localStorage.setItem('ferni_subscription_enabled', 'false');
+      // Import and test function
+    });
+
+    test('returns true when user is whitelisted', () => {
+      localStorage.setItem('ferni_subscription_whitelist', '["user123"]');
+      // Import and test function with userId='user123'
+    });
+
+    test('returns false by default', () => {
+      // Import and test function
+    });
+  });
+
+  describe('Subscription Controls', () => {
+    test('getSubscriptionBypass reads localStorage', () => {
+      localStorage.setItem('ferni_subscription_bypass', 'true');
+      // Import and test
+    });
+
+    test('setSubscriptionBypass writes to localStorage', () => {
+      // Import and call setSubscriptionBypass(true)
+      expect(localStorage.getItem('ferni_subscription_bypass')).toBe('true');
+    });
+
+    test('getWhitelistIds parses JSON array', () => {
+      localStorage.setItem('ferni_subscription_whitelist', '["a","b"]');
+      // Import and test returns ['a', 'b']
+    });
+
+    test('getWhitelistIds handles invalid JSON', () => {
+      localStorage.setItem('ferni_subscription_whitelist', 'invalid');
+      // Import and test returns []
+    });
+  });
+
+  describe('Tier Override', () => {
+    test('setTierOverride calls teamUnlockService', async () => {
+      // Import and call setTierOverride('partner')
+      // Verify teamUnlockService.setTier was called with 'partner'
+    });
+  });
+
+  describe('Stage Override', () => {
+    test('setStageOverride records correct conversations', () => {
+      // Import and call setStageOverride('established')
+      // Verify recordConversation called 20 times
+    });
+  });
+});
+```
+
+---
+
+## Manual Testing Checklist
+
+### Core State (Verify Each)
+
+- [ ] Tier Free → UI shows Free active
+- [ ] Tier Friend → UI shows Friend active
+- [ ] Tier Partner → UI shows Partner active, all unlocked
+- [ ] Stage first-meeting → 0 conversations
+- [ ] Stage getting-started → 2 conversations
+- [ ] Stage building-trust → 7 conversations
+- [ ] Stage established → 20 conversations
+- [ ] Stage deep-partnership → 50 conversations
+- [ ] Quick Unlock All → Partner + Deep Partnership
+- [ ] Reset → Free + First Meeting
+
+### Team Management (Verify Each)
+
+- [ ] All 6 team members display
+- [ ] Lock/Unlock icons update with tier
+- [ ] Celebration button shows animation
+- [ ] Roster "Show All" works
+- [ ] Roster "Minimal" works
+- [ ] Roster "Reset" works
+
+### Animation Triggers (Visual Verify)
+
+- [ ] Soul: Awakening plays
+- [ ] Soul: Celebrate shows particles
+- [ ] Soul: Empathy pulses
+- [ ] Soul: Wink animates avatar
+- [ ] Lamp: Bounce moves avatar
+- [ ] Lamp: Tilt tilts avatar
+- [ ] Lamp: Emotions change appearance
+- [ ] Ferni Expressions: All 12 work
+- [ ] Ferni EQ: Micro-expressions flash
+- [ ] Ferni EQ: Active listening nods
+
+### Backend Dependent (Skip if no connection)
+
+- [ ] Music games send data channel message
+- [ ] Handoff triggers switch-persona event
+- [ ] Outreach sends test messages
+- [ ] Dev mode syncs to backend
+
+### Modals & UI
+
+- [ ] Upgrade modal opens
+- [ ] Limit modal opens
+- [ ] All 4 toast types display
+- [ ] FTUE reset shows toast
+- [ ] FTUE simulate shows toast
+
+### Dashboard Links (Verify URLs load)
+
+- [ ] All 20+ dashboard URLs return 200 or 404
+
+---
+
+## Fixes Required
+
+### High Priority
+
+1. **Create test files** - No unit or E2E tests exist
+2. **Validate dashboard URLs** - Many may return 404
+3. **Add loading states** - Async operations have no feedback
+
+### Medium Priority
+
+1. **FTUE immediate refresh** - Currently requires page reload
+2. **Error handling** - Many handlers fail silently
+3. **Voice connection feedback** - Unclear when features require voice
+
+### Low Priority
+
+1. **File size** - 2,700 lines exceeds 500-line limit
+2. **Extract handlers** - Follow outreach handler pattern
+3. **Accessibility** - Some buttons missing aria-labels
+
+---
+
+_Audit Date: December 22, 2025_

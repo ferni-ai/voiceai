@@ -45,18 +45,22 @@ export function detectExistentialContext(
 
     if (handoffBriefing.timeContext === 'long-term thinking') {
       context.legacyThinking = true;
-      context.mortalityAwareness = context.mortalityAwareness === 'absent' ? 'emerging' : context.mortalityAwareness;
+      context.mortalityAwareness =
+        context.mortalityAwareness === 'absent' ? 'emerging' : context.mortalityAwareness;
     }
   }
 
   // Life chapter signals
   if (lifeSynthesis.lifeChapter === 'freedom-seeking') {
-    context.currentExistentialTheme = context.currentExistentialTheme || 'Liberation and self-determination';
+    context.currentExistentialTheme =
+      context.currentExistentialTheme || 'Liberation and self-determination';
     context.legacyThinking = true;
   } else if (lifeSynthesis.lifeChapter === 'partnership-building') {
-    context.currentExistentialTheme = context.currentExistentialTheme || 'Connection and shared meaning';
+    context.currentExistentialTheme =
+      context.currentExistentialTheme || 'Connection and shared meaning';
   } else if (lifeSynthesis.lifeChapter === 'creation') {
-    context.currentExistentialTheme = context.currentExistentialTheme || 'Leaving a mark on the world';
+    context.currentExistentialTheme =
+      context.currentExistentialTheme || 'Leaving a mark on the world';
     context.legacyThinking = true;
   }
 
@@ -78,4 +82,3 @@ export function detectExistentialContext(
 
   return context;
 }
-

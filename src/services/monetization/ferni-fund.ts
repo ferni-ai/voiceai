@@ -11,7 +11,7 @@
  * allows generous users to feel they're helping others.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import {
   SPONSORED_MESSAGES,
   THANK_YOU_MESSAGES,

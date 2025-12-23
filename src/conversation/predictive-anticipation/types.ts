@@ -117,4 +117,3 @@ export interface PredictContext {
   arousal?: number;
   prosody?: ProsodyInput;
 }
-

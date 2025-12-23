@@ -40,7 +40,11 @@ describe('Conversation Integration', () => {
   describe('getUserTopTopics', () => {
     beforeEach(async () => {
       // Record some topics first
-      await recordConversationTopics(testUserId, ['philosophy', 'mindfulness', 'sleep'], 'session-a');
+      await recordConversationTopics(
+        testUserId,
+        ['philosophy', 'mindfulness', 'sleep'],
+        'session-a'
+      );
       await recordConversationTopics(testUserId, ['philosophy', 'creativity'], 'session-b');
     });
 
@@ -162,4 +166,3 @@ describe('Cache Cleanup', () => {
     expect(true).toBe(true);
   });
 });
-

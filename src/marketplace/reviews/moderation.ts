@@ -66,4 +66,3 @@ export function flagReview(reviewId: string, userId: UserId, reason: string): vo
 
   log.info({ reviewId, userId, reason }, 'Review flagged');
 }
-

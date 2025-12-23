@@ -667,4 +667,3 @@ export async function indexHumanMemory(
 
   return counts;
 }
-

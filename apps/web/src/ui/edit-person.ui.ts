@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('EditPersonUI');
 
@@ -111,15 +112,17 @@ const ICONS = {
   users: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
 };
 
-// Relationship type definitions
-const RELATIONSHIP_TYPES: { id: RelationshipType; label: string; icon: string }[] = [
-  { id: 'family', label: 'Family', icon: ICONS.home },
-  { id: 'friend', label: 'Friend', icon: ICONS.heart },
-  { id: 'colleague', label: 'Colleague', icon: ICONS.briefcase },
-  { id: 'mentor', label: 'Mentor', icon: ICONS.star },
-  { id: 'acquaintance', label: 'Acquaintance', icon: ICONS.userPlus },
-  { id: 'other', label: 'Other', icon: ICONS.users },
-];
+// Relationship type definitions - resolved at render time for i18n
+function getRelationshipTypes(): { id: RelationshipType; label: string; icon: string }[] {
+  return [
+    { id: 'family', label: t('addPerson.relationships.family'), icon: ICONS.home },
+    { id: 'friend', label: t('addPerson.relationships.friend'), icon: ICONS.heart },
+    { id: 'colleague', label: t('addPerson.relationships.colleague'), icon: ICONS.briefcase },
+    { id: 'mentor', label: t('addPerson.relationships.mentor'), icon: ICONS.star },
+    { id: 'acquaintance', label: t('addPerson.relationships.acquaintance'), icon: ICONS.userPlus },
+    { id: 'other', label: t('addPerson.relationships.other'), icon: ICONS.users },
+  ];
+}
 
 // ============================================================================
 // STYLES
@@ -627,22 +630,22 @@ function render(): void {
     <div class="ep-header">
       <div class="ep-header-row">
         <div>
-          <div class="ep-eyebrow">Edit Details</div>
-          <h2 class="ep-title">${escapeHtml(state.name || 'Person')}</h2>
+          <div class="ep-eyebrow">${t('editPerson.eyebrow')}</div>
+          <h2 class="ep-title">${escapeHtml(state.name || t('editPerson.defaultName'))}</h2>
         </div>
-        <button class="ep-close" aria-label="Close">${ICONS.close}</button>
+        <button class="ep-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
     </div>
     
     <div class="ep-tabs">
-      <button aria-label="User profile" class="ep-tab ${state.activeTab === 'basic' ? 'active' : ''}" data-tab="basic">
-        ${ICONS.user} Basic
+      <button aria-label="${t('editPerson.tabs.basic')}" class="ep-tab ${state.activeTab === 'basic' ? 'active' : ''}" data-tab="basic">
+        ${ICONS.user} ${t('editPerson.tabs.basic')}
       </button>
-      <button aria-label="Settings" class="ep-tab ${state.activeTab === 'preferences' ? 'active' : ''}" data-tab="preferences">
-        ${ICONS.settings} Preferences
+      <button aria-label="${t('editPerson.tabs.preferences')}" class="ep-tab ${state.activeTab === 'preferences' ? 'active' : ''}" data-tab="preferences">
+        ${ICONS.settings} ${t('editPerson.tabs.preferences')}
       </button>
-      <button aria-label="Context" class="ep-tab ${state.activeTab === 'context' ? 'active' : ''}" data-tab="context">
-        ${ICONS.brain} Context
+      <button aria-label="${t('editPerson.tabs.context')}" class="ep-tab ${state.activeTab === 'context' ? 'active' : ''}" data-tab="context">
+        ${ICONS.brain} ${t('editPerson.tabs.context')}
       </button>
     </div>
     
@@ -651,9 +654,9 @@ function render(): void {
     </div>
     
     <div class="ep-footer">
-      <button aria-label="Cancel" class="ep-btn ep-btn-secondary" id="ep-cancel">Cancel</button>
-      <button aria-label="Submit" class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Save Changes'}
+      <button aria-label="${t('common.cancel')}" class="ep-btn ep-btn-secondary" id="ep-cancel">${t('common.cancel')}</button>
+      <button aria-label="${t('common.save')}" class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('editPerson.saving') : t('editPerson.saveChanges')}
       </button>
     </div>
   `;
@@ -675,18 +678,20 @@ function renderTabContent(): string {
 }
 
 function renderBasicTab(): string {
+  const relationshipTypes = getRelationshipTypes();
+  
   return `
     <!-- Name -->
     <div class="ep-section">
-      <label class="ep-label">Name</label>
+      <label class="ep-label">${t('editPerson.nameLabel')}</label>
       <input type="text" class="ep-input" id="ep-name" value="${escapeHtml(state.name)}" />
     </div>
     
     <!-- Relationship Type -->
     <div class="ep-section">
-      <label class="ep-label">Relationship</label>
+      <label class="ep-label">${t('editPerson.relationshipLabel')}</label>
       <div class="ep-relationships">
-        ${RELATIONSHIP_TYPES.map(rel => `
+        ${relationshipTypes.map(rel => `
           <button class="ep-relationship ${state.relationship === rel.id ? 'selected' : ''}" data-relationship="${rel.id}">
             <span class="ep-relationship-icon">${rel.icon}</span>
             <span class="ep-relationship-label">${rel.label}</span>
@@ -699,34 +704,34 @@ function renderBasicTab(): string {
     <div class="ep-section">
       <div class="ep-row">
         <div class="ep-field">
-          <label class="ep-label">Email</label>
-          <input type="email" class="ep-input" id="ep-email" placeholder="email@example.com" value="${escapeHtml(state.email)}" />
+          <label class="ep-label">${t('editPerson.emailLabel')}</label>
+          <input type="email" class="ep-input" id="ep-email" placeholder="${t('placeholders.emailExample')}" value="${escapeHtml(state.email)}" />
         </div>
         <div class="ep-field">
-          <label class="ep-label">Phone</label>
-          <input type="tel" class="ep-input" id="ep-phone" placeholder="+1 555 123 4567" value="${escapeHtml(state.phone)}" />
+          <label class="ep-label">${t('editPerson.phoneLabel')}</label>
+          <input type="tel" class="ep-input" id="ep-phone" placeholder="${t('placeholders.phoneExample')}" value="${escapeHtml(state.phone)}" />
         </div>
       </div>
     </div>
     
     <!-- How We Met -->
     <div class="ep-section">
-      <label class="ep-label">How you met</label>
-      <input type="text" class="ep-input" id="ep-how-met" placeholder="e.g., College roommate" value="${escapeHtml(state.howWeMet)}" />
+      <label class="ep-label">${t('editPerson.howMetLabel')}</label>
+      <input type="text" class="ep-input" id="ep-how-met" placeholder="${t('editPerson.howMetPlaceholder')}" value="${escapeHtml(state.howWeMet)}" />
     </div>
     
     <!-- Danger Zone -->
     <div class="ep-danger-zone">
-      <button aria-label="Delete" class="ep-danger-btn" id="ep-delete-btn">
-        ${ICONS.trash} Remove from Your People
+      <button aria-label="${t('common.delete')}" class="ep-danger-btn" id="ep-delete-btn">
+        ${ICONS.trash} ${t('editPerson.removeFromPeople')}
       </button>
       ${state.showDeleteConfirm ? `
         <div class="ep-delete-confirm">
-          <div class="ep-delete-confirm-title">${ICONS.alertTriangle} Are you sure?</div>
-          <p class="ep-delete-confirm-text">This will remove ${escapeHtml(state.name)} and all their history from Your People. This cannot be undone.</p>
+          <div class="ep-delete-confirm-title">${ICONS.alertTriangle} ${t('editPerson.areYouSure')}</div>
+          <p class="ep-delete-confirm-text">${t('editPerson.deleteConfirmText', { name: escapeHtml(state.name) })}</p>
           <div class="ep-delete-confirm-actions" role="button" tabindex="0">
-            <button aria-label="Cancel" class="ep-delete-confirm-btn ep-delete-confirm-cancel" id="ep-delete-cancel">Cancel</button>
-            <button aria-label="Remove" class="ep-delete-confirm-btn ep-delete-confirm-delete" id="ep-delete-confirm">Remove</button>
+            <button aria-label="${t('common.cancel')}" class="ep-delete-confirm-btn ep-delete-confirm-cancel" id="ep-delete-cancel">${t('common.cancel')}</button>
+            <button aria-label="${t('editPerson.remove')}" class="ep-delete-confirm-btn ep-delete-confirm-delete" id="ep-delete-confirm">${t('editPerson.remove')}</button>
           </div>
         </div>
       ` : ''}
@@ -738,21 +743,21 @@ function renderPreferencesTab(): string {
   return `
     <!-- Preferred Channel -->
     <div class="ep-section">
-      <label class="ep-label">Preferred way to reach them</label>
+      <label class="ep-label">${t('editPerson.preferredChannelLabel')}</label>
       <select class="ep-select" id="ep-channel">
-        <option value="" ${!state.preferredChannel ? 'selected' : ''}>No preference</option>
-        <option value="call" ${state.preferredChannel === 'call' ? 'selected' : ''}>Phone call</option>
-        <option value="text" ${state.preferredChannel === 'text' ? 'selected' : ''}>Text message</option>
-        <option value="email" ${state.preferredChannel === 'email' ? 'selected' : ''}>Email</option>
-        <option value="in_person" ${state.preferredChannel === 'in_person' ? 'selected' : ''}>In person</option>
+        <option value="" ${!state.preferredChannel ? 'selected' : ''}>${t('editPerson.noPreference')}</option>
+        <option value="call" ${state.preferredChannel === 'call' ? 'selected' : ''}>${t('editPerson.phoneCall')}</option>
+        <option value="text" ${state.preferredChannel === 'text' ? 'selected' : ''}>${t('editPerson.textMessage')}</option>
+        <option value="email" ${state.preferredChannel === 'email' ? 'selected' : ''}>${t('editPerson.email')}</option>
+        <option value="in_person" ${state.preferredChannel === 'in_person' ? 'selected' : ''}>${t('editPerson.inPerson')}</option>
       </select>
     </div>
     
     <!-- Best Time to Reach -->
     <div class="ep-section">
-      <label class="ep-label">Best time to reach them</label>
-      <input type="text" class="ep-input" id="ep-best-time" placeholder="e.g., Evenings after 6pm, Weekend mornings" value="${escapeHtml(state.bestTimeToReach)}" />
-      <p class="ep-hint">When are they usually available or responsive?</p>
+      <label class="ep-label">${t('editPerson.bestTimeLabel')}</label>
+      <input type="text" class="ep-input" id="ep-best-time" placeholder="${t('editPerson.bestTimePlaceholder')}" value="${escapeHtml(state.bestTimeToReach)}" />
+      <p class="ep-hint">${t('editPerson.bestTimeHint')}</p>
     </div>
   `;
 }
@@ -761,22 +766,22 @@ function renderContextTab(): string {
   return `
     <!-- Interests -->
     <div class="ep-section">
-      <label class="ep-label">Their interests</label>
-      <textarea class="ep-textarea" id="ep-interests" placeholder="e.g., hiking, sci-fi movies, cooking Italian food">${escapeHtml(state.interests)}</textarea>
-      <p class="ep-hint">Separate with commas. Helps with gift ideas and conversation starters.</p>
+      <label class="ep-label">${t('editPerson.interestsLabel')}</label>
+      <textarea class="ep-textarea" id="ep-interests" placeholder="${t('editPerson.interestsPlaceholder')}">${escapeHtml(state.interests)}</textarea>
+      <p class="ep-hint">${t('editPerson.interestsHint')}</p>
     </div>
     
     <!-- Sensitive Topics -->
     <div class="ep-section">
-      <label class="ep-label">Topics to avoid</label>
-      <textarea class="ep-textarea" id="ep-sensitive" placeholder="e.g., recent job loss, family issues">${escapeHtml(state.sensitiveTopics)}</textarea>
-      <p class="ep-hint">Separate with commas. Ferni will remember not to bring these up.</p>
+      <label class="ep-label">${t('editPerson.sensitiveLabel')}</label>
+      <textarea class="ep-textarea" id="ep-sensitive" placeholder="${t('editPerson.sensitivePlaceholder')}">${escapeHtml(state.sensitiveTopics)}</textarea>
+      <p class="ep-hint">${t('editPerson.sensitiveHint')}</p>
     </div>
     
     <!-- Notes -->
     <div class="ep-section">
-      <label class="ep-label">Personal notes</label>
-      <textarea class="ep-textarea" id="ep-notes" placeholder="Any other details to remember about them...">${escapeHtml(state.notes)}</textarea>
+      <label class="ep-label">${t('editPerson.notesLabel')}</label>
+      <textarea class="ep-textarea" id="ep-notes" placeholder="${t('editPerson.notesPlaceholder')}">${escapeHtml(state.notes)}</textarea>
     </div>
   `;
 }
@@ -905,7 +910,7 @@ async function handleSave(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success('Saved!');
+      toast.success(t('common.saved'));
       
       if (callbacks.onSuccess) {
         callbacks.onSuccess({ ...state.person, ...data } as PersonData);
@@ -914,13 +919,13 @@ async function handleSave(): Promise<void> {
       closeEditPerson();
     } else {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || 'Could not save changes');
+      toast.error(error.error || t('editPerson.couldNotSave'));
       state.isSubmitting = false;
       render();
     }
   } catch (error) {
     log.error('Failed to save person:', error);
-    toast.error('Could not save changes');
+    toast.error(t('editPerson.couldNotSave'));
     state.isSubmitting = false;
     render();
   }
@@ -935,7 +940,7 @@ async function handleDelete(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success(`${state.name} removed`);
+      toast.success(t('editPerson.removed', { name: state.name }));
       
       if (callbacks.onDelete) {
         callbacks.onDelete();
@@ -943,11 +948,11 @@ async function handleDelete(): Promise<void> {
       
       closeEditPerson();
     } else {
-      toast.error('Could not remove person');
+      toast.error(t('editPerson.couldNotRemove'));
     }
   } catch (error) {
     log.error('Failed to delete person:', error);
-    toast.error('Could not remove person');
+    toast.error(t('editPerson.couldNotRemove'));
   }
 }
 

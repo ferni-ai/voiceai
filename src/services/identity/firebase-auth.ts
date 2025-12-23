@@ -13,7 +13,7 @@
  * @module FirebaseAuth
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });

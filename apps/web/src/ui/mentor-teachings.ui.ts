@@ -350,8 +350,9 @@ function render(): string {
   if (!currentAgent) return '';
 
   const principles = (currentAgent.personality?.values || []) as string[];
-  const quotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
-  const teachingStyle = currentAgent.personality?.communicationStyle || {};
+  const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
+  const personality = currentAgent.personality as unknown as Record<string, unknown>;
+  const teachingStyle = (personality?.communicationStyle || {}) as Record<string, unknown>;
 
   return `
     <div class="mentor-teachings-overlay">
@@ -658,15 +659,15 @@ async function handleAddQuote(): Promise<void> {
   const source = prompt("Source (book, talk, etc.) - optional:") || undefined;
 
   try {
-    const currentQuotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
+    const currentQuotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
     const updates = {
       memories: {
         ...currentAgent.memories,
-        wisdom: [...currentQuotes, { quote, source }]
+        wisdom: [...currentQuotes, { quote, source }] as unknown as typeof currentAgent.memories.wisdom
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Quote captured!');
     
     // Refresh
@@ -728,7 +729,7 @@ async function handleEditQuote(index: number): Promise<void> {
   const { toast } = await import('./toast.ui.js');
   if (!currentAgent) return;
 
-  const quotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
+  const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
   const item = quotes[index];
   if (!item) return;
 
@@ -742,8 +743,8 @@ async function handleEditQuote(index: number): Promise<void> {
     updatedQuotes[index] = { quote: newQuote, source: newSource };
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, wisdom: updatedQuotes }
-    });
+      memories: { ...currentAgent.memories, wisdom: updatedQuotes as unknown as typeof currentAgent.memories.wisdom }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Updated!');
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
@@ -759,12 +760,12 @@ async function handleDeleteQuote(index: number): Promise<void> {
   if (!confirm('Delete this quote?')) return;
 
   try {
-    const quotes = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; source?: string }>;
+    const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
     const updatedQuotes = quotes.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, wisdom: updatedQuotes }
-    });
+      memories: { ...currentAgent.memories, wisdom: updatedQuotes as unknown as typeof currentAgent.memories.wisdom }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Deleted');
     await openMentorTeachings(currentAgent.id);
   } catch (err) {

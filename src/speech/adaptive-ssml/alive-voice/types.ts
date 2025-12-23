@@ -113,4 +113,3 @@ export interface PauseScale {
 }
 
 export type TopicWeight = 'light' | 'medium' | 'heavy';
-

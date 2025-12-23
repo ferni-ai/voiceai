@@ -167,20 +167,39 @@ export class Container {
 // GLOBAL CONTAINER
 // ============================================================================
 
+/**
+ * Global container singleton.
+ *
+ * Note: JavaScript is single-threaded, so true race conditions cannot occur
+ * in synchronous code. The Container constructor is synchronous, so no lock
+ * is needed. If you're seeing "multiple containers" issues, check for:
+ * - Multiple module copies (npm install issues)
+ * - Test isolation problems (missing resetContainer() calls)
+ */
 let globalContainer: Container | null = null;
 
 /**
  * Get the global container
+ *
+ * Creates the container on first access (lazy initialization).
+ * Subsequent calls return the same instance.
  */
 export function getContainer(): Container {
-  if (!globalContainer) {
-    globalContainer = new Container();
+  // Fast path: already initialized (most common case)
+  if (globalContainer) {
+    return globalContainer;
   }
+
+  // Create singleton - this is atomic in single-threaded JavaScript
+  // No lock needed since Container constructor is synchronous
+  globalContainer = new Container();
   return globalContainer;
 }
 
 /**
  * Reset the global container (for testing)
+ *
+ * Call this in test teardown to ensure clean state between tests.
  */
 export function resetContainer(): void {
   globalContainer?.clear();

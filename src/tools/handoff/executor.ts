@@ -556,6 +556,42 @@ export async function executeHandoff(
       },
       '✅ Handoff handler completed successfully'
     );
+
+    // 🧠 Better Than Human: Record handoff for cross-persona intelligence
+    try {
+      const { getUnifiedIntelligence } = await import('../intelligence/index.js');
+      const intelligence = getUnifiedIntelligence();
+      await intelligence.recordHandoff({
+        userId: options.userId || options.sessionId || 'unknown',
+        sessionId: options.sessionId || 'unknown',
+        fromPersonaId: previousAgent,
+        toPersonaId: canonicalTargetId,
+        // Extract tool names from recent messages content (simplified approach)
+        toolsUsed: [],
+        topicsDiscussed: options.topics || [],
+        emotionalState: options.voiceEmotion
+          ? {
+              // Map from handoff voiceEmotion format to intelligence layer format
+              primary: options.voiceEmotion.voiceEmotion || 'neutral',
+              valence: options.voiceEmotion.valence ?? 0,
+              arousal: options.voiceEmotion.arousal ?? 0.5,
+              stressLevel: options.voiceEmotion.hasVoiceStrain ? 0.7 : 0,
+              anxietyMarkers: options.voiceEmotion.hasVoiceTremor ?? false,
+            }
+          : undefined,
+        timestamp: new Date(),
+      });
+      getLogger().debug(
+        { from: previousAgent, to: canonicalTargetId },
+        '🧠 Recorded handoff for cross-persona intelligence'
+      );
+    } catch (intelligenceErr) {
+      // Non-critical, don't fail the handoff
+      getLogger().debug(
+        { error: String(intelligenceErr) },
+        'Could not record handoff for intelligence layer'
+      );
+    }
   } else {
     getLogger().warn(
       {

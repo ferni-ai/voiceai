@@ -74,13 +74,27 @@ const SESSION_CLEANUP_TIMEOUT_MS = 10_000;
 /**
  * Create a timeout promise that rejects after the specified duration.
  * Used to prevent cleanup from hanging indefinitely.
+ *
+ * FIX: Returns both the promise and a cleanup function to clear the timer
+ * when cleanup completes normally (prevents resource leak).
  */
-function createCleanupTimeout(ms: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
+function createCleanupTimeout(ms: number): { promise: Promise<never>; clear: () => void } {
+  let timerId: ReturnType<typeof setTimeout> | undefined;
+
+  const promise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => {
       reject(new Error(`Session cleanup timeout after ${ms}ms`));
     }, ms);
   });
+
+  const clear = (): void => {
+    if (timerId !== undefined) {
+      clearTimeout(timerId);
+      timerId = undefined;
+    }
+  };
+
+  return { promise, clear };
 }
 
 /**
@@ -166,9 +180,12 @@ export async function handleSessionCleanup(
   let timedOut = false;
   let success = true;
 
+  // FIX: Create timeout with cleanup function to prevent resource leak
+  const timeout = createCleanupTimeout(timeoutMs);
+
   try {
     // Wrap cleanup with timeout protection to prevent zombie sessions
-    await Promise.race([executeSessionCleanup(ctx, cleanupStart), createCleanupTimeout(timeoutMs)]);
+    await Promise.race([executeSessionCleanup(ctx, cleanupStart), timeout.promise]);
   } catch (error) {
     const elapsed = Date.now() - cleanupStart;
     success = false;
@@ -186,6 +203,9 @@ export async function handleSessionCleanup(
       diag.error('Session cleanup error', { error: String(error), sessionId, elapsedMs: elapsed });
     }
   } finally {
+    // FIX: Always clear the timeout to prevent resource leak
+    timeout.clear();
+
     // Record cleanup metrics for resilience monitoring
     const elapsed = Date.now() - cleanupStart;
     resilienceMetrics.recordCleanupEvent(
@@ -380,6 +400,24 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // GROUP 3: PARALLEL SERVICE CLEANUP (independent, can run together)
     // ================================================================
     const serviceGroup = await Promise.allSettled([
+      // GlobalThis session data cleanup (prevents memory leaks from session-init-handler)
+      (async () => {
+        // Clean up trigger context and life context stored on globalThis
+        // These are set in session-init-handler.ts and must be cleaned up here
+        const globalThisTyped = globalThis as Record<string, unknown>;
+        const triggerKey = `_triggerContext_${sessionId}`;
+        const lifeContextKey = `_lifeContext_${sessionId}`;
+
+        if (triggerKey in globalThisTyped) {
+          delete globalThisTyped[triggerKey];
+        }
+        if (lifeContextKey in globalThisTyped) {
+          delete globalThisTyped[lifeContextKey];
+        }
+
+        diag.session('🧹 GlobalThis session data cleaned up');
+      })(),
+
       // Session-scoped state cleanup
       (async () => {
         const { clearHandoffSessionState } = await import('../shared/handoff/session-state.js');
@@ -475,6 +513,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
       // Deep humanization
       cleanupDeepHumanization(sessionId),
+
+      // Session dynamics (phase tracking)
+      (async () => {
+        const { cleanupSessionDynamics } =
+          await import('../integrations/session-dynamics-integration.js');
+        cleanupSessionDynamics(sessionId);
+      })(),
     ]);
 
     // Log any failures from service group

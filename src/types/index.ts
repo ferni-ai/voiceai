@@ -353,14 +353,8 @@ export * as ProfileAggregates from './profile/index.js';
 export { createCompositeUserProfile } from './profile/index.js';
 export type { CompositeUserProfile } from './profile/index.js';
 
-// Migration utilities (profile format)
-export {
-  ensureCompositeProfile,
-  isCompositeProfile,
-  isLegacyProfile,
-  migrateUserProfile,
-  toLegacyProfile,
-} from './profile/migration.js';
+// Migration utilities - import from canonical location:
+//   import { detectProfileFormat, migrateToComposite, migrateToLegacy } from './migration/profile-migrator.js';
 
 // ============================================================================
 // ADVANCED MIGRATION UTILITIES

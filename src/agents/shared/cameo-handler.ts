@@ -24,6 +24,8 @@ import type { CameoDataMessage, CameoEvent } from '../../services/cameo/types.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 const logger = getLogger();
 
@@ -266,7 +268,8 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
         try {
           // Small delay for voice switch to complete
           await sleep(CAMEO_TIMING.VOICE_SWITCH_BUFFER);
-          session.say(greeting, { allowInterruptions: true });
+          // Use coordinated speech for cameo greetings
+          coordinatedSay(sessionId, greeting, { allowInterruptions: true });
           greetingSpoken = true;
           diag.entry(`🎬 Cameo greeting spoken: "${greeting.slice(0, 50)}..."`);
         } catch (sayErr) {
@@ -278,7 +281,8 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
         logger.warn({ personaId }, 'No greeting provided for cameo, using fallback');
         try {
           await sleep(CAMEO_TIMING.VOICE_SWITCH_BUFFER);
-          session.say(fallbackGreeting, { allowInterruptions: true });
+          // Use coordinated speech for fallback greeting
+          coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: true });
           greetingSpoken = true;
           diag.entry(`🎬 Cameo fallback greeting spoken`);
         } catch (sayErr) {

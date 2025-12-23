@@ -71,6 +71,25 @@ const pendingJobs = new Map<string, PendingJob>();
 const PENDING_JOB_TTL_MS = 60_000;
 let pendingJobsCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * RACE CONDITION FIX: Track the status update interval so it can be cleaned up.
+ * Previously this was created without storing the reference, causing memory leaks.
+ */
+let statusUpdateInterval: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * RACE CONDITION FIX: Track WebSocket event handlers so they can be removed before reconnect.
+ * This prevents duplicate handlers and stale closure access.
+ */
+interface WebSocketHandlers {
+  onOpen: () => void;
+  onPong: () => void;
+  onMessage: (data: Buffer) => void;
+  onClose: (code: number) => void;
+  onError: (error: Error) => void;
+}
+let currentHandlers: WebSocketHandlers | null = null;
+
 // Module-level config and log (set during init)
 let _config: LiveKitConfig;
 let _log: LogFn;
@@ -136,8 +155,16 @@ export function stopPingKeepalive(): void {
 // PENDING JOBS CLEANUP
 // ============================================================================
 
+/**
+ * RACE CONDITION FIX: Use a flag to prevent double initialization.
+ * The interval check alone wasn't sufficient for concurrent calls.
+ */
+let pendingJobsCleanupStarting = false;
+
 function startPendingJobsCleanup(): void {
-  if (pendingJobsCleanupInterval) return;
+  // Double-check both flag and interval to prevent race
+  if (pendingJobsCleanupInterval || pendingJobsCleanupStarting) return;
+  pendingJobsCleanupStarting = true;
 
   pendingJobsCleanupInterval = setInterval(() => {
     const now = Date.now();
@@ -155,6 +182,8 @@ function startPendingJobsCleanup(): void {
       _log('Pending jobs cleanup complete', { cleaned, remaining: pendingJobs.size });
     }
   }, 30_000);
+
+  pendingJobsCleanupStarting = false;
 }
 
 export function stopPendingJobsCleanup(): void {
@@ -191,8 +220,13 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
 
       startPendingJobsCleanup();
 
-      // Periodic status updates
-      setInterval(() => {
+      // RACE CONDITION FIX: Clear any existing status update interval before creating new one
+      if (statusUpdateInterval) {
+        clearInterval(statusUpdateInterval);
+      }
+
+      // Periodic status updates - NOW stored for cleanup
+      statusUpdateInterval = setInterval(() => {
         if (ws?.readyState === WebSocket.OPEN) {
           const activeJobs = getActiveJobs();
           const currentLoad = activeJobs > 0 ? 0.5 : 0;
@@ -310,9 +344,27 @@ function scheduleReconnect(): void {
 }
 
 /**
+ * Remove WebSocket event handlers to prevent memory leaks and stale closures.
+ * RACE CONDITION FIX: Must be called before creating new WebSocket.
+ */
+function removeWebSocketHandlers(): void {
+  if (ws && currentHandlers) {
+    ws.off('open', currentHandlers.onOpen);
+    ws.off('pong', currentHandlers.onPong);
+    ws.off('message', currentHandlers.onMessage);
+    ws.off('close', currentHandlers.onClose);
+    ws.off('error', currentHandlers.onError);
+    currentHandlers = null;
+  }
+}
+
+/**
  * Connect to LiveKit server via WebSocket.
  */
 export async function connectToLiveKit(): Promise<void> {
+  // RACE CONDITION FIX: Remove old handlers before creating new connection
+  removeWebSocketHandlers();
+
   const token = new AccessToken(_config.apiKey, _config.apiSecret);
   token.addGrant({ agent: true });
   const jwt = await token.toJwt();
@@ -328,61 +380,70 @@ export async function connectToLiveKit(): Promise<void> {
       headers: { authorization: `Bearer ${jwt}` },
     });
 
-    ws.on('open', () => {
-      _log('Connected to LiveKit server');
-      reconnectAttempts = 0;
-      markLivekitConnected();
-      startPingKeepalive();
+    // RACE CONDITION FIX: Store handler references for cleanup
+    currentHandlers = {
+      onOpen: () => {
+        _log('Connected to LiveKit server');
+        reconnectAttempts = 0;
+        markLivekitConnected();
+        startPingKeepalive();
 
-      const registerMsg = new WorkerMessage({
-        message: {
-          case: 'register',
-          value: {
-            type: JobType.JT_ROOM,
-            version: '0.1.0',
-            agentName: _config.agentName,
-            allowedPermissions: new ParticipantPermission({
-              canPublish: true,
-              canSubscribe: true,
-              canPublishData: true,
-              canUpdateMetadata: true,
-              hidden: false,
-              agent: true,
-            }),
+        const registerMsg = new WorkerMessage({
+          message: {
+            case: 'register',
+            value: {
+              type: JobType.JT_ROOM,
+              version: '0.1.0',
+              agentName: _config.agentName,
+              allowedPermissions: new ParticipantPermission({
+                canPublish: true,
+                canSubscribe: true,
+                canPublishData: true,
+                canUpdateMetadata: true,
+                hidden: false,
+                agent: true,
+              }),
+            },
           },
-        },
-      });
-      safeSend(registerMsg.toBinary(), 'register');
-      resolve();
-    });
+        });
+        safeSend(registerMsg.toBinary(), 'register');
+        resolve();
+      },
 
-    ws.on('pong', () => {
-      lastPongTime = Date.now();
-    });
+      onPong: () => {
+        lastPongTime = Date.now();
+      },
 
-    ws.on('message', (data: Buffer) => {
-      void (async () => {
-        try {
-          const msg = new ServerMessage();
-          msg.fromBinary(new Uint8Array(data));
-          await handleServerMessage(msg);
-        } catch (error) {
-          _log('Error handling message', { error: String(error) });
-        }
-      })();
-    });
+      onMessage: (data: Buffer) => {
+        void (async () => {
+          try {
+            const msg = new ServerMessage();
+            msg.fromBinary(new Uint8Array(data));
+            await handleServerMessage(msg);
+          } catch (error) {
+            _log('Error handling message', { error: String(error) });
+          }
+        })();
+      },
 
-    ws.on('close', (code) => {
-      _log('WebSocket closed', { code });
-      markLivekitDisconnected();
-      stopPingKeepalive();
-      scheduleReconnect();
-    });
+      onClose: (code: number) => {
+        _log('WebSocket closed', { code });
+        markLivekitDisconnected();
+        stopPingKeepalive();
+        scheduleReconnect();
+      },
 
-    ws.on('error', (error) => {
-      _log('WebSocket error', { error: error.message });
-      reject(error);
-    });
+      onError: (error: Error) => {
+        _log('WebSocket error', { error: error.message });
+        reject(error);
+      },
+    };
+
+    ws.on('open', currentHandlers.onOpen);
+    ws.on('pong', currentHandlers.onPong);
+    ws.on('message', currentHandlers.onMessage);
+    ws.on('close', currentHandlers.onClose);
+    ws.on('error', currentHandlers.onError);
   });
 }
 
@@ -401,6 +462,17 @@ export function prepareForShutdown(): void {
 export function closeConnection(): void {
   // Ensure shutdown flag is set to prevent reconnect race
   isShuttingDown = true;
+
+  // RACE CONDITION FIX: Clean up all intervals
+  if (statusUpdateInterval) {
+    clearInterval(statusUpdateInterval);
+    statusUpdateInterval = null;
+  }
+  stopPendingJobsCleanup();
+  stopPingKeepalive();
+
+  // Remove handlers before closing
+  removeWebSocketHandlers();
 
   if (ws) {
     try {

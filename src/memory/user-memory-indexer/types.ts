@@ -76,4 +76,3 @@ export function generateDocId(
     .slice(0, 50);
   return `${category}_${userId}_${safeId}`;
 }
-

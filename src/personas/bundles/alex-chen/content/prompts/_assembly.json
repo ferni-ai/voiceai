@@ -1,13 +1,21 @@
 {
   "prompt_modules": {
-    "core_identity": "identity/core-identity.md",
+    "core_identity": "identity/system-prompt.md",
     "function_calling": "identity/function-calling-specialty.md",
-    "voice_guidance": "identity/voice-guidance.md"
+    "voice_guidance": "identity/voice-guidance.md",
+    "directors_notes": "identity/directors-notes.md",
+    "pixar_character": "identity/pixar-character.md"
   },
   "voice_agent_modules": ["core_identity", "function_calling", "voice_guidance"],
-  "full_context_modules": ["core_identity", "function_calling", "voice_guidance"],
+  "full_context_modules": [
+    "core_identity",
+    "function_calling",
+    "voice_guidance",
+    "directors_notes",
+    "pixar_character"
+  ],
   "token_budget": {
-    "voice_agent_max": 2000,
-    "full_context_max": 4000
+    "voice_agent_max": 2500,
+    "full_context_max": 5000
   }
 }

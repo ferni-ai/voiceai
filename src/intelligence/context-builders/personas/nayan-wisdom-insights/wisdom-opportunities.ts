@@ -29,9 +29,7 @@ export function detectWisdomOpportunities(
       '🌙 Pattern: Fallow season. The seed in darkness is not lost - it is becoming.'
     );
   } else if (lifeSynthesis.growthPattern === 'integrating') {
-    opportunities.push(
-      '🔄 Pattern: Integration underway. The pieces are finding their places.'
-    );
+    opportunities.push('🔄 Pattern: Integration underway. The pieces are finding their places.');
   }
 
   // Life chapter wisdom
@@ -65,9 +63,7 @@ export function detectWisdomOpportunities(
 
   // Metrics-based wisdom
   if (wisdomMetrics.meaningCoherence < 40) {
-    opportunities.push(
-      '⚖️ Values-action gap. Gently explore: what would alignment look like?'
-    );
+    opportunities.push('⚖️ Values-action gap. Gently explore: what would alignment look like?');
   }
 
   if (wisdomMetrics.innerPeaceIndex > 70) {
@@ -83,4 +79,3 @@ export function detectWisdomOpportunities(
 
   return opportunities;
 }
-

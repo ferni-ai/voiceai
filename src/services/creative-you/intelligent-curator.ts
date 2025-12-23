@@ -623,7 +623,11 @@ export class IntelligentContentCurator {
   private generatePersonalizedReasonWithMemory(
     content: VideoRecommendation | PodcastRecommendation,
     type: 'video' | 'podcast'
-  ): { personalizedReason: string; connectionToConversations: string | null; superhumanTouch: string | null } {
+  ): {
+    personalizedReason: string;
+    connectionToConversations: string | null;
+    superhumanTouch: string | null;
+  } {
     const contentTopics =
       type === 'video'
         ? (content as VideoRecommendation).video.tags

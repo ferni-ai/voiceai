@@ -43,4 +43,3 @@ export const noopMetrics: PerformanceMetricsCallbacks = {
   recordCacheMiss: () => {},
   recordCacheEviction: () => {},
 };
-

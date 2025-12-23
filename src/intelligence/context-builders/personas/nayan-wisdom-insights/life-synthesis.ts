@@ -197,4 +197,3 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
 
   return synthesis;
 }
-

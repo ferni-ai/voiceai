@@ -209,6 +209,15 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error disconnecting MCP servers');
   }
 
+  // Cleanup calendar load service Firestore connection
+  try {
+    const { cleanupFirestore } = await import('../calendar/calendar-load-service.js');
+    await cleanupFirestore();
+    getLogger().info('📅 Calendar load service Firestore cleanup complete');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error cleaning up calendar load service');
+  }
+
   // Reset global state
   void resetGlobalServices();
 

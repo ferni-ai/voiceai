@@ -123,7 +123,7 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'gift-seeds-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Gift seeds to a friend');
+  modal.setAttribute('aria-label', 'Share seeds with a friend');
 
   renderModalContent();
   injectStyles();
@@ -161,7 +161,7 @@ function renderModalContent(): void {
 
       <div class="gift-seeds-header">
         <span class="gift-seeds-icon">${ICONS.gift}</span>
-        <h2 class="gift-seeds-title">Gift Seeds</h2>
+        <h2 class="gift-seeds-title">Share Some Love</h2>
         <p class="gift-seeds-subtitle">Seeds grow when shared. Love multiplies.</p>
       </div>
 

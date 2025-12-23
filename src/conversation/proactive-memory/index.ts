@@ -207,7 +207,9 @@ export class ProactiveMemoryEngine {
 
     // 3. Topic-based surfacing
     if (context.currentTopic) {
-      suggestions.push(...this.surfacing.getTopicBasedSuggestions(this.memories, context.currentTopic));
+      suggestions.push(
+        ...this.surfacing.getTopicBasedSuggestions(this.memories, context.currentTopic)
+      );
     }
 
     // 4. Pattern-based surfacing
@@ -361,4 +363,3 @@ export function getActiveProactiveMemoryCount(): number {
 }
 
 export default ProactiveMemoryEngine;
-

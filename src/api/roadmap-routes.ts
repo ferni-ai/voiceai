@@ -16,7 +16,7 @@
  * @see apps/BETTER-THAN-HUMAN-PLAN.md for full architecture
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { removeUndefined } from '../utils/firestore-utils.js';

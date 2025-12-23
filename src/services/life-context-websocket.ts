@@ -82,7 +82,7 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
 
   // Handle upgrade requests for /ws/life-context path
   httpServer.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+    const { pathname } = new URL(request.url || '', `http://${request.headers.host}`);
 
     if (pathname === '/ws/life-context') {
       wss.handleUpgrade(request, socket, head, (ws) => {
@@ -149,7 +149,7 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
     });
   });
 
-  // Heartbeat to keep connections alive
+  // Heartbeat to keep connections alive AND clean up stale connections
   heartbeatInterval = setInterval(() => {
     const heartbeat = {
       type: 'heartbeat',
@@ -157,11 +157,27 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
       clientCount: clients.size,
     };
 
+    // Collect stale connections for cleanup (can't modify Map during iteration)
+    const staleConnections: WebSocket[] = [];
+
     clients.forEach((info, ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         safeSend(ws, heartbeat);
+      } else {
+        // Connection is closed, closing, or connecting - mark for cleanup
+        staleConnections.push(ws);
       }
     });
+
+    // Clean up stale connections that didn't trigger close/error events
+    // This prevents memory leaks from network disconnections
+    if (staleConnections.length > 0) {
+      log.info(
+        { staleCount: staleConnections.length, totalClients: clients.size },
+        'Cleaning up stale WebSocket connections'
+      );
+      staleConnections.forEach((ws) => handleClientDisconnect(ws));
+    }
   }, HEARTBEAT_INTERVAL);
 
   return wss;
@@ -196,7 +212,9 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
 
       case 'refresh':
         if (data.userId) {
-          void handleRefreshRequest(ws, data.userId);
+          handleRefreshRequest(ws, data.userId).catch((error: unknown) => {
+            log.error({ error, userId: data.userId }, 'Unhandled error in refresh request');
+          });
         }
         break;
 
@@ -241,7 +259,9 @@ function handleSubscribe(ws: WebSocket, userId: string): void {
   startLifeContextMonitoring(userId);
 
   // Send current state immediately
-  void sendCurrentState(ws, userId);
+  sendCurrentState(ws, userId).catch((error: unknown) => {
+    log.error({ error, userId }, 'Unhandled error sending initial state');
+  });
 
   log.info(
     { userId, subscribers: userSubscribers.get(userId)?.size },

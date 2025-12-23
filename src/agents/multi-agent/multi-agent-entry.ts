@@ -113,7 +113,9 @@ export async function initializeMultiAgentSession(
   const startTime = Date.now();
 
   // Get conversation manager (required for full handlers)
-  let conversationManager: import('../../services/conversation-manager.js').ConversationManager | undefined;
+  let conversationManager:
+    | import('../../services/conversation-manager.js').ConversationManager
+    | undefined;
   if (enableFullHandlers) {
     try {
       const { getConversationManager } = await import('../../services/conversation-manager.js');
@@ -198,4 +200,3 @@ export async function handleHandoffFromDataChannel(
     error: result.error,
   };
 }
-

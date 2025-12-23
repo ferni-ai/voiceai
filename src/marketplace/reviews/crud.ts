@@ -185,4 +185,3 @@ export function deleteReview(reviewId: string, userId: UserId): void {
 
   log.info({ reviewId }, 'Review deleted');
 }
-

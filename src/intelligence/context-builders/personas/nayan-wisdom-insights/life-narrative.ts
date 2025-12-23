@@ -28,11 +28,11 @@ export function buildLifeNarrative(
   // Infer past from current
   const chapterProgression: Record<string, { past: string; future: string }> = {
     'freedom-seeking': { past: 'building', future: 'liberation' },
-    'nesting': { past: 'exploration', future: 'settled roots' },
+    nesting: { past: 'exploration', future: 'settled roots' },
     'partnership-building': { past: 'independence', future: 'shared life' },
     'foundation-building': { past: 'instability', future: 'solid ground' },
-    'creation': { past: 'planning', future: 'legacy' },
-    'expansion': { past: 'limitation', future: 'new horizons' },
+    creation: { past: 'planning', future: 'legacy' },
+    expansion: { past: 'limitation', future: 'new horizons' },
     'active-growth': { past: 'stagnation', future: 'becoming' },
   };
 
@@ -74,4 +74,3 @@ export function buildLifeNarrative(
 
   return narrative;
 }
-

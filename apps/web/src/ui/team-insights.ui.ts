@@ -405,7 +405,7 @@ function createPanel(): HTMLElement {
           <span class="team-insights-icon">${ICONS.users}</span>
           <div>
             <p class="team-insights-eyebrow">TEAM INTELLIGENCE</p>
-            <h2 id="team-insights-title" class="team-insights-title">What We're Noticing</h2>
+            <h2 id="team-insights-title" class="team-insights-title">What We Notice</h2>
           </div>
         </div>
         <div class="team-insights-header-actions" role="button" tabindex="0">

@@ -104,4 +104,3 @@ export function addOpeningSound(text: string, context: AliveVoiceContext): strin
 
   return text;
 }
-

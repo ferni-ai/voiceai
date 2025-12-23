@@ -12,7 +12,10 @@ import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
 import { embed, embedBatch, getEmbeddingProvider } from './embeddings.js';
 import { err, memoryError, ok, type MemoryError, type Result } from './result.js';
-import { noopMetrics, type PerformanceMetricsCallbacks } from '../types/performance-metrics-types.js';
+import {
+  noopMetrics,
+  type PerformanceMetricsCallbacks,
+} from '../types/performance-metrics-types.js';
 
 const log = getLogger();
 const CACHE_NAME = 'embeddings';

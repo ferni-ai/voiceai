@@ -29,6 +29,7 @@ import {
 import { delightService } from './services/delight.service.js';
 import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
 import { getAuthToken } from './services/firebase-auth.service.js';
+import { initGoogleOneTap, cancelOneTap } from './services/google-one-tap.service.js';
 import {
   audioService,
   connectionService,
@@ -56,6 +57,7 @@ import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Relationship Management (Your People) - unified contact & gift management
 import { initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
+// openAddPerson available via Your People panel
 
 // Premium UI Features
 import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
@@ -125,6 +127,8 @@ import {
 import { initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
 import { disposeFerniEQ, initFerniEQ } from './ui/better-than-human.ui.js';
+// Humanization Bridge - Connects backend humanization signals to frontend EQ
+import { initHumanizationBridge, disposeHumanizationBridge } from './services/humanization-bridge.service.js';
 // Proactive Outreach UI - "Thinking of You" notifications
 import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
 // Team Insights UI - Cross-persona intelligence panel
@@ -151,7 +155,7 @@ import {
   initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
-import { initI18n } from './i18n/index.js';
+import { initI18n, t } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext, initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
@@ -369,6 +373,8 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
+  
+  // 🎵 Track connection/handoff time to filter out system sounds (stingers)
 
   // FIX: Track event listeners to prevent memory leaks
   // All document/window event listeners should be added via addTrackedListener()
@@ -408,6 +414,14 @@ class VoiceAIApp {
       initCrashReporter();
     } catch (e) {
       log.warn('Failed to initialize crash reporter:', e);
+    }
+
+    // Initialize offline service (service worker, sync queue)
+    try {
+      const { initOfflineService } = await import('./services/offline.service.js');
+      initOfflineService();
+    } catch (e) {
+      log.warn('Failed to initialize offline service:', e);
     }
 
     // Check for admin route
@@ -477,6 +491,9 @@ class VoiceAIApp {
    * We check subscription limits but present them warmly.
    */
   async connect(): Promise<void> {
+    // Cancel One-Tap if showing - never interrupt voice connection
+    cancelOneTap();
+
     const persona = appState.get('selectedPersona');
 
     // Check subscription limits FIRST (before any audio context setup)
@@ -1013,6 +1030,10 @@ class VoiceAIApp {
           // No error shown to user - not critical
         });
     }
+
+    // 🔐 Google One-Tap Sign-In - Gentle prompt for anonymous users
+    // Shows after 8 seconds, respects dismissals with progressive cooldown
+    initGoogleOneTap();
   }
 
   /**
@@ -1038,6 +1059,12 @@ class VoiceAIApp {
       // NOTE: #coachAvatar removed - causes visible box bug in Safari
       // GSAP's force3D config (set in initGSAP) handles GPU acceleration
       promoteAllToGPU('.waveform-bar, .btn');
+    });
+
+    // System UI - Critical system-level UI components
+    this.safeInit('OfflineBanner', async () => {
+      const { initOfflineBanner } = await import('./ui/offline-banner.ui.js');
+      initOfflineBanner();
     });
 
     // Core UI - Initialize in order of dependency (these are critical)
@@ -1153,6 +1180,10 @@ class VoiceAIApp {
     this.safeInit('FerniEQ', () => {
       initFerniEQ();
       // Micro-expressions, breath sync, active listening, concern detection
+
+      // 🌉 Humanization Bridge - Connect backend signals to frontend EQ
+      initHumanizationBridge();
+      // Handles: breakthrough, vulnerability, memory_callback, mood_drift, etc.
 
       // 💭 Proactive Outreach UI - "Thinking of You" notifications
       initProactiveOutreachUI();
@@ -2272,24 +2303,78 @@ class VoiceAIApp {
         dispatchAgentSpeechEnd();
       },
 
-      // 🎚️ Music track detected - attach for ducking control
+      // 🎚️ Music track detected - attach for ducking control AND show Now Playing UI
       onMusicTrack: (audioElement, trackId) => {
-        log.info('🎚️ Music track detected, attaching for ducking', { trackId });
+        log.info('🎚️ Music track detected', { trackId });
+
+        // 🔇 PROPER BYPASS: Check if we're expecting music (backend sent music_state message)
+        // System stingers (sound-*) don't send music_state messages, so isExpectingMusic() will be false
+        // Real music sends music_state: playing BEFORE the audio, so isExpectingMusic() will be true
+        const isExpectingMusic = connectionService.isExpectingMusic();
+
+        if (!isExpectingMusic) {
+          log.info('🔇 Skipping Now Playing UI - not expecting music (likely system stinger)', {
+            trackId,
+          });
+        } else {
+          // 🎵 Show Now Playing UI for actual music (backend sent music_state message)
+          void (async () => {
+            try {
+              const { nowPlayingUI } = await import('./ui/now-playing.ui.js');
+              const { waveformUI } = await import('./ui/waveform.ui.js');
+
+              log.info('🎵 Showing Now Playing UI for expected music track');
+              nowPlayingUI.show({
+                name: 'Music Playing',
+                artist: 'Ferni DJ',
+                isAmbient: false,
+              });
+              nowPlayingUI.updateState('playing');
+              waveformUI.setMusicPlaying(true);
+
+              // Start avatar dancing
+              avatarFeedback.musicPresence();
+            } catch (err) {
+              log.warn('Failed to show Now Playing UI', err);
+            }
+          })();
+        }
+
+        // 🎚️ SEPARATE: Attach ducking control (always, for all audio tracks)
         void (async () => {
           try {
             const controller = getMusicAudioController();
             await controller.initialize();
             await controller.attachMusicTrack(audioElement, trackId);
+            log.info('🎚️ Music track attached for ducking', { trackId });
           } catch (err) {
             log.warn('Failed to attach music track for ducking', err);
           }
         })();
       },
 
-      // 🎚️ Music track ended
+      // 🎚️ Music track ended - hide Now Playing UI
       onMusicTrackEnd: (trackId) => {
-        log.debug('🎚️ Music track ended', { trackId });
+        log.info('🎚️ Music track ended', { trackId });
         // Controller handles cleanup automatically via the returned cleanup function
+
+        // 🎵 Hide Now Playing UI when music track ends
+        void (async () => {
+          try {
+            const { nowPlayingUI } = await import('./ui/now-playing.ui.js');
+            const { waveformUI } = await import('./ui/waveform.ui.js');
+
+            log.info('🎵 Hiding Now Playing UI - music track ended');
+            nowPlayingUI.updateState('stopped');
+            nowPlayingUI.hide();
+            waveformUI.setMusicPlaying(false);
+
+            // Stop avatar dancing
+            avatarFeedback.stopDancing();
+          } catch (err) {
+            log.warn('Failed to hide Now Playing UI on track end', err);
+          }
+        })();
       },
 
       onLocalMicActive: (isActive) => {
@@ -2331,6 +2416,7 @@ class VoiceAIApp {
 
     handoffService.onHandoffStart((toPersona, _fromPersona) => {
       log.debug('onHandoffStart:', { toPersona });
+
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
 
@@ -2363,6 +2449,7 @@ class VoiceAIApp {
     // When handoff completes - agent is ready to speak
     handoffService.onHandoffComplete((toPersona) => {
       log.debug('onHandoffComplete:', { toPersona });
+
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
         clearTimeout(handoffUITimeout);
@@ -2441,7 +2528,7 @@ class VoiceAIApp {
 
       // Update waveform with progress indication
       // The waveform shimmer intensity can vary based on progress
-      if (waveformUI.isTransitioning && progress > 50) {
+      if (progress > 50) {
         // After halfway, intensify the shimmer to show progress
         // (waveformUI already handles transitioning state, but this adds visual variety)
         log.debug('Handoff progress:', `${progress}%`);
@@ -2701,6 +2788,7 @@ class VoiceAIApp {
     disposeConnectionHeart();
     disposeLogoExpressions();
     disposeFerniEQ();
+    disposeHumanizationBridge();
     disposeProactiveOutreach();
     disposeTeamInsightsUI();
     disposeCrossTeamNotifications();

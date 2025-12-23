@@ -175,10 +175,7 @@ export function resolveVoiceId(
       }
       logAttempt('registry', registryVoiceId, false);
     } catch (err) {
-      log.warn(
-        { personaId, error: String(err) },
-        'Voice ID registry lookup failed'
-      );
+      log.warn({ personaId, error: String(err) }, 'Voice ID registry lookup failed');
       logAttempt('registry', null, false);
     }
   }
@@ -188,10 +185,7 @@ export function resolveVoiceId(
     ? `No voice ID found for persona "${personaId}" after checking: ${attemptedSources.join(', ')}`
     : `No voice ID found (no persona ID provided). Checked: ${attemptedSources.join(', ')}`;
 
-  log.error(
-    { personaId, attemptedSources },
-    `🚨 VOICE ID RESOLUTION FAILED - ${error}`
-  );
+  log.error({ personaId, attemptedSources }, `🚨 VOICE ID RESOLUTION FAILED - ${error}`);
 
   return {
     success: false,
@@ -212,16 +206,11 @@ export function resolveVoiceId(
  * @returns Voice ID string
  * @throws Error if voice ID cannot be resolved
  */
-export function resolveVoiceIdOrThrow(
-  input: VoiceIdInput,
-  context: string = 'handoff'
-): string {
+export function resolveVoiceIdOrThrow(input: VoiceIdInput, context: string = 'handoff'): string {
   const result = resolveVoiceId(input, { logLevel: 'info' });
 
   if (!result.success) {
-    throw new Error(
-      `Voice ID resolution failed during ${context}: ${result.error}`
-    );
+    throw new Error(`Voice ID resolution failed during ${context}: ${result.error}`);
   }
 
   return result.voiceId;
@@ -283,4 +272,3 @@ export function getAllVoiceIds(input: VoiceIdInput): Map<VoiceIdSource, string> 
 // ============================================================================
 
 export default resolveVoiceId;
-

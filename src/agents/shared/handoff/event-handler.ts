@@ -27,7 +27,7 @@ import {
 
 // Types from handoff system
 import type { HandoffEventPayload, NewHandoffData, LegacyHandoffData } from './types.js';
-import { getNextMessageSeq } from './session-state.js';
+import { getNextMessageSeqSync } from './session-state.js';
 
 const log = getLogger();
 
@@ -86,7 +86,16 @@ export interface EventHandlerResult {
  * @returns Handler function and cleanup
  */
 export function createEventHandler(config: EventHandlerConfig): EventHandlerResult {
-  const { ctx, session, tts, services, userData, getVoiceAgentRef, sessionId: configSessionId, initialAgent } = config;
+  const {
+    ctx,
+    session,
+    tts,
+    services,
+    userData,
+    getVoiceAgentRef,
+    sessionId: configSessionId,
+    initialAgent,
+  } = config;
   // Use passed sessionId if available, otherwise fall back to room name
   // CRITICAL: This MUST match the sessionId used by data-channel-handler
   const sessionId = configSessionId || ctx.room?.name || `event-handler-${Date.now()}`;
@@ -193,14 +202,13 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
           previousAgent: adapter?.getCurrentAgent() || 'ferni',
           rollbackTo: adapter?.getCurrentAgent() || 'ferni',
           error: errorMsg,
-          seq: getNextMessageSeq(sessionId),
+          seq: getNextMessageSeqSync(sessionId),
           timestamp: Date.now(),
         });
 
-        await ctx.room.localParticipant?.publishData(
-          new TextEncoder().encode(failureMessage),
-          { reliable: true }
-        );
+        await ctx.room.localParticipant?.publishData(new TextEncoder().encode(failureMessage), {
+          reliable: true,
+        });
       } catch (sendErr) {
         log.warn({ error: String(sendErr) }, 'Failed to send failure to frontend');
       }
@@ -254,4 +262,3 @@ export function createHandoffEventHandler(config: EventHandlerConfig) {
 // ============================================================================
 
 export default createEventHandler;
-

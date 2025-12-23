@@ -43,7 +43,10 @@ function startServer(name: string, command: string, args: string[], port: number
 
   // Handle spawn errors (e.g., command not found, permission denied)
   proc.on('error', (err) => {
-    log.error({ server: name, error: err.message, code: (err as NodeJS.ErrnoException).code }, 'Failed to spawn server process');
+    log.error(
+      { server: name, error: err.message, code: (err as NodeJS.ErrnoException).code },
+      'Failed to spawn server process'
+    );
     // Remove from servers list if spawn failed
     const index = servers.findIndex((s) => s.name === name);
     if (index !== -1) servers.splice(index, 1);

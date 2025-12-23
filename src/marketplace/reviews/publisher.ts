@@ -32,4 +32,3 @@ export function addPublisherResponse(reviewId: string, publisherId: string, body
   log.info({ reviewId, publisherId }, 'Publisher response added');
   return review;
 }
-

@@ -39,7 +39,9 @@ vi.mock('../firestore-utils.js', () => ({
 }));
 
 vi.mock('../commitment-calendar-integration.js', () => ({
-  validateCommitmentFeasibility: vi.fn().mockResolvedValue({ feasible: true, score: 80, suggestedSlots: [] }),
+  validateCommitmentFeasibility: vi
+    .fn()
+    .mockResolvedValue({ feasible: true, score: 80, suggestedSlots: [] }),
   createCalendarBlocksForCommitment: vi.fn().mockResolvedValue({ eventIds: [] }),
   buildCommitmentCalendarContext: vi.fn().mockResolvedValue(''),
 }));
@@ -141,10 +143,7 @@ describe('Commitment Keeper', () => {
     });
 
     it('should return false for non-commitment statements', () => {
-      const result = commitmentKeeper.detectCommitment(
-        'The weather is nice today',
-        'user123'
-      );
+      const result = commitmentKeeper.detectCommitment('The weather is nice today', 'user123');
 
       expect(result.detected).toBe(false);
     });
@@ -337,7 +336,7 @@ describe('Life Narrative', () => {
     });
 
     it('should detect triumph moments', () => {
-      const result = lifeNarrative.detectChapterMoment("I did it! I finally finished my book");
+      const result = lifeNarrative.detectChapterMoment('I did it! I finally finished my book');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('triumph');
@@ -369,10 +368,7 @@ describe('Life Narrative', () => {
     });
 
     it('should identify phoenix rising arc', () => {
-      const chapters: LifeChapter[] = [
-        createMockChapter('loss'),
-        createMockChapter('transition'),
-      ];
+      const chapters: LifeChapter[] = [createMockChapter('loss'), createMockChapter('transition')];
 
       const arcs = lifeNarrative.identifyNarrativeArc(chapters);
       expect(arcs).toContain('phoenix_rising');
@@ -423,7 +419,9 @@ describe('Values Alignment', () => {
 
   describe('detectValue', () => {
     it('should detect family values', () => {
-      const result = valuesAlignment.detectValue('Family is everything to me. Nothing matters more.');
+      const result = valuesAlignment.detectValue(
+        'Family is everything to me. Nothing matters more.'
+      );
 
       expect(result).not.toBeNull();
       expect(result?.category).toBe('family');
@@ -437,14 +435,16 @@ describe('Values Alignment', () => {
     });
 
     it('should detect authenticity values', () => {
-      const result = valuesAlignment.detectValue("I need to be real and authentic in everything I do");
+      const result = valuesAlignment.detectValue(
+        'I need to be real and authentic in everything I do'
+      );
 
       expect(result).not.toBeNull();
       expect(result?.category).toBe('authenticity');
     });
 
     it('should detect growth values', () => {
-      const result = valuesAlignment.detectValue("I want to grow and learn every day");
+      const result = valuesAlignment.detectValue('I want to grow and learn every day');
 
       expect(result).not.toBeNull();
       expect(result?.category).toBe('growth');
@@ -458,18 +458,20 @@ describe('Values Alignment', () => {
 
   describe('detectConflict', () => {
     it('should detect family-work conflict', () => {
-      const userValues: UserValue[] = [{
-        id: 'v1',
-        userId: 'user123',
-        category: 'family',
-        statement: 'Family comes first',
-        importance: 0.9,
-        mentions: 5,
-        firstMentioned: Date.now(),
-        lastMentioned: Date.now(),
-        contextExamples: [],
-        conflictCount: 0,
-      }];
+      const userValues: UserValue[] = [
+        {
+          id: 'v1',
+          userId: 'user123',
+          category: 'family',
+          statement: 'Family comes first',
+          importance: 0.9,
+          mentions: 5,
+          firstMentioned: Date.now(),
+          lastMentioned: Date.now(),
+          contextExamples: [],
+          conflictCount: 0,
+        },
+      ];
 
       const result = valuesAlignment.detectConflict(
         "I'm working late again and missed my kid's game",
@@ -481,18 +483,20 @@ describe('Values Alignment', () => {
     });
 
     it('should detect health conflicts', () => {
-      const userValues: UserValue[] = [{
-        id: 'v2',
-        userId: 'user123',
-        category: 'health',
-        statement: 'My health comes first',
-        importance: 0.85,
-        mentions: 3,
-        firstMentioned: Date.now(),
-        lastMentioned: Date.now(),
-        contextExamples: [],
-        conflictCount: 0,
-      }];
+      const userValues: UserValue[] = [
+        {
+          id: 'v2',
+          userId: 'user123',
+          category: 'health',
+          statement: 'My health comes first',
+          importance: 0.85,
+          mentions: 3,
+          firstMentioned: Date.now(),
+          lastMentioned: Date.now(),
+          contextExamples: [],
+          conflictCount: 0,
+        },
+      ];
 
       const result = valuesAlignment.detectConflict(
         "I'm exhausted and burned out from work",
@@ -549,7 +553,7 @@ describe('Emotional First Aid', () => {
     });
 
     it('should return null for non-crisis statements', () => {
-      const result = emotionalFirstAid.detectCrisis("I had a good day today");
+      const result = emotionalFirstAid.detectCrisis('I had a good day today');
       expect(result).toBeNull();
     });
   });
@@ -604,9 +608,7 @@ describe('Emotional First Aid', () => {
     });
 
     it('should include scripts for all levels', () => {
-      const levels: CrisisLevel[] = [
-        'grounding', 'calming', 'stabilizing', 'containing', 'safety'
-      ];
+      const levels: CrisisLevel[] = ['grounding', 'calming', 'stabilizing', 'containing', 'safety'];
 
       for (const level of levels) {
         const response = emotionalFirstAid.getFirstAidResponse(level);
@@ -642,28 +644,30 @@ describe('Relationship Network', () => {
 
   describe('extractPerson', () => {
     it('should extract family members', () => {
-      const result = relationshipNetwork.extractPerson("I talked to my mom yesterday");
+      const result = relationshipNetwork.extractPerson('I talked to my mom yesterday');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('family');
     });
 
     it('should extract partners', () => {
-      const result = relationshipNetwork.extractPerson("My husband said something that bothered me");
+      const result = relationshipNetwork.extractPerson(
+        'My husband said something that bothered me'
+      );
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('partner');
     });
 
     it('should extract named people from interactions', () => {
-      const result = relationshipNetwork.extractPerson("I talked to Sarah about the project");
+      const result = relationshipNetwork.extractPerson('I talked to Sarah about the project');
 
       expect(result).not.toBeNull();
       expect(result?.name).toBe('Sarah');
     });
 
     it('should return null for no person mentioned', () => {
-      const result = relationshipNetwork.extractPerson("The weather is nice today");
+      const result = relationshipNetwork.extractPerson('The weather is nice today');
       expect(result).toBeNull();
     });
   });
@@ -671,30 +675,26 @@ describe('Relationship Network', () => {
   describe('analyzeSentiment', () => {
     it('should detect very positive sentiment', () => {
       const result = relationshipNetwork.analyzeSentiment(
-        "I love my mom so much, she is amazing and wonderful"
+        'I love my mom so much, she is amazing and wonderful'
       );
       expect(result).toBe('very_positive');
     });
 
     it('should detect negative sentiment', () => {
-      const result = relationshipNetwork.analyzeSentiment(
-        "I'm so frustrated with my boss"
-      );
+      const result = relationshipNetwork.analyzeSentiment("I'm so frustrated with my boss");
       // 'frustrated' is one indicator, which results in 'tense' (needs 2+ for 'negative')
       expect(['negative', 'tense']).toContain(result);
     });
 
     it('should detect complicated sentiment', () => {
       const result = relationshipNetwork.analyzeSentiment(
-        "I love her but sometimes she drives me crazy"
+        'I love her but sometimes she drives me crazy'
       );
       expect(result).toBe('complicated');
     });
 
     it('should detect neutral sentiment', () => {
-      const result = relationshipNetwork.analyzeSentiment(
-        "I met with my colleague today"
-      );
+      const result = relationshipNetwork.analyzeSentiment('I met with my colleague today');
       expect(result).toBe('neutral');
     });
   });
@@ -754,19 +754,15 @@ describe('Capacity Guardian', () => {
 
   describe('detectOvercommitment', () => {
     it('should detect overcommitment patterns', () => {
-      expect(capacityGuardian.detectOvercommitment(
-        "I have so much on my plate right now"
-      )).toBe(true);
+      expect(capacityGuardian.detectOvercommitment('I have so much on my plate right now')).toBe(
+        true
+      );
 
-      expect(capacityGuardian.detectOvercommitment(
-        "I can't say no to anyone"
-      )).toBe(true);
+      expect(capacityGuardian.detectOvercommitment("I can't say no to anyone")).toBe(true);
     });
 
     it('should return false for non-overcommitment', () => {
-      expect(capacityGuardian.detectOvercommitment(
-        "I had a nice lunch today"
-      )).toBe(false);
+      expect(capacityGuardian.detectOvercommitment('I had a nice lunch today')).toBe(false);
     });
   });
 
@@ -798,42 +794,42 @@ describe('Dream Keeper', () => {
 
   describe('detectDream', () => {
     it('should detect creative dreams', () => {
-      const result = dreamKeeper.detectDream("I want to write a book someday");
+      const result = dreamKeeper.detectDream('I want to write a book someday');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('creative');
     });
 
     it('should detect career dreams', () => {
-      const result = dreamKeeper.detectDream("My dream job is to become a veterinarian");
+      const result = dreamKeeper.detectDream('My dream job is to become a veterinarian');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('career');
     });
 
     it('should detect adventure dreams', () => {
-      const result = dreamKeeper.detectDream("Before I die, I want to visit Japan");
+      const result = dreamKeeper.detectDream('Before I die, I want to visit Japan');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('adventure');
     });
 
     it('should detect relationship dreams', () => {
-      const result = dreamKeeper.detectDream("I want to get married and have kids someday");
+      const result = dreamKeeper.detectDream('I want to get married and have kids someday');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('relationship');
     });
 
     it('should detect healing dreams', () => {
-      const result = dreamKeeper.detectDream("I want to heal from my past trauma");
+      const result = dreamKeeper.detectDream('I want to heal from my past trauma');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('healing');
     });
 
     it('should return null for non-dream statements', () => {
-      const result = dreamKeeper.detectDream("I went to the store today");
+      const result = dreamKeeper.detectDream('I went to the store today');
       expect(result).toBeNull();
     });
   });
@@ -862,7 +858,7 @@ describe('Relationship Milestones', () => {
       const milestones = await relationshipMilestones.checkAndRecordMilestones('user123', stats);
 
       // Should have at least the 30-day milestone
-      const monthMilestone = milestones.find(m => m.title === 'One Month');
+      const monthMilestone = milestones.find((m) => m.title === 'One Month');
       if (milestones.length > 0) {
         expect(monthMilestone).toBeDefined();
       }
@@ -877,7 +873,7 @@ describe('Relationship Milestones', () => {
       const milestones = await relationshipMilestones.checkAndRecordMilestones('user123', stats);
 
       // Should have at least the 50-conversation milestone
-      const fiftyMilestone = milestones.find(m => m.title === '50 Conversations');
+      const fiftyMilestone = milestones.find((m) => m.title === '50 Conversations');
       if (milestones.length > 0 && fiftyMilestone) {
         expect(fiftyMilestone.type).toBe('conversations');
       }
@@ -956,7 +952,7 @@ describe('Seasonal Awareness', () => {
   describe('detectSeasonalPattern', () => {
     it('should detect SAD patterns', () => {
       const result = seasonalAwareness.detectSeasonalPattern(
-        "I always feel worse in winter, the dark days get to me"
+        'I always feel worse in winter, the dark days get to me'
       );
 
       expect(result).not.toBeNull();
@@ -964,18 +960,14 @@ describe('Seasonal Awareness', () => {
     });
 
     it('should detect holiday stress', () => {
-      const result = seasonalAwareness.detectSeasonalPattern(
-        "The holidays stress me out so much"
-      );
+      const result = seasonalAwareness.detectSeasonalPattern('The holidays stress me out so much');
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('holiday_stress');
     });
 
     it('should detect anniversary patterns', () => {
-      const result = seasonalAwareness.detectSeasonalPattern(
-        "It's been a year since she passed"
-      );
+      const result = seasonalAwareness.detectSeasonalPattern("It's been a year since she passed");
 
       expect(result).not.toBeNull();
       expect(result?.type).toBe('anniversary');
@@ -991,7 +983,7 @@ describe('Seasonal Awareness', () => {
     });
 
     it('should return null for non-seasonal statements', () => {
-      const result = seasonalAwareness.detectSeasonalPattern("I had lunch today");
+      const result = seasonalAwareness.detectSeasonalPattern('I had lunch today');
       expect(result).toBeNull();
     });
   });

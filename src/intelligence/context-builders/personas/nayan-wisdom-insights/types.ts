@@ -135,4 +135,3 @@ export interface NayanSession {
   questionsExplored: Set<string>;
   wisdomShared: string[];
 }
-

@@ -369,10 +369,7 @@ export class EventSequencer {
       this.currentHandoffId = handoffId;
     }
 
-    log.debug(
-      { sessionId: this.sessionId, handoffId },
-      '🔄 Sequencer reset'
-    );
+    log.debug({ sessionId: this.sessionId, handoffId }, '🔄 Sequencer reset');
   }
 
   /**
@@ -464,4 +461,3 @@ export const sequenceGenerator = new SequenceGenerator();
 // ============================================================================
 
 export default EventSequencer;
-

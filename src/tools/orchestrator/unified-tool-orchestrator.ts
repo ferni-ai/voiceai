@@ -40,6 +40,11 @@ import {
 } from '../advanced/tool-lifecycle.js';
 import { buildEssentialTools } from '../builder.js';
 import { detectToolIntent, type DetectedIntent } from '../dynamic-tool-router.js';
+import {
+  getUnifiedIntelligence,
+  initializeUnifiedIntelligence,
+  type IntelligenceEnhancement,
+} from '../intelligence/index.js';
 import { toolRegistry } from '../registry/index.js';
 import { initializeToolRegistry, loadToolDomainsLazy } from '../registry/loader.js';
 import type { Tool, ToolContext, ToolDomain } from '../registry/types.js';
@@ -87,6 +92,18 @@ export interface ToolSelectionContext {
   messageCount?: number;
   /** Is this a new user? */
   isNewUser?: boolean;
+  /** Session ID for tracking */
+  sessionId?: string;
+  /** Previous persona (for cross-persona intelligence) */
+  previousPersonaId?: string;
+  /** Voice emotion state (for emotion-aware tool selection) */
+  voiceEmotion?: {
+    primary: string;
+    valence: number;
+    arousal: number;
+    stressLevel: number;
+    anxietyMarkers: boolean;
+  };
 }
 
 export interface ToolSelectionResult {
@@ -106,6 +123,8 @@ export interface ToolSelectionResult {
       semantic: number;
       contextual: number;
       mcp: number;
+      /** Tools added from intelligence layer (anticipated/personalized) */
+      intelligence: number;
     };
     /** Intent detected from transcript */
     detectedIntent: DetectedIntent | null;
@@ -113,6 +132,13 @@ export interface ToolSelectionResult {
     semanticMatches: SemanticMatch[];
     /** Warnings/notes */
     warnings: string[];
+    /** Intelligence enhancement applied (Better Than Human) */
+    intelligenceEnhancement?: {
+      anticipatedTools: string[];
+      prioritizedTools: string[];
+      proactiveSuggestions: number;
+      isReturningUser: boolean;
+    };
   };
 }
 
@@ -299,7 +325,18 @@ export class UnifiedToolOrchestrator {
       });
       log.info('🔄 Tool lifecycle initialized');
 
-      // 4. Pre-cache essential tools
+      // 4. Initialize Unified Intelligence Layer (Better Than Human)
+      try {
+        await initializeUnifiedIntelligence();
+        log.info('🧠 Unified Intelligence Layer initialized');
+      } catch (intelligenceError) {
+        log.warn(
+          { error: String(intelligenceError) },
+          '⚠️ Intelligence layer partially initialized'
+        );
+      }
+
+      // 5. Pre-cache essential tools
       await this.preloadEssentialTools();
       log.info('⚡ Essential tools pre-cached');
 
@@ -357,7 +394,7 @@ export class UnifiedToolOrchestrator {
     }
 
     const warnings: string[] = [];
-    const sources = { essential: 0, semantic: 0, contextual: 0, mcp: 0 };
+    const sources = { essential: 0, semantic: 0, contextual: 0, mcp: 0, intelligence: 0 };
 
     // Build tool context
     const ctx: ToolContext = {
@@ -367,6 +404,48 @@ export class UnifiedToolOrchestrator {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       services: undefined as any, // Will be populated by builder
     };
+
+    // 0. GET INTELLIGENCE ENHANCEMENT (Better Than Human)
+    let intelligenceEnhancement: IntelligenceEnhancement | null = null;
+    try {
+      const intelligence = getUnifiedIntelligence();
+      intelligenceEnhancement = await intelligence.enhanceToolSelection(request.userId, {
+        personaId: request.agentId,
+        timeOfDay: new Date(),
+        transcript: request.transcript,
+        sessionHistory: request.conversationHistory,
+        // Better Than Human: Pass voice emotion for emotion-aware selection
+        voiceEmotion: request.context?.voiceEmotion,
+        // Better Than Human: Pass previous persona for cross-persona intelligence
+        previousPersonaId: request.context?.previousPersonaId,
+      });
+
+      if (intelligenceEnhancement.anticipatedTools.length > 0) {
+        log.debug(
+          {
+            anticipated: intelligenceEnhancement.anticipatedTools,
+            prioritized: intelligenceEnhancement.prioritizeTools.slice(0, 5),
+            emotionAware: !!intelligenceEnhancement.emotionAwareBoosts,
+            crossPersona: !!intelligenceEnhancement.crossPersonaContext,
+          },
+          '🧠 Intelligence enhancement applied (Better Than Human)'
+        );
+      }
+
+      // Log emotion-aware boosts
+      if (intelligenceEnhancement.emotionAwareBoosts) {
+        log.info(
+          {
+            boostedDomains: intelligenceEnhancement.emotionAwareBoosts.boostedDomains,
+            reason: intelligenceEnhancement.emotionAwareBoosts.reason,
+            stressLevel: intelligenceEnhancement.emotionAwareBoosts.stressLevel,
+          },
+          '🫂 Emotion-aware tool boosts applied'
+        );
+      }
+    } catch (intelligenceError) {
+      log.debug({ error: String(intelligenceError) }, 'Intelligence enhancement unavailable');
+    }
 
     // 1. ALWAYS-AVAILABLE TOOLS (Tier 0)
     const alwaysTools = await this.getAlwaysAvailableTools(ctx);
@@ -398,12 +477,20 @@ export class UnifiedToolOrchestrator {
       );
     }
 
-    // 5. MERGE AND FILTER
+    // 5. ANTICIPATED TOOLS (from intelligence layer - proactive loading)
+    let anticipatedTools: Record<string, Tool> = {};
+    if (intelligenceEnhancement?.anticipatedTools.length) {
+      anticipatedTools = await this.getToolsByIds(intelligenceEnhancement.anticipatedTools, ctx);
+      sources.intelligence = Object.keys(anticipatedTools).length;
+    }
+
+    // 6. MERGE AND FILTER
     let allTools: Record<string, Tool> = {
       ...alwaysTools,
       ...semanticTools,
       ...contextualTools,
       ...intentTools,
+      ...anticipatedTools,
     };
 
     // ======== NEW: Apply model-config.json settings ========
@@ -480,6 +567,15 @@ export class UnifiedToolOrchestrator {
         detectedIntent: intent.domains.length > 0 ? intent : null,
         semanticMatches: matches,
         warnings,
+        // Include intelligence enhancement info (Better Than Human)
+        intelligenceEnhancement: intelligenceEnhancement
+          ? {
+              anticipatedTools: intelligenceEnhancement.anticipatedTools,
+              prioritizedTools: intelligenceEnhancement.prioritizeTools.slice(0, 10),
+              proactiveSuggestions: intelligenceEnhancement.proactiveSuggestions.length,
+              isReturningUser: intelligenceEnhancement.contextHints.isReturningUser,
+            }
+          : undefined,
       },
     };
 
@@ -862,7 +958,25 @@ export class UnifiedToolOrchestrator {
     explanation += `  • Essential (always): ${result.meta.sources.essential}\n`;
     explanation += `  • Semantic (matched): ${result.meta.sources.semantic}\n`;
     explanation += `  • Contextual (smart): ${result.meta.sources.contextual}\n`;
-    explanation += `  • MCP (external): ${result.meta.sources.mcp}\n\n`;
+    explanation += `  • MCP (external): ${result.meta.sources.mcp}\n`;
+    explanation += `  • Intelligence (anticipated): ${result.meta.sources.intelligence}\n\n`;
+
+    // Better Than Human intelligence enhancement
+    if (result.meta.intelligenceEnhancement) {
+      const ie = result.meta.intelligenceEnhancement;
+      explanation += '🧠 Better Than Human Intelligence:\n';
+      explanation += `  • Returning user: ${ie.isReturningUser ? 'Yes' : 'No'}\n`;
+      if (ie.anticipatedTools.length > 0) {
+        explanation += `  • Anticipated tools: ${ie.anticipatedTools.join(', ')}\n`;
+      }
+      if (ie.prioritizedTools.length > 0) {
+        explanation += `  • Prioritized tools: ${ie.prioritizedTools.slice(0, 5).join(', ')}\n`;
+      }
+      if (ie.proactiveSuggestions > 0) {
+        explanation += `  • Proactive suggestions ready: ${ie.proactiveSuggestions}\n`;
+      }
+      explanation += '\n';
+    }
 
     if (result.meta.detectedIntent) {
       explanation += `Detected Intent:\n`;

@@ -69,7 +69,11 @@ function createMockRequest(
   return req;
 }
 
-function createMockResponse(): ServerResponse & { _data: string; _statusCode: number; _headers: Record<string, string> } {
+function createMockResponse(): ServerResponse & {
+  _data: string;
+  _statusCode: number;
+  _headers: Record<string, string>;
+} {
   let data = '';
   let statusCode = 200;
   const headers: Record<string, string> = {};
@@ -94,12 +98,18 @@ function createMockResponse(): ServerResponse & { _data: string; _statusCode: nu
     get _headers() {
       return headers;
     },
-  } as unknown as ServerResponse & { _data: string; _statusCode: number; _headers: Record<string, string> };
+  } as unknown as ServerResponse & {
+    _data: string;
+    _statusCode: number;
+    _headers: Record<string, string>;
+  };
 
   return res;
 }
 
-function createMockLifeContextSnapshot(overrides: Partial<LifeContextSnapshot> = {}): LifeContextSnapshot {
+function createMockLifeContextSnapshot(
+  overrides: Partial<LifeContextSnapshot> = {}
+): LifeContextSnapshot {
   return {
     userId: 'user-123',
     createdAt: new Date('2024-12-21T10:00:00Z'),

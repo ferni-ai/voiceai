@@ -13,7 +13,7 @@
  */
 
 import { EventEmitter } from 'events';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAgentBus } from '../agent-bus.js';

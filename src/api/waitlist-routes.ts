@@ -13,7 +13,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';

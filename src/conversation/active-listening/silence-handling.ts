@@ -100,4 +100,3 @@ export function getGentlePrompt(context?: { lastTopic?: string; userEmotion?: st
   const seed = `gentle-prompt:${context?.userEmotion ?? ''}:${context?.lastTopic ?? ''}`;
   return GENTLE_PROMPTS[seededIndex(seed, GENTLE_PROMPTS.length)] ?? GENTLE_PROMPTS[0];
 }
-

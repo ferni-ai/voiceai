@@ -12,6 +12,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
+import { openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
@@ -182,7 +183,7 @@ class ManageSubscriptionUI {
     // Action buttons
     this.container
       .querySelector('[data-action="billing-portal"]')
-      ?.addEventListener('click', () => this.openBillingPortal());
+      ?.addEventListener('click', () => this.handleOpenBillingPortal());
     this.container
       .querySelector('[data-action="apple-manage"]')
       ?.addEventListener('click', () => this.openAppleManagement());
@@ -274,29 +275,11 @@ class ManageSubscriptionUI {
   /**
    * Open Stripe billing portal
    */
-  private async openBillingPortal(): Promise<void> {
+  private async handleOpenBillingPortal(): Promise<void> {
     if (!this.userId) return;
 
-    try {
-      const response = await fetch('/subscription/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: this.userId,
-          returnUrl: window.location.href,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create portal session');
-      }
-
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (error) {
-      log.error('Failed to open billing portal:', error);
-      // Show toast error
-    }
+    // Use the consolidated billing utility (opens in same tab for redirect flow)
+    await openBillingPortal(this.userId, { openInNewTab: false });
   }
 
   /**

@@ -33,7 +33,7 @@ let persistenceStore: BillingStore | null = null;
 /** Get the billing store (lazy initialization) */
 async function getStore(): Promise<BillingStore | null> {
   if (persistenceStore) return persistenceStore;
-  
+
   try {
     persistenceStore = await getBillingStore();
     return persistenceStore;
@@ -411,7 +411,10 @@ async function persistRevenueShare(share: RevenueShare): Promise<void> {
       return; // Success
     } catch (error) {
       if (attempt === maxRetries) {
-        log.error({ error, itemId: share.itemId, period: share.period }, 'Failed to persist revenue share after retries');
+        log.error(
+          { error, itemId: share.itemId, period: share.period },
+          'Failed to persist revenue share after retries'
+        );
       } else {
         log.warn({ error, attempt }, 'Retrying revenue share persistence');
         await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
@@ -500,7 +503,10 @@ export async function initializeBilling(): Promise<void> {
   // Initialize persistence store
   try {
     persistenceStore = await getBillingStore();
-    log.info({ storeAvailable: persistenceStore.isAvailable() }, 'Billing system initialized with persistence');
+    log.info(
+      { storeAvailable: persistenceStore.isAvailable() },
+      'Billing system initialized with persistence'
+    );
   } catch (error) {
     log.warn({ error }, 'Billing system initialized without persistence');
   }

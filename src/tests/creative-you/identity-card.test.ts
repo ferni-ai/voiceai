@@ -196,4 +196,3 @@ describe('Identity Card Generator', () => {
     });
   });
 });
-

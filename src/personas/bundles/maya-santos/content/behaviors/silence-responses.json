@@ -163,7 +163,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with warmth. Show you noticed. One sentence.",
-      "examples": ["I keep thinking about what you said about {topic}.", "That thing you mentioned earlier - it felt important."]
+      "examples": [
+        "I keep thinking about what you said about {topic}.",
+        "That thing you mentioned earlier - it felt important."
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE supportive question. Based on what they've shared, ask something that invites gentle reflection. Keep it warm.",
@@ -187,4 +190,3 @@
     "thoughtful_question_min_turn_count": 5
   }
 }
-

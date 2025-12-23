@@ -15,7 +15,7 @@
  */
 
 import pino from 'pino';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { identifySpeaker, type VoiceProfile } from './voice-enrollment.js';

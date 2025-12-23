@@ -91,6 +91,9 @@ const upload = multer({
 
 /**
  * Extracts user ID from request (assumes auth middleware has already run)
+ *
+ * SECURITY: User ID must come from authenticated context only.
+ * Never trust user_id from request body/query in production.
  */
 function getUserId(req: Request): string | null {
   // Check various auth patterns used in the app
@@ -98,16 +101,20 @@ function getUserId(req: Request): string | null {
   if (user?.id) return user.id;
   if (user?.uid) return user.uid;
 
-  // Check for dev mode
-  const adminKey = req.body?.admin_key || req.query?.admin_key;
-  if (adminKey === 'dev-mode' && process.env.NODE_ENV !== 'production') {
-    return 'dev-user-123';
+  // FIX: Only allow dev mode / test user IDs in non-production
+  const isDev = process.env.NODE_ENV !== 'production';
+  if (isDev) {
+    const adminKey = req.body?.admin_key || req.query?.admin_key;
+    if (adminKey === 'dev-mode') {
+      // Allow explicit user_id in dev mode for testing
+      if (req.body?.user_id) return req.body.user_id;
+      if (req.query?.user_id) return req.query.user_id as string;
+      return 'dev-user-123';
+    }
   }
 
-  // Check for user_id in body or query (for testing)
-  if (req.body?.user_id) return req.body.user_id;
-  if (req.query?.user_id) return req.query.user_id as string;
-
+  // SECURITY: In production, user_id MUST come from authenticated context
+  // Never accept user_id from body/query - this prevents IDOR attacks
   return null;
 }
 

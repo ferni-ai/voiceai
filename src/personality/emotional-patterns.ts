@@ -329,7 +329,8 @@ function analyzeForPatterns(userId: string): void {
           trend: 'triggered',
           triggers: [mostCommonTopic],
           insight: pattern.insightTemplate.replace('{topic}', mostCommonTopic),
-          deliveryTiming: correlation >= CONFIG.HIGH_CORRELATION_THRESHOLD ? 'now' : 'when_relevant',
+          deliveryTiming:
+            correlation >= CONFIG.HIGH_CORRELATION_THRESHOLD ? 'now' : 'when_relevant',
           confidence: correlation,
           detectedAt: new Date(),
           lastUpdated: new Date(),

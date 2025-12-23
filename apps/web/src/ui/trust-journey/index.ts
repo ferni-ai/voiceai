@@ -164,7 +164,7 @@ function handleOnlineStatusChange(): void {
 
 function handleContentClick(e: Event): void {
   const target = e.target as HTMLElement;
-  const actionEl = target.closest('[data-action]');
+  const actionEl = target.closest('[data-action]') as HTMLElement | null;
   const action = actionEl?.getAttribute('data-action');
 
   if (action === 'retry') {

@@ -11,7 +11,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createAgentOrchestrator, type PersonaAgent, type OrchestratorConfig } from '../orchestrator.js';
+import {
+  createAgentOrchestrator,
+  type PersonaAgent,
+  type OrchestratorConfig,
+} from '../orchestrator.js';
 
 // Mock all external dependencies
 vi.mock('../../../utils/safe-logger.js', () => ({
@@ -194,7 +198,7 @@ describe('AgentOrchestrator', () => {
 
       // Check that createPersonaAgent was called twice (once for ferni, once for peter)
       expect(mockConfig.createPersonaAgent).toHaveBeenCalledTimes(2);
-      
+
       // Check the second call (peter-john) has handoff context
       const secondCall = (mockConfig.createPersonaAgent as ReturnType<typeof vi.fn>).mock.calls[1];
       expect(secondCall[0]).toBe('peter-john');
@@ -250,4 +254,3 @@ describe('AgentOrchestrator', () => {
     });
   });
 });
-

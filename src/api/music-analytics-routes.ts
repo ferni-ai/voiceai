@@ -31,11 +31,11 @@ const ADMIN_KEY = process.env.ADMIN_API_KEY || process.env.INTERNAL_API_KEY;
 
 /**
  * Verify admin request with proper security.
- * 
+ *
  * SECURITY: This function properly validates admin access:
  * - In production: REQUIRES valid ADMIN_KEY header
  * - In development: Allows 'dev-mode' key OR no key for easier testing
- * 
+ *
  * The 'dev-mode' bypass ONLY works when NODE_ENV === 'development'.
  */
 function verifyAdmin(req: IncomingMessage): boolean {

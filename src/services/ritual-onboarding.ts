@@ -14,7 +14,7 @@
  * PERSISTENCE: Onboarding state is persisted to Firestore to survive restarts.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 

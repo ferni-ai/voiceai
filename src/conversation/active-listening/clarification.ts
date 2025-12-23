@@ -6,10 +6,7 @@
  * @module conversation/active-listening/clarification
  */
 
-import {
-  getContentWithFallback,
-  type ContentContext,
-} from '../../services/llm-dynamic-content.js';
+import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 import { seededIndex } from '../utils/rng.js';
 
 import type { ClarifyingQuestion } from './types.js';
@@ -18,7 +15,10 @@ import type { ClarifyingQuestion } from './types.js';
 // CLARIFYING QUESTIONS
 // ============================================================================
 
-const CLARIFYING_QUESTIONS: Record<ClarifyingQuestion['type'], Array<{ q: string; ssml: string }>> = {
+const CLARIFYING_QUESTIONS: Record<
+  ClarifyingQuestion['type'],
+  Array<{ q: string; ssml: string }>
+> = {
   understanding: [
     {
       q: 'Let me make sure I understand...',
@@ -103,4 +103,3 @@ export function generateClarifyingQuestion(
     type,
   };
 }
-

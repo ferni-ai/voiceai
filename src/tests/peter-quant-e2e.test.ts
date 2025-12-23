@@ -50,10 +50,11 @@ describe('Peter Quant E2E', () => {
       expect(peterBundle?.manifest?.identity?.id).toBe('peter-john');
     });
 
-    it('should have Triple Quant identity', () => {
+    it('should have Cross-Domain Pattern Recognition identity', () => {
       const manifest = peterBundle?.manifest;
+      // Peter's identity evolved from "Triple Quant" to "Cross-Domain Pattern Recognition"
       expect(manifest?.llm_context?.identity_reminder).toContain('Quant');
-      expect(manifest?.llm_context?.role_summary).toContain('Triple Quant');
+      expect(manifest?.llm_context?.role_summary).toContain('Cross-Domain Pattern Recognition');
     });
 
     it('should have all quant tools in tool guidance', () => {

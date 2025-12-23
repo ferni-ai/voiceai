@@ -850,7 +850,7 @@ export function setupEvents(): void {
 
     // Toggle prompt textarea enabled state
     const checkbox = personaForm.querySelector('input[name="useSystemPromptOverride"]');
-    const textarea = personaForm.querySelector('textarea[name="systemPromptOverride"]');
+    const textarea = personaForm.querySelector('textarea[name="systemPromptOverride"]') as HTMLTextAreaElement | null;
     if (checkbox && textarea) {
       checkbox.addEventListener('change', (e) => {
         textarea.disabled = !(e.target as HTMLInputElement).checked;

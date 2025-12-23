@@ -164,7 +164,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with genuine enthusiasm. Show you're excited about their plans. One sentence.",
-      "examples": ["I keep thinking about what you said about {topic}!", "That thing you mentioned - sounds exciting!"]
+      "examples": [
+        "I keep thinking about what you said about {topic}!",
+        "That thing you mentioned - sounds exciting!"
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE forward-looking question. Based on what they've shared, ask something that invites dreaming or planning. Keep it warm.",
@@ -188,4 +191,3 @@
     "thoughtful_question_min_turn_count": 5
   }
 }
-

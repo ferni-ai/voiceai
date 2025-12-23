@@ -225,6 +225,9 @@ export async function loadBundle(
   const reloadCallbacks = new Set<() => void>();
 
   // Load story index if exists
+  // Handles two formats:
+  // 1. Direct: { stories: [...] }
+  // 2. Wrapped (marketplace agents): { stories_index: { stories: [...] } }
   async function loadStoryIndex(): Promise<StoryIndex | null> {
     if (storyIndex) return storyIndex;
 
@@ -233,7 +236,21 @@ export async function loadBundle(
 
     const indexPath = join(bundlePath, storiesDir, '_index.json');
     if (await fileExists(indexPath)) {
-      storyIndex = await loadJsonFile<StoryIndex>(indexPath);
+      const rawIndex = await loadJsonFile<StoryIndex | { stories_index: StoryIndex }>(indexPath);
+
+      // Handle wrapped format (marketplace agents use { stories_index: { stories: [] } })
+      if ('stories_index' in rawIndex && rawIndex.stories_index?.stories) {
+        storyIndex = { stories: rawIndex.stories_index.stories };
+      } else if ('stories' in rawIndex && Array.isArray(rawIndex.stories)) {
+        storyIndex = rawIndex as StoryIndex;
+      } else {
+        getLogger().warn(
+          { indexPath, keys: Object.keys(rawIndex) },
+          'Story index has unexpected format - expected "stories" or "stories_index.stories"'
+        );
+        return null;
+      }
+
       return storyIndex;
     }
 

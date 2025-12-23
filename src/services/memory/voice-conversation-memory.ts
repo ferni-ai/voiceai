@@ -14,7 +14,7 @@
  * @module VoiceConversationMemory
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import pino from 'pino';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';

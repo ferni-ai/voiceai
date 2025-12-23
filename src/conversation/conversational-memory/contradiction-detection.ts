@@ -198,4 +198,3 @@ export class ContradictionDetector {
     return fieldPhrases[Math.floor(Math.random() * fieldPhrases.length)];
   }
 }
-

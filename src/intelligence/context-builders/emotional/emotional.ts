@@ -107,6 +107,22 @@ async function buildEmotionalContext(input: ContextBuilderInput): Promise<Contex
       // Fire the trigger (probability gate could be added here in the future)
       recordTriggerFired(matchedTrigger.triggerName, 'emotional');
 
+      // Track for outcome recording on next turn (Phase 4 effectiveness learning)
+      // This allows us to learn which triggers actually help this user
+      if (userData && typeof userData === 'object') {
+        const ud = userData as {
+          lastFiredTriggers?: Array<{ name: string; category: string; timestamp: number }>;
+        };
+        if (!ud.lastFiredTriggers) {
+          ud.lastFiredTriggers = [];
+        }
+        ud.lastFiredTriggers.push({
+          name: matchedTrigger.triggerName,
+          category: 'emotional',
+          timestamp: Date.now(),
+        });
+      }
+
       injections.push(
         createHintInjection(
           `emotional_trigger_${matchedTrigger.triggerName}`,

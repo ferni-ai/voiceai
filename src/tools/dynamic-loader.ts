@@ -460,7 +460,7 @@ export class DynamicToolLoader {
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
-      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment'],
+      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment', 'information'],
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
       maxLoadedDomains: 8,
       enableAutoUnload: true,
@@ -601,10 +601,29 @@ export class DynamicToolLoader {
       return false;
     }
 
-    // Note: The registry doesn't support unloading yet, so we just track state
-    // In a full implementation, we'd remove tools from the registry
+    // Get all tools for this domain from the registry
+    const domainTools = toolRegistry.getByDomain(domain);
+    let unloadedCount = 0;
+
+    // Unregister each tool from the registry
+    for (const tool of domainTools) {
+      // Only unregister if this is the tool's primary domain
+      // (to avoid breaking tools that have multiple domains)
+      if (tool.domain === domain) {
+        const success = toolRegistry.unregister(tool.id);
+        if (success) {
+          unloadedCount++;
+        }
+      }
+    }
+
+    // Update local tracking
     this.loadedDomains.delete(domain);
-    getLogger().info({ domain }, '🔄 Domain marked for unload');
+
+    getLogger().info(
+      { domain, unloadedCount, totalInDomain: domainTools.length },
+      '🔄 Domain unloaded from registry'
+    );
     return true;
   }
 
@@ -704,7 +723,10 @@ export class DynamicToolLoader {
 
       const idleTime = now - state.lastUsedAt.getTime();
       if (idleTime > this.config.unloadAfterMs) {
-        void this.unloadDomain(domain);
+        // FIX: Don't fire-and-forget - catch errors to prevent unhandled rejections
+        this.unloadDomain(domain).catch((err) => {
+          getLogger().warn({ domain, error: String(err) }, '🔄 Error during auto-unload');
+        });
       }
     }
   }

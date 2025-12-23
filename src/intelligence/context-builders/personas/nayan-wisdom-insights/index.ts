@@ -71,11 +71,7 @@ import { buildCalendarWisdomContext } from './calendar-context.js';
 import { detectWisdomOpportunities } from './wisdom-opportunities.js';
 import { formatNayanBriefing } from './formatting.js';
 
-import type {
-  LifeSynthesis,
-  NayanInsightBriefing,
-  TeamSynthesis,
-} from './types.js';
+import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
@@ -278,4 +274,3 @@ registerContextBuilder({
 });
 
 export { buildNayanWisdomInsightsContext };
-

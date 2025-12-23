@@ -39,7 +39,19 @@ const log = createLogger({ module: 'TeamUnlocks' });
  *
  * @returns Set of member IDs to bypass, or null if no bypass
  */
+// FIX: Cache bypass config since env vars don't change at runtime
+// Avoids repeated parsing on every call to isMemberBypassed(), getTeamUnlockState(), etc.
+let cachedBypassConfig: { value: Set<TeamMemberId> | 'all' | null; parsed: boolean } = {
+  value: null,
+  parsed: false,
+};
+
 export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
+  // Return cached value if already parsed
+  if (cachedBypassConfig.parsed) {
+    return cachedBypassConfig.value;
+  }
+
   const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
 
   // Debug log to verify bypass value is being read
@@ -47,38 +59,44 @@ export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
     log.debug({ bypassValue }, '🔓 BYPASS_TEAM_UNLOCKS env var detected');
   }
 
-  if (!bypassValue) return null;
+  let result: Set<TeamMemberId> | 'all' | null = null;
 
-  const normalized = bypassValue.toLowerCase().trim();
+  if (bypassValue) {
+    const normalized = bypassValue.toLowerCase().trim();
 
-  // "all" or "true" means unlock everyone
-  if (normalized === 'all' || normalized === 'true') {
-    return 'all';
-  }
-
-  // Numeric value: unlock first N members (e.g., "2" = Maya + Peter)
-  const numericMatch = normalized.match(/^(\d+)$/);
-  if (numericMatch) {
-    const count = parseInt(numericMatch[1], 10);
-    // Skip Ferni (index 0), take next N members
-    const membersToUnlock = TEAM_MEMBER_ORDER.slice(0, count);
-    return new Set(['ferni', ...membersToUnlock] as TeamMemberId[]);
-  }
-
-  // Comma-separated list of names (e.g., "maya,peter" or "maya-santos,peter-john")
-  const names = normalized.split(',').map((n) => n.trim());
-  const memberIds = new Set<TeamMemberId>(['ferni']); // Ferni always unlocked
-
-  for (const name of names) {
-    const memberId = resolveMemberName(name);
-    if (memberId) {
-      memberIds.add(memberId);
+    // "all" or "true" means unlock everyone
+    if (normalized === 'all' || normalized === 'true') {
+      result = 'all';
     } else {
-      log.warn({ name }, 'Unknown team member in BYPASS_TEAM_UNLOCKS');
+      // Numeric value: unlock first N members (e.g., "2" = Maya + Peter)
+      const numericMatch = normalized.match(/^(\d+)$/);
+      if (numericMatch) {
+        const count = parseInt(numericMatch[1], 10);
+        // Skip Ferni (index 0), take next N members
+        const membersToUnlock = TEAM_MEMBER_ORDER.slice(0, count);
+        result = new Set(['ferni', ...membersToUnlock] as TeamMemberId[]);
+      } else {
+        // Comma-separated list of names (e.g., "maya,peter" or "maya-santos,peter-john")
+        const names = normalized.split(',').map((n) => n.trim());
+        const memberIds = new Set<TeamMemberId>(['ferni']); // Ferni always unlocked
+
+        for (const name of names) {
+          const memberId = resolveMemberName(name);
+          if (memberId) {
+            memberIds.add(memberId);
+          } else {
+            log.warn({ name }, 'Unknown team member in BYPASS_TEAM_UNLOCKS');
+          }
+        }
+
+        result = memberIds.size > 1 ? memberIds : null;
+      }
     }
   }
 
-  return memberIds.size > 1 ? memberIds : null;
+  // Cache the result for future calls
+  cachedBypassConfig = { value: result, parsed: true };
+  return result;
 }
 
 /**
@@ -454,6 +472,8 @@ export function getTeamMemberUnlockStatus(
   metrics?: {
     totalConversations: number;
     daysSinceFirstMeeting: number;
+    currentStreak?: number;
+    longestStreak?: number;
   }
 ): UnlockStatus {
   // Ferni is always unlocked
@@ -498,15 +518,35 @@ export function getTeamMemberUnlockStatus(
 }
 
 function calculateProgress(
-  metrics: { totalConversations: number; daysSinceFirstMeeting: number } | undefined,
-  threshold: { minConversations: number; minDays: number }
+  metrics:
+    | {
+        totalConversations: number;
+        daysSinceFirstMeeting: number;
+        currentStreak?: number;
+        longestStreak?: number;
+      }
+    | undefined,
+  threshold: { minConversations: number; minDays: number; minStreak: number }
 ): number {
   if (!metrics) return 0;
 
-  const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+  // Handle zero thresholds (0/0 = NaN) by treating as already met (100%)
+  const convProgress =
+    threshold.minConversations === 0
+      ? 1
+      : Math.min(1, metrics.totalConversations / threshold.minConversations);
+  const daysProgress =
+    threshold.minDays === 0 ? 1 : Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+  const streakProgress =
+    threshold.minStreak === 0
+      ? 1
+      : Math.min(
+          1,
+          Math.max(metrics.currentStreak ?? 0, metrics.longestStreak ?? 0) / threshold.minStreak
+        );
 
-  return (convProgress + daysProgress) / 2;
+  // Average all three factors (matches frontend calculation)
+  return (convProgress + daysProgress + streakProgress) / 3;
 }
 
 function getUnlockHint(stage: RelationshipStage): string {

@@ -68,8 +68,11 @@ WORKDIR /app
 # Copy design-system dist (needed for @design-system imports)
 COPY design-system/dist ./design-system/dist/
 
-# Copy design-system brand (needed for apps/web/public/design-system/brand symlink resolution)
-COPY design-system/brand ./design-system/brand/
+# Copy essential brand assets only (logos, favicons) - not full exports (27MB of social media images)
+# The frontend symlink at apps/web/public/design-system/brand only needs logos and favicons
+COPY design-system/brand/logos ./design-system/brand/logos/
+COPY design-system/brand/favicons ./design-system/brand/favicons/
+COPY design-system/brand/*.md ./design-system/brand/
 
 # Copy frontend package files (npm-based)
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
@@ -114,7 +117,15 @@ COPY .npmrc ./
 COPY patches/ ./patches/
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
+    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev && \
+    # Remove unnecessary files from node_modules to reduce image size (~30% reduction)
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
+    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
 

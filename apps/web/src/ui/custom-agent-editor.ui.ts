@@ -712,7 +712,7 @@ function attachTabListeners(): void {
       if (!currentAgent || !key) return;
 
       if (key in currentAgent.personality) {
-        (currentAgent.personality as Record<string, number>)[key] = value;
+        (currentAgent.personality as unknown as Record<string, number>)[key] = value;
       } else if (key === 'speed' && currentAgent.voice?.settings) {
         currentAgent.voice.settings.speed = 0.5 + value;
       } else if (key === 'stability' && currentAgent.voice?.settings) {

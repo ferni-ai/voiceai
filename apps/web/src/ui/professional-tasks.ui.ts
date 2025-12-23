@@ -455,7 +455,7 @@ function render(): string {
   if (!currentAgent) return '';
 
   const skills = (currentAgent.personality?.values || []) as string[];
-  const domains = (currentAgent.memories?.wisdom || []) as DomainExpertise[];
+  const domains = (currentAgent.memories?.wisdom || []) as unknown as DomainExpertise[];
   const taskTemplates = getDefaultTaskTemplates();
 
   return `
@@ -850,15 +850,15 @@ async function handleAddDomain(): Promise<void> {
   const description = prompt("Brief description of expertise:") || '';
 
   try {
-    const currentDomains = (currentAgent.memories?.wisdom || []) as Array<{ name: string; description: string }>;
+    const currentDomains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
     const updates = {
       memories: {
         ...currentAgent.memories,
-        wisdom: [...currentDomains, { name, description }]
+        wisdom: [...currentDomains, { name, description }] as unknown as typeof currentAgent.memories.wisdom
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Domain added!');
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
@@ -940,7 +940,7 @@ async function handleEditDomain(e: Event): Promise<void> {
   if (!currentAgent) return;
 
   const { toast } = await import('./toast.ui.js');
-  const domains = (currentAgent.memories?.wisdom || []) as Array<{ name: string; description: string }>;
+  const domains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
   const currentDomain = domains[index];
 
   const newName = prompt('Domain name:', currentDomain.name);
@@ -955,11 +955,11 @@ async function handleEditDomain(e: Event): Promise<void> {
     const updates = {
       memories: {
         ...currentAgent.memories,
-        wisdom: updatedDomains
+        wisdom: updatedDomains as unknown as typeof currentAgent.memories.wisdom
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Domain updated!');
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
@@ -976,7 +976,7 @@ async function handleDeleteDomain(e: Event): Promise<void> {
   if (!currentAgent) return;
 
   const { toast } = await import('./toast.ui.js');
-  const domains = (currentAgent.memories?.wisdom || []) as Array<{ name: string; description: string }>;
+  const domains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
 
   if (!confirm(`Remove domain "${domains[index].name}"?`)) return;
 
@@ -986,11 +986,11 @@ async function handleDeleteDomain(e: Event): Promise<void> {
     const updates = {
       memories: {
         ...currentAgent.memories,
-        wisdom: updatedDomains
+        wisdom: updatedDomains as unknown as typeof currentAgent.memories.wisdom
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Domain removed');
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {

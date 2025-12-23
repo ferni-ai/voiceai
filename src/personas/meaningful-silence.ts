@@ -40,10 +40,7 @@ import {
 } from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 // Dynamic persona content loading
-import {
-  loadSilenceResponses,
-  type SilenceResponses,
-} from '../services/persona-content-loader.js';
+import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
 // Trait-based dynamic responses (usage-tracked, avoids repetition)
 import {
   getDynamicSilenceResponseByPersonaId,
@@ -800,7 +797,11 @@ export function getMeaningfulSilenceResponse(
 
     // Share a gentle observation from the persona
     // Try dynamic trait-based observation first for variety
-    const dynamicObservation = getDynamicSilenceResponseByPersonaId(canonicalPersonaId, sessionId, 'observation');
+    const dynamicObservation = getDynamicSilenceResponseByPersonaId(
+      canonicalPersonaId,
+      sessionId,
+      'observation'
+    );
     if (dynamicObservation && Math.random() < 0.5) {
       return {
         type: 'gentle_observation',
@@ -1072,7 +1073,11 @@ function getThoughtfulQuestionSync(context: SilenceContext, persona: PersonaConf
 
   // Use dynamic trait-based questions (20% chance - avoids repetition via usage tracking)
   if (Math.random() < 0.5) {
-    const dynamicQuestion = getDynamicSilenceResponseByPersonaId(canonicalId, sessionId, 'question');
+    const dynamicQuestion = getDynamicSilenceResponseByPersonaId(
+      canonicalId,
+      sessionId,
+      'question'
+    );
     if (dynamicQuestion) {
       return dynamicQuestion;
     }
@@ -1440,8 +1445,13 @@ export async function getThoughtfulQuestionAsync(
   // Try topic-specific questions
   const topicLower = topics.map((t) => t.toLowerCase()).join(' ');
 
-  if (topicLower.includes('family') || topicLower.includes('kid') || topicLower.includes('parent')) {
-    const familyQuestions = dynamicContent?.thoughtful_questions?.family || THOUGHTFUL_QUESTIONS.family;
+  if (
+    topicLower.includes('family') ||
+    topicLower.includes('kid') ||
+    topicLower.includes('parent')
+  ) {
+    const familyQuestions =
+      dynamicContent?.thoughtful_questions?.family || THOUGHTFUL_QUESTIONS.family;
     return randomFrom(familyQuestions);
   }
 
@@ -1451,7 +1461,8 @@ export async function getThoughtfulQuestionAsync(
   }
 
   // Fall back to general
-  const generalQuestions = dynamicContent?.thoughtful_questions?.general || THOUGHTFUL_QUESTIONS.general;
+  const generalQuestions =
+    dynamicContent?.thoughtful_questions?.general || THOUGHTFUL_QUESTIONS.general;
   return randomFrom(generalQuestions);
 }
 
@@ -1494,7 +1505,8 @@ export async function getTimeAwareResponseAsync(
 
   // Early morning (5am - 8am)
   if (hour >= 5 && hour < 8) {
-    const earlyMorning = dynamicContent?.time_aware?.early_morning || TIME_AWARE_RESPONSES.earlyMorning;
+    const earlyMorning =
+      dynamicContent?.time_aware?.early_morning || TIME_AWARE_RESPONSES.earlyMorning;
     return randomFrom(earlyMorning);
   }
 
@@ -2008,21 +2020,34 @@ Keep it open. No pressure. Give them space.`;
     };
   }
 
-  // CRITICAL: Instructions must NOT start with identity statements like "You are Ferni..."
-  // The Gemini Live API puts instructions as role:'model' which causes echoing if it looks like
-  // something the model would say. Start with an action verb to prevent echoing.
-  // See: node_modules/@livekit/agents-plugin-google/src/beta/realtime/realtime_api.ts:652-662
-  const instructions = `Respond briefly to the user's silence (${Math.round(silenceDurationSeconds)} seconds).
+  // BEHAVIORAL INSTRUCTION PATTERN:
+  // We use bracketed instructions that tell the LLM HOW to respond.
+  // These are direct behavioral guidance that the sanitizer catches if echoed.
+  //
+  // Flow: generateReply → Gemini reads instructions → outputs JSON → sanitizer catches → session.say()
+  const personaName = persona.name || 'Ferni';
 
-${responseGuidance}
+  // Build behavioral instructions
+  const instructionParts = [
+    `[SITUATION: User silent for ${Math.round(silenceDurationSeconds)}s]`,
+    `[PERSONA: ${personaName}]`,
+    `[DO: ${responseGuidance}]`,
+    '[STYLE: warm, brief (1-2 sentences max)]',
+  ];
+  if (contextHints.length > 0) {
+    instructionParts.push(`[CONTEXT: ${contextHints.join('; ')}]`);
+  }
+  if (timeHint) {
+    instructionParts.push(`[TONE: ${timeHint}]`);
+  }
 
-${contextHints.length > 0 ? `Context to reference (don't read this out): ${contextHints.join('; ')}` : ''}
+  const behavioralGuidance = instructionParts.join('\n');
 
-RULES:
-- Maximum 1-2 sentences
-- ${timeHint ? timeHint : 'Natural, present energy'}
-- No SSML tags or special formatting
-- Just speak naturally`;
+  // JSON format instruction - we need this outputted
+  const instructions = `${behavioralGuidance}
+
+OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your message here"}}`;
 
   // Generate fallback using static system
   const staticResponse = getMeaningfulSilenceResponse(persona, context);

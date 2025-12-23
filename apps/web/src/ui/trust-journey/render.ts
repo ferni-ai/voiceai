@@ -316,7 +316,8 @@ function renderFilterTabs(currentFilter: TimelineFilterType, timeline: TimelineI
   const availableFilters = FILTER_OPTIONS.filter(f => f === 'all' || counts[f] > 0);
 
   return availableFilters.map(filter => `
-    <button aria-label="`)}" 
+    <button
+      aria-label="${t(`trustJourney.filters.${filter}`)}"
       class="timeline-filter-tab ${filter === currentFilter ? 'timeline-filter-tab--active' : ''}"
       data-action="filter"
       data-filter="${filter}"

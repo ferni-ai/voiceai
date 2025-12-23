@@ -139,4 +139,3 @@ export interface SuggestionContext {
   currentHour?: number;
   currentDayOfWeek?: number;
 }
-

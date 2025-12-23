@@ -19,7 +19,7 @@
  */
 
 import { createHmac, randomBytes } from 'crypto';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getGCPProjectId } from '../config/environment.js';
 import { getRedisCache } from '../memory/redis-cache.js';
 import { removeUndefined } from '../utils/firestore-utils.js';

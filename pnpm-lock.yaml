@@ -41,8 +41,8 @@ importers:
         specifier: ^1.0.27
         version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
       '@livekit/agents-plugin-openai':
-        specifier: ^1.0.27
-        version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+        specifier: ^1.0.30
+        version: 1.0.30(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/agents-plugin-silero':
         specifier: ^1.0.27
         version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
@@ -1744,11 +1744,11 @@ packages:
       '@livekit/agents': 1.0.27
       '@livekit/rtc-node': ^0.13.12
 
-  '@livekit/agents-plugin-openai@1.0.27':
-    resolution: {integrity: sha512-6GJkUzq8kbVCnW3+jkdyhiuykUWyu0TVYBtu4dX4U6e9sOETv6sXThBKqF6PvFUcSpquCQWoH2vvG27aXaUNSw==}
+  '@livekit/agents-plugin-openai@1.0.30':
+    resolution: {integrity: sha512-jeYJGiO2uaP14jDCLRlyTZl371iVg3j380OFK6WdJGPitxX5MGXBLqRUNLYVTZXB7llX9J/IAmk85+28D0sfOg==}
     peerDependencies:
-      '@livekit/agents': 1.0.27
-      '@livekit/rtc-node': ^0.13.12
+      '@livekit/agents': 1.0.30
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents-plugin-silero@1.0.27':
     resolution: {integrity: sha512-6C03MwiBa9OH1hKir7Dkn2LE1do2QOH28vKFVx5T1wlZ/9EFy+HZpoO9xOqUMRG6bgfzeBojncwAoEepZL0OJw==}
@@ -7649,7 +7649,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@livekit/agents-plugin-openai@1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
+  '@livekit/agents-plugin-openai@1.0.30(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
     dependencies:
       '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/mutex': 1.1.1
@@ -8547,7 +8547,7 @@ snapshots:
       recast: 0.23.11
       semver: 7.7.3
       util: 0.12.5
-      ws: 8.17.1
+      ws: 8.18.3
     optionalDependencies:
       prettier: 3.7.4
     transitivePeerDependencies:

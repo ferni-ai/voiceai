@@ -19,6 +19,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
+import { openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.ui.js';
@@ -205,6 +206,9 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
       </header>
 
       <div class="support-ferni-content">
+        <!-- Cost Transparency Section -->
+        ${renderCostTransparency()}
+
         <!-- Current Relationship Status -->
         <section class="support-ferni-section support-ferni-current">
           <div class="support-ferni-current-tier">
@@ -273,7 +277,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 
   // Billing portal link
   const billingLink = container.querySelector('[data-action="billing"]');
-  billingLink?.addEventListener('click', () => void openBillingPortal());
+  billingLink?.addEventListener('click', () => void handleOpenBillingPortal());
 
   return container;
 }
@@ -281,6 +285,47 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 // ============================================================================
 // RENDER HELPERS
 // ============================================================================
+
+/**
+ * Render the cost transparency section.
+ * Shows users the real cost of running Ferni so they understand the value of contributions.
+ */
+function renderCostTransparency(): string {
+  return `
+    <section class="support-ferni-section support-ferni-cost-transparency">
+      <h3 class="support-ferni-section-title">
+        ${ICONS.infinity}
+        <span>${t('support.costTransparency.title')}</span>
+      </h3>
+      <div class="support-ferni-cost-breakdown">
+        <p class="support-ferni-cost-intro">
+          ${t('support.costTransparency.intro')}
+        </p>
+        <div class="support-ferni-cost-items">
+          <div class="support-ferni-cost-item">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.aiThinking')}</span>
+            <span class="support-ferni-cost-value">~$0.03</span>
+          </div>
+          <div class="support-ferni-cost-item">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.voiceSynthesis')}</span>
+            <span class="support-ferni-cost-value">~$0.02</span>
+          </div>
+          <div class="support-ferni-cost-item">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.infrastructure')}</span>
+            <span class="support-ferni-cost-value">~$0.01</span>
+          </div>
+          <div class="support-ferni-cost-item support-ferni-cost-total">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.totalPerConversation')}</span>
+            <span class="support-ferni-cost-value">~$0.06</span>
+          </div>
+        </div>
+        <p class="support-ferni-cost-note">
+          ${t('support.costTransparency.note')}
+        </p>
+      </div>
+    </section>
+  `;
+}
 
 function renderUpgradeOptions(currentTier: string): string {
   const upgradeTiers = TIERS.filter((t) => t.id !== 'free' && t.id !== currentTier);
@@ -481,31 +526,12 @@ async function handlePlantSeed(): Promise<void> {
   }
 }
 
-async function openBillingPortal(): Promise<void> {
+async function handleOpenBillingPortal(): Promise<void> {
   const deviceId = appState.getState().deviceId;
   if (!deviceId) return;
 
-  try {
-    const response = await fetch('/subscription/billing-portal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        returnUrl: window.location.href,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.open(result.url, '_blank');
-    } else {
-      toast.error("Couldn't open billing. Try again?");
-    }
-  } catch (error) {
-    log.error('Billing portal failed:', error);
-    toast.error("Hmm, that didn't work. Try again?");
-  }
+  // Use the consolidated billing utility (opens in new tab by default)
+  await openBillingPortal(deviceId, { openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {
@@ -853,6 +879,85 @@ function injectStyles(): void {
     .support-ferni-manage-subtitle {
       font-size: 0.875rem;
       color: var(--color-text-secondary);
+    }
+
+    /* Cost Transparency Section */
+    .support-ferni-cost-transparency {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-xl, 16px);
+      padding: var(--space-4, 16px);
+    }
+
+    .support-ferni-cost-transparency .support-ferni-section-title {
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-transparency .support-ferni-section-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--persona-primary);
+    }
+
+    .support-ferni-cost-intro {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin: 0 0 var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-2, 8px) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .support-ferni-cost-item:last-child {
+      border-bottom: none;
+    }
+
+    .support-ferni-cost-label {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    .support-ferni-cost-value {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .support-ferni-cost-total {
+      border-top: 2px solid var(--persona-primary);
+      padding-top: var(--space-3, 12px);
+      margin-top: var(--space-2, 8px);
+    }
+
+    .support-ferni-cost-total .support-ferni-cost-label {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .support-ferni-cost-total .support-ferni-cost-value {
+      color: var(--persona-primary);
+      font-size: 1rem;
+    }
+
+    .support-ferni-cost-note {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+      margin: 0;
+      font-style: italic;
     }
 
     /* Tip Section */

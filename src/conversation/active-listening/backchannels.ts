@@ -228,4 +228,3 @@ export const NAYAN_SILENCE_BACKCHANNEL: Backchannel = {
   type: 'acknowledgment',
   energy: 'low',
 };
-

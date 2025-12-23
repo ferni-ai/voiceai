@@ -76,4 +76,3 @@ export interface UpdateReviewInput {
   title?: string;
   body?: string;
 }
-

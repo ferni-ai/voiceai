@@ -29,8 +29,45 @@ import { createLogger } from '../utils/safe-logger.js';
 import { getFinancialStore } from './stores/financial-store.js';
 import { getProductivityStore } from './stores/productivity-store.js';
 import { insightsBroadcast } from './insights-broadcast.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+
+// Superhuman service imports for "Better than Human" insights
+import {
+  loadUserCommitments,
+  assessBurnoutRisk,
+  findDormantDreams,
+  findUpcomingDates,
+  type Commitment,
+  type BurnoutAssessment,
+} from './superhuman/index.js';
 
 const log = createLogger({ module: 'cross-persona-insights' });
+
+// ============================================================================
+// PERSISTENCE
+// ============================================================================
+
+interface PersistedInsightsData {
+  insights: CrossPersonaInsight[];
+  lastScannedAt: number;
+}
+
+// Firestore persistence store for cross-persona insights
+// Path: bogle_users/{userId}/team_insights/data
+let persistenceStore: PersistenceStore<PersistedInsightsData> | null = null;
+
+function getInsightsPersistence(): PersistenceStore<PersistedInsightsData> {
+  if (!persistenceStore) {
+    persistenceStore = createPersistenceStore<PersistedInsightsData>({
+      collection: 'team_insights',
+      documentId: 'data',
+      syncIntervalMs: 3000, // Sync every 3 seconds
+      maxPendingChanges: 10,
+    });
+    log.info('Cross-persona insights persistence store initialized');
+  }
+  return persistenceStore;
+}
 
 // ============================================================================
 // TYPES
@@ -92,14 +129,69 @@ export interface TeamStatusSummary {
 // INSIGHT STORE
 // ============================================================================
 
-// Per-user insight storage
-const userInsights = new Map<string, CrossPersonaInsight[]>();
+// In-memory cache for fast access
+const userInsightsCache = new Map<string, CrossPersonaInsight[]>();
+const loadedUsers = new Set<string>();
 
+/**
+ * Get insights for a user (from cache or load from Firestore)
+ */
 function getInsightsForUser(userId: string): CrossPersonaInsight[] {
-  if (!userInsights.has(userId)) {
-    userInsights.set(userId, []);
+  if (!userInsightsCache.has(userId)) {
+    userInsightsCache.set(userId, []);
   }
-  return userInsights.get(userId)!;
+  return userInsightsCache.get(userId)!;
+}
+
+/**
+ * Load insights from Firestore for a user
+ */
+async function loadInsightsFromPersistence(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const store = getInsightsPersistence();
+    const data = await store.load(userId);
+
+    if (data?.insights && Array.isArray(data.insights)) {
+      // Filter out expired insights during load
+      const now = Date.now();
+      const validInsights = data.insights.filter((i) => i.expiresAt > now);
+      userInsightsCache.set(userId, validInsights);
+      log.debug({ userId, count: validInsights.length }, 'Loaded insights from persistence');
+    }
+
+    loadedUsers.add(userId);
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to load insights from persistence');
+    loadedUsers.add(userId); // Don't retry on failure
+  }
+}
+
+/**
+ * Persist insights to Firestore
+ */
+function persistInsights(userId: string): void {
+  const insights = userInsightsCache.get(userId) || [];
+  const store = getInsightsPersistence();
+
+  store.set(userId, {
+    insights,
+    lastScannedAt: Date.now(),
+  });
+}
+
+/**
+ * Persist insights immediately (for critical updates)
+ */
+async function persistInsightsImmediate(userId: string): Promise<void> {
+  const insights = userInsightsCache.get(userId) || [];
+  const store = getInsightsPersistence();
+
+  await store.setImmediate(userId, {
+    insights,
+    lastScannedAt: Date.now(),
+  });
 }
 
 // ============================================================================
@@ -115,6 +207,32 @@ export function addCrossPersonaInsight(
 ): CrossPersonaInsight {
   const insights = getInsightsForUser(userId);
 
+  // Check for duplicate insights (same source, target, category within last hour)
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const isDuplicate = insights.some(
+    (i) =>
+      i.source === insight.source &&
+      i.target === insight.target &&
+      i.category === insight.category &&
+      i.createdAt > oneHourAgo
+  );
+
+  if (isDuplicate) {
+    log.debug(
+      { userId, source: insight.source, category: insight.category },
+      'Skipping duplicate insight'
+    );
+    // Return the existing insight
+    const existing = insights.find(
+      (i) =>
+        i.source === insight.source &&
+        i.target === insight.target &&
+        i.category === insight.category &&
+        i.createdAt > oneHourAgo
+    );
+    return existing!;
+  }
+
   const fullInsight: CrossPersonaInsight = {
     ...insight,
     id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -123,6 +241,9 @@ export function addCrossPersonaInsight(
   };
 
   insights.push(fullInsight);
+
+  // Persist to Firestore (batched, not immediate)
+  persistInsights(userId);
 
   log.info(
     {
@@ -230,6 +351,7 @@ export function consumeInsight(userId: string, insightId: string): void {
     const insight = insights[index];
     if (insight.oneTime) {
       insights.splice(index, 1);
+      persistInsights(userId); // Persist the change
       log.debug({ userId, insightId }, '🗑️ One-time insight consumed');
     }
   }
@@ -244,10 +366,11 @@ export function clearExpiredInsights(userId: string): number {
   const initialLength = insights.length;
 
   const activeInsights = insights.filter((i) => i.expiresAt > now);
-  userInsights.set(userId, activeInsights);
+  userInsightsCache.set(userId, activeInsights);
 
   const removed = initialLength - activeInsights.length;
   if (removed > 0) {
+    persistInsights(userId); // Persist the cleanup
     log.debug({ userId, removed }, '🧹 Expired insights cleared');
   }
 
@@ -352,92 +475,318 @@ export async function generateTeamStatus(userId: string): Promise<TeamStatusSumm
 /**
  * Scan for cross-persona insights that should be generated
  * This runs periodically to detect patterns and create shareable insights
+ *
+ * Thresholds are intentionally LOW to generate insights frequently -
+ * users should see team activity to feel the "six minds working together" promise.
  */
 export async function scanForCrossPersonaInsights(userId: string): Promise<void> {
   try {
     const status = await generateTeamStatus(userId);
 
-    // Peter → Maya: Stress spending detected
-    if (status.financialHealth.recentStressTriggers >= 3) {
+    // =========================================================================
+    // PETER'S INSIGHTS (Financial patterns)
+    // =========================================================================
+
+    // Peter → Maya: Stress spending detected (lowered threshold: 2+ triggers)
+    if (status.financialHealth.recentStressTriggers >= 2) {
       addCrossPersonaInsight(userId, {
         source: 'peter',
         target: 'maya',
         priority: 'high',
-        content: `I noticed ${status.financialHealth.recentStressTriggers} stress-driven purchases in the last 2 weeks. This might be a coping pattern - could a healthy habit help address the underlying stress?`,
+        content: `I noticed ${status.financialHealth.recentStressTriggers} stress-driven purchases recently. There might be an emotional pattern here - a healthy coping habit could help.`,
         category: 'stress-spending-pattern',
         proactive: true,
         oneTime: true,
       });
     }
 
-    // Maya → Jordan: Keystone driving momentum
-    if (status.habitHealth.keystoneActive && status.habitHealth.totalStreakDays >= 30) {
+    // Peter → Jordan: Budget constraint for planning (lowered: 75%)
+    if (status.financialHealth.budgetUsedPercent > 75) {
+      addCrossPersonaInsight(userId, {
+        source: 'peter',
+        target: 'jordan',
+        priority: 'normal',
+        content: `Budget is ${status.financialHealth.budgetUsedPercent}% used this month. Worth keeping in mind for any new plans.`,
+        category: 'budget-awareness',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // Peter → All: Savings milestone (any progress)
+    if (status.goalStatus.totalSaved > 0) {
+      addCrossPersonaInsight(userId, {
+        source: 'peter',
+        target: 'all',
+        priority: 'low',
+        content: `$${status.goalStatus.totalSaved.toLocaleString()} saved toward goals. Every dollar is a vote for the future you want.`,
+        category: 'savings-encouragement',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // =========================================================================
+    // MAYA'S INSIGHTS (Habit patterns)
+    // =========================================================================
+
+    // Maya → Jordan: Any active habits = momentum
+    if (status.habitHealth.activeHabits >= 1 && status.habitHealth.totalStreakDays >= 3) {
       addCrossPersonaInsight(userId, {
         source: 'maya',
         target: 'jordan',
         priority: 'normal',
-        content: `Great momentum happening! ${status.habitHealth.totalStreakDays} total streak days and keystone habit is solid. Perfect time to tackle a bigger goal if they're considering one.`,
-        category: 'momentum-opportunity',
+        content: `${status.habitHealth.activeHabits} active habit${status.habitHealth.activeHabits > 1 ? 's' : ''} with ${status.habitHealth.totalStreakDays} total streak days. Consistency is building - great foundation for goals.`,
+        category: 'habit-momentum',
         proactive: false,
         oneTime: true,
       });
     }
 
-    // Jordan → Nayan: Life transition detected
-    if (status.goalStatus.nearingCompletion >= 2) {
-      addCrossPersonaInsight(userId, {
-        source: 'jordan',
-        target: 'nayan',
-        priority: 'low',
-        content: `Multiple goals nearing completion (${status.goalStatus.nearingCompletion}). They might be approaching a life chapter transition - good time for reflection.`,
-        category: 'transition-approaching',
-        proactive: false,
-        oneTime: true,
-      });
-    }
-
-    // Maya → All: Celebration needed
-    if (status.habitHealth.totalStreakDays >= 50) {
+    // Maya → All: Keystone habit active (celebration!)
+    if (status.habitHealth.keystoneActive) {
       addCrossPersonaInsight(userId, {
         source: 'maya',
         target: 'all',
         priority: 'high',
-        content: `🎉 CELEBRATION: ${status.habitHealth.totalStreakDays} total streak days across habits! This is massive progress worth acknowledging.`,
+        content: `The keystone habit is holding strong! This one habit is making everything else easier. Protect it.`,
+        category: 'keystone-celebration',
+        proactive: true,
+        oneTime: true,
+      });
+    }
+
+    // Maya → All: Streak milestone (lowered: 7+ days)
+    if (status.habitHealth.totalStreakDays >= 7) {
+      addCrossPersonaInsight(userId, {
+        source: 'maya',
+        target: 'all',
+        priority: 'normal',
+        content: `${status.habitHealth.totalStreakDays} total streak days! Every day you show up, you're building a new identity.`,
         category: 'streak-milestone',
         proactive: true,
         oneTime: true,
       });
     }
 
-    // Peter → Jordan: Budget constraint for planning
-    if (status.financialHealth.budgetUsedPercent > 90) {
-      addCrossPersonaInsight(userId, {
-        source: 'peter',
-        target: 'jordan',
-        priority: 'normal',
-        content: `Budget is ${status.financialHealth.budgetUsedPercent}% used this month. If they're planning anything new, timeline might need adjustment.`,
-        category: 'budget-constraint',
-        proactive: false,
-        oneTime: true,
-      });
-    }
-
-    // System → All: At-risk habits
-    if (status.habitHealth.atRiskCount >= 2) {
+    // System → Maya: At-risk habits (lowered: 1+ at risk)
+    if (status.habitHealth.atRiskCount >= 1) {
       addCrossPersonaInsight(userId, {
         source: 'system',
-        target: 'all',
+        target: 'maya',
         priority: 'high',
-        content: `${status.habitHealth.atRiskCount} habits at risk (had streaks, now broken). Self-compassion needed - setbacks are data, not failure.`,
+        content: `${status.habitHealth.atRiskCount} habit${status.habitHealth.atRiskCount > 1 ? 's' : ''} might need attention - a streak was broken. Remember: setbacks are data, not failure.`,
         category: 'habit-support-needed',
         proactive: true,
         oneTime: true,
       });
     }
 
+    // =========================================================================
+    // JORDAN'S INSIGHTS (Goal progress)
+    // =========================================================================
+
+    // Jordan → Nayan: Life transition detected (lowered: 1+ near completion)
+    if (status.goalStatus.nearingCompletion >= 1) {
+      addCrossPersonaInsight(userId, {
+        source: 'jordan',
+        target: 'nayan',
+        priority: 'normal',
+        content: `A goal is ${status.goalStatus.nearingCompletion >= 2 ? 'nearly complete' : 'approaching completion'}. This might be a good time for reflection on what comes next.`,
+        category: 'transition-reflection',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // Jordan → All: Active goals acknowledgment
+    if (status.goalStatus.activeGoals >= 1) {
+      addCrossPersonaInsight(userId, {
+        source: 'jordan',
+        target: 'all',
+        priority: 'low',
+        content: `${status.goalStatus.activeGoals} active goal${status.goalStatus.activeGoals > 1 ? 's' : ''} in progress. Each one represents a commitment to your future self.`,
+        category: 'goals-acknowledgment',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // =========================================================================
+    // CROSS-TEAM COORDINATION
+    // =========================================================================
+
+    // Ferni → All: Overall health check
+    const overallHealthy =
+      status.habitHealth.atRiskCount === 0 &&
+      status.financialHealth.budgetUsedPercent < 80 &&
+      !status.financialHealth.recentStressTriggers;
+
+    if (overallHealthy && status.habitHealth.activeHabits > 0) {
+      addCrossPersonaInsight(userId, {
+        source: 'ferni',
+        target: 'all',
+        priority: 'low',
+        content: `Things are looking balanced across the board. Habits are on track, spending is mindful. Keep going!`,
+        category: 'overall-wellness',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // Nayan → All: Wisdom opportunity (when there's activity to reflect on)
+    if (status.habitHealth.totalStreakDays > 0 || status.goalStatus.activeGoals > 0) {
+      addCrossPersonaInsight(userId, {
+        source: 'nayan',
+        target: 'all',
+        priority: 'low',
+        content: `You're building something meaningful here. Take a moment to notice how far you've come.`,
+        category: 'wisdom-reflection',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // =========================================================================
+    // SUPERHUMAN SERVICE INSIGHTS (Better Than Human)
+    // =========================================================================
+    await scanSuperhumanInsights(userId);
+
     log.debug({ userId }, '🔍 Cross-persona insight scan complete');
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Error scanning for cross-persona insights');
+  }
+}
+
+/**
+ * Scan superhuman services for insights that should surface to the team
+ * These are the "Better Than Human" capabilities that no friend could provide.
+ */
+async function scanSuperhumanInsights(userId: string): Promise<void> {
+  try {
+    // Run superhuman scans in parallel
+    const [commitments, burnout, dormantDreams, upcomingDates] = await Promise.all([
+      safeCall(async () => loadUserCommitments(userId)),
+      safeCall(async () => assessBurnoutRisk(userId)),
+      safeCall(async () => findDormantDreams(userId)),
+      safeCall(async () => findUpcomingDates(userId, 14)), // Next 2 weeks
+    ]);
+
+    // =========================================================================
+    // COMMITMENT KEEPER INSIGHTS (Ferni keeps promises)
+    // =========================================================================
+    if (commitments && commitments.length > 0) {
+      const activeCommitments = commitments.filter((c: Commitment) => c.status === 'active');
+      const overdueCommitments = activeCommitments.filter(
+        (c: Commitment) => c.followUpAfter && c.followUpAfter < Date.now()
+      );
+
+      if (overdueCommitments.length > 0) {
+        addCrossPersonaInsight(userId, {
+          source: 'ferni',
+          target: 'all',
+          priority: 'high',
+          content: `You mentioned ${overdueCommitments.length > 1 ? 'some things' : 'something'} you wanted to do: "${overdueCommitments[0].summary}". Just checking in - no pressure.`,
+          category: 'commitment-followup',
+          proactive: true,
+          oneTime: true,
+        });
+      }
+
+      if (activeCommitments.length >= 3) {
+        addCrossPersonaInsight(userId, {
+          source: 'ferni',
+          target: 'maya',
+          priority: 'normal',
+          content: `${activeCommitments.length} active commitments right now. Might be worth helping prioritize or let some go.`,
+          category: 'commitment-load',
+          proactive: false,
+          oneTime: true,
+        });
+      }
+    }
+
+    // =========================================================================
+    // CAPACITY GUARDIAN INSIGHTS (Prevent burnout)
+    // =========================================================================
+    if (burnout) {
+      const assessment = burnout as BurnoutAssessment;
+      if (assessment.risk === 'high' || assessment.risk === 'critical') {
+        const signalDescriptions =
+          assessment.factors?.map((f) => f.factor).join(', ') || 'exhaustion patterns';
+        addCrossPersonaInsight(userId, {
+          source: 'system',
+          target: 'all',
+          priority: 'critical',
+          content: `⚠️ Burnout signals detected: ${signalDescriptions}. Gentle care needed.`,
+          category: 'burnout-warning',
+          proactive: true,
+          oneTime: true,
+        });
+      } else if (assessment.risk === 'moderate') {
+        addCrossPersonaInsight(userId, {
+          source: 'maya',
+          target: 'all',
+          priority: 'high',
+          content: `Some signs of depletion showing up. A rest day or lighter load might help.`,
+          category: 'capacity-warning',
+          proactive: true,
+          oneTime: true,
+        });
+      }
+    }
+
+    // =========================================================================
+    // DREAM KEEPER INSIGHTS (Don't let dreams fade)
+    // =========================================================================
+    if (dormantDreams && dormantDreams.length > 0) {
+      // dormantDreams is DreamReminder[] from findDormantDreams
+      const topReminder = dormantDreams[0];
+      addCrossPersonaInsight(userId, {
+        source: 'nayan',
+        target: 'all',
+        priority: 'normal',
+        content: `Remember when you talked about "${topReminder.dreamTitle}"? That dream hasn't gone away. When you're ready...`,
+        category: 'dormant-dream',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // =========================================================================
+    // SEASONAL AWARENESS INSIGHTS (Remember important dates)
+    // =========================================================================
+    if (upcomingDates && upcomingDates.length > 0) {
+      // upcomingDates is Array<{ date: PersonalDate; daysUntil: number }>
+      const highPriority = upcomingDates.filter((entry) => entry.date.importance > 0.8);
+
+      if (highPriority.length > 0) {
+        const nextEntry = highPriority[0];
+        const dateStr = `${nextEntry.date.month}/${nextEntry.date.day}`;
+        addCrossPersonaInsight(userId, {
+          source: 'jordan',
+          target: 'all',
+          priority: 'high',
+          content: `${nextEntry.date.name} is coming up on ${dateStr} (in ${nextEntry.daysUntil} days). Want help preparing?`,
+          category: 'upcoming-date',
+          proactive: true,
+          oneTime: true,
+        });
+      }
+    }
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Superhuman insights scan had issues (non-fatal)');
+  }
+}
+
+/**
+ * Safely call an async function, returning null on failure
+ */
+async function safeCall<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
   }
 }
 
@@ -452,7 +801,10 @@ export async function buildInsightBriefingForHandoff(
   userId: string,
   targetPersonaId: string
 ): Promise<InsightBriefing> {
-  // Clear expired insights first
+  // Load from persistence first (if not already loaded)
+  await loadInsightsFromPersistence(userId);
+
+  // Clear expired insights
   clearExpiredInsights(userId);
 
   // Scan for new insights
@@ -622,9 +974,10 @@ export function recordInsight(
 }
 
 /**
- * Load insights for a user (alias for clearing and scanning)
+ * Load insights for a user from persistence and scan for new ones
  */
 export async function loadInsights(userId: string): Promise<void> {
+  await loadInsightsFromPersistence(userId);
   clearExpiredInsights(userId);
   await scanForCrossPersonaInsights(userId);
 }

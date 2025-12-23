@@ -350,6 +350,63 @@ export async function linkWithApple(): Promise<UserCredential> {
   return result;
 }
 
+/**
+ * Link Google account using ID token from Google One-Tap.
+ *
+ * This method is specifically for One-Tap which returns a JWT credential
+ * instead of using the OAuth popup flow. The token is verified server-side
+ * by Firebase, so we trust it here.
+ *
+ * @param idToken - JWT credential from Google Identity Services
+ * @returns UserCredential on success
+ * @throws Error if linking fails
+ */
+export async function linkWithGoogleCredential(idToken: string): Promise<UserCredential> {
+  const auth = getFirebaseAuth();
+  if (!auth || !currentUser) {
+    throw new Error('Not authenticated');
+  }
+
+  if (!currentUser.isAnonymous) {
+    throw new Error('Account already linked');
+  }
+
+  log.info('Linking Google account via One-Tap credential');
+
+  // Create credential from the One-Tap ID token
+  const credential = GoogleAuthProvider.credential(idToken);
+
+  try {
+    const result = await linkWithCredential(currentUser, credential);
+    log.info('Google account linked successfully via One-Tap');
+    return result;
+  } catch (error: unknown) {
+    // Handle specific Firebase errors with friendly messages
+    if (error && typeof error === 'object' && 'code' in error) {
+      const firebaseError = error as { code: string; message: string };
+
+      if (firebaseError.code === 'auth/credential-already-in-use') {
+        log.warn('Google account already linked to another user');
+        throw new Error(
+          'This Google account is already linked to another Ferni account. Try a different account?'
+        );
+      }
+
+      if (firebaseError.code === 'auth/invalid-credential') {
+        log.error('Invalid credential from One-Tap');
+        throw new Error('Something went wrong with Google sign-in. Try again?');
+      }
+
+      if (firebaseError.code === 'auth/provider-already-linked') {
+        log.info('Google already linked to this account');
+        throw new Error('You already have Google linked to this account!');
+      }
+    }
+
+    throw error;
+  }
+}
+
 // ============================================================================
 // PASSWORD RESET
 // ============================================================================
@@ -434,6 +491,7 @@ export const firebaseAuth = {
   isAccountLinked,
   linkWithEmail,
   linkWithGoogle,
+  linkWithGoogleCredential,
   linkWithApple,
   resetPassword,
   signOut,

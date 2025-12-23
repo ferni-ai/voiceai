@@ -91,23 +91,23 @@ describe('Persona Colors - Design System Validation', () => {
         });
 
         it('should have valid rgba glow color', () => {
-          const glow = DESIGN_SYSTEM_PERSONA_COLORS[persona].glow;
+          const { glow } = DESIGN_SYSTEM_PERSONA_COLORS[persona];
           expect(glow).toMatch(/^rgba\(\d+,\s*\d+,\s*\d+,\s*[\d.]+\)$/);
         });
 
         it('should have valid rgba tint color', () => {
-          const tint = DESIGN_SYSTEM_PERSONA_COLORS[persona].tint;
+          const { tint } = DESIGN_SYSTEM_PERSONA_COLORS[persona];
           expect(tint).toMatch(/^rgba\(\d+,\s*\d+,\s*\d+,\s*[\d.]+\)$/);
         });
 
         it('glow should have ~0.28 opacity', () => {
-          const glow = DESIGN_SYSTEM_PERSONA_COLORS[persona].glow;
+          const { glow } = DESIGN_SYSTEM_PERSONA_COLORS[persona];
           const opacity = parseFloat(glow.split(',')[3]);
           expect(opacity).toBeCloseTo(0.28, 1);
         });
 
         it('tint should have 0.06 opacity', () => {
-          const tint = DESIGN_SYSTEM_PERSONA_COLORS[persona].tint;
+          const { tint } = DESIGN_SYSTEM_PERSONA_COLORS[persona];
           const opacity = parseFloat(tint.split(',')[3]);
           expect(opacity).toBeCloseTo(0.06, 2);
         });
@@ -155,7 +155,7 @@ describe('Persona Colors - Design System Validation', () => {
 
     personas.forEach((persona) => {
       it(`${persona}: white text should have sufficient contrast on primary`, () => {
-        const primary = DESIGN_SYSTEM_PERSONA_COLORS[persona].primary;
+        const { primary } = DESIGN_SYSTEM_PERSONA_COLORS[persona];
         const contrast = getContrastRatio('#ffffff', primary);
         // WCAG AA for normal text is 4.5:1, for large text 3:1
         // Known issue: Nayan's golden amber (#b8956a) has ~2.78 contrast
@@ -224,7 +224,7 @@ describe('Generated Colors Consistency', () => {
 
   it('generated Ferni colors should match design system', async () => {
     const generated = await import('../../apps/web/src/config/persona-colors.generated.js');
-    const ferni = generated.GENERATED_PERSONA_COLORS.ferni;
+    const { ferni } = generated.GENERATED_PERSONA_COLORS;
 
     expect(ferni.primary).toBe(DESIGN_SYSTEM_PERSONA_COLORS.ferni.primary);
     expect(ferni.secondary).toBe(DESIGN_SYSTEM_PERSONA_COLORS.ferni.secondary);
@@ -248,4 +248,3 @@ describe('Known Color Issues', () => {
     expect(true).toBe(true); // Documenting this edge case
   });
 });
-

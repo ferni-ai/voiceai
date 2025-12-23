@@ -420,10 +420,7 @@ export class HandoffStateManager {
     // Emit event
     this.emitChange('handoff_failed', previousState, { error, record });
 
-    log.error(
-      { sessionId: this.sessionId, error, from: this.currentAgent },
-      '❌ Handoff failed'
-    );
+    log.error({ sessionId: this.sessionId, error, from: this.currentAgent }, '❌ Handoff failed');
   }
 
   /**
@@ -441,10 +438,7 @@ export class HandoffStateManager {
 
       this.emitChange('agent_changed', previousState, { agent: canonical });
 
-      log.debug(
-        { sessionId: this.sessionId, agent: canonical },
-        '📋 Current agent set directly'
-      );
+      log.debug({ sessionId: this.sessionId, agent: canonical }, '📋 Current agent set directly');
     }
   }
 
@@ -579,4 +573,3 @@ export function removeHandoffManager(sessionId: string): void {
 // ============================================================================
 
 export default HandoffStateManager;
-

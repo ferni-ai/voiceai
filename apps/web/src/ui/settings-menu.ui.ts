@@ -16,7 +16,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
   relationshipStageService,
-  STAGE_NAMES,
+  getTranslatedStageName,
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
@@ -215,6 +215,7 @@ const ICONS = {
   // Digital Twin / Journal
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
+
 };
 
 // ============================================================================
@@ -254,7 +255,7 @@ const SECTION_VISIBILITY: SectionVisibility = {
   practices: 'first-meeting', // Always visible - daily practices
   youAndFerni: 'first-meeting', // Always visible (was: account)
   grow: 'getting-started', // After 2+ conversations
-  remember: 'building-trust', // After building trust
+  remember: 'first-meeting', // Always visible - Your People, memories
 };
 
 // ============================================================================
@@ -572,7 +573,7 @@ class SettingsMenuUI {
         <div class="settings-menu__stage-banner">
           <div class="settings-menu__stage-info">
             <span class="settings-menu__stage-label">${t('menu.yourStage')}</span>
-            <span class="settings-menu__stage-name">${STAGE_NAMES[currentStage]}</span>
+            <span class="settings-menu__stage-name">${getTranslatedStageName(currentStage)}</span>
           </div>
           ${
             progress.nextStage
@@ -581,7 +582,7 @@ class SettingsMenuUI {
               <div class="settings-menu__stage-bar">
                 <div class="settings-menu__stage-fill" style="width: ${Math.round(progress.progress * 100)}%"></div>
               </div>
-              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: STAGE_NAMES[progress.nextStage] })}</span>
+              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: getTranslatedStageName(progress.nextStage) })}</span>
             </div>
           `
               : `
@@ -700,7 +701,6 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItem('outreach-schedule', ICONS.bell, t('menu.items.outreachSchedule'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
           `
                 )
@@ -730,7 +730,7 @@ class SettingsMenuUI {
           ${this.renderAdminSection(expandedSections)}
 
           <!-- Bottom Quick Actions -->
-          <div class="settings-menu__quick-actions" role="button" tabindex="0">
+          <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
@@ -923,7 +923,6 @@ class SettingsMenuUI {
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
-      'outreach-schedule': { icon: ICONS.bell, label: t('menu.items.outreachSchedule') },
     };
 
     const pinnedItemsHtml = [...this.pinnedItems]
@@ -988,7 +987,7 @@ class SettingsMenuUI {
     const isLocked = this.isFeatureLocked(action);
     const requiredStage = this.getRequiredStage(action);
     const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const stageName = requiredStage ? STAGE_NAMES[requiredStage] : '';
+    const stageName = requiredStage ? getTranslatedStageName(requiredStage) : '';
 
     if (isLocked) {
       return `
@@ -996,7 +995,7 @@ class SettingsMenuUI {
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">Unlock at ${stageName}</span>
+            <span class="settings-menu__unlock-hint">${t('menu.unlockHint', { remaining: stageName })}</span>
           </span>
           <span class="settings-menu__lock-icon">${ICONS.lock}</span>
         </button>
@@ -1204,6 +1203,7 @@ class SettingsMenuUI {
         // Open roadmap panel with overview (no specific feature)
         showRoadmapPanel();
         break;
+      // Quick Add actions
     }
   }
 
@@ -1995,6 +1995,7 @@ class SettingsMenuUI {
         background: var(--color-background-tertiary, #504540);
       }
 
+      /* Dark Theme - Quick Add Section */
       /* Dark Theme - Collapsible Sections */
       [data-theme="midnight"] .settings-menu__section-header:hover {
         background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));

@@ -475,9 +475,12 @@
       "presence",
       "difficult-conversations",
       "workflow-mastery",
-      "marketing"
+      "marketing",
+      "social-skills",
+      "boundaries",
+      "dating"
     ],
-    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine), marketing (generate and publish social content - dogfooding Ferni's marketing). Target: 45-55 tools.",
+    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine), marketing (generate and publish social content - dogfooding Ferni's marketing). NEW: Added life coaching domains (social-skills, boundaries, dating) for interpersonal communication support. Target: 55-65 tools.",
     "better_than_human": {
       "vulnerability": "Safe space to practice difficult truths. No judgment on communication fears or past failures.",
       "presence": "Stay grounded during hard conversations. Breathing and centering before big moments.",

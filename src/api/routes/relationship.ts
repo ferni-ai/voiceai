@@ -3,6 +3,7 @@
  *
  * GET /api/relationship/progress - Get relationship progress
  * POST /api/relationship/progress - Sync relationship progress from frontend
+ * GET /api/relationship/team-unlocks - Get team unlock state
  *
  * UNIFIED DATA MODEL:
  * Uses the same stage names as frontend: first-meeting, getting-started,
@@ -13,6 +14,12 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
+import {
+  getTeamUnlockState,
+  parseBypassConfig,
+  TEAM_MEMBERS,
+  type TeamMemberId,
+} from '../../services/team-unlocks.js';
 
 const log = createLogger({ module: 'RelationshipAPI' });
 
@@ -318,6 +325,141 @@ export async function handlePostRelationshipProgress(
 }
 
 /**
+ * GET /api/relationship/team-unlocks - Get team unlock state
+ *
+ * Returns which team members are unlocked for the current user.
+ * Also exposes bypass mode for frontend synchronization.
+ *
+ * Response:
+ * - stage: Current relationship stage
+ * - tier: Subscription tier
+ * - unlockedMembers: Array of unlocked member IDs
+ * - members: Full member status with progress
+ * - nextUnlock: Info about next member to unlock
+ * - bypassMode: Whether bypass is active (for dev/testing)
+ */
+export async function handleGetTeamUnlocks(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
+    const { getConversationHistoryService } =
+      await import('../../services/stores/conversation-history.js');
+
+    const store = await getEngagementStore();
+    const historyService = getConversationHistoryService();
+
+    const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
+    const history = await historyService.getHistory(userId, 100);
+
+    // Extract metrics (same as handleGetRelationshipProgress)
+    const totalConversations = history.totalSessions || 0;
+    const firstMeetingDate = (profile.firstMeetingDate as string) || profile.createdAt;
+    const daysSinceFirstMeeting = firstMeetingDate
+      ? Math.floor((Date.now() - new Date(firstMeetingDate).getTime()) / (24 * 60 * 60 * 1000))
+      : 0;
+    const currentStreak = (profile.currentStreak as number) || 0;
+    const longestStreak = (profile.longestStreak as number) || currentStreak;
+
+    // Get subscription tier from profile or default to free
+    const tier: 'free' | 'friend' | 'partner' =
+      (profile.subscriptionTier as 'free' | 'friend' | 'partner') || 'free';
+
+    // Build a minimal UserProfile for the unlock check
+    const userProfile = {
+      totalConversations,
+      firstContact: firstMeetingDate || new Date().toISOString(),
+      conversationSummaries: [], // Not needed for unlock calculation
+      subscription: { tier },
+    };
+
+    // Get team unlock state
+    const state = getTeamUnlockState(userProfile as never, tier);
+
+    // Check bypass mode
+    const bypass = parseBypassConfig();
+    const bypassMode = bypass === 'all' ? 'all' : bypass instanceof Set ? Array.from(bypass) : null;
+
+    // Build detailed member status
+    const members = TEAM_MEMBERS.map((member) => {
+      const isUnlocked = state.unlockedMembers.includes(member.memberId);
+      return {
+        id: member.memberId,
+        displayName: member.displayName,
+        role: member.role,
+        unlocksAt: member.unlocksAt,
+        unlocked: isUnlocked,
+        premium: member.premium ?? false,
+        teaserMessage: isUnlocked ? null : member.teaserMessage,
+      };
+    });
+
+    sendJSONCached(
+      res,
+      {
+        stage: state.stage,
+        tier: state.tier,
+        unlockedMembers: state.unlockedMembers,
+        members,
+        nextUnlock: state.nextUnlock
+          ? {
+              memberId: state.nextUnlock.member.memberId,
+              displayName: state.nextUnlock.member.displayName,
+              conversationsNeeded: state.nextUnlock.conversationsNeeded,
+              daysNeeded: state.nextUnlock.daysNeeded,
+            }
+          : null,
+        // Expose bypass mode so frontend can sync
+        bypassMode,
+        // Include metrics for debugging
+        metrics: {
+          totalConversations,
+          daysSinceFirstMeeting,
+          currentStreak,
+          longestStreak,
+        },
+      },
+      30 // Cache for 30 seconds
+    );
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get team unlock state');
+
+    // Return safe default (only Ferni unlocked)
+    sendJSON(
+      res,
+      {
+        stage: 'first-meeting',
+        tier: 'free',
+        unlockedMembers: ['ferni'] as TeamMemberId[],
+        members: TEAM_MEMBERS.map((m) => ({
+          id: m.memberId,
+          displayName: m.displayName,
+          role: m.role,
+          unlocksAt: m.unlocksAt,
+          unlocked: m.memberId === 'ferni',
+          premium: m.premium ?? false,
+          teaserMessage: m.memberId === 'ferni' ? null : m.teaserMessage,
+        })),
+        nextUnlock: {
+          memberId: 'maya-santos',
+          displayName: 'Maya',
+          conversationsNeeded: 10,
+          daysNeeded: 0,
+        },
+        bypassMode: null,
+        error: 'Failed to load unlock state',
+      },
+      500
+    );
+  }
+}
+
+/**
  * Route handler for relationship endpoints
  */
 export async function handleRelationshipRoutes(
@@ -336,5 +478,11 @@ export async function handleRelationshipRoutes(
       return true;
     }
   }
+
+  if (pathname === '/api/relationship/team-unlocks' && req.method === 'GET') {
+    await handleGetTeamUnlocks(req, res, parsedUrl);
+    return true;
+  }
+
   return false;
 }

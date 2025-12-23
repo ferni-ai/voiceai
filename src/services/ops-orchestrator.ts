@@ -615,6 +615,122 @@ async function checkErrorRate(): Promise<void> {
 }
 
 // ============================================================================
+// DISCONNECT PATTERN MONITORING
+// ============================================================================
+
+interface DisconnectPattern {
+  type: 'zombie_revisions' | 'livekit_stale' | 'startup_race' | 'network' | 'unknown';
+  confidence: number;
+  indicators: string[];
+  suggestedFix: string;
+}
+
+async function detectDisconnectPattern(): Promise<DisconnectPattern | null> {
+  // Get call quality metrics
+  let callQuality;
+  try {
+    const cqm = await import('./analytics/call-quality-monitor.js');
+    callQuality = cqm.calculateMetrics();
+  } catch {
+    return null;
+  }
+
+  // Get crash analytics
+  let crashData;
+  try {
+    const { getCrashSummary } = await import('../agents/shared/crash-analytics.js');
+    crashData = getCrashSummary();
+  } catch {
+    crashData = null;
+  }
+
+  const indicators: string[] = [];
+  let patternType: DisconnectPattern['type'] = 'unknown';
+  let confidence = 0;
+  let suggestedFix = 'Run pnpm ops:diagnose for more details';
+
+  // Pattern 1: Zombie revisions (high disconnect rate + "assignment timed out" in logs)
+  if (callQuality.disconnectRate > 0.1) {
+    indicators.push(`High disconnect rate: ${(callQuality.disconnectRate * 100).toFixed(1)}%`);
+
+    // Check for "assignment timed out" pattern
+    if (crashData && crashData.recentCrashes.some((c) => c.error.message.includes('assignment'))) {
+      patternType = 'zombie_revisions';
+      confidence = 0.9;
+      indicators.push('Recent "assignment timed out" errors');
+      suggestedFix = 'Run: pnpm ops:zombies:fix';
+    }
+  }
+
+  // Pattern 2: LiveKit connection stale (connection drops after idle period)
+  if (
+    crashData &&
+    crashData.recentCrashes.some((c) => c.error.message.includes('connection is dead'))
+  ) {
+    patternType = 'livekit_stale';
+    confidence = 0.85;
+    indicators.push('LiveKit connection death detected');
+    suggestedFix = 'Worker will auto-restart. If persistent, check keepalive config.';
+  }
+
+  // Pattern 3: Startup race condition
+  if (
+    crashData &&
+    crashData.recentCrashes.some(
+      (c) =>
+        c.error.message.includes('runner initialization') || c.error.message.includes('prewarm')
+    )
+  ) {
+    patternType = 'startup_race';
+    confidence = 0.8;
+    indicators.push('Startup/prewarm timing issues');
+    suggestedFix = 'Check prewarm logs. May need to redeploy: ferni deploy gce';
+  }
+
+  // Pattern 4: Network issues (ICE failures, transport errors)
+  if (
+    crashData &&
+    crashData.recentCrashes.some(
+      (c) => c.error.message.includes('ice_') || c.error.message.includes('transport')
+    )
+  ) {
+    patternType = 'network';
+    confidence = 0.7;
+    indicators.push('WebRTC/ICE connection issues');
+    suggestedFix = 'Check user network quality. May be transient.';
+  }
+
+  // Only return pattern if we have meaningful indicators
+  if (indicators.length === 0) return null;
+
+  return {
+    type: patternType,
+    confidence,
+    indicators,
+    suggestedFix,
+  };
+}
+
+async function checkDisconnectPatterns(): Promise<void> {
+  const pattern = await detectDisconnectPattern();
+  if (!pattern) return;
+
+  // Alert if confidence is high enough
+  if (pattern.confidence >= 0.8) {
+    await sendAlert({
+      severity: pattern.type === 'zombie_revisions' ? 'critical' : 'warning',
+      title: `Disconnect Pattern: ${pattern.type.replace('_', ' ').toUpperCase()}`,
+      message: pattern.suggestedFix,
+      details: {
+        pattern: pattern.type,
+        confidence: `${(pattern.confidence * 100).toFixed(0)}%`,
+        indicators: pattern.indicators,
+      },
+    });
+  }
+}
+
+// ============================================================================
 // AUTO-HEALING ACTIONS
 // ============================================================================
 
@@ -688,6 +804,9 @@ export function startOpsOrchestrator(userConfig?: Partial<OpsConfig>): void {
       checkServiceHealth().catch((e) => log.error({ error: String(e) }, 'Health check failed'));
       checkCircuits().catch((e) => log.error({ error: String(e) }, 'Circuit check failed'));
       checkErrorRate().catch((e) => log.error({ error: String(e) }, 'Error rate check failed'));
+      checkDisconnectPatterns().catch((e) =>
+        log.error({ error: String(e) }, 'Disconnect pattern check failed')
+      );
     }, config.serviceHealthIntervalMs)
   );
 

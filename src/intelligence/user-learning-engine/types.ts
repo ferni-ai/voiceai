@@ -98,4 +98,3 @@ export interface StoryRecord {
   theme: string;
   sharedAt: Date;
 }
-

@@ -26,7 +26,9 @@ const KEEPALIVE_INTERVAL_MS = 30_000; // 30 seconds
 const CONNECTION_TIMEOUT_MS = 60_000; // 60 seconds
 
 // Max time a worker can be idle before we force restart
-const MAX_IDLE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+// NOTE: Reduced from 5 minutes to 90 seconds per VOICE-AGENT-AUDIT.md issue #4
+// Dead connections were serving 5 minutes of failed calls before recovery
+const MAX_IDLE_TIME_MS = 90 * 1000; // 90 seconds
 
 // ============================================================================
 // STATE

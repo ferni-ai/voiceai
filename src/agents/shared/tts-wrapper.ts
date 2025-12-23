@@ -111,8 +111,8 @@ export async function wrappedTtsNode(
   const interruptType = sessionContext?.interruptType;
 
   // 1. Filter JSON function calls (Gemini workaround)
-  // Pass session so tool results can be spoken via safeGenerateReply instead of stream injection
-  const sanitizerWithFallback = createSanitizerWithMusicFallback(tools, options.session);
+  // Pass session + sessionId so tool results can be spoken via coordinated speech
+  const sanitizerWithFallback = createSanitizerWithMusicFallback(tools, options.session, sessionId);
   const filteredText = text.pipeThrough(sanitizerWithFallback);
 
   // 2. Apply interrupt-aware transform for softer recovery

@@ -7,3 +7,11 @@
 
 export * from './turn-processor.js';
 export type * from './types.js';
+
+// Trigger effectiveness learning (Phase 4)
+export {
+  processTriggerOutcomes,
+  recordFiredTriggerForOutcome,
+  trackTriggerFired,
+  clearFiredTriggers,
+} from './trigger-outcome-handler.js';

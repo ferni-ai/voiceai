@@ -30,4 +30,3 @@ export function clearNayanWisdomSession(sessionId: string): void {
 export function clearAllNayanWisdomSessions(): void {
   sessions.clear();
 }
-

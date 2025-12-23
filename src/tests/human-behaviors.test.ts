@@ -32,8 +32,8 @@ describe('Human Behaviors Module', () => {
   // ============================================================================
 
   describe('detectCulturalMoment', () => {
-    it('should return a cultural moment object or null', () => {
-      const moment = detectCulturalMoment();
+    it('should return a cultural moment object or null', async () => {
+      const moment = await detectCulturalMoment();
 
       // Result is either null or a valid cultural moment
       if (moment !== null) {
@@ -53,10 +53,10 @@ describe('Human Behaviors Module', () => {
       }
     });
 
-    it('should return consistent structure', () => {
+    it('should return consistent structure', async () => {
       // Run multiple times to ensure consistency
       for (let i = 0; i < 5; i++) {
-        const moment = detectCulturalMoment();
+        const moment = await detectCulturalMoment();
         if (moment) {
           expect(typeof moment.name).toBe('string');
           expect(typeof moment.reference).toBe('string');

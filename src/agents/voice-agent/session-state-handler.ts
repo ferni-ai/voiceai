@@ -45,8 +45,10 @@ import {
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
 import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
-import { safeGenerateReply } from '../shared/safe-generate-reply.js';
+import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-generate-reply.js';
 import type { UserData } from '../shared/types.js';
+// Speech coordination for adaptive timing and centralized speech management
+import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
 
 // ============================================================================
 // TYPES
@@ -115,7 +117,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       sessionId,
     });
 
-    session.say(wrapped.text, options);
+    // Use coordinated speech for interrupt-aware responses
+    coordinatedSay(sessionId, wrapped.text, options);
 
     // Clear the interrupt flag after using it (only for recovery, not cushioning)
     if (wrapped.recoveryApplied) {
@@ -186,9 +189,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         threshold: IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS,
       });
 
-      // Gentle check-in using the session
+      // Gentle check-in using coordinated speech
       try {
-        session.say(
+        coordinatedSay(
+          sessionId,
           `<break time="300ms"/>Hey, I'm still here if you need me. <break time="200ms"/>Just let me know when you want to continue.`,
           { allowInterruptions: true }
         );
@@ -208,7 +212,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // Say goodbye, then trigger disconnect
       try {
-        session.say(
+        coordinatedSay(
+          sessionId,
           `<break time="200ms"/>Looks like you might be busy. <break time="150ms"/>I'll be here whenever you're ready to chat again. <break time="300ms"/>Take care!`,
           { allowInterruptions: false }
         );
@@ -274,9 +279,38 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // BACKCHANNEL HELPER (Regular - after user pauses)
   // LLM-based: Let the LLM generate contextual backchannels
   // ============================================================
+  // Echo prevention grace period - ADAPTIVE based on actual speech patterns
+  // Uses SpeechCoordinator's learned timing instead of hardcoded value
+  const coordinator = getSpeechCoordinator();
+
+  /**
+   * Get adaptive echo grace period based on last utterance duration.
+   * INTELLIGENT: Learns from actual echo patterns, not hardcoded.
+   */
+  const getEchoGracePeriod = (lastUtteranceDurationMs?: number): number => {
+    return coordinator.getEchoWindow(lastUtteranceDurationMs);
+  };
+
   const attemptBackchannel = async () => {
     // Don't backchannel if agent is speaking
     if (conversationManager.isAgentSpeaking()) return;
+
+    // ECHO PREVENTION: Don't backchannel immediately after agent stopped speaking
+    // Agent's audio gets picked up by mic, VAD thinks user is speaking, agent interrupts itself,
+    // then backchannels ("mm-hmm") because it thinks user spoke. Wait for echo to clear.
+    // ADAPTIVE: Uses learned timing based on last utterance duration
+    const lastAgentSpeechEnd = userData.lastAgentSpeechEndTime ?? 0;
+    const lastUtteranceDuration = userData.lastAgentUtteranceDurationMs;
+    const timeSinceAgentStopped = Date.now() - lastAgentSpeechEnd;
+    const echoGracePeriod = getEchoGracePeriod(lastUtteranceDuration);
+    if (timeSinceAgentStopped < echoGracePeriod) {
+      diag.state('🔇 Backchannel suppressed (adaptive echo prevention)', {
+        timeSinceAgentStopped,
+        threshold: echoGracePeriod,
+        lastUtteranceDuration,
+      });
+      return;
+    }
 
     // Don't backchannel too frequently
     if (Date.now() - lastBackchannelAt < BACKCHANNEL_MIN_INTERVAL_MS) return;
@@ -348,7 +382,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       if (backchannel) {
         try {
-          session.say(backchannel.ssml, { allowInterruptions: true });
+          // Use coordinated speech for backchannel
+          coordinatedSay(sessionId, backchannel.ssml, { allowInterruptions: true });
           const backchannelFiredAt = Date.now();
           const pauseDuration = backchannelFiredAt - lastBackchannelAt;
           lastBackchannelAt = backchannelFiredAt;
@@ -392,6 +427,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // Don't live-backchannel if agent is speaking
     if (conversationManager.isAgentSpeaking()) return;
 
+    // ECHO PREVENTION: Don't backchannel immediately after agent stopped speaking
+    // ADAPTIVE: Uses learned timing based on last utterance duration
+    const lastAgentSpeechEnd = userData.lastAgentSpeechEndTime ?? 0;
+    const timeSinceAgentStopped = Date.now() - lastAgentSpeechEnd;
+    const liveEchoGracePeriod = getEchoGracePeriod(userData.lastAgentUtteranceDurationMs);
+    if (timeSinceAgentStopped < liveEchoGracePeriod) return;
+
     // Don't live-backchannel too frequently
     if (Date.now() - lastLiveBackchannelAt < LIVE_BACKCHANNEL_MIN_INTERVAL_MS) return;
 
@@ -422,7 +464,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     if (result.shouldBackchannel && result.phrase) {
       try {
         // Say the live backchannel (soft volume, allows overlap)
-        session.say(result.phrase, { allowInterruptions: true });
+        // Use coordinated speech for live backchannels
+        coordinatedSay(sessionId, result.phrase, { allowInterruptions: true });
         lastLiveBackchannelAt = Date.now();
         userData.lastLiveBackchannelAt = lastLiveBackchannelAt;
 
@@ -452,6 +495,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
     if (event.newState === 'speaking') {
       conversationManager.handleAgentStartedSpeaking('');
+
+      // Track speech start time for duration calculation (adaptive echo prevention)
+      userData.lastAgentSpeechStartTime = Date.now();
 
       // Track response latency: time from user finish to agent start
       if (userFinishedSpeakingAt > 0) {
@@ -496,11 +542,23 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     }
 
     if (event.oldState === 'speaking' && event.newState !== 'speaking') {
-      conversationManager.handleAgentFinishedSpeaking(0);
+      const speechEndTime = Date.now();
 
-      // ECHO PREVENTION: Track when agent finished speaking
-      // Used by transcript handler to prevent echo from triggering cached responses
-      userData.lastAgentSpeechEndTime = Date.now();
+      // Calculate and track utterance duration (for adaptive echo prevention)
+      const utteranceDuration = userData.lastAgentSpeechStartTime
+        ? speechEndTime - userData.lastAgentSpeechStartTime
+        : undefined;
+
+      userData.lastAgentSpeechEndTime = speechEndTime;
+      userData.lastAgentUtteranceDurationMs = utteranceDuration;
+
+      // Notify speech coordinator for adaptive timing learning
+      coordinator.onSpeechEnded(
+        userData.wasInterrupted ?? false,
+        utteranceDuration ?? 1000 // Default to 1s if unknown
+      );
+
+      conversationManager.handleAgentFinishedSpeaking(0);
 
       // DJ BOOTH: Notify agent stopped speaking
       const booth = getDJBooth();
@@ -711,23 +769,46 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         if (!conversationManager.isAgentSpeaking()) {
           const timeSinceStop = Date.now() - userStoppedAt;
           if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-            // Dead air prevention: use forDeadAirPrevention option for actual verbal content
-            const filler = getContextAwareThinkingFiller(sessionPersona.id, {
-              forDeadAirPrevention: true,
-            });
-            try {
-              // Use interrupt-aware wrapper - if user just interrupted us,
-              // this acknowledgment will start softer and more human
-              sayWithInterruptAwareness(filler, { allowInterruptions: true });
-              diag.filler('Early dead air acknowledgment', {
-                waitedMs: timeSinceStop,
-                personaId: sessionPersona.id,
-                filler,
-                recoveredFromInterrupt: userData.wasInterrupted,
-              });
-            } catch (e) {
-              getLogger().debug({ error: e }, 'Failed to say early acknowledgment');
+            // Dead air prevention: Use stage directions pattern for contextual check-ins
+            // Behavioral instructions are used to guide the LLM's response style
+            // without leaking into speech (uses [INTERNAL GUIDANCE] format internally).
+            const lastTranscript = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
+            const turnCount = userData.turnCount ?? 0;
+
+            // Build contextual stage directions
+            const contextParts = [
+              `The user has been silent for ${Math.round(timeSinceStop / 1000)} seconds after speaking.`,
+              'Check in briefly to show you are present and listening.',
+              'Keep it SHORT (under 10 words). Be warm but not needy.',
+              "Don't ask questions - just acknowledge you're here.",
+            ];
+
+            // Add context about what they were discussing if available
+            if (lastTranscript && lastTranscript.length > 10) {
+              contextParts.push(`They were talking about: "${lastTranscript.slice(0, 100)}..."`);
             }
+
+            // Adjust tone based on conversation stage
+            if (turnCount < 3) {
+              contextParts.push('This is early in the conversation - be welcoming.');
+            } else if (turnCount > 10) {
+              contextParts.push('You have rapport now - be casual and natural.');
+            }
+
+            diag.filler('Early dead air - using stage directions', {
+              waitedMs: timeSinceStop,
+              personaId: sessionPersona.id,
+              turnCount,
+              hasContext: !!lastTranscript,
+            });
+
+            // Use generateReplyWithContext which formats as behavioral instructions
+            void generateReplyWithContext(session, {
+              context: contextParts,
+              fallbackMessage: "I'm here whenever you're ready.",
+              allowInterruptions: true,
+              logContext: 'early-dead-air-checkin',
+            });
           }
         }
         earlyAckTimer = null;

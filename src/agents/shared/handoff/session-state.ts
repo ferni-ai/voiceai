@@ -63,8 +63,44 @@ export function getHandoffSessionState(sessionId: string): HandoffSessionState {
 /**
  * Get the next message sequence number (atomically increments)
  * Used by handoff messages to allow frontend to detect out-of-order delivery
+ *
+ * RACE CONDITION FIX: Use a lock to prevent concurrent increments from
+ * returning the same sequence number. This is critical for handoff reliability.
  */
-export function getNextMessageSeq(sessionId: string): number {
+const messageSeqLocks = new Map<string, Promise<void>>();
+
+export async function getNextMessageSeq(sessionId: string): Promise<number> {
+  // Wait for any pending operation on this session
+  const pendingLock = messageSeqLocks.get(sessionId);
+  if (pendingLock) {
+    await pendingLock;
+  }
+
+  // Create a new lock for this operation
+  let resolveLock: () => void;
+  const lock = new Promise<void>((resolve) => {
+    resolveLock = resolve;
+  });
+  messageSeqLocks.set(sessionId, lock);
+
+  try {
+    const state = getHandoffSessionState(sessionId);
+    state.messageSeq += 1;
+    return state.messageSeq;
+  } finally {
+    resolveLock!();
+    // Clean up lock if it's still ours
+    if (messageSeqLocks.get(sessionId) === lock) {
+      messageSeqLocks.delete(sessionId);
+    }
+  }
+}
+
+/**
+ * Synchronous version for non-critical paths where async isn't feasible.
+ * WARNING: May have race conditions under high concurrency. Prefer async version.
+ */
+export function getNextMessageSeqSync(sessionId: string): number {
   const state = getHandoffSessionState(sessionId);
   state.messageSeq += 1;
   return state.messageSeq;

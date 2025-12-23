@@ -202,6 +202,51 @@ export { getToolDefinitions as getReflectionGamesToolDefinitions } from './refle
 // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus, sufficiency
 export { getToolDefinitions as getQuietGrowthToolDefinitions } from './quiet-growth/index.js';
 
+// Boundaries domain - setting and maintaining healthy boundaries
+export { getToolDefinitions as getBoundariesToolDefinitions } from './boundaries/index.js';
+
+// Social Skills domain - communication and social interaction
+export { getToolDefinitions as getSocialSkillsToolDefinitions } from './social-skills/index.js';
+
+// Anger Management domain - healthy anger expression and management
+export { getToolDefinitions as getAngerToolDefinitions } from './anger/index.js';
+
+// Procrastination domain - understanding and overcoming procrastination
+export { getToolDefinitions as getProcrastinationToolDefinitions } from './procrastination/index.js';
+
+// Burnout Recovery domain - recognizing and recovering from burnout
+export { getToolDefinitions as getBurnoutRecoveryToolDefinitions } from './burnout-recovery/index.js';
+
+// Perfectionism domain - healing from perfectionism and imposter syndrome
+export { getToolDefinitions as getPerfectionismToolDefinitions } from './perfectionism/index.js';
+
+// Digital Wellness domain - healthy relationship with technology
+export { getToolDefinitions as getDigitalWellnessToolDefinitions } from './digital-wellness/index.js';
+
+// Breakup Recovery domain - healing from heartbreak
+export { getToolDefinitions as getBreakupRecoveryToolDefinitions } from './breakup-recovery/index.js';
+
+// Body Relationship domain - healthy relationship with your body
+export { getToolDefinitions as getBodyRelationshipToolDefinitions } from './body-relationship/index.js';
+
+// Dating domain - navigating modern dating
+export { getToolDefinitions as getDatingToolDefinitions } from './dating/index.js';
+
+// Neurodiversity domain - support for ADHD, autism, and neurodivergent needs
+export { getToolDefinitions as getNeurodiversityToolDefinitions } from './neurodiversity/index.js';
+
+// Trauma Support domain - grounding and support for trauma responses
+export { getToolDefinitions as getTraumaSupportToolDefinitions } from './trauma-support/index.js';
+
+// Intimacy domain - building and maintaining intimate connection
+export { getToolDefinitions as getIntimacyToolDefinitions } from './intimacy/index.js';
+
+// Chronic Conditions domain - living well with chronic illness
+export { getToolDefinitions as getChronicConditionsToolDefinitions } from './chronic-conditions/index.js';
+
+// Midlife domain - navigating midlife transitions and meaning
+export { getToolDefinitions as getMidlifeToolDefinitions } from './midlife/index.js';
+
 // ============================================================================
 // PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS
 // ============================================================================
@@ -332,6 +377,22 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     // Note: reflection-games has a different export format and is loaded separately
     // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus
     import('./quiet-growth/index.js').then(async (m) => m.getToolDefinitions()),
+    // NEW Life Coaching Expansion domains
+    import('./boundaries/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./social-skills/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./anger/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./procrastination/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./burnout-recovery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./perfectionism/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./digital-wellness/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./breakup-recovery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./body-relationship/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./dating/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./neurodiversity/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./trauma-support/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./intimacy/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./chronic-conditions/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./midlife/index.js').then(async (m) => m.getToolDefinitions()),
     // Persona-specific "Better Than Human" domains
     import('./pattern-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./workflow-mastery/index.js').then(async (m) => m.getToolDefinitions()),
@@ -644,6 +705,97 @@ export const DOMAIN_METADATA = {
     description:
       'Anti-hustle growth: rest, seasons, plateaus, and sufficiency. Growth without comparison or urgency.',
     icon: '🌱',
+    status: 'active',
+  },
+  // NEW Life Coaching Expansion Domains
+  boundaries: {
+    name: 'Boundaries',
+    description: 'Setting and maintaining healthy boundaries in all relationships',
+    icon: '🛡️',
+    status: 'active',
+  },
+  'social-skills': {
+    name: 'Social Skills',
+    description: 'Communication, active listening, small talk, and social confidence',
+    icon: '💬',
+    status: 'active',
+  },
+  anger: {
+    name: 'Anger Management',
+    description: 'Healthy anger expression, triggers, and regulation strategies',
+    icon: '🌋',
+    status: 'active',
+  },
+  procrastination: {
+    name: 'Procrastination',
+    description: 'Understanding and overcoming procrastination patterns',
+    icon: '⏰',
+    status: 'active',
+  },
+  'burnout-recovery': {
+    name: 'Burnout Recovery',
+    description: 'Recognizing, recovering from, and preventing burnout',
+    icon: '🔋',
+    status: 'active',
+  },
+  perfectionism: {
+    name: 'Perfectionism',
+    description: 'Healing from perfectionism and imposter syndrome',
+    icon: '✨',
+    status: 'active',
+  },
+  'digital-wellness': {
+    name: 'Digital Wellness',
+    description: 'Healthy relationship with technology and social media',
+    icon: '📱',
+    status: 'active',
+  },
+  'breakup-recovery': {
+    name: 'Breakup Recovery',
+    description: 'Healing from heartbreak and rebuilding after relationships end',
+    icon: '💔',
+    status: 'active',
+  },
+  'body-relationship': {
+    name: 'Body Relationship',
+    description: 'Developing a healthier relationship with your body',
+    icon: '🪞',
+    status: 'active',
+  },
+  dating: {
+    name: 'Dating',
+    description: 'Navigating modern dating with intention and self-respect',
+    icon: '💕',
+    status: 'active',
+  },
+  neurodiversity: {
+    name: 'Neurodiversity',
+    description: 'Support for ADHD, autism, and neurodivergent needs',
+    icon: '🧠',
+    status: 'active',
+  },
+  'trauma-support': {
+    name: 'Trauma Support',
+    description: 'Grounding, regulation, and support for trauma responses',
+    icon: '🌿',
+    status: 'active',
+  },
+  intimacy: {
+    name: 'Intimacy',
+    description: 'Building and maintaining intimate connection in relationships',
+    icon: '❤️',
+    status: 'active',
+  },
+  'chronic-conditions': {
+    name: 'Chronic Conditions',
+    description: 'Living well with chronic illness, pain, or disability',
+    icon: '🥄',
+    status: 'active',
+  },
+  midlife: {
+    name: 'Midlife',
+    description: 'Navigating midlife transitions, meaning, and reinvention',
+    icon: '🌅',
     status: 'active',
   },
   // Persona-specific "Better Than Human" Domains

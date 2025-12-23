@@ -30,13 +30,26 @@ export interface BillingStore {
   ): Promise<UsageRecord[]>;
 
   // Monthly usage aggregates
-  getMonthlyUsage(userId: UserId, itemId: MarketplaceId, period: string): Promise<UsageMetrics | null>;
-  updateMonthlyUsage(userId: UserId, itemId: MarketplaceId, period: string, metrics: UsageMetrics): Promise<void>;
+  getMonthlyUsage(
+    userId: UserId,
+    itemId: MarketplaceId,
+    period: string
+  ): Promise<UsageMetrics | null>;
+  updateMonthlyUsage(
+    userId: UserId,
+    itemId: MarketplaceId,
+    period: string,
+    metrics: UsageMetrics
+  ): Promise<void>;
 
   // Revenue shares
   saveRevenueShare(share: RevenueShare): Promise<void>;
   getRevenueShares(publisherId: string, options?: { status?: string }): Promise<RevenueShare[]>;
-  updateRevenueShareStatus(itemId: MarketplaceId, period: string, status: RevenueShare['status']): Promise<void>;
+  updateRevenueShareStatus(
+    itemId: MarketplaceId,
+    period: string,
+    status: RevenueShare['status']
+  ): Promise<void>;
 
   // Initialization
   initialize(): Promise<void>;
@@ -135,7 +148,11 @@ class FirestoreBillingStore implements BillingStore {
 
   // ---- Monthly Usage ----
 
-  async getMonthlyUsage(userId: UserId, itemId: MarketplaceId, period: string): Promise<UsageMetrics | null> {
+  async getMonthlyUsage(
+    userId: UserId,
+    itemId: MarketplaceId,
+    period: string
+  ): Promise<UsageMetrics | null> {
     if (!this.db) throw new Error('Firestore not initialized');
 
     const docId = `${userId}:${itemId}:${period}`;
@@ -158,16 +175,19 @@ class FirestoreBillingStore implements BillingStore {
     if (!this.db) throw new Error('Firestore not initialized');
 
     const docId = `${userId}:${itemId}:${period}`;
-    await this.db.collection(COLLECTIONS.MONTHLY_USAGE).doc(docId).set(
-      removeUndefined({
-        userId,
-        itemId,
-        period,
-        metrics,
-        _updatedAt: new Date(),
-      }),
-      { merge: true }
-    );
+    await this.db
+      .collection(COLLECTIONS.MONTHLY_USAGE)
+      .doc(docId)
+      .set(
+        removeUndefined({
+          userId,
+          itemId,
+          period,
+          metrics,
+          _updatedAt: new Date(),
+        }),
+        { merge: true }
+      );
   }
 
   // ---- Revenue Shares ----
@@ -176,15 +196,21 @@ class FirestoreBillingStore implements BillingStore {
     if (!this.db) throw new Error('Firestore not initialized');
 
     const docId = `${share.publisherId}:${share.period}:${share.itemId}`;
-    await this.db.collection(COLLECTIONS.REVENUE_SHARES).doc(docId).set(
-      removeUndefined({
-        ...share,
-        _updatedAt: new Date(),
-      })
-    );
+    await this.db
+      .collection(COLLECTIONS.REVENUE_SHARES)
+      .doc(docId)
+      .set(
+        removeUndefined({
+          ...share,
+          _updatedAt: new Date(),
+        })
+      );
   }
 
-  async getRevenueShares(publisherId: string, options?: { status?: string }): Promise<RevenueShare[]> {
+  async getRevenueShares(
+    publisherId: string,
+    options?: { status?: string }
+  ): Promise<RevenueShare[]> {
     if (!this.db) throw new Error('Firestore not initialized');
 
     let query: FirebaseFirestore.Query = this.db
@@ -275,7 +301,11 @@ class InMemoryBillingStore implements BillingStore {
     return records;
   }
 
-  async getMonthlyUsage(userId: UserId, itemId: MarketplaceId, period: string): Promise<UsageMetrics | null> {
+  async getMonthlyUsage(
+    userId: UserId,
+    itemId: MarketplaceId,
+    period: string
+  ): Promise<UsageMetrics | null> {
     const key = `${userId}:${itemId}:${period}`;
     return this.monthlyUsage.get(key) || null;
   }
@@ -293,7 +323,10 @@ class InMemoryBillingStore implements BillingStore {
   async saveRevenueShare(share: RevenueShare): Promise<void> {
     // Update if exists, otherwise add
     const index = this.revenueShares.findIndex(
-      (s) => s.publisherId === share.publisherId && s.period === share.period && s.itemId === share.itemId
+      (s) =>
+        s.publisherId === share.publisherId &&
+        s.period === share.period &&
+        s.itemId === share.itemId
     );
     if (index >= 0) {
       this.revenueShares[index] = share;
@@ -302,7 +335,10 @@ class InMemoryBillingStore implements BillingStore {
     }
   }
 
-  async getRevenueShares(publisherId: string, options?: { status?: string }): Promise<RevenueShare[]> {
+  async getRevenueShares(
+    publisherId: string,
+    options?: { status?: string }
+  ): Promise<RevenueShare[]> {
     let shares = this.revenueShares.filter((s) => s.publisherId === publisherId);
 
     if (options?.status) {
@@ -383,4 +419,3 @@ export function resetBillingStore(): void {
 export function createInMemoryBillingStore(): InMemoryBillingStore {
   return new InMemoryBillingStore();
 }
-

@@ -48,5 +48,3 @@ export interface CalendarAnalyticsResponse {
   healthScore: number;
   recommendations: string[];
 }
-
-

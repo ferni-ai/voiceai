@@ -264,7 +264,7 @@ function loadExistingProfile(agent: CustomAgent): void {
   profile = createEmptyProfile();
 
   if (agent.personality) {
-    const p = agent.personality as Record<string, unknown>;
+    const p = agent.personality as unknown as Record<string, unknown>;
     if (p.values && Array.isArray(p.values)) {
       profile.coreValues = p.values as string[];
     }
@@ -277,7 +277,7 @@ function loadExistingProfile(agent: CustomAgent): void {
   }
 
   if (agent.behaviors) {
-    const b = agent.behaviors as Record<string, unknown>;
+    const b = agent.behaviors as unknown as Record<string, unknown>;
     if (b.catchphrases && Array.isArray(b.catchphrases)) {
       profile.signaturePhrases = (b.catchphrases as string[]).map((phrase, i) => ({
         id: `phrase-${i}`,
@@ -1224,7 +1224,7 @@ async function saveProfileToAgent(): Promise<void> {
     // Convert profile to agent format
     const updates = {
       personality: {
-        ...((currentAgent.personality as Record<string, unknown>) || {}),
+        ...((currentAgent.personality as unknown as Record<string, unknown>) || {}),
         values: profile.coreValues,
         passions: profile.passions,
         worldview: profile.lifePhilosophy,
@@ -1257,7 +1257,7 @@ async function saveProfileToAgent(): Promise<void> {
         },
       },
       behaviors: {
-        ...((currentAgent.behaviors as Record<string, unknown>) || {}),
+        ...((currentAgent.behaviors as unknown as Record<string, unknown>) || {}),
         catchphrases: profile.signaturePhrases.map((p) => p.phrase),
         greetings: profile.greetingStyle ? [profile.greetingStyle] : [],
         farewells: profile.farewellStyle ? [profile.farewellStyle] : [],
@@ -1289,7 +1289,7 @@ async function saveProfileToAgent(): Promise<void> {
       },
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as unknown as Parameters<typeof updateCustomAgent>[1]);
 
     toast.success('Profile saved!');
     closeTwinProfile();

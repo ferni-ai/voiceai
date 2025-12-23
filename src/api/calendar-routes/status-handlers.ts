@@ -165,7 +165,10 @@ export async function handleDisconnect(
       await stopGoogleWatchChannels(userId);
       log.info({ userId }, '📅 Google Calendar webhooks stopped');
     } catch (watchError) {
-      log.warn({ error: String(watchError), userId }, '📅 Error stopping Google webhooks (non-blocking)');
+      log.warn(
+        { error: String(watchError), userId },
+        '📅 Error stopping Google webhooks (non-blocking)'
+      );
     }
 
     await deleteUserTokens(userId);
@@ -257,5 +260,3 @@ export async function handleProvidersStatus(
     sendError(res, 'Failed to get providers status', 500);
   }
 }
-
-

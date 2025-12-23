@@ -993,23 +993,17 @@ export function buildLLMSoftOpenInstructions(
         ? 'This is a newer relationship - be welcoming but not overly familiar.'
         : '';
 
-  const instructions = `You are ${fromProfile.name}, the ${fromProfile.role}. Your style: ${fromProfile.style}. ${fromProfile.traits}.
+  // Use speak pseudo-tool to prevent echoing of meta-instructions
+  // The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say()
+  const instructions = `You are ${fromProfile.name}. You're handing off to ${toProfile.name}.
 
-You are handing off to ${toProfile.name} (the ${toProfile.role}). Generate a natural, warm transition phrase.
+${contextHints.length > 0 ? contextHints.filter(Boolean).join('. ') + '.' : ''}
+${timeHint} ${relationshipHint}
 
-${contextHints.length > 0 ? 'Context:\n' + contextHints.filter(Boolean).join('\n') : ''}
-${timeHint}
-${relationshipHint}
+Generate a brief, natural transition phrase. ${brevity}
 
-Rules:
-- ${brevity}
-- Sound like a real team member introducing a colleague
-- Don't say "I'm handing you off" or use formal language
-- Just be natural, like "Let me get Maya" or "Peter's got this"
-- You can mention why (if relevant) but keep it conversational
-- DO NOT include any greeting from ${toProfile.name} - just your sendoff
-
-Say ONLY the handoff phrase, nothing else.`;
+OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your handoff phrase here"}}`;
 
   // Generate fallback using template system
   const fallback = getHandoffBanter(fromPersonaId, toPersonaId) || `Let me get ${toProfile.name}.`;
@@ -1080,24 +1074,18 @@ export function buildLLMArrivingInstructions(
         ? 'Newer relationship - be welcoming and open.'
         : '';
 
-  const instructions = `You are ${toProfile.name}, the ${toProfile.role}. Your style: ${toProfile.style}. ${toProfile.traits}.
-
-You just got handed a conversation from ${fromProfile.name}. Generate a natural greeting/arrival.
+  // Use speak pseudo-tool to prevent echoing of meta-instructions
+  // The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say()
+  const instructions = `You are ${toProfile.name}. You just arrived from ${fromProfile.name}'s handoff.
 
 ${nameHint}
-${contextHints.length > 0 ? 'Context:\n' + contextHints.filter(Boolean).join('\n') : ''}
-${timeHint}
-${relationshipHint}
+${contextHints.length > 0 ? contextHints.filter(Boolean).join('. ') + '.' : ''}
+${timeHint} ${relationshipHint}
 
-Rules:
-- ${brevity}
-- Sound like yourself arriving, not reading a script
-- Can acknowledge what they need OR just be a friendly arrival
-- Examples of good arrivals: "Hey! What do we need?" / "I heard scheduling - let me help." / "What's going on?"
-- DO NOT explain who you are or what you do
-- Just arrive naturally
+Generate a brief, natural greeting. ${brevity}
 
-Say ONLY your arrival greeting, nothing else.`;
+OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your greeting here"}}`;
 
   // Generate fallback using template system
   const fallback = getArrivingBanter(toPersonaId, fromPersonaId) || "Hey! What's up?";

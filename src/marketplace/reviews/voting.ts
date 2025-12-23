@@ -79,4 +79,3 @@ export function removeVote(reviewId: string, userId: UserId): void {
     state.votes.delete(voteKey);
   }
 }
-

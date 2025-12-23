@@ -209,6 +209,43 @@ export interface CrisisDetection {
   shouldOverrideLLM: boolean;
 }
 
+// ============================================================================
+// SEMANTIC ROUTING RESULT - Pre-LLM tool routing
+// ============================================================================
+
+/**
+ * Semantic routing result for direct tool execution
+ *
+ * When the semantic router has high confidence, we can bypass the LLM
+ * entirely and execute tools directly. This provides:
+ * - <20ms latency for common tool requests
+ * - Reliable tool execution without JSON parsing
+ * - Graceful fallback to LLM for conversation
+ */
+export interface SemanticRoutingResult {
+  /** Whether semantic routing was performed */
+  routed: boolean;
+
+  /** Whether to bypass LLM and use tool result directly */
+  bypassLLM: boolean;
+
+  /** Tool result if bypassing LLM */
+  toolResult?: {
+    toolId: string;
+    output: string;
+    success: boolean;
+    speakableResponse: string;
+  };
+
+  /** Routing metrics */
+  metrics: {
+    latencyMs: number;
+    cacheHit: boolean;
+    confidence: number;
+    matchPath: 'pattern' | 'keyword' | 'embedding' | 'combined' | 'none';
+  };
+}
+
 /**
  * Trust context for post-response validation
  * Used by "Better Than Human" trust enforcement system
@@ -222,6 +259,15 @@ export interface TrustContextSummary {
   hasGrowthReflection: boolean;
   /** Celebration opportunity (small win to acknowledge) */
   hasCelebration: boolean;
+  /** Proactive outreach ("thinking of you") available */
+  hasProactiveOutreach: boolean;
+  /** Proactive outreach data for frontend notification */
+  proactiveOutreach?: {
+    type: string;
+    message: string;
+    personaId?: string;
+    context?: string;
+  };
 }
 
 /**
@@ -276,29 +322,25 @@ export interface TurnProcessorResult {
    * This is for monitoring/learning from post-response quality.
    */
   trustContext?: TrustContextSummary;
+
+  /**
+   * 🎯 SEMANTIC ROUTING: Pre-LLM tool routing result
+   * When present with bypassLLM=true, the caller should use toolResult.speakableResponse
+   * directly instead of sending to the LLM.
+   */
+  semanticRouting?: SemanticRoutingResult;
 }
 
 // ============================================================================
 // CACHED MODULE TYPES - For dynamic imports
 // ============================================================================
 
-// NOTE: Using loose function signatures with `any` to avoid circular dependency
-// with intelligence/context-builders. The circular chain was:
-// intelligence/context-builders → ... → agents/processors/types → intelligence/context-builders
-//
-// These types are for caching dynamically imported modules. The actual type
-// safety comes from the imported modules themselves at runtime.
+// NOTE: Type definitions for cached modules have been moved to their
+// respective cached-modules.ts files. The CachedModules interface below
+// is kept for backward compatibility but is no longer used by the
+// processors module (which now uses its own local interface).
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-/** Function signature for buildConversationContext (accepts any context input) */
-type BuildConversationContextFn = (input: any) => Promise<any[]>;
-
-/** Function signature for formatContextForPrompt (accepts any injections) */
-type FormatContextForPromptFn = (injections: any[], options?: any) => string;
-
-/** Function signature for shouldUseHighEmotionMode (accepts any analysis) */
-type ShouldUseHighEmotionModeFn = (analysis: any) => boolean;
 
 /**
  * Easter egg result type (matches EasterEggResult from personas/easter-eggs.ts)
@@ -324,12 +366,9 @@ type GetTaskManagerFn = (options?: Record<string, unknown>) => any;
 
 /**
  * Cached module references for performance
+ * @deprecated Use the interfaces in cached-modules.ts instead
  */
 export interface CachedModules {
-  buildConversationContext: BuildConversationContextFn | null;
-  formatContextForPrompt: FormatContextForPromptFn | null;
-  // BETTER-THAN-HUMAN: High emotion mode detection for context prioritization
-  shouldUseHighEmotionMode: ShouldUseHighEmotionModeFn | null;
   checkForEasterEgg: CheckForEasterEggFn | null;
   getTaskManager: GetTaskManagerFn | null;
 }

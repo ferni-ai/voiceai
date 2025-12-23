@@ -79,7 +79,8 @@ export async function computeWisdomMetrics(
     const hasValues = lifeSynthesis.valuesRevealed.length > 0;
     const isGrowing = ['integrating', 'transitioning'].includes(lifeSynthesis.growthPattern);
 
-    metrics.growthTrajectory = 40 + (hasCompounding ? 20 : 0) + (hasValues ? 15 : 0) + (isGrowing ? 15 : 0);
+    metrics.growthTrajectory =
+      40 + (hasCompounding ? 20 : 0) + (hasValues ? 15 : 0) + (isGrowing ? 15 : 0);
 
     // Patterns detected
     if (metrics.lifeIntegration > 70) {
@@ -102,4 +103,3 @@ export async function computeWisdomMetrics(
 
   return metrics;
 }
-

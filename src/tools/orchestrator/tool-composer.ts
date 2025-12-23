@@ -148,12 +148,7 @@ export const TOOL_CHAINS: Record<string, ToolChain> = {
     contextKeys: ['interviewType', 'role', 'feedback'],
     typicalEmotion: 'empathetic',
   },
-  assessBurnout: {
-    primary: 'assessBurnout',
-    suggestedFollowers: ['setWorkBoundary', 'planCareerTransition', 'companionInGrief'],
-    contextKeys: ['symptoms', 'level', 'duration'],
-    typicalEmotion: 'concerned',
-  },
+  // assessBurnout defined in BURNOUT RECOVERY DOMAIN section below
   researchSalary: {
     primary: 'researchSalary',
     suggestedFollowers: ['rolePlayNegotiation', 'trackJobApplication'],
@@ -399,6 +394,534 @@ export const TOOL_CHAINS: Record<string, ToolChain> = {
     suggestedFollowers: [],
     contextKeys: ['sentiment'],
     typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // BOUNDARIES DOMAIN - Healthy Limits Journey
+  // ========================================================================
+  identifyBoundaryNeeds: {
+    primary: 'identifyBoundaryNeeds',
+    suggestedFollowers: ['setBoundary', 'practiceBoundaryScript', 'maintainBoundary'],
+    contextKeys: ['situation', 'personType', 'feelingDrained'],
+    typicalEmotion: 'empathetic',
+  },
+  setBoundary: {
+    primary: 'setBoundary',
+    suggestedFollowers: ['practiceBoundaryScript', 'handleBoundaryPushback', 'maintainBoundary'],
+    contextKeys: ['boundaryType', 'personType', 'boundary'],
+    typicalEmotion: 'empathetic',
+  },
+  practiceBoundaryScript: {
+    primary: 'practiceBoundaryScript',
+    suggestedFollowers: ['handleBoundaryPushback', 'setBoundary', 'reflectOnBoundaryGrowth'],
+    contextKeys: ['personType', 'script', 'practiced'],
+    typicalEmotion: 'neutral',
+  },
+  handleBoundaryPushback: {
+    primary: 'handleBoundaryPushback',
+    suggestedFollowers: ['maintainBoundary', 'practiceBoundaryScript', 'setBoundary'],
+    contextKeys: ['pushbackType', 'response'],
+    typicalEmotion: 'concerned',
+  },
+  maintainBoundary: {
+    primary: 'maintainBoundary',
+    suggestedFollowers: ['reflectOnBoundaryGrowth', 'identifyBoundaryNeeds', 'celebrationMoment'],
+    contextKeys: ['boundary', 'maintained', 'challenges'],
+    typicalEmotion: 'empathetic',
+  },
+  reflectOnBoundaryGrowth: {
+    primary: 'reflectOnBoundaryGrowth',
+    suggestedFollowers: ['celebrationMoment', 'setBoundary', 'wrapUp'],
+    contextKeys: ['progress', 'insights'],
+    typicalEmotion: 'celebratory',
+  },
+
+  // ========================================================================
+  // SOCIAL SKILLS DOMAIN - Connection Building Journey
+  // ========================================================================
+  buildConversationSkills: {
+    primary: 'buildConversationSkills',
+    suggestedFollowers: ['practiceSmallTalk', 'developListeningSkills', 'navigateSocialAnxiety'],
+    contextKeys: ['situation', 'challenge', 'goal'],
+    typicalEmotion: 'empathetic',
+  },
+  practiceSmallTalk: {
+    primary: 'practiceSmallTalk',
+    suggestedFollowers: ['buildConversationSkills', 'developFriendships', 'networkEffectively'],
+    contextKeys: ['scenario', 'practiced', 'confidence'],
+    typicalEmotion: 'neutral',
+  },
+  navigateSocialAnxiety: {
+    primary: 'navigateSocialAnxiety',
+    suggestedFollowers: ['groundingExercise', 'buildConversationSkills', 'practiceSmallTalk'],
+    contextKeys: ['anxietyLevel', 'trigger', 'strategy'],
+    typicalEmotion: 'empathetic',
+  },
+  developListeningSkills: {
+    primary: 'developListeningSkills',
+    suggestedFollowers: ['buildConversationSkills', 'developFriendships', 'handleAwkwardMoments'],
+    contextKeys: ['technique', 'practiced'],
+    typicalEmotion: 'neutral',
+  },
+  developFriendships: {
+    primary: 'developFriendships',
+    suggestedFollowers: ['practiceSmallTalk', 'networkEffectively', 'celebrationMoment'],
+    contextKeys: ['stage', 'approach', 'progress'],
+    typicalEmotion: 'empathetic',
+  },
+  handleAwkwardMoments: {
+    primary: 'handleAwkwardMoments',
+    suggestedFollowers: ['buildConversationSkills', 'navigateSocialAnxiety', 'practiceSmallTalk'],
+    contextKeys: ['situation', 'recovery', 'learned'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // ANGER DOMAIN - Emotional Regulation Journey
+  // ========================================================================
+  understandAnger: {
+    primary: 'understandAnger',
+    suggestedFollowers: ['identifyAngerTriggers', 'angerCoolingTechniques', 'transformAngerEnergy'],
+    contextKeys: ['angerLevel', 'pattern', 'understanding'],
+    typicalEmotion: 'empathetic',
+  },
+  identifyAngerTriggers: {
+    primary: 'identifyAngerTriggers',
+    suggestedFollowers: ['understandAnger', 'angerCoolingTechniques', 'preventAngerEscalation'],
+    contextKeys: ['trigger', 'pattern', 'context'],
+    typicalEmotion: 'empathetic',
+  },
+  angerCoolingTechniques: {
+    primary: 'angerCoolingTechniques',
+    suggestedFollowers: ['transformAngerEnergy', 'preventAngerEscalation', 'repairAfterAnger'],
+    contextKeys: ['technique', 'effectiveness', 'angerLevel'],
+    typicalEmotion: 'empathetic',
+  },
+  transformAngerEnergy: {
+    primary: 'transformAngerEnergy',
+    suggestedFollowers: ['angerCoolingTechniques', 'assertiveExpression', 'celebrationMoment'],
+    contextKeys: ['activity', 'transformed', 'energy'],
+    typicalEmotion: 'neutral',
+  },
+  preventAngerEscalation: {
+    primary: 'preventAngerEscalation',
+    suggestedFollowers: ['angerCoolingTechniques', 'identifyAngerTriggers', 'groundingExercise'],
+    contextKeys: ['warning_signs', 'strategy', 'prevention'],
+    typicalEmotion: 'concerned',
+  },
+  repairAfterAnger: {
+    primary: 'repairAfterAnger',
+    suggestedFollowers: ['understandAnger', 'prepareConversation', 'celebrationMoment'],
+    contextKeys: ['situation', 'repair_steps', 'relationship'],
+    typicalEmotion: 'empathetic',
+  },
+  assertiveExpression: {
+    primary: 'assertiveExpression',
+    suggestedFollowers: ['setBoundary', 'practiceConversation', 'repairAfterAnger'],
+    contextKeys: ['feeling', 'need', 'request'],
+    typicalEmotion: 'neutral',
+  },
+
+  // ========================================================================
+  // PROCRASTINATION DOMAIN - Action Journey
+  // ========================================================================
+  understandProcrastination: {
+    primary: 'understandProcrastination',
+    suggestedFollowers: ['breakDownTask', 'overcomeProcrastinationBlock', 'buildMomentum'],
+    contextKeys: ['task', 'reason', 'pattern'],
+    typicalEmotion: 'empathetic',
+  },
+  breakDownTask: {
+    primary: 'breakDownTask',
+    suggestedFollowers: ['buildMomentum', 'setTimer', 'celebrationMoment'],
+    contextKeys: ['task', 'steps', 'firstStep'],
+    typicalEmotion: 'neutral',
+  },
+  overcomeProcrastinationBlock: {
+    primary: 'overcomeProcrastinationBlock',
+    suggestedFollowers: ['breakDownTask', 'buildMomentum', 'addressProcrastinationFear'],
+    contextKeys: ['block', 'strategy', 'unblocked'],
+    typicalEmotion: 'empathetic',
+  },
+  buildMomentum: {
+    primary: 'buildMomentum',
+    suggestedFollowers: ['celebrationMoment', 'streakTracker', 'breakDownTask'],
+    contextKeys: ['wins', 'momentum', 'next_action'],
+    typicalEmotion: 'excited',
+  },
+  addressProcrastinationFear: {
+    primary: 'addressProcrastinationFear',
+    suggestedFollowers: ['understandProcrastination', 'breakDownTask', 'groundingExercise'],
+    contextKeys: ['fear', 'reframe', 'acceptance'],
+    typicalEmotion: 'empathetic',
+  },
+  createProcrastinationPlan: {
+    primary: 'createProcrastinationPlan',
+    suggestedFollowers: ['breakDownTask', 'setReminder', 'buildMomentum'],
+    contextKeys: ['task', 'plan', 'commitment'],
+    typicalEmotion: 'neutral',
+  },
+
+  // ========================================================================
+  // PERFECTIONISM DOMAIN - Self-Acceptance Journey
+  // ========================================================================
+  recognizePerfectionism: {
+    primary: 'recognizePerfectionism',
+    suggestedFollowers: [
+      'challengePerfectionistThoughts',
+      'embraceGoodEnough',
+      'buildSelfCompassion',
+    ],
+    contextKeys: ['pattern', 'cost', 'awareness'],
+    typicalEmotion: 'empathetic',
+  },
+  challengePerfectionistThoughts: {
+    primary: 'challengePerfectionistThoughts',
+    suggestedFollowers: ['embraceGoodEnough', 'buildSelfCompassion', 'celebrateProgress'],
+    contextKeys: ['thought', 'challenge', 'reframe'],
+    typicalEmotion: 'empathetic',
+  },
+  embraceGoodEnough: {
+    primary: 'embraceGoodEnough',
+    suggestedFollowers: ['celebrateProgress', 'practiceImperfection', 'buildSelfCompassion'],
+    contextKeys: ['situation', 'goodEnough', 'acceptance'],
+    typicalEmotion: 'empathetic',
+  },
+  practiceImperfection: {
+    primary: 'practiceImperfection',
+    suggestedFollowers: ['embraceGoodEnough', 'celebrateProgress', 'buildSelfCompassion'],
+    contextKeys: ['experiment', 'outcome', 'learning'],
+    typicalEmotion: 'celebratory',
+  },
+  buildSelfCompassion: {
+    primary: 'buildSelfCompassion',
+    suggestedFollowers: ['recognizePerfectionism', 'embraceGoodEnough', 'wrapUp'],
+    contextKeys: ['situation', 'compassion', 'kindness'],
+    typicalEmotion: 'empathetic',
+  },
+  celebrateProgress: {
+    primary: 'celebrateProgress',
+    suggestedFollowers: ['streakTracker', 'embraceGoodEnough', 'wrapUp'],
+    contextKeys: ['progress', 'celebration', 'growth'],
+    typicalEmotion: 'celebratory',
+  },
+
+  // ========================================================================
+  // DIGITAL WELLNESS DOMAIN - Tech Balance Journey
+  // ========================================================================
+  assessScreenTime: {
+    primary: 'assessScreenTime',
+    suggestedFollowers: ['createDigitalBoundaries', 'planDigitalDetox', 'buildHealthyTechHabits'],
+    contextKeys: ['screenTime', 'patterns', 'concern'],
+    typicalEmotion: 'neutral',
+  },
+  createDigitalBoundaries: {
+    primary: 'createDigitalBoundaries',
+    suggestedFollowers: ['buildHealthyTechHabits', 'planDigitalDetox', 'addressDoomscrolling'],
+    contextKeys: ['boundary', 'app', 'commitment'],
+    typicalEmotion: 'neutral',
+  },
+  planDigitalDetox: {
+    primary: 'planDigitalDetox',
+    suggestedFollowers: ['createDigitalBoundaries', 'buildHealthyTechHabits', 'celebrationMoment'],
+    contextKeys: ['duration', 'plan', 'alternatives'],
+    typicalEmotion: 'empathetic',
+  },
+  addressDoomscrolling: {
+    primary: 'addressDoomscrolling',
+    suggestedFollowers: ['createDigitalBoundaries', 'groundingExercise', 'buildHealthyTechHabits'],
+    contextKeys: ['trigger', 'pattern', 'alternative'],
+    typicalEmotion: 'empathetic',
+  },
+  buildHealthyTechHabits: {
+    primary: 'buildHealthyTechHabits',
+    suggestedFollowers: ['createDigitalBoundaries', 'assessScreenTime', 'celebrationMoment'],
+    contextKeys: ['habit', 'progress', 'balance'],
+    typicalEmotion: 'neutral',
+  },
+
+  // ========================================================================
+  // BURNOUT RECOVERY DOMAIN - Energy Restoration Journey
+  // ========================================================================
+  assessBurnout: {
+    primary: 'assessBurnout',
+    suggestedFollowers: ['createRecoveryPlan', 'identifyEnergyDrains', 'restoreEnergy'],
+    contextKeys: ['level', 'symptoms', 'duration'],
+    typicalEmotion: 'concerned',
+  },
+  createRecoveryPlan: {
+    primary: 'createRecoveryPlan',
+    suggestedFollowers: ['restoreEnergy', 'setBoundary', 'celebrationMoment'],
+    contextKeys: ['plan', 'priorities', 'timeline'],
+    typicalEmotion: 'empathetic',
+  },
+  identifyEnergyDrains: {
+    primary: 'identifyEnergyDrains',
+    suggestedFollowers: ['setBoundary', 'restoreEnergy', 'createRecoveryPlan'],
+    contextKeys: ['drains', 'patterns', 'changes'],
+    typicalEmotion: 'empathetic',
+  },
+  restoreEnergy: {
+    primary: 'restoreEnergy',
+    suggestedFollowers: ['celebrationMoment', 'assessBurnout', 'buildHealthyTechHabits'],
+    contextKeys: ['activity', 'energy', 'restoration'],
+    typicalEmotion: 'empathetic',
+  },
+  rebuildAfterBurnout: {
+    primary: 'rebuildAfterBurnout',
+    suggestedFollowers: ['setBoundary', 'setGoal', 'celebrationMoment'],
+    contextKeys: ['progress', 'newApproach', 'learning'],
+    typicalEmotion: 'celebratory',
+  },
+
+  // ========================================================================
+  // BODY RELATIONSHIP DOMAIN - Self-Acceptance Journey
+  // ========================================================================
+  exploreBodyImage: {
+    primary: 'exploreBodyImage',
+    suggestedFollowers: ['challengeBodyThoughts', 'buildBodyGratitude', 'processBodyEmotions'],
+    contextKeys: ['feelings', 'patterns', 'awareness'],
+    typicalEmotion: 'empathetic',
+  },
+  challengeBodyThoughts: {
+    primary: 'challengeBodyThoughts',
+    suggestedFollowers: ['buildBodyGratitude', 'buildSelfCompassion', 'exploreBodyImage'],
+    contextKeys: ['thought', 'challenge', 'reframe'],
+    typicalEmotion: 'empathetic',
+  },
+  buildBodyGratitude: {
+    primary: 'buildBodyGratitude',
+    suggestedFollowers: ['exploreBodyImage', 'buildSelfCompassion', 'celebrationMoment'],
+    contextKeys: ['gratitude', 'appreciation', 'function'],
+    typicalEmotion: 'empathetic',
+  },
+  processBodyEmotions: {
+    primary: 'processBodyEmotions',
+    suggestedFollowers: ['exploreBodyImage', 'buildSelfCompassion', 'groundingExercise'],
+    contextKeys: ['emotion', 'trigger', 'processing'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // DATING DOMAIN - Connection Journey
+  // ========================================================================
+  clarifyDatingGoals: {
+    primary: 'clarifyDatingGoals',
+    suggestedFollowers: ['buildDatingConfidence', 'navigateDatingAnxiety', 'processRejection'],
+    contextKeys: ['goals', 'values', 'clarity'],
+    typicalEmotion: 'empathetic',
+  },
+  buildDatingConfidence: {
+    primary: 'buildDatingConfidence',
+    suggestedFollowers: ['practiceSmallTalk', 'navigateDatingAnxiety', 'clarifyDatingGoals'],
+    contextKeys: ['confidence', 'strengths', 'growth'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateDatingAnxiety: {
+    primary: 'navigateDatingAnxiety',
+    suggestedFollowers: ['groundingExercise', 'buildDatingConfidence', 'clarifyDatingGoals'],
+    contextKeys: ['anxiety', 'trigger', 'strategy'],
+    typicalEmotion: 'empathetic',
+  },
+  processRejection: {
+    primary: 'processRejection',
+    suggestedFollowers: ['buildSelfCompassion', 'buildDatingConfidence', 'clarifyDatingGoals'],
+    contextKeys: ['rejection', 'feelings', 'reframe'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateEarlyDating: {
+    primary: 'navigateEarlyDating',
+    suggestedFollowers: ['setBoundary', 'clarifyDatingGoals', 'buildDatingConfidence'],
+    contextKeys: ['stage', 'concerns', 'approach'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // NEURODIVERSITY DOMAIN - Self-Understanding Journey
+  // ========================================================================
+  understandNeurodivergence: {
+    primary: 'understandNeurodivergence',
+    suggestedFollowers: [
+      'buildNeurodivergentStrategies',
+      'navigateNeurodivergentChallenges',
+      'celebrateNeurodivergentStrengths',
+    ],
+    contextKeys: ['type', 'understanding', 'experience'],
+    typicalEmotion: 'empathetic',
+  },
+  buildNeurodivergentStrategies: {
+    primary: 'buildNeurodivergentStrategies',
+    suggestedFollowers: [
+      'navigateNeurodivergentChallenges',
+      'celebrateNeurodivergentStrengths',
+      'understandNeurodivergence',
+    ],
+    contextKeys: ['challenge', 'strategy', 'adaptation'],
+    typicalEmotion: 'neutral',
+  },
+  navigateNeurodivergentChallenges: {
+    primary: 'navigateNeurodivergentChallenges',
+    suggestedFollowers: [
+      'buildNeurodivergentStrategies',
+      'buildSelfCompassion',
+      'understandNeurodivergence',
+    ],
+    contextKeys: ['challenge', 'support', 'approach'],
+    typicalEmotion: 'empathetic',
+  },
+  celebrateNeurodivergentStrengths: {
+    primary: 'celebrateNeurodivergentStrengths',
+    suggestedFollowers: ['understandNeurodivergence', 'celebrationMoment', 'wrapUp'],
+    contextKeys: ['strength', 'appreciation', 'application'],
+    typicalEmotion: 'celebratory',
+  },
+
+  // ========================================================================
+  // TRAUMA SUPPORT DOMAIN - Healing Journey
+  // ========================================================================
+  assessTraumaReadiness: {
+    primary: 'assessTraumaReadiness',
+    suggestedFollowers: ['buildSafetyResources', 'groundingExercise', 'processTraumaGently'],
+    contextKeys: ['readiness', 'safety', 'support'],
+    typicalEmotion: 'empathetic',
+  },
+  buildSafetyResources: {
+    primary: 'buildSafetyResources',
+    suggestedFollowers: ['groundingExercise', 'assessTraumaReadiness', 'processTraumaGently'],
+    contextKeys: ['resources', 'safety', 'support'],
+    typicalEmotion: 'empathetic',
+  },
+  processTraumaGently: {
+    primary: 'processTraumaGently',
+    suggestedFollowers: ['groundingExercise', 'buildSafetyResources', 'buildSelfCompassion'],
+    contextKeys: ['pacing', 'safety', 'processing'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateTraumaTriggers: {
+    primary: 'navigateTraumaTriggers',
+    suggestedFollowers: ['groundingExercise', 'buildSafetyResources', 'buildSelfCompassion'],
+    contextKeys: ['trigger', 'response', 'safety'],
+    typicalEmotion: 'concerned',
+  },
+
+  // ========================================================================
+  // INTIMACY DOMAIN - Connection Journey
+  // ========================================================================
+  exploreIntimacyNeeds: {
+    primary: 'exploreIntimacyNeeds',
+    suggestedFollowers: [
+      'communicateIntimacyNeeds',
+      'buildEmotionalIntimacy',
+      'navigateIntimacyFears',
+    ],
+    contextKeys: ['needs', 'desires', 'understanding'],
+    typicalEmotion: 'empathetic',
+  },
+  communicateIntimacyNeeds: {
+    primary: 'communicateIntimacyNeeds',
+    suggestedFollowers: ['practiceConversation', 'setBoundary', 'buildEmotionalIntimacy'],
+    contextKeys: ['need', 'communication', 'partner'],
+    typicalEmotion: 'empathetic',
+  },
+  buildEmotionalIntimacy: {
+    primary: 'buildEmotionalIntimacy',
+    suggestedFollowers: ['exploreIntimacyNeeds', 'communicateIntimacyNeeds', 'celebrationMoment'],
+    contextKeys: ['connection', 'vulnerability', 'growth'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateIntimacyFears: {
+    primary: 'navigateIntimacyFears',
+    suggestedFollowers: ['exploreIntimacyNeeds', 'buildSelfCompassion', 'communicateIntimacyNeeds'],
+    contextKeys: ['fear', 'source', 'approach'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // CHRONIC CONDITIONS DOMAIN - Living Well Journey
+  // ========================================================================
+  manageChronicCondition: {
+    primary: 'manageChronicCondition',
+    suggestedFollowers: [
+      'buildChronicConditionRoutine',
+      'processChronicConditionEmotions',
+      'navigateFlareUps',
+    ],
+    contextKeys: ['condition', 'management', 'support'],
+    typicalEmotion: 'empathetic',
+  },
+  buildChronicConditionRoutine: {
+    primary: 'buildChronicConditionRoutine',
+    suggestedFollowers: ['manageChronicCondition', 'navigateFlareUps', 'celebrationMoment'],
+    contextKeys: ['routine', 'adaptation', 'consistency'],
+    typicalEmotion: 'neutral',
+  },
+  processChronicConditionEmotions: {
+    primary: 'processChronicConditionEmotions',
+    suggestedFollowers: ['buildSelfCompassion', 'manageChronicCondition', 'companionInGrief'],
+    contextKeys: ['emotion', 'processing', 'acceptance'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateFlareUps: {
+    primary: 'navigateFlareUps',
+    suggestedFollowers: ['groundingExercise', 'manageChronicCondition', 'buildSelfCompassion'],
+    contextKeys: ['flareUp', 'management', 'support'],
+    typicalEmotion: 'concerned',
+  },
+
+  // ========================================================================
+  // MIDLIFE DOMAIN - Transition Journey
+  // ========================================================================
+  exploreMidlifeQuestions: {
+    primary: 'exploreMidlifeQuestions',
+    suggestedFollowers: ['redefineSuccess', 'processLifeTransition', 'buildMidlifeMeaning'],
+    contextKeys: ['questions', 'concerns', 'exploration'],
+    typicalEmotion: 'empathetic',
+  },
+  redefineSuccess: {
+    primary: 'redefineSuccess',
+    suggestedFollowers: ['buildMidlifeMeaning', 'exploreMidlifeQuestions', 'celebrationMoment'],
+    contextKeys: ['oldDefinition', 'newDefinition', 'values'],
+    typicalEmotion: 'empathetic',
+  },
+  processLifeTransition: {
+    primary: 'processLifeTransition',
+    suggestedFollowers: ['exploreMidlifeQuestions', 'buildSelfCompassion', 'companionInGrief'],
+    contextKeys: ['transition', 'feelings', 'processing'],
+    typicalEmotion: 'empathetic',
+  },
+  buildMidlifeMeaning: {
+    primary: 'buildMidlifeMeaning',
+    suggestedFollowers: ['redefineSuccess', 'setGoal', 'celebrationMoment'],
+    contextKeys: ['meaning', 'purpose', 'legacy'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // BREAKUP RECOVERY DOMAIN - Healing Journey
+  // ========================================================================
+  processBreakupPain: {
+    primary: 'processBreakupPain',
+    suggestedFollowers: ['navigateBreakupEmotions', 'buildPostBreakupIdentity', 'companionInGrief'],
+    contextKeys: ['pain', 'stage', 'support'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateBreakupEmotions: {
+    primary: 'navigateBreakupEmotions',
+    suggestedFollowers: ['processBreakupPain', 'groundingExercise', 'buildSelfCompassion'],
+    contextKeys: ['emotion', 'trigger', 'coping'],
+    typicalEmotion: 'empathetic',
+  },
+  buildPostBreakupIdentity: {
+    primary: 'buildPostBreakupIdentity',
+    suggestedFollowers: ['setGoal', 'clarifyDatingGoals', 'celebrationMoment'],
+    contextKeys: ['identity', 'growth', 'future'],
+    typicalEmotion: 'empathetic',
+  },
+  moveForwardFromBreakup: {
+    primary: 'moveForwardFromBreakup',
+    suggestedFollowers: ['buildPostBreakupIdentity', 'clarifyDatingGoals', 'celebrationMoment'],
+    contextKeys: ['readiness', 'steps', 'growth'],
+    typicalEmotion: 'celebratory',
   },
 };
 

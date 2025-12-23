@@ -24,6 +24,7 @@ interface CrashContext {
   turnCount?: number;
   lastUserMessage?: string;
   customData?: Record<string, unknown>;
+  sessionStartTime?: number;
 }
 
 interface CrashReport {
@@ -191,17 +192,17 @@ export function reportConnectionDrop(
   additionalContext?: Record<string, unknown>
 ): void {
   // Always log for debugging - even graceful disconnects help diagnose issues
-  const sessionDurationMs = crashContext.sessionStartTime
-    ? Date.now() - crashContext.sessionStartTime
+  const sessionDurationMs = currentContext.sessionStartTime
+    ? Date.now() - currentContext.sessionStartTime
     : undefined;
 
   const disconnectInfo = {
     reason,
     wasGraceful,
     sessionDurationMs,
-    turnCount: crashContext.turnCount,
-    lastUserMessage: crashContext.lastUserMessage,
-    connectionState: crashContext.connectionState,
+    turnCount: currentContext.turnCount,
+    lastUserMessage: currentContext.lastUserMessage,
+    connectionState: currentContext.connectionState,
     ...additionalContext,
   };
 
@@ -219,8 +220,8 @@ export function reportConnectionDrop(
       disconnectReason: reason,
       wasGraceful,
       sessionDurationMs,
-      turnCount: crashContext.turnCount,
-      lastUserMessage: crashContext.lastUserMessage,
+      turnCount: currentContext.turnCount,
+      lastUserMessage: currentContext.lastUserMessage,
       ...additionalContext,
     },
   });

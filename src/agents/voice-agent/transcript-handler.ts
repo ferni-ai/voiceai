@@ -85,6 +85,13 @@ import {
   type AnticipatoryEngineResult,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
+// Semantic Router - pre-LLM tool routing for high-confidence requests
+import {
+  routeTranscript,
+  isSemanticRoutingEnabled,
+} from '../../tools/semantic-router/integration/index.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // ============================================================================
@@ -139,12 +146,48 @@ export interface TranscriptHandlerContext {
  * echo → transcribes "how are you" → matches cached response → says "I'm doing
  * well, thanks for asking!").
  *
- * 2 seconds is enough for:
+ * NEW: Uses adaptive echo window from SpeechCoordinator when available.
+ * Falls back to 2000ms if coordination system unavailable.
+ *
+ * Legacy 2 seconds accounts for:
  * - Audio buffer flush (~200-500ms)
  * - Speech-to-text processing (~500-1000ms)
  * - Network latency buffer (~200ms)
  */
-const ECHO_PREVENTION_COOLDOWN_MS = 2000;
+const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
+
+/**
+ * Get adaptive echo prevention window.
+ * Uses learned timing from SpeechCoordinator when available.
+ */
+function getEchoPreventioncooldownMs(lastUtteranceDurationMs?: number): number {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAdaptiveEchoWindow } = require('../../speech/coordination/index.js') as {
+      getAdaptiveEchoWindow: (duration?: number) => number;
+    };
+    return getAdaptiveEchoWindow(lastUtteranceDurationMs);
+  } catch {
+    // Fall back to default if coordination module unavailable
+    return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
+  }
+}
+
+/**
+ * Record echo detection for adaptive learning.
+ * Call this when we detect what appears to be agent echo being picked up.
+ */
+function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { recordEchoDetected } = require('../../speech/coordination/index.js') as {
+      recordEchoDetected: (sessionId: string, delayMs: number) => void;
+    };
+    recordEchoDetected(sessionId, delayMs);
+  } catch {
+    // Ignore if coordination module unavailable
+  }
+}
 
 export interface TranscriptEvent {
   transcript: string;
@@ -376,8 +419,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             );
 
             if (result.shouldFire && result.verbalResponse) {
-              // Speak the anticipatory response
-              session.say(result.verbalResponse, { allowInterruptions: true });
+              // Speak the anticipatory response via coordinated speech
+              coordinatedSay(sessionId, result.verbalResponse, { allowInterruptions: true });
 
               // Send avatar cue to frontend
               if (ctx.sendDataMessage && result.responseTemplate?.nonVerbal) {
@@ -669,16 +712,24 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // - STT processing delay
       // - Network latency
       // NOTE: lastAgentSpeechEnd and timeSinceAgentSpoke already calculated above
-      const isInEchoCooldown = timeSinceAgentSpoke < ECHO_PREVENTION_COOLDOWN_MS;
+      // NEW: Use adaptive echo window based on last utterance duration
+      const adaptiveEchoCooldown = getEchoPreventioncooldownMs(
+        userData.lastAgentUtteranceDurationMs
+      );
+      const isInEchoCooldown = timeSinceAgentSpoke < adaptiveEchoCooldown;
 
       // Skip cache if currently speaking OR within cooldown window
       const shouldSkipCache = isAgentCurrentlySpeaking || isInEchoCooldown;
       const cached = !shouldSkipCache ? getCachedResponseIfAvailable(sessionId) : null;
 
       if (isInEchoCooldown && !isAgentCurrentlySpeaking) {
-        diag.state('⚡ CACHE BYPASS SKIPPED - Echo prevention cooldown', {
+        // Record this as potential echo for learning
+        recordEchoDetectionForLearning(sessionId, timeSinceAgentSpoke);
+
+        diag.state('⚡ CACHE BYPASS SKIPPED - Adaptive echo prevention', {
           timeSinceAgentSpokeMs: timeSinceAgentSpoke,
-          cooldownMs: ECHO_PREVENTION_COOLDOWN_MS,
+          adaptiveCooldownMs: adaptiveEchoCooldown,
+          lastUtteranceDurationMs: userData.lastAgentUtteranceDurationMs,
           transcript: event.transcript.slice(0, 30),
         });
       }
@@ -689,9 +740,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           response: cached.response.slice(0, 50),
         });
 
-        // Say the cached response immediately (with SSML if available)
+        // Say the cached response immediately (with SSML if available) via coordinated speech
         try {
-          session.say(cached.ssml || cached.response, { allowInterruptions: true });
+          coordinatedSay(sessionId, cached.ssml || cached.response, { allowInterruptions: true });
 
           // Track that we used a cached response
           if (services && typeof services.addTurn === 'function') {
@@ -713,7 +764,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         // Cooldown skip is logged above already
       }
 
-      processFinalTranscript({
+      // Fire and forget - async but we don't await in the sync handler
+      void processFinalTranscript({
         event,
         room,
         session,
@@ -727,6 +779,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         silenceContext,
         dynamicToolLoader,
         autoOptimizer,
+      }).catch((err) => {
+        diag.warn('processFinalTranscript error', { error: String(err) });
       });
     }
   };
@@ -861,7 +915,9 @@ export function getCachedResponseIfAvailable(
 /**
  * Process final transcript with all necessary processing steps
  */
-function processFinalTranscript(ctx: TranscriptHandlerContext & { event: TranscriptEvent }): void {
+async function processFinalTranscript(
+  ctx: TranscriptHandlerContext & { event: TranscriptEvent }
+): Promise<void> {
   const {
     event,
     session,
@@ -876,6 +932,49 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
     dynamicToolLoader,
     autoOptimizer,
   } = ctx;
+
+  // ===============================================
+  // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
+  // Route high-confidence tool requests BEFORE Gemini processes
+  // This bypasses the LLM entirely for deterministic tool calls
+  // ===============================================
+  if (isSemanticRoutingEnabled() && event.transcript) {
+    try {
+      const routingResult = await routeTranscript(event.transcript, {
+        userId: userId || 'anonymous',
+        sessionId,
+        personaId: sessionPersona.id,
+        session,
+        // ConversationHistory and recentTools are optional
+        conversationHistory: [],
+        recentTools: [],
+      });
+
+      // If semantic router handled it, skip normal processing
+      if (routingResult.handled) {
+        diag.state('🎯 Semantic router handled transcript', {
+          toolId: routingResult.toolId,
+          confidence: routingResult.confidence,
+        });
+
+        // Still track the turn count and user message
+        userData.turnCount = (userData.turnCount || 0) + 1;
+        userData.lastUserMessage = event.transcript;
+
+        return; // Skip Gemini processing
+      }
+
+      // Log if routing was attempted but not handled
+      if (routingResult.attempted) {
+        diag.state('🎯 Semantic routing attempted, passing to Gemini', {
+          confidence: routingResult.confidence,
+        });
+      }
+    } catch (routingError) {
+      // Non-fatal - let Gemini handle
+      diag.warn('Semantic routing error', { error: String(routingError) });
+    }
+  }
 
   // ===============================================
   // SESAME-INSPIRED: START NEW TURN
@@ -1044,17 +1143,21 @@ function processTrialStatus(
           trialEnded: trialStatus.trialEnded,
         });
 
-        // Speak the transition prompt after the agent's next response
+        // Speak the transition prompt after the agent's next response via coordinated speech
         setTimeout(() => {
           try {
             if (session && !conversationManager.isAgentSpeaking()) {
-              session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
+              coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+                allowInterruptions: true,
+              });
             } else if (session) {
               // Agent is speaking - retry after another delay
               setTimeout(() => {
                 try {
                   if (session && !conversationManager.isAgentSpeaking()) {
-                    session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
+                    coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+                      allowInterruptions: true,
+                    });
                   }
                 } catch {
                   // Ignore retry errors

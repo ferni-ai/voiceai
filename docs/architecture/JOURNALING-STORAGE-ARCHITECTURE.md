@@ -1,17 +1,60 @@
 # Journaling Storage Architecture
 
 > **Last Updated:** December 2024  
-> **Status:** Implemented with minor debt
+> **Status:** Unified architecture implemented ✅
 
 ## Overview
 
-Ferni's journaling system currently uses **three different storage approaches** depending on the context:
+Ferni's journaling system now has a **unified abstraction layer** that provides consistent access across multiple storage backends:
 
-| Context | Storage | Location |
-|---------|---------|----------|
-| Digital Twin Journal | Custom Agent Memory API | `/api/custom-agents/:id/memories` (Firestore) |
-| Productivity Notes | ProductivityStore | In-memory + Firestore (`productivity_data`) |
-| Trust Systems | Growth Reflection | Firestore (`trust_profiles`) |
+| Context | Storage | Abstraction |
+|---------|---------|-------------|
+| Digital Twin Journal | Firestore (`custom_agents/:id/memories`) | `JournalService.getAllEntries()` |
+| Productivity Notes | ProductivityStore | `JournalService.getAllEntries()` |
+| Auto-Captured Moments | Firestore (via JournalService) | `JournalService.createEntry()` |
+| Trust Systems | Growth Reflection | Trust analytics integration |
+
+## New: Unified Journal Service
+
+**Location:** `src/services/journal/index.ts`
+
+The JournalService provides:
+- Cross-source querying (all entries from all storage systems)
+- Consistent mood format conversion
+- Unified schema for all entry types
+- Export functionality (JSON, Markdown)
+- Statistics and analytics
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/journal/entries` | GET | Get all entries (with filtering) |
+| `/api/journal/capture` | POST | Save auto-captured moment |
+| `/api/journal/stats` | GET | Get journal statistics |
+| `/api/journal/search` | GET | Search entries by content |
+| `/api/journal/aggregated` | GET | Get entries from all Digital Twins |
+| `/api/journal/export` | GET | Export to JSON or Markdown |
+| `/api/journal/prompt` | POST | Get personalized prompt |
+| `/api/journal/prompts` | POST | Get multiple prompts |
+| `/api/journal/transcribe` | POST | Transcribe audio |
+
+### Mood Conversion
+
+**Location:** `src/services/journal/mood-conversion.ts`
+
+Handles conversion between storage formats:
+- Digital Twin: string IDs (`'happy'`, `'anxious'`)
+- ProductivityStore: numeric scores (`1-10`)
+- Unified output: both ID and score
+
+```typescript
+import { normalizeMood, moodIdToScore, scoreToMoodId } from '@/services/journal';
+
+normalizeMood('happy')     // { id: 'happy', score: 8 }
+normalizeMood(8)           // { id: 'happy', score: 8 }
+normalizeMood({ mood: 'anxious', moodScore: 3 }) // { id: 'anxious', score: 3 }
+```
 
 ## Current Architecture
 
@@ -211,15 +254,51 @@ When adding new journal-related features, use this guide:
 | Productivity/gratitude journal | ProductivityStore |
 | Emotional tracking analytics | Trust Systems |
 
-## Migration Path
+## Migration Status
 
-1. **Phase 1 (Current):** Document existing architecture ✅
-2. **Phase 2:** Create unified `JournalService` abstraction
-3. **Phase 3:** Migrate ProductivityStore entries to unified schema
-4. **Phase 4:** Add cross-storage query capabilities
-5. **Phase 5:** Deprecate direct storage access, route all through service
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1: Document architecture | ✅ Done | This document |
+| Phase 2: Create JournalService | ✅ Done | `src/services/journal/index.ts` |
+| Phase 3: Mood conversion utilities | ✅ Done | `src/services/journal/mood-conversion.ts` |
+| Phase 4: Cross-storage queries | ✅ Done | `getAllEntries()`, `/api/journal/aggregated` |
+| Phase 5: Export functionality | ✅ Done | `/api/journal/export` (JSON, Markdown) |
+| Phase 6: Auto-capture integration | ✅ Done | `/api/journal/capture` endpoint |
+
+### Remaining Work
+
+- [ ] Migrate direct ProductivityStore calls to JournalService
+- [ ] Add real-time sync via WebSocket
+- [ ] Implement journal entry deletion
+- [ ] Add embedding-based semantic search
+
+## Testing
+
+```bash
+# Journal capture service tests
+pnpm vitest run apps/web/tests/services/journal-capture.service.test.ts
+
+# Mood conversion tests  
+pnpm vitest run src/tests/mood-conversion.test.ts
+
+# Journaling prompts tests
+pnpm vitest run src/tests/journaling.test.ts
+```
+
+## File Locations (Updated)
+
+| File | Purpose |
+|------|---------|
+| **`src/services/journal/index.ts`** | **Unified JournalService (new)** |
+| **`src/services/journal/mood-conversion.ts`** | **Mood format conversion (new)** |
+| `apps/web/src/ui/voice-journal/` | Frontend UI (modular) |
+| `apps/web/src/services/journal-capture.service.ts` | Frontend auto-capture |
+| `src/api/journal-routes.ts` | API endpoints (expanded) |
+| `src/services/trust-systems/journaling-prompts.ts` | Prompt generation |
+| `src/tools/domains/productivity/notes.ts` | Maya's notes/journal tools |
+| `src/services/stores/productivity-store.ts` | ProductivityStore |
 
 ---
 
-*This document captures the current state of journaling storage as technical debt. The fragmentation is manageable but should be addressed as the feature grows.*
+*Updated December 2024 with unified JournalService implementation.*
 

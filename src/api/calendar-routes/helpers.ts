@@ -68,5 +68,3 @@ export function formatEventForApi(event: CalendarEvent): Record<string, unknown>
 
 // Re-export rate limit status getter
 export { getCalendarRateLimitStatus };
-
-

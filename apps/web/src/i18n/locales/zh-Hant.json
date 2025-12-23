@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "zh-Hant",
-    "name": "繁體中文",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "帳號選單",
+    "accountSettings": "帳號設定",
+    "availableCoaches": "可用教練",
+    "backToItems": "返回項目",
+    "cancelInstallation": "取消安裝",
+    "closeAdmin": "關閉管理面板",
+    "closeBilling": "關閉帳單儀表板",
+    "closeDashboard": "關閉儀表板",
+    "closeDetails": "關閉詳情",
+    "closeHistory": "關閉歷史",
+    "closeHuddle": "關閉會議",
+    "closeMenu": "關閉選單",
+    "closePublisher": "關閉發布者入口",
+    "closeSettings": "關閉設定",
+    "closeStats": "關閉統計",
+    "closeSubscription": "關閉訂閱選項",
+    "collapse": "收合",
+    "collapseGarden": "收合花園詳情",
+    "dismiss": "關閉",
+    "dismissNotification": "關閉通知",
+    "endCall": "結束通話",
+    "expandGarden": "展開花園詳情",
+    "exportData": "匯出您的資料",
+    "featuresIncluded": "包含的功能",
+    "ferniLogo": "Ferni標誌",
+    "filterBySpecialty": "按專業篩選",
+    "forgetThis": "忘記這個",
+    "howToPlay": "如何遊玩",
+    "languageSelector": "選擇語言",
+    "muteAudio": "靜音",
+    "openDailyPractice": "開啟每日練習",
+    "openPredictions": "開啟預測",
+    "openSettings": "開啟設定",
+    "openTeamInsights": "開啟團隊洞察",
+    "options": "選項",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "入口部分",
+    "refresh": "重新整理",
+    "refreshData": "重新整理資料",
+    "saveConversations": "建立帳號以儲存您的對話",
+    "searchCoaches": "搜尋教練",
+    "shareJourney": "分享您的旅程",
+    "sharedMusicalMemory": "共享的音樂記憶",
+    "signInToAccount": "登入您的帳號",
+    "skipToContent": "跳到主要內容",
+    "submitNewItem": "提交新項目",
+    "subscriptionPlans": "訂閱方案",
+    "toggleQuietHours": "切換安靜時段",
+    "unmuteAudio": "取消靜音",
+    "viewOutreachSchedule": "查看聯繫日程",
+    "yourNewPlan": "您的新方案"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "選擇此項",
+    "exportData": "匯出資料",
+    "refresh": "重新整理",
+    "savePreference": "儲存偏好",
+    "savePreferences": "儲存偏好設定",
+    "signIn": "登入",
+    "signOut": "登出",
+    "signUp": "註冊"
   },
   "common": {
-    "loading": "載入中...",
-    "error": "發生錯誤",
-    "retry": "重試",
-    "cancel": "取消",
-    "save": "儲存",
-    "close": "關閉",
-    "next": "下一步",
-    "back": "返回",
-    "done": "完成",
-    "continue": "繼續",
-    "skip": "略過",
-    "confirm": "確認",
-    "delete": "刪除",
-    "edit": "編輯",
-    "share": "分享",
-    "download": "下載",
-    "copy": "複製",
-    "copied": "已複製！",
-    "new": "新",
-    "saving": "儲存中...",
-    "saved": "已儲存！",
-    "processing": "處理中...",
     "adding": "新增中...",
-    "errorRetry": "錯誤 - 重試"
+    "back": "返回",
+    "cancel": "取消",
+    "close": "關閉",
+    "confirm": "確認",
+    "continue": "繼續",
+    "copied": "已複製！",
+    "copy": "複製",
+    "daysAgo": "{count} days ago",
+    "delete": "刪除",
+    "done": "完成",
+    "download": "下載",
+    "edit": "編輯",
+    "error": "發生錯誤",
+    "errorRetry": "錯誤 - 重試",
+    "loading": "載入中...",
+    "monthsAgo": "{count} months ago",
+    "new": "新",
+    "next": "下一步",
+    "processing": "處理中...",
+    "retry": "重試",
+    "save": "儲存",
+    "saved": "已儲存！",
+    "saving": "儲存中...",
+    "share": "分享",
+    "skip": "略過",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "下一步做什麼？",
-    "yourStage": "您的階段",
-    "nextStage": "下一步：{stage}",
-    "maxLevel": "人生伴侶",
-    "unlockHint": "還需{remaining}解鎖",
-    "moreConversations": "再聊{n}次",
-    "moreDays": "再等{n}天",
-    "keepChatting": "繼續聊天解鎖",
-    "almostThere": "快了！",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "快速存取",
-      "connect": "連結",
-      "grow": "成長",
-      "remember": "回憶",
-      "personalize": "個性定製",
-      "account": "帳戶",
-      "admin": "管理員"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "您的旅程",
-      "trustDetails": "我們的關係",
-      "progressAnalytics": "您的成長",
-      "predictionAccuracy": "我的預測",
-      "whatILearned": "我學到的",
-      "memoryBrowser": "我們的回憶",
-      "wellbeingDashboard": "您的健康",
-      "lifeContext": "生活情境",
-      "teamInsights": "團隊洞察",
-      "conversationHistory": "過往對話",
-      "contacts": "我的聯絡人",
-      "gifts": "禮物和場合",
-      "videoSessions": "視訊聊天",
-      "groupCoaching": "團體會話",
-      "teamHuddles": "團隊會議",
-      "playGames": "玩遊戲",
-      "musicalYou": "音樂的你",
-      "personalize": "個人化",
-      "voiceAccent": "語音和口音",
-      "guidedPractices": "引導練習",
-      "createPractice": "建立練習",
-      "wearables": "穿戴式裝置",
-      "calendar": "行事曆",
-      "notifications": "通知",
-      "toggleTheme": "淺色 / 深色",
-      "linkSpotify": "連結Spotify",
-      "spotifyConnected": "Spotify已連結",
-      "yourPlan": "您的方案",
-      "manageBilling": "付款設定",
-      "voiceId": "您的聲音",
-      "householdMembers": "您的家人",
-      "contactInfo": "聯絡資訊",
-      "exportData": "下載您的故事",
-      "shareFerni": "分享Ferni",
-      "supportFerni": "支持Ferni",
-      "takeTour": "開始導覽",
-      "language": "語言",
-      "whatsGrowing": "成長中",
-      "billingPortal": "帳單與訂閱",
-      "outreachSchedule": "聯繫計劃"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "固定到頂部",
-    "unpinItem": "取消固定",
-    "comingSoon": "即將推出"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "成長中",
-    "title": "前方的旅程",
-    "intro": "每段美好的關係都有四季。這些是我們一起播下的種子。",
-    "sections": {
-      "connect": "連接的新方式",
-      "personalize": "打造專屬",
-      "platform": "平台"
+  "contactSettings": {
+    "buttons": {
+      "save": "儲存",
+      "saving": "儲存中..."
     },
-    "expectedArrival": "預計上線",
-    "betterThanHuman": "超越人類",
-    "alreadyGrowing": "已在成長",
-    "wantThis": "我想要這個",
-    "voted": "您很期待！",
-    "peopleExcited": "{count}人對此感到期待",
-    "footerText": "您的聲音塑造我們構建的內容。感謝與我們一起成長。",
-    "stages": {
-      "seed": "播種",
-      "sprout": "成長中",
-      "bud": "含苞",
-      "bloom": "即將綻放"
+    "verify": {
+      "sending": "發送驗證碼...",
+      "withCode": "使用驗證碼驗證"
     }
   },
-  "session": {
-    "connecting": "連線中...",
-    "connected": "已連線",
-    "disconnected": "已斷線",
-    "listening": "正在聆聽...",
-    "thinking": "正在思考...",
-    "speaking": "正在說話...",
-    "tapToSpeak": "點擊說話",
-    "holdToSpeak": "按住說話",
-    "releaseToSend": "放開傳送",
-    "endSession": "結束會話",
-    "sessionEnded": "會話已結束",
-    "goodbye": "再見",
-    "end": "結束",
-    "untilNextTime": "下次再見...",
-    "takeCare": "保重。",
-    "ending": "結束中...",
-    "endConversation": "結束對話",
-    "endConversationGoodbye": "結束對話 - 再見",
-    "agentEndingConversation": "助手正在結束對話"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "我們的故事",
-    "title": "你的信任之旅",
-    "subtitle": "我們一起成長的歷程",
-    "loading": "正在載入你的旅程",
-    "loadingText": "正在收集你的旅程...",
-    "trustScore": "信任分數",
-    "exportSuccess": "旅程已匯出！",
-    "offlineBanner": "你處於離線狀態 - 顯示快取資料",
-    "loadMore": "載入更多 {count} 項",
-    "strengthLabel": "信任分數：{value}%",
-    "timelineLabel": "旅程時間軸",
-    "filterLabel": "篩選時間軸",
-    "filters": {
-      "all": "全部",
-      "growth": "成長",
-      "win": "勝利",
-      "callback": "回訪",
-      "boundary": "界限",
-      "outreach": "聯絡"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "關係強度",
-      "stats": "旅程統計",
-      "boundaries": "被尊重的界限",
-      "growth": "你的成長",
-      "timeline": "我們一起的旅程"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "成長時刻",
-      "winsCelebrated": "慶祝的勝利",
-      "sharedMoments": "共享的時刻"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "我們一起建立了真實的東西。我了解你，你信任我。",
-      "growing": "我們的聯繫正在加深。我正在了解什麼對你重要。",
-      "building": "我們正在建立信任。每次對話都幫助我更好地了解你。",
-      "starting": "我們才剛剛開始。繼續和我說話 - 我在聽。",
-      "beginning": "每段旅程都從第一步開始。當你準備好時，我就在這裡。"
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "情緒平衡",
-      "perspective_shift": "新的視角",
-      "boundary_setting": "健康的界限",
-      "behavior_change": "新習慣",
-      "self_awareness": "自我意識",
-      "coping_upgrade": "更好的應對",
-      "goal_progress": "目標進展"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "我們的故事剛剛開始",
-      "message": "隨著我們交流更多，我會注意到你的成長，慶祝你的勝利，記住對你重要的事。請很快回來查看。"
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "你處於離線狀態",
-        "message": "連接到網路以查看你的旅程。"
-      },
-      "notLoggedIn": {
-        "title": "未登入",
-        "message": "登入以查看你與 Ferni 的旅程。"
-      },
-      "rateLimited": {
-        "title": "慢一點",
-        "message": "你檢查得太頻繁了。等一會兒再試。"
-      },
-      "unauthorized": {
-        "title": "存取被拒絕",
-        "message": "你沒有權限查看此內容。"
-      },
-      "generic": {
-        "title": "出了點問題",
-        "message": "我們無法載入你的旅程。請重試。"
-      },
-      "exportFailed": {
-        "message": "無法匯出你的資料。請重試。"
-      },
-      "fetchFailedUsingCache": {
-        "message": "顯示儲存的資料 - 無法連接到伺服器。"
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "社群",
-    "friend": "創始會員",
-    "partner": "創始贊助人",
-    "upgrade": "支持 Ferni",
-    "chipIn": "參與支持",
-    "currentPlan": "您的位置",
-    "planDetails": "您的支持",
-    "features": "福利",
-    "unlimitedConversations": "無限對話",
-    "allTeamMembers": "完整團隊存取",
-    "prioritySupport": "優先支援",
-    "advancedInsights": "提前體驗新功能",
-    "helpBuild": "幫助我們建構",
-    "foundersSubtitle": "Ferni 永久免費。如果您相信我們正在建構的東西，請參與支持。",
-    "thankYouPerks": "作為感謝，我們會為您解鎖一些福利。",
-    "notReady": "還沒準備好？沒關係。",
-    "freeForever": "永久免費"
-  },
-  "team": {
-    "meetTheTeam": "認識團隊",
-    "selectMember": "選擇團隊成員",
-    "currentlyWith": "目前與{name}在一起",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "人生教練",
-        "bio": "您的主要聯絡人。提出能夠開啟洞察力的問題。"
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "智者與導師",
-        "bio": "充滿智慧和耐心的終身導師。"
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "研究與發現",
-        "bio": "發現別人看不到的模式。"
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "溝通",
-        "bio": "您的首席助理和溝通教練。"
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "習慣與日常",
-        "bio": "幫助您建立持久的習慣。"
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "規劃與活動",
-        "bio": "將模糊的夢想變成真實的體驗。"
-      }
-    }
-  },
-  "stages": {
-    "stranger": "陌生人",
-    "acquaintance": "熟人",
-    "friend": "朋友",
-    "closeFriend": "好友",
-    "confidant": "知己",
-    "soulmate": "靈魂伴侶"
-  },
-  "time": {
-    "justNow": "剛剛",
-    "minutesAgo": "{n}分鐘前",
-    "hoursAgo": "{n}小時前",
-    "yesterday": "昨天",
-    "daysAgo": "{n}天前"
-  },
-  "milestones": {
-    "ourStory": "我們的故事",
-    "everyMomentMatters": "每一刻都很重要。",
-    "journeyWith": "我與Ferni的旅程",
-    "categories": {
-      "relationship": "我們的關係",
-      "team": "團隊連結",
-      "conversation": "我們的對話",
-      "discovery": "發現",
-      "sweet": "甜蜜時刻",
-      "milestone": "里程碑"
-    }
-  },
-  "notifications": {
-    "connectionLost": "連線中斷。正在重新連線...",
-    "reconnected": "已重新連線！",
-    "microphoneBlocked": "需要麥克風存取權限",
-    "sessionTimeout": "會話已逾時"
   },
   "errors": {
     "connectionFailed": "連線失敗。請重試。",
@@ -318,352 +295,816 @@
     "sessionExpired": "您的會話已過期。請重新整理。",
     "somethingWrong": "發生錯誤。請重試。"
   },
-  "onboarding": {
-    "welcome": "歡迎",
-    "letsGetStarted": "讓我們開始吧",
-    "whatIsYourName": "您希望我怎麼稱呼您？",
-    "niceName": "很高興認識您，{name}！",
-    "howAreYouFeeling": "今天感覺如何？",
-    "readyToBegin": "準備好開始了嗎？",
-    "ariaLabel": "歡迎導覽",
-    "steps": {
-      "welcome": {
-        "title": "歡迎來到Ferni",
-        "description": "您的個人AI人生教練團隊。每位教練都帶來獨特的智慧來支持您的旅程。"
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "加入",
+      "start": "開始"
+    },
+    "empty": {
+      "hint": "建立新會話以開始",
+      "title": "沒有活動會話"
+    },
+    "loading": "載入中...",
+    "participantsLabel": "參與者",
+    "sessionTypes": {
+      "couple": {
+        "description": "共同探索關係動態",
+        "name": "情侶"
       },
-      "voice": {
-        "title": "只需說話",
-        "description": "點擊中心開始對話。自然地說話 - Ferni會即時傾聽和回應。"
+      "family": {
+        "description": "建立更牢固的家庭聯繫",
+        "name": "家庭"
       },
-      "personas": {
-        "title": "認識您的團隊",
-        "description": "六位具有不同視角的教練。每位都了解您與團隊的歷史。"
+      "peer": {
+        "description": "與有類似旅程的人聯繫",
+        "name": "同儕支援"
       },
-      "rituals": {
-        "title": "每日練習",
-        "description": "透過簡短的每日儀式建立一致性。追蹤連續記錄並慶祝進步。"
-      },
-      "ready": {
-        "title": "您已準備就緒",
-        "description": "這就是您需要知道的全部。隨著您的前進發現更多。"
+      "team": {
+        "description": "改善職場協作",
+        "name": "團隊"
       }
     },
-    "buttons": {
-      "skip": "略過導覽",
-      "back": "返回",
-      "next": "下一步",
-      "begin": "讓我們開始"
-    }
+    "title": "團體輔導"
+  },
+  "household": {
+    "addMember": "新增成員",
+    "addToHousehold": "新增至家庭",
+    "members": "成員",
+    "removeMember": "移除成員",
+    "title": "家庭"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "訂閱",
-    "title": "管理您的方案",
-    "expiresLabel": "存取直到",
-    "renewsLabel": "續訂",
-    "billedThrough": "帳單方式",
-    "buttons": {
-      "upgrade": "升級到進階版",
-      "restore": "恢復購買",
-      "restoring": "恢復中...",
-      "manageApple": "在設定中管理",
-      "manageStripe": "管理帳單"
-    },
     "apple": {
       "instructionsTitle": "要取消或變更您的方案：",
+      "note": "Apple要求透過iOS設定管理訂閱",
       "step1": "在裝置上開啟設定",
       "step2": "點擊頂部的您的名字",
       "step3": "點擊「訂閱」",
-      "step4": "找到並點擊「Ferni」",
-      "note": "Apple要求透過iOS設定管理訂閱"
+      "step4": "找到並點擊「Ferni」"
+    },
+    "billedThrough": "帳單方式",
+    "buttons": {
+      "manageApple": "在設定中管理",
+      "manageStripe": "管理帳單",
+      "restore": "恢復購買",
+      "restoring": "恢復中...",
+      "upgrade": "升級到進階版"
+    },
+    "expiresLabel": "存取直到",
+    "freeNote": "解鎖無限會話、完整團隊和個人化",
+    "label": "訂閱",
+    "renewsLabel": "續訂",
+    "restore": {
+      "failed": "恢復失敗",
+      "noFound": "未找到購買記錄"
+    },
+    "status": {
+      "active": "您的訂閱處於活躍狀態。感謝您的支持！",
+      "canceled": "您的訂閱即將結束，但隨時歡迎您回來。",
+      "default": "您已訂閱。感謝您的支持！",
+      "free": "您使用的是免費方案。Ferni始終陪伴您。",
+      "pastDue": "您的付款出現問題。請更新您的付款方式。"
     },
     "stripe": {
       "note": "更新付款方式、查看發票或隨時取消"
     },
-    "restore": {
-      "noFound": "未找到購買記錄",
-      "failed": "恢復失敗"
+    "title": "管理您的方案"
+  },
+  "menu": {
+    "almostThere": "快了！",
+    "comingSoon": "即將推出",
+    "items": {
+      "billingPortal": "帳單與訂閱",
+      "calendar": "行事曆",
+      "connections": "Connections",
+      "contactInfo": "聯絡資訊",
+      "contacts": "我的聯絡人",
+      "conversationHistory": "過往對話",
+      "createPractice": "建立練習",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "下載您的故事",
+      "gifts": "禮物和場合",
+      "groupCoaching": "團體會話",
+      "guidedPractices": "引導練習",
+      "householdMembers": "您的家人",
+      "journaling": "Journaling",
+      "language": "語言",
+      "lifeContext": "生活情境",
+      "linkSpotify": "連結Spotify",
+      "manageBilling": "付款設定",
+      "memoryBrowser": "我們的回憶",
+      "musicalYou": "音樂的你",
+      "notifications": "通知",
+      "outreachSchedule": "聯繫計劃",
+      "personalize": "個人化",
+      "playGames": "玩遊戲",
+      "predictionAccuracy": "我的預測",
+      "progressAnalytics": "您的成長",
+      "shareFerni": "邀請朋友",
+      "spotifyConnected": "Spotify已連結",
+      "supportFerni": "支持Ferni",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "開始導覽",
+      "teamHuddles": "團隊會議",
+      "teamInsights": "團隊洞察",
+      "toggleTheme": "淺色 / 深色",
+      "trustDetails": "我們的關係",
+      "videoSessions": "視訊聊天",
+      "voiceAccent": "語音和口音",
+      "voiceId": "您的聲音",
+      "wearables": "穿戴式裝置",
+      "wellbeingDashboard": "您的健康",
+      "whatILearned": "我學到的",
+      "whatsGrowing": "成長中",
+      "yourJourney": "您的旅程",
+      "yourPlan": "您的方案"
     },
-    "status": {
-      "free": "您使用的是免費方案。Ferni始終陪伴您。",
-      "active": "您的訂閱處於活躍狀態。感謝您的支持！",
-      "canceled": "您的訂閱即將結束，但隨時歡迎您回來。",
-      "pastDue": "您的付款出現問題。請更新您的付款方式。",
-      "default": "您已訂閱。感謝您的支持！"
+    "keepChatting": "繼續聊天解鎖",
+    "maxLevel": "人生伴侶",
+    "moreConversations": "再聊{n}次",
+    "moreDays": "再等{n}天",
+    "nextStage": "下一步：{stage}",
+    "pinItem": "固定到頂部",
+    "quickAdd": {
+      "event": "行程",
+      "eventPrompt": "告訴我行程詳情",
+      "person": "聯絡人",
+      "todo": "待辦",
+      "todoPrompt": "告訴我要記住什麼"
     },
-    "freeNote": "解鎖無限會話、完整團隊和個人化"
+    "sections": {
+      "account": "帳戶",
+      "admin": "管理員",
+      "connect": "連結",
+      "connections": "Connections",
+      "grow": "成長",
+      "personalize": "個性定製",
+      "pinned": "快速存取",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "回憶",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "下一步做什麼？",
+    "unlockHint": "還需{remaining}解鎖",
+    "unpinItem": "取消固定",
+    "yourStage": "您的階段"
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "zh-Hant",
+    "name": "繁體中文"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "我們的對話",
+      "discovery": "發現",
+      "milestone": "里程碑",
+      "relationship": "我們的關係",
+      "sweet": "甜蜜時刻",
+      "team": "團隊連結"
+    },
+    "everyMomentMatters": "每一刻都很重要。",
+    "journeyWith": "我與Ferni的旅程",
+    "ourStory": "我們的故事"
+  },
+  "mobile": {
+    "pullToConnect": "下拉連接",
+    "pullToRefresh": "下拉重新整理",
+    "releaseToConnect": "放開連接",
+    "releaseToRefresh": "放開重新整理"
   },
   "musicDashboard": {
-    "title": "音樂的你",
-    "loading": "分析您的音樂DNA...",
+    "buttons": {
+      "playGame": "玩猜歌名遊戲",
+      "startPlaying": "開始遊戲"
+    },
     "empty": {
-      "title": "讓我們發現您的音樂DNA！",
-      "hint": "再玩{count}個遊戲以獲得完整洞察"
+      "hint": "再玩{count}個遊戲以獲得完整洞察",
+      "title": "讓我們發現您的音樂DNA！"
     },
     "error": {
       "hint": "玩一些音樂遊戲來建立您的檔案！"
     },
-    "buttons": {
-      "startPlaying": "開始遊戲",
-      "playGame": "玩猜歌名遊戲"
-    },
-    "sections": {
-      "journey": "您的旅程",
-      "strengths": "您的閃光點",
-      "growth": "成長空間",
-      "milestones": "成就",
-      "moments": "難忘時刻",
-      "personaStats": "您一起玩的人"
-    },
-    "stats": {
-      "gamesPlayed": "已玩遊戲",
-      "bestStreak": "最佳連勝",
-      "minutes": "分鐘",
-      "thisWeek": "本週"
-    },
     "favorite": {
       "label": "最愛："
     },
+    "loading": "分析您的音樂DNA...",
     "milestone": {
       "nextLabel": "下一個目標"
+    },
+    "sections": {
+      "growth": "成長空間",
+      "journey": "您的旅程",
+      "milestones": "成就",
+      "moments": "難忘時刻",
+      "personaStats": "您一起玩的人",
+      "strengths": "您的閃光點"
+    },
+    "stats": {
+      "bestStreak": "最佳連勝",
+      "gamesPlayed": "已玩遊戲",
+      "minutes": "分鐘",
+      "thisWeek": "本週"
+    },
+    "title": "音樂的你"
+  },
+  "notifications": {
+    "connectionLost": "連線中斷。正在重新連線...",
+    "microphoneBlocked": "需要麥克風存取權限",
+    "reconnected": "已重新連線！",
+    "sessionTimeout": "會話已逾時"
+  },
+  "onboarding": {
+    "ariaLabel": "歡迎導覽",
+    "buttons": {
+      "back": "返回",
+      "begin": "讓我們開始",
+      "next": "下一步",
+      "skip": "略過導覽"
+    },
+    "howAreYouFeeling": "今天感覺如何？",
+    "letsGetStarted": "讓我們開始吧",
+    "niceName": "很高興認識您，{name}！",
+    "readyToBegin": "準備好開始了嗎？",
+    "steps": {
+      "personas": {
+        "description": "六位具有不同視角的教練。每位都了解您與團隊的歷史。",
+        "title": "認識您的團隊"
+      },
+      "ready": {
+        "description": "這就是您需要知道的全部。隨著您的前進發現更多。",
+        "title": "您已準備就緒"
+      },
+      "rituals": {
+        "description": "透過簡短的每日儀式建立一致性。追蹤連續記錄並慶祝進步。",
+        "title": "每日練習"
+      },
+      "voice": {
+        "description": "點擊中心開始對話。自然地說話 - Ferni會即時傾聽和回應。",
+        "title": "只需說話"
+      },
+      "welcome": {
+        "description": "您的個人AI人生教練團隊。每位教練都帶來獨特的智慧來支持您的旅程。",
+        "title": "歡迎來到Ferni"
+      }
+    },
+    "welcome": "歡迎",
+    "whatIsYourName": "您希望我怎麼稱呼您？"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "companyValuesExample": "例如，誠信、創新、客戶至上、團隊合作",
+    "customAmount": "自訂金額",
+    "displayName": "您的暱稱",
+    "emailExample": "you@example.com",
+    "enterValue": "輸入實際值",
+    "householdName": "王家",
+    "marketplaceSearch": "您在找誰？",
+    "memberName": "他們的名字",
+    "phoneExample": "+886 (2) 1234-5678",
+    "searchConversations": "搜尋對話...",
+    "toolDescription": "您的工具/代理做什麼？",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "我的優秀工具",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "例如，歡迎來到{orgName}！Ferni在這裡支持您的成長和幸福。"
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "我們的關係正在變得更強。",
+      "deepPartnership": "我們一起經歷了很多。能成為你的嚮導是我的榮幸。",
+      "established": "你可以依靠我。我會一直在這裡。",
+      "firstMeeting": "我們剛剛認識！我迫不及待想了解你。",
+      "gettingStarted": "我們開始相互了解了。"
+    },
+    "names": {
+      "buildingTrust": "建立信任",
+      "deepPartnership": "人生夥伴",
+      "established": "信賴的嚮導",
+      "firstMeeting": "新朋友",
+      "gettingStarted": "開始了解"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "建立真實的連結",
+      "deepPartnership": "終身夥伴",
+      "established": "你的人生教練",
+      "firstMeeting": "新的開始",
+      "gettingStarted": "互相了解"
     }
   },
-  "groupCoaching": {
-    "title": "團體輔導",
-    "loading": "載入中...",
-    "participantsLabel": "參與者",
-    "buttons": {
-      "start": "開始",
-      "join": "加入"
+  "roadmap": {
+    "alreadyGrowing": "已在成長",
+    "betterThanHuman": "超越人類",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "預計上線",
+    "eyebrow": "成長中",
+    "footerText": "您的聲音塑造我們構建的內容。感謝與我們一起成長。",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "沒有活動會話",
-      "hint": "建立新會話以開始"
+    "intro": "每段美好的關係都有四季。這些是我們一起播下的種子。",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count}人對此感到期待",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "連接的新方式",
+      "personalize": "打造專屬",
+      "platform": "平台"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "情侶",
-        "description": "共同探索關係動態"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "即將綻放",
+      "bud": "含苞",
+      "seed": "播種",
+      "sprout": "成長中"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "前方的旅程",
+    "voted": "您很期待！",
+    "wantThis": "我想要這個",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "助手正在結束對話",
+    "connected": "已連線",
+    "connecting": "連線中...",
+    "disconnected": "已斷線",
+    "end": "結束",
+    "endConversation": "結束對話",
+    "endConversationGoodbye": "結束對話 - 再見",
+    "endSession": "結束會話",
+    "ending": "結束中...",
+    "goodbye": "再見",
+    "holdToSpeak": "按住說話",
+    "listening": "正在聆聽...",
+    "releaseToSend": "放開傳送",
+    "sessionEnded": "會話已結束",
+    "speaking": "正在說話...",
+    "takeCare": "保重。",
+    "tapToSpeak": "點擊說話",
+    "thinking": "正在思考...",
+    "untilNextTime": "下次再見..."
+  },
+  "stages": {
+    "acquaintance": "熟人",
+    "closeFriend": "好友",
+    "confidant": "知己",
+    "friend": "朋友",
+    "soulmate": "靈魂伴侶",
+    "stranger": "陌生人"
+  },
+  "subscription": {
+    "advancedInsights": "提前體驗新功能",
+    "allTeamMembers": "完整團隊存取",
+    "chipIn": "參與支持",
+    "currentPlan": "您的位置",
+    "features": "福利",
+    "foundersSubtitle": "Ferni 永久免費。如果您相信我們正在建構的東西，請參與支持。",
+    "free": "社群",
+    "freeForever": "永久免費",
+    "friend": "創始會員",
+    "helpBuild": "幫助我們建構",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "還沒準備好？沒關係。",
+    "partner": "創始贊助人",
+    "planDetails": "您的支持",
+    "prioritySupport": "優先支援",
+    "thankYouPerks": "作為感謝，我們會為您解鎖一些福利。",
+    "unlimitedConversations": "無限對話",
+    "upgrade": "支持 Ferni",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "目前與{name}在一起",
+    "meetTheTeam": "認識團隊",
+    "members": {
+      "alex": {
+        "bio": "您的首席助理和溝通教練。",
+        "name": "Alex",
+        "role": "溝通"
       },
-      "family": {
-        "name": "家庭",
-        "description": "建立更牢固的家庭聯繫"
+      "ferni": {
+        "bio": "您的主要聯絡人。提出能夠開啟洞察力的問題。",
+        "name": "Ferni",
+        "role": "人生教練"
       },
-      "team": {
-        "name": "團隊",
-        "description": "改善職場協作"
+      "jordan": {
+        "bio": "將模糊的夢想變成真實的體驗。",
+        "name": "Jordan",
+        "role": "規劃與活動"
       },
-      "peer": {
-        "name": "同儕支援",
-        "description": "與有類似旅程的人聯繫"
+      "maya": {
+        "bio": "幫助您建立持久的習慣。",
+        "name": "Maya",
+        "role": "習慣與日常"
+      },
+      "nayan": {
+        "bio": "充滿智慧和耐心的終身導師。",
+        "name": "Nayan",
+        "role": "智者與導師"
+      },
+      "peter": {
+        "bio": "發現別人看不到的模式。",
+        "name": "Peter",
+        "role": "研究與發現"
       }
-    }
+    },
+    "selectMember": "選擇團隊成員"
+  },
+  "time": {
+    "daysAgo": "{n}天前",
+    "hoursAgo": "{n}小時前",
+    "justNow": "剛剛",
+    "minutesAgo": "{n}分鐘前",
+    "yesterday": "昨天"
+  },
+  "titles": {
+    "dailyPractice": "每日練習",
+    "predictions": "預測",
+    "runScenario": "執行場景",
+    "sharedSong": "我們共享的歌曲",
+    "teamInsights": "團隊洞察"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "隨著我們交流更多，我會注意到你的成長，慶祝你的勝利，記住對你重要的事。請很快回來查看。",
+      "title": "我們的故事剛剛開始"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "無法匯出你的資料。請重試。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "顯示儲存的資料 - 無法連接到伺服器。"
+      },
+      "generic": {
+        "message": "我們無法載入你的旅程。請重試。",
+        "title": "出了點問題"
+      },
+      "notLoggedIn": {
+        "message": "登入以查看你與 Ferni 的旅程。",
+        "title": "未登入"
+      },
+      "offline": {
+        "message": "連接到網路以查看你的旅程。",
+        "title": "你處於離線狀態"
+      },
+      "rateLimited": {
+        "message": "你檢查得太頻繁了。等一會兒再試。",
+        "title": "慢一點"
+      },
+      "unauthorized": {
+        "message": "你沒有權限查看此內容。",
+        "title": "存取被拒絕"
+      }
+    },
+    "exportSuccess": "旅程已匯出！",
+    "eyebrow": "我們的故事",
+    "filterLabel": "篩選時間軸",
+    "filters": {
+      "all": "全部",
+      "boundary": "界限",
+      "callback": "回訪",
+      "growth": "成長",
+      "outreach": "聯絡",
+      "win": "勝利"
+    },
+    "growthTypes": {
+      "behavior_change": "新習慣",
+      "boundary_setting": "健康的界限",
+      "coping_upgrade": "更好的應對",
+      "emotional_regulation": "情緒平衡",
+      "goal_progress": "目標進展",
+      "perspective_shift": "新的視角",
+      "self_awareness": "自我意識"
+    },
+    "loadMore": "載入更多 {count} 項",
+    "loading": "正在載入你的旅程",
+    "loadingText": "正在收集你的旅程...",
+    "offlineBanner": "你處於離線狀態 - 顯示快取資料",
+    "sections": {
+      "boundaries": "被尊重的界限",
+      "growth": "你的成長",
+      "stats": "旅程統計",
+      "strength": "關係強度",
+      "timeline": "我們一起的旅程"
+    },
+    "stats": {
+      "growthMoments": "成長時刻",
+      "sharedMoments": "共享的時刻",
+      "winsCelebrated": "慶祝的勝利"
+    },
+    "strengthDescriptions": {
+      "beginning": "每段旅程都從第一步開始。當你準備好時，我就在這裡。",
+      "building": "我們正在建立信任。每次對話都幫助我更好地了解你。",
+      "deep": "我們一起建立了真實的東西。我了解你，你信任我。",
+      "growing": "我們的聯繫正在加深。我正在了解什麼對你重要。",
+      "starting": "我們才剛剛開始。繼續和我說話 - 我在聽。"
+    },
+    "strengthLabel": "信任分數：{value}%",
+    "subtitle": "我們一起成長的歷程",
+    "timelineLabel": "旅程時間軸",
+    "title": "你的信任之旅",
+    "trustScore": "信任分數"
   },
   "videoSettings": {
-    "title": "視訊會話",
-    "loading": "載入中...",
-    "intro": "選擇您在輔導會話中的顯示方式。",
+    "buttons": {
+      "retry": "重試"
+    },
+    "camera": {
+      "off": "攝影機關閉",
+      "on": "攝影機開啟"
+    },
     "controls": {
       "title": "快速控制"
     },
-    "camera": {
-      "on": "攝影機開啟",
-      "off": "攝影機關閉"
-    },
-    "screen": {
-      "on": "停止分享",
-      "off": "分享螢幕"
-    },
+    "intro": "選擇您在輔導會話中的顯示方式。",
+    "loading": "載入中...",
     "modes": {
-      "title": "顯示模式",
-      "avatarOnly": {
-        "label": "僅頭像",
-        "description": "僅顯示Ferni頭像，無視訊"
+      "avatar": {
+        "description": "僅顯示Ferni頭像，無視訊",
+        "label": "僅頭像"
       },
-      "video": {
-        "label": "視訊",
-        "description": "看到您自己和Ferni"
+      "avatarOnly": {
+        "description": "僅顯示Ferni頭像，無視訊",
+        "label": "僅頭像"
       },
       "hybrid": {
-        "label": "混合",
-        "description": "帶可選視訊的頭像"
+        "description": "帶可選視訊的頭像",
+        "label": "混合"
       },
-      "avatar": {
-        "label": "僅頭像",
-        "description": "僅顯示Ferni頭像，無視訊"
+      "title": "顯示模式",
+      "video": {
+        "description": "看到您自己和Ferni",
+        "label": "視訊"
       }
     },
+    "note": "視訊會話在良好的照明和穩定的網路連線下效果最佳。",
     "quality": {
-      "title": "視訊品質",
       "auto": "自動（推薦）",
       "high": "高",
+      "low": "低（節省數據）",
       "medium": "中",
-      "low": "低（節省數據）"
+      "title": "視訊品質"
     },
-    "note": "視訊會話在良好的照明和穩定的網路連線下效果最佳。",
-    "buttons": {
-      "retry": "重試"
-    }
+    "screen": {
+      "off": "分享螢幕",
+      "on": "停止分享"
+    },
+    "title": "視訊會話"
   },
   "wearableSettings": {
-    "title": "健康與健身",
-    "loading": "載入中...",
-    "intro": "連結您的穿戴裝置，為Ferni提供關於您健康和能量水平的背景資訊。",
-    "sections": {
-      "devices": "裝置",
-      "features": "Ferni可以看到的內容"
-    },
     "buttons": {
       "connect": "連結",
       "disconnect": "中斷連結",
       "tryAgain": "重試"
     },
-    "features": {
-      "stress": "透過HRV檢測壓力",
-      "sleep": "睡眠品質分析",
-      "activity": "活動追蹤"
+    "errors": {
+      "loadFailed": "無法載入穿戴式裝置設定"
     },
+    "features": {
+      "activity": "活動追蹤",
+      "sleep": "睡眠品質分析",
+      "stress": "透過HRV檢測壓力"
+    },
+    "intro": "連結您的穿戴裝置，為Ferni提供關於您健康和能量水平的背景資訊。",
+    "loading": "載入中...",
     "privacy": {
       "note": "您的健康資料保持私密。我們只與您的輔導會話分享彙總的洞察。"
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "與Apple Watch和iPhone健康資料同步"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "連結您的Fitbit裝置"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "與Garmin穿戴裝置同步"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "睡眠和準備度洞察"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "恢復和負荷追蹤"
+        "description": "與Apple Watch和iPhone健康資料同步",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple 健康",
-        "description": "與Apple Watch和iPhone健康資料同步"
+        "description": "與Apple Watch和iPhone健康資料同步",
+        "name": "Apple 健康"
+      },
+      "fitbit": {
+        "description": "連結您的Fitbit裝置",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "與Garmin穿戴裝置同步",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "睡眠和準備度洞察",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "恢復和負荷追蹤",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "無法載入穿戴式裝置設定"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "發送驗證碼...",
-      "withCode": "使用驗證碼驗證"
+    "sections": {
+      "devices": "裝置",
+      "features": "Ferni可以看到的內容"
     },
-    "buttons": {
-      "saving": "儲存中...",
-      "save": "儲存"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "關閉選單",
-    "openSettings": "開啟設定",
-    "muteAudio": "靜音",
-    "unmuteAudio": "取消靜音",
-    "endCall": "結束通話",
-    "skipToContent": "跳到主要內容",
-    "languageSelector": "選擇語言",
-    "saveConversations": "建立帳號以儲存您的對話",
-    "signInToAccount": "登入您的帳號",
-    "accountMenu": "帳號選單",
-    "refreshData": "重新整理資料",
-    "exportData": "匯出您的資料",
-    "accountSettings": "帳號設定",
-    "dismiss": "關閉",
-    "dismissNotification": "關閉通知",
-    "closeDashboard": "關閉儀表板",
-    "closeSubscription": "關閉訂閱選項",
-    "closeDetails": "關閉詳情",
-    "closePublisher": "關閉發布者入口",
-    "closeBilling": "關閉帳單儀表板",
-    "closeSettings": "關閉設定",
-    "closeHistory": "關閉歷史",
-    "closeAdmin": "關閉管理面板",
-    "closeHuddle": "關閉會議",
-    "closeStats": "關閉統計",
-    "refresh": "重新整理",
-    "backToItems": "返回項目",
-    "collapse": "收合",
-    "expandGarden": "展開花園詳情",
-    "collapseGarden": "收合花園詳情",
-    "howToPlay": "如何遊玩",
-    "toggleQuietHours": "切換安靜時段",
-    "yourNewPlan": "您的新方案",
-    "subscriptionPlans": "訂閱方案",
-    "options": "選項",
-    "featuresIncluded": "包含的功能",
-    "searchCoaches": "搜尋教練",
-    "filterBySpecialty": "按專業篩選",
-    "availableCoaches": "可用教練",
-    "portalSections": "入口部分",
-    "submitNewItem": "提交新項目",
-    "openDailyPractice": "開啟每日練習",
-    "openPredictions": "開啟預測",
-    "openTeamInsights": "開啟團隊洞察",
-    "shareJourney": "分享您的旅程",
-    "forgetThis": "忘記這個",
-    "cancelInstallation": "取消安裝",
-    "sharedMusicalMemory": "共享的音樂記憶",
-    "viewOutreachSchedule": "查看聯繫日程",
-    "ferniLogo": "Ferni標誌"
-  },
-  "buttons": {
-    "signIn": "登入",
-    "signOut": "登出",
-    "signUp": "註冊",
-    "savePreferences": "儲存偏好設定",
-    "savePreference": "儲存偏好",
-    "choose": "選擇此項",
-    "refresh": "重新整理",
-    "exportData": "匯出資料"
-  },
-  "mobile": {
-    "pullToConnect": "下拉連接",
-    "releaseToConnect": "放開連接",
-    "pullToRefresh": "下拉重新整理",
-    "releaseToRefresh": "放開重新整理"
-  },
-  "placeholders": {
-    "customAmount": "自訂金額",
-    "searchConversations": "搜尋對話...",
-    "enterValue": "輸入實際值",
-    "emailExample": "you@example.com",
-    "phoneExample": "+886 (2) 1234-5678",
-    "memberName": "他們的名字",
-    "householdName": "王家",
-    "displayName": "您的暱稱",
-    "marketplaceSearch": "您在找誰？",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colleague@company.com",
-    "welcomeMessageExample": "例如，歡迎來到{orgName}！Ferni在這裡支持您的成長和幸福。",
-    "companyValuesExample": "例如，誠信、創新、客戶至上、團隊合作",
-    "toolIdExample": "my-awesome-tool",
-    "toolNameExample": "我的優秀工具",
-    "versionExample": "1.0.0",
-    "toolDescription": "您的工具/代理做什麼？"
-  },
-  "household": {
-    "addToHousehold": "新增至家庭",
-    "title": "家庭",
-    "members": "成員",
-    "addMember": "新增成員",
-    "removeMember": "移除成員"
-  },
-  "titles": {
-    "sharedSong": "我們共享的歌曲",
-    "dailyPractice": "每日練習",
-    "predictions": "預測",
-    "teamInsights": "團隊洞察",
-    "runScenario": "執行場景"
+    "title": "健康與健身"
   }
 }

@@ -237,7 +237,7 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
 
   // Warm, on-brand copy
   const eyebrowText = data.totalCost < 0.05 ? 'That chat cost me about' : 'Our conversation cost';
-  const ctaText = 'Help me grow?';
+  const ctaText = 'Want to help keep Ferni free?';
 
   card.innerHTML = `
     <div class="ferni-cost-eyebrow">${eyebrowText}</div>
@@ -245,14 +245,8 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
     <div class="ferni-cost-message">${data.message}</div>
     <div class="ferni-cost-cta">${ctaText}</div>
     <div class="ferni-cost-tips">
-      <button class="ferni-tip-btn" data-amount="${data.suggestedTips.small.toFixed(2)}" title="$${data.suggestedTips.small.toFixed(2)}">
-        ${getTipLabel('small')}
-      </button>
-      <button class="ferni-tip-btn primary" data-amount="${data.suggestedTips.medium.toFixed(2)}" title="$${data.suggestedTips.medium.toFixed(2)}">
-        ${getTipLabel('medium')}
-      </button>
-      <button class="ferni-tip-btn" data-amount="${data.suggestedTips.large.toFixed(2)}" title="$${data.suggestedTips.large.toFixed(2)}">
-        ${getTipLabel('large')}
+      <button class="ferni-tip-btn primary" data-amount="support" title="Support Ferni">
+        ${ICON_HEART} Support Ferni
       </button>
     </div>
     <div class="ferni-cost-dismiss">Just happy to chat ${ICON_HEART}</div>
@@ -276,29 +270,19 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
 }
 
 /**
- * Handle seed/tip button click - redirect to Stripe checkout
+ * Handle seed/tip button click - open Support Ferni modal
+ * The Support Ferni modal has proper Stripe integration for contributions.
  */
-function handleTipClick(amount: string): void {
-  log.info('Seed planted', { amount });
+function handleTipClick(_amount: string): void {
+  log.info('Tip clicked, opening Support Ferni modal');
 
-  // Hide the card first
+  // Hide the cost card first
   hide();
 
-  // Show warm thank you toast with seed metaphor (no emojis - on brand)
-  import('./toast.ui.js').then(({ toast }) => {
-    const messages = [
-      `You planted a seed! Thank you.`,
-      `That means the world to me.`,
-      `You're helping me grow.`,
-      `Thank you for believing in me.`,
-    ];
-    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-    toast.success(randomMessage);
+  // Open the Support Ferni modal which has proper payment integration
+  import('./support-ferni.ui.js').then(({ supportFerniUI }) => {
+    void supportFerniUI.open();
   });
-
-  // TODO: Implement actual Stripe tip checkout
-  // Could redirect to: /api/checkout/tip?amount=${amount}
-  // For now, just showing appreciation - payment integration coming soon
 }
 
 // ============================================================================
@@ -343,10 +327,10 @@ export async function showConversationCost(): Promise<void> {
     isVisible = true;
     log.info('Showing conversation cost', { cost: data.totalCost, duration: data.durationMinutes });
 
-    // Auto-dismiss after 10 seconds
+    // Auto-dismiss after 30 seconds (enough time to read and consider)
     dismissTimeout = setTimeout(() => {
       hide();
-    }, 10000);
+    }, 30000);
   } catch (error) {
     log.error('Failed to fetch conversation cost', error);
   }

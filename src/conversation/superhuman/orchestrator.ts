@@ -886,7 +886,12 @@ export function getBetterThanHuman(
   const key = `${userId}:${sessionId}`;
   if (!orchestratorRegistry.has(key)) {
     // Create with full params by bypassing registry factory
-    const orchestrator = new BetterThanHumanOrchestrator(userId, sessionId, personaId, sessionCount);
+    const orchestrator = new BetterThanHumanOrchestrator(
+      userId,
+      sessionId,
+      personaId,
+      sessionCount
+    );
     return orchestrator;
   }
   return orchestratorRegistry.get(key);

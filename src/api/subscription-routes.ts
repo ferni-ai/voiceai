@@ -50,7 +50,7 @@ interface RequestContext {
   query: Record<string, string>;
   body?: unknown;
   headers: Record<string, string | string[] | undefined>;
-  /** 
+  /**
    * Authenticated user ID from Firebase auth (SECURITY: use this instead of query params)
    * Only populated after proper authentication via requireAuth middleware.
    */
@@ -74,7 +74,7 @@ type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
 /**
  * GET /api/subscription/status
  * Get current subscription status for a user
- * 
+ *
  * SECURITY: Uses authenticated userId (ctx.authUserId) to prevent IDOR attacks.
  * Admin users can query other users by passing userId query param.
  */
@@ -82,9 +82,10 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   // Admin users can access other users' data
   const requestedUserId = ctx.query.userId || ctx.headers['x-user-id'];
-  const userId = ctx.isAdmin && requestedUserId 
-    ? String(requestedUserId) 
-    : ctx.authUserId || String(requestedUserId || '');
+  const userId =
+    ctx.isAdmin && requestedUserId
+      ? String(requestedUserId)
+      : ctx.authUserId || String(requestedUserId || '');
 
   if (!userId) {
     return {
@@ -114,15 +115,16 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * GET /api/subscription/can-start
  * Check if user can start a new conversation
- * 
+ *
  * SECURITY: Uses authenticated userId (ctx.authUserId) to prevent IDOR attacks.
  */
 async function checkCanStart(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   const requestedUserId = ctx.query.userId || ctx.headers['x-user-id'];
-  const userId = ctx.isAdmin && requestedUserId 
-    ? String(requestedUserId) 
-    : ctx.authUserId || String(requestedUserId || '');
+  const userId =
+    ctx.isAdmin && requestedUserId
+      ? String(requestedUserId)
+      : ctx.authUserId || String(requestedUserId || '');
 
   if (!userId) {
     return {
@@ -491,15 +493,16 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
  * GET /api/subscription/trial
  * Get trial status for a user.
  * Returns whether they're in trial, time remaining, etc.
- * 
+ *
  * SECURITY: Uses authenticated userId (ctx.authUserId) to prevent IDOR attacks.
  */
 async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   const requestedUserId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
-  const userId = ctx.isAdmin && requestedUserId 
-    ? String(requestedUserId) 
-    : ctx.authUserId || String(requestedUserId || '');
+  const userId =
+    ctx.isAdmin && requestedUserId
+      ? String(requestedUserId)
+      : ctx.authUserId || String(requestedUserId || '');
   const currentSessionTimeMs = parseInt(ctx.query.sessionTime as string) || 0;
 
   if (!userId) {

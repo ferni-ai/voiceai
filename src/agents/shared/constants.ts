@@ -88,8 +88,48 @@ export const PROCESSING_TIMEOUTS = {
   /**
    * Hard timeout for turn processing - if exceeded, skip context building (ms)
    * This is the absolute maximum before we give up on rich context
+   *
+   * NOTE: Increased from 7s to 12s to allow progressive tool execution.
+   * Tools now provide progressive feedback ("Checking...", "Still looking...")
+   * so users know we're working on it. See src/tools/execution/ for details.
    */
-  TURN_PROCESSING_HARD_TIMEOUT: 7000,
+  TURN_PROCESSING_HARD_TIMEOUT: 12000,
+} as const;
+
+// ============================================================================
+// PROGRESSIVE TOOL EXECUTION (Better than Human)
+// ============================================================================
+
+export const PROGRESSIVE_TIMEOUTS = {
+  /**
+   * Duration to wait silently before any feedback (ms)
+   * Fast responses (< 1.5s) need no acknowledgment - feels instant
+   */
+  SILENT_WINDOW: 1500,
+
+  /**
+   * When to send first acknowledgment "Checking..." (ms)
+   * User knows we're working on it
+   */
+  ACKNOWLEDGMENT_AT: 2000,
+
+  /**
+   * When to send update "Still looking..." (ms)
+   * Reassures user for slower operations
+   */
+  UPDATE_AT: 5000,
+
+  /**
+   * Hard timeout for tool execution (ms)
+   * After this, return cached/fallback data
+   */
+  TOOL_HARD_TIMEOUT: 10000,
+
+  /**
+   * Maximum age of cached data to accept as fallback (ms)
+   * Stale data is better than no data for most use cases
+   */
+  CACHE_MAX_AGE: 30 * 60 * 1000, // 30 minutes
 } as const;
 
 // ============================================================================
@@ -161,6 +201,7 @@ export const AUDIO = {
 export default {
   SILENCE_THRESHOLDS,
   PROCESSING_TIMEOUTS,
+  PROGRESSIVE_TIMEOUTS,
   API_TIMEOUTS,
   RATE_LIMITS,
   CONVERSATION,

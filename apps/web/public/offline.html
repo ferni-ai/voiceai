@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="zen">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - Ferni</title>
+    <meta name="theme-color" content="#584840" />
+    <style>
+      :root {
+        --color-bg-primary: #F5F1E8;
+        --color-text-primary: #2C2520;
+        --color-text-secondary: #584840;
+        --color-accent: #4a6741;
+        --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .offline-container {
+        max-width: 400px;
+      }
+
+      .offline-icon {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1.5rem;
+        color: var(--color-accent);
+        opacity: 0.8;
+      }
+
+      .offline-title {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--color-text-primary);
+      }
+
+      .offline-message {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--color-text-secondary);
+        margin-bottom: 2rem;
+      }
+
+      .offline-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        background: var(--color-accent);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .offline-btn:hover {
+        transform: translateY(-1px);
+        opacity: 0.9;
+      }
+
+      .offline-btn:active {
+        transform: translateY(0);
+      }
+
+      .offline-tip {
+        margin-top: 2rem;
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+        opacity: 0.7;
+      }
+
+      /* Animation for the icon */
+      @keyframes pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+
+      .offline-icon {
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      /* Online indicator */
+      .online-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--color-accent);
+        color: white;
+        padding: 0.75rem;
+        text-align: center;
+        font-size: 0.875rem;
+        transform: translateY(-100%);
+        transition: transform 0.3s ease;
+      }
+
+      .online-banner.show {
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="online-banner" id="onlineBanner">
+      You're back online! Refreshing...
+    </div>
+
+    <div class="offline-container">
+      <!-- WiFi-off icon -->
+      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22" />
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+        <circle cx="12" cy="20" r="1" fill="currentColor" />
+      </svg>
+
+      <h1 class="offline-title">You're offline</h1>
+      
+      <p class="offline-message">
+        It looks like you've lost your internet connection. 
+        We'll be here when you're back online.
+      </p>
+
+      <button class="offline-btn" onclick="window.location.reload()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6" />
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+          <path d="M3 22v-6h6" />
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+        </svg>
+        Try Again
+      </button>
+
+      <p class="offline-tip">
+        Some features are available offline once you've visited them.
+      </p>
+    </div>
+
+    <script>
+      // Listen for online status
+      window.addEventListener('online', function() {
+        document.getElementById('onlineBanner').classList.add('show');
+        setTimeout(function() {
+          window.location.reload();
+        }, 1500);
+      });
+
+      // Auto-retry every 10 seconds
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      function checkConnection() {
+        if (navigator.onLine && retryCount < maxRetries) {
+          retryCount++;
+          fetch('/', { method: 'HEAD', cache: 'no-store' })
+            .then(function() {
+              window.location.reload();
+            })
+            .catch(function() {
+              // Still offline
+            });
+        }
+      }
+
+      setInterval(checkConnection, 10000);
+    </script>
+  </body>
+</html>
+

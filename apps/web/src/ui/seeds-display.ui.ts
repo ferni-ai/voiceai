@@ -374,7 +374,7 @@ export function renderSeedsSettingsCard(): string {
             ? `
           <div class="seeds-daily-bonus" data-daily-bonus>
             <span class="seeds-daily-bonus-icon">${ICONS.gift}</span>
-            <span class="seeds-daily-bonus-text">Daily bonus available!</span>
+            <span class="seeds-daily-bonus-text">A little something</span>
           </div>
         `
             : ''
@@ -386,7 +386,7 @@ export function renderSeedsSettingsCard(): string {
           <span style="color: var(--persona-primary)">${ICONS.seed}</span>
           <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
         </div>
-        <span class="seeds-settings-info">seeds to spend</span>
+        <span class="seeds-settings-info">seeds to share</span>
       </div>
 
       ${
@@ -397,7 +397,7 @@ export function renderSeedsSettingsCard(): string {
             <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
             <span class="seeds-settings-value-text">${streak}</span>
           </div>
-          <span class="seeds-settings-info">day streak</span>
+          <span class="seeds-settings-info">days in a row</span>
         </div>
       `
           : ''
@@ -416,18 +416,18 @@ export function renderSeedsSettingsCard(): string {
           : ''
       }
 
-      <div class="seeds-actions" role="button" tabindex="0">
+      <div class="seeds-actions" role="group" tabindex="0">
         <button aria-label="My Garden" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
           <span>My Garden</span>
         </button>
-        <button aria-label="Gift Seeds" class="seeds-action-btn" data-action="gift">
+        <button aria-label="Share seeds with friends" class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
-          <span>Gift Seeds</span>
+          <span>Share</span>
         </button>
-        <button aria-label="Share" class="seeds-action-btn" data-action="invite">
+        <button aria-label="Bring a friend to Ferni" class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
-          <span>Invite</span>
+          <span>Bring a friend</span>
         </button>
       </div>
     </div>

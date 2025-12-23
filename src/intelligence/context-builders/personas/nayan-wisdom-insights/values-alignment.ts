@@ -65,21 +65,14 @@ export function analyzeValuesAlignment(
   }
 
   // Growth pattern specific conflicts
-  if (
-    lifeSynthesis.growthPattern === 'striving' &&
-    lifeSynthesis.compoundingAreas.length === 0
-  ) {
+  if (lifeSynthesis.growthPattern === 'striving' && lifeSynthesis.compoundingAreas.length === 0) {
     alignment.conflictAreas.push('Much effort without compounding - the direction matters');
   }
 
   // Gaps (what they say vs. what they do)
-  if (
-    lifeSynthesis.valuesRevealed.length === 0 &&
-    lifeSynthesis.lifeChapter !== 'unknown'
-  ) {
+  if (lifeSynthesis.valuesRevealed.length === 0 && lifeSynthesis.lifeChapter !== 'unknown') {
     alignment.alignmentGaps.push('Life chapter active but values not yet clear through action');
   }
 
   return alignment;
 }
-

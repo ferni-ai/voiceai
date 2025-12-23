@@ -44,10 +44,43 @@ interface CrashEvent {
 const crashHistory: CrashEvent[] = [];
 const MAX_CRASH_HISTORY = 20;
 
-// Crash loop detection
-let recentRestarts: number[] = [];
+/**
+ * RACE CONDITION FIX: Crash loop detection state.
+ * Use a class to encapsulate synchronized access to recentRestarts.
+ * This prevents race conditions when concurrent crash events modify the array.
+ */
+class CrashLoopDetector {
+  private recentRestarts: number[] = [];
+  private readonly windowMs: number;
+  private readonly threshold: number;
+
+  constructor(windowMs: number, threshold: number) {
+    this.windowMs = windowMs;
+    this.threshold = threshold;
+  }
+
+  recordRestart(): void {
+    const now = Date.now();
+    // Atomically add and filter in one operation
+    this.recentRestarts = [...this.recentRestarts.filter((t) => now - t < this.windowMs), now];
+  }
+
+  isInCrashLoop(): boolean {
+    // Filter stale entries before checking
+    const now = Date.now();
+    this.recentRestarts = this.recentRestarts.filter((t) => now - t < this.windowMs);
+    return this.recentRestarts.length >= this.threshold;
+  }
+
+  getRestartCount(): number {
+    const now = Date.now();
+    return this.recentRestarts.filter((t) => now - t < this.windowMs).length;
+  }
+}
+
 const CRASH_LOOP_WINDOW_MS = 300_000; // 5 minutes
 const CRASH_LOOP_THRESHOLD = 3; // 3 restarts in 5 minutes = crash loop
+const crashLoopDetector = new CrashLoopDetector(CRASH_LOOP_WINDOW_MS, CRASH_LOOP_THRESHOLD);
 
 // ============================================================================
 // CRITICAL LIVEKIT ERRORS
@@ -101,9 +134,8 @@ function recordCrashEvent(reason: string, type: CrashEvent['type']): CrashEvent 
     crashHistory.shift();
   }
 
-  // Also track restart time for crash loop detection
-  recentRestarts.push(Date.now());
-  recentRestarts = recentRestarts.filter((t) => Date.now() - t < CRASH_LOOP_WINDOW_MS);
+  // RACE CONDITION FIX: Use the synchronized crash loop detector
+  crashLoopDetector.recordRestart();
 
   return event;
 }
@@ -112,7 +144,7 @@ function recordCrashEvent(reason: string, type: CrashEvent['type']): CrashEvent 
  * Check if we're in a crash loop (too many restarts in short window)
  */
 function isInCrashLoop(): boolean {
-  return recentRestarts.length >= CRASH_LOOP_THRESHOLD;
+  return crashLoopDetector.isInCrashLoop();
 }
 
 /**
@@ -140,7 +172,7 @@ async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
       type: 'incident_opened',
       title,
       message: inCrashLoop
-        ? `Container has restarted ${recentRestarts.length} times in ${CRASH_LOOP_WINDOW_MS / 60000} minutes. Investigating required.`
+        ? `Container has restarted ${crashLoopDetector.getRestartCount()} times in ${CRASH_LOOP_WINDOW_MS / 60000} minutes. Investigating required.`
         : `Voice agent crashed after ${event.uptimeSeconds}s uptime.`,
       severity: severityMap[event.type],
       metadata: {
@@ -149,7 +181,7 @@ async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
         heapUsedMB: event.memoryUsage?.heapUsedMB,
         heapTotalMB: event.memoryUsage?.heapTotalMB,
         exceptionCount: event.exceptionCount,
-        recentRestarts: recentRestarts.length,
+        recentRestarts: crashLoopDetector.getRestartCount(),
         instanceName: process.env.GCE_INSTANCE || 'voiceai-agent',
       },
     });

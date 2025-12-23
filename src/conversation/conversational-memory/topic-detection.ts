@@ -162,4 +162,3 @@ export class TopicDetector {
     this.topicHistory = [];
   }
 }
-

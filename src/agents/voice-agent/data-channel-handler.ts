@@ -24,7 +24,7 @@ import type { UserData } from '../shared/types.js';
 import {
   isHandoffInProgress,
   completeHandoff,
-  getNextMessageSeq,
+  getNextMessageSeqSync,
   getHandoffPersonaInfo,
 } from '../shared/handoff/session-state.js';
 import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
@@ -36,6 +36,8 @@ import {
   createCoordinatorAdapter,
   type CoordinatorAdapterConfig,
 } from '../shared/handoff/coordinator-adapter.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 // ============================================================================
 // TYPES
@@ -260,7 +262,10 @@ async function handleHandoffRequest(
 
     if (!adapter) {
       // Fallback: adapter not available
-      getLogger().warn({ sessionId }, '⚠️ Coordinator adapter not available - using legacy handoff');
+      getLogger().warn(
+        { sessionId },
+        '⚠️ Coordinator adapter not available - using legacy handoff'
+      );
       await sendAck(false, 'Handoff system not initialized');
       await sendFailure('Handoff system not ready');
       return;
@@ -291,7 +296,10 @@ async function handleHandoffRequest(
       await sendAck(false, result.error || 'Handoff failed');
       await sendFailure(result.error || 'Handoff failed');
     } else {
-      getLogger().info({ newAgent: result.targetAgent, traceId: result.traceId }, '✅ Handoff executed');
+      getLogger().info(
+        { newAgent: result.targetAgent, traceId: result.traceId },
+        '✅ Handoff executed'
+      );
       await sendAck(true);
       diag.entry(`🎭 Coordinator handoff complete: ${result.targetAgent}`);
     }
@@ -325,18 +333,10 @@ async function handleGameStartRequest(
     getLogger().info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
+    // Use coordinated speech - text is already written, no need for LLM
     if (welcomeMessage && session) {
       getLogger().info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
-
-      session.generateReply({
-        instructions: `You are starting a music game called "${gameType}".
-        Say the following welcome message naturally, with enthusiasm:
-
-        "${welcomeMessage}"
-
-        After speaking, wait for the user's response.`,
-      });
-
+      coordinatedSay(ctx.sessionId, welcomeMessage, { allowInterruptions: true });
       getLogger().info('🎮 Agent spoke welcome message');
     }
 
@@ -356,12 +356,14 @@ async function handleGameStartRequest(
   } catch (gameErr) {
     getLogger().error({ error: String(gameErr), gameType }, '❌ Game start failed');
 
-    // Make agent acknowledge the error gracefully
+    // Make agent acknowledge the error gracefully with a warm static phrase
+    // Using coordinated speech to avoid generateReply echoing issues
     if (session) {
-      session.generateReply({
-        instructions: `Apologize briefly - there was a technical issue starting the game.
-        Suggest the user try saying "let's play ${gameType}" instead.`,
-      });
+      coordinatedSay(
+        ctx.sessionId,
+        `Hmm, hit a small snag there. Try saying "let's play ${gameType}" and we'll get it going.`,
+        { allowInterruptions: true }
+      );
     }
 
     const errorMsg = JSON.stringify({
@@ -399,20 +401,14 @@ async function handleTextGameStartRequest(
     getLogger().info({ gameType, result }, '🎮 Text game engine returned result');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
+    // Use coordinated speech - text is already written, no need for LLM
     if (result.message && session) {
       getLogger().info({ message: result.message }, '🎮 Agent speaking text game welcome...');
-
-      session.generateReply({
-        instructions: `You are starting a text game called "${gameType}".
-        Say the following welcome message naturally, with enthusiasm:
-
-        "${result.message}"
-
-        ${result.boardDescription ? `Current game state: ${result.boardDescription}` : ''}
-
-        After speaking, wait for the user's response.`,
-      });
-
+      // Combine message with board state if available
+      const fullMessage = result.boardDescription
+        ? `${result.message} ${result.boardDescription}`
+        : result.message;
+      coordinatedSay(ctx.sessionId, fullMessage, { allowInterruptions: true });
       getLogger().info('🎮 Agent spoke text game welcome message');
     }
 
@@ -432,12 +428,14 @@ async function handleTextGameStartRequest(
   } catch (gameErr) {
     getLogger().error({ error: String(gameErr), gameType }, '❌ Text game start failed');
 
-    // Make agent acknowledge the error gracefully
+    // Make agent acknowledge the error gracefully with a warm static phrase
+    // Using coordinated speech to avoid generateReply echoing issues
     if (session) {
-      session.generateReply({
-        instructions: `Apologize briefly - there was a technical issue starting the game.
-        Suggest the user try saying "let's play ${gameType}" instead.`,
-      });
+      coordinatedSay(
+        ctx.sessionId,
+        `Oops, something went sideways. Try saying "let's play ${gameType}" instead.`,
+        { allowInterruptions: true }
+      );
     }
 
     const errorMsg = JSON.stringify({
@@ -469,23 +467,14 @@ async function handlePracticeStartRequest(
   );
 
   try {
-    // Make the agent speak the practice prompt naturally
+    // Make the agent speak the practice prompt directly
+    // Use coordinated speech - text is already written, no need for LLM
     if (prompt && session) {
       getLogger().info(
         { commandName, promptLength: prompt.length },
         '🎯 Agent starting guided practice...'
       );
-
-      session.generateReply({
-        instructions: `The user has selected the "${commandName}" guided practice.
-
-Begin the practice by saying the following prompt naturally, as if you're starting a guided conversation:
-
-"${prompt}"
-
-Wait for the user to respond before continuing. Be warm and supportive throughout this practice.`,
-      });
-
+      coordinatedSay(ctx.sessionId, prompt, { allowInterruptions: true });
       getLogger().info({ commandId }, '🎯 Agent started guided practice');
     }
 
@@ -505,12 +494,14 @@ Wait for the user to respond before continuing. Be warm and supportive throughou
   } catch (practiceErr) {
     getLogger().error({ error: String(practiceErr), commandId }, '❌ Practice start failed');
 
-    // Make agent acknowledge the error gracefully
+    // Make agent acknowledge the error gracefully with a warm static phrase
+    // Using coordinated speech to avoid generateReply echoing issues
     if (session) {
-      session.generateReply({
-        instructions: `Apologize briefly - there was a small hiccup starting the practice.
-        Offer to guide them through "${commandName}" by just talking naturally instead.`,
-      });
+      coordinatedSay(
+        ctx.sessionId,
+        `Small hiccup there. Let's just talk through ${commandName} naturally - I'm right here.`,
+        { allowInterruptions: true }
+      );
     }
 
     const errorMsg = JSON.stringify({
@@ -554,19 +545,9 @@ async function handleClaudeNarration(
   );
 
   try {
-    // Make Ferni speak Claude's update naturally
-    // Keep it brief and conversational
-    const instruction =
-      narration_type === 'result'
-        ? `Say this completion message naturally and warmly: "${text}"`
-        : narration_type === 'tool'
-          ? `Briefly mention: "${text}" - keep it very short, just a quick update`
-          : `Say this progress update naturally: "${text}"`;
-
-    session.generateReply({
-      instructions: instruction,
-    });
-
+    // Speak Claude's update directly using coordinated speech
+    // Text is already written by Claude Code, no need for LLM processing
+    coordinatedSay(ctx.sessionId, text, { allowInterruptions: true });
     getLogger().info({ narration_type }, '🎙️ Ferni speaking Claude update');
   } catch (narrationErr) {
     getLogger().warn({ error: String(narrationErr) }, 'Failed to narrate Claude update');
@@ -632,7 +613,7 @@ async function handleHandoffCancel(
       type: 'handoff_cancelled',
       targetPersona: targetPersona || 'unknown',
       reason: 'No handoff in progress',
-      seq: getNextMessageSeq(sessionId),
+      seq: getNextMessageSeqSync(sessionId),
       timestamp: Date.now(),
     });
     await room.localParticipant?.publishData(new TextEncoder().encode(cancelledMessage), {
@@ -664,7 +645,7 @@ async function handleHandoffCancel(
       previousPersona: handoffInfo.previousPersonaId,
       reason: reason || 'Cancelled by user',
       durationMs,
-      seq: getNextMessageSeq(sessionId),
+      seq: getNextMessageSeqSync(sessionId),
       timestamp: Date.now(),
     });
     await room.localParticipant?.publishData(new TextEncoder().encode(cancelledMessage), {
@@ -683,7 +664,7 @@ async function handleHandoffCancel(
         targetPersona: targetPersona || 'unknown',
         reason: `Cancellation error: ${cancelErr}`,
         error: String(cancelErr),
-        seq: getNextMessageSeq(sessionId),
+        seq: getNextMessageSeqSync(sessionId),
         timestamp: Date.now(),
       });
       await room.localParticipant?.publishData(new TextEncoder().encode(errorMessage), {

@@ -374,8 +374,8 @@ const STYLES = `
 function render(): string {
   if (!currentAgent) return '';
 
-  const stories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
-  const wisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+  const stories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
+  const wisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
 
   return `
     <div class="legacy-stories-overlay">
@@ -620,15 +620,15 @@ async function handleAddWisdom(): Promise<void> {
   const context = prompt("When would they say this? (optional)") || undefined;
 
   try {
-    const currentWisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+    const currentWisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
     const updates = {
       memories: {
         ...currentAgent.memories,
-        wisdom: [...currentWisdom, { quote, context }]
+        wisdom: [...currentWisdom, { quote, context }] as unknown as typeof currentAgent.memories.wisdom
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Wisdom captured!');
     
     // Refresh
@@ -646,15 +646,15 @@ async function handleAddStory(): Promise<void> {
   if (!content || !currentAgent) return;
 
   try {
-    const currentStories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
+    const currentStories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
     const updates = {
       memories: {
         ...currentAgent.memories,
-        stories: [...currentStories, { content, date: new Date().toISOString() }]
+        stories: [...currentStories, { content, date: new Date().toISOString() }] as unknown as typeof currentAgent.memories.stories
       }
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Story saved!');
     
     // Refresh
@@ -669,7 +669,7 @@ async function handleEditWisdom(index: number): Promise<void> {
   const { toast } = await import('./toast.ui.js');
   if (!currentAgent) return;
 
-  const wisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+  const wisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
   const item = wisdom[index];
   if (!item) return;
 
@@ -683,8 +683,8 @@ async function handleEditWisdom(index: number): Promise<void> {
     updatedWisdom[index] = { quote: newQuote, context: newContext };
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, wisdom: updatedWisdom }
-    });
+      memories: { ...currentAgent.memories, wisdom: updatedWisdom as unknown as typeof currentAgent.memories.wisdom }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Updated!');
     await openLegacyStories(currentAgent.id);
   } catch (err) {
@@ -700,12 +700,12 @@ async function handleDeleteWisdom(index: number): Promise<void> {
   if (!confirm('Delete this saying?')) return;
 
   try {
-    const wisdom = (currentAgent.memories?.wisdom || []) as Array<{ quote: string; context?: string }>;
+    const wisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
     const updatedWisdom = wisdom.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, wisdom: updatedWisdom }
-    });
+      memories: { ...currentAgent.memories, wisdom: updatedWisdom as unknown as typeof currentAgent.memories.wisdom }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Deleted');
     await openLegacyStories(currentAgent.id);
   } catch (err) {
@@ -718,7 +718,7 @@ async function handleEditStory(index: number): Promise<void> {
   const { toast } = await import('./toast.ui.js');
   if (!currentAgent) return;
 
-  const stories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
+  const stories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
   const item = stories[index];
   if (!item) return;
 
@@ -730,8 +730,8 @@ async function handleEditStory(index: number): Promise<void> {
     updatedStories[index] = { ...item, content: newContent };
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, stories: updatedStories }
-    });
+      memories: { ...currentAgent.memories, stories: updatedStories as unknown as typeof currentAgent.memories.stories }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Updated!');
     await openLegacyStories(currentAgent.id);
   } catch (err) {
@@ -747,12 +747,12 @@ async function handleDeleteStory(index: number): Promise<void> {
   if (!confirm('Delete this story?')) return;
 
   try {
-    const stories = (currentAgent.memories?.stories || []) as Array<{ content: string; date?: string }>;
+    const stories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
     const updatedStories = stories.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, stories: updatedStories }
-    });
+      memories: { ...currentAgent.memories, stories: updatedStories as unknown as typeof currentAgent.memories.stories }
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Deleted');
     await openLegacyStories(currentAgent.id);
   } catch (err) {

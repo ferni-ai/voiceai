@@ -18,6 +18,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { addMockContact } from '../data/mock-contacts.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('AddPersonUI');
 
@@ -96,15 +97,17 @@ const ICONS = {
   chevronDown: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
 };
 
-// Relationship type definitions
-const RELATIONSHIP_TYPES: { id: RelationshipType; label: string; icon: string }[] = [
-  { id: 'family', label: 'Family', icon: ICONS.home },
-  { id: 'friend', label: 'Friend', icon: ICONS.heart },
-  { id: 'colleague', label: 'Colleague', icon: ICONS.briefcase },
-  { id: 'mentor', label: 'Mentor', icon: ICONS.star },
-  { id: 'acquaintance', label: 'Acquaintance', icon: ICONS.userPlus },
-  { id: 'other', label: 'Other', icon: ICONS.users },
-];
+// Relationship type definitions - labels are resolved at render time for i18n
+function getRelationshipTypes(): { id: RelationshipType; label: string; icon: string }[] {
+  return [
+    { id: 'family', label: t('addPerson.relationships.family'), icon: ICONS.home },
+    { id: 'friend', label: t('addPerson.relationships.friend'), icon: ICONS.heart },
+    { id: 'colleague', label: t('addPerson.relationships.colleague'), icon: ICONS.briefcase },
+    { id: 'mentor', label: t('addPerson.relationships.mentor'), icon: ICONS.star },
+    { id: 'acquaintance', label: t('addPerson.relationships.acquaintance'), icon: ICONS.userPlus },
+    { id: 'other', label: t('addPerson.relationships.other'), icon: ICONS.users },
+  ];
+}
 
 // ============================================================================
 // STYLES
@@ -500,30 +503,32 @@ function render(): void {
   const modal = modalContainer.querySelector('.add-person-modal');
   if (!modal) return;
 
+  const relationshipTypes = getRelationshipTypes();
+  
   modal.innerHTML = `
     <div class="ap-header">
       <div class="ap-header-row">
         <div>
-          <div class="ap-eyebrow">Your People</div>
-          <h2 class="ap-title">Add Someone</h2>
-          <p class="ap-subtitle">Tell me about someone you care about</p>
+          <div class="ap-eyebrow">${t('addPerson.eyebrow')}</div>
+          <h2 class="ap-title">${t('addPerson.title')}</h2>
+          <p class="ap-subtitle">${t('addPerson.subtitle')}</p>
         </div>
-        <button class="ap-close" aria-label="Close">${ICONS.close}</button>
+        <button class="ap-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
     </div>
     
     <div class="ap-content">
       <!-- Name -->
       <div class="ap-section">
-        <label class="ap-label">Their name</label>
-        <input type="text" class="ap-input" id="ap-name" placeholder="e.g., Mom, Sarah Chen, Dr. Rivera" value="${escapeHtml(state.name)}" autofocus />
+        <label class="ap-label">${t('addPerson.nameLabel')}</label>
+        <input type="text" class="ap-input" id="ap-name" placeholder="${t('addPerson.namePlaceholder')}" value="${escapeHtml(state.name)}" autofocus />
       </div>
       
       <!-- Relationship Type -->
       <div class="ap-section">
-        <label class="ap-label">How do you know them?</label>
+        <label class="ap-label">${t('addPerson.relationshipLabel')}</label>
         <div class="ap-relationships">
-          ${RELATIONSHIP_TYPES.map(rel => `
+          ${relationshipTypes.map(rel => `
             <button class="ap-relationship ${state.relationship === rel.id ? 'selected' : ''}" data-relationship="${rel.id}">
               <span class="ap-relationship-icon">${rel.icon}</span>
               <span class="ap-relationship-label">${rel.label}</span>
@@ -534,44 +539,44 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="ap-section">
-        <button aria-label="Move down" class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
-          Add more details ${ICONS.chevronDown}
+        <button aria-label="${t('accessibility.expandGarden')}" class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
+          ${t('addPerson.addMoreDetails')} ${ICONS.chevronDown}
         </button>
         
         <div class="ap-advanced-content ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-content">
           <div class="ap-row">
             <div class="ap-field">
-              <label class="ap-label">Email</label>
-              <input type="email" class="ap-input ap-input-sm" id="ap-email" placeholder="email@example.com" value="${escapeHtml(state.email)}" />
+              <label class="ap-label">${t('addPerson.emailLabel')}</label>
+              <input type="email" class="ap-input ap-input-sm" id="ap-email" placeholder="${t('placeholders.emailExample')}" value="${escapeHtml(state.email)}" />
             </div>
             <div class="ap-field">
-              <label class="ap-label">Phone</label>
-              <input type="tel" class="ap-input ap-input-sm" id="ap-phone" placeholder="+1 555 123 4567" value="${escapeHtml(state.phone)}" />
+              <label class="ap-label">${t('addPerson.phoneLabel')}</label>
+              <input type="tel" class="ap-input ap-input-sm" id="ap-phone" placeholder="${t('placeholders.phoneExample')}" value="${escapeHtml(state.phone)}" />
             </div>
           </div>
           
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="ap-label">Birthday</label>
+            <label class="ap-label">${t('addPerson.birthdayLabel')}</label>
             <input type="date" class="ap-input ap-input-sm" id="ap-birthday" value="${state.birthday}" />
           </div>
           
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="ap-label">How did you meet?</label>
-            <input type="text" class="ap-input ap-input-sm" id="ap-how-met" placeholder="e.g., College roommate, Met at work" value="${escapeHtml(state.howWeMet)}" />
+            <label class="ap-label">${t('addPerson.howMetLabel')}</label>
+            <input type="text" class="ap-input ap-input-sm" id="ap-how-met" placeholder="${t('addPerson.howMetPlaceholder')}" value="${escapeHtml(state.howWeMet)}" />
           </div>
           
           <div>
-            <label class="ap-label">Notes</label>
-            <textarea class="ap-textarea" id="ap-notes" placeholder="Anything else to remember...">${escapeHtml(state.notes)}</textarea>
+            <label class="ap-label">${t('addPerson.notesLabel')}</label>
+            <textarea class="ap-textarea" id="ap-notes" placeholder="${t('addPerson.notesPlaceholder')}">${escapeHtml(state.notes)}</textarea>
           </div>
         </div>
       </div>
     </div>
     
     <div class="ap-footer">
-      <button aria-label="Cancel" class="ap-btn ap-btn-secondary" id="ap-cancel">Cancel</button>
-      <button aria-label="Submit" class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Adding...' : 'Add Person'}
+      <button aria-label="${t('common.cancel')}" class="ap-btn ap-btn-secondary" id="ap-cancel">${t('common.cancel')}</button>
+      <button aria-label="${t('common.save')}" class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('addPerson.adding') : t('addPerson.addPerson')}
       </button>
     </div>
   `;
@@ -690,7 +695,7 @@ async function handleSave(): Promise<void> {
 
     if (response.ok) {
       const result = await response.json();
-      toast.success(`${data.name} added!`);
+      toast.success(t('addPerson.added', { name: data.name }));
       
       if (callbacks.onSuccess) {
         callbacks.onSuccess({ ...data, id: result.id || result.contactId });
@@ -710,7 +715,7 @@ async function handleSave(): Promise<void> {
           howWeMet: data.howWeMet,
           notes: data.notes,
         });
-        toast.success(`${data.name} added! (mock)`);
+        toast.success(t('addPerson.addedMock', { name: data.name }));
         
         if (callbacks.onSuccess) {
           callbacks.onSuccess({ ...data, id: mockContact.id });
@@ -721,36 +726,45 @@ async function handleSave(): Promise<void> {
       }
       
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || 'Could not add person');
+      toast.error(error.error || t('addPerson.couldNotAdd'));
       state.isSubmitting = false;
       render();
     }
   } catch (error) {
     log.error('Failed to add person:', error);
-    
+
     // In dev mode, fall back to mock data even on exception
     if (shouldUseDemoData()) {
       log.debug('API exception, using mock data fallback');
+      const fallbackData: AddPersonData = {
+        name: state.name.trim(),
+        relationship: state.relationship,
+        email: state.email.trim() || undefined,
+        phone: state.phone.trim() || undefined,
+        birthday: state.birthday || undefined,
+        howWeMet: state.howWeMet.trim() || undefined,
+        notes: state.notes.trim() || undefined,
+      };
       const mockContact = addMockContact({
-        name: data.name,
-        relationship: data.relationship,
-        email: data.email,
-        phone: data.phone,
-        birthday: data.birthday,
-        howWeMet: data.howWeMet,
-        notes: data.notes,
+        name: fallbackData.name,
+        relationship: fallbackData.relationship,
+        email: fallbackData.email,
+        phone: fallbackData.phone,
+        birthday: fallbackData.birthday,
+        howWeMet: fallbackData.howWeMet,
+        notes: fallbackData.notes,
       });
-      toast.success(`${data.name} added! (mock)`);
-      
+      toast.success(t('addPerson.addedMock', { name: fallbackData.name }));
+
       if (callbacks.onSuccess) {
-        callbacks.onSuccess({ ...data, id: mockContact.id });
+        callbacks.onSuccess({ ...fallbackData, id: mockContact.id });
       }
-      
+
       closeAddPerson();
       return;
     }
     
-    toast.error('Could not add person');
+    toast.error(t('addPerson.couldNotAdd'));
     state.isSubmitting = false;
     render();
   }

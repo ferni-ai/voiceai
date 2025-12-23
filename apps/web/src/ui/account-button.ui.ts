@@ -80,6 +80,39 @@ export function initAccountButtonUI(): void {
   // Create the button
   createAccountButton();
 
+  // Listen for One-Tap success - show warm confirmation toast
+  const handleOneTapSuccess = (): void => {
+    // Refresh button state (auth state callback will handle this)
+    if (currentAuthState) {
+      updateButtonState(currentAuthState);
+    }
+    // Show warm confirmation toast
+    import('./toast.ui.js').then(({ toast }) => {
+      toast.success("Got it! I'll remember you now.");
+    });
+  };
+
+  window.addEventListener('ferni:one-tap-success', handleOneTapSuccess);
+  cleanupFunctions.push(() => {
+    window.removeEventListener('ferni:one-tap-success', handleOneTapSuccess);
+  });
+
+  // Listen for One-Tap errors - show friendly error toast
+  const handleOneTapError = (event: Event): void => {
+    const customEvent = event as CustomEvent<{ error: string }>;
+    const errorMessage = customEvent.detail?.error || 'Something went wrong';
+    log.warn('One-Tap sign-in failed:', errorMessage);
+
+    import('./toast.ui.js').then(({ toast }) => {
+      toast.error(errorMessage);
+    });
+  };
+
+  window.addEventListener('ferni:one-tap-error', handleOneTapError);
+  cleanupFunctions.push(() => {
+    window.removeEventListener('ferni:one-tap-error', handleOneTapError);
+  });
+
   log.debug('Account button UI initialized');
 }
 

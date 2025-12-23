@@ -213,4 +213,3 @@ describe('Personalized Reason Copy', () => {
     expect(recommendations.length).toBeGreaterThan(0);
   });
 });
-

@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "es",
-    "name": "Español",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "Menú de cuenta",
+    "accountSettings": "Ajustes de cuenta",
+    "availableCoaches": "Coaches disponibles",
+    "backToItems": "Volver a los elementos",
+    "cancelInstallation": "Cancelar instalación",
+    "closeAdmin": "Cerrar panel de administración",
+    "closeBilling": "Cerrar panel de facturación",
+    "closeDashboard": "Cerrar panel",
+    "closeDetails": "Cerrar detalles",
+    "closeHistory": "Cerrar historial",
+    "closeHuddle": "Cerrar reunión",
+    "closeMenu": "Cerrar menú",
+    "closePublisher": "Cerrar portal de publicador",
+    "closeSettings": "Cerrar ajustes",
+    "closeStats": "Cerrar estadísticas",
+    "closeSubscription": "Cerrar opciones de suscripción",
+    "collapse": "Contraer",
+    "collapseGarden": "Contraer detalles del jardín",
+    "dismiss": "Descartar",
+    "dismissNotification": "Descartar notificación",
+    "endCall": "Terminar llamada",
+    "expandGarden": "Expandir detalles del jardín",
+    "exportData": "Exportar tus datos",
+    "featuresIncluded": "Funciones incluidas",
+    "ferniLogo": "Logo de Ferni",
+    "filterBySpecialty": "Filtrar por especialidad",
+    "forgetThis": "Olvidar esto",
+    "howToPlay": "Cómo jugar",
+    "languageSelector": "Seleccionar idioma",
+    "muteAudio": "Silenciar audio",
+    "openDailyPractice": "Abrir práctica diaria",
+    "openPredictions": "Abrir predicciones",
+    "openSettings": "Abrir configuración",
+    "openTeamInsights": "Abrir ideas del equipo",
+    "options": "Opciones",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "Secciones del portal",
+    "refresh": "Actualizar",
+    "refreshData": "Actualizar datos",
+    "saveConversations": "Guarda tus conversaciones creando una cuenta",
+    "searchCoaches": "Buscar coaches",
+    "shareJourney": "Compartir tu viaje",
+    "sharedMusicalMemory": "Memoria musical compartida",
+    "signInToAccount": "Inicia sesión en tu cuenta",
+    "skipToContent": "Saltar al contenido principal",
+    "submitNewItem": "Enviar nuevo elemento",
+    "subscriptionPlans": "Planes de suscripción",
+    "toggleQuietHours": "Alternar horas silenciosas",
+    "unmuteAudio": "Activar audio",
+    "viewOutreachSchedule": "Ver calendario de contacto",
+    "yourNewPlan": "Tu nuevo plan"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "Elegir esto",
+    "exportData": "Exportar datos",
+    "refresh": "Actualizar",
+    "savePreference": "Guardar preferencia",
+    "savePreferences": "Guardar preferencias",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "signUp": "Registrarse"
   },
   "common": {
-    "loading": "Cargando...",
-    "error": "Algo salió mal",
-    "retry": "Intentar de nuevo",
-    "cancel": "Cancelar",
-    "save": "Guardar",
-    "close": "Cerrar",
-    "next": "Siguiente",
-    "back": "Atrás",
-    "done": "Listo",
-    "continue": "Continuar",
-    "skip": "Omitir",
-    "confirm": "Confirmar",
-    "delete": "Eliminar",
-    "edit": "Editar",
-    "share": "Compartir",
-    "download": "Descargar",
-    "copy": "Copiar",
-    "copied": "¡Copiado!",
-    "new": "NUEVO",
-    "saving": "Guardando...",
-    "saved": "¡Guardado!",
-    "processing": "Procesando...",
     "adding": "Añadiendo...",
-    "errorRetry": "Error - Intentar de nuevo"
+    "back": "Atrás",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "continue": "Continuar",
+    "copied": "¡Copiado!",
+    "copy": "Copiar",
+    "daysAgo": "{count} days ago",
+    "delete": "Eliminar",
+    "done": "Listo",
+    "download": "Descargar",
+    "edit": "Editar",
+    "error": "Algo salió mal",
+    "errorRetry": "Error - Intentar de nuevo",
+    "loading": "Cargando...",
+    "monthsAgo": "{count} months ago",
+    "new": "NUEVO",
+    "next": "Siguiente",
+    "processing": "Procesando...",
+    "retry": "Intentar de nuevo",
+    "save": "Guardar",
+    "saved": "¡Guardado!",
+    "saving": "Guardando...",
+    "share": "Compartir",
+    "skip": "Omitir",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "¿Qué sigue?",
-    "yourStage": "Tu etapa",
-    "nextStage": "Siguiente: {stage}",
-    "maxLevel": "Compañeros de Vida",
-    "unlockHint": "{remaining} para desbloquear",
-    "moreConversations": "{n} charlas más",
-    "moreDays": "{n} días más",
-    "keepChatting": "Sigue charlando para desbloquear",
-    "almostThere": "¡Casi listo!",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "Acceso Rápido",
-      "connect": "Conectar",
-      "grow": "Crecer",
-      "remember": "Recordar",
-      "personalize": "Hazlo Tuyo",
-      "account": "Cuenta",
-      "admin": "Admin"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "Tu Viaje",
-      "trustDetails": "Nuestra Relación",
-      "progressAnalytics": "Cómo Estás Creciendo",
-      "predictionAccuracy": "Mis Predicciones",
-      "whatILearned": "Lo Que He Aprendido",
-      "memoryBrowser": "Nuestros Recuerdos",
-      "wellbeingDashboard": "Tu Bienestar",
-      "lifeContext": "Contexto de Vida",
-      "teamInsights": "Ideas del equipo",
-      "conversationHistory": "Conversaciones Pasadas",
-      "contacts": "Mis Personas",
-      "gifts": "Regalos y Ocasiones",
-      "videoSessions": "Video Chat",
-      "groupCoaching": "Sesiones Grupales",
-      "teamHuddles": "Reuniones de Equipo",
-      "playGames": "Jugar",
-      "musicalYou": "Tu Música",
-      "personalize": "Personalizar",
-      "voiceAccent": "Voz y Acento",
-      "guidedPractices": "Prácticas Guiadas",
-      "createPractice": "Crear Práctica",
-      "wearables": "Dispositivos",
-      "calendar": "Calendario",
-      "notifications": "Notificaciones",
-      "toggleTheme": "Claro / Oscuro",
-      "linkSpotify": "Conectar Spotify",
-      "spotifyConnected": "Spotify Conectado",
-      "yourPlan": "Tu Plan",
-      "manageBilling": "Configuración de Pago",
-      "voiceId": "Tu Voz",
-      "householdMembers": "Tu Gente",
-      "contactInfo": "Info de Contacto",
-      "exportData": "Descarga Tu Historia",
-      "shareFerni": "Compartir Ferni",
-      "supportFerni": "Apoyar a Ferni",
-      "takeTour": "Hacer el Tour",
-      "language": "Idioma",
-      "whatsGrowing": "Lo Que Viene",
-      "billingPortal": "Facturación y Suscripción",
-      "outreachSchedule": "Calendario de Alcance"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "Fijar arriba",
-    "unpinItem": "Desfijar",
-    "comingSoon": "Próximamente"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "LO QUE VIENE",
-    "title": "El Camino Por Delante",
-    "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
-    "sections": {
-      "connect": "Nuevas Formas de Conectar",
-      "personalize": "Hazlo Tuyo",
-      "platform": "La Plataforma"
+  "contactSettings": {
+    "buttons": {
+      "save": "Guardar",
+      "saving": "Guardando..."
     },
-    "expectedArrival": "Llegada esperada",
-    "betterThanHuman": "Mejor que humano",
-    "alreadyGrowing": "Ya creciendo",
-    "wantThis": "Quiero esto",
-    "voted": "¡Estás emocionado!",
-    "peopleExcited": "{count} personas están emocionadas por esto",
-    "footerText": "Tu voz da forma a lo que construimos. Gracias por crecer con nosotros.",
-    "stages": {
-      "seed": "Plantado",
-      "sprout": "Creciendo",
-      "bud": "Floreciendo",
-      "bloom": "Pronto"
+    "verify": {
+      "sending": "Enviando código...",
+      "withCode": "Verificar con código"
     }
   },
-  "session": {
-    "connecting": "Conectando...",
-    "connected": "Conectado",
-    "disconnected": "Desconectado",
-    "listening": "Escuchando...",
-    "thinking": "Pensando...",
-    "speaking": "Hablando...",
-    "tapToSpeak": "Toca para hablar",
-    "holdToSpeak": "Mantén para hablar",
-    "releaseToSend": "Suelta para enviar",
-    "endSession": "Terminar Sesión",
-    "sessionEnded": "Sesión terminada",
-    "goodbye": "Adiós",
-    "end": "Terminar",
-    "untilNextTime": "Hasta la próxima...",
-    "takeCare": "Cuídate.",
-    "ending": "Terminando...",
-    "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós",
-    "agentEndingConversation": "El agente está terminando la conversación"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "Nuestra Historia",
-    "title": "Tu Viaje de Confianza",
-    "subtitle": "Cómo hemos crecido juntos",
-    "loading": "Cargando tu viaje",
-    "loadingText": "Reuniendo tu viaje...",
-    "trustScore": "Puntuación de Confianza",
-    "exportSuccess": "¡Viaje exportado!",
-    "offlineBanner": "Estás desconectado - mostrando datos guardados",
-    "loadMore": "Cargar {count} más",
-    "strengthLabel": "Puntuación de confianza: {value}%",
-    "timelineLabel": "Línea de tiempo del viaje",
-    "filterLabel": "Filtrar línea de tiempo",
-    "filters": {
-      "all": "Todo",
-      "growth": "Crecimiento",
-      "win": "Victorias",
-      "callback": "Callbacks",
-      "boundary": "Límites",
-      "outreach": "Contactos"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "Fortaleza de la Relación",
-      "stats": "Estadísticas del Viaje",
-      "boundaries": "Límites Respetados",
-      "growth": "Cómo has crecido",
-      "timeline": "Nuestro viaje juntos"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "Momentos de Crecimiento",
-      "winsCelebrated": "Victorias Celebradas",
-      "sharedMoments": "Momentos Compartidos"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "Hemos construido algo real juntos. Te conozco, y confías en mí.",
-      "growing": "Nuestra conexión se está profundizando. Estoy aprendiendo lo que te importa.",
-      "building": "Estamos construyendo confianza. Cada conversación me ayuda a entenderte mejor.",
-      "starting": "Apenas estamos comenzando. Sigue hablándome - estoy escuchando.",
-      "beginning": "Todo viaje comienza con un primer paso. Estoy aquí cuando estés listo."
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "Balance emocional",
-      "perspective_shift": "Nuevas perspectivas",
-      "boundary_setting": "Límites saludables",
-      "behavior_change": "Nuevos hábitos",
-      "self_awareness": "Autoconciencia",
-      "coping_upgrade": "Mejor afrontamiento",
-      "goal_progress": "Progreso de metas"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "Nuestra historia apenas comienza",
-      "message": "A medida que hablemos más, notaré tu crecimiento, celebraré tus victorias y recordaré lo que te importa. Vuelve pronto."
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "Estás desconectado",
-        "message": "Conéctate a internet para ver tu viaje."
-      },
-      "notLoggedIn": {
-        "title": "No has iniciado sesión",
-        "message": "Inicia sesión para ver tu viaje con Ferni."
-      },
-      "rateLimited": {
-        "title": "Más despacio",
-        "message": "Estás revisando muy seguido. Espera un momento e intenta de nuevo."
-      },
-      "unauthorized": {
-        "title": "Acceso denegado",
-        "message": "No tienes permiso para ver esto."
-      },
-      "generic": {
-        "title": "Algo salió mal",
-        "message": "No pudimos cargar tu viaje. Por favor, intenta de nuevo."
-      },
-      "exportFailed": {
-        "message": "No se pudo exportar tus datos. Por favor, intenta de nuevo."
-      },
-      "fetchFailedUsingCache": {
-        "message": "Mostrando datos guardados - no se pudo conectar al servidor."
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "Comunidad",
-    "friend": "Miembro Fundador",
-    "partner": "Patrón Fundador",
-    "upgrade": "Apoyar a Ferni",
-    "chipIn": "Contribuir",
-    "currentPlan": "Estás Aquí",
-    "planDetails": "Tu Apoyo",
-    "features": "Beneficios",
-    "unlimitedConversations": "Conversaciones ilimitadas",
-    "allTeamMembers": "Acceso completo al equipo",
-    "prioritySupport": "Soporte prioritario",
-    "advancedInsights": "Acceso anticipado a funciones",
-    "helpBuild": "Ayúdanos a Construir Esto",
-    "foundersSubtitle": "Ferni es gratis para siempre. Si crees en lo que estamos construyendo, contribuye.",
-    "thankYouPerks": "Como agradecimiento, desbloquearemos algunos beneficios.",
-    "notReady": "¿No estás listo? Está bien.",
-    "freeForever": "Gratis para siempre"
-  },
-  "team": {
-    "meetTheTeam": "Conoce al Equipo",
-    "selectMember": "Selecciona un miembro",
-    "currentlyWith": "Actualmente con {name}",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "Coach de Vida",
-        "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia."
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "Sabio y Mentor",
-        "bio": "Tu mentor de por vida con sabiduría y paciencia."
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "Investigación",
-        "bio": "Detecta patrones que nadie más ve."
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "Comunicación",
-        "bio": "Tu jefe de personal y coach de comunicación."
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "Hábitos y Rutinas",
-        "bio": "Te ayuda a construir hábitos que perduran."
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "Planificación",
-        "bio": "Convierte sueños vagos en experiencias vividas."
-      }
-    }
-  },
-  "stages": {
-    "stranger": "Desconocido",
-    "acquaintance": "Conocido",
-    "friend": "Amigo",
-    "closeFriend": "Amigo Cercano",
-    "confidant": "Confidente",
-    "soulmate": "Alma Gemela"
-  },
-  "time": {
-    "justNow": "Ahora mismo",
-    "minutesAgo": "Hace {n} minutos",
-    "hoursAgo": "Hace {n} horas",
-    "yesterday": "Ayer",
-    "daysAgo": "Hace {n} días"
-  },
-  "milestones": {
-    "ourStory": "Nuestra Historia Hasta Ahora",
-    "everyMomentMatters": "Cada momento importa.",
-    "journeyWith": "Mi Viaje con Ferni",
-    "categories": {
-      "relationship": "Nuestra Relación",
-      "team": "Conexión de Equipo",
-      "conversation": "Nuestras Conversaciones",
-      "discovery": "Descubrimiento",
-      "sweet": "Momento Dulce",
-      "milestone": "Hito"
-    }
-  },
-  "notifications": {
-    "connectionLost": "Conexión perdida. Reconectando...",
-    "reconnected": "¡Reconectado!",
-    "microphoneBlocked": "Se requiere acceso al micrófono",
-    "sessionTimeout": "La sesión expiró"
   },
   "errors": {
     "connectionFailed": "Error al conectar. Por favor, inténtalo de nuevo.",
@@ -318,352 +295,816 @@
     "sessionExpired": "Tu sesión ha expirado. Por favor, actualiza.",
     "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo."
   },
-  "onboarding": {
-    "welcome": "Bienvenido",
-    "letsGetStarted": "Empecemos",
-    "whatIsYourName": "¿Cómo te gustaría que te llame?",
-    "niceName": "¡Encantado de conocerte, {name}!",
-    "howAreYouFeeling": "¿Cómo te sientes hoy?",
-    "readyToBegin": "¿Listo para empezar?",
-    "ariaLabel": "Tour de bienvenida",
-    "steps": {
-      "welcome": {
-        "title": "Bienvenido a Ferni",
-        "description": "Tu equipo personal de coaches de vida con IA. Cada uno aporta sabiduría única para apoyar tu viaje."
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "Unirse",
+      "start": "Iniciar"
+    },
+    "empty": {
+      "hint": "Crea una nueva sesión para comenzar",
+      "title": "Sin sesiones activas"
+    },
+    "loading": "Cargando...",
+    "participantsLabel": "participantes",
+    "sessionTypes": {
+      "couple": {
+        "description": "Navega dinámicas de relación juntos",
+        "name": "Pareja"
       },
-      "voice": {
-        "title": "Solo Habla",
-        "description": "Toca el centro para iniciar una conversación. Habla naturalmente - Ferni escucha y responde en tiempo real."
+      "family": {
+        "description": "Construye conexiones familiares más fuertes",
+        "name": "Familia"
       },
-      "personas": {
-        "title": "Conoce a Tu Equipo",
-        "description": "Seis coaches únicos con diferentes perspectivas. Cada uno entiende tu historia con el equipo."
+      "peer": {
+        "description": "Conéctate con otros en viajes similares",
+        "name": "Apoyo Entre Pares"
       },
-      "rituals": {
-        "title": "Prácticas Diarias",
-        "description": "Construye consistencia con rituales diarios cortos. Sigue tus rachas y celebra tu progreso."
-      },
-      "ready": {
-        "title": "Estás Listo",
-        "description": "Eso es todo lo que necesitas saber. Descubre más mientras avanzas."
+      "team": {
+        "description": "Mejora la colaboración laboral",
+        "name": "Equipo"
       }
     },
-    "buttons": {
-      "skip": "Omitir tour",
-      "back": "Atrás",
-      "next": "Siguiente",
-      "begin": "Comencemos"
-    }
+    "title": "Coaching Grupal"
+  },
+  "household": {
+    "addMember": "Añadir miembro",
+    "addToHousehold": "Añadir al hogar",
+    "members": "Miembros",
+    "removeMember": "Eliminar miembro",
+    "title": "Hogar"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "SUSCRIPCIÓN",
-    "title": "Gestiona Tu Plan",
-    "expiresLabel": "Acceso hasta",
-    "renewsLabel": "Se renueva",
-    "billedThrough": "Facturado a través de",
-    "buttons": {
-      "upgrade": "Mejorar a Premium",
-      "restore": "Restaurar Compras",
-      "restoring": "Restaurando...",
-      "manageApple": "Gestionar en Ajustes",
-      "manageStripe": "Gestionar Facturación"
-    },
     "apple": {
       "instructionsTitle": "Para cancelar o cambiar tu plan:",
+      "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS",
       "step1": "Abre Ajustes en tu dispositivo",
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
-      "step4": "Busca y toca \"Ferni\"",
-      "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS"
+      "step4": "Busca y toca \"Ferni\""
+    },
+    "billedThrough": "Facturado a través de",
+    "buttons": {
+      "manageApple": "Gestionar en Ajustes",
+      "manageStripe": "Gestionar Facturación",
+      "restore": "Restaurar Compras",
+      "restoring": "Restaurando...",
+      "upgrade": "Mejorar a Premium"
+    },
+    "expiresLabel": "Acceso hasta",
+    "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización",
+    "label": "SUSCRIPCIÓN",
+    "renewsLabel": "Se renueva",
+    "restore": {
+      "failed": "Error al restaurar",
+      "noFound": "No se encontraron compras"
+    },
+    "status": {
+      "active": "Tu suscripción está activa. ¡Gracias por tu apoyo!",
+      "canceled": "Tu suscripción terminará pronto, pero siempre serás bienvenido.",
+      "default": "Estás suscrito. ¡Gracias por tu apoyo!",
+      "free": "Estás en el plan gratuito. Ferni siempre está aquí para ti.",
+      "pastDue": "Hubo un problema con tu pago. Por favor actualiza tu método de pago."
     },
     "stripe": {
       "note": "Actualiza método de pago, ve facturas o cancela cuando quieras"
     },
-    "restore": {
-      "noFound": "No se encontraron compras",
-      "failed": "Error al restaurar"
+    "title": "Gestiona Tu Plan"
+  },
+  "menu": {
+    "almostThere": "¡Casi listo!",
+    "comingSoon": "Próximamente",
+    "items": {
+      "billingPortal": "Facturación y Suscripción",
+      "calendar": "Calendario",
+      "connections": "Connections",
+      "contactInfo": "Info de Contacto",
+      "contacts": "Mis Personas",
+      "conversationHistory": "Conversaciones Pasadas",
+      "createPractice": "Crear Práctica",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "Descarga Tu Historia",
+      "gifts": "Regalos y Ocasiones",
+      "groupCoaching": "Sesiones Grupales",
+      "guidedPractices": "Prácticas Guiadas",
+      "householdMembers": "Tu Gente",
+      "journaling": "Journaling",
+      "language": "Idioma",
+      "lifeContext": "Contexto de Vida",
+      "linkSpotify": "Conectar Spotify",
+      "manageBilling": "Configuración de Pago",
+      "memoryBrowser": "Nuestros Recuerdos",
+      "musicalYou": "Tu Música",
+      "notifications": "Notificaciones",
+      "outreachSchedule": "Calendario de Alcance",
+      "personalize": "Personalizar",
+      "playGames": "Jugar",
+      "predictionAccuracy": "Mis Predicciones",
+      "progressAnalytics": "Cómo Estás Creciendo",
+      "shareFerni": "Invitar a un amigo",
+      "spotifyConnected": "Spotify Conectado",
+      "supportFerni": "Apoyar a Ferni",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "Hacer el Tour",
+      "teamHuddles": "Reuniones de Equipo",
+      "teamInsights": "Ideas del equipo",
+      "toggleTheme": "Claro / Oscuro",
+      "trustDetails": "Nuestra Relación",
+      "videoSessions": "Video Chat",
+      "voiceAccent": "Voz y Acento",
+      "voiceId": "Tu Voz",
+      "wearables": "Dispositivos",
+      "wellbeingDashboard": "Tu Bienestar",
+      "whatILearned": "Lo Que He Aprendido",
+      "whatsGrowing": "Lo Que Viene",
+      "yourJourney": "Tu Viaje",
+      "yourPlan": "Tu Plan"
     },
-    "status": {
-      "free": "Estás en el plan gratuito. Ferni siempre está aquí para ti.",
-      "active": "Tu suscripción está activa. ¡Gracias por tu apoyo!",
-      "canceled": "Tu suscripción terminará pronto, pero siempre serás bienvenido.",
-      "pastDue": "Hubo un problema con tu pago. Por favor actualiza tu método de pago.",
-      "default": "Estás suscrito. ¡Gracias por tu apoyo!"
+    "keepChatting": "Sigue charlando para desbloquear",
+    "maxLevel": "Compañeros de Vida",
+    "moreConversations": "{n} charlas más",
+    "moreDays": "{n} días más",
+    "nextStage": "Siguiente: {stage}",
+    "pinItem": "Fijar arriba",
+    "quickAdd": {
+      "event": "Evento",
+      "eventPrompt": "Cuéntame sobre el evento",
+      "person": "Persona",
+      "todo": "Tarea",
+      "todoPrompt": "Dime qué recordar"
     },
-    "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización"
+    "sections": {
+      "account": "Cuenta",
+      "admin": "Admin",
+      "connect": "Conectar",
+      "connections": "Connections",
+      "grow": "Crecer",
+      "personalize": "Hazlo Tuyo",
+      "pinned": "Acceso Rápido",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "Recordar",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "¿Qué sigue?",
+    "unlockHint": "{remaining} para desbloquear",
+    "unpinItem": "Desfijar",
+    "yourStage": "Tu etapa"
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "es",
+    "name": "Español"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "Nuestras Conversaciones",
+      "discovery": "Descubrimiento",
+      "milestone": "Hito",
+      "relationship": "Nuestra Relación",
+      "sweet": "Momento Dulce",
+      "team": "Conexión de Equipo"
+    },
+    "everyMomentMatters": "Cada momento importa.",
+    "journeyWith": "Mi Viaje con Ferni",
+    "ourStory": "Nuestra Historia Hasta Ahora"
+  },
+  "mobile": {
+    "pullToConnect": "Tira para conectar",
+    "pullToRefresh": "Tira para actualizar",
+    "releaseToConnect": "Suelta para conectar",
+    "releaseToRefresh": "Suelta para actualizar"
   },
   "musicDashboard": {
-    "title": "Tu Música",
-    "loading": "Analizando tu ADN musical...",
+    "buttons": {
+      "playGame": "Jugar Adivina la Canción",
+      "startPlaying": "Empezar a Jugar"
+    },
     "empty": {
-      "title": "¡Descubramos Tu ADN Musical!",
-      "hint": "Juega {count} juegos más para obtener perspectivas completas"
+      "hint": "Juega {count} juegos más para obtener perspectivas completas",
+      "title": "¡Descubramos Tu ADN Musical!"
     },
     "error": {
       "hint": "¡Juega algunos juegos musicales para construir tu perfil!"
     },
-    "buttons": {
-      "startPlaying": "Empezar a Jugar",
-      "playGame": "Jugar Adivina la Canción"
-    },
-    "sections": {
-      "journey": "Tu Viaje",
-      "strengths": "Donde Brillas",
-      "growth": "Espacio para Crecer",
-      "milestones": "Logros",
-      "moments": "Momentos Memorables",
-      "personaStats": "Con Quién Has Jugado"
-    },
-    "stats": {
-      "gamesPlayed": "Juegos Jugados",
-      "bestStreak": "Mejor Racha",
-      "minutes": "Minutos",
-      "thisWeek": "Esta Semana"
-    },
     "favorite": {
       "label": "Favorito:"
     },
+    "loading": "Analizando tu ADN musical...",
     "milestone": {
       "nextLabel": "Siguiente Meta"
+    },
+    "sections": {
+      "growth": "Espacio para Crecer",
+      "journey": "Tu Viaje",
+      "milestones": "Logros",
+      "moments": "Momentos Memorables",
+      "personaStats": "Con Quién Has Jugado",
+      "strengths": "Donde Brillas"
+    },
+    "stats": {
+      "bestStreak": "Mejor Racha",
+      "gamesPlayed": "Juegos Jugados",
+      "minutes": "Minutos",
+      "thisWeek": "Esta Semana"
+    },
+    "title": "Tu Música"
+  },
+  "notifications": {
+    "connectionLost": "Conexión perdida. Reconectando...",
+    "microphoneBlocked": "Se requiere acceso al micrófono",
+    "reconnected": "¡Reconectado!",
+    "sessionTimeout": "La sesión expiró"
+  },
+  "onboarding": {
+    "ariaLabel": "Tour de bienvenida",
+    "buttons": {
+      "back": "Atrás",
+      "begin": "Comencemos",
+      "next": "Siguiente",
+      "skip": "Omitir tour"
+    },
+    "howAreYouFeeling": "¿Cómo te sientes hoy?",
+    "letsGetStarted": "Empecemos",
+    "niceName": "¡Encantado de conocerte, {name}!",
+    "readyToBegin": "¿Listo para empezar?",
+    "steps": {
+      "personas": {
+        "description": "Seis coaches únicos con diferentes perspectivas. Cada uno entiende tu historia con el equipo.",
+        "title": "Conoce a Tu Equipo"
+      },
+      "ready": {
+        "description": "Eso es todo lo que necesitas saber. Descubre más mientras avanzas.",
+        "title": "Estás Listo"
+      },
+      "rituals": {
+        "description": "Construye consistencia con rituales diarios cortos. Sigue tus rachas y celebra tu progreso.",
+        "title": "Prácticas Diarias"
+      },
+      "voice": {
+        "description": "Toca el centro para iniciar una conversación. Habla naturalmente - Ferni escucha y responde en tiempo real.",
+        "title": "Solo Habla"
+      },
+      "welcome": {
+        "description": "Tu equipo personal de coaches de vida con IA. Cada uno aporta sabiduría única para apoyar tu viaje.",
+        "title": "Bienvenido a Ferni"
+      }
+    },
+    "welcome": "Bienvenido",
+    "whatIsYourName": "¿Cómo te gustaría que te llame?"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colega@empresa.com",
+    "companyValuesExample": "ej., Integridad, Innovación, Enfoque al Cliente, Trabajo en Equipo",
+    "customAmount": "Cantidad personalizada",
+    "displayName": "Tu nombre preferido",
+    "emailExample": "tu@ejemplo.com",
+    "enterValue": "Ingresa el valor real",
+    "householdName": "La familia García",
+    "marketplaceSearch": "¿A quién buscas?",
+    "memberName": "Su nombre",
+    "phoneExample": "+34 (91) 123-4567",
+    "searchConversations": "Buscar conversaciones...",
+    "toolDescription": "¿Qué hace tu herramienta/agente?",
+    "toolIdExample": "mi-herramienta-genial",
+    "toolNameExample": "Mi Herramienta Genial",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "ej., ¡Bienvenido a {orgName}! Ferni está aquí para apoyar tu crecimiento y bienestar."
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "Nuestra relación se está fortaleciendo.",
+      "deepPartnership": "Hemos pasado mucho juntos. Es un honor ser tu guía.",
+      "established": "Puedes contar conmigo. Estoy aquí para todo.",
+      "firstMeeting": "¡Nos estamos conociendo! Estoy deseando saber más de ti.",
+      "gettingStarted": "Estamos empezando a entendernos."
+    },
+    "names": {
+      "buildingTrust": "Construyendo Confianza",
+      "deepPartnership": "Compañeros de Vida",
+      "established": "Guía de Confianza",
+      "firstMeeting": "Nuevos Amigos",
+      "gettingStarted": "Empezando"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "Construyendo algo real",
+      "deepPartnership": "Compañeros para siempre",
+      "established": "Tu Coach de Vida",
+      "firstMeeting": "Un nuevo comienzo",
+      "gettingStarted": "Conociéndonos"
     }
   },
-  "groupCoaching": {
-    "title": "Coaching Grupal",
-    "loading": "Cargando...",
-    "participantsLabel": "participantes",
-    "buttons": {
-      "start": "Iniciar",
-      "join": "Unirse"
+  "roadmap": {
+    "alreadyGrowing": "Ya creciendo",
+    "betterThanHuman": "Mejor que humano",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "Llegada esperada",
+    "eyebrow": "LO QUE VIENE",
+    "footerText": "Tu voz da forma a lo que construimos. Gracias por crecer con nosotros.",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "Sin sesiones activas",
-      "hint": "Crea una nueva sesión para comenzar"
+    "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count} personas están emocionadas por esto",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "Nuevas Formas de Conectar",
+      "personalize": "Hazlo Tuyo",
+      "platform": "La Plataforma"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "Pareja",
-        "description": "Navega dinámicas de relación juntos"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "Pronto",
+      "bud": "Floreciendo",
+      "seed": "Plantado",
+      "sprout": "Creciendo"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "El Camino Por Delante",
+    "voted": "¡Estás emocionado!",
+    "wantThis": "Quiero esto",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "El agente está terminando la conversación",
+    "connected": "Conectado",
+    "connecting": "Conectando...",
+    "disconnected": "Desconectado",
+    "end": "Terminar",
+    "endConversation": "Terminar conversación",
+    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "endSession": "Terminar Sesión",
+    "ending": "Terminando...",
+    "goodbye": "Adiós",
+    "holdToSpeak": "Mantén para hablar",
+    "listening": "Escuchando...",
+    "releaseToSend": "Suelta para enviar",
+    "sessionEnded": "Sesión terminada",
+    "speaking": "Hablando...",
+    "takeCare": "Cuídate.",
+    "tapToSpeak": "Toca para hablar",
+    "thinking": "Pensando...",
+    "untilNextTime": "Hasta la próxima..."
+  },
+  "stages": {
+    "acquaintance": "Conocido",
+    "closeFriend": "Amigo Cercano",
+    "confidant": "Confidente",
+    "friend": "Amigo",
+    "soulmate": "Alma Gemela",
+    "stranger": "Desconocido"
+  },
+  "subscription": {
+    "advancedInsights": "Acceso anticipado a funciones",
+    "allTeamMembers": "Acceso completo al equipo",
+    "chipIn": "Contribuir",
+    "currentPlan": "Estás Aquí",
+    "features": "Beneficios",
+    "foundersSubtitle": "Ferni es gratis para siempre. Si crees en lo que estamos construyendo, contribuye.",
+    "free": "Comunidad",
+    "freeForever": "Gratis para siempre",
+    "friend": "Miembro Fundador",
+    "helpBuild": "Ayúdanos a Construir Esto",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "¿No estás listo? Está bien.",
+    "partner": "Patrón Fundador",
+    "planDetails": "Tu Apoyo",
+    "prioritySupport": "Soporte prioritario",
+    "thankYouPerks": "Como agradecimiento, desbloquearemos algunos beneficios.",
+    "unlimitedConversations": "Conversaciones ilimitadas",
+    "upgrade": "Apoyar a Ferni",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "Actualmente con {name}",
+    "meetTheTeam": "Conoce al Equipo",
+    "members": {
+      "alex": {
+        "bio": "Tu jefe de personal y coach de comunicación.",
+        "name": "Alex",
+        "role": "Comunicación"
       },
-      "family": {
-        "name": "Familia",
-        "description": "Construye conexiones familiares más fuertes"
+      "ferni": {
+        "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia.",
+        "name": "Ferni",
+        "role": "Coach de Vida"
       },
-      "team": {
-        "name": "Equipo",
-        "description": "Mejora la colaboración laboral"
+      "jordan": {
+        "bio": "Convierte sueños vagos en experiencias vividas.",
+        "name": "Jordan",
+        "role": "Planificación"
       },
-      "peer": {
-        "name": "Apoyo Entre Pares",
-        "description": "Conéctate con otros en viajes similares"
+      "maya": {
+        "bio": "Te ayuda a construir hábitos que perduran.",
+        "name": "Maya",
+        "role": "Hábitos y Rutinas"
+      },
+      "nayan": {
+        "bio": "Tu mentor de por vida con sabiduría y paciencia.",
+        "name": "Nayan",
+        "role": "Sabio y Mentor"
+      },
+      "peter": {
+        "bio": "Detecta patrones que nadie más ve.",
+        "name": "Peter",
+        "role": "Investigación"
       }
-    }
+    },
+    "selectMember": "Selecciona un miembro"
+  },
+  "time": {
+    "daysAgo": "Hace {n} días",
+    "hoursAgo": "Hace {n} horas",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {n} minutos",
+    "yesterday": "Ayer"
+  },
+  "titles": {
+    "dailyPractice": "Práctica diaria",
+    "predictions": "Predicciones",
+    "runScenario": "Ejecutar escenario",
+    "sharedSong": "Una canción que compartimos",
+    "teamInsights": "Ideas del equipo"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "A medida que hablemos más, notaré tu crecimiento, celebraré tus victorias y recordaré lo que te importa. Vuelve pronto.",
+      "title": "Nuestra historia apenas comienza"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "No se pudo exportar tus datos. Por favor, intenta de nuevo."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Mostrando datos guardados - no se pudo conectar al servidor."
+      },
+      "generic": {
+        "message": "No pudimos cargar tu viaje. Por favor, intenta de nuevo.",
+        "title": "Algo salió mal"
+      },
+      "notLoggedIn": {
+        "message": "Inicia sesión para ver tu viaje con Ferni.",
+        "title": "No has iniciado sesión"
+      },
+      "offline": {
+        "message": "Conéctate a internet para ver tu viaje.",
+        "title": "Estás desconectado"
+      },
+      "rateLimited": {
+        "message": "Estás revisando muy seguido. Espera un momento e intenta de nuevo.",
+        "title": "Más despacio"
+      },
+      "unauthorized": {
+        "message": "No tienes permiso para ver esto.",
+        "title": "Acceso denegado"
+      }
+    },
+    "exportSuccess": "¡Viaje exportado!",
+    "eyebrow": "Nuestra Historia",
+    "filterLabel": "Filtrar línea de tiempo",
+    "filters": {
+      "all": "Todo",
+      "boundary": "Límites",
+      "callback": "Callbacks",
+      "growth": "Crecimiento",
+      "outreach": "Contactos",
+      "win": "Victorias"
+    },
+    "growthTypes": {
+      "behavior_change": "Nuevos hábitos",
+      "boundary_setting": "Límites saludables",
+      "coping_upgrade": "Mejor afrontamiento",
+      "emotional_regulation": "Balance emocional",
+      "goal_progress": "Progreso de metas",
+      "perspective_shift": "Nuevas perspectivas",
+      "self_awareness": "Autoconciencia"
+    },
+    "loadMore": "Cargar {count} más",
+    "loading": "Cargando tu viaje",
+    "loadingText": "Reuniendo tu viaje...",
+    "offlineBanner": "Estás desconectado - mostrando datos guardados",
+    "sections": {
+      "boundaries": "Límites Respetados",
+      "growth": "Cómo has crecido",
+      "stats": "Estadísticas del Viaje",
+      "strength": "Fortaleza de la Relación",
+      "timeline": "Nuestro viaje juntos"
+    },
+    "stats": {
+      "growthMoments": "Momentos de Crecimiento",
+      "sharedMoments": "Momentos Compartidos",
+      "winsCelebrated": "Victorias Celebradas"
+    },
+    "strengthDescriptions": {
+      "beginning": "Todo viaje comienza con un primer paso. Estoy aquí cuando estés listo.",
+      "building": "Estamos construyendo confianza. Cada conversación me ayuda a entenderte mejor.",
+      "deep": "Hemos construido algo real juntos. Te conozco, y confías en mí.",
+      "growing": "Nuestra conexión se está profundizando. Estoy aprendiendo lo que te importa.",
+      "starting": "Apenas estamos comenzando. Sigue hablándome - estoy escuchando."
+    },
+    "strengthLabel": "Puntuación de confianza: {value}%",
+    "subtitle": "Cómo hemos crecido juntos",
+    "timelineLabel": "Línea de tiempo del viaje",
+    "title": "Tu Viaje de Confianza",
+    "trustScore": "Puntuación de Confianza"
   },
   "videoSettings": {
-    "title": "Sesiones de Video",
-    "loading": "Cargando...",
-    "intro": "Elige cómo quieres aparecer en tus sesiones de coaching.",
+    "buttons": {
+      "retry": "Intentar de Nuevo"
+    },
+    "camera": {
+      "off": "Cámara Apagada",
+      "on": "Cámara Encendida"
+    },
     "controls": {
       "title": "Controles Rápidos"
     },
-    "camera": {
-      "on": "Cámara Encendida",
-      "off": "Cámara Apagada"
-    },
-    "screen": {
-      "on": "Dejar de Compartir",
-      "off": "Compartir Pantalla"
-    },
+    "intro": "Elige cómo quieres aparecer en tus sesiones de coaching.",
+    "loading": "Cargando...",
     "modes": {
-      "title": "Modo de Visualización",
       "avatar": {
-        "label": "Solo avatar",
-        "description": "Solo el avatar de Ferni, sin video"
-      },
-      "video": {
-        "label": "Video",
-        "description": "Verte a ti y a Ferni"
-      },
-      "hybrid": {
-        "label": "Híbrido",
-        "description": "Avatar con video opcional"
+        "description": "Solo el avatar de Ferni, sin video",
+        "label": "Solo avatar"
       },
       "avatarOnly": {
-        "label": "Solo avatar",
-        "description": "Solo el avatar de Ferni, sin video"
+        "description": "Solo el avatar de Ferni, sin video",
+        "label": "Solo avatar"
+      },
+      "hybrid": {
+        "description": "Avatar con video opcional",
+        "label": "Híbrido"
+      },
+      "title": "Modo de Visualización",
+      "video": {
+        "description": "Verte a ti y a Ferni",
+        "label": "Video"
       }
     },
+    "note": "Las sesiones de video funcionan mejor con buena iluminación y conexión estable.",
     "quality": {
-      "title": "Calidad de Video",
       "auto": "Auto (Recomendado)",
       "high": "Alta",
+      "low": "Baja (Ahorra Datos)",
       "medium": "Media",
-      "low": "Baja (Ahorra Datos)"
+      "title": "Calidad de Video"
     },
-    "note": "Las sesiones de video funcionan mejor con buena iluminación y conexión estable.",
-    "buttons": {
-      "retry": "Intentar de Nuevo"
-    }
+    "screen": {
+      "off": "Compartir Pantalla",
+      "on": "Dejar de Compartir"
+    },
+    "title": "Sesiones de Video"
   },
   "wearableSettings": {
-    "title": "Dispositivos",
-    "loading": "Cargando...",
-    "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energía.",
-    "sections": {
-      "devices": "Dispositivos",
-      "features": "Lo que Ferni puede ver"
-    },
     "buttons": {
       "connect": "Conectar",
       "disconnect": "Desconectar",
       "tryAgain": "Intentar de nuevo"
     },
-    "features": {
-      "stress": "Detección de estrés desde HRV",
-      "sleep": "Análisis de calidad del sueño",
-      "activity": "Seguimiento de actividad"
+    "errors": {
+      "loadFailed": "No se pudieron cargar los ajustes de dispositivos"
     },
+    "features": {
+      "activity": "Seguimiento de actividad",
+      "sleep": "Análisis de calidad del sueño",
+      "stress": "Detección de estrés desde HRV"
+    },
+    "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energía.",
+    "loading": "Cargando...",
     "privacy": {
       "note": "Tus datos de salud permanecen privados. Solo compartimos perspectivas agregadas con tus sesiones de coaching."
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "Sincroniza con Apple Watch y datos de salud del iPhone"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Conecta tu dispositivo Fitbit"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "Sincroniza con wearables Garmin"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "Perspectivas de sueño y preparación"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "Seguimiento de recuperación y esfuerzo"
+        "description": "Sincroniza con Apple Watch y datos de salud del iPhone",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple Health",
-        "description": "Sincroniza con los datos de salud de Apple Watch y iPhone"
+        "description": "Sincroniza con los datos de salud de Apple Watch y iPhone",
+        "name": "Apple Health"
+      },
+      "fitbit": {
+        "description": "Conecta tu dispositivo Fitbit",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "Sincroniza con wearables Garmin",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "Perspectivas de sueño y preparación",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "Seguimiento de recuperación y esfuerzo",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "No se pudieron cargar los ajustes de dispositivos"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "Enviando código...",
-      "withCode": "Verificar con código"
+    "sections": {
+      "devices": "Dispositivos",
+      "features": "Lo que Ferni puede ver"
     },
-    "buttons": {
-      "saving": "Guardando...",
-      "save": "Guardar"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "Cerrar menú",
-    "openSettings": "Abrir configuración",
-    "muteAudio": "Silenciar audio",
-    "unmuteAudio": "Activar audio",
-    "endCall": "Terminar llamada",
-    "skipToContent": "Saltar al contenido principal",
-    "languageSelector": "Seleccionar idioma",
-    "saveConversations": "Guarda tus conversaciones creando una cuenta",
-    "signInToAccount": "Inicia sesión en tu cuenta",
-    "accountMenu": "Menú de cuenta",
-    "refreshData": "Actualizar datos",
-    "exportData": "Exportar tus datos",
-    "accountSettings": "Ajustes de cuenta",
-    "dismiss": "Descartar",
-    "dismissNotification": "Descartar notificación",
-    "closeDashboard": "Cerrar panel",
-    "closeSubscription": "Cerrar opciones de suscripción",
-    "closeDetails": "Cerrar detalles",
-    "closePublisher": "Cerrar portal de publicador",
-    "closeBilling": "Cerrar panel de facturación",
-    "closeSettings": "Cerrar ajustes",
-    "closeHistory": "Cerrar historial",
-    "closeAdmin": "Cerrar panel de administración",
-    "closeHuddle": "Cerrar reunión",
-    "closeStats": "Cerrar estadísticas",
-    "refresh": "Actualizar",
-    "backToItems": "Volver a los elementos",
-    "collapse": "Contraer",
-    "expandGarden": "Expandir detalles del jardín",
-    "collapseGarden": "Contraer detalles del jardín",
-    "howToPlay": "Cómo jugar",
-    "toggleQuietHours": "Alternar horas silenciosas",
-    "yourNewPlan": "Tu nuevo plan",
-    "subscriptionPlans": "Planes de suscripción",
-    "options": "Opciones",
-    "featuresIncluded": "Funciones incluidas",
-    "searchCoaches": "Buscar coaches",
-    "filterBySpecialty": "Filtrar por especialidad",
-    "availableCoaches": "Coaches disponibles",
-    "portalSections": "Secciones del portal",
-    "submitNewItem": "Enviar nuevo elemento",
-    "openDailyPractice": "Abrir práctica diaria",
-    "openPredictions": "Abrir predicciones",
-    "openTeamInsights": "Abrir ideas del equipo",
-    "shareJourney": "Compartir tu viaje",
-    "forgetThis": "Olvidar esto",
-    "cancelInstallation": "Cancelar instalación",
-    "sharedMusicalMemory": "Memoria musical compartida",
-    "viewOutreachSchedule": "Ver calendario de contacto",
-    "ferniLogo": "Logo de Ferni"
-  },
-  "buttons": {
-    "signIn": "Iniciar sesión",
-    "signOut": "Cerrar sesión",
-    "signUp": "Registrarse",
-    "savePreferences": "Guardar preferencias",
-    "savePreference": "Guardar preferencia",
-    "choose": "Elegir esto",
-    "refresh": "Actualizar",
-    "exportData": "Exportar datos"
-  },
-  "mobile": {
-    "pullToConnect": "Tira para conectar",
-    "releaseToConnect": "Suelta para conectar",
-    "pullToRefresh": "Tira para actualizar",
-    "releaseToRefresh": "Suelta para actualizar"
-  },
-  "placeholders": {
-    "customAmount": "Cantidad personalizada",
-    "searchConversations": "Buscar conversaciones...",
-    "enterValue": "Ingresa el valor real",
-    "emailExample": "tu@ejemplo.com",
-    "phoneExample": "+34 (91) 123-4567",
-    "memberName": "Su nombre",
-    "householdName": "La familia García",
-    "displayName": "Tu nombre preferido",
-    "marketplaceSearch": "¿A quién buscas?",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colega@empresa.com",
-    "welcomeMessageExample": "ej., ¡Bienvenido a {orgName}! Ferni está aquí para apoyar tu crecimiento y bienestar.",
-    "companyValuesExample": "ej., Integridad, Innovación, Enfoque al Cliente, Trabajo en Equipo",
-    "toolIdExample": "mi-herramienta-genial",
-    "toolNameExample": "Mi Herramienta Genial",
-    "versionExample": "1.0.0",
-    "toolDescription": "¿Qué hace tu herramienta/agente?"
-  },
-  "household": {
-    "addToHousehold": "Añadir al hogar",
-    "title": "Hogar",
-    "members": "Miembros",
-    "addMember": "Añadir miembro",
-    "removeMember": "Eliminar miembro"
-  },
-  "titles": {
-    "sharedSong": "Una canción que compartimos",
-    "dailyPractice": "Práctica diaria",
-    "predictions": "Predicciones",
-    "teamInsights": "Ideas del equipo",
-    "runScenario": "Ejecutar escenario"
+    "title": "Dispositivos"
   }
 }

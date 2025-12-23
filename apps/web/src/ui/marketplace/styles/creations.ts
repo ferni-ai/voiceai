@@ -27,6 +27,9 @@ export function getCreationsStyles(): string {
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: var(--space-xl);
+      /* Subtle bottom border for section separation */
+      padding-bottom: var(--space-lg);
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .creations-header-content {
@@ -75,16 +78,33 @@ export function getCreationsStyles(): string {
        ======================================== */
 
     .creations-empty {
+      position: relative;
       text-align: center;
-      padding: var(--space-xl);
-      background: var(--color-bg-subtle);
-      border: 1px dashed var(--color-border-medium);
+      padding: var(--space-2xl);
+      /* Elevated background with aurora gradient overlay for visual interest */
+      background: var(--color-background-elevated);
+      border: 2px dashed var(--color-border-medium);
       border-radius: var(--radius-xl);
       margin-bottom: var(--space-xl);
+      overflow: hidden;
+    }
+    
+    /* Aurora gradient overlay using design system token */
+    .creations-empty::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gradient-aurora);
+      pointer-events: none;
     }
 
     .creations-empty-illustration {
       margin-bottom: var(--space-md);
+      opacity: 0.6;
+    }
+    
+    .creations-empty-illustration svg {
+      color: var(--persona-primary, var(--color-accent-primary));
     }
 
     .creations-empty-title {
@@ -152,27 +172,31 @@ export function getCreationsStyles(): string {
     }
 
     .creation-type-card {
-      background: var(--color-bg-subtle);
-      border: 1px solid var(--color-border-subtle);
+      /* Clear card background against content area */
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-medium);
       border-radius: var(--radius-lg);
       padding: var(--space-lg);
       text-align: center;
       transition: all ${DURATION.FAST}ms ease;
+      box-shadow: var(--shadow-sm);
     }
 
     .creation-type-card:hover {
-      border-color: var(--color-border-medium);
-      transform: translateY(-2px);
+      border-color: var(--persona-primary, var(--color-accent-primary));
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
     }
 
     .creation-type-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       margin: 0 auto var(--space-sm);
-      background: var(--color-bg-secondary);
+      /* Tinted background matching persona */
+      background: var(--persona-tint, var(--color-accent-subtle));
       border-radius: 50%;
       color: var(--persona-primary, var(--color-accent-primary));
     }
@@ -204,18 +228,20 @@ export function getCreationsStyles(): string {
     }
 
     .custom-agent-card {
-      background: var(--color-bg-subtle);
-      border: 1px solid var(--color-border-subtle);
+      /* Strong card background that stands out from content area */
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-medium);
       border-radius: var(--radius-xl);
       padding: var(--space-lg);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ease;
+      box-shadow: var(--shadow-md);
     }
 
     .custom-agent-card:hover {
-      border-color: var(--color-border-medium);
-      box-shadow: var(--shadow-lg);
-      transform: translateY(-2px);
+      border-color: var(--color-border-strong);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-3px);
     }
 
     .custom-agent-header {
@@ -226,18 +252,21 @@ export function getCreationsStyles(): string {
     }
 
     .custom-agent-avatar {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--font-display);
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: white;
       flex-shrink: 0;
-      box-shadow: var(--shadow-md);
+      /* Ring and shadow using design system tokens */
+      box-shadow: 
+        var(--shadow-md),
+        0 0 0 3px var(--color-background-elevated);
     }
 
     .custom-agent-meta {
@@ -271,24 +300,29 @@ export function getCreationsStyles(): string {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 9999px;
       flex-shrink: 0;
+      /* Default border for all states */
+      border: 1px solid transparent;
     }
 
     .custom-agent-status.status--active {
       background: var(--color-semantic-success-glow);
       color: var(--color-semantic-success);
+      border-color: var(--color-semantic-success-glow);
     }
 
     .custom-agent-status.status--paused {
       background: var(--color-semantic-warning-glow);
       color: var(--color-semantic-warning);
+      border-color: var(--color-semantic-warning-glow);
     }
 
     .custom-agent-status.status--draft {
-      background: var(--color-bg-secondary);
+      background: var(--color-background-tertiary);
       color: var(--color-text-muted);
+      border-color: var(--color-border-medium);
     }
 
     .custom-agent-description {
@@ -326,48 +360,53 @@ export function getCreationsStyles(): string {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-xs);
-      margin-top: var(--space-sm);
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border-subtle);
     }
 
     .custom-agent-action {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 9999px;
       font-family: var(--font-body);
       font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ease;
-      border: 1px solid var(--color-border-subtle);
-      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border-medium);
+      background: var(--color-background-secondary);
       color: var(--color-text-secondary);
     }
 
     .custom-agent-action:hover,
     .custom-agent-action:focus-visible {
-      background: var(--color-bg-tertiary);
-      border-color: var(--color-border-medium);
+      background: var(--color-background-tertiary);
+      border-color: var(--color-border-strong);
       color: var(--color-text-primary);
+      transform: translateY(-1px);
     }
 
     .custom-agent-action--talk {
       background: var(--persona-primary, var(--color-accent-primary));
       border-color: var(--persona-primary, var(--color-accent-primary));
       color: white;
+      box-shadow: 0 2px 6px var(--persona-glow, var(--color-accent-glow));
     }
 
     .custom-agent-action--talk:hover {
       background: var(--persona-secondary, var(--color-accent-hover));
       border-color: var(--persona-secondary, var(--color-accent-hover));
+      box-shadow: 0 4px 12px var(--persona-glow, var(--color-accent-glow));
     }
 
     .custom-agent-action--delete {
       border-color: transparent;
       background: transparent;
       color: var(--color-text-dimmed);
-      padding: 6px;
+      padding: 7px;
     }
 
     .custom-agent-action--delete:hover {

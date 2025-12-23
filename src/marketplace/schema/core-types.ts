@@ -167,4 +167,3 @@ export interface PermissionGrant {
     timeWindow?: { start: string; end: string };
   };
 }
-

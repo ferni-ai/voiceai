@@ -94,8 +94,13 @@ const pollingStates = new Map<string, PollingState>();
 /** Poll timer */
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-/** Is polling service running */
+/**
+ * RACE CONDITION FIX: Use a starting flag to prevent double initialization.
+ * The isRunning check alone wasn't atomic - two concurrent calls could both
+ * see isRunning=false and create two polling cycles.
+ */
 let isRunning = false;
+let isStarting = false;
 
 // ============================================================================
 // PUBLIC API
@@ -105,22 +110,29 @@ let isRunning = false;
  * Start the Apple Calendar polling service
  */
 export function startPolling(): void {
-  if (isRunning) {
-    log.warn('Apple Calendar polling already running');
+  // RACE CONDITION FIX: Check both flags atomically
+  if (isRunning || isStarting) {
+    log.warn('Apple Calendar polling already running or starting');
     return;
   }
 
-  isRunning = true;
+  isStarting = true;
 
-  // Start immediate poll
-  void runPollCycle();
+  try {
+    isRunning = true;
 
-  // Schedule recurring polls
-  pollTimer = setInterval(() => {
+    // Start immediate poll
     void runPollCycle();
-  }, ACTIVE_POLL_INTERVAL);
 
-  log.info('🍎 Started Apple Calendar polling service');
+    // Schedule recurring polls
+    pollTimer = setInterval(() => {
+      void runPollCycle();
+    }, ACTIVE_POLL_INTERVAL);
+
+    log.info('🍎 Started Apple Calendar polling service');
+  } finally {
+    isStarting = false;
+  }
 }
 
 /**
@@ -130,6 +142,7 @@ export function stopPolling(): void {
   if (!isRunning) return;
 
   isRunning = false;
+  isStarting = false; // Reset starting flag too
 
   if (pollTimer) {
     clearInterval(pollTimer);

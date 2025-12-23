@@ -108,5 +108,3 @@ export async function handleAnalytics(
     sendError(res, 'Failed to generate calendar analytics', 500);
   }
 }
-
-

@@ -23,7 +23,7 @@
 import { t } from '../i18n/index.js';
 import { 
   relationshipStageService, 
-  STAGE_NAMES,
+  getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import type { StageChangeEvent, RelationshipMemory } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -1005,8 +1005,8 @@ export function showCelebration(event: StageChangeEvent): void {
   
   if (title) title.textContent = stageUpMsg.title;
   if (message) message.textContent = stageUpMsg.message;
-  if (stageFrom) stageFrom.textContent = STAGE_NAMES[event.previousStage];
-  if (stageTo) stageTo.textContent = STAGE_NAMES[event.newStage];
+  if (stageFrom) stageFrom.textContent = getTranslatedStageName(event.previousStage);
+  if (stageTo) stageTo.textContent = getTranslatedStageName(event.newStage);
   
   // Show with animation
   celebrationOverlay.classList.add('visible');
@@ -1191,7 +1191,7 @@ function updateProgressPanel(): void {
   const stageTagline = progressPanel.querySelector('.stage-tagline');
   const stageDesc = progressPanel.querySelector('.stage-description');
   
-  if (stageName) stageName.textContent = STAGE_NAMES[stage];
+  if (stageName) stageName.textContent = getTranslatedStageName(stage);
   if (stageTagline) stageTagline.textContent = stageInfo?.tagline ?? 'Just getting started';
   if (stageDesc) stageDesc.textContent = `"${stageInfo?.description ?? 'Every great friendship starts somewhere.'}"`;
   
@@ -1205,7 +1205,7 @@ function updateProgressPanel(): void {
     progressFill.style.width = `${Math.round(progress.progress * 100)}%`;
   }
   if (progressNext) {
-    progressNext.textContent = progress.nextStage ? `Next: ${STAGE_NAMES[progress.nextStage]}` : 'Max level!';
+    progressNext.textContent = progress.nextStage ? `Next: ${getTranslatedStageName(progress.nextStage)}` : 'Max level!';
   }
   if (progressReq) {
     progressReq.textContent = progress.nextStage 

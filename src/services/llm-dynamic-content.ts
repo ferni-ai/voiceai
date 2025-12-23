@@ -601,7 +601,7 @@ export function getContentWithFallback(context: ContentContext): GeneratedConten
  * Pre-warm the cache for expected content
  */
 export async function prewarmContent(contexts: ContentContext[]): Promise<void> {
-  const promises = contexts.map((ctx) => generateContent(ctx));
+  const promises = contexts.map(async (ctx) => generateContent(ctx));
   await Promise.allSettled(promises);
   log.debug({ count: contexts.length }, '📝 Pre-warmed content cache');
 }

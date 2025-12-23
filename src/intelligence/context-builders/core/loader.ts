@@ -317,43 +317,53 @@ async function loadBuildersByCategory(): Promise<{
 }
 
 /**
+ * Internal loading implementation (extracted for mutex pattern)
+ */
+async function loadBuildersInternal(): Promise<void> {
+  const start = Date.now();
+
+  const { loaded, failed } = await loadBuildersByCategory();
+
+  buildersLoaded = true;
+  const duration = Date.now() - start;
+
+  lastLoadReport = {
+    loaded,
+    failed,
+    durationMs: duration,
+    loadedAt: Date.now(),
+  };
+
+  if (failed.length > 0) {
+    log.warn({ loaded, failed, durationMs: duration }, 'Some context builders failed to load');
+  } else {
+    log.info({ loaded, durationMs: duration }, 'All context builders loaded');
+  }
+}
+
+/**
  * Ensure all builders are loaded (idempotent)
  *
  * This is the main entry point for lazy loading.
  * Call this before buildConversationContext().
+ *
+ * NOTE: Uses mutex pattern to prevent race conditions - loadingPromise is set
+ * SYNCHRONOUSLY before any await to prevent TOCTOU bugs where multiple callers
+ * could both see loadingPromise as null and start concurrent loads.
  */
 export async function ensureBuildersLoaded(): Promise<void> {
-  // Already loaded
+  // Already loaded - fast path
   if (buildersLoaded) return;
 
-  // Loading in progress - wait for it
+  // Loading in progress - wait for existing load
   if (loadingPromise) {
     await loadingPromise;
     return;
   }
 
-  // Start loading
-  loadingPromise = (async () => {
-    const start = Date.now();
-
-    const { loaded, failed } = await loadBuildersByCategory();
-
-    buildersLoaded = true;
-    const duration = Date.now() - start;
-
-    lastLoadReport = {
-      loaded,
-      failed,
-      durationMs: duration,
-      loadedAt: Date.now(),
-    };
-
-    if (failed.length > 0) {
-      log.warn({ loaded, failed, durationMs: duration }, 'Some context builders failed to load');
-    } else {
-      log.info({ loaded, durationMs: duration }, 'All context builders loaded');
-    }
-  })();
+  // CRITICAL: Set loadingPromise SYNCHRONOUSLY before any await
+  // This prevents TOCTOU race where multiple callers see loadingPromise as null
+  loadingPromise = loadBuildersInternal();
 
   await loadingPromise;
 }

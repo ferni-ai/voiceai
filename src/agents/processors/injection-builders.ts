@@ -17,6 +17,12 @@ import type { ConversationAnalysis } from '../../services/index.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserData } from '../shared/types.js';
 import type { ContextInjection, EmotionalState } from './types.js';
+// Session dynamics for phase-aware context
+import {
+  buildSessionDynamicsInjection,
+  mapToLegacyPhase,
+  updateSessionDynamics,
+} from '../integrations/session-dynamics-integration.js';
 
 // ============================================================================
 // SHARED TYPES
@@ -30,6 +36,8 @@ export interface InjectionBuilderContext {
   analysis: ConversationAnalysis;
   currentTopic?: string;
   emotionalState: EmotionalState;
+  /** Session ID for session-scoped services like SessionDynamicsEngine */
+  sessionId?: string;
 }
 
 // ============================================================================
@@ -122,13 +130,45 @@ export interface ScientificCoachingInjectionResult {
 export async function buildScientificCoachingInjections(
   ctx: InjectionBuilderContext
 ): Promise<ScientificCoachingInjectionResult> {
-  const { userText, services, userData, persona, currentTopic, emotionalState } = ctx;
+  const { userText, services, userData, persona, currentTopic, emotionalState, sessionId } = ctx;
   const injections: ContextInjection[] = [];
   let endpointingRecommendation: { minDelay: number; maxDelay: number } | undefined;
 
   try {
     const { buildScientificCoachingContext } =
       await import('../../intelligence/context-builders/coaching/scientific-coaching.js');
+
+    // Use SessionDynamicsEngine for accurate phase detection
+    let conversationPhase: 'opening' | 'exploring' | 'supporting' | 'closing' = 'exploring';
+    if (sessionId) {
+      // Update dynamics and get current phase
+      const dynamicsResult = updateSessionDynamics({
+        sessionId,
+        turnCount: userData.turnCount || 1,
+        userEnergy:
+          emotionalState.intensity > 0.7
+            ? 'high'
+            : emotionalState.intensity < 0.3
+              ? 'low'
+              : 'medium',
+        topicWeight:
+          emotionalState.distressLevel > 0.5
+            ? 'heavy'
+            : emotionalState.intensity < 0.4
+              ? 'light'
+              : 'medium',
+        wasDeepMoment: emotionalState.distressLevel > 0.6 || emotionalState.intensity > 0.8,
+      });
+      conversationPhase = mapToLegacyPhase(dynamicsResult.phase);
+    } else {
+      // Fallback to simple heuristic
+      conversationPhase =
+        userData.turnCount && userData.turnCount < 3
+          ? 'opening'
+          : userData.turnCount && userData.turnCount > 10
+            ? 'closing'
+            : 'exploring';
+    }
 
     const result = await buildScientificCoachingContext({
       userId: services.userId || 'unknown',
@@ -137,12 +177,7 @@ export async function buildScientificCoachingInjections(
       topic: currentTopic,
       emotionalState: emotionalState.primary,
       emotionalIntensity: emotionalState.intensity,
-      conversationPhase:
-        userData.turnCount && userData.turnCount < 3
-          ? 'opening'
-          : userData.turnCount && userData.turnCount > 10
-            ? 'closing'
-            : 'exploring',
+      conversationPhase,
       turnNumber: userData.turnCount || 1,
     });
 
@@ -285,6 +320,13 @@ export interface TrustSystemsResult {
     topicsToAvoid: string[];
     hasGrowthReflection: boolean;
     hasCelebration: boolean;
+    hasProactiveOutreach: boolean;
+    proactiveOutreach?: {
+      type: string;
+      message: string;
+      personaId?: string;
+      context?: string;
+    };
   };
 }
 
@@ -497,6 +539,10 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
     // Record trust system timing
     recordTrustSystemTiming(Date.now() - startTime);
 
+    // Check for pending proactive outreach
+    const pendingOutreach = trustContext.pendingOutreach?.[0];
+    const hasProactiveOutreach = !!pendingOutreach;
+
     // Return both injections and summary
     return {
       injections,
@@ -508,6 +554,14 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
         topicsToAvoid: trustContext.topicsToAvoid ?? [],
         hasGrowthReflection: !!trustContext.growthReflection,
         hasCelebration: !!trustContext.celebrationOpportunity,
+        hasProactiveOutreach,
+        proactiveOutreach: hasProactiveOutreach
+          ? {
+              type: pendingOutreach.type,
+              message: pendingOutreach.message,
+              context: pendingOutreach.trigger?.context,
+            }
+          : undefined,
       },
     };
   } catch (error) {
@@ -522,6 +576,7 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
       topicsToAvoid: [],
       hasGrowthReflection: false,
       hasCelebration: false,
+      hasProactiveOutreach: false,
     },
   };
 }
@@ -1408,3 +1463,22 @@ A human friend would be honest about technical difficulties. So are you.
 
   return injections;
 }
+
+// ============================================================================
+// SESSION DYNAMICS INJECTION BUILDER
+// Priority: 55-60 (guides response behavior based on conversation phase)
+// ============================================================================
+
+/**
+ * Build session dynamics injection for LLM context.
+ * Re-exported from session-dynamics-integration for convenience.
+ *
+ * This provides phase-aware guidance:
+ * - Opening: Warm, accessible, avoid deep probing
+ * - Warming: Build on previous, test comfort
+ * - Engaged: Peak responsiveness, full emotional range
+ * - Deepening: Profound questions, pattern naming
+ * - Winding: Consolidate, summarize, plant seeds
+ * - Extended: Check-ins, acknowledge fatigue
+ */
+export { buildSessionDynamicsInjection } from '../integrations/session-dynamics-integration.js';

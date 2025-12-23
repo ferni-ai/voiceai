@@ -370,7 +370,22 @@
       "simple-utilities",
       "quiet-growth",
       "reflection-games",
-      "life-thesis"
+      "life-thesis",
+      "boundaries",
+      "social-skills",
+      "anger",
+      "procrastination",
+      "perfectionism",
+      "digital-wellness",
+      "burnout-recovery",
+      "body-relationship",
+      "dating",
+      "intimacy",
+      "breakup-recovery",
+      "neurodiversity",
+      "trauma-support",
+      "chronic-conditions",
+      "midlife"
     ],
     "required": [
       "handoffToAlex",

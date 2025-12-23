@@ -317,6 +317,49 @@ export async function getCalendarBurnoutRiskFactors(
   return factors;
 }
 
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+
+let db: FirestoreType | null = null;
+
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    return db;
+  } catch (error) {
+    log.warn({ error }, 'Firestore not available for burnout pattern storage');
+    return null;
+  }
+}
+
+/**
+ * Cleanup Firestore connection
+ *
+ * Call this during graceful shutdown or test teardown to release
+ * all Firestore resources and cancel pending operations.
+ */
+export async function cleanupFirestore(): Promise<void> {
+  if (db) {
+    try {
+      await db.terminate();
+      log.debug('Firestore connection terminated');
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Error terminating Firestore connection');
+    } finally {
+      db = null;
+    }
+  }
+}
+
 /**
  * Check if current calendar pattern matches a historical burnout pattern
  *
@@ -330,11 +373,12 @@ export async function matchHistoricalBurnoutPattern(
   const factors = currentFactors || (await getCalendarLoadFactors(userId));
 
   // Load historical patterns from Firestore
-  // For now, use a simple in-memory check
-  // TODO: Implement Firestore storage for historical patterns
+  const historicalPatterns = await getStoredBurnoutPatterns(userId);
 
-  // Hardcoded example patterns (would come from Firestore)
-  const historicalPatterns: HistoricalBurnoutPattern[] = [];
+  if (historicalPatterns.length === 0) {
+    log.debug({ userId }, 'No historical burnout patterns found');
+    return null;
+  }
 
   // Check for pattern match
   for (const pattern of historicalPatterns) {
@@ -346,6 +390,10 @@ export async function matchHistoricalBurnoutPattern(
     // If at least 2 of 3 metrics match, consider it a pattern match
     const matchCount = [hoursSimilar, focusSimilar, backToBackSimilar].filter(Boolean).length;
     if (matchCount >= 2) {
+      log.info(
+        { userId, pattern, matchCount },
+        '⚠️ Current calendar matches historical burnout pattern'
+      );
       return pattern;
     }
   }
@@ -354,20 +402,109 @@ export async function matchHistoricalBurnoutPattern(
 }
 
 /**
- * Record a burnout period for future pattern matching
+ * Get stored burnout patterns from Firestore
  */
-export async function recordBurnoutPattern(userId: string, period: string): Promise<void> {
+async function getStoredBurnoutPatterns(userId: string): Promise<HistoricalBurnoutPattern[]> {
+  const firestore = await getFirestore();
+  if (!firestore) return [];
+
+  try {
+    const snapshot = await firestore
+      .collection(`users/${userId}/burnout_patterns`)
+      .orderBy('recordedAt', 'desc')
+      .limit(10) // Keep last 10 patterns for matching
+      .get();
+
+    return snapshot.docs.map((doc) => doc.data() as HistoricalBurnoutPattern);
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to load burnout patterns');
+    return [];
+  }
+}
+
+/**
+ * Record a burnout period for future pattern matching
+ *
+ * Call this when user reports feeling burned out, or when
+ * Ferni detects burnout signals (low energy + high calendar load).
+ */
+export async function recordBurnoutPattern(
+  userId: string,
+  period?: string,
+  customFactors?: Partial<HistoricalBurnoutPattern>
+): Promise<HistoricalBurnoutPattern | null> {
   const factors = await getCalendarLoadFactors(userId);
 
-  const pattern: HistoricalBurnoutPattern = {
-    period,
-    weeklyMeetingHours: factors.weeklyMeetingHours,
-    focusTimeRatio: factors.weeklyFocusTimeRatio,
-    backToBackPercentage: factors.weeklyBackToBackPercentage,
+  const pattern: HistoricalBurnoutPattern & { recordedAt: string } = {
+    period: period || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    weeklyMeetingHours: customFactors?.weeklyMeetingHours ?? factors.weeklyMeetingHours,
+    focusTimeRatio: customFactors?.focusTimeRatio ?? factors.weeklyFocusTimeRatio,
+    backToBackPercentage: customFactors?.backToBackPercentage ?? factors.weeklyBackToBackPercentage,
+    recordedAt: new Date().toISOString(),
   };
 
-  // TODO: Store in Firestore under users/{userId}/burnout_patterns/{timestamp}
-  log.info({ userId, pattern }, 'Recorded burnout pattern for future matching');
+  const firestore = await getFirestore();
+  if (!firestore) {
+    log.warn({ userId, pattern }, 'Firestore unavailable, burnout pattern not persisted');
+    return pattern;
+  }
+
+  try {
+    const docId = `burnout_${Date.now()}`;
+    await firestore.collection(`users/${userId}/burnout_patterns`).doc(docId).set(pattern);
+
+    log.info({ userId, pattern, docId }, '📊 Recorded burnout pattern for future matching');
+    return pattern;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to store burnout pattern');
+    return null;
+  }
+}
+
+/**
+ * Get all burnout patterns for a user (for analytics/debugging)
+ */
+export async function getAllBurnoutPatterns(userId: string): Promise<HistoricalBurnoutPattern[]> {
+  return getStoredBurnoutPatterns(userId);
+}
+
+/**
+ * Delete a burnout pattern (if user believes it was incorrectly recorded)
+ */
+export async function deleteBurnoutPattern(userId: string, docId: string): Promise<boolean> {
+  const firestore = await getFirestore();
+  if (!firestore) return false;
+
+  try {
+    await firestore.collection(`users/${userId}/burnout_patterns`).doc(docId).delete();
+    log.info({ userId, docId }, 'Deleted burnout pattern');
+    return true;
+  } catch (error) {
+    log.error({ error: String(error), userId, docId }, 'Failed to delete burnout pattern');
+    return false;
+  }
+}
+
+/**
+ * Clear all burnout patterns for a user
+ */
+export async function clearAllBurnoutPatterns(userId: string): Promise<number> {
+  const firestore = await getFirestore();
+  if (!firestore) return 0;
+
+  try {
+    const snapshot = await firestore.collection(`users/${userId}/burnout_patterns`).get();
+
+    const batch = firestore.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+
+    log.info({ userId, count: snapshot.size }, 'Cleared all burnout patterns');
+    return snapshot.size;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to clear burnout patterns');
+    return 0;
+  }
 }
 
 // ============================================================================
@@ -470,7 +607,11 @@ export const calendarLoadService = {
   getBurnoutFactors: getCalendarBurnoutRiskFactors,
   matchHistoricalPattern: matchHistoricalBurnoutPattern,
   recordBurnoutPattern,
+  getAllPatterns: getAllBurnoutPatterns,
+  deletePattern: deleteBurnoutPattern,
+  clearPatterns: clearAllBurnoutPatterns,
   getSummary: getCalendarLoadSummary,
+  cleanup: cleanupFirestore,
 };
 
 export default calendarLoadService;

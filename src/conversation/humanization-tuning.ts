@@ -549,7 +549,8 @@ export function applyPresetMultiplier(
 function scaleProbabilitiesRecursive<T>(obj: T, multiplier: number): T {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(item => scaleProbabilitiesRecursive(item, multiplier)) as T;
+  if (Array.isArray(obj))
+    return obj.map((item) => scaleProbabilitiesRecursive(item, multiplier)) as T;
 
   const result: Record<string, unknown> = {};
 

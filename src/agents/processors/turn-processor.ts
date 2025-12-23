@@ -36,11 +36,20 @@ import type {
   EmotionalState,
   IdentityContext,
   ResponseGuidance,
+  SemanticRoutingResult,
   TrustContextSummary,
   TurnAnalysisResult,
   TurnContext,
   TurnProcessorResult,
 } from './types.js';
+
+// 🎯 SEMANTIC ROUTER: Pre-LLM tool routing (replaces JSON workaround)
+import {
+  startSemanticRouting,
+  applyRoutingResult,
+  isRoutingEnabled,
+  type TurnRouterResult,
+} from '../../tools/semantic-router/integration/index.js';
 
 // Injection builders (cleaner separation of concerns)
 import {
@@ -54,6 +63,7 @@ import {
   buildLifeCoachingInjections,
   buildSafetyInjections,
   buildScientificCoachingInjections,
+  buildSessionDynamicsInjection,
   buildTrustSystemsInjections,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
@@ -70,7 +80,7 @@ import { analyzeMessage, updateConversationState } from './message-analyzer.js';
 // ============================================================================
 
 // Cached module getters (lazy loading)
-import { getContextBuilders, getTaskManagerCached } from './cached-modules.js';
+import { getTaskManagerCached, getBehavioralContextBuilder } from './cached-modules.js';
 
 // Conversation dynamics (narrative arc, engagement, rhythm, silence)
 import {
@@ -213,9 +223,12 @@ async function buildContextInjections(
     });
   }
 
-  // 2. Modular context builders
-  const { buildConversationContext, formatContextForPrompt, shouldUseHighEmotionMode } =
-    await getContextBuilders();
+  // 2. BEHAVIORAL CONTEXT SYSTEM (replaces legacy context builders)
+  // This system separates concerns to prevent context leakage:
+  // - Behavioral signals: HOW to behave (tone, pace, style) - can't leak
+  // - Awareness facts: WHAT to know (time, user, topic) - model should use
+  // - Tool guidance: WHEN to query (memories, calendar) - on-demand data
+  const buildIntegratedContext = await getBehavioralContextBuilder();
 
   const contextUserData: ContextUserData = {
     ...(userData || {}),
@@ -260,18 +273,19 @@ async function buildContextInjections(
     analysis,
     currentTopic,
     emotionalState,
+    sessionId: services.sessionId, // For SessionDynamicsEngine
   };
 
   const [
-    contextInjections,
+    behavioralResult,
     scientificResult,
     coachingInjections,
     trustSystemsResult,
     boundaryInjections,
     healthInjections,
   ] = await Promise.all([
-    // Main conversation context
-    buildConversationContext(contextInput),
+    // NEW: Behavioral context system (replaces buildConversationContext)
+    buildIntegratedContext(contextInput),
     // Scientific coaching
     buildScientificCoachingInjections(builderInput),
     // Life coaching
@@ -291,24 +305,44 @@ async function buildContextInjections(
   const trustInjections = trustSystemsResult.injections;
   const trustContextSummary = trustSystemsResult.summary;
 
-  // Process context injections
-  if (contextInjections.length > 0) {
-    // BETTER-THAN-HUMAN: Reduce context noise in high-emotion moments
-    // When the user is distressed, we want the AI to focus on what matters
-    const highEmotionMode = shouldUseHighEmotionMode(analysis);
-    if (highEmotionMode) {
-      diag.info('🎯 High emotion mode: Reducing context noise for focused support');
-    }
-
-    const contextStr = formatContextForPrompt(contextInjections, {
-      highEmotionMode,
-    });
+  // Process behavioral context result
+  // Inject awareness facts (what the model should know)
+  if (behavioralResult.awarenessFacts) {
     injections.push({
-      category: 'context',
-      content: contextStr,
-      priority: 80,
+      category: 'awareness',
+      content: behavioralResult.awarenessFacts,
+      priority: 90, // High priority - model should know these
     });
   }
+
+  // Inject behavioral directive (how to behave)
+  if (behavioralResult.behavioralDirective) {
+    injections.push({
+      category: 'behavioral',
+      content: behavioralResult.behavioralDirective,
+      priority: 85, // High priority - guides response style
+    });
+  }
+
+  // Inject tool guidance (when to call tools)
+  if (behavioralResult.toolGuidance) {
+    injections.push({
+      category: 'tools',
+      content: behavioralResult.toolGuidance,
+      priority: 75, // Moderate priority
+    });
+  }
+
+  // Log behavioral mode status
+  if (behavioralResult.highEmotionMode) {
+    diag.info('🎯 High emotion mode: Behavioral signals adjusted for focused support');
+  }
+
+  diag.debug('📊 Behavioral context built', {
+    mode: behavioralResult.metrics.mode,
+    buildersRun: behavioralResult.metrics.behavioralBuildersRun,
+    durationMs: behavioralResult.metrics.totalDurationMs.toFixed(1),
+  });
 
   // Process scientific coaching results
   injections.push(...scientificResult.injections);
@@ -325,6 +359,16 @@ async function buildContextInjections(
   injections.push(...trustInjections);
   injections.push(...boundaryInjections);
   injections.push(...healthInjections);
+
+  // 2c-1. SESSION DYNAMICS - Phase-aware conversation guidance
+  // Provides natural conversation arc: opening → warming → engaged → deepening → winding
+  const sessionDynamicsInjection = buildSessionDynamicsInjection(services.sessionId);
+  if (sessionDynamicsInjection) {
+    injections.push(sessionDynamicsInjection);
+    diag.debug('📈 Session dynamics injected', {
+      phase: sessionDynamicsInjection.content.split('\n')[0],
+    });
+  }
 
   // 2d-1. RELATIONSHIP STAGE CONTEXT - "Better than Human" relationship awareness
   // The system knows exactly where it stands with this person
@@ -908,6 +952,32 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   recordPhaseTiming('conversation_state', stateTimer.stop());
 
   // ============================================================================
+  // 🎯 TRIGGER EFFECTIVENESS: Process outcomes from previous turn (Phase 4)
+  // "Better than Human" - learn which triggers actually help this user
+  // ============================================================================
+  if (services.sessionId && userData.lastFiredTriggers?.length) {
+    // Calculate average response length from recent transcripts
+    const recentTranscripts = userData.recentTranscripts || [];
+    const avgLen =
+      recentTranscripts.length > 0
+        ? recentTranscripts.reduce((sum, t) => sum + t.length, 0) / recentTranscripts.length
+        : 100;
+
+    // Fire-and-forget: Process trigger outcomes
+    void import('./trigger-outcome-handler.js').then(({ processTriggerOutcomes }) => {
+      processTriggerOutcomes(userData, {
+        sessionId: services.sessionId,
+        userResponse: userText,
+        averageResponseLength: avgLen,
+        previousTopic: userData.lastTopic,
+        currentTopic: analysisResult.currentTopic,
+      }).catch((e) =>
+        diag.debug('Trigger outcome processing failed (non-fatal)', { error: String(e) })
+      );
+    });
+  }
+
+  // ============================================================================
   // 🧠 COACHING INTELLIGENCE: Pattern tracking and voice signals
   // "Better than Human" - track patterns across sessions, detect voice signals
   // ============================================================================
@@ -952,6 +1022,26 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // PARALLEL PROCESSING: Run independent async operations concurrently
   // This saves ~30-50ms by not waiting for each operation sequentially
   // ============================================================================
+
+  // 🎯 SEMANTIC ROUTING: Start tool routing in parallel (primary tool calling method)
+  // This runs alongside other processing and can bypass LLM entirely for high-confidence tool requests.
+  // Falls back to JSON function calling (legacy workaround) for LLM-routed tools.
+  let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
+  if (isRoutingEnabled()) {
+    // Build conversation history from recent transcripts (if available)
+    const conversationHistory = (userData.recentTranscripts || []).map((text) => ({
+      role: 'user' as const,
+      content: text,
+    }));
+
+    semanticRoutingPromise = startSemanticRouting(userText, {
+      userId: services.userId || 'unknown',
+      sessionId: services.sessionId,
+      personaId: ctx.persona.id,
+      conversationHistory,
+      recentTools: [], // TODO: Track recent tools in userData
+    });
+  }
 
   // Start independent async operations in parallel
   const easterEggPromise = checkEasterEggs(ctx, turnCtx);
@@ -1352,6 +1442,53 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     crisisDetected,
   });
 
+  // ============================================================================
+  // 🎯 SEMANTIC ROUTING: Await tool routing result and apply if applicable
+  // ============================================================================
+  let semanticRouting: SemanticRoutingResult | undefined;
+  if (semanticRoutingPromise) {
+    const routingTimer = createTimer();
+    const routingResult = await semanticRoutingPromise;
+    const routingLatencyMs = routingTimer.stop();
+
+    semanticRouting = applyRoutingResult(routingResult, {
+      crisisDetected: crisisResult.isCrisis,
+      latencyMs: routingLatencyMs,
+    });
+
+    if (semanticRouting.bypassLLM && semanticRouting.toolResult) {
+      diag.state('🎯 Semantic routing: BYPASSING LLM', {
+        tool: semanticRouting.toolResult.toolId,
+        confidence: semanticRouting.metrics.confidence,
+        latencyMs: semanticRouting.metrics.latencyMs,
+      });
+    } else if (semanticRouting.routed && routingResult.routeResult?.matches?.length) {
+      // Medium confidence: Add hint to LLM context (helps guide the response)
+      const topMatch = routingResult.routeResult.matches[0];
+      const confidence = semanticRouting.metrics.confidence;
+
+      diag.state('🎯 Semantic routing: Tool hint added to context', {
+        toolId: topMatch.toolId,
+        confidence,
+        matchPath: semanticRouting.metrics.matchPath,
+      });
+
+      // Add tool hint injection to guide LLM
+      filteredInjections.push({
+        category: 'tool_hint',
+        content: `[TOOL HINT - DO NOT MENTION THIS DIRECTLY]
+The user may be requesting: ${topMatch.toolId}
+Confidence: ${(confidence * 100).toFixed(0)}%
+
+If the user is indeed asking for this action, use the JSON function call format:
+{"fn":"${topMatch.toolId}","args":{...}}
+
+If they're just conversing, respond naturally without the tool call.`,
+        priority: 80,
+      });
+    }
+  }
+
   return {
     analysis: analysisResult,
     context: {
@@ -1376,6 +1513,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     },
     // 🤝 TRUST: Trust context summary for post-response monitoring
     trustContext: trustContextSummary,
+    // 🎯 SEMANTIC ROUTING: Pre-LLM tool routing result
+    semanticRouting,
   };
 }
 

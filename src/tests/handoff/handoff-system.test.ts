@@ -20,15 +20,9 @@ import {
   getAllVoiceIds,
 } from '../../tools/handoff/voice-id-resolver.js';
 
-import {
-  validateHandoffPreconditions,
-  quickValidate,
-} from '../../tools/handoff/pre-validation.js';
+import { validateHandoffPreconditions, quickValidate } from '../../tools/handoff/pre-validation.js';
 
-import {
-  HandoffTransaction,
-  createTransaction,
-} from '../../tools/handoff/handoff-transaction.js';
+import { HandoffTransaction, createTransaction } from '../../tools/handoff/handoff-transaction.js';
 
 import {
   EventSequencer,
@@ -115,9 +109,12 @@ describe('Voice ID Resolver', () => {
     });
 
     it('should fail with detailed error when no voice ID found', () => {
-      const result = resolveVoiceId({
-        persona: { id: 'unknown-persona' },
-      }, { useRegistryFallback: false });
+      const result = resolveVoiceId(
+        {
+          persona: { id: 'unknown-persona' },
+        },
+        { useRegistryFallback: false }
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -228,15 +225,23 @@ describe('Handoff Transaction', () => {
 
       tx.addStep({
         name: 'step1',
-        execute: async () => { executionOrder.push('execute1'); },
-        rollback: async () => { executionOrder.push('rollback1'); },
+        execute: async () => {
+          executionOrder.push('execute1');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback1');
+        },
         critical: true,
       });
 
       tx.addStep({
         name: 'step2',
-        execute: async () => { executionOrder.push('execute2'); },
-        rollback: async () => { executionOrder.push('rollback2'); },
+        execute: async () => {
+          executionOrder.push('execute2');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback2');
+        },
         critical: true,
       });
 
@@ -253,8 +258,12 @@ describe('Handoff Transaction', () => {
 
       tx.addStep({
         name: 'step1',
-        execute: async () => { executionOrder.push('execute1'); },
-        rollback: async () => { executionOrder.push('rollback1'); },
+        execute: async () => {
+          executionOrder.push('execute1');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback1');
+        },
         critical: true,
       });
 
@@ -264,14 +273,20 @@ describe('Handoff Transaction', () => {
           executionOrder.push('execute2');
           throw new Error('Step 2 failed');
         },
-        rollback: async () => { executionOrder.push('rollback2'); },
+        rollback: async () => {
+          executionOrder.push('rollback2');
+        },
         critical: true,
       });
 
       tx.addStep({
         name: 'step3-never-runs',
-        execute: async () => { executionOrder.push('execute3'); },
-        rollback: async () => { executionOrder.push('rollback3'); },
+        execute: async () => {
+          executionOrder.push('execute3');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback3');
+        },
         critical: true,
       });
 
@@ -292,8 +307,12 @@ describe('Handoff Transaction', () => {
 
       tx.addStep({
         name: 'step1',
-        execute: async () => { executionOrder.push('execute1'); },
-        rollback: async () => { executionOrder.push('rollback1'); },
+        execute: async () => {
+          executionOrder.push('execute1');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback1');
+        },
         critical: true,
       });
 
@@ -303,14 +322,20 @@ describe('Handoff Transaction', () => {
           executionOrder.push('execute2');
           throw new Error('Non-critical failure');
         },
-        rollback: async () => { executionOrder.push('rollback2'); },
+        rollback: async () => {
+          executionOrder.push('rollback2');
+        },
         critical: false, // Non-critical!
       });
 
       tx.addStep({
         name: 'step3-runs-anyway',
-        execute: async () => { executionOrder.push('execute3'); },
-        rollback: async () => { executionOrder.push('rollback3'); },
+        execute: async () => {
+          executionOrder.push('execute3');
+        },
+        rollback: async () => {
+          executionOrder.push('rollback3');
+        },
         critical: true,
       });
 
@@ -342,8 +367,12 @@ describe('Event Sequencer', () => {
     it('should process events in order', async () => {
       const processed: string[] = [];
 
-      sequencer.on('handoff_started', () => { processed.push('started'); });
-      sequencer.on('handoff_complete', () => { processed.push('complete'); });
+      sequencer.on('handoff_started', () => {
+        processed.push('started');
+      });
+      sequencer.on('handoff_complete', () => {
+        processed.push('complete');
+      });
 
       await sequencer.receive({
         type: 'handoff_started',
@@ -369,9 +398,15 @@ describe('Event Sequencer', () => {
     it('should buffer future events until gap is filled', async () => {
       const processed: string[] = [];
 
-      sequencer.on('handoff_started', () => { processed.push('started'); });
-      sequencer.on('handoff_progress', () => { processed.push('progress'); });
-      sequencer.on('handoff_complete', () => { processed.push('complete'); });
+      sequencer.on('handoff_started', () => {
+        processed.push('started');
+      });
+      sequencer.on('handoff_progress', () => {
+        processed.push('progress');
+      });
+      sequencer.on('handoff_complete', () => {
+        processed.push('complete');
+      });
 
       // First, send the first event to establish the baseline
       await sequencer.receive({
@@ -413,7 +448,9 @@ describe('Event Sequencer', () => {
     it('should ignore duplicate events', async () => {
       const processed: string[] = [];
 
-      sequencer.on('handoff_started', () => { processed.push('started'); });
+      sequencer.on('handoff_started', () => {
+        processed.push('started');
+      });
 
       await sequencer.receive({
         type: 'handoff_started',
@@ -453,7 +490,8 @@ describe('Event Sequencer', () => {
 
 describe('Handoff State Manager', () => {
   // Use unique session IDs for each test to avoid conflicts
-  const getUniqueSessionId = () => `test-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const getUniqueSessionId = () =>
+    `test-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   describe('session management', () => {
     it('should create and retrieve session state', () => {
@@ -709,4 +747,3 @@ describe('Sequence Generator', () => {
     expect(afterReset).toBe(1);
   });
 });
-

@@ -301,6 +301,52 @@ You are their lifeline right now. Be fully present.`,
     }
 
     // ================================================================
+    // 🎯 SEMANTIC ROUTING: Direct Tool Execution (Bypass LLM)
+    // When semantic router has high confidence, execute tools directly
+    // without going through the LLM. This provides <20ms responses.
+    // ================================================================
+    if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
+      const { toolResult, metrics } = result.semanticRouting;
+
+      diag.state('🎯 SEMANTIC ROUTING: Bypassing LLM for direct tool response', {
+        toolId: toolResult.toolId,
+        confidence: metrics.confidence,
+        matchPath: metrics.matchPath,
+        latencyMs: metrics.latencyMs,
+        cacheHit: metrics.cacheHit,
+      });
+
+      // Send data message about semantic routing (for frontend/analytics)
+      try {
+        await sendDataMessage('semantic_routing', {
+          toolId: toolResult.toolId,
+          confidence: metrics.confidence,
+          bypassed_llm: true,
+        });
+      } catch {
+        // Non-critical
+      }
+
+      // Speak the tool result directly
+      if (currentSession && toolResult.speakableResponse) {
+        currentSession.say(toolResult.speakableResponse, { allowInterruptions: true });
+      }
+
+      // Track tool usage (fire-and-forget)
+      void (async () => {
+        try {
+          const { recordToolUsage } = await import('../../tools/semantic-router/learning/index.js');
+          recordToolUsage(services.userId || 'anonymous', toolResult.toolId);
+        } catch {
+          // Non-critical
+        }
+      })();
+
+      // Early return - don't proceed to LLM
+      return;
+    }
+
+    // ================================================================
     // 🤝 TRUST CONTEXT MONITORING
     // Track trust signals for monitoring, learning, and frontend events
     // NOTE: Post-response validation is architecturally difficult with streaming.
@@ -361,6 +407,30 @@ You are their lifeline right now. Be fully present.`,
         });
       }
 
+      // 💭 PROACTIVE OUTREACH - "Thinking of You" notifications
+      // Send to frontend to show proactive outreach UI notification
+      const { hasProactiveOutreach, proactiveOutreach } = result.trustContext;
+      if (hasProactiveOutreach && proactiveOutreach) {
+        void sendDataMessage('proactive_outreach', {
+          id: `outreach-${Date.now()}`,
+          type: proactiveOutreach.type,
+          message: proactiveOutreach.message,
+          personaId: persona.id,
+          personaName: persona.name,
+          context: proactiveOutreach.context,
+          priority: 'medium',
+        }).catch((e) => {
+          diag.debug('Proactive outreach send failed (non-critical)', {
+            error: String(e),
+          });
+        });
+
+        diag.info('💭 Proactive outreach sent to frontend', {
+          type: proactiveOutreach.type,
+          personaId: persona.id,
+        });
+      }
+
       // Store in userData for potential use in response quality tracking
       (userData as Record<string, unknown>).lastTrustContext = result.trustContext;
     }
@@ -395,18 +465,18 @@ You are their lifeline right now. Be fully present.`,
 
     // Handle behavior event from personality system
     if (personalityResult.behaviorEvent) {
-      const behaviorEventContent = `[SYSTEM_EVENT]\n${JSON.stringify({
+      const behaviorEventContent = JSON.stringify({
         event: personalityResult.behaviorEvent.event,
         data: personalityResult.behaviorEvent.data,
         suggestedResponse: personalityResult.behaviorEvent.suggestedResponse,
         source: 'personality_noticing',
-      })}`;
+      });
 
       turnCtx.addMessage({
         role: 'system',
         content:
-          `[BEHAVIOR SYSTEM - Personality Noticing]\n\n${behaviorEventContent}\n\n` +
-          `The personality system noticed something. You may call behavior functions in response.`,
+          `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]\nBehavior event detected:\n${behaviorEventContent}\n\n` +
+          `You may call behavior functions in response to this event.`,
       });
     }
 
@@ -486,21 +556,21 @@ You are their lifeline right now. Be fully present.`,
       if (beforeResponsePrompt) {
         turnCtx.addMessage({
           role: 'system',
-          content: `[AGENT EXTENSIBILITY - RESPONSE GUIDANCE]\n${beforeResponsePrompt}`,
+          content: `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]\n${beforeResponsePrompt}`,
         });
       }
 
       if (userData.extensibilitySessionPrompt && (userData.turnCount ?? 0) <= 1) {
         turnCtx.addMessage({
           role: 'system',
-          content: `[AGENT EXTENSIBILITY - SESSION CONTEXT]\n${userData.extensibilitySessionPrompt}`,
+          content: `[INTERNAL CONTEXT - DO NOT SPEAK THIS]\n${userData.extensibilitySessionPrompt}`,
         });
       }
 
       if (userData.preSessionBriefing && (userData.turnCount ?? 0) === 0) {
         turnCtx.addMessage({
           role: 'system',
-          content: userData.preSessionBriefing,
+          content: `[INTERNAL BRIEFING - DO NOT SPEAK THIS]\n${userData.preSessionBriefing}`,
         });
       }
     } catch (extHookErr) {
@@ -518,7 +588,7 @@ You are their lifeline right now. Be fully present.`,
       if (phoneAskMod.injectPhoneAsk && phoneAskMod.script) {
         turnCtx.addMessage({
           role: 'system',
-          content: `[MAGIC MOMENT - PHONE COLLECTION]
+          content: `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]
 This is a perfect emotional moment to naturally ask for their phone number.
 Moment type: ${phoneAskMod.momentType}
 Emotional tone: ${phoneAskMod.tone}

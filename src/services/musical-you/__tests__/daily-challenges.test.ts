@@ -23,7 +23,7 @@ describe('Daily Challenges', () => {
   });
 
   describe('getDailyChallenge', () => {
-    it('should return today\'s challenge', async () => {
+    it("should return today's challenge", async () => {
       const challenge = await getDailyChallenge();
 
       expect(challenge).toBeDefined();
@@ -44,7 +44,7 @@ describe('Daily Challenges', () => {
       expect(challenge1.date).toBe(challenge2.date);
     });
 
-    it('should return a specific date\'s challenge', async () => {
+    it("should return a specific date's challenge", async () => {
       const specificDate = new Date('2024-01-15');
       const challenge = await getDailyChallenge(specificDate);
 

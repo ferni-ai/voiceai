@@ -406,12 +406,13 @@ const STYLES = `
 function render(): string {
   if (!currentAgent) return '';
 
-  const personality = currentAgent.personality || {};
-  const behaviors = currentAgent.behaviors || {};
+  const personality = (currentAgent.personality || {}) as unknown as Record<string, unknown>;
+  const behaviors = (currentAgent.behaviors || {}) as unknown as Record<string, unknown>;
+  const memories = (currentAgent.memories || {}) as unknown as Record<string, unknown>;
   const backstory = (personality.worldview as string) || '';
   const quirks = (behaviors.quirks as string[]) || [];
   const catchphrases = (behaviors.catchphrases as string[]) || [];
-  const relationships = (currentAgent.memories?.relationships || []) as Array<{ personName: string; relationship: string }>;
+  const relationships = (memories.relationships || []) as Array<{ personName: string; relationship: string }>;
 
   const traits = [
     { label: 'Warmth', value: getTraitLabel(personality.warmth as number) },
@@ -773,8 +774,8 @@ function attachListeners(): void {
 
 async function handleEditBackstory(): Promise<void> {
   const { toast } = await import('./toast.ui.js');
-  
-  const backstory = prompt("Enter the character's backstory:", (currentAgent?.personality?.worldview as string) || '');
+  const personality = (currentAgent?.personality || {}) as unknown as Record<string, unknown>;
+  const backstory = prompt("Enter the character's backstory:", (personality.worldview as string) || '');
   if (backstory === null || !currentAgent) return;
 
   try {
@@ -782,10 +783,10 @@ async function handleEditBackstory(): Promise<void> {
       personality: {
         ...currentAgent.personality,
         worldview: backstory
-      }
+      } as unknown as typeof currentAgent.personality
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Backstory updated!');
     await openCharacterSheet(currentAgent.id);
   } catch (err) {
@@ -796,20 +797,21 @@ async function handleEditBackstory(): Promise<void> {
 
 async function handleAddQuirk(): Promise<void> {
   const { toast } = await import('./toast.ui.js');
-  
+
   const quirk = prompt("Add a quirk or habit:");
   if (!quirk || !currentAgent) return;
 
   try {
-    const currentQuirks = (currentAgent.behaviors?.quirks as string[]) || [];
+    const behaviors = (currentAgent.behaviors || {}) as unknown as Record<string, unknown>;
+    const currentQuirks = (behaviors.quirks as string[]) || [];
     const updates = {
       behaviors: {
         ...currentAgent.behaviors,
         quirks: [...currentQuirks, quirk]
-      }
+      } as unknown as typeof currentAgent.behaviors
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Quirk added!');
     await openCharacterSheet(currentAgent.id);
   } catch (err) {
@@ -851,15 +853,16 @@ async function handleAddRelationship(): Promise<void> {
   const relationship = prompt("What is their relationship?") || 'Acquaintance';
 
   try {
-    const current = (currentAgent.memories?.relationships || []) as Array<{ personName: string; relationship: string }>;
+    const memories = (currentAgent.memories || {}) as unknown as Record<string, unknown>;
+    const current = (memories.relationships || []) as Array<{ personName: string; relationship: string }>;
     const updates = {
       memories: {
         ...currentAgent.memories,
         relationships: [...current, { personName, relationship }]
-      }
+      } as unknown as typeof currentAgent.memories
     };
 
-    await updateCustomAgent(currentAgent.id, updates);
+    await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Relationship added!');
     await openCharacterSheet(currentAgent.id);
   } catch (err) {
@@ -873,12 +876,13 @@ async function handleDeleteQuirk(index: number): Promise<void> {
   if (!currentAgent) return;
 
   try {
-    const quirks = (currentAgent.behaviors?.quirks as string[]) || [];
+    const behaviors = (currentAgent.behaviors || {}) as unknown as Record<string, unknown>;
+    const quirks = (behaviors.quirks as string[]) || [];
     const updatedQuirks = quirks.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {
-      behaviors: { ...currentAgent.behaviors, quirks: updatedQuirks }
-    });
+      behaviors: { ...currentAgent.behaviors, quirks: updatedQuirks } as unknown as typeof currentAgent.behaviors
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Removed');
     await openCharacterSheet(currentAgent.id);
   } catch (err) {
@@ -941,12 +945,13 @@ async function handleDeleteRelationship(index: number): Promise<void> {
   if (!confirm('Remove this relationship?')) return;
 
   try {
-    const relationships = (currentAgent.memories?.relationships || []) as Array<{ personName: string; relationship: string }>;
+    const memories = (currentAgent.memories || {}) as unknown as Record<string, unknown>;
+    const relationships = (memories.relationships || []) as Array<{ personName: string; relationship: string }>;
     const updatedRelationships = relationships.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {
-      memories: { ...currentAgent.memories, relationships: updatedRelationships }
-    });
+      memories: { ...currentAgent.memories, relationships: updatedRelationships } as unknown as typeof currentAgent.memories
+    } as Parameters<typeof updateCustomAgent>[1]);
     toast.success('Removed');
     await openCharacterSheet(currentAgent.id);
   } catch (err) {

@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "zh-Hans",
-    "name": "简体中文",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "账户菜单",
+    "accountSettings": "账户设置",
+    "availableCoaches": "可用教练",
+    "backToItems": "返回项目",
+    "cancelInstallation": "取消安装",
+    "closeAdmin": "关闭管理面板",
+    "closeBilling": "关闭账单仪表板",
+    "closeDashboard": "关闭仪表板",
+    "closeDetails": "关闭详情",
+    "closeHistory": "关闭历史",
+    "closeHuddle": "关闭会议",
+    "closeMenu": "关闭菜单",
+    "closePublisher": "关闭发布者门户",
+    "closeSettings": "关闭设置",
+    "closeStats": "关闭统计",
+    "closeSubscription": "关闭订阅选项",
+    "collapse": "收起",
+    "collapseGarden": "收起花园详情",
+    "dismiss": "关闭",
+    "dismissNotification": "关闭通知",
+    "endCall": "结束通话",
+    "expandGarden": "展开花园详情",
+    "exportData": "导出您的数据",
+    "featuresIncluded": "包含的功能",
+    "ferniLogo": "Ferni标志",
+    "filterBySpecialty": "按专业筛选",
+    "forgetThis": "忘记这个",
+    "howToPlay": "如何游玩",
+    "languageSelector": "选择语言",
+    "muteAudio": "静音",
+    "openDailyPractice": "打开每日练习",
+    "openPredictions": "打开预测",
+    "openSettings": "打开设置",
+    "openTeamInsights": "打开团队洞察",
+    "options": "选项",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "门户部分",
+    "refresh": "刷新",
+    "refreshData": "刷新数据",
+    "saveConversations": "创建账户保存您的对话",
+    "searchCoaches": "搜索教练",
+    "shareJourney": "分享您的旅程",
+    "sharedMusicalMemory": "共享的音乐记忆",
+    "signInToAccount": "登录您的账户",
+    "skipToContent": "跳到主要内容",
+    "submitNewItem": "提交新项目",
+    "subscriptionPlans": "订阅计划",
+    "toggleQuietHours": "切换安静时段",
+    "unmuteAudio": "取消静音",
+    "viewOutreachSchedule": "查看联系日程",
+    "yourNewPlan": "您的新计划"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "选择此项",
+    "exportData": "导出数据",
+    "refresh": "刷新",
+    "savePreference": "保存偏好",
+    "savePreferences": "保存偏好设置",
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "signUp": "注册"
   },
   "common": {
-    "loading": "加载中...",
-    "error": "出了点问题",
-    "retry": "重试",
-    "cancel": "取消",
-    "save": "保存",
-    "close": "关闭",
-    "next": "下一步",
-    "back": "返回",
-    "done": "完成",
-    "continue": "继续",
-    "skip": "跳过",
-    "confirm": "确认",
-    "delete": "删除",
-    "edit": "编辑",
-    "share": "分享",
-    "download": "下载",
-    "copy": "复制",
-    "copied": "已复制！",
-    "new": "新",
-    "saving": "保存中...",
-    "saved": "已保存！",
-    "processing": "处理中...",
     "adding": "添加中...",
-    "errorRetry": "错误 - 重试"
+    "back": "返回",
+    "cancel": "取消",
+    "close": "关闭",
+    "confirm": "确认",
+    "continue": "继续",
+    "copied": "已复制！",
+    "copy": "复制",
+    "daysAgo": "{count} days ago",
+    "delete": "删除",
+    "done": "完成",
+    "download": "下载",
+    "edit": "编辑",
+    "error": "出了点问题",
+    "errorRetry": "错误 - 重试",
+    "loading": "加载中...",
+    "monthsAgo": "{count} months ago",
+    "new": "新",
+    "next": "下一步",
+    "processing": "处理中...",
+    "retry": "重试",
+    "save": "保存",
+    "saved": "已保存！",
+    "saving": "保存中...",
+    "share": "分享",
+    "skip": "跳过",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "下一步做什么？",
-    "yourStage": "您的阶段",
-    "nextStage": "下一步：{stage}",
-    "maxLevel": "人生伴侣",
-    "unlockHint": "还需{remaining}解锁",
-    "moreConversations": "再聊{n}次",
-    "moreDays": "再等{n}天",
-    "keepChatting": "继续聊天解锁",
-    "almostThere": "快了！",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "快速访问",
-      "connect": "连接",
-      "grow": "成长",
-      "remember": "回忆",
-      "personalize": "个性定制",
-      "account": "账户",
-      "admin": "管理员"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "您的旅程",
-      "trustDetails": "我们的关系",
-      "progressAnalytics": "您的成长",
-      "predictionAccuracy": "我的预测",
-      "whatILearned": "我学到的",
-      "memoryBrowser": "我们的回忆",
-      "wellbeingDashboard": "您的健康",
-      "lifeContext": "生活情境",
-      "teamInsights": "团队洞察",
-      "conversationHistory": "过往对话",
-      "contacts": "我的联系人",
-      "gifts": "礼物和场合",
-      "videoSessions": "视频聊天",
-      "groupCoaching": "团体会话",
-      "teamHuddles": "团队会议",
-      "playGames": "玩游戏",
-      "musicalYou": "音乐的你",
-      "personalize": "个性化",
-      "voiceAccent": "语音和口音",
-      "guidedPractices": "引导练习",
-      "createPractice": "创建练习",
-      "wearables": "可穿戴设备",
-      "calendar": "日历",
-      "notifications": "通知",
-      "toggleTheme": "浅色 / 深色",
-      "linkSpotify": "连接Spotify",
-      "spotifyConnected": "Spotify已连接",
-      "yourPlan": "您的计划",
-      "manageBilling": "支付设置",
-      "voiceId": "您的声音",
-      "householdMembers": "您的家人",
-      "contactInfo": "联系信息",
-      "exportData": "下载您的故事",
-      "shareFerni": "分享Ferni",
-      "supportFerni": "支持Ferni",
-      "takeTour": "开始导览",
-      "language": "语言",
-      "whatsGrowing": "成长中",
-      "billingPortal": "账单与订阅",
-      "outreachSchedule": "联系计划"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "固定到顶部",
-    "unpinItem": "取消固定",
-    "comingSoon": "即将推出"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "成长中",
-    "title": "前方的旅程",
-    "intro": "每段美好的关系都有四季。这些是我们一起播下的种子。",
-    "sections": {
-      "connect": "连接的新方式",
-      "personalize": "打造专属",
-      "platform": "平台"
+  "contactSettings": {
+    "buttons": {
+      "save": "保存",
+      "saving": "保存中..."
     },
-    "expectedArrival": "预计上线",
-    "betterThanHuman": "超越人类",
-    "alreadyGrowing": "已在成长",
-    "wantThis": "我想要这个",
-    "voted": "您很期待！",
-    "peopleExcited": "{count}人对此感到期待",
-    "footerText": "您的声音塑造我们构建的内容。感谢与我们一起成长。",
-    "stages": {
-      "seed": "播种",
-      "sprout": "成长中",
-      "bud": "含苞",
-      "bloom": "即将绽放"
+    "verify": {
+      "sending": "发送验证码...",
+      "withCode": "使用验证码验证"
     }
   },
-  "session": {
-    "connecting": "连接中...",
-    "connected": "已连接",
-    "disconnected": "已断开",
-    "listening": "正在听...",
-    "thinking": "正在思考...",
-    "speaking": "正在说...",
-    "tapToSpeak": "点击说话",
-    "holdToSpeak": "按住说话",
-    "releaseToSend": "松开发送",
-    "endSession": "结束会话",
-    "sessionEnded": "会话已结束",
-    "goodbye": "再见",
-    "end": "结束",
-    "untilNextTime": "下次再见...",
-    "takeCare": "保重。",
-    "ending": "结束中...",
-    "endConversation": "结束对话",
-    "endConversationGoodbye": "结束对话 - 再见",
-    "agentEndingConversation": "助手正在结束对话"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "我们的故事",
-    "title": "你的信任之旅",
-    "subtitle": "我们一起成长的历程",
-    "loading": "正在加载你的旅程",
-    "loadingText": "正在收集你的旅程...",
-    "trustScore": "信任分数",
-    "exportSuccess": "旅程已导出！",
-    "offlineBanner": "你处于离线状态 - 显示缓存数据",
-    "loadMore": "加载更多 {count} 项",
-    "strengthLabel": "信任分数：{value}%",
-    "timelineLabel": "旅程时间线",
-    "filterLabel": "筛选时间线",
-    "filters": {
-      "all": "全部",
-      "growth": "成长",
-      "win": "胜利",
-      "callback": "回访",
-      "boundary": "边界",
-      "outreach": "联络"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "关系强度",
-      "stats": "旅程统计",
-      "boundaries": "被尊重的边界",
-      "growth": "你的成长",
-      "timeline": "我们一起的旅程"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "成长时刻",
-      "winsCelebrated": "庆祝的胜利",
-      "sharedMoments": "共享的时刻"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "我们一起建立了真实的东西。我了解你，你信任我。",
-      "growing": "我们的联系正在加深。我正在了解什么对你重要。",
-      "building": "我们正在建立信任。每次对话都帮助我更好地了解你。",
-      "starting": "我们才刚刚开始。继续和我说话 - 我在听。",
-      "beginning": "每段旅程都从第一步开始。当你准备好时，我就在这里。"
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "情绪平衡",
-      "perspective_shift": "新的视角",
-      "boundary_setting": "健康的边界",
-      "behavior_change": "新习惯",
-      "self_awareness": "自我意识",
-      "coping_upgrade": "更好的应对",
-      "goal_progress": "目标进展"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "我们的故事刚刚开始",
-      "message": "随着我们交流更多，我会注意到你的成长，庆祝你的胜利，记住对你重要的事。请很快回来查看。"
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "你处于离线状态",
-        "message": "连接到互联网以查看你的旅程。"
-      },
-      "notLoggedIn": {
-        "title": "未登录",
-        "message": "登录以查看你与 Ferni 的旅程。"
-      },
-      "rateLimited": {
-        "title": "慢一点",
-        "message": "你检查得太频繁了。等一会儿再试。"
-      },
-      "unauthorized": {
-        "title": "访问被拒绝",
-        "message": "你没有权限查看此内容。"
-      },
-      "generic": {
-        "title": "出了点问题",
-        "message": "我们无法加载你的旅程。请重试。"
-      },
-      "exportFailed": {
-        "message": "无法导出你的数据。请重试。"
-      },
-      "fetchFailedUsingCache": {
-        "message": "显示保存的数据 - 无法连接到服务器。"
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "社区",
-    "friend": "创始会员",
-    "partner": "创始赞助人",
-    "upgrade": "支持 Ferni",
-    "chipIn": "参与支持",
-    "currentPlan": "您的位置",
-    "planDetails": "您的支持",
-    "features": "福利",
-    "unlimitedConversations": "无限对话",
-    "allTeamMembers": "完整团队访问",
-    "prioritySupport": "优先支持",
-    "advancedInsights": "提前体验新功能",
-    "helpBuild": "帮助我们构建",
-    "foundersSubtitle": "Ferni 永久免费。如果您相信我们正在构建的东西，请参与支持。",
-    "thankYouPerks": "作为感谢，我们会为您解锁一些福利。",
-    "notReady": "还没准备好？没关系。",
-    "freeForever": "永久免费"
-  },
-  "team": {
-    "meetTheTeam": "认识团队",
-    "selectMember": "选择团队成员",
-    "currentlyWith": "当前与{name}在一起",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "人生教练",
-        "bio": "您的主要联系人。提出能够解锁洞察力的问题。"
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "智者与导师",
-        "bio": "充满智慧和耐心的终身导师。"
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "研究与发现",
-        "bio": "发现别人看不到的模式。"
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "沟通",
-        "bio": "您的首席助理和沟通教练。"
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "习惯与日常",
-        "bio": "帮助您建立持久的习惯。"
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "规划与活动",
-        "bio": "将模糊的梦想变成真实的体验。"
-      }
-    }
-  },
-  "stages": {
-    "stranger": "陌生人",
-    "acquaintance": "熟人",
-    "friend": "朋友",
-    "closeFriend": "好友",
-    "confidant": "知己",
-    "soulmate": "灵魂伴侣"
-  },
-  "time": {
-    "justNow": "刚刚",
-    "minutesAgo": "{n}分钟前",
-    "hoursAgo": "{n}小时前",
-    "yesterday": "昨天",
-    "daysAgo": "{n}天前"
-  },
-  "milestones": {
-    "ourStory": "我们的故事",
-    "everyMomentMatters": "每一刻都很重要。",
-    "journeyWith": "我与Ferni的旅程",
-    "categories": {
-      "relationship": "我们的关系",
-      "team": "团队联系",
-      "conversation": "我们的对话",
-      "discovery": "发现",
-      "sweet": "甜蜜时刻",
-      "milestone": "里程碑"
-    }
-  },
-  "notifications": {
-    "connectionLost": "连接丢失。正在重新连接...",
-    "reconnected": "已重新连接！",
-    "microphoneBlocked": "需要麦克风访问权限",
-    "sessionTimeout": "会话已超时"
   },
   "errors": {
     "connectionFailed": "连接失败。请重试。",
@@ -318,352 +295,816 @@
     "sessionExpired": "您的会话已过期。请刷新。",
     "somethingWrong": "出了点问题。请重试。"
   },
-  "onboarding": {
-    "welcome": "欢迎",
-    "letsGetStarted": "让我们开始吧",
-    "whatIsYourName": "您希望我怎么称呼您？",
-    "niceName": "很高兴认识您，{name}！",
-    "howAreYouFeeling": "今天感觉怎么样？",
-    "readyToBegin": "准备好开始了吗？",
-    "ariaLabel": "欢迎导览",
-    "steps": {
-      "welcome": {
-        "title": "欢迎来到Ferni",
-        "description": "您的个人AI生活教练团队。每位教练都带来独特的智慧来支持您的旅程。"
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "加入",
+      "start": "开始"
+    },
+    "empty": {
+      "hint": "创建新会话以开始",
+      "title": "没有活动会话"
+    },
+    "loading": "加载中...",
+    "participantsLabel": "参与者",
+    "sessionTypes": {
+      "couple": {
+        "description": "共同探索关系动态",
+        "name": "情侣"
       },
-      "voice": {
-        "title": "只需说话",
-        "description": "点击中心开始对话。自然地说话 - Ferni会实时倾听和回应。"
+      "family": {
+        "description": "建立更牢固的家庭联系",
+        "name": "家庭"
       },
-      "personas": {
-        "title": "认识您的团队",
-        "description": "六位具有不同视角的教练。每位都了解您与团队的历史。"
+      "peer": {
+        "description": "与有类似旅程的人联系",
+        "name": "同伴支持"
       },
-      "rituals": {
-        "title": "每日练习",
-        "description": "通过简短的每日仪式建立一致性。追踪连续记录并庆祝进步。"
-      },
-      "ready": {
-        "title": "您已准备就绪",
-        "description": "这就是您需要知道的全部。随着您的前进发现更多。"
+      "team": {
+        "description": "改善职场协作",
+        "name": "团队"
       }
     },
-    "buttons": {
-      "skip": "跳过导览",
-      "back": "返回",
-      "next": "下一步",
-      "begin": "让我们开始"
-    }
+    "title": "团体辅导"
+  },
+  "household": {
+    "addMember": "添加成员",
+    "addToHousehold": "添加到家庭",
+    "members": "成员",
+    "removeMember": "移除成员",
+    "title": "家庭"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "订阅",
-    "title": "管理您的计划",
-    "expiresLabel": "访问直到",
-    "renewsLabel": "续订",
-    "billedThrough": "账单方式",
-    "buttons": {
-      "upgrade": "升级到高级版",
-      "restore": "恢复购买",
-      "restoring": "恢复中...",
-      "manageApple": "在设置中管理",
-      "manageStripe": "管理账单"
-    },
     "apple": {
       "instructionsTitle": "要取消或更改您的计划：",
+      "note": "Apple要求通过iOS设置管理订阅",
       "step1": "在设备上打开设置",
       "step2": "点击顶部的您的名字",
       "step3": "点击\"订阅\"",
-      "step4": "找到并点击\"Ferni\"",
-      "note": "Apple要求通过iOS设置管理订阅"
+      "step4": "找到并点击\"Ferni\""
+    },
+    "billedThrough": "账单方式",
+    "buttons": {
+      "manageApple": "在设置中管理",
+      "manageStripe": "管理账单",
+      "restore": "恢复购买",
+      "restoring": "恢复中...",
+      "upgrade": "升级到高级版"
+    },
+    "expiresLabel": "访问直到",
+    "freeNote": "解锁无限会话、完整团队和个性化",
+    "label": "订阅",
+    "renewsLabel": "续订",
+    "restore": {
+      "failed": "恢复失败",
+      "noFound": "未找到购买记录"
+    },
+    "status": {
+      "active": "您的订阅处于活跃状态。感谢您的支持！",
+      "canceled": "您的订阅即将结束，但随时欢迎您回来。",
+      "default": "您已订阅。感谢您的支持！",
+      "free": "您使用的是免费计划。Ferni始终陪伴您。",
+      "pastDue": "您的付款出现问题。请更新您的付款方式。"
     },
     "stripe": {
       "note": "更新付款方式、查看发票或随时取消"
     },
-    "restore": {
-      "noFound": "未找到购买记录",
-      "failed": "恢复失败"
+    "title": "管理您的计划"
+  },
+  "menu": {
+    "almostThere": "快了！",
+    "comingSoon": "即将推出",
+    "items": {
+      "billingPortal": "账单与订阅",
+      "calendar": "日历",
+      "connections": "Connections",
+      "contactInfo": "联系信息",
+      "contacts": "我的联系人",
+      "conversationHistory": "过往对话",
+      "createPractice": "创建练习",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "下载您的故事",
+      "gifts": "礼物和场合",
+      "groupCoaching": "团体会话",
+      "guidedPractices": "引导练习",
+      "householdMembers": "您的家人",
+      "journaling": "Journaling",
+      "language": "语言",
+      "lifeContext": "生活情境",
+      "linkSpotify": "连接Spotify",
+      "manageBilling": "支付设置",
+      "memoryBrowser": "我们的回忆",
+      "musicalYou": "音乐的你",
+      "notifications": "通知",
+      "outreachSchedule": "联系计划",
+      "personalize": "个性化",
+      "playGames": "玩游戏",
+      "predictionAccuracy": "我的预测",
+      "progressAnalytics": "您的成长",
+      "shareFerni": "邀请朋友",
+      "spotifyConnected": "Spotify已连接",
+      "supportFerni": "支持Ferni",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "开始导览",
+      "teamHuddles": "团队会议",
+      "teamInsights": "团队洞察",
+      "toggleTheme": "浅色 / 深色",
+      "trustDetails": "我们的关系",
+      "videoSessions": "视频聊天",
+      "voiceAccent": "语音和口音",
+      "voiceId": "您的声音",
+      "wearables": "可穿戴设备",
+      "wellbeingDashboard": "您的健康",
+      "whatILearned": "我学到的",
+      "whatsGrowing": "成长中",
+      "yourJourney": "您的旅程",
+      "yourPlan": "您的计划"
     },
-    "status": {
-      "free": "您使用的是免费计划。Ferni始终陪伴您。",
-      "active": "您的订阅处于活跃状态。感谢您的支持！",
-      "canceled": "您的订阅即将结束，但随时欢迎您回来。",
-      "pastDue": "您的付款出现问题。请更新您的付款方式。",
-      "default": "您已订阅。感谢您的支持！"
+    "keepChatting": "继续聊天解锁",
+    "maxLevel": "人生伴侣",
+    "moreConversations": "再聊{n}次",
+    "moreDays": "再等{n}天",
+    "nextStage": "下一步：{stage}",
+    "pinItem": "固定到顶部",
+    "quickAdd": {
+      "event": "日程",
+      "eventPrompt": "告诉我日程详情",
+      "person": "联系人",
+      "todo": "待办",
+      "todoPrompt": "告诉我要记住什么"
     },
-    "freeNote": "解锁无限会话、完整团队和个性化"
+    "sections": {
+      "account": "账户",
+      "admin": "管理员",
+      "connect": "连接",
+      "connections": "Connections",
+      "grow": "成长",
+      "personalize": "个性定制",
+      "pinned": "快速访问",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "回忆",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "下一步做什么？",
+    "unlockHint": "还需{remaining}解锁",
+    "unpinItem": "取消固定",
+    "yourStage": "您的阶段"
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "zh-Hans",
+    "name": "简体中文"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "我们的对话",
+      "discovery": "发现",
+      "milestone": "里程碑",
+      "relationship": "我们的关系",
+      "sweet": "甜蜜时刻",
+      "team": "团队联系"
+    },
+    "everyMomentMatters": "每一刻都很重要。",
+    "journeyWith": "我与Ferni的旅程",
+    "ourStory": "我们的故事"
+  },
+  "mobile": {
+    "pullToConnect": "下拉连接",
+    "pullToRefresh": "下拉刷新",
+    "releaseToConnect": "释放连接",
+    "releaseToRefresh": "释放刷新"
   },
   "musicDashboard": {
-    "title": "音乐的你",
-    "loading": "分析您的音乐DNA...",
+    "buttons": {
+      "playGame": "玩猜歌名游戏",
+      "startPlaying": "开始游戏"
+    },
     "empty": {
-      "title": "让我们发现您的音乐DNA！",
-      "hint": "再玩{count}个游戏以获得完整洞察"
+      "hint": "再玩{count}个游戏以获得完整洞察",
+      "title": "让我们发现您的音乐DNA！"
     },
     "error": {
       "hint": "玩一些音乐游戏来建立您的档案！"
     },
-    "buttons": {
-      "startPlaying": "开始游戏",
-      "playGame": "玩猜歌名游戏"
-    },
-    "sections": {
-      "journey": "您的旅程",
-      "strengths": "您的闪光点",
-      "growth": "成长空间",
-      "milestones": "成就",
-      "moments": "难忘时刻",
-      "personaStats": "您一起玩的人"
-    },
-    "stats": {
-      "gamesPlayed": "已玩游戏",
-      "bestStreak": "最佳连胜",
-      "minutes": "分钟",
-      "thisWeek": "本周"
-    },
     "favorite": {
       "label": "最爱："
     },
+    "loading": "分析您的音乐DNA...",
     "milestone": {
       "nextLabel": "下一个目标"
+    },
+    "sections": {
+      "growth": "成长空间",
+      "journey": "您的旅程",
+      "milestones": "成就",
+      "moments": "难忘时刻",
+      "personaStats": "您一起玩的人",
+      "strengths": "您的闪光点"
+    },
+    "stats": {
+      "bestStreak": "最佳连胜",
+      "gamesPlayed": "已玩游戏",
+      "minutes": "分钟",
+      "thisWeek": "本周"
+    },
+    "title": "音乐的你"
+  },
+  "notifications": {
+    "connectionLost": "连接丢失。正在重新连接...",
+    "microphoneBlocked": "需要麦克风访问权限",
+    "reconnected": "已重新连接！",
+    "sessionTimeout": "会话已超时"
+  },
+  "onboarding": {
+    "ariaLabel": "欢迎导览",
+    "buttons": {
+      "back": "返回",
+      "begin": "让我们开始",
+      "next": "下一步",
+      "skip": "跳过导览"
+    },
+    "howAreYouFeeling": "今天感觉怎么样？",
+    "letsGetStarted": "让我们开始吧",
+    "niceName": "很高兴认识您，{name}！",
+    "readyToBegin": "准备好开始了吗？",
+    "steps": {
+      "personas": {
+        "description": "六位具有不同视角的教练。每位都了解您与团队的历史。",
+        "title": "认识您的团队"
+      },
+      "ready": {
+        "description": "这就是您需要知道的全部。随着您的前进发现更多。",
+        "title": "您已准备就绪"
+      },
+      "rituals": {
+        "description": "通过简短的每日仪式建立一致性。追踪连续记录并庆祝进步。",
+        "title": "每日练习"
+      },
+      "voice": {
+        "description": "点击中心开始对话。自然地说话 - Ferni会实时倾听和回应。",
+        "title": "只需说话"
+      },
+      "welcome": {
+        "description": "您的个人AI生活教练团队。每位教练都带来独特的智慧来支持您的旅程。",
+        "title": "欢迎来到Ferni"
+      }
+    },
+    "welcome": "欢迎",
+    "whatIsYourName": "您希望我怎么称呼您？"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "companyValuesExample": "例如，诚信、创新、客户至上、团队合作",
+    "customAmount": "自定义金额",
+    "displayName": "您的昵称",
+    "emailExample": "you@example.com",
+    "enterValue": "输入实际值",
+    "householdName": "张家",
+    "marketplaceSearch": "您在找谁？",
+    "memberName": "他们的名字",
+    "phoneExample": "+86 (10) 1234-5678",
+    "searchConversations": "搜索对话...",
+    "toolDescription": "您的工具/代理做什么？",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "我的优秀工具",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "例如，欢迎来到{orgName}！Ferni在这里支持您的成长和幸福。"
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "我们的关系正在变得更强。",
+      "deepPartnership": "我们一起经历了很多。能成为你的向导是我的荣幸。",
+      "established": "你可以依靠我。我会一直在这里。",
+      "firstMeeting": "我们刚刚认识！我迫不及待想了解你。",
+      "gettingStarted": "我们开始相互了解了。"
+    },
+    "names": {
+      "buildingTrust": "建立信任",
+      "deepPartnership": "人生伙伴",
+      "established": "信赖的向导",
+      "firstMeeting": "新朋友",
+      "gettingStarted": "开始了解"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "建立真实的连接",
+      "deepPartnership": "终身伙伴",
+      "established": "你的人生教练",
+      "firstMeeting": "新的开始",
+      "gettingStarted": "互相了解"
     }
   },
-  "groupCoaching": {
-    "title": "团体辅导",
-    "loading": "加载中...",
-    "participantsLabel": "参与者",
-    "buttons": {
-      "start": "开始",
-      "join": "加入"
+  "roadmap": {
+    "alreadyGrowing": "已在成长",
+    "betterThanHuman": "超越人类",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "预计上线",
+    "eyebrow": "成长中",
+    "footerText": "您的声音塑造我们构建的内容。感谢与我们一起成长。",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "没有活动会话",
-      "hint": "创建新会话以开始"
+    "intro": "每段美好的关系都有四季。这些是我们一起播下的种子。",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count}人对此感到期待",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "连接的新方式",
+      "personalize": "打造专属",
+      "platform": "平台"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "情侣",
-        "description": "共同探索关系动态"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "即将绽放",
+      "bud": "含苞",
+      "seed": "播种",
+      "sprout": "成长中"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "前方的旅程",
+    "voted": "您很期待！",
+    "wantThis": "我想要这个",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "助手正在结束对话",
+    "connected": "已连接",
+    "connecting": "连接中...",
+    "disconnected": "已断开",
+    "end": "结束",
+    "endConversation": "结束对话",
+    "endConversationGoodbye": "结束对话 - 再见",
+    "endSession": "结束会话",
+    "ending": "结束中...",
+    "goodbye": "再见",
+    "holdToSpeak": "按住说话",
+    "listening": "正在听...",
+    "releaseToSend": "松开发送",
+    "sessionEnded": "会话已结束",
+    "speaking": "正在说...",
+    "takeCare": "保重。",
+    "tapToSpeak": "点击说话",
+    "thinking": "正在思考...",
+    "untilNextTime": "下次再见..."
+  },
+  "stages": {
+    "acquaintance": "熟人",
+    "closeFriend": "好友",
+    "confidant": "知己",
+    "friend": "朋友",
+    "soulmate": "灵魂伴侣",
+    "stranger": "陌生人"
+  },
+  "subscription": {
+    "advancedInsights": "提前体验新功能",
+    "allTeamMembers": "完整团队访问",
+    "chipIn": "参与支持",
+    "currentPlan": "您的位置",
+    "features": "福利",
+    "foundersSubtitle": "Ferni 永久免费。如果您相信我们正在构建的东西，请参与支持。",
+    "free": "社区",
+    "freeForever": "永久免费",
+    "friend": "创始会员",
+    "helpBuild": "帮助我们构建",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "还没准备好？没关系。",
+    "partner": "创始赞助人",
+    "planDetails": "您的支持",
+    "prioritySupport": "优先支持",
+    "thankYouPerks": "作为感谢，我们会为您解锁一些福利。",
+    "unlimitedConversations": "无限对话",
+    "upgrade": "支持 Ferni",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "当前与{name}在一起",
+    "meetTheTeam": "认识团队",
+    "members": {
+      "alex": {
+        "bio": "您的首席助理和沟通教练。",
+        "name": "Alex",
+        "role": "沟通"
       },
-      "family": {
-        "name": "家庭",
-        "description": "建立更牢固的家庭联系"
+      "ferni": {
+        "bio": "您的主要联系人。提出能够解锁洞察力的问题。",
+        "name": "Ferni",
+        "role": "人生教练"
       },
-      "team": {
-        "name": "团队",
-        "description": "改善职场协作"
+      "jordan": {
+        "bio": "将模糊的梦想变成真实的体验。",
+        "name": "Jordan",
+        "role": "规划与活动"
       },
-      "peer": {
-        "name": "同伴支持",
-        "description": "与有类似旅程的人联系"
+      "maya": {
+        "bio": "帮助您建立持久的习惯。",
+        "name": "Maya",
+        "role": "习惯与日常"
+      },
+      "nayan": {
+        "bio": "充满智慧和耐心的终身导师。",
+        "name": "Nayan",
+        "role": "智者与导师"
+      },
+      "peter": {
+        "bio": "发现别人看不到的模式。",
+        "name": "Peter",
+        "role": "研究与发现"
       }
-    }
+    },
+    "selectMember": "选择团队成员"
+  },
+  "time": {
+    "daysAgo": "{n}天前",
+    "hoursAgo": "{n}小时前",
+    "justNow": "刚刚",
+    "minutesAgo": "{n}分钟前",
+    "yesterday": "昨天"
+  },
+  "titles": {
+    "dailyPractice": "每日练习",
+    "predictions": "预测",
+    "runScenario": "运行场景",
+    "sharedSong": "我们共享的歌曲",
+    "teamInsights": "团队洞察"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "随着我们交流更多，我会注意到你的成长，庆祝你的胜利，记住对你重要的事。请很快回来查看。",
+      "title": "我们的故事刚刚开始"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "无法导出你的数据。请重试。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "显示保存的数据 - 无法连接到服务器。"
+      },
+      "generic": {
+        "message": "我们无法加载你的旅程。请重试。",
+        "title": "出了点问题"
+      },
+      "notLoggedIn": {
+        "message": "登录以查看你与 Ferni 的旅程。",
+        "title": "未登录"
+      },
+      "offline": {
+        "message": "连接到互联网以查看你的旅程。",
+        "title": "你处于离线状态"
+      },
+      "rateLimited": {
+        "message": "你检查得太频繁了。等一会儿再试。",
+        "title": "慢一点"
+      },
+      "unauthorized": {
+        "message": "你没有权限查看此内容。",
+        "title": "访问被拒绝"
+      }
+    },
+    "exportSuccess": "旅程已导出！",
+    "eyebrow": "我们的故事",
+    "filterLabel": "筛选时间线",
+    "filters": {
+      "all": "全部",
+      "boundary": "边界",
+      "callback": "回访",
+      "growth": "成长",
+      "outreach": "联络",
+      "win": "胜利"
+    },
+    "growthTypes": {
+      "behavior_change": "新习惯",
+      "boundary_setting": "健康的边界",
+      "coping_upgrade": "更好的应对",
+      "emotional_regulation": "情绪平衡",
+      "goal_progress": "目标进展",
+      "perspective_shift": "新的视角",
+      "self_awareness": "自我意识"
+    },
+    "loadMore": "加载更多 {count} 项",
+    "loading": "正在加载你的旅程",
+    "loadingText": "正在收集你的旅程...",
+    "offlineBanner": "你处于离线状态 - 显示缓存数据",
+    "sections": {
+      "boundaries": "被尊重的边界",
+      "growth": "你的成长",
+      "stats": "旅程统计",
+      "strength": "关系强度",
+      "timeline": "我们一起的旅程"
+    },
+    "stats": {
+      "growthMoments": "成长时刻",
+      "sharedMoments": "共享的时刻",
+      "winsCelebrated": "庆祝的胜利"
+    },
+    "strengthDescriptions": {
+      "beginning": "每段旅程都从第一步开始。当你准备好时，我就在这里。",
+      "building": "我们正在建立信任。每次对话都帮助我更好地了解你。",
+      "deep": "我们一起建立了真实的东西。我了解你，你信任我。",
+      "growing": "我们的联系正在加深。我正在了解什么对你重要。",
+      "starting": "我们才刚刚开始。继续和我说话 - 我在听。"
+    },
+    "strengthLabel": "信任分数：{value}%",
+    "subtitle": "我们一起成长的历程",
+    "timelineLabel": "旅程时间线",
+    "title": "你的信任之旅",
+    "trustScore": "信任分数"
   },
   "videoSettings": {
-    "title": "视频会话",
-    "loading": "加载中...",
-    "intro": "选择您在辅导会话中的显示方式。",
+    "buttons": {
+      "retry": "重试"
+    },
+    "camera": {
+      "off": "摄像头关闭",
+      "on": "摄像头开启"
+    },
     "controls": {
       "title": "快速控制"
     },
-    "camera": {
-      "on": "摄像头开启",
-      "off": "摄像头关闭"
-    },
-    "screen": {
-      "on": "停止分享",
-      "off": "分享屏幕"
-    },
+    "intro": "选择您在辅导会话中的显示方式。",
+    "loading": "加载中...",
     "modes": {
-      "title": "显示模式",
-      "avatarOnly": {
-        "label": "仅头像",
-        "description": "仅显示Ferni头像，无视频"
+      "avatar": {
+        "description": "仅显示Ferni头像，无视频",
+        "label": "仅头像"
       },
-      "video": {
-        "label": "视频",
-        "description": "看到您自己和Ferni"
+      "avatarOnly": {
+        "description": "仅显示Ferni头像，无视频",
+        "label": "仅头像"
       },
       "hybrid": {
-        "label": "混合",
-        "description": "带可选视频的头像"
+        "description": "带可选视频的头像",
+        "label": "混合"
       },
-      "avatar": {
-        "label": "仅头像",
-        "description": "仅显示Ferni头像，无视频"
+      "title": "显示模式",
+      "video": {
+        "description": "看到您自己和Ferni",
+        "label": "视频"
       }
     },
+    "note": "视频会话在良好的照明和稳定的互联网连接下效果最佳。",
     "quality": {
-      "title": "视频质量",
       "auto": "自动（推荐）",
       "high": "高",
+      "low": "低（节省数据）",
       "medium": "中",
-      "low": "低（节省数据）"
+      "title": "视频质量"
     },
-    "note": "视频会话在良好的照明和稳定的互联网连接下效果最佳。",
-    "buttons": {
-      "retry": "重试"
-    }
+    "screen": {
+      "off": "分享屏幕",
+      "on": "停止分享"
+    },
+    "title": "视频会话"
   },
   "wearableSettings": {
-    "title": "健康与健身",
-    "loading": "加载中...",
-    "intro": "连接您的可穿戴设备，为Ferni提供关于您健康和能量水平的背景信息。",
-    "sections": {
-      "devices": "设备",
-      "features": "Ferni可以看到的内容"
-    },
     "buttons": {
       "connect": "连接",
       "disconnect": "断开连接",
       "tryAgain": "重试"
     },
-    "features": {
-      "stress": "通过HRV检测压力",
-      "sleep": "睡眠质量分析",
-      "activity": "活动追踪"
+    "errors": {
+      "loadFailed": "无法加载可穿戴设备设置"
     },
+    "features": {
+      "activity": "活动追踪",
+      "sleep": "睡眠质量分析",
+      "stress": "通过HRV检测压力"
+    },
+    "intro": "连接您的可穿戴设备，为Ferni提供关于您健康和能量水平的背景信息。",
+    "loading": "加载中...",
     "privacy": {
       "note": "您的健康数据保持私密。我们只与您的辅导会话分享汇总的洞察。"
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "与Apple Watch和iPhone健康数据同步"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "连接您的Fitbit设备"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "与Garmin可穿戴设备同步"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "睡眠和准备度洞察"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "恢复和负荷追踪"
+        "description": "与Apple Watch和iPhone健康数据同步",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple 健康",
-        "description": "与Apple Watch和iPhone健康数据同步"
+        "description": "与Apple Watch和iPhone健康数据同步",
+        "name": "Apple 健康"
+      },
+      "fitbit": {
+        "description": "连接您的Fitbit设备",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "与Garmin可穿戴设备同步",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "睡眠和准备度洞察",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "恢复和负荷追踪",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "无法加载可穿戴设备设置"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "发送验证码...",
-      "withCode": "使用验证码验证"
+    "sections": {
+      "devices": "设备",
+      "features": "Ferni可以看到的内容"
     },
-    "buttons": {
-      "saving": "保存中...",
-      "save": "保存"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "关闭菜单",
-    "openSettings": "打开设置",
-    "muteAudio": "静音",
-    "unmuteAudio": "取消静音",
-    "endCall": "结束通话",
-    "skipToContent": "跳到主要内容",
-    "languageSelector": "选择语言",
-    "saveConversations": "创建账户保存您的对话",
-    "signInToAccount": "登录您的账户",
-    "accountMenu": "账户菜单",
-    "refreshData": "刷新数据",
-    "exportData": "导出您的数据",
-    "accountSettings": "账户设置",
-    "dismiss": "关闭",
-    "dismissNotification": "关闭通知",
-    "closeDashboard": "关闭仪表板",
-    "closeSubscription": "关闭订阅选项",
-    "closeDetails": "关闭详情",
-    "closePublisher": "关闭发布者门户",
-    "closeBilling": "关闭账单仪表板",
-    "closeSettings": "关闭设置",
-    "closeHistory": "关闭历史",
-    "closeAdmin": "关闭管理面板",
-    "closeHuddle": "关闭会议",
-    "closeStats": "关闭统计",
-    "refresh": "刷新",
-    "backToItems": "返回项目",
-    "collapse": "收起",
-    "expandGarden": "展开花园详情",
-    "collapseGarden": "收起花园详情",
-    "howToPlay": "如何游玩",
-    "toggleQuietHours": "切换安静时段",
-    "yourNewPlan": "您的新计划",
-    "subscriptionPlans": "订阅计划",
-    "options": "选项",
-    "featuresIncluded": "包含的功能",
-    "searchCoaches": "搜索教练",
-    "filterBySpecialty": "按专业筛选",
-    "availableCoaches": "可用教练",
-    "portalSections": "门户部分",
-    "submitNewItem": "提交新项目",
-    "openDailyPractice": "打开每日练习",
-    "openPredictions": "打开预测",
-    "openTeamInsights": "打开团队洞察",
-    "shareJourney": "分享您的旅程",
-    "forgetThis": "忘记这个",
-    "cancelInstallation": "取消安装",
-    "sharedMusicalMemory": "共享的音乐记忆",
-    "viewOutreachSchedule": "查看联系日程",
-    "ferniLogo": "Ferni标志"
-  },
-  "buttons": {
-    "signIn": "登录",
-    "signOut": "退出登录",
-    "signUp": "注册",
-    "savePreferences": "保存偏好设置",
-    "savePreference": "保存偏好",
-    "choose": "选择此项",
-    "refresh": "刷新",
-    "exportData": "导出数据"
-  },
-  "mobile": {
-    "pullToConnect": "下拉连接",
-    "releaseToConnect": "释放连接",
-    "pullToRefresh": "下拉刷新",
-    "releaseToRefresh": "释放刷新"
-  },
-  "placeholders": {
-    "customAmount": "自定义金额",
-    "searchConversations": "搜索对话...",
-    "enterValue": "输入实际值",
-    "emailExample": "you@example.com",
-    "phoneExample": "+86 (10) 1234-5678",
-    "memberName": "他们的名字",
-    "householdName": "张家",
-    "displayName": "您的昵称",
-    "marketplaceSearch": "您在找谁？",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colleague@company.com",
-    "welcomeMessageExample": "例如，欢迎来到{orgName}！Ferni在这里支持您的成长和幸福。",
-    "companyValuesExample": "例如，诚信、创新、客户至上、团队合作",
-    "toolIdExample": "my-awesome-tool",
-    "toolNameExample": "我的优秀工具",
-    "versionExample": "1.0.0",
-    "toolDescription": "您的工具/代理做什么？"
-  },
-  "household": {
-    "addToHousehold": "添加到家庭",
-    "title": "家庭",
-    "members": "成员",
-    "addMember": "添加成员",
-    "removeMember": "移除成员"
-  },
-  "titles": {
-    "sharedSong": "我们共享的歌曲",
-    "dailyPractice": "每日练习",
-    "predictions": "预测",
-    "teamInsights": "团队洞察",
-    "runScenario": "运行场景"
+    "title": "健康与健身"
   }
 }

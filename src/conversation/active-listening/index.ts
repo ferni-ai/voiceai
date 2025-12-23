@@ -28,11 +28,7 @@ import {
   SILENCE_BACKCHANNELS,
 } from './backchannels.js';
 import { generateClarifyingQuestion } from './clarification.js';
-import {
-  extractNotableWords,
-  generateEmotionalEcho,
-  mirrorUserVocabulary,
-} from './mirroring.js';
+import { extractNotableWords, generateEmotionalEcho, mirrorUserVocabulary } from './mirroring.js';
 import { evaluateSilence, getGentlePrompt } from './silence-handling.js';
 import type {
   Backchannel,
@@ -300,10 +296,7 @@ export class ActiveListeningEngine {
   /**
    * Get a silence-aware backchannel
    */
-  getSilenceBackchannel(
-    personaId: string,
-    context: SilenceBackchannelContext
-  ): Backchannel | null {
+  getSilenceBackchannel(personaId: string, context: SilenceBackchannelContext): Backchannel | null {
     const evaluation = evaluateSilence(context.silenceDurationMs, {
       userJustSharedPersonal: context.userJustSharedPersonal,
       emotionalIntensity: context.userIsProcessingEmotions ? 'high' : 'medium',
@@ -435,4 +428,3 @@ export function resetActiveListeningEngine(): void {
 }
 
 export default ActiveListeningEngine;
-

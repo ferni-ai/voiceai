@@ -4,9 +4,21 @@
  * Detects and filters out malformed function-call-like text that Gemini
  * sometimes outputs instead of making actual function calls.
  *
- * WORKAROUND (Dec 2024): Gemini Live API doesn't reliably make function calls.
- * We've instructed it to OUTPUT JSON like: {"fn":"playMusic","args":{"query":"jazz"}}
- * This sanitizer catches that JSON, executes the tool, and suppresses it from TTS.
+ * ⚠️ MULTI-LAYER DEFENSE (Dec 2024):
+ * Tool calling now has THREE layers of defense:
+ *
+ *   1. SEMANTIC ROUTER (src/tools/semantic-router/) - Pre-LLM routing
+ *      - High confidence tool requests bypass LLM entirely
+ *      - Never reaches this sanitizer if semantic router handles it
+ *
+ *   2. JSON FUNCTION CALLING (json-function-executor.ts) - LLM fallback
+ *      - LLM outputs JSON like: {"fn":"playMusic","args":{"query":"jazz"}}
+ *      - This sanitizer catches and executes that JSON
+ *
+ *   3. LEAKAGE SANITIZATION (this module) - Last line of defense
+ *      - Catches any JSON that slips through to TTS
+ *      - Detects "I'll call the playMusic function" style leaks
+ *      - Suppresses leaked behavioral markers
  *
  * Examples of what we're catching:
  * - {"fn":"playMusic","args":{"query":"jazz"}} (our instructed format)
@@ -14,17 +26,151 @@
  * - "I'll call the playMusic function" (should just call it)
  * - "Let me transfer you to Maya" (should call handoffToMaya)
  *
- * This is a defensive filter - the proper fix is in Gemini's function calling
- * configuration, but this catches any leakage.
+ * This is a defensive filter - the semantic router handles most cases,
+ * but this catches any leakage from the JSON fallback path.
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  detectsToolCallLeakage as primingDetectsLeakage,
+  generateRetryPrompt,
+} from './conversation-priming.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 // TransformStream is available globally in Node.js 18+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTransformStream = any;
 
 const log = createLogger({ module: 'tool-call-sanitizer' });
+
+// ============================================================================
+// RETRY LOGIC FOR FAILED TOOL CALLS
+// ============================================================================
+
+/** Maximum number of retry attempts for tool call leakage */
+const MAX_RETRY_ATTEMPTS = 2;
+
+/** Session-scoped retry counters (weak map prevents memory leaks) */
+const retryCounters = new WeakMap<object, Map<string, number>>();
+
+/**
+ * Get or create retry counter for a session.
+ * Uses WeakMap to automatically cleanup when session is garbage collected.
+ */
+function getRetryCounter(session: object): Map<string, number> {
+  if (!retryCounters.has(session)) {
+    retryCounters.set(session, new Map());
+  }
+  return retryCounters.get(session)!;
+}
+
+/**
+ * Analyze a response for tool call leakage and determine if retry is warranted.
+ *
+ * This combines detection from both systems:
+ * 1. tool-call-sanitizer detection (comprehensive pattern matching)
+ * 2. conversation-priming detection (behavioral pattern matching)
+ *
+ * @param response - The LLM response text
+ * @param session - Session object for tracking retries (can be any object)
+ * @param originalMessage - Original user message (for retry prompt generation)
+ * @returns Retry information or null if no retry needed
+ */
+export function analyzeForRetry(
+  response: string,
+  session: object,
+  originalMessage: string
+): {
+  shouldRetry: boolean;
+  retryPrompt: string | null;
+  suggestedTool: string | null;
+  pattern: string | null;
+  attempt: number;
+} | null {
+  // First check with our comprehensive detection
+  const sanitizerDetection = detectsFunctionCallLeakage(response);
+
+  // Also check with priming detection (behavioral patterns)
+  const primingDetection = primingDetectsLeakage(response);
+
+  const isLeakage = sanitizerDetection.detected || primingDetection.isLeakage;
+
+  if (!isLeakage) {
+    // Reset retry counter on successful response
+    const counter = getRetryCounter(session);
+    counter.delete(originalMessage);
+    return null;
+  }
+
+  // Determine the suggested tool from whichever detector found it
+  const suggestedTool = sanitizerDetection.toolName || primingDetection.suggestedTool;
+  const pattern = sanitizerDetection.pattern || primingDetection.pattern;
+
+  // Get retry counter for this session and message
+  const counter = getRetryCounter(session);
+  const messageKey = originalMessage.toLowerCase().trim();
+  const currentAttempt = (counter.get(messageKey) || 0) + 1;
+
+  log.info(
+    {
+      response: response.slice(0, 100),
+      suggestedTool,
+      pattern,
+      attempt: currentAttempt,
+      maxAttempts: MAX_RETRY_ATTEMPTS,
+    },
+    '🔄 RETRY ANALYSIS: Leakage detected, evaluating retry'
+  );
+
+  // Check if we've exceeded retry attempts
+  if (currentAttempt > MAX_RETRY_ATTEMPTS) {
+    log.warn(
+      { originalMessage: originalMessage.slice(0, 50), attempts: currentAttempt },
+      '🔄 RETRY: Max attempts exceeded, not retrying'
+    );
+    // Reset counter to prevent blocking future attempts
+    counter.delete(messageKey);
+    return {
+      shouldRetry: false,
+      retryPrompt: null,
+      suggestedTool,
+      pattern,
+      attempt: currentAttempt,
+    };
+  }
+
+  // Update counter
+  counter.set(messageKey, currentAttempt);
+
+  // Generate retry prompt
+  const retryPrompt = generateRetryPrompt(originalMessage, suggestedTool, currentAttempt);
+
+  log.info(
+    {
+      attempt: currentAttempt,
+      suggestedTool,
+      retryPromptPreview: retryPrompt.slice(0, 80),
+    },
+    '🔄 RETRY: Generating retry prompt for failed tool call'
+  );
+
+  return {
+    shouldRetry: true,
+    retryPrompt,
+    suggestedTool,
+    pattern,
+    attempt: currentAttempt,
+  };
+}
+
+/**
+ * Clear retry counter for a session (call on session end).
+ */
+export function clearRetryCounter(session: object): void {
+  retryCounters.delete(session);
+  log.debug('🔄 RETRY: Cleared retry counter for session');
+}
 
 /**
  * Known tool names that might leak into spoken output.
@@ -34,6 +180,13 @@ const log = createLogger({ module: 'tool-call-sanitizer' });
  * the camelCase version. Multiple casings only for common spoken forms.
  */
 const TOOL_NAME_PATTERNS = [
+  // Speak pseudo-tool (dynamic silence responses)
+  // These generate text that should be spoken directly via session.say()
+  'speak',
+  'say',
+  'dynamicResponse',
+  'dynamicresponse',
+
   // Music tools
   'playMusic',
   'play music',
@@ -279,6 +432,10 @@ const TOOL_CALL_ANNOUNCEMENT_PATTERNS = [
   /connecting you (?:with|to) (\w+)/i,
   // "I'll hand you off to X"
   /(?:i(?:'ll| will)|let me) hand (?:you )?off to (\w+)/i,
+  // "I'm going to hand you off to X"
+  /i(?:'m| am) going to hand (?:you )?off to (\w+)/i,
+  // "Handing you off to X"
+  /handing (?:you )?off to (\w+)/i,
   // "I'll get X to help" (team member names)
   /(?:i(?:'ll| will)|let me) get (\w+) to help/i,
   // Function call syntax: "functionName(args)" or "functionName()"
@@ -382,6 +539,8 @@ interface ToolExecutionResult {
   fn: string;
   result?: unknown;
   error?: string;
+  /** If true, result should be spoken directly via session.say() (no LLM summarization) */
+  speakDirectly?: boolean;
 }
 
 /**
@@ -404,6 +563,8 @@ async function executeJsonFunctionCall(
       fn: call.fn,
       result: result.result,
       error: result.error,
+      // Pass through speakDirectly flag for pseudo-tools like "speak"
+      speakDirectly: result.speakDirectly,
     };
   } catch (err) {
     log.error(
@@ -439,6 +600,10 @@ function checkIntentionPatterns(text: string): LeakageDetection | null {
   const intentionPatterns = [
     /i(?:'ll| will) (?:play|find|search for|look up|get|fetch) (?:some )?(.+?) (?:for you|now)/i,
     /let me (?:play|find|search for|look up|get|fetch) (?:some )?(.+?) (?:for you)?/i,
+    // "Playing X now" pattern - catches "Playing 'Bohemian Rhapsody' now"
+    /^playing\s+['"]?([^'"]+?)['"]?\s*(?:now|for you)/i,
+    // "Playing some X" pattern
+    /^playing\s+(?:some\s+)?['"]?([^'"]+?)['"]?\s*$/i,
     // Memory-related announcements (CRITICAL - these leak frequently)
     /i(?:'ll| will| want to| need to) (?:store|save|remember|note|record) (?:that|this|a memory|the memory)/i,
     /let me (?:store|save|remember|note|record) (?:that|this|a memory|the memory)/i,
@@ -516,17 +681,27 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
   const trimmed = text.trim();
   const lowerTrimmed = trimmed.toLowerCase();
 
-  // 0. CRITICAL: Check for [INTERNAL: ...] tool response markers
-  // These are instructions from tools that should NEVER be spoken
-  const internalMatch = trimmed.match(/\[INTERNAL:\s*([^\]]+)\]/i);
-  if (internalMatch) {
-    log.warn({ text: trimmed }, '🚨 INTERNAL MARKER DETECTED - Tool response leaked to output');
-    return {
-      detected: true,
-      toolName: 'internal_marker',
-      value: internalMatch[1],
-      pattern: 'internal_marker',
-    };
+  // 0. CRITICAL: Check for behavioral instruction markers - these should NEVER be spoken
+  // Patterns: [INTERNAL ...], [SITUATION: ...], [DO: ...], [TOOL RESULT: ...], [DATA: ...]
+  const behavioralMarkerPatterns = [
+    /\[INTERNAL[:\s][^\]]*\]/i, // [INTERNAL GUIDANCE]
+    /\[SITUATION:\s[^\]]*\]/i, // [SITUATION: ...]
+    /\[DO:\s[^\]]*\]/i, // [DO: ...]
+    /\[TOOL RESULT:\s[^\]]*\]/i, // [TOOL RESULT: ...]
+    /\[DATA:\s/i, // [DATA: ...]
+  ];
+
+  for (const pattern of behavioralMarkerPatterns) {
+    const match = trimmed.match(pattern);
+    if (match) {
+      log.warn({ text: trimmed }, '🚨 BEHAVIORAL MARKER DETECTED - Guidance leaked to output');
+      return {
+        detected: true,
+        toolName: 'behavioral_marker',
+        value: match[0],
+        pattern: 'behavioral_marker',
+      };
+    }
   }
 
   // 0b. Check for "do NOT read this" patterns that tools sometimes add
@@ -566,6 +741,95 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     /no ssml tags/i, // Rules leak
     /just speak naturally/i, // Rules leak
     /say only your response/i, // Rules leak
+    // Bracketed guidance markers - CRITICAL: these must NEVER be spoken
+    // === Specific patterns (highest priority) ===
+    /\[TOPIC SHIFT:/i,
+    /\[TASK GUIDANCE\]/i,
+    /\[AGENT EXTENSIBILITY/i,
+    /\[MAGIC MOMENT/i,
+    /\[RELATIONSHIP/i,
+    /\[SESSION CONTEXT\]/i,
+    /\[RESPONSE GUIDANCE\]/i,
+    /\[EMOTIONAL ARC/i,
+    /\[SILENCE HANDLING\]/i,
+    /\[LENGTH GUIDANCE/i,
+    /\[HUMOR GUIDANCE/i,
+    /\[STORY OPPORTUNITY/i,
+    /\[TRUST CONTEXT/i,
+    /\[CRISIS/i,
+    /\[PRE-SESSION/i,
+    /\[POST-HANDOFF/i,
+    // === Additional guidance patterns found in turn-processor ===
+    /\[PACING GUIDANCE\]/i,
+    /\[EMOTIONAL SHIFT/i,
+    /\[EMOTIONAL DEPTH\]/i,
+    /\[MODE SHIFT:/i,
+    /\[SENSITIVE MOMENT:/i,
+    /\[USER PUSHBACK/i,
+    /\[RESPONSE STYLE\]/i,
+    /\[CATCHPHRASE MOMENT\]/i,
+    /\[CONVERSATION STATE\]/i,
+    /\[CONSIDER WRAPPING/i,
+    /\[CONTACT SAVED\]/i,
+    /\[CRISIS SUPPORT\]/i,
+    /\[HUMOR OK\]/i,
+    /\[STORY PREFERENCE\]/i,
+    /\[CELEBRATION/i,
+    /\[SPECIAL MOMENT:/i,
+    /\[SCIENTIFIC/i,
+    /\[COACHING/i,
+    // === Humanizer guidance patterns ===
+    /\[EMOTIONAL GUIDANCE\]/i,
+    /\[CONVERSATION CALLBACK\]/i,
+    /\[OPEN THREADS\]/i,
+    /\[QUESTION SUGGESTION\]/i,
+    /\[THINKING CUE\]/i,
+    /\[EMPATHETIC ECHO\]/i,
+    /\[POSSIBLE CONTRADICTION\]/i,
+    /\[CONCERN DETECTED/i,
+    /\[PREDICTED NEED:/i,
+    /\[VOICE STATE:/i,
+    /\[PROACTIVE MEMORY\]/i,
+    /\[APPROACH:/i,
+    /\[RHYTHM MATCH\]/i,
+    /\[MEANINGFUL SILENCE:/i,
+    /\[TOPICS TO AVOID\]/i,
+    /\[UNSAID SIGNAL:/i,
+    /\[GROWTH REFLECTION/i,
+    /\[CALLBACK OPPORTUNITY\]/i,
+    // === Awareness & personality guidance patterns ===
+    /\[TIME VIBE:/i,
+    /\[TIME CONTEXT/i,
+    /\[TIME AWARENESS:/i,
+    /\[TIME-BASED INSIGHT:/i,
+    /\[SELF-AWARENESS/i,
+    /\[PROBING PREFERENCE/i,
+    /\[MOMENT OPPORTUNITY:/i,
+    /\[PHYSICAL AWARENESS/i,
+    /\[PHYSICAL:/i,
+    /\[GROUNDING:/i,
+    /\[GENUINE CURIOSITY:/i,
+    // === Emoji-prefixed guidance (Better Than Human features) ===
+    /\[🤝/i, // Relationship context
+    /\[🌟/i, // Better than human
+    /\[⚡/i, // Energy/performance
+    /\[🎯/i, // Target/goal
+    /\[💡/i, // Insight
+    /\[🔄/i, // Cycle/repeat
+    /\[⛔/i, // Warning/stop
+    /\[✨/i, // Personal moment
+    /\[🎉/i, // Celebration
+    /\[🌱/i, // Growth
+    /\[💭/i, // Thinking/callback
+    /\[🎧/i, // Unsaid/listening
+    /\[⚠️/i, // Warning/concern
+    // === Catch-all patterns (last resort) ===
+    /^\[[\w\s-]+\]:/i, // Any "[LABEL]:" at start
+    /^\[[\w\s-]+\]\s/i, // Any "[LABEL] " at start
+    // NOTE: No /i flag here - only match actual ALL_CAPS to avoid matching valid
+    // SSML expressions like [laughter], [sigh], [chuckle], [whisper], etc.
+    /\[[A-Z][A-Z\s_-]+[A-Z]\]/, // Any [ALL_CAPS_LABEL] anywhere (case-sensitive!)
+    /\[[A-Z][A-Z\s_-]+:/, // Any [CAPS_LABEL: anywhere (case-sensitive!)
   ];
 
   for (const pattern of instructionLeakagePatterns) {
@@ -762,6 +1026,75 @@ const PARTIAL_TOOL_PREFIXES = [
   'I want to remember',
   "I'll store",
   "I'll save",
+  // Bracketed guidance markers - catch early to prevent speaking
+  '[TOPIC',
+  '[TASK',
+  '[AGENT',
+  '[MAGIC',
+  '[RELATIONSHIP',
+  '[SESSION',
+  '[RESPONSE',
+  '[EMOTIONAL',
+  '[SILENCE',
+  '[LENGTH',
+  '[HUMOR',
+  '[STORY',
+  '[TRUST',
+  '[CRISIS',
+  '[PRE-SESSION',
+  '[POST-HANDOFF',
+  '[PACING',
+  '[MODE',
+  '[SENSITIVE',
+  '[USER PUSH',
+  '[CATCHPHRASE',
+  '[CONVERSATION',
+  '[CONSIDER',
+  '[CONTACT',
+  '[CELEBRATION',
+  '[SPECIAL',
+  '[SCIENTIFIC',
+  '[COACHING',
+  // Humanizer prefixes
+  '[EMOTIONAL',
+  '[OPEN THREAD',
+  '[QUESTION',
+  '[THINKING',
+  '[EMPATHETIC',
+  '[POSSIBLE',
+  '[CONCERN',
+  '[PREDICTED',
+  '[VOICE STATE',
+  '[PROACTIVE',
+  '[APPROACH',
+  '[RHYTHM',
+  '[MEANINGFUL',
+  '[TOPICS TO',
+  '[UNSAID',
+  '[GROWTH',
+  '[CALLBACK',
+  // Awareness prefixes
+  '[TIME',
+  '[SELF-AWARE',
+  '[PROBING',
+  '[MOMENT',
+  '[PHYSICAL',
+  '[GROUNDING',
+  '[GENUINE',
+  // Emoji prefixes
+  '[🤝',
+  '[🌟',
+  '[⚡',
+  '[🎯',
+  '[💡',
+  '[🔄',
+  '[⛔',
+  '[✨',
+  '[🎉',
+  '[🌱',
+  '[💭',
+  '[🎧',
+  '[⚠️',
 ];
 
 /**
@@ -890,13 +1223,43 @@ export function containsToolCallLeakage(text: string): boolean {
 
 /**
  * Get a natural, warm acknowledgment for slow tools.
- * These are Ferni-voice acknowledgments that keep the conversation flowing
- * while we wait for API calls to complete.
+ *
+ * NEW: Uses persona-aware acknowledgment system from speech/coordination.
+ * Falls back to Ferni defaults if coordination system unavailable.
+ *
+ * @param fn - Tool function name
+ * @param personaId - Active persona ID (optional, defaults to 'ferni')
+ * @param userId - User ID for preference learning (optional)
  */
-function getSlowToolAcknowledgment(fn: string): string {
+function getSlowToolAcknowledgment(fn: string, personaId?: string, userId?: string): string {
+  // Try to use the new persona-aware system
+  try {
+    // Dynamic import to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { generateAcknowledgment, getToolCategory } =
+      require('../../speech/coordination/index.js') as {
+        generateAcknowledgment: (ctx: {
+          personaId: string;
+          userId?: string;
+          toolId: string;
+          toolCategory?: string;
+        }) => string;
+        getToolCategory: (toolId: string) => string;
+      };
+
+    return generateAcknowledgment({
+      personaId: personaId || 'ferni',
+      userId,
+      toolId: fn,
+      toolCategory: getToolCategory(fn),
+    });
+  } catch {
+    // Fall back to legacy behavior if coordination module unavailable
+  }
+
+  // LEGACY FALLBACK: Hardcoded acknowledgments (kept for backwards compatibility)
   const fnLower = fn.toLowerCase();
 
-  // Tool-specific acknowledgments for more natural responses
   if (fnLower.includes('news')) {
     const newsAcks = [
       'Hold on, let me grab that for you.',
@@ -928,7 +1291,6 @@ function getSlowToolAcknowledgment(fn: string): string {
     return stockAcks[Math.floor(Math.random() * stockAcks.length)];
   }
 
-  // Generic fallback - still warm and human
   const genericAcks = [
     'Hold on, let me grab that for you.',
     'One moment while I look that up.',
@@ -979,19 +1341,40 @@ function extractMusicQuery(text: string): string | null {
  * making an actual function call. This detects those patterns and invokes
  * the tool directly.
  *
+ * ENHANCEMENT (Dec 2024): Now integrates with StreamStateMachine for
+ * coordinated state management when sessionId is provided.
+ *
  * @param toolContext - Tools available for execution
  * @param session - Voice session for speaking tool results via safeGenerateReply
+ * @param sessionId - Session ID for coordinated speech (optional, will fallback to direct speech)
  */
 export function createSanitizerWithMusicFallback(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toolContext?: Record<string, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  session?: any // voice.AgentSession - avoiding import cycle
+  session?: any, // voice.AgentSession - avoiding import cycle
+  sessionId?: string
 ): AnyTransformStream {
   let buffer = '';
   let suppressMode = false;
   let waitForMoreContext = false;
   let musicFallbackInFlight = false;
+
+  // Optional: Initialize state machine integration for coordinated state tracking
+  // This is lazy-loaded to avoid import cycles and only activates if sessionId provided
+  let stateIntegration: typeof import('../../speech/coordination/sanitizer-integration.js') | null =
+    null;
+  if (sessionId) {
+    import('../../speech/coordination/sanitizer-integration.js')
+      .then((mod) => {
+        stateIntegration = mod;
+        mod.initializeSanitizerIntegration(sessionId);
+        log.debug({ sessionId }, '🔗 State machine integration initialized');
+      })
+      .catch((err) => {
+        log.debug({ sessionId, error: String(err) }, 'State machine integration not available');
+      });
+  }
 
   const isSentenceBoundary = (text: string): boolean =>
     text.includes('.') || text.includes('!') || text.includes('?');
@@ -1123,6 +1506,12 @@ export function createSanitizerWithMusicFallback(
             '🎯 Accumulated JSON function call - executing'
           );
 
+          // Notify state machine of JSON completion and tool start
+          if (stateIntegration && sessionId) {
+            stateIntegration.notifyJsonComplete(sessionId, jsonCall.fn);
+            stateIntegration.notifyToolStarted(sessionId, jsonCall.fn);
+          }
+
           // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
           const slowTools = [
             'searchnews',
@@ -1150,6 +1539,52 @@ export function createSanitizerWithMusicFallback(
                     ? execResult.result
                     : JSON.stringify(execResult.result);
 
+                // ========================================
+                // SPEAK DIRECTLY: For pseudo-tools like "speak" that generate
+                // dynamic content, bypass safeGenerateReply and use session.say()
+                // directly. This avoids the role:'model' echoing problem.
+                // ========================================
+                if (execResult.speakDirectly) {
+                  log.info(
+                    {
+                      fn: jsonCall.fn,
+                      textLength: resultText.length,
+                      preview: resultText.slice(0, 50),
+                    },
+                    '🎤 Speaking directly via coordinated speech (speakDirectly flag)'
+                  );
+                  if (session && sessionId) {
+                    try {
+                      // Use coordinated speech for direct tool results
+                      coordinatedSay(sessionId, resultText, { allowInterruptions: true });
+                      log.info({ fn: jsonCall.fn }, '✅ Coordinated speech complete');
+                    } catch (sayErr) {
+                      log.warn(
+                        { fn: jsonCall.fn, error: String(sayErr) },
+                        '⚠️ Coordinated speech failed, falling back to direct'
+                      );
+                      // Fallback to direct session.say if coordinated fails
+                      try {
+                        session.say(resultText, { allowInterruptions: true });
+                      } catch {
+                        /* ignore fallback errors */
+                      }
+                    }
+                  } else if (session) {
+                    // No sessionId - use direct speech
+                    try {
+                      session.say(resultText, { allowInterruptions: true });
+                      log.info({ fn: jsonCall.fn }, '✅ Direct speech complete (no sessionId)');
+                    } catch (sayErr) {
+                      log.warn(
+                        { fn: jsonCall.fn, error: String(sayErr) },
+                        '⚠️ Direct speech failed'
+                      );
+                    }
+                  }
+                  return; // Don't proceed to safeGenerateReply
+                }
+
                 log.info(
                   { fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) },
                   '🎤 Tool result ready - triggering LLM response'
@@ -1158,22 +1593,26 @@ export function createSanitizerWithMusicFallback(
                 // Use safeGenerateReply to speak the result properly
                 if (session) {
                   try {
-                    const { safeGenerateReply } = await import('./safe-generate-reply.js');
+                    const { safeGenerateReply, formatToolResult } =
+                      await import('./safe-generate-reply.js');
 
                     // Music tools need special handling - TTS + music coordination can take >3.5s
                     const isMusicTool = jsonCall.fn.toLowerCase().includes('music');
 
+                    // Format tool result with behavioral instructions (no <context> leakage risk)
+                    const instructions = formatToolResult(jsonCall.fn, resultText);
+
                     await safeGenerateReply(session, {
-                      instructions: `You just executed the ${jsonCall.fn} tool. Here's the result to share with the user naturally and conversationally (don't read it verbatim, summarize the key points):\n\n${resultText}`,
+                      instructions,
                       allowInterruptions: true,
                       context: `tool-result-${jsonCall.fn}`,
                       // For music tools: don't wait for playout (TTS + music coordination can be slow)
                       // For other tools: wait for playout to ensure user hears the result
                       waitForPlayout: !isMusicTool,
-                      // Longer timeout for music tools since audio coordination takes time
-                      timeoutMs: isMusicTool ? 5500 : 3500,
-                      // Fallback message if LLM response fails
-                      fallbackMessage: isMusicTool ? "Here's some music for you." : 'Done!',
+                      // Increased timeout to give LLM time to respond naturally
+                      timeoutMs: isMusicTool ? 6000 : 5000,
+                      // Fallback message if LLM response times out - keep it natural, not robotic
+                      fallbackMessage: isMusicTool ? "Here's some music for you." : 'Got it!',
                     });
                     log.info(
                       { fn: jsonCall.fn, isMusicTool },
@@ -1203,9 +1642,19 @@ export function createSanitizerWithMusicFallback(
                   }
                 }
               }
+
+              // Notify state machine that tool completed successfully
+              if (stateIntegration && sessionId) {
+                stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, true);
+              }
             })
             .catch((err) => {
               log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+
+              // Notify state machine that tool failed
+              if (stateIntegration && sessionId) {
+                stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
+              }
             });
 
           suppressMode = true;
@@ -1275,6 +1724,12 @@ export function createSanitizerWithMusicFallback(
           '🎯 JSON function call intercepted - executing'
         );
 
+        // Notify state machine of JSON completion and tool start
+        if (stateIntegration && sessionId) {
+          stateIntegration.notifyJsonComplete(sessionId, jsonCall.fn);
+          stateIntegration.notifyToolStarted(sessionId, jsonCall.fn);
+        }
+
         // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
         const slowTools = [
           'searchnews',
@@ -1309,22 +1764,26 @@ export function createSanitizerWithMusicFallback(
               // Use safeGenerateReply to speak the result properly
               if (session) {
                 try {
-                  const { safeGenerateReply } = await import('./safe-generate-reply.js');
+                  const { safeGenerateReply, formatToolResult } =
+                    await import('./safe-generate-reply.js');
 
                   // Music tools need special handling - TTS + music coordination can take >3.5s
                   const isMusicTool = jsonCall.fn.toLowerCase().includes('music');
 
+                  // Format tool result with behavioral instructions (no <context> leakage risk)
+                  const instructions = formatToolResult(jsonCall.fn, resultText);
+
                   await safeGenerateReply(session, {
-                    instructions: `You just executed the ${jsonCall.fn} tool. Here's the result to share with the user naturally and conversationally (don't read it verbatim, summarize the key points):\n\n${resultText}`,
+                    instructions,
                     allowInterruptions: true,
                     context: `tool-result-${jsonCall.fn}`,
                     // For music tools: don't wait for playout (TTS + music coordination can be slow)
                     // For other tools: wait for playout to ensure user hears the result
                     waitForPlayout: !isMusicTool,
-                    // Longer timeout for music tools since audio coordination takes time
-                    timeoutMs: isMusicTool ? 5500 : 3500,
-                    // Fallback message if LLM response fails
-                    fallbackMessage: isMusicTool ? "Here's some music for you." : 'Done!',
+                    // Increased timeout to give LLM time to respond naturally
+                    timeoutMs: isMusicTool ? 6000 : 5000,
+                    // Fallback message if LLM response times out - keep it natural, not robotic
+                    fallbackMessage: isMusicTool ? "Here's some music for you." : 'Got it!',
                   });
                   log.info(
                     { fn: jsonCall.fn, isMusicTool },
@@ -1354,9 +1813,19 @@ export function createSanitizerWithMusicFallback(
                 }
               }
             }
+
+            // Notify state machine that tool completed successfully
+            if (stateIntegration && sessionId) {
+              stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, true);
+            }
           })
           .catch((err) => {
             log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+
+            // Notify state machine that tool failed
+            if (stateIntegration && sessionId) {
+              stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
+            }
           });
 
         // Suppress the JSON text and trailing conversational text
@@ -1456,6 +1925,11 @@ export function createSanitizerWithMusicFallback(
       // 🐛 FIX: Mark stream as closed FIRST to prevent race conditions
       // Any pending async tool executions will see this flag and skip enqueue
       streamClosed = true;
+
+      // Clean up state integration
+      if (stateIntegration && sessionId) {
+        stateIntegration.cleanupSanitizerIntegration(sessionId);
+      }
 
       if (buffer && !suppressMode) {
         const finalCheck = detectsFunctionCallLeakage(buffer);

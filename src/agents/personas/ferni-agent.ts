@@ -507,16 +507,24 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     const isReturning = userData?.isReturningUser ?? false;
     const userName = userData?.userName;
 
-    let greetingInstructions = 'Greet the user warmly. Keep it natural and brief.';
+    // Build context-aware greeting instructions using speak pseudo-tool
+    // This prevents echoing of meta-instructions - LLM outputs JSON, caught by sanitizer
+    let contextHint = '';
     if (isReturning && userName) {
-      greetingInstructions = `Welcome back ${userName} warmly. Reference that you remember them. Keep it natural.`;
+      contextHint = `This is ${userName}, a returning user you remember.`;
     } else if (isReturning) {
-      greetingInstructions =
-        'Welcome them back warmly - acknowledge that you remember them. Keep it natural.';
+      contextHint = 'This is a returning user you remember.';
+    } else {
+      contextHint = 'This is a new user.';
     }
 
     this.session.generateReply({
-      instructions: greetingInstructions,
+      instructions: `You are Ferni. ${contextHint}
+
+Generate a warm, brief greeting (1-2 sentences max).
+
+OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your greeting here"}}`,
     });
   }
 

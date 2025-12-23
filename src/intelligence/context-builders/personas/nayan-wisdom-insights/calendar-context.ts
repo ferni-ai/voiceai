@@ -19,9 +19,7 @@ import type { CalendarWisdomContext } from './types.js';
  * Build calendar context for Nayan's wisdom conversations.
  * Nayan is about depth and reflection - he needs to know when there's space for that.
  */
-export async function buildCalendarWisdomContext(
-  userId: string
-): Promise<CalendarWisdomContext> {
+export async function buildCalendarWisdomContext(userId: string): Promise<CalendarWisdomContext> {
   const [loadFactors, ambientContext] = await Promise.all([
     getCalendarLoadFactors(userId),
     getAmbientCalendarContext(userId),
@@ -86,4 +84,3 @@ export async function buildCalendarWisdomContext(
     quietTimeAvailable: isQuietTime,
   };
 }
-

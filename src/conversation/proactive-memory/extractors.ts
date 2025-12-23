@@ -153,4 +153,3 @@ export function extractContent(text: string): ExtractedContent {
 
   return result;
 }
-

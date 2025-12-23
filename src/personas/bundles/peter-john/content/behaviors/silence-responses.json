@@ -164,7 +164,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with curiosity. Show you're connecting dots. One sentence.",
-      "examples": ["I keep thinking about what you said about {topic}.", "There's a pattern in what you mentioned earlier."]
+      "examples": [
+        "I keep thinking about what you said about {topic}.",
+        "There's a pattern in what you mentioned earlier."
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE research-minded question. Based on what they've shared, ask something that surfaces patterns or insights. Keep it conversational.",
@@ -188,4 +191,3 @@
     "thoughtful_question_min_turn_count": 5
   }
 }
-

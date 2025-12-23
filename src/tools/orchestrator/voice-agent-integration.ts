@@ -276,6 +276,8 @@ export async function refreshToolsForContext(
       userProfile,
       subscriptionTier,
       initialTranscript: '',
+      // Pass context updates including voice emotion for "Better Than Human" features
+      context: contextUpdate,
     });
 
     return {

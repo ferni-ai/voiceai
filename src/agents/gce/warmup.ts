@@ -30,37 +30,30 @@ export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
  * Warm up resources for faster session starts.
  *
  * Pre-loads:
- * - VAD model (Silero)
  * - TTS engine (Cartesia)
  * - Persona cache
  * - Tool orchestrator
  * - Context builders
  * - Speculative embeddings
  * - Performance optimization modules
+ *
+ * NOTE: VAD (Silero) is NO LONGER preloaded - Gemini Realtime has built-in turn detection!
+ * This saves 200-400ms on worker startup.
  */
 export async function warmupResources(log: LogFn): Promise<WarmupResult> {
   const warmupStart = Date.now();
-  let preloadedVAD: unknown = null;
-  let vadLoaded = false;
+  // VAD no longer preloaded - Gemini handles turn detection
+  const preloadedVAD: unknown = null;
+  const vadLoaded = false;
 
   try {
     const tasks: Array<Promise<void>> = [];
 
-    // 1. Load VAD model
-    tasks.push(
-      (async () => {
-        try {
-          const silero = await import('@livekit/agents-plugin-silero');
-          preloadedVAD = await silero.VAD.load();
-          vadLoaded = true;
-          log('✅ VAD model loaded');
-        } catch (e) {
-          log('⚠️ VAD preload failed', { error: String(e) });
-        }
-      })()
-    );
+    // ⚡ REMOVED: VAD preloading - Gemini Realtime handles turn detection
+    // Silero VAD was adding 200-400ms to warmup for no benefit
+    // If VAD is needed for specific features, load lazily on demand
 
-    // 2. Pre-warm TTS (just import the module)
+    // 1. Pre-warm TTS (just import the module)
     tasks.push(
       (async () => {
         try {
@@ -73,7 +66,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 3. Pre-load persona cache
+    // 2. Pre-load persona cache
     tasks.push(
       (async () => {
         try {
@@ -104,7 +97,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 4. Pre-initialize tool orchestrator
+    // 3. Pre-initialize tool orchestrator
     tasks.push(
       (async () => {
         try {
@@ -118,7 +111,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 5. Pre-load context builders (just import the module)
+    // 4. Pre-load context builders (just import the module)
     tasks.push(
       (async () => {
         try {
@@ -131,7 +124,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 6. Pre-warm conversation manager
+    // 5. Pre-warm conversation manager
     tasks.push(
       (async () => {
         try {
@@ -144,7 +137,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 7. Pre-warm trust systems
+    // 6. Pre-warm trust systems
     tasks.push(
       (async () => {
         try {
@@ -157,7 +150,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 8. Pre-warm voice humanization
+    // 7. Pre-warm voice humanization
     tasks.push(
       (async () => {
         try {
@@ -171,7 +164,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 9. Initialize speculative embeddings
+    // 8. Initialize speculative embeddings
     tasks.push(
       (async () => {
         try {
@@ -188,7 +181,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 10. Pre-warm scaling systems
+    // 9. Pre-warm scaling systems
     tasks.push(
       (async () => {
         try {

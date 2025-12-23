@@ -13,7 +13,7 @@
  * PERSISTENCE: Aggregated metrics are persisted to Firestore.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 

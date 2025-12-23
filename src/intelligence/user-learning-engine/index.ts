@@ -34,4 +34,3 @@ export type {
 
 // Re-export the main implementation
 export { UserLearningEngine, getLearningEngine, resetLearningEngine } from './engine.js';
-

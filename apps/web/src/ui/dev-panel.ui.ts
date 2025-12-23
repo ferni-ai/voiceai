@@ -3271,8 +3271,8 @@ async function syncDevModeToBackend(
 ): Promise<void> {
   try {
     // Get the LiveKit room from app state
-    const state = appState.getState();
-    const room = state.room;
+    const state = appState.getState() as unknown as Record<string, unknown>;
+    const room = state.room as { localParticipant?: { publishData: (data: Uint8Array, options: { reliable: boolean }) => Promise<void> } } | undefined;
 
     if (!room?.localParticipant) {
       log.debug('No active voice session - dev mode will sync when connected');
@@ -4029,15 +4029,39 @@ async function triggerFerniMorph(iconType: string): Promise<void> {
 function triggerMusicAction(action: string): void {
   switch (action) {
     case 'start-music':
-      // Start music presence - audio level callback not yet implemented
-      avatarFeedback.musicPresence();
-      log.info('Started music visualization (presence mode)');
+      // Start music presence and show Now Playing UI
+      void (async () => {
+        const { nowPlayingUI } = await import('./now-playing.ui.js');
+        const { waveformUI } = await import('./waveform.ui.js');
+
+        avatarFeedback.musicPresence();
+        waveformUI.setMusicPlaying(true);
+
+        // Show Now Playing card with test track
+        nowPlayingUI.show({
+          name: 'Test Track',
+          artist: 'Dev Panel',
+          duration: 30000,
+          isAmbient: false,
+          isOurSong: false,
+        });
+
+        log.info('Started music visualization with Now Playing UI');
+      })();
       break;
 
     case 'stop-music':
-      // Stop dancing
-      avatarFeedback.stopDancing();
-      log.info('Stopped music');
+      // Stop dancing and hide Now Playing UI
+      void (async () => {
+        const { nowPlayingUI } = await import('./now-playing.ui.js');
+        const { waveformUI } = await import('./waveform.ui.js');
+
+        avatarFeedback.stopDancing();
+        waveformUI.setMusicPlaying(false);
+        nowPlayingUI.hide();
+
+        log.info('Stopped music and hid Now Playing UI');
+      })();
       break;
 
     case 'duck-music':

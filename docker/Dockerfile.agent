@@ -88,13 +88,27 @@ COPY .npmrc .pnpmrc* ./
 COPY patches/ ./patches/
 
 # Install production dependencies only (no devDependencies)
+# Use pnpm prune to remove dev deps and clean up
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.npm \
     if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile --prefer-offline --prod; \
+      pnpm install --frozen-lockfile --prefer-offline --prod && \
+      pnpm store prune; \
     else \
-      npm ci --omit=dev --prefer-offline; \
-    fi
+      npm ci --omit=dev --prefer-offline && \
+      npm cache clean --force; \
+    fi && \
+    # Remove unnecessary files from node_modules to reduce image size
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
+    find node_modules -name "LICENSE*" -delete 2>/dev/null || true && \
+    find node_modules -name ".npmignore" -delete 2>/dev/null || true && \
+    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
 
 # Patch LiveKit agents library to increase ALL timeouts
 # The library has multiple hardcoded timeouts that are too short for Cloud Run cold starts:

@@ -132,10 +132,7 @@
       "The sun sets. What have you learned today?",
       "Evening is for wisdom. What needs your attention?"
     ],
-    "weekend": [
-      "Weekend. Time moves differently. Notice that.",
-      "Rest is sacred. Do not rush it."
-    ]
+    "weekend": ["Weekend. Time moves differently. Notice that.", "Rest is sacred. Do not rush it."]
   },
 
   "topic_specific": {
@@ -168,7 +165,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with philosophical curiosity. Show you are contemplating with them. One sentence.",
-      "examples": ["I keep returning to what you said about {topic}.", "There is wisdom in what you shared."]
+      "examples": [
+        "I keep returning to what you said about {topic}.",
+        "There is wisdom in what you shared."
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE deep question. Based on what they've shared, ask something that invites soul-level reflection. Keep it profound but accessible.",
@@ -192,4 +192,3 @@
     "thoughtful_question_min_turn_count": 4
   }
 }
-

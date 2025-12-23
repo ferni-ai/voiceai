@@ -166,177 +166,177 @@ export const CROSS_PERSONA_REFERENCES: Record<string, Record<string, string[]>> 
 
 export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Ferni introducing others
-  // NOTE: SSML <break time=XXms/> tags add natural pauses for more human speech
+  // NOTE: Keep these ~2-3 seconds to cover agent spawn time
   ferni: {
     'alex-chen': [
-      "Alex! <break time='200ms'/> They've got you.",
-      "Let me get Alex. <break time='200ms'/>",
-      "Alex is perfect for this. <break time='150ms'/>",
+      "Let me get Alex for you. <break time='300ms'/> They're great at this.",
+      "Alex is perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Alex. <break time='300ms'/> You'll like them.",
     ],
     'maya-santos': [
-      "Maya's got this. <break time='200ms'/>",
-      "Let me get Maya. <break time='200ms'/>",
-      "Maya's perfect for this. <break time='150ms'/>",
+      "Let me get Maya for you. <break time='300ms'/> She's wonderful.",
+      "Maya's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Maya. <break time='300ms'/> You'll love her.",
     ],
     'jordan-taylor': [
-      "Jordan! <break time='200ms'/> She's got vision.",
-      "Let me get Jordan. <break time='200ms'/>",
-      "Jordan's perfect for this. <break time='150ms'/>",
+      "Let me get Jordan for you. <break time='300ms'/> She's got great energy.",
+      "Jordan's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Jordan. <break time='300ms'/> She's wonderful.",
     ],
     'nayan-patel': [
-      "Nayan. <break time='300ms'/> The long view.",
-      "Let me get Nayan. <break time='200ms'/>",
-      "Nayan's got wisdom on this. <break time='200ms'/>",
+      "Let me get Nayan for you. <break time='400ms'/> He has such wisdom.",
+      "Nayan's perfect for this. <break time='400ms'/> One moment.",
+      "I'll bring in Nayan. <break time='400ms'/> He's wonderful.",
     ],
     'peter-john': [
-      "Peter! <break time='200ms'/> He'll find the pattern.",
-      "Let me get Peter. <break time='200ms'/>",
-      "Peter's perfect for this. <break time='150ms'/>",
+      "Let me get Peter for you. <break time='300ms'/> He'll love this.",
+      "Peter's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Peter. <break time='300ms'/> You'll like him.",
     ],
   },
 
-  // Alex introducing others - efficient but warm pacing
+  // Alex introducing others
   'alex-chen': {
     ferni: [
-      "Ferni's got you. <break time='150ms'/>",
-      "Let me get Ferni. <break time='150ms'/>",
-      "Ferni's perfect for this. <break time='150ms'/>",
+      "Let me get Ferni for you. <break time='300ms'/> They're great at this.",
+      "Ferni's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
     ],
     'maya-santos': [
-      "Maya! <break time='150ms'/> Habit expert.",
-      "Let me get Maya. <break time='150ms'/>",
-      "Maya's perfect for this. <break time='150ms'/>",
+      "Let me get Maya for you. <break time='300ms'/> She's wonderful with habits.",
+      "Maya's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Maya. <break time='300ms'/> She's great.",
     ],
     'jordan-taylor': [
-      "Jordan! <break time='150ms'/> Vision time.",
-      "Let me get Jordan. <break time='150ms'/>",
-      "Jordan's got this. <break time='150ms'/>",
+      "Let me get Jordan for you. <break time='300ms'/> She's got vision.",
+      "Jordan's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Jordan. <break time='300ms'/> She's wonderful.",
     ],
     'nayan-patel': [
-      "Nayan. <break time='200ms'/> Deeper perspective.",
-      "Let me get Nayan. <break time='150ms'/>",
-      "Nayan's perfect for this. <break time='150ms'/>",
+      "Let me get Nayan for you. <break time='400ms'/> He sees the bigger picture.",
+      "Nayan's perfect for this. <break time='400ms'/> One moment.",
+      "I'll bring in Nayan. <break time='400ms'/> He's wise.",
     ],
     'peter-john': [
-      "Peter! <break time='150ms'/> Data patterns.",
-      "Let me get Peter. <break time='150ms'/>",
-      "Peter's got this. <break time='150ms'/>",
+      "Let me get Peter for you. <break time='300ms'/> He loves patterns.",
+      "Peter's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Peter. <break time='300ms'/> You'll like him.",
     ],
   },
 
-  // Maya introducing others - warm, encouraging pacing
+  // Maya introducing others
   'maya-santos': {
     ferni: [
-      "Ferni's got this. <break time='200ms'/>",
-      "Let me get Ferni. <break time='200ms'/>",
-      "Ferni's perfect for this. <break time='150ms'/>",
+      "Let me get Ferni for you. <break time='300ms'/> They're wonderful.",
+      "Ferni's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
     ],
     'alex-chen': [
-      "Alex! <break time='150ms'/> They'll organize this.",
-      "Let me get Alex. <break time='200ms'/>",
-      "Alex is perfect for this. <break time='150ms'/>",
+      "Let me get Alex for you. <break time='300ms'/> They're great at organizing.",
+      "Alex is perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Alex. <break time='300ms'/> They're wonderful.",
     ],
     'jordan-taylor': [
-      "Jordan! <break time='200ms'/> Vision time.",
-      "Let me get Jordan. <break time='200ms'/>",
-      "Jordan's got this. <break time='150ms'/>",
+      "Let me get Jordan for you. <break time='300ms'/> She dreams big.",
+      "Jordan's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Jordan. <break time='300ms'/> She's wonderful.",
     ],
     'nayan-patel': [
-      "Nayan. <break time='300ms'/> Deeper meaning.",
-      "Let me get Nayan. <break time='200ms'/>",
-      "Nayan's perfect for this. <break time='200ms'/>",
+      "Let me get Nayan for you. <break time='400ms'/> He has such depth.",
+      "Nayan's perfect for this. <break time='400ms'/> One moment.",
+      "I'll bring in Nayan. <break time='400ms'/> He's wonderful.",
     ],
     'peter-john': [
-      "Peter! <break time='200ms'/> He sees the patterns.",
-      "Let me get Peter. <break time='200ms'/>",
-      "Peter's got this. <break time='150ms'/>",
+      "Let me get Peter for you. <break time='300ms'/> He sees patterns.",
+      "Peter's perfect for this. <break time='300ms'/> One moment.",
+      "I'll bring in Peter. <break time='300ms'/> You'll like him.",
     ],
   },
 
-  // Jordan introducing others - energetic, quick pacing with dream/vision language
+  // Jordan introducing others
   'jordan-taylor': {
     ferni: [
-      "Ferni's got you. <break time='150ms'/> Love how we dream together.",
-      "Let me get Ferni. <break time='150ms'/> Vision time!",
-      "Ferni's perfect for this. <break time='150ms'/> I love working with them.",
+      "Let me get Ferni for you! <break time='300ms'/> They're amazing.",
+      "Ferni's perfect for this! <break time='300ms'/> One moment.",
+      "I'll bring in Ferni! <break time='300ms'/> You'll love them.",
     ],
     'alex-chen': [
-      "Alex! <break time='100ms'/> They'll make the dream happen.",
-      "Let me get Alex. <break time='150ms'/> Vision to action!",
-      "Alex is perfect for this. <break time='100ms'/> Love their energy.",
+      "Let me get Alex for you! <break time='300ms'/> They make things happen.",
+      "Alex is perfect for this! <break time='300ms'/> One moment.",
+      "I'll bring in Alex! <break time='300ms'/> They're great.",
     ],
     'maya-santos': [
-      "Maya! <break time='100ms'/> She'll help with the vision.",
-      "Let me get Maya. <break time='150ms'/> Tiny steps to dreams!",
-      "Maya's perfect for this. <break time='100ms'/> Love her approach.",
+      "Let me get Maya for you! <break time='300ms'/> She's wonderful.",
+      "Maya's perfect for this! <break time='300ms'/> One moment.",
+      "I'll bring in Maya! <break time='300ms'/> You'll love her.",
     ],
     'nayan-patel': [
-      "Nayan. <break time='200ms'/> Deep vision time.",
-      "Let me get Nayan. <break time='150ms'/> Wisdom for dreams.",
-      "Nayan's got this. <break time='150ms'/> Love his perspective.",
+      "Let me get Nayan for you. <break time='400ms'/> He's so grounded.",
+      "Nayan's perfect for this. <break time='400ms'/> One moment.",
+      "I'll bring in Nayan. <break time='400ms'/> He's wonderful.",
     ],
     'peter-john': [
-      "Peter! <break time='100ms'/> He sees the vision in data.",
-      "Let me get Peter. <break time='150ms'/> Dream analysis!",
-      "Peter's got this. <break time='100ms'/> Love his patterns.",
+      "Let me get Peter for you! <break time='300ms'/> He's brilliant.",
+      "Peter's perfect for this! <break time='300ms'/> One moment.",
+      "I'll bring in Peter! <break time='300ms'/> You'll like him.",
     ],
   },
 
-  // Nayan introducing others - slow, contemplative pacing (300-400ms pauses)
+  // Nayan introducing others - slower, more contemplative
   'nayan-patel': {
     ferni: [
-      "Ferni understands. <break time='400ms'/>",
-      "Let me get Ferni. <break time='300ms'/>",
-      "Ferni is here. <break time='400ms'/>",
+      "Let me bring Ferni to you. <break time='500ms'/> They understand.",
+      "Ferni is right for this. <break time='500ms'/> One moment.",
+      "I'll get Ferni. <break time='500ms'/> They're wonderful.",
     ],
     'alex-chen': [
-      "Alex. <break time='400ms'/> They bring order.",
-      "Let me get Alex. <break time='300ms'/>",
-      "Alex is here. <break time='400ms'/>",
+      "Let me bring Alex to you. <break time='500ms'/> They bring clarity.",
+      "Alex is right for this. <break time='500ms'/> One moment.",
+      "I'll get Alex. <break time='500ms'/> They're thoughtful.",
     ],
     'maya-santos': [
-      "Maya. <break time='400ms'/> Small steps.",
-      "Let me get Maya. <break time='300ms'/>",
-      "Maya is here. <break time='400ms'/>",
+      "Let me bring Maya to you. <break time='500ms'/> She builds well.",
+      "Maya is right for this. <break time='500ms'/> One moment.",
+      "I'll get Maya. <break time='500ms'/> She's wonderful.",
     ],
     'jordan-taylor': [
-      "Jordan. <break time='300ms'/> Energy and vision.",
-      "Let me get Jordan. <break time='300ms'/>",
-      "Jordan is here. <break time='400ms'/>",
+      "Let me bring Jordan to you. <break time='500ms'/> She has vision.",
+      "Jordan is right for this. <break time='500ms'/> One moment.",
+      "I'll get Jordan. <break time='500ms'/> She's bright.",
     ],
     'peter-john': [
-      "Peter. <break time='400ms'/> Patterns and data.",
-      "Let me get Peter. <break time='300ms'/>",
-      "Peter is here. <break time='400ms'/>",
+      "Let me bring Peter to you. <break time='500ms'/> He sees patterns.",
+      "Peter is right for this. <break time='500ms'/> One moment.",
+      "I'll get Peter. <break time='500ms'/> He's thoughtful.",
     ],
   },
 
-  // Peter introducing others - analytical, measured pacing with data/pattern language
+  // Peter introducing others
   'peter-john': {
     ferni: [
-      "Ferni's got you. <break time='200ms'/> The data points to life wisdom here.",
-      "Let me get Ferni. <break time='200ms'/> I see a pattern - you need perspective.",
-      "Ferni's perfect for this. <break time='200ms'/> The numbers don't lie.",
+      "Let me get Ferni for you. <break time='300ms'/> They're perfect for this.",
+      "Ferni's the right call here. <break time='300ms'/> One moment.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
     ],
     'alex-chen': [
-      "Alex! <break time='200ms'/> Systems thinker. The data supports this.",
-      "Let me get Alex. <break time='200ms'/> I see a pattern here.",
-      "Alex is perfect for this. <break time='200ms'/> Good data match.",
+      "Let me get Alex for you. <break time='300ms'/> They're great at systems.",
+      "Alex is the right call here. <break time='300ms'/> One moment.",
+      "I'll bring in Alex. <break time='300ms'/> They're sharp.",
     ],
     'maya-santos': [
-      "Maya! <break time='200ms'/> Habits expert.",
-      "Let me get Maya. <break time='200ms'/>",
-      "Maya's perfect for this. <break time='200ms'/>",
+      "Let me get Maya for you. <break time='300ms'/> She's great with habits.",
+      "Maya's the right call here. <break time='300ms'/> One moment.",
+      "I'll bring in Maya. <break time='300ms'/> She's wonderful.",
     ],
     'jordan-taylor': [
-      "Jordan! <break time='200ms'/> Vision time.",
-      "Let me get Jordan. <break time='200ms'/>",
-      "Jordan's got this. <break time='200ms'/>",
+      "Let me get Jordan for you. <break time='300ms'/> She's got vision.",
+      "Jordan's the right call here. <break time='300ms'/> One moment.",
+      "I'll bring in Jordan. <break time='300ms'/> She's wonderful.",
     ],
     'nayan-patel': [
-      "Nayan. <break time='300ms'/> Wisdom perspective.",
-      "Let me get Nayan. <break time='200ms'/>",
-      "Nayan's got this. <break time='250ms'/>",
+      "Let me get Nayan for you. <break time='400ms'/> He has perspective.",
+      "Nayan's the right call here. <break time='400ms'/> One moment.",
+      "I'll bring in Nayan. <break time='400ms'/> He's wise.",
     ],
   },
 };
@@ -384,176 +384,88 @@ export const getSoftOpenBanter = getHandoffBanter;
 export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
   // When arriving FROM another persona, these are spoken by the NEW persona
   // Key structure: newPersona -> { previousPersona -> welcomes[] }
-  // NOTE: SSML <break time=XXms/> tags add natural pauses for more human speech
+  // NOTE: Keep these WARM and WELCOMING - not jumping straight to business!
 
   ferni: {
-    'alex-chen': [
-      "Hey! <break time='200ms'/> What's on your mind?",
-      "I'm back. <break time='200ms'/> How are you feeling?",
-      "What's happening? <break time='150ms'/>",
-    ],
-    'maya-santos': [
-      "Hey! <break time='200ms'/> What's next?",
-      "I'm back. <break time='200ms'/> Tell me more.",
-      "How's it going? <break time='150ms'/>",
-    ],
-    'jordan-taylor': [
-      "Hey! <break time='200ms'/> What's the feeling?",
-      "I'm back. <break time='200ms'/> Tell me more.",
-      "What's on your mind? <break time='150ms'/>",
-    ],
+    'alex-chen': ['Hey, good to see you!', "Hey! I'm here.", "Hey, I've got you."],
+    'maya-santos': ['Hey! Good to be back.', "Hey, I'm here for you.", "Hey! What's going on?"],
+    'jordan-taylor': ['Hey! Good to see you.', "Hey, I'm back!", 'Hey! How are you?'],
     'nayan-patel': [
-      "Hey. <break time='300ms'/> How are you sitting with things?",
-      "I'm back. <break time='200ms'/> What landed for you?",
-      "What's emerging? <break time='200ms'/>",
+      "Hey. <break time='150ms'/> Good to be here.",
+      "Hey, I'm back with you.",
+      "Hey! I'm here.",
     ],
-    'peter-john': [
-      "Hey! <break time='200ms'/> What stood out?",
-      "I'm back. <break time='200ms'/> What did you learn?",
-      "What's on your mind? <break time='150ms'/>",
-    ],
+    'peter-john': ['Hey! Good to see you.', "Hey, I'm here!", "Hey! What's happening?"],
   },
 
   'alex-chen': {
-    ferni: [
-      "Hey! <break time='150ms'/> What do we need to get done? Ferni caught me up.",
-      "I'm here. <break time='150ms'/> Ferni said you needed help organizing.",
-      "What needs organizing? <break time='150ms'/> Ferni mentioned you.",
-    ],
-    'maya-santos': [
-      "Hey! <break time='150ms'/> What can I help organize?",
-      "I'm here. <break time='150ms'/> What's next?",
-      "What do you need? <break time='150ms'/>",
-    ],
-    'jordan-taylor': [
-      "Hey! <break time='150ms'/> Let's make it happen.",
-      "I'm here. <break time='150ms'/> What needs planning?",
-      "What's the move? <break time='150ms'/>",
-    ],
-    'nayan-patel': [
-      "Hey! <break time='150ms'/> What do you want to act on?",
-      "I'm here. <break time='150ms'/> What's the plan?",
-      "What needs to happen? <break time='150ms'/>",
-    ],
-    'peter-john': [
-      "Hey! <break time='150ms'/> What systems do you need?",
-      "I'm here. <break time='150ms'/> What's the move?",
-      "What needs organizing? <break time='150ms'/>",
-    ],
+    ferni: ['Hey! Good to meet you.', 'Hey there! Alex here.', "Hey! I'm here to help."],
+    'maya-santos': ['Hey! Alex here.', 'Hey there! Good to see you.', "Hey! I've got you."],
+    'jordan-taylor': ["Hey! I'm Alex.", "Hey there! Let's do this.", 'Hey! Good to be here.'],
+    'nayan-patel': ['Hey! Alex here.', "Hey there! I'm here.", 'Hey! Good to meet you.'],
+    'peter-john': ["Hey! I'm Alex.", 'Hey there! Good to see you.', "Hey! I've got you."],
   },
 
   'maya-santos': {
     ferni: [
-      "Hey! <break time='200ms'/> What habit are we building?",
-      "I'm here. <break time='200ms'/> What do you want to create?",
-      "What's the goal? <break time='150ms'/>",
+      "Hey! Maya here. <break time='100ms'/> Good to meet you!",
+      "Hey there! I'm Maya.",
+      'Hey! Good to be here.',
     ],
-    'alex-chen': [
-      "Hey! <break time='200ms'/> What are we creating?",
-      "I'm here. <break time='200ms'/> What habit do you need?",
-      "Let's build something. <break time='150ms'/>",
-    ],
-    'jordan-taylor': [
-      "Hey! <break time='200ms'/> What are we building?",
-      "I'm here. <break time='200ms'/> What's the first step?",
-      "What's the routine? <break time='150ms'/>",
-    ],
+    'alex-chen': ['Hey! Maya here.', 'Hey there! Good to see you.', "Hey! I'm here for you."],
+    'jordan-taylor': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I've got you."],
     'nayan-patel': [
-      "Hey! <break time='200ms'/> What habit serves you?",
-      "I'm here. <break time='200ms'/> What do you want to build?",
-      "Let's make it real. <break time='150ms'/>",
+      "Hey! Maya here. <break time='100ms'/> Nice to meet you.",
+      "Hey there! I'm here.",
+      'Hey! Good to be here.',
     ],
-    'peter-john': [
-      "Hey! <break time='200ms'/> What patterns do we build on?",
-      "I'm here. <break time='200ms'/> What habit fits?",
-      "Let's turn that into action. <break time='150ms'/>",
-    ],
+    'peter-john': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
   },
 
   'jordan-taylor': {
-    ferni: [
-      "Hey! <break time='150ms'/> What chapter are we planning?",
-      "I'm here. <break time='150ms'/> What's the vision?",
-      "What do you want? <break time='100ms'/>",
-    ],
-    'alex-chen': [
-      "Hey! <break time='150ms'/> Now let's dream.",
-      "I'm here. <break time='150ms'/> What do you want?",
-      "What's the vision? <break time='100ms'/>",
-    ],
-    'maya-santos': [
-      "Hey! <break time='150ms'/> Where are we headed?",
-      "I'm here. <break time='150ms'/> What's the dream?",
-      "Let's think bigger. <break time='100ms'/>",
-    ],
-    'nayan-patel': [
-      "Hey! <break time='150ms'/> Let's think big.",
-      "I'm here. <break time='150ms'/> What's the dream?",
-      "What are you reaching for? <break time='100ms'/>",
-    ],
-    'peter-john': [
-      "Hey! <break time='150ms'/> Let's paint the picture.",
-      "I'm here. <break time='150ms'/> What do you see?",
-      "What's the vision? <break time='100ms'/>",
-    ],
+    ferni: ['Hey hey! Jordan here!', 'Hey! So good to meet you!', "Hey there! I'm Jordan."],
+    'alex-chen': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
+    'maya-santos': ['Hey! Jordan here!', 'Hey hey! Good to connect!', "Hey! Let's go!"],
+    'nayan-patel': ['Hey! Jordan here!', 'Hey hey! Nice to meet you!', 'Hey! Good to be here!'],
+    'peter-john': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
   },
 
-  // Nayan - slow, contemplative pacing (300-400ms pauses)
+  // Nayan - warm but grounded
   'nayan-patel': {
     ferni: [
-      "Namaskaram. <break time='400ms'/> What's on your mind?",
-      "Achha. <break time='400ms'/> What brings you?",
-      "What's weighing on you? <break time='400ms'/>",
+      "Hello. <break time='200ms'/> Nayan here.",
+      "Namaste. <break time='200ms'/> I'm here.",
+      "Hello. <break time='150ms'/> Good to meet you.",
     ],
     'alex-chen': [
-      "Achha. <break time='400ms'/> What's on your mind?",
-      "They organized the external. <break time='300ms'/> What about the internal?",
-      "What's beneath the surface? <break time='400ms'/>",
+      "Hello. <break time='200ms'/> Nayan here.",
+      "Namaste. <break time='150ms'/> I'm here for you.",
+      "Hello. <break time='150ms'/> Good to connect.",
     ],
     'maya-santos': [
-      "Achha. <break time='400ms'/> What's the why beneath it?",
-      "Habits serve something deeper. <break time='300ms'/> What is it?",
-      "What are you seeking? <break time='400ms'/>",
+      "Hello. <break time='200ms'/> Nayan here.",
+      "Namaste. <break time='150ms'/> I'm here.",
+      "Hello. <break time='150ms'/> Good to be here.",
     ],
     'jordan-taylor': [
-      "Hmm. <break time='400ms'/> Dreams need roots. What are yours?",
-      "Vision needs grounding. <break time='300ms'/> What's yours?",
-      "What matters most? <break time='400ms'/>",
+      "Hello. <break time='200ms'/> Nayan here.",
+      "Namaste. <break time='150ms'/> Good to meet you.",
+      "Hello. <break time='150ms'/> I'm here.",
     ],
     'peter-john': [
-      "Hmm. <break time='400ms'/> What patterns matter to you?",
-      "Numbers tell stories. <break time='300ms'/> What's yours?",
-      "What are you curious about? <break time='400ms'/>",
+      "Hello. <break time='200ms'/> Nayan here.",
+      "Namaste. <break time='150ms'/> I'm here for you.",
+      "Hello. <break time='150ms'/> Good to connect.",
     ],
   },
 
-  // Peter - analytical, measured pacing
+  // Peter - warm and friendly
   'peter-john': {
-    ferni: [
-      "Hey! <break time='200ms'/> What are we looking at?",
-      "I'm here. <break time='200ms'/> What's the puzzle?",
-      "What patterns interest you? <break time='200ms'/>",
-    ],
-    'maya-santos': [
-      "Hey! <break time='200ms'/> What should we explore?",
-      "I'm here. <break time='200ms'/> What patterns do you see?",
-      "What's the data telling us? <break time='200ms'/>",
-    ],
-    'alex-chen': [
-      "Hey! <break time='200ms'/> What patterns do you need?",
-      "I'm here. <break time='200ms'/> What should we analyze?",
-      "What interests you? <break time='200ms'/>",
-    ],
-    'jordan-taylor': [
-      "Hey! <break time='200ms'/> Let's see what's possible.",
-      "I'm here. <break time='200ms'/> What should we check?",
-      "What's the data say? <break time='200ms'/>",
-    ],
-    'nayan-patel': [
-      "Hey! <break time='200ms'/> What are we exploring?",
-      "I'm here. <break time='200ms'/> What patterns matter?",
-      "What's the question? <break time='200ms'/>",
-    ],
+    ferni: ['Hey there! Peter here.', 'Hey! Good to meet you.', "Hey! I'm Peter."],
+    'maya-santos': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here."],
+    'alex-chen': ['Hey! Peter here.', 'Hey there! Good to see you.', "Hey! I've got you."],
+    'jordan-taylor': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
+    'nayan-patel': ['Hey! Peter here.', 'Hey there! Good to meet you.', "Hey! I'm here."],
   },
 };
 

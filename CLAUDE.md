@@ -71,6 +71,45 @@ cd apps/web && pnpm dev
 
 **Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
 
+## 🔑 LiveKit Configuration (Dev vs Production)
+
+**CRITICAL:** We have TWO separate LiveKit projects to prevent local dev workers from stealing production jobs!
+
+| Environment | LiveKit Project | URL | Agent Name |
+|-------------|----------------|-----|------------|
+| **Development** | `ferni-dev` (p_1gcwootg9al) | `wss://dev-8sm1ba0z.livekit.cloud` | `voice-agent-dev` |
+| **Production** | Main project (test-rvg91u1z) | `wss://test-rvg91u1z.livekit.cloud` | `voice-agent` |
+
+### Local Development Setup
+
+Create a `.env` file in the project root:
+
+```bash
+# .env (for local development)
+NODE_ENV=development
+
+# DEVELOPMENT LiveKit (ferni-dev project)
+LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud
+LIVEKIT_API_KEY=<your-dev-key>
+LIVEKIT_API_SECRET=<your-dev-secret>
+AGENT_NAME=voice-agent-dev
+
+# Other required keys
+GOOGLE_API_KEY=your-google-api-key
+CARTESIA_API_KEY=your-cartesia-api-key
+```
+
+Get dev credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
+
+### Why Two Projects?
+
+LiveKit dispatches jobs to ALL registered workers. If local dev and GCE production both connect to the same project, they compete for incoming calls, causing:
+- Random job failures ("runner initialization timed out")
+- Calls going to wrong environment
+- Debugging nightmares
+
+With separate projects, your local dev is completely isolated from production.
+
 ## 🌐 Production Deployment (Blue-Green)
 
 **⚠️ ALWAYS use the Ferni CLI** - it's intelligent and handles blue-green deployment with health checks:
@@ -146,9 +185,57 @@ pnpm ops:zombies
 
 # Fix zombie revisions (delete them)
 pnpm ops:zombies:fix
+
+# Quick diagnostic dashboard (disconnects, quality, crashes)
+pnpm ops:diagnose
 ```
 
 **Key files:** `apps/cli/src/commands/ops/cleanup-zombies.ts`, `apps/cli/src/commands/deploy/deploy.ts`
+
+### 📊 Monitoring & Diagnostics
+
+The voice agent container runs automated monitoring:
+- **Ops Orchestrator**: Service health, cost, latency, error rates (every 30-60s)
+- **Call Quality Monitor**: Connection success, disconnect patterns (every 60s)
+- **Container Watchdog**: Disk, memory, auto-cleanup
+
+Quick diagnostics from outside the container:
+
+```bash
+# Full diagnostic dashboard
+pnpm ops:diagnose
+
+# Check voice agent health
+curl http://34.134.186.63:8080/health/ready
+
+# Check call quality metrics  
+curl http://34.134.186.63:8080/api/observability | jq '.callQuality'
+
+# Check crash analytics
+curl http://34.134.186.63:8080/api/crash-analytics
+
+# View recent logs
+pnpm ops:logs
+
+# View error logs only
+pnpm ops:logs:errors
+```
+
+**Disconnect debugging guide:** `docs/runbooks/DISCONNECT-DEBUGGING.md`
+
+### 🔔 External Health Monitoring (GCP Cloud Scheduler)
+
+Set up GCP Cloud Monitoring uptime checks to alert when services are down:
+
+```bash
+# Set up external monitoring (one-time)
+pnpm ops:setup-scheduler
+
+# Preview what would be created
+pnpm ops:setup-scheduler --dry-run
+```
+
+This creates uptime checks that ping from OUTSIDE the container (catches container death).
 
 ## 🖥️ GCE Voice Agent Deployment (PRIMARY)
 
@@ -487,6 +574,7 @@ toast.success('Operation completed successfully');
 
 ## Read First
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
+- **Tool Loading**: `docs/architecture/TOOL-LOADING-SYSTEM.md` (how tools get to Gemini, config files, debugging)
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
@@ -739,11 +827,65 @@ npm test -- --run context-injection-integration
 
 **Reference:** `docs/PERSONA-EXCELLENCE-PLAN.md` for the full implementation plan.
 
-## 🔧 Function Calling System (CRITICAL - DO NOT BREAK)
+## 🎙️ LLM Selection: OpenAI Realtime vs Gemini Live
+
+Ferni supports two real-time LLM backends. **OpenAI Realtime is recommended** for production due to reliable native function calling.
+
+### Toggle Between LLMs
+
+```bash
+# .env configuration
+USE_OPENAI_REALTIME=true   # OpenAI Realtime (recommended)
+USE_OPENAI_REALTIME=false  # Gemini Live
+```
+
+### Comparison
+
+| Feature | OpenAI Realtime | Gemini Live |
+|---------|-----------------|-------------|
+| **Function Calling** | ✅ Native (protocol-level) | ⚠️ JSON workaround (unreliable) |
+| **TTS Integration** | Cartesia (text mode) | Cartesia (text mode) |
+| **Turn Detection** | `server_vad` | `realtime_llm` |
+| **Pricing** | ~$0.06/min input, ~$0.24/min output | ~$0.035/min |
+| **Reliability** | ✅ Consistent tool execution | ⚠️ Sometimes chats instead of calling tools |
+
+### Architecture
+
+Both LLMs use **text-only mode** with Cartesia TTS for persona voices:
+
+```
+User Speech → OpenAI/Gemini (text) → Cartesia TTS (persona voice) → Audio
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/agents/multi-agent/agent-setup.ts` | LLM selection logic (multi-agent mode) |
+| `src/agents/voice-agent-entry.ts` | LLM selection logic (single-agent mode) |
+| `.env` → `USE_OPENAI_REALTIME` | Feature flag |
+
+### Log Signatures
+
+```bash
+# OpenAI Realtime active:
+🔮 Creating OpenAI Realtime model (text-only → Cartesia TTS)
+"type": "function_call"           # Native function call
+"type": "function_call_output"    # Tool result
+
+# Gemini Live active:
+🤖 Using model: gemini-2.0-flash-exp
+🎯 JSON function call detected    # Workaround intercept
+```
+
+## 🔧 Function Calling System (Gemini Only - CRITICAL)
+
+**NOTE:** This section only applies when using Gemini Live (`USE_OPENAI_REALTIME=false`). OpenAI Realtime has native function calling that doesn't need this workaround.
 
 Ferni uses a **custom JSON-based function calling workaround** because Gemini Live API's native function calling is unreliable. This is a fragile system that has been carefully tuned.
 
 **Full documentation:** `docs/architecture/FUNCTION-CALLING-SYSTEM.md`
+**Tool Loading Pipeline:** `docs/architecture/TOOL-LOADING-SYSTEM.md` (config files, when tools load, debugging)
 
 ### The JSON Format (Single Source of Truth)
 

@@ -188,7 +188,7 @@ describe('Better Than Human - E2E Workflows', () => {
       const phrases = [
         "I promise I'll call my mom this weekend",
         "I'm definitely going to finish the project by Friday",
-        "I need to remember to take my vitamins every morning",
+        'I need to remember to take my vitamins every morning',
       ];
 
       const results = phrases.map((phrase) =>
@@ -256,9 +256,7 @@ describe('Better Than Human - E2E Workflows', () => {
         mockSend
       );
 
-      const ferniConcern = sentMessages.find(
-        (m) => m.payload.signalType === 'concern_detected'
-      );
+      const ferniConcern = sentMessages.find((m) => m.payload.signalType === 'concern_detected');
       const ferniConcernLevel = ferniConcern?.payload.concernLevel;
 
       sentMessages = [];
@@ -281,9 +279,7 @@ describe('Better Than Human - E2E Workflows', () => {
       );
 
       // Jordan should receive same emotional signals
-      const jordanConcern = sentMessages.find(
-        (m) => m.payload.signalType === 'concern_detected'
-      );
+      const jordanConcern = sentMessages.find((m) => m.payload.signalType === 'concern_detected');
 
       // Same concern level should be maintained
       expect(jordanConcern).toBeDefined();
@@ -395,7 +391,7 @@ describe('Better Than Human - E2E Workflows', () => {
       const serviceData = {
         season: seasonalAwareness.getCurrentSeason(),
         energyLevel: capacityGuardian.detectEnergyLevel("I'm feeling pretty tired today"),
-        crisisLevel: emotionalFirstAid.detectCrisis("Things have been tough lately"),
+        crisisLevel: emotionalFirstAid.detectCrisis('Things have been tough lately'),
       };
 
       // All services should return valid data
@@ -438,7 +434,7 @@ describe('Better Than Human - E2E Workflows', () => {
 
       // Turn 2: Check for commitment in user speech
       const commitmentResult = commitmentKeeper.detectCommitment(
-        "I really want to start being more present with my family",
+        'I really want to start being more present with my family',
         'user-123'
       );
       expect(commitmentResult).toBeDefined();
@@ -509,7 +505,7 @@ describe('Better Than Human - E2E Workflows', () => {
       );
 
       // Use high distress regardless (this simulates detected crisis)
-      const distressLevel = (crisisResult && crisisResult.detected) ? 0.9 : 0.8;
+      const distressLevel = crisisResult && crisisResult.detected ? 0.9 : 0.8;
 
       // Dispatch corresponding emotional state
       await dispatchEmotionEvents(
@@ -529,9 +525,7 @@ describe('Better Than Human - E2E Workflows', () => {
       );
 
       // High distress should trigger elevated or crisis concern level
-      const concernSignal = sentMessages.find(
-        (m) => m.payload.signalType === 'concern_detected'
-      );
+      const concernSignal = sentMessages.find((m) => m.payload.signalType === 'concern_detected');
       expect(concernSignal).toBeDefined();
       expect(['elevated', 'crisis']).toContain(concernSignal?.payload.concernLevel);
     });

@@ -102,7 +102,11 @@ export class StatementClassifier {
   /**
    * Detect commitments in text
    */
-  detectCommitments(text: string, who: 'user' | 'agent', currentTurn: number): ConversationCommitment[] {
+  detectCommitments(
+    text: string,
+    who: 'user' | 'agent',
+    currentTurn: number
+  ): ConversationCommitment[] {
     const commitments: ConversationCommitment[] = [];
 
     const patterns = [
@@ -144,4 +148,3 @@ export class StatementClassifier {
     return quotePatterns.some((p) => p.test(text.trim()));
   }
 }
-

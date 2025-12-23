@@ -27,6 +27,8 @@ import {
 } from '../../speech/live-backchanneling/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -177,7 +179,8 @@ export function initializeLiveBackchanneling<T>(
       try {
         // Say the backchannel with interruptions allowed (so it can overlap)
         // The phrase already has SSML for soft volume
-        await session.say(result.phrase, { allowInterruptions: true });
+        // Use coordinated speech for proper queue management
+        coordinatedSay(sessionId, result.phrase, { allowInterruptions: true });
 
         state.lastBackchannelAt = Date.now();
 

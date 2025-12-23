@@ -226,5 +226,3 @@ export async function handleOutlookSync(
     sendError(res, 'Failed to sync Outlook Calendar', 500);
   }
 }
-
-

@@ -133,6 +133,10 @@ export interface UserData {
   lastAgentResponseTime?: number; // For engagement scoring
   /** Timestamp when agent finished speaking (for echo prevention cooldown) */
   lastAgentSpeechEndTime?: number;
+  /** Duration of last agent utterance in ms (for adaptive echo prevention) */
+  lastAgentUtteranceDurationMs?: number;
+  /** Timestamp when agent started speaking (for duration calculation) */
+  lastAgentSpeechStartTime?: number;
   /** Recommended delay before responding (from human turn intelligence) */
   recommendedResponseDelay?: number;
   /** How long user paused before speaking (ms) - for voice signal analysis */
@@ -207,6 +211,18 @@ export interface UserData {
 
   /** Whether we've already referenced the last conversation topic in this session */
   hasReferencedLastConversation?: boolean;
+
+  // ============================================================
+  // TRIGGER EFFECTIVENESS TRACKING (Phase 4)
+  // Tracks fired triggers for outcome recording on next turn
+  // ============================================================
+
+  /** Triggers fired in the previous turn (for outcome recording) */
+  lastFiredTriggers?: Array<{
+    name: string;
+    category: string;
+    timestamp: number;
+  }>;
 
   /** Personal themes already mentioned this session (prevents "always talks about Wyoming") */
   mentionedPersonalThemes?: Set<string>;

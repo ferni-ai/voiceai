@@ -234,4 +234,3 @@ export class CallbackGenerator {
     this.callbackMultiplier = 1.0;
   }
 }
-

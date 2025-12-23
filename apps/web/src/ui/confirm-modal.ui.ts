@@ -10,6 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ConfirmModal');
 
@@ -237,11 +238,11 @@ function createModal(options: ConfirmModalOptions): HTMLElement {
         <p class="confirm-modal-message" id="confirm-message">${options.message}</p>
       </div>
       <div class="confirm-modal-actions" role="button" tabindex="0">
-        <button aria-label="Cancel" class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
-          ${options.cancelText || 'Cancel'}
+        <button aria-label="${t('accessibility.dismiss')}" class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
+          ${options.cancelText || t('confirmModal.cancel')}
         </button>
-        <button aria-label="Cancel" class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
-          ${options.confirmText || 'Confirm'}
+        <button aria-label="${t('common.confirm')}" class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
+          ${options.confirmText || t('confirmModal.confirm')}
         </button>
       </div>
     </div>
@@ -345,10 +346,10 @@ export function confirmDelete(
   options?: Partial<ConfirmModalOptions>
 ): Promise<boolean> {
   return confirm({
-    title: `Delete ${itemName}?`,
-    message: 'This cannot be undone.',
-    confirmText: 'Delete',
-    cancelText: 'Keep',
+    title: t('confirmModal.deleteTitle', { item: itemName }),
+    message: t('confirmModal.cannotBeUndone'),
+    confirmText: t('confirmModal.delete'),
+    cancelText: t('confirmModal.keep'),
     destructive: true,
     icon: 'delete',
     ...options,
@@ -366,8 +367,8 @@ export function confirmWarning(
   return confirm({
     title,
     message,
-    confirmText: 'Continue',
-    cancelText: 'Cancel',
+    confirmText: t('confirmModal.continue'),
+    cancelText: t('confirmModal.cancel'),
     icon: 'warning',
     ...options,
   });

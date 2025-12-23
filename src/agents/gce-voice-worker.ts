@@ -96,6 +96,22 @@ startOpsOrchestrator({
 
 log('✅ Ops orchestrator started');
 
+// Start Call Quality Monitor (disconnect patterns, connection success rates)
+import { startCallQualityMonitor } from '../services/analytics/call-quality-monitor.js';
+startCallQualityMonitor({
+  connectionSuccessRateWarning: 0.95,
+  connectionSuccessRateCritical: 0.9,
+  firstResponseTimeWarningMs: 3000,
+  firstResponseTimeCriticalMs: 5000,
+  disconnectRateWarning: 0.05,
+  disconnectRateCritical: 0.1,
+  qualityCheckIntervalMs: 60_000,
+  alertCooldownMs: 300_000,
+  enableSlack: true,
+});
+
+log('✅ Call quality monitor started');
+
 // ============================================================================
 // PHASE 2: LOAD MODULES
 // ============================================================================

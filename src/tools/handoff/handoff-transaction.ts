@@ -224,7 +224,11 @@ export class HandoffTransaction {
         {
           transactionId: this.id,
           totalDurationMs: Date.now() - this.startTime,
-          steps: results.map((r) => ({ name: r.step, success: r.success, durationMs: r.durationMs })),
+          steps: results.map((r) => ({
+            name: r.step,
+            success: r.success,
+            durationMs: r.durationMs,
+          })),
         },
         '✅ Handoff transaction COMMITTED'
       );
@@ -393,4 +397,3 @@ export function createNotificationStep(
 // ============================================================================
 
 export default HandoffTransaction;
-

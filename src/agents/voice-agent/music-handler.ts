@@ -65,6 +65,8 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { getDJIntegration } from '../dj-integration.js';
 import type { UserData } from '../shared/types.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 // ============================================================================
 // TYPES
@@ -209,18 +211,19 @@ function buildMusicTransitionInstructions(input: MusicTransitionInstructionsInpu
     emotionalGuidance = `\n\nEmotional context: They seemed ${musicContext.emotionalToneBeforeMusic} before the music.`;
   }
 
-  return `[MUSIC TRANSITION - Generate a natural response]
+  // Use speak pseudo-tool to prevent echoing of instructions
+  // The LLM outputs JSON, which gets caught by tool-call-sanitizer
+  // and spoken via session.say() - no risk of meta-instructions being spoken
+  const personaName = personaId === 'ferni' ? 'Ferni' : personaId;
 
-${situationContext}
+  return `You are DJ ${personaName}. ${situationContext}
 
 ${suggestion}${emotionalGuidance}
 
-IMPORTANT:
-- Keep it SHORT (1-2 sentences max)
-- Be conversational, not formal
-- You're DJ ${personaId === 'ferni' ? 'Ferni' : personaId} - warm and human
-- Don't say "the music ended" or be robotic about it
-- Wait for their response after you speak`;
+Generate a warm, brief response (1-2 sentences max). Be conversational, not formal.
+
+OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your message here"}}`;
 }
 
 // ============================================================================
@@ -336,7 +339,8 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
         personaId: sessionPersona.id,
         speakCallback: (phrase, options) => {
           try {
-            session.say(phrase, options);
+            // Use coordinated speech for DJ booth phrases
+            coordinatedSay(sessionId, phrase, options);
           } catch (e) {
             diag.warn('DJ Booth speak callback failed', { error: String(e) });
           }
@@ -603,7 +607,8 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
           phrase: phrase.slice(0, 50),
         });
 
-        session.say(phrase, { allowInterruptions: true });
+        // Use coordinated speech for mid-song moments
+        coordinatedSay(sessionId, phrase, { allowInterruptions: true });
       } catch (e) {
         diag.warn('Failed to speak mid-song moment', { error: String(e) });
       }
@@ -789,7 +794,8 @@ function setupMusicStateCallback(
         track: track?.name,
         phrase: transitionPhrase.slice(0, 50),
       });
-      session.say(transitionPhrase, { allowInterruptions: false });
+      // Use coordinated speech for music transitions
+      coordinatedSay(sessionId, transitionPhrase, { allowInterruptions: false });
     }
 
     // Non-time-sensitive operations can be async
@@ -814,7 +820,8 @@ function setupMusicStateCallback(
           track: lastTrackName,
           newState: state,
         });
-        session.say(stoppedPhrase, { allowInterruptions: true });
+        // Use coordinated speech for music stop announcements
+        coordinatedSay(sessionId, stoppedPhrase, { allowInterruptions: true });
       } else if (isUnexpectedStop && djBooth?.isHandoffInProgress()) {
         diag.state('🔄 Music stopped during handoff (suppressing phrase)', {
           track: lastTrackName,
@@ -906,6 +913,7 @@ function setupMusicStateCallback(
         // Set up appreciation timer
         const appreciationTimer = setInterval(() => {
           void handleAppreciationInterval(
+            sessionId,
             session,
             sessionPersona,
             track,
@@ -921,6 +929,7 @@ function setupMusicStateCallback(
         // Set up read-the-room timer
         const readTheRoomTimer = setInterval(() => {
           void handleReadTheRoomInterval(
+            sessionId,
             session,
             sessionPersona,
             musicPlaybackStartTime,
@@ -941,16 +950,47 @@ function setupMusicStateCallback(
 
       // Notify frontend for avatar dancing
       // Check connection state before sending to avoid "Cannot send after disconnect" errors
+      diag.state('🎧 [MUSIC→FRONTEND] Attempting to send music state to frontend', {
+        state,
+        trackName: track?.name,
+        isAmbient,
+      });
+
       try {
         const { getFrontendPublisher } = await import('../realtime/index.js');
         const publisher = getFrontendPublisher();
+
+        diag.state('🎧 [MUSIC→FRONTEND] Publisher status check', {
+          hasPublisher: !!publisher,
+          isConnected: publisher?.isConnected(),
+          hasRoomLocalParticipant: !!room?.localParticipant,
+        });
+
         // Double-check connection: both room exists AND publisher reports connected
         if (publisher?.isConnected() && room?.localParticipant) {
           const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
-          await publisher.sendMusicState(state, trackInfo, isAmbient);
+
+          diag.state('🎧 [MUSIC→FRONTEND] Sending music state message', {
+            state,
+            trackInfo,
+            isAmbient,
+          });
+
+          const success = await publisher.sendMusicState(state, trackInfo, isAmbient);
+
+          diag.state('🎧 [MUSIC→FRONTEND] Music state message sent', {
+            success,
+            state,
+            trackName: trackInfo?.name,
+          });
         } else if (state !== 'stopped' && state !== 'idle') {
           // Only log non-stop states since stopped/idle at disconnect is expected
-          diag.debug('Skipping music state publish - room disconnected', { state });
+          diag.warn('🎧 [MUSIC→FRONTEND] Skipping music state publish - room disconnected', {
+            state,
+            hasPublisher: !!publisher,
+            isConnected: publisher?.isConnected(),
+            hasRoomLocalParticipant: !!room?.localParticipant,
+          });
         }
       } catch (pubError) {
         // Gracefully handle disconnect race condition
@@ -972,6 +1012,7 @@ function setupMusicStateCallback(
 // using static imports for immediate response (no async latency)
 
 async function handleAppreciationInterval(
+  sessionId: string,
   session: voice.AgentSession<UserData>,
   sessionPersona: PersonaConfig,
   track: { name: string; artist: string },
@@ -1002,7 +1043,8 @@ async function handleAppreciationInterval(
           comment: comment.slice(0, 50),
           timeSinceStart: Math.round(timeSinceStart),
         });
-        session.say(comment, { allowInterruptions: true });
+        // Use coordinated speech for appreciation comments
+        coordinatedSay(sessionId, comment, { allowInterruptions: true });
         setLastAppreciationTime(now);
       }
     }
@@ -1012,6 +1054,7 @@ async function handleAppreciationInterval(
 }
 
 async function handleReadTheRoomInterval(
+  sessionId: string,
   session: voice.AgentSession<UserData>,
   sessionPersona: PersonaConfig,
   musicPlaybackStartTime: number | null,
@@ -1043,7 +1086,8 @@ async function handleReadTheRoomInterval(
           action: action.action,
           timePlaying: Math.round(timeSinceStart),
         });
-        session.say(action.phrase, { allowInterruptions: true });
+        // Use coordinated speech for read-the-room check-ins
+        coordinatedSay(sessionId, action.phrase, { allowInterruptions: true });
         setLastReadTheRoomTime(now);
       }
     }
@@ -1075,9 +1119,17 @@ export async function checkEmotionalMusicOffer(params: {
   personaId: string;
   recentTopics?: string[];
   session: voice.AgentSession<UserData>;
+  sessionId: string;
 }): Promise<boolean> {
-  const { emotion, emotionalIntensity, conversationDurationMs, personaId, recentTopics, session } =
-    params;
+  const {
+    emotion,
+    emotionalIntensity,
+    conversationDurationMs,
+    personaId,
+    recentTopics,
+    session,
+    sessionId,
+  } = params;
 
   // Only offer music when emotion is intense enough
   if (emotionalIntensity < 0.6) {
@@ -1100,7 +1152,8 @@ export async function checkEmotionalMusicOffer(params: {
         intensity: emotionalIntensity,
         offer: emotionalOffer.slice(0, 50),
       });
-      session.say(emotionalOffer, { allowInterruptions: true });
+      // Use coordinated speech for emotional music offers
+      coordinatedSay(sessionId, emotionalOffer, { allowInterruptions: true });
       return true;
     }
 
@@ -1119,7 +1172,8 @@ export async function checkEmotionalMusicOffer(params: {
         type: spontaneous.type,
         emotion,
       });
-      session.say(spontaneous.offer, { allowInterruptions: true });
+      // Use coordinated speech for spontaneous music offers
+      coordinatedSay(sessionId, spontaneous.offer, { allowInterruptions: true });
       return true;
     }
 

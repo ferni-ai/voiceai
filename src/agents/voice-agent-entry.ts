@@ -59,6 +59,16 @@ import { finops } from '../services/observability/finops.js';
 // Multi-agent system for natural persona handoffs
 // Each persona gets its own Gemini session + TTS voice
 import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './multi-agent/index.js';
+// FIX: Import handoffEvents to wire LLM-triggered handoffs to orchestrator
+import { handoffEvents } from '../tools/handoff/state.js';
+// FIX: Import retry counter cleanup for WeakMap session GC
+import { clearRetryCounter } from './shared/tool-call-sanitizer.js';
+// Speech coordination for centralized speech management
+import {
+  coordinatedSay,
+  initializeSpeechCoordination,
+  cleanupSpeechCoordination,
+} from '../speech/coordination/index.js';
 
 // ============================================================================
 // FEATURE FLAGS
@@ -68,16 +78,43 @@ import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './mul
  * Multi-agent mode: Each persona runs as a separate agent with its own Gemini session.
  * This enables natural handoffs where both personas speak with their real voices.
  *
- * Set MULTI_AGENT_MODE=true in environment to enable.
+ * DEFAULT: true (multi-agent mode is now the standard for proper handoffs)
+ * Set MULTI_AGENT_MODE=false in environment to disable (not recommended).
  *
  * NOTE: Multi-agent mode is implemented in ./multi-agent/. See CLAUDE.md there for details.
  * The full integration replaces the single-session approach with the orchestrator pattern.
  */
-const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE === 'true';
+const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
+
+/**
+ * OpenAI Realtime mode: Use OpenAI's Realtime API instead of Gemini Live.
+ *
+ * OpenAI Realtime has NATIVE function calling - no JSON workarounds needed!
+ * This is an experimental toggle to compare reliability between the two.
+ *
+ * Set USE_OPENAI_REALTIME=true in environment to enable.
+ * Requires OPENAI_API_KEY to be set.
+ */
+const USE_OPENAI_REALTIME = process.env.USE_OPENAI_REALTIME === 'true';
 
 // Log multi-agent status at module load
 if (MULTI_AGENT_MODE) {
-  process.stderr.write(`[voice-agent-entry] 🎭 MULTI_AGENT_MODE=true - Using multi-agent orchestrator\n`);
+  process.stderr.write(
+    `[voice-agent-entry] 🎭 MULTI_AGENT_MODE enabled - Using multi-agent orchestrator\n`
+  );
+} else {
+  process.stderr.write(
+    `[voice-agent-entry] ⚠️ MULTI_AGENT_MODE disabled - Handoffs will NOT update LLM persona!\n`
+  );
+}
+
+// Log LLM provider
+if (USE_OPENAI_REALTIME) {
+  process.stderr.write(
+    `[voice-agent-entry] 🔮 USE_OPENAI_REALTIME enabled - Using OpenAI Realtime API\n`
+  );
+} else {
+  process.stderr.write(`[voice-agent-entry] 🤖 Using Gemini Live API (default)\n`);
 }
 
 // ============================================================================
@@ -600,11 +637,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // Load external VAD for user activity detection
-    // Note: Gemini also has built-in turn detection, but we need VAD for DJ Booth etc.
-    const { silero } = getVoiceDeps();
-    type VADType = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
-    const vad: VADType = await silero.VAD.load();
+    // ⚡ OPTIMIZATION: Skip Silero VAD - Gemini Realtime has built-in turn detection!
+    // The VAD was adding 200-400ms to session start for no real benefit.
+    // Gemini's 'realtime_llm' turn detection handles user speaking detection.
+    // DJ Booth ducking is triggered by UserStateChanged events from the LLM, not VAD.
+    //
+    // If VAD is needed for specific features in the future, use lazy loading:
+    // const { silero } = getVoiceDeps();
+    // const vad = await silero.VAD.load();
+    const vad = undefined; // Let Gemini handle turn detection
 
     // =========================================================================
     // VOICE LOCALIZATION (International Accent Support)
@@ -632,8 +673,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
+    // ⚡ OPTIMIZATION: Parallelize independent module loads
+    // These imports don't depend on each other, so run them concurrently
+    process.stderr.write(`[voice-agent-entry] ⚡ Starting parallel module loads...\n`);
+    const parallelLoadStart = Date.now();
+
+    const subscriptionTier =
+      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+
+    const [voiceManager, toolOrchestratorModule, ferniAgentModule, functionCallingModule] =
+      await Promise.all([
+        import('../speech/voice-manager.js'),
+        import('../tools/orchestrator/voice-agent-integration.js'),
+        import('./personas/ferni-agent.js'),
+        import('../tools/utils/function-calling-config.js'),
+      ]);
+
+    process.stderr.write(
+      `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
+    );
+
     // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
-    const voiceManager = await import('../speech/voice-manager.js');
     const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
       ...voiceConfig,
       voiceId: effectiveVoiceId,
@@ -645,24 +705,23 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
     sessionVoiceManager.initialize();
 
-    try {
-      const { registerSessionTTS } = await import('../api/session-accent-routes.js');
-      registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
-    } catch {
-      // Non-critical - accent changes just won't work mid-session
-    }
+    // Fire-and-forget TTS registration (non-blocking)
+    void (async () => {
+      try {
+        const { registerSessionTTS } = await import('../api/session-accent-routes.js');
+        registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
+      } catch {
+        // Non-critical - accent changes just won't work mid-session
+      }
+    })();
 
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
 
-    // Create FerniAgent with ORCHESTRATOR-selected tools (not legacy 89 tools)
-    process.stderr.write(`[voice-agent-entry] Getting tools from orchestrator...\n`);
-
-    // Import and use the tool orchestrator
+    // Initialize orchestrator if not already done (should be warm from prewarm)
     const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
-      await import('../tools/orchestrator/voice-agent-integration.js');
+      toolOrchestratorModule;
 
-    // Initialize orchestrator if not already done
     if (!isOrchestratorInitialized()) {
       try {
         await initializeToolOrchestrator();
@@ -674,8 +733,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // Get tools from orchestrator
-    const subscriptionTier =
-      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
     const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
       persona: { id: sessionPersona.id, displayName: sessionPersona.name },
       userId: userId || 'anonymous',
@@ -693,7 +750,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Create agent with persona-specific system prompt and orchestrator-selected tools
     // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
     // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
-    const { FerniAgent } = await import('./personas/ferni-agent.js');
+    const { FerniAgent } = ferniAgentModule;
 
     // DEBUG: Log tools being passed to agent
     const toolNames = Object.keys(orchestratorTools || {});
@@ -720,8 +777,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(`[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`);
 
     // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
-    // Import function calling config following Vertex AI best practices
-    const { buildToolConfig } = await import('../tools/utils/function-calling-config.js');
+    const { buildToolConfig } = functionCallingModule;
 
     // Build tool config based on context (crisis mode, new user, etc.)
     const _isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
@@ -746,11 +802,47 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Get centralized model config (toggle via admin UI or model-config.json)
     const geminiConfig = modelConfig.getDefault();
-    process.stderr.write(`[voice-agent-entry] 🤖 Using model: ${geminiConfig.model}\n`);
 
-    session = new voice.AgentSession({
-      vad,
-      llm: new google.beta.realtime.RealtimeModel({
+    // =========================================================================
+    // LLM SELECTION: OpenAI Realtime vs Gemini Live
+    // =========================================================================
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let llm: any;
+
+    if (USE_OPENAI_REALTIME) {
+      // =====================================================================
+      // OpenAI Realtime API - Native function calling, no JSON workarounds!
+      // Using text-only mode so Cartesia TTS handles the persona voice.
+      // =====================================================================
+      const openai = await import('@livekit/agents-plugin-openai');
+
+      process.stderr.write(
+        `[voice-agent-entry] 🔮 Creating OpenAI Realtime model (text-only → Cartesia TTS)...\n`
+      );
+
+      llm = new openai.realtime.RealtimeModel({
+        modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
+        temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
+        turnDetection: {
+          type: 'server_vad', // Using server_vad per docs (more stable)
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+          create_response: true,
+          interrupt_response: true,
+        },
+        // NOTE: OpenAI Realtime handles function calling natively at the protocol level
+        // No JSON workarounds needed - tools are passed directly to the model
+      });
+
+      process.stderr.write(
+        `[voice-agent-entry] 🔮 OpenAI Realtime model created (text → Cartesia TTS)\n`
+      );
+    } else {
+      // Gemini Live API (default)
+      process.stderr.write(`[voice-agent-entry] 🤖 Using model: ${geminiConfig.model}\n`);
+
+      llm = new google.beta.realtime.RealtimeModel({
         model: geminiConfig.model,
         modalities: [genai.Modality.TEXT],
         temperature: geminiConfig.temperature,
@@ -766,7 +858,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
         geminiTools: { googleSearch: {} },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any),
+      } as any);
+    }
+
+    session = new voice.AgentSession({
+      // ⚡ OPTIMIZATION: Use built-in turn detection instead of Silero VAD
+      // Both OpenAI and Gemini have their own turn detection
+      turnDetection: USE_OPENAI_REALTIME ? undefined : 'realtime_llm',
+      // vad is now undefined - not needed with realtime turn detection
+      vad,
+      llm,
       tts,
       userData,
       voiceOptions: {
@@ -781,6 +882,41 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
     process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - sessionStart}ms\n`);
+
+    // =========================================================================
+    // STEP 5.5: INITIALIZE SPEECH COORDINATION
+    // Centralized speech control to prevent overlap and enable adaptive timing
+    // =========================================================================
+    try {
+      const { initializeSpeechCoordination, cleanupSpeechCoordination } =
+        await import('../speech/coordination/index.js');
+      initializeSpeechCoordination({
+        session,
+        sessionId,
+        personaId: sessionPersona.id,
+        userId,
+      });
+      // Add cleanup handler
+      cleanupHandlers.push(() => cleanupSpeechCoordination(sessionId));
+      process.stderr.write(`[voice-agent-entry] 🎙️ Speech coordination initialized\n`);
+    } catch (coordErr) {
+      process.stderr.write(
+        `[voice-agent-entry] Speech coordination init failed (non-fatal): ${coordErr}\n`
+      );
+    }
+
+    // FIX: Add cleanup handler for retry counter WeakMap
+    // While WeakMap will GC when session is collected, explicit cleanup ensures
+    // immediate memory release and is better practice for session-scoped state
+    if (session) {
+      cleanupHandlers.push(() => {
+        try {
+          clearRetryCounter(session);
+        } catch {
+          /* ignore - session may already be cleaned up */
+        }
+      });
+    }
 
     // =========================================================================
     // STEP 6: SET UP ALL HANDLERS
@@ -917,12 +1053,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Wait for participant before starting session
     // Multi-agent mode REQUIRES participant, so wait longer when enabled
     const participantTimeout = MULTI_AGENT_MODE ? 10000 : 2000;
-    process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`);
+    process.stderr.write(
+      `[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`
+    );
     const participant = await Promise.race([
       ctx.waitForParticipant(),
       new Promise<null>((resolve) => {
         setTimeout(() => {
-          process.stderr.write(`[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`);
+          process.stderr.write(
+            `[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`
+          );
           resolve(null);
         }, participantTimeout);
       }),
@@ -968,15 +1108,28 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           },
         });
 
+        // FIX: Verify the orchestrator has an active agent before proceeding
+        // If start() failed silently, we should fall back to single-agent mode
+        const activePersona = multiAgentResult.orchestrator.getCurrentPersonaId();
+        if (!activePersona) {
+          throw new Error(
+            'Multi-agent orchestrator has no active agent after initialization - falling back to single-agent'
+          );
+        }
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 Multi-agent orchestrator ready with active persona: ${activePersona}\n`
+        );
+
         // Set up data channel handler for multi-agent handoffs
-        const dataHandler = (
-          data: Uint8Array,
-          _participant?: { identity: string }
-        ): void => {
+        const dataHandler = (data: Uint8Array, _participant?: { identity: string }): void => {
           void (async () => {
             try {
               const decoder = new TextDecoder();
-              const message = JSON.parse(decoder.decode(data));
+              const rawMessage = decoder.decode(data);
+              process.stderr.write(
+                `[voice-agent-entry] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
+              );
+              const message = JSON.parse(rawMessage);
 
               if (message.type === 'handoff_request') {
                 process.stderr.write(
@@ -985,12 +1138,29 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
                 // Send handoff_acknowledged immediately (frontend expects this)
                 const encoder = new TextEncoder();
+                const currentPersonaId = multiAgentResult.orchestrator.getCurrentPersonaId();
                 await ctx.room?.localParticipant?.publishData(
                   encoder.encode(
                     JSON.stringify({
                       type: 'handoff_acknowledged',
                       target: message.target,
                       success: true,
+                      timestamp: Date.now(),
+                    })
+                  ),
+                  { reliable: true }
+                );
+
+                // FIX: Send handoff_started to trigger frontend transitioning state
+                // Frontend expects: acknowledged → started → complete
+                // Without this, frontend doesn't set isTransitioning=true and logs out-of-order warning
+                await ctx.room?.localParticipant?.publishData(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: 'handoff_started',
+                      target: message.target,
+                      newAgent: message.target,
+                      previousAgent: currentPersonaId,
                       timestamp: Date.now(),
                     })
                   ),
@@ -1004,16 +1174,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
                   services
                 );
                 if (!result.success) {
-                  process.stderr.write(
-                    `[voice-agent-entry] 🎭 Handoff failed: ${result.error}\n`
-                  );
-                  // Send handoff_failed to frontend
+                  process.stderr.write(`[voice-agent-entry] 🎭 Handoff failed: ${result.error}\n`);
+                  // Send handoff_failed to frontend with rollbackTo for UI recovery
                   await ctx.room?.localParticipant?.publishData(
                     encoder.encode(
                       JSON.stringify({
                         type: 'handoff_failed',
                         target: message.target,
                         error: result.error,
+                        rollbackTo: currentPersonaId,
                         timestamp: Date.now(),
                       })
                     ),
@@ -1027,7 +1196,92 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           })();
         };
 
-        ctx.room?.on('dataReceived', dataHandler);
+        if (ctx.room) {
+          ctx.room.on('dataReceived', dataHandler);
+          process.stderr.write(
+            `[voice-agent-entry] 📡 Data channel handler registered on room: ${ctx.room.name}\n`
+          );
+        } else {
+          process.stderr.write(
+            `[voice-agent-entry] ⚠️ WARNING: ctx.room is null, data channel won't work!\n`
+          );
+        }
+
+        // FIX: Wire LLM-triggered handoffs (from tools) to the orchestrator
+        // The handoff tools call executeHandoff() which emits voiceSwitch events.
+        // In multi-agent mode, we need to route these to orchestrator.handoff()
+        const voiceSwitchHandler = (event: {
+          persona: { id: string };
+          previousAgentId?: string;
+        }) => {
+          void (async () => {
+            const targetPersonaId = event.persona?.id;
+            if (!targetPersonaId) {
+              process.stderr.write(`[voice-agent-entry] 🎭 voiceSwitch event missing persona ID\n`);
+              return;
+            }
+
+            const currentPersonaId =
+              event.previousAgentId || multiAgentResult.orchestrator.getCurrentPersonaId();
+            process.stderr.write(
+              `[voice-agent-entry] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
+            );
+
+            // FIX: Send frontend events for LLM-triggered handoffs too
+            // Frontend needs these to properly track transitioning state
+            const encoder = new TextEncoder();
+            await ctx.room?.localParticipant?.publishData(
+              encoder.encode(
+                JSON.stringify({
+                  type: 'handoff_started',
+                  target: targetPersonaId,
+                  newAgent: targetPersonaId,
+                  previousAgent: currentPersonaId,
+                  timestamp: Date.now(),
+                })
+              ),
+              { reliable: true }
+            );
+
+            const result = await handleHandoffFromDataChannel(
+              multiAgentResult.orchestrator,
+              targetPersonaId,
+              'LLM requested handoff',
+              services
+            );
+
+            if (!result.success) {
+              process.stderr.write(`[voice-agent-entry] 🎭 LLM handoff failed: ${result.error}\n`);
+              // Send failure event to frontend
+              await ctx.room?.localParticipant?.publishData(
+                encoder.encode(
+                  JSON.stringify({
+                    type: 'handoff_failed',
+                    target: targetPersonaId,
+                    error: result.error,
+                    rollbackTo: currentPersonaId,
+                    timestamp: Date.now(),
+                  })
+                ),
+                { reliable: true }
+              );
+            }
+
+            // Emit handoffHandlerComplete so executeHandoff() knows it completed
+            handoffEvents.emit('handoffHandlerComplete', {
+              targetId: targetPersonaId,
+              success: result.success,
+              greetingSpoken: result.success,
+              instructionsUpdated: result.success,
+              error: result.error,
+            });
+          })();
+        };
+
+        handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
+        );
 
         // Wait for disconnect
         await new Promise<void>((resolve) => {
@@ -1038,6 +1292,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         });
 
         // Cleanup
+        handoffEvents.off('voiceSwitch', voiceSwitchHandler);
         await multiAgentResult.cleanup();
         process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
         return;
@@ -1108,6 +1363,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
     );
 
+    // =========================================================================
+    // STEP 5b: INITIALIZE SPEECH COORDINATION
+    // This enables centralized speech management to prevent overlap
+    // =========================================================================
+    try {
+      initializeSpeechCoordination({
+        session,
+        sessionId,
+        personaId,
+        userId: userId || undefined,
+      });
+      process.stderr.write(`[voice-agent-entry] 🎤 Speech coordination initialized\n`);
+      cleanupHandlers.push(() => {
+        cleanupSpeechCoordination(sessionId);
+      });
+    } catch (coordErr) {
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Speech coordination init failed (non-critical): ${coordErr}\n`
+      );
+    }
+
     // DEBUG: Verify tools are registered with the agent
     // NOTE: Cast needed to access internal _tools property (not in public API)
     // This is only for debug logging - production code doesn't depend on it
@@ -1174,7 +1450,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Idle timeout callback - disconnect after extended silence
       onIdleTimeout: () => {
         void (async () => {
-          process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
+          process.stderr.write(
+            `[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`
+          );
           try {
             // Signal frontend that we're disconnecting due to idle
             const { sendFrontendSignal } = await import('../services/frontend-signal.js');
@@ -1249,7 +1527,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       tts: session.tts as { switchVoice?: (name: string, id: string) => void },
       services,
       userData,
-      getVoiceAgentRef: () => voiceAgentRef as { setPersona: (personaId: string, instructions: string) => void } | null,
+      getVoiceAgentRef: () =>
+        voiceAgentRef as { setPersona: (personaId: string, instructions: string) => void } | null,
       sessionId, // CRITICAL: Must match data-channel-handler's sessionId
       initialAgent: sessionPersona.id, // CRITICAL: State manager needs to know starting persona!
     });
@@ -1289,7 +1568,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userId,
       sessionId,
       voiceAgentRef,
-      tts: session.tts as { switchVoice?: (name: string, voiceId: string, accent?: string) => void },
+      tts: session.tts as {
+        switchVoice?: (name: string, voiceId: string, accent?: string) => void;
+      },
     });
     cleanupHandlers.push(dataChannelResult.cleanup);
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);
@@ -1538,12 +1819,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         tagGreeting: (text) => text, // Simple passthrough - full SSML tagging not needed for lightweight
       });
     } catch (greetingErr) {
-      // Fallback to simple greeting
+      // Fallback to simple greeting via coordinated speech
       process.stderr.write(
         `[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`
       );
       const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
-      await session.say(fallbackGreeting).waitForPlayout();
+      coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: true });
+      // Small delay for greeting to play (can't await playout with coordinator)
+      await new Promise<void>((r) => {
+        setTimeout(r, 2000);
+      });
     }
 
     process.stderr.write(
@@ -1697,7 +1982,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         const humanized = humanizeError(errObj);
         if (humanized.shouldNotifyUser) {
           try {
-            await session.say(humanized.userMessage);
+            // Use coordinated speech for error messages
+            coordinatedSay(sessionId, humanized.userMessage, { allowInterruptions: true });
           } catch {
             /* can't speak */
           }

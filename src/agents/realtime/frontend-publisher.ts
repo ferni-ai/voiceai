@@ -226,7 +226,13 @@ export class FrontendPublisher {
    */
   async send<T extends FrontendMessage>(message: Omit<T, 'timestamp'>): Promise<boolean> {
     if (!this.room?.localParticipant) {
-      if (this.config.verbose) {
+      // Always log for music_state messages since we're debugging
+      if (message.type === 'music_state') {
+        diag.warn('🎧 [PUBLISHER.send] Cannot send music_state: no room connection', {
+          hasRoom: !!this.room,
+          hasLocalParticipant: !!this.room?.localParticipant,
+        });
+      } else if (this.config.verbose) {
         this.logger.debug({ type: message.type }, 'Cannot send: no room connection');
       }
       return false;
@@ -243,7 +249,14 @@ export class FrontendPublisher {
       try {
         await this.room.localParticipant.publishData(data, { reliable: true });
 
-        if (this.config.verbose) {
+        // Always log success for music_state messages
+        if (message.type === 'music_state') {
+          const musicMsg = fullMessage as MusicStateMessage;
+          diag.state('🎧 [PUBLISHER.send] music_state published to LiveKit data channel', {
+            trackName: musicMsg.track?.name,
+            state: musicMsg.state,
+          });
+        } else if (this.config.verbose) {
           this.logger.debug({ type: message.type }, 'Message sent to frontend');
         }
 
@@ -252,7 +265,9 @@ export class FrontendPublisher {
         const errorStr = String(error);
         // Don't retry if connection is already closed - bail out immediately
         if (errorStr.includes('closed') || errorStr.includes('disconnect')) {
-          if (this.config.verbose) {
+          if (message.type === 'music_state') {
+            diag.debug('🎧 [PUBLISHER.send] music_state skipped - connection closed');
+          } else if (this.config.verbose) {
             this.logger.debug({ type: message.type }, 'Send skipped - connection closed');
           }
           return false;
@@ -471,14 +486,15 @@ export class FrontendPublisher {
     isAmbient = false,
     ourSongInfo?: { isOurSong: boolean; context?: string }
   ): Promise<boolean> {
-    diag.state('Music state', {
+    diag.state('🎧 [PUBLISHER] sendMusicState called', {
       state,
       track: track?.name,
       isAmbient,
       isOurSong: ourSongInfo?.isOurSong,
+      hasLocalParticipant: !!this.room?.localParticipant,
     });
 
-    return this.send<MusicStateMessage>({
+    const result = await this.send<MusicStateMessage>({
       type: 'music_state',
       state,
       track,
@@ -486,6 +502,14 @@ export class FrontendPublisher {
       isOurSong: ourSongInfo?.isOurSong,
       ourSongContext: ourSongInfo?.context,
     });
+
+    diag.state('🎧 [PUBLISHER] sendMusicState result', {
+      success: result,
+      state,
+      trackName: track?.name,
+    });
+
+    return result;
   }
 
   // ============================================================================

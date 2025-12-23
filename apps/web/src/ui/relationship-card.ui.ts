@@ -64,6 +64,9 @@ export interface RelationshipPerson {
   // Metadata
   createdAt?: Date | string;
   howWeMet?: string;
+
+  // Visual
+  photo?: string;
 }
 
 export interface ImportantDate {

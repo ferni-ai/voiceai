@@ -66,30 +66,16 @@ export const CONNECTION_PATTERNS = [
 // ============================================================================
 
 export const VOICE_STATE_ACKNOWLEDGMENTS: Record<string, string[]> = {
-  tired: [
-    'You sound tired—rough night?',
-    'You sound like you could use some rest.',
-    'Long day?',
-  ],
+  tired: ['You sound tired—rough night?', 'You sound like you could use some rest.', 'Long day?'],
   stressed: [
     'I can hear the tension in your voice.',
     "Sounds like you've got a lot on your plate.",
     "You sound stressed—what's going on?",
   ],
-  excited: [
-    'I can hear the excitement in your voice!',
-    'Something good happening?',
-  ],
-  upset: [
-    "You sound upset. I'm here.",
-    "I can hear something's bothering you.",
-  ],
-  calm: [
-    'You sound relaxed today.',
-  ],
-  distracted: [
-    "You seem like you've got something on your mind.",
-  ],
+  excited: ['I can hear the excitement in your voice!', 'Something good happening?'],
+  upset: ["You sound upset. I'm here.", "I can hear something's bothering you."],
+  calm: ['You sound relaxed today.'],
+  distracted: ["You seem like you've got something on your mind."],
   normal: [],
 };
 
@@ -129,4 +115,3 @@ export const EMOTION_TO_NEED: Record<string, string> = {
   exhausted: 'silence',
   excited: 'energy',
 };
-

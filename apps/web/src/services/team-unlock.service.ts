@@ -6,12 +6,18 @@
  *
  * Philosophy: "Get to know Ferni first" - Team unlocks naturally as
  * your friendship deepens. Subscribers skip the wait, free users earn it.
+ *
+ * FIX: Now syncs with backend API to get authoritative unlock state
+ * and bypass mode from BYPASS_TEAM_UNLOCKS env var.
  */
 
 import { createLogger } from '../utils/logger.js';
 import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
 
 const log = createLogger('TeamUnlock');
+
+// API endpoint for team unlock state
+const TEAM_UNLOCK_API = '/api/relationship/team-unlocks';
 
 // ============================================================================
 // TYPES
@@ -192,6 +198,17 @@ const almostThereListeners: Set<(member: TeamMemberConfig, progress: number) => 
 const almostThereShown = new Set<TeamMemberId>();
 const ALMOST_THERE_THRESHOLD = 0.8; // 80%
 
+/**
+ * FIX: Bypass mode from backend BYPASS_TEAM_UNLOCKS env var.
+ * null = no bypass, 'all' = all unlocked, string[] = specific members
+ */
+let bypassMode: null | 'all' | TeamMemberId[] = null;
+
+/**
+ * Track if we've synced with backend at least once
+ */
+let hasSyncedWithBackend = false;
+
 // ============================================================================
 // PERSISTENCE HELPERS
 // ============================================================================
@@ -264,6 +281,74 @@ function restoreAlmostThereTracking(persisted: PersistedUnlockState): void {
 }
 
 // ============================================================================
+// BACKEND SYNC
+// ============================================================================
+
+/**
+ * FIX: Fetch team unlock state from backend API.
+ * This syncs bypass mode and provides authoritative unlock state.
+ */
+async function syncWithBackend(userIdOverride?: string): Promise<void> {
+  try {
+    // Get userId from localStorage if not provided (same pattern as relationship-stage.service.ts)
+    const userId = userIdOverride || localStorage.getItem('ferni_user_id');
+    if (!userId) {
+      log.debug('No userId available for team unlock sync');
+      return;
+    }
+
+    const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      log.warn('Failed to sync team unlocks from backend:', response.status);
+      return;
+    }
+
+    const data = await response.json();
+
+    // Update bypass mode from backend
+    if (data.bypassMode !== undefined) {
+      bypassMode = data.bypassMode;
+      if (bypassMode) {
+        log.info('🔓 Backend bypass mode active:', bypassMode);
+      }
+    }
+
+    // Update subscription tier from backend
+    if (data.tier) {
+      subscriptionTier = data.tier;
+    }
+
+    hasSyncedWithBackend = true;
+
+    // Update local state if backend has different data
+    void updateUnlockState();
+
+    log.debug('Synced team unlocks from backend', {
+      stage: data.stage,
+      tier: data.tier,
+      unlockedCount: data.unlockedMembers?.length,
+      bypassMode: data.bypassMode,
+    });
+  } catch (err) {
+    log.debug('Could not sync with backend (offline or error):', String(err));
+  }
+}
+
+/**
+ * FIX: Check if a member is bypassed via backend BYPASS_TEAM_UNLOCKS env var
+ */
+function isMemberBypassed(memberId: TeamMemberId): boolean {
+  if (bypassMode === null) return false;
+  if (bypassMode === 'all') return true;
+  return bypassMode.includes(memberId);
+}
+
+// ============================================================================
 // CORE LOGIC
 // ============================================================================
 
@@ -284,6 +369,11 @@ function getMemberUnlockStatus(
 ): MemberUnlockStatus {
   // Ferni always unlocked
   if (member.id === 'ferni') {
+    return { unlocked: true, progress: 1 };
+  }
+
+  // FIX: Check backend bypass mode first
+  if (isMemberBypassed(member.id)) {
     return { unlocked: true, progress: 1 };
   }
 
@@ -365,9 +455,10 @@ function getUnlockHint(
 
 /**
  * Initialize team unlock service
- * FIX: Now loads persisted state from localStorage for immediate UI feedback
+ * FIX: Now loads persisted state from localStorage for immediate UI feedback,
+ * then syncs with backend for authoritative state and bypass mode.
  */
-export function initTeamUnlockService(): void {
+export function initTeamUnlockService(userId?: string): void {
   // FIX: Load persisted state first for immediate UI
   const persisted = loadPersistedState();
   if (persisted) {
@@ -383,8 +474,12 @@ export function initTeamUnlockService(): void {
     void updateUnlockState();
   });
 
-  // Initial state
+  // Initial state (from local data)
   void updateUnlockState();
+
+  // FIX: Sync with backend for authoritative state and bypass mode
+  // This runs async and updates state when complete
+  void syncWithBackend(userId);
 
   log.info('Team unlock service initialized');
 }
@@ -503,7 +598,14 @@ export function getUnlockState(): TeamUnlockState | null {
  * Check if a specific team member is unlocked
  */
 export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
-  if (!currentState) return memberId === 'ferni';
+  // Ferni is always unlocked
+  if (memberId === 'ferni') return true;
+
+  // FIX: Check backend bypass mode
+  if (isMemberBypassed(memberId)) return true;
+
+  // Check local state
+  if (!currentState) return false;
   return currentState.unlockedMembers.has(memberId);
 }
 
@@ -668,6 +770,32 @@ export function getProgressText(memberId: TeamMemberId): string {
 }
 
 // ============================================================================
+// ADDITIONAL API
+// ============================================================================
+
+/**
+ * FIX: Force resync with backend API.
+ * Call this after login or when bypass mode may have changed.
+ */
+export async function resyncWithBackend(userId?: string): Promise<void> {
+  await syncWithBackend(userId);
+}
+
+/**
+ * FIX: Check if bypass mode is active.
+ */
+export function isBypassModeActive(): boolean {
+  return bypassMode !== null;
+}
+
+/**
+ * FIX: Get current bypass mode.
+ */
+export function getBypassMode(): null | 'all' | TeamMemberId[] {
+  return bypassMode;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -687,5 +815,8 @@ export const teamUnlockService = {
   clearNewlyUnlocked,
   getClasses: getTeamMemberClasses,
   getProgress: getProgressText,
+  resync: resyncWithBackend,
+  isBypassActive: isBypassModeActive,
+  getBypassMode,
   TEAM_MEMBERS,
 };

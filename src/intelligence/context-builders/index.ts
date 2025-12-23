@@ -1,9 +1,17 @@
 /**
- * Context Builder Orchestrator
+ * Context Builder Orchestrator (LEGACY)
  *
- * Modular system for building conversational context injections.
+ * ⚠️  PREFER the new behavioral system in `./behavioral/integration.js`
  *
- * Features:
+ * The behavioral system prevents context leakage by separating concerns:
+ * - Behavioral signals (HOW to respond) - can't leak
+ * - Awareness facts (WHAT to know) - meant to be used
+ * - Tool guidance (WHEN to query) - on-demand data
+ *
+ * This legacy module is kept for backward compatibility with existing tests
+ * and code that hasn't migrated yet.
+ *
+ * Features (legacy):
  * - 70+ context builders organized by category
  * - Metrics tracking for performance monitoring
  * - Validation and error handling
@@ -11,6 +19,7 @@
  * - High-emotion mode for focused support
  *
  * @module intelligence/context-builders
+ * @deprecated Use `./behavioral/integration.js` for new code
  */
 
 import { createHash } from 'crypto';
@@ -505,6 +514,11 @@ const PRIORITY_ORDER: Record<ContextPriority, number> = {
 };
 
 /**
+ * @deprecated Use `buildIntegratedContext` from `./behavioral/integration.js` instead.
+ *
+ * The new behavioral system produces pre-formatted output that doesn't need
+ * this formatting step and is resistant to context leakage.
+ *
  * Format context injections for the LLM prompt
  *
  * BETTER-THAN-HUMAN: In high-emotion moments, we reduce noise by filtering out
@@ -551,6 +565,8 @@ export function formatContextForPrompt(
 }
 
 /**
+ * @deprecated High emotion mode is now handled internally by `buildIntegratedContext`.
+ *
  * BETTER-THAN-HUMAN: Determine if we should use high-emotion mode
  *
  * High emotion mode reduces context noise when the user needs focused support.
@@ -744,7 +760,25 @@ export function getConditionalLoadingConfig(): ConditionalLoadingConfig {
 // ============================================================================
 
 /**
- * Build conversation context from all registered builders
+ * @deprecated Use `buildIntegratedContext` from `./behavioral/integration.js` instead.
+ *
+ * This legacy function builds context using the old approach that was prone to
+ * context leakage. The new behavioral system separates concerns:
+ * - Behavioral signals (HOW to respond) - can't leak
+ * - Awareness facts (WHAT to know) - meant to be used
+ * - Tool guidance (WHEN to query) - on-demand data
+ *
+ * Migration:
+ * ```typescript
+ * // OLD
+ * const injections = await buildConversationContext(input);
+ * const prompt = formatContextForPrompt(injections);
+ *
+ * // NEW
+ * import { buildIntegratedContext } from './behavioral/integration.js';
+ * const result = await buildIntegratedContext(input);
+ * // result.behavioralDirective + result.awarenessFacts + result.toolGuidance
+ * ```
  *
  * Features:
  * - Output caching with 5-minute TTL

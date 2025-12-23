@@ -8,6 +8,11 @@
  * - NewsData.io (primary - 200 credits/day free, 84K+ sources)
  * - Finnhub (financial news - requires API key)
  * - RSS feeds as fallback (NPR, BBC)
+ *
+ * Uses progressive execution for "better than human" UX:
+ * - Fast responses: No feedback needed
+ * - Slow responses: "Checking the news..." acknowledgment
+ * - Timeout: Serve cached data with apology
  */
 
 import { llm } from '@livekit/agents';
@@ -15,6 +20,13 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import {
+  executeWithProgressiveFeedback,
+  fetchWithPriority,
+  toolCache,
+  createSource,
+  type SourceConfig,
+} from '../../execution/index.js';
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || '';
 const NEWSDATA_KEY = process.env.NEWSDATA_API_KEY || '';
 const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
@@ -26,7 +38,7 @@ const GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 
 /**
  * Format news headlines with SSML for natural, human-like delivery
- * 
+ *
  * The goal: Sound like a warm, thoughtful friend sharing interesting news,
  * not a robotic news ticker. We add:
  * - Natural pauses between stories (giving the listener time to absorb)
@@ -42,10 +54,10 @@ const NEWS_TRANSITIONS = [
   'Also,',
   'And,',
   'Oh, and',
-  'This one\'s interesting:',
+  "This one's interesting:",
   'Meanwhile,',
-  'And then there\'s this:',
-  '',  // Sometimes just pause, no transition
+  "And then there's this:",
+  '', // Sometimes just pause, no transition
   '',
 ];
 
@@ -54,28 +66,32 @@ const NEWS_TRANSITIONS = [
  */
 function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising' | 'neutral' {
   const lower = headline.toLowerCase();
-  
+
   // Heavy/serious topics
-  if (/\b(killed|dead|dies|death|murder|war|crisis|disaster|tragedy|shooting|attack)\b/.test(lower)) {
+  if (
+    /\b(killed|dead|dies|death|murder|war|crisis|disaster|tragedy|shooting|attack)\b/.test(lower)
+  ) {
     return 'heavy';
   }
-  
-  // Surprising/exciting topics  
-  if (/\b(breakthrough|discover|first|record|amazing|incredible|shocking|unexpected)\b/.test(lower)) {
+
+  // Surprising/exciting topics
+  if (
+    /\b(breakthrough|discover|first|record|amazing|incredible|shocking|unexpected)\b/.test(lower)
+  ) {
     return 'surprising';
   }
-  
+
   // Lighter topics
   if (/\b(fun|holiday|christmas|game|sport|win|celebrate|happy|comedy|cute)\b/.test(lower)) {
     return 'light';
   }
-  
+
   return 'neutral';
 }
 
 /**
  * Format news headlines with SSML for natural, human-like delivery
- * 
+ *
  * "Better than human" means:
  * - Varying pace based on content weight
  * - Natural transitions between stories
@@ -84,23 +100,25 @@ function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising
  */
 function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): string {
   // Filter out undefined headlines
-  const validHeadlines = headlines.filter((h): h is string => h !== undefined && h !== null && h.trim().length > 0);
-  
+  const validHeadlines = headlines.filter(
+    (h): h is string => h !== undefined && h !== null && h.trim().length > 0
+  );
+
   if (validHeadlines.length === 0) {
     return intro;
   }
 
   const parts: string[] = [];
-  
+
   // Warm intro with natural pace
   parts.push(`<speed ratio="0.95"/>${intro}`);
   parts.push('<break time="350ms"/>');
-  
+
   validHeadlines.forEach((headline, index) => {
     // Clean up headline
     const cleanHeadline = headline.trim().replace(/\.+$/, '');
     const weight = detectHeadlineWeight(cleanHeadline);
-    
+
     // First headline - no transition needed
     if (index === 0) {
       // Adjust speed based on headline weight
@@ -116,7 +134,7 @@ function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): s
       const prevWeight = detectHeadlineWeight(validHeadlines[index - 1] || '');
       const pauseMs = prevWeight === 'heavy' ? 600 : prevWeight === 'surprising' ? 400 : 450;
       parts.push(`<break time="${pauseMs}ms"/>`);
-      
+
       // Maybe add a transition (not every time - that would be weird)
       if (index <= 3 && Math.random() > 0.4) {
         const transition = NEWS_TRANSITIONS[index % NEWS_TRANSITIONS.length];
@@ -124,7 +142,7 @@ function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): s
           parts.push(`${transition} <break time="150ms"/>`);
         }
       }
-      
+
       // Adjust delivery based on this headline's weight
       if (weight === 'heavy') {
         parts.push(`<speed ratio="0.90"/>${cleanHeadline}`);
@@ -136,13 +154,13 @@ function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): s
         parts.push(`<speed ratio="0.96"/>${cleanHeadline}`);
       }
     }
-    
+
     parts.push('.');
   });
-  
+
   // Warm closing breath
   parts.push('<break time="250ms"/>');
-  
+
   return parts.join('');
 }
 
@@ -152,12 +170,110 @@ function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): s
 function formatSingleNewsResult(content: string): string {
   // Add natural pacing for longer content
   let result = content;
-  
+
   // Add pauses after sentence-ending punctuation followed by capital letter
   result = result.replace(/([.!?])\s+([A-Z])/g, '$1<break time="400ms"/> $2');
-  
+
   // Slightly slower for clarity
   return `<speed ratio="0.94"/>${result}`;
+}
+
+// ============================================================================
+// NEWS SOURCE CONFIGURATIONS
+// ============================================================================
+
+/**
+ * Create news sources for priority-based fetching
+ * Sources are tried based on speed and reliability metrics
+ */
+function createNewsSources(topic: string): SourceConfig[] {
+  const sources: SourceConfig[] = [];
+  const encodedTopic = encodeURIComponent(topic);
+
+  // Primary: NewsData.io (usually fast, good coverage)
+  if (NEWSDATA_KEY) {
+    sources.push(
+      createSource(
+        'newsdata',
+        'NewsData.io',
+        async () => {
+          const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_KEY}&q=${encodedTopic}&language=en&size=5`;
+          const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          if (!response.ok) throw new Error(`NewsData.io: ${response.status}`);
+          const data = (await response.json()) as {
+            results?: Array<{ title?: string }>;
+          };
+          return (
+            data.results
+              ?.slice(0, 4)
+              .map((a) => a.title)
+              .filter(Boolean) || []
+          );
+        },
+        { basePriority: 1, avgLatency: 2000 }
+      )
+    );
+  }
+
+  // Secondary: GNews (good backup)
+  if (GNEWS_KEY) {
+    sources.push(
+      createSource(
+        'gnews',
+        'GNews',
+        async () => {
+          const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
+          const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          if (!response.ok) throw new Error(`GNews: ${response.status}`);
+          const data = (await response.json()) as {
+            articles?: Array<{ title?: string }>;
+          };
+          return (
+            data.articles
+              ?.slice(0, 4)
+              .map((a) => a.title)
+              .filter(Boolean) || []
+          );
+        },
+        { basePriority: 2, avgLatency: 2500 }
+      )
+    );
+  }
+
+  // Fallback: DuckDuckGo (no API key needed)
+  sources.push(
+    createSource(
+      'duckduckgo',
+      'DuckDuckGo',
+      async () => {
+        const searchQuery = `${topic} news today`;
+        const response = await fetch(
+          `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1&skip_disambig=1`,
+          { signal: AbortSignal.timeout(5000) }
+        );
+        if (!response.ok) throw new Error(`DuckDuckGo: ${response.status}`);
+        const data = (await response.json()) as {
+          AbstractText?: string;
+          RelatedTopics?: Array<{ Text?: string }>;
+        };
+
+        // Try abstract first
+        if (data.AbstractText && data.AbstractText.length > 50) {
+          return [data.AbstractText.slice(0, 500)];
+        }
+
+        // Try related topics
+        return (
+          data.RelatedTopics?.slice(0, 4)
+            .map((t) => t.Text)
+            .filter((t) => t && t.length > 10) || []
+        );
+      },
+      { basePriority: 5, avgLatency: 3000, fallbackOnly: true }
+    )
+  );
+
+  return sources;
 }
 
 // ============================================================================
@@ -167,173 +283,136 @@ function formatSingleNewsResult(content: string): string {
 /**
  * Search news by topic using NewsData.io (primary) or fallbacks
  * Supports any topic: "Christmas", "AI", "sports", etc.
+ *
+ * Uses progressive execution with priority-based fetching:
+ * - Fast sources (NewsData, GNews) tried first in parallel
+ * - Slow sources (DuckDuckGo) started after delay if needed
+ * - Returns as soon as we have enough headlines
+ * - Falls back to cache if all sources fail
  */
 export async function searchNewsByTopic(topic: string): Promise<string> {
   const logger = getLogger();
   const startTime = Date.now();
+  const cacheKey = `topic:${topic}`;
 
-  logger.info({ topic }, '🔍 [DIAG] searchNewsByTopic START');
+  logger.info({ topic }, '🔍 [DIAG] searchNewsByTopic START (progressive)');
 
-  // Primary: Use NewsData.io (best free tier - 200 credits/day)
-  if (NEWSDATA_KEY) {
-    try {
-      const encodedTopic = encodeURIComponent(topic);
-      const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_KEY}&q=${encodedTopic}&language=en&size=5`;
-
-      logger.debug({ topic }, '🔍 [DIAG] Fetching from NewsData.io...');
-      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-
-      if (response.ok) {
-        const data = (await response.json()) as {
-          status?: string;
-          totalResults?: number;
-          results?: Array<{
-            title?: string;
-            description?: string;
-            source_name?: string;
-            pubDate?: string;
-          }>;
-        };
-
-        if (data.results && data.results.length > 0) {
-          const headlines = data.results
-            .slice(0, 4)
-            .map((a) => a.title)
-            .filter(Boolean);
-
-          logger.info(
-            { topic, elapsed: Date.now() - startTime, count: headlines.length },
-            '🔍 [DIAG] searchNewsByTopic SUCCESS (NewsData.io)'
-          );
-
-          return formatNewsWithSSML(headlines, `Here's what's happening with ${topic}`);
-        }
-      } else {
-        const errorData = await response.text();
-        logger.warn({ topic, status: response.status, error: errorData }, '🔍 [DIAG] NewsData.io error');
-      }
-    } catch (error) {
-      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] NewsData.io failed, trying fallback');
-    }
+  // Check cache first for instant response
+  const cached = toolCache.getWithStaleness<string[]>('searchNewsByTopic', cacheKey);
+  if (cached?.freshness === 'fresh') {
+    logger.info(
+      { topic, cacheAge: Date.now() - cached.timestamp },
+      '🔍 [DIAG] Returning fresh cache'
+    );
+    return formatNewsWithSSML(cached.data, `Here's what's happening with ${topic}`);
   }
 
-  // Fallback 1: GNews if configured
-  if (GNEWS_KEY) {
-    try {
-      const encodedTopic = encodeURIComponent(topic);
-      const url = `https://gnews.io/api/v4/search?q=${encodedTopic}&lang=en&max=5&apikey=${GNEWS_KEY}`;
+  // Create sources for this topic
+  const sources = createNewsSources(topic);
 
-      logger.debug({ topic }, '🔍 [DIAG] Trying GNews fallback...');
-      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-
-      if (response.ok) {
-        const data = (await response.json()) as {
-          totalArticles?: number;
-          articles?: Array<{
-            title?: string;
-            description?: string;
-            source?: { name?: string };
-            publishedAt?: string;
-          }>;
-        };
-
-        if (data.articles && data.articles.length > 0) {
-          const headlines = data.articles
-            .slice(0, 4)
-            .map((a) => a.title)
-            .filter(Boolean);
-
-          logger.info(
-            { topic, elapsed: Date.now() - startTime, count: headlines.length },
-            '🔍 [DIAG] searchNewsByTopic SUCCESS (GNews)'
-          );
-
-          return formatNewsWithSSML(headlines, `Here's what's happening with ${topic}`);
-        }
-      }
-    } catch (error) {
-      logger.warn({ topic, error: String(error) }, '🔍 [DIAG] GNews failed');
-    }
+  if (sources.length === 0) {
+    logger.warn({ topic }, '🔍 [DIAG] No news sources configured');
+    return "I don't have access to news sources right now.";
   }
 
-  // Fallback 2: DuckDuckGo for topic context
-  logger.info({ topic }, '🔍 [DIAG] Using DuckDuckGo news search fallback');
   try {
-    const searchQuery = `${topic} news today`;
-    const response = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1&skip_disambig=1`,
-      { signal: AbortSignal.timeout(10000) }
+    // Fetch with priority-based orchestration
+    const {
+      results,
+      sources: usedSources,
+      latency,
+      complete,
+    } = await fetchWithPriority<string>({
+      sources,
+      query: topic,
+      minResults: 3,
+      maxWait: 8000,
+      slowSourceDelay: 1500,
+      slowThreshold: 2500,
+      transformResult: (data) => {
+        if (Array.isArray(data)) {
+          return data.filter((item): item is string => typeof item === 'string' && item.length > 0);
+        }
+        return [];
+      },
+    });
+
+    if (results.length > 0) {
+      // Cache the results
+      toolCache.set('searchNewsByTopic', cacheKey, results, 'news');
+
+      logger.info(
+        { topic, elapsed: latency, count: results.length, sources: usedSources, complete },
+        '🔍 [DIAG] searchNewsByTopic SUCCESS'
+      );
+
+      return formatNewsWithSSML(results, `Here's what's happening with ${topic}`);
+    }
+
+    // No live results - try stale cache
+    if (cached) {
+      logger.info(
+        { topic, freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
+        '🔍 [DIAG] Returning stale cache as fallback'
+      );
+      return formatNewsWithSSML(cached.data, `Here's what I found recently about ${topic}`);
+    }
+
+    // Final fallback: general news
+    logger.info(
+      { topic, elapsed: Date.now() - startTime },
+      '🔍 [DIAG] All sources failed, trying general news'
+    );
+    const generalNews = await getGeneralNews();
+    return `I couldn't find specific news about "${topic}", but here's what's happening: ${generalNews.replace(/^Top news from \w+: /, '')}`;
+  } catch (error) {
+    logger.warn(
+      { topic, error: String(error), elapsed: Date.now() - startTime },
+      '🔍 [DIAG] searchNewsByTopic FAILED'
     );
 
-    if (response.ok) {
-      const data = (await response.json()) as {
-        AbstractText?: string;
-        AbstractSource?: string;
-        RelatedTopics?: Array<{ Text?: string; FirstURL?: string }>;
-        Heading?: string;
-      };
-
-      // Try abstract first
-      if (data.AbstractText && data.AbstractText.length > 50) {
-        logger.info(
-          { topic, elapsed: Date.now() - startTime },
-          '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo abstract)'
-        );
-        return formatSingleNewsResult(`About ${topic}: ${data.AbstractText.slice(0, 500)}`);
-      }
-
-      // Try related topics
-      if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-        const topics = data.RelatedTopics
-          .slice(0, 4)
-          .map((t) => t.Text)
-          .filter((t) => t && t.length > 10);
-
-        if (topics.length > 0) {
-          logger.info(
-            { topic, elapsed: Date.now() - startTime, count: topics.length },
-            '🔍 [DIAG] searchNewsByTopic SUCCESS (DuckDuckGo topics)'
-          );
-          return formatNewsWithSSML(topics as string[], `Here's what I found about ${topic}`);
-        }
-      }
+    // Return stale cache if available
+    if (cached) {
+      return formatNewsWithSSML(cached.data, `Here's what I found recently about ${topic}`);
     }
-  } catch (error) {
-    logger.warn({ topic, error: String(error) }, '🔍 [DIAG] DuckDuckGo fallback failed');
-  }
 
-  // Final fallback: Return general news with a note
-  logger.info({ topic }, '🔍 [DIAG] All topic search failed, returning general news');
-  const generalNews = await getGeneralNews();
-  return `I couldn't find specific news about "${topic}", but here's what's happening: ${generalNews.replace(/^Top news from \w+: /, '')}`;
+    return `I'm having trouble getting news about "${topic}" right now. Try again in a moment?`;
+  }
 }
 
 /**
  * Get financial news from Finnhub
+ *
+ * Uses progressive execution with caching for reliability
  */
 export async function getFinancialNews(
   category: 'general' | 'forex' | 'crypto' | 'merger' = 'general'
 ): Promise<string> {
   const startTime = Date.now();
   const logger = getLogger();
+  const cacheKey = `financial:${category}`;
 
-  logger.info(
-    { timestamp: new Date().toISOString(), category },
-    '📰 [DIAG] getFinancialNews START'
-  );
+  logger.info({ category }, '📰 [DIAG] getFinancialNews START (progressive)');
 
   if (!FINNHUB_KEY) {
-    logger.warn({ elapsed: Date.now() - startTime }, '📰 [DIAG] getFinancialNews: No API key');
+    logger.warn('📰 [DIAG] getFinancialNews: No API key');
     return "I don't have access to real-time financial news right now. But remember—don't let headlines drive your investment decisions!";
   }
 
-  try {
+  // Check cache first
+  const cached = toolCache.getWithStaleness<string[]>('getFinancialNews', cacheKey);
+  if (cached?.freshness === 'fresh') {
+    logger.info({ cacheAge: Date.now() - cached.timestamp }, '📰 [DIAG] Returning fresh cache');
+    return formatNewsWithSSML(cached.data, "Here's what's moving in the markets");
+  }
+
+  // Use progressive execution for the API call
+  const result = await executeWithProgressiveFeedback<string[]>('getFinancialNews', async () => {
     const url = `https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_KEY}`;
-    logger.debug({ category }, '📰 [DIAG] Fetching from Finnhub...');
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
 
     if (!response.ok) {
-      return "I couldn't get the latest financial news right now.";
+      throw new Error(`Finnhub: ${response.status}`);
     }
 
     const news = (await response.json()) as Array<{
@@ -343,30 +422,47 @@ export async function getFinancialNews(
       summary?: string;
     }>;
 
-    if (news && news.length > 0) {
-      const topStories = news
-        .slice(0, 3)
-        .map((n) => n.headline)
-        .filter(Boolean);
-      return formatNewsWithSSML(topStories, "Here's what's moving in the markets");
+    if (!news || news.length === 0) {
+      return [];
     }
 
-    logger.info({ elapsed: Date.now() - startTime }, '📰 [DIAG] getFinancialNews: No news found');
-    return 'The financial news is quiet today. Sometimes no news is good news for investors!';
-  } catch (error) {
-    const elapsed = Date.now() - startTime;
-    const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
-    logger.warn(
-      {
-        error: String(error),
-        elapsed,
-        isTimeout,
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-      },
-      '📰 [DIAG] getFinancialNews FAILED - check if this correlates with music issues!'
+    return news
+      .slice(0, 3)
+      .map((n) => n.headline)
+      .filter(Boolean) as string[];
+  });
+
+  if (result.success && result.data && result.data.length > 0) {
+    // Cache the results
+    toolCache.set('getFinancialNews', cacheKey, result.data, 'news');
+
+    logger.info(
+      { elapsed: result.latency, count: result.data.length, source: result.source },
+      '📰 [DIAG] getFinancialNews SUCCESS'
     );
-    return "I'm having trouble getting the news. But you know, I've found that ignoring most financial news makes you a better investor!";
+
+    return formatNewsWithSSML(result.data, "Here's what's moving in the markets");
   }
+
+  // Try stale cache as fallback
+  if (cached) {
+    logger.info(
+      { freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
+      '📰 [DIAG] Returning stale cache'
+    );
+    return formatNewsWithSSML(cached.data, "Here's the recent market news");
+  }
+
+  // No data available
+  if (result.success && (!result.data || result.data.length === 0)) {
+    return 'The financial news is quiet today. Sometimes no news is good news for investors!';
+  }
+
+  logger.warn(
+    { elapsed: Date.now() - startTime, error: result.error },
+    '📰 [DIAG] getFinancialNews FAILED'
+  );
+  return "I'm having trouble getting the news. But you know, I've found that ignoring most financial news makes you a better investor!";
 }
 
 /**
@@ -413,65 +509,115 @@ export async function getStockNews(symbol: string): Promise<string> {
 /**
  * Get general world/top news from free RSS feeds
  * Using NPR and BBC RSS as they're reliable and free
+ *
+ * Uses progressive execution with source prioritization
  */
 export async function getGeneralNews(): Promise<string> {
   const startTime = Date.now();
   const logger = getLogger();
+  const cacheKey = 'general';
 
-  logger.info({ timestamp: new Date().toISOString() }, '📰 [DIAG] getGeneralNews START');
+  logger.info('📰 [DIAG] getGeneralNews START (progressive)');
 
-  // Try multiple sources
-  const sources = [
-    { url: 'https://feeds.npr.org/1001/rss.xml', name: 'NPR' },
-    { url: 'http://feeds.bbci.co.uk/news/rss.xml', name: 'BBC' },
-  ];
-
-  for (const source of sources) {
-    const sourceStartTime = Date.now();
-    try {
-      logger.debug({ source: source.name }, '📰 [DIAG] Trying news source...');
-      const response = await fetch(source.url, {
-        signal: AbortSignal.timeout(8000),
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-
-      if (response.ok) {
-        const xml = await response.text();
-        const headlines = extractRSSHeadlines(xml, 5);
-
-        if (headlines.length > 0) {
-          logger.info(
-            { source: source.name, elapsed: Date.now() - startTime, headlines: headlines.length },
-            '📰 [DIAG] getGeneralNews SUCCESS'
-          );
-          return formatNewsWithSSML(headlines, "Here's what's happening in the world");
-        }
-      } else {
-        logger.warn(
-          { source: source.name, status: response.status, elapsed: Date.now() - sourceStartTime },
-          '📰 [DIAG] News source returned non-OK'
-        );
-      }
-    } catch (error) {
-      const elapsed = Date.now() - sourceStartTime;
-      const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
-      logger.warn(
-        {
-          source: source.name,
-          error: String(error),
-          elapsed,
-          isTimeout,
-          errorType: error instanceof Error ? error.constructor.name : typeof error,
-        },
-        '📰 [DIAG] News source FAILED - may affect subsequent tools!'
-      );
-      continue; // Try next source
-    }
+  // Check cache first
+  const cached = toolCache.getWithStaleness<string[]>('getGeneralNews', cacheKey);
+  if (cached?.freshness === 'fresh') {
+    logger.info({ cacheAge: Date.now() - cached.timestamp }, '📰 [DIAG] Returning fresh cache');
+    return formatNewsWithSSML(cached.data, "Here's what's happening in the world");
   }
 
-  const elapsed = Date.now() - startTime;
-  logger.warn({ elapsed }, '📰 [DIAG] getGeneralNews: All sources failed');
-  return "I couldn't fetch the latest news right now. Check back later.";
+  // Create RSS sources
+  const sources: SourceConfig[] = [
+    createSource(
+      'npr',
+      'NPR',
+      async () => {
+        const response = await fetch('https://feeds.npr.org/1001/rss.xml', {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+        if (!response.ok) throw new Error(`NPR: ${response.status}`);
+        const xml = await response.text();
+        return extractRSSHeadlines(xml, 5);
+      },
+      { basePriority: 1, avgLatency: 1500 }
+    ),
+    createSource(
+      'bbc',
+      'BBC',
+      async () => {
+        const response = await fetch('http://feeds.bbci.co.uk/news/rss.xml', {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+        if (!response.ok) throw new Error(`BBC: ${response.status}`);
+        const xml = await response.text();
+        return extractRSSHeadlines(xml, 5);
+      },
+      { basePriority: 2, avgLatency: 2000 }
+    ),
+  ];
+
+  try {
+    const {
+      results,
+      sources: usedSources,
+      latency,
+      complete,
+    } = await fetchWithPriority<string>({
+      sources,
+      query: 'general',
+      minResults: 4,
+      maxWait: 6000,
+      slowSourceDelay: 1000,
+      slowThreshold: 2000,
+      transformResult: (data) => {
+        if (Array.isArray(data)) {
+          return data.filter((item): item is string => typeof item === 'string' && item.length > 0);
+        }
+        return [];
+      },
+    });
+
+    if (results.length > 0) {
+      // Cache the results
+      toolCache.set('getGeneralNews', cacheKey, results, 'news');
+
+      logger.info(
+        { elapsed: latency, count: results.length, sources: usedSources, complete },
+        '📰 [DIAG] getGeneralNews SUCCESS'
+      );
+
+      return formatNewsWithSSML(results, "Here's what's happening in the world");
+    }
+
+    // Try stale cache
+    if (cached) {
+      logger.info(
+        { freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
+        '📰 [DIAG] Returning stale cache'
+      );
+      return formatNewsWithSSML(cached.data, "Here's the recent news");
+    }
+
+    logger.warn(
+      { elapsed: Date.now() - startTime },
+      '📰 [DIAG] getGeneralNews: All sources failed'
+    );
+    return "I couldn't fetch the latest news right now. Check back later.";
+  } catch (error) {
+    logger.warn(
+      { error: String(error), elapsed: Date.now() - startTime },
+      '📰 [DIAG] getGeneralNews FAILED'
+    );
+
+    // Return stale cache if available
+    if (cached) {
+      return formatNewsWithSSML(cached.data, "Here's the recent news");
+    }
+
+    return "I couldn't fetch the latest news right now. Check back later.";
+  }
 }
 
 /**

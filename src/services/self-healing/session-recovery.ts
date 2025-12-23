@@ -10,6 +10,8 @@
 
 import { humanizeError, getRecoveryMessage } from './error-humanizer.js';
 import { createLogger } from '../../utils/safe-logger.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 const log = createLogger({ module: 'session-recovery' });
 
@@ -27,11 +29,13 @@ interface SessionLike {
 
 /**
  * Communicate recovery to user in a warm, human way
+ * @param sessionId - If provided, uses coordinated speech; otherwise falls back to direct session.say
  */
 export async function communicateRecovery(
   session: SessionLike,
   error: Error,
-  context: RecoveryContext
+  context: RecoveryContext,
+  sessionId?: string
 ): Promise<boolean> {
   try {
     const humanized = humanizeError(error);
@@ -57,8 +61,12 @@ export async function communicateRecovery(
       });
     }
 
-    // Say the message warmly
-    await session.say(message, { allowInterruptions: true });
+    // Say the message warmly via coordinated speech if sessionId available
+    if (sessionId) {
+      coordinatedSay(sessionId, message, { allowInterruptions: true });
+    } else {
+      await session.say(message, { allowInterruptions: true });
+    }
 
     log.info(
       { phase: context.phase, errorType: context.errorType, autoRecovered: context.autoRecovered },
@@ -81,6 +89,7 @@ export async function communicateRecovery(
 export function createRecoveryAwareSession(
   session: SessionLike,
   options: {
+    sessionId?: string;
     onRecoverySpoken?: (message: string) => void;
   } = {}
 ): SessionLike & {
@@ -106,7 +115,12 @@ export function createRecoveryAwareSession(
 
       if (humanized.shouldNotifyUser) {
         try {
-          await session.say(humanized.userMessage, { allowInterruptions: true });
+          // Use coordinated speech if sessionId available
+          if (options.sessionId) {
+            coordinatedSay(options.sessionId, humanized.userMessage, { allowInterruptions: true });
+          } else {
+            await session.say(humanized.userMessage, { allowInterruptions: true });
+          }
           options.onRecoverySpoken?.(humanized.userMessage);
           return true;
         } catch {

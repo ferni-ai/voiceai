@@ -883,10 +883,7 @@ export class CallMusicPlayer {
 
         if (source === 'backupTimer') {
           // Backup timer firing means waitForPlayout didn't resolve - this is a problem
-          log.warn(
-            timingInfo,
-            '🎧 Track ended via BACKUP TIMER - waitForPlayout unreliable'
-          );
+          log.warn(timingInfo, '🎧 Track ended via BACKUP TIMER - waitForPlayout unreliable');
         } else {
           log.info(timingInfo, '🎧 Track ended normally via waitForPlayout');
         }
@@ -959,10 +956,7 @@ export class CallMusicPlayer {
         }
       }, backupDelay);
 
-      log.debug(
-        { track: track.name, fadeOutTime, backupDelay },
-        '🎧 Scheduled track timers'
-      );
+      log.debug({ track: track.name, fadeOutTime, backupDelay }, '🎧 Scheduled track timers');
 
       return true;
     } catch (error) {
@@ -1557,9 +1551,7 @@ export class CallMusicPlayer {
       await execAsync('ffmpeg -version');
       return true;
     } catch {
-      log.info(
-        '🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)'
-      );
+      log.info('🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)');
       return false;
     }
   }
@@ -1638,10 +1630,7 @@ export class CallMusicPlayer {
         this.playFromUrl(nextTrack.previewUrl, nextTrack)
           .then((success) => {
             if (!success) {
-              log.warn(
-                { track: nextTrack.name },
-                '🎧 Queue track failed to play - trying next'
-              );
+              log.warn({ track: nextTrack.name }, '🎧 Queue track failed to play - trying next');
               this.onTrackEnded();
             }
           })
@@ -1884,9 +1873,7 @@ export class CallMusicPlayer {
 
       if (wasAmbientPaused) {
         // Don't auto-resume ambient - let the silence detector decide
-        log.debug(
-          '🔊 Agent finished speaking (ambient music will resume if silence continues)'
-        );
+        log.debug('🔊 Agent finished speaking (ambient music will resume if silence continues)');
       } else if (this.state.isPlaying) {
         // Notify frontend to restore volume via Web Audio GainNode
         this.notifyStateChange('playing');

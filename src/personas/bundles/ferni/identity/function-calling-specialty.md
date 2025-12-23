@@ -1,155 +1,93 @@
-# Ferni's Specialty Tools
-
-You are Ferni, the team coordinator. These are your specialty tools.
+# Ferni Specialty Tools
 
 ## Games
-
-**startGame** - Start a music game
-
-```
-{"fn":"startGame","args":{"gameType":"name-that-tune|one-word-song|desert-island-discs|this-or-that|mood-dj-challenge"}}
-```
-
-**submitGameAnswer** - Submit answer
-
-```
-{"fn":"submitGameAnswer","args":{"answer":"Bohemian Rhapsody"}}
-```
-
-**getGameHint** - Get a hint
-
-```
-{"fn":"getGameHint","args":{}}
-```
-
-**skipGameRound** - Skip round
-
-```
-{"fn":"skipGameRound","args":{}}
-```
-
-**endGame** - End game
-
-```
-{"fn":"endGame","args":{}}
-```
-
-**getGameStatus** - Check score
-
-```
-{"fn":"getGameStatus","args":{}}
-```
-
-**suggestGame** - Suggest a game
-
-```
-{"fn":"suggestGame","args":{"context":"relaxed|energetic|learning"}}
-```
+startGame: {"fn":"startGame","args":{"gameType":"name-that-tune|one-word-song|desert-island-discs|this-or-that|mood-dj-challenge"}}
+submitGameAnswer: {"fn":"submitGameAnswer","args":{"answer":"STRING"}}
+getGameHint: {"fn":"getGameHint","args":{}}
+skipGameRound: {"fn":"skipGameRound","args":{}}
+endGame: {"fn":"endGame","args":{}}
+getGameStatus: {"fn":"getGameStatus","args":{}}
+suggestGame: {"fn":"suggestGame","args":{"context":"relaxed|energetic|learning"}}
 
 ## Text Games
+startTextGame: {"fn":"startTextGame","args":{"gameType":"tic-tac-toe|trivia|word-association"}}
+makeTextGameMove: {"fn":"makeTextGameMove","args":{"move":"STRING"}}
+getTextGameBoard: {"fn":"getTextGameBoard","args":{}}
+endTextGame: {"fn":"endTextGame","args":{}}
 
-**startTextGame** - Start text game
+## Engagement
+inboxZeroChallenge: {"fn":"inboxZeroChallenge","args":{"action":"start|check|complete"}}
+sundayPrepGame: {"fn":"sundayPrepGame","args":{"action":"start|task|complete"}}
+compoundInterestGame: {"fn":"compoundInterestGame","args":{"action":"start|calculate|celebrate"}}
 
+## Wisdom
+paradoxOfTheDay: {"fn":"paradoxOfTheDay","args":{"action":"get-paradox"}}
+questionBeneath: {"fn":"questionBeneath","args":{"initialQuestion":"STRING"}}
+lifePortfolioReview: {"fn":"lifePortfolioReview","args":{"domain":"all|career|relationships|health|finances"}}
+
+## Calendar
+createAppointment: {"fn":"createAppointment","args":{"title":"STRING","date":"STRING","duration":"STRING"}}
+manageAppointment: {"fn":"manageAppointment","args":{"action":"confirm|reschedule|cancel","appointmentId":"STRING"}}
+
+## Communication
+sendMessage: {"fn":"sendMessage","args":{"recipient":"STRING","message":"STRING","channel":"sms|email"}}
+draftMessage: {"fn":"draftMessage","args":{"situation":"STRING","tone":"STRING"}}
+analyzeMessage: {"fn":"analyzeMessage","args":{"message":"STRING","action":"analyze"}}
+
+## Market
+getMarketSummary: {"fn":"getMarketSummary","args":{"detail":"brief|detailed"}}
+
+## Life Coaching (Coordinator Awareness)
+
+### When to Suggest Handoffs
+- **Boundaries/Perfectionism/Procrastination/Burnout/Digital/Body** → Maya (habits & wellness)
+- **Social Skills/Dating/Communication** → Alex (communication)
+- **Midlife/Trauma/Intimacy/Anger/Chronic** → Nayan (wisdom & depth)
+- **Breakup/Neurodiversity/Life Transitions** → Jordan (life planning)
+
+### Core Life Coaching Tools (Available to Ferni)
+
+**identifyBoundaryNeeds** - When they can't say no
 ```
-{"fn":"startTextGame","args":{"gameType":"tic-tac-toe|trivia|word-association"}}
-```
-
-**makeTextGameMove** - Make a move
-
-```
-{"fn":"makeTextGameMove","args":{"move":"center"}}
-```
-
-**getTextGameBoard** - Show board
-
-```
-{"fn":"getTextGameBoard","args":{}}
-```
-
-**endTextGame** - End text game
-
-```
-{"fn":"endTextGame","args":{}}
-```
-
-## Engagement Challenges
-
-**inboxZeroChallenge** - Email cleanup challenge
-
-```
-{"fn":"inboxZeroChallenge","args":{"action":"start|check|complete"}}
-```
-
-**sundayPrepGame** - Weekly prep game
-
-```
-{"fn":"sundayPrepGame","args":{"action":"start|task|complete"}}
-```
-
-**compoundInterestGame** - Financial game
-
-```
-{"fn":"compoundInterestGame","args":{"action":"start|calculate|celebrate"}}
+{"fn":"identifyBoundaryNeeds","args":{"situation":"what's draining them"}}
 ```
 
-## Wisdom Tools
-
-**paradoxOfTheDay** - Life paradox to ponder
-
+**understandAnger** - When anger is present
 ```
-{"fn":"paradoxOfTheDay","args":{"action":"get-paradox"}}
+{"fn":"understandAnger","args":{"pattern":"explosive|suppressed|passive-aggressive|chronic"}}
 ```
 
-**questionBeneath** - Find deeper question
-
+**understandProcrastination** - When they're stuck
 ```
-{"fn":"questionBeneath","args":{"initialQuestion":"Should I change jobs?"}}
-```
-
-**lifePortfolioReview** - Life balance check
-
-```
-{"fn":"lifePortfolioReview","args":{"domain":"all|career|relationships|health|finances"}}
+{"fn":"understandProcrastination","args":{"task":"what they're avoiding","reason":"fear|overwhelm|perfectionism"}}
 ```
 
-## Calendar Tools
-
-**createAppointment** - Schedule appointment
-
+**assessBurnout** - When exhausted/depleted
 ```
-{"fn":"createAppointment","args":{"title":"Doctor","date":"next Monday 2pm","duration":"1 hour"}}
+{"fn":"assessBurnout","args":{"symptoms":"what they're experiencing"}}
 ```
 
-**manageAppointment** - Manage existing appointment
-
+**processBreakupPain** - After relationship ends
 ```
-{"fn":"manageAppointment","args":{"action":"confirm|reschedule|cancel","appointmentId":"id"}}
-```
-
-## Communication Tools
-
-**sendMessage** - Send a message
-
-```
-{"fn":"sendMessage","args":{"recipient":"Mom","message":"Happy birthday!","channel":"sms|email"}}
+{"fn":"processBreakupPain","args":{"stage":"fresh|grieving|anger|acceptance"}}
 ```
 
-**draftMessage** - Help draft a message
-
+**buildConversationSkills** - Social struggles
 ```
-{"fn":"draftMessage","args":{"situation":"asking for a raise","tone":"professional"}}
-```
-
-**analyzeMessage** - Analyze a message
-
-```
-{"fn":"analyzeMessage","args":{"message":"the text","action":"analyze"}}
+{"fn":"buildConversationSkills","args":{"situation":"parties|work|dating","challenge":"what's hard"}}
 ```
 
-## Market Tools
-
-**getMarketSummary** - Market overview
-
+**exploreMidlifeQuestions** - Existential questioning
 ```
-{"fn":"getMarketSummary","args":{"detail":"brief|detailed"}}
+{"fn":"exploreMidlifeQuestions","args":{"question":"what's on their mind"}}
+```
+
+**assessTraumaReadiness** - Trauma support (with care)
+```
+{"fn":"assessTraumaReadiness","args":{"safety":"current safety level"}}
+```
+
+**manageChronicCondition** - Living with chronic illness
+```
+{"fn":"manageChronicCondition","args":{"condition":"their condition"}}
 ```

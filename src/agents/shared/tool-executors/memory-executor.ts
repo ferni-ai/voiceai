@@ -426,7 +426,7 @@ async function execute(
           await batch.commit();
 
           log.info({ userId: ctx.userId, deleted: docsToDelete.length }, '✅ Memories deleted');
-          return `Done. I've forgotten about that. Your privacy matters.`;
+          return `I've forgotten about that. Your privacy matters.`;
         }
 
         return `I didn't find specific memories about "${target}" to remove.`;

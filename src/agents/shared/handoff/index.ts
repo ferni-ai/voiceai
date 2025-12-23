@@ -32,8 +32,9 @@ export {
   stopProgressHeartbeat,
   getHandoffPersonaInfo,
   type HandoffProgressInfo,
-  // Message sequencing
+  // Message sequencing - use sync version for backward compatibility
   getNextMessageSeq,
+  getNextMessageSeqSync,
 } from './session-state.js';
 
 // Cached module accessors

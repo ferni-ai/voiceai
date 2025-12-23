@@ -69,4 +69,3 @@ export function getNonverbal(type: NonverbalType): string {
 export function isNonverbalSupported(type: NonverbalType): boolean {
   return NONVERBAL_CONFIG[type].supported;
 }
-

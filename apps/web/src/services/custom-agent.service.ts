@@ -154,6 +154,8 @@ export interface AddMemoryRequest {
   transcript?: string;
   /** Duration in seconds for voice entries */
   durationSeconds?: number;
+  /** Whether transcription failed or was unavailable */
+  transcriptionFailed?: boolean;
 }
 
 // ============================================================================

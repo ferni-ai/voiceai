@@ -107,8 +107,7 @@ export function generateIdentityCardData(dna: CreativeDNA): IdentityCardData {
   return {
     userId: dna.userId,
     personalityLabel: dna.personalityLabel || 'Creative Soul',
-    personalityDescription:
-      dna.personalityDescription || 'Every journey is unique.',
+    personalityDescription: dna.personalityDescription || 'Every journey is unique.',
     topTopics: dna.topTopics.slice(0, 5),
     stats: {
       videosWatched: dna.totalVideosWatched || 0,
@@ -362,7 +361,11 @@ export function generateShareableCardData(cardData: IdentityCardData): string {
     p: cardData.personalityLabel,
     d: cardData.personalityDescription.slice(0, 80),
     t: cardData.topTopics.slice(0, 3).map((t) => t.topic),
-    s: [cardData.stats.videosWatched, cardData.stats.podcastsListened, cardData.stats.insightsSaved],
+    s: [
+      cardData.stats.videosWatched,
+      cardData.stats.podcastsListened,
+      cardData.stats.insightsSaved,
+    ],
   };
 
   return Buffer.from(JSON.stringify(minimalData)).toString('base64url');
@@ -401,7 +404,10 @@ export function parseShareableCardData(encoded: string): IdentityCardData | null
 export function generateOGMetaTags(cardData: IdentityCardData): string {
   const title = `I'm a ${cardData.personalityLabel} on Ferni`;
   const description = cardData.personalityDescription;
-  const topTopics = cardData.topTopics.slice(0, 3).map((t) => t.topic).join(', ');
+  const topTopics = cardData.topTopics
+    .slice(0, 3)
+    .map((t) => t.topic)
+    .join(', ');
 
   return `
     <meta property="og:title" content="${title}" />
@@ -415,4 +421,3 @@ export function generateOGMetaTags(cardData: IdentityCardData): string {
 }
 
 log.debug('🎨 Identity card generator loaded');
-

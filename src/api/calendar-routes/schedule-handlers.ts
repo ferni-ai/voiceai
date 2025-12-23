@@ -138,10 +138,16 @@ export async function handleBlockFocus(
     const durationMinutes = body?.durationMinutes || 60;
 
     const today = new Date();
-    const freeSlots = await findFreeTimeSlots(userId, today, { minDurationMinutes: durationMinutes });
+    const freeSlots = await findFreeTimeSlots(userId, today, {
+      minDurationMinutes: durationMinutes,
+    });
 
     if (!freeSlots || freeSlots.length === 0) {
-      sendJson(res, { success: false, message: 'No available time slots for focus time today' }, 400);
+      sendJson(
+        res,
+        { success: false, message: 'No available time slots for focus time today' },
+        400
+      );
       return;
     }
 
@@ -334,5 +340,3 @@ export async function handleAlerts(
     sendError(res, 'Failed to fetch calendar alerts', 500);
   }
 }
-
-

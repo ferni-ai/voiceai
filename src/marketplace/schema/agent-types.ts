@@ -176,4 +176,3 @@ export interface AgentManifest {
     requiredFeatures?: string[];
   };
 }
-

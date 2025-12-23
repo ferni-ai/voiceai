@@ -135,4 +135,3 @@ export async function synthesizeTeamInsights(userId: string): Promise<TeamSynthe
 
   return synthesis;
 }
-

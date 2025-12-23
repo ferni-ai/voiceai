@@ -87,5 +87,3 @@ export async function handleSelectCalendars(
     sendError(res, 'Failed to update calendar selection', 500);
   }
 }
-
-

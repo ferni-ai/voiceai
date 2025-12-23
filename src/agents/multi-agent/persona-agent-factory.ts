@@ -19,6 +19,8 @@ import {
   buildConversationSummary,
   getRecentMessagesForHandoff,
 } from './agent-setup.js';
+// Speech coordination for centralized speech management
+import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
 
 const log = getLogger();
 
@@ -54,7 +56,15 @@ export interface PersonaAgentFactoryConfig {
  * returns a function that creates persona agents with full capabilities.
  */
 export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConfig) {
-  const { ctx, services, userData, sessionId, userId, conversationManager, enableFullHandlers = true } = factoryConfig;
+  const {
+    ctx,
+    services,
+    userData,
+    sessionId,
+    userId,
+    conversationManager,
+    enableFullHandlers = true,
+  } = factoryConfig;
 
   /**
    * Create a persona agent for the given persona ID.
@@ -70,11 +80,17 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       '🎭 Factory creating persona agent'
     );
 
+    // Validate required context
+    if (!context.room) {
+      throw new Error(`Cannot create agent ${personaId}: room is null/undefined`);
+    }
+
     // Get persona config
     const personaConfig = await getPersonaAsyncCached(personaId);
     if (!personaConfig) {
       throw new Error(`Unknown persona: ${personaId}`);
     }
+    log.info({ personaId, personaName: personaConfig.name }, '🎭 Persona config loaded');
 
     // Build handoff context if this is a handoff
     let conversationSummary: string | undefined;
@@ -134,14 +150,48 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     };
 
     // Start the session in the room
-    await agentSetup.session.start({
-      room: context.room,
-      agent: agentSetup.agent,
-    });
+    // CRITICAL: For handoffs, use record: false to avoid "Only one AgentSession can be primary" error
+    // The old session may still be registered as primary even after close() is called
+    try {
+      log.info(
+        { personaId, agentInstanceId, isHandoff: context.isHandoff },
+        '🎭 Starting agent session in room...'
+      );
+      await agentSetup.session.start({
+        room: context.room,
+        agent: agentSetup.agent,
+        // For handoffs, don't claim primary status - the old session may still be releasing
+        // For initial agent, be primary (record: true is default)
+        ...(context.isHandoff ? { record: false } : {}),
+      });
+      log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
+
+      // Initialize speech coordination for this agent's session
+      // This enables centralized speech management and prevents overlap
+      try {
+        initializeSpeechCoordination({
+          session: agentSetup.session,
+          sessionId,
+          personaId,
+          userId,
+        });
+        log.info({ personaId, sessionId }, '🎤 Speech coordination initialized');
+      } catch (coordErr) {
+        log.warn(
+          { personaId, error: String(coordErr) },
+          '🎤 Speech coordination init failed (non-critical)'
+        );
+      }
+    } catch (startErr) {
+      log.error(
+        { personaId, agentInstanceId, error: String(startErr) },
+        '🎭 CRITICAL: Failed to start agent session'
+      );
+      throw new Error(`Failed to start session for ${personaId}: ${startErr}`);
+    }
 
     diag.entry(`🎭 Agent started: ${personaId} (${agentInstanceId})`);
 
     return personaAgent;
   };
 }
-

@@ -420,10 +420,12 @@
       "second-chances",
       "quiet-growth",
       "milestone-mastery",
-      "life-thesis"
+      "life-thesis",
+      "midlife",
+      "neurodiversity"
     ],
     "_planned_domains": ["cross-domain-planning", "proactive-celebration", "seasonal-intelligence"],
-    "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). Target: 65-80 tools.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). NEW: Added midlife (transitions, reinvention) and neurodiversity (accommodation planning, life design). Target: 70-85 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
       "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience.",

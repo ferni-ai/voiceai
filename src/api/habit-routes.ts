@@ -14,7 +14,7 @@
  * - GET /api/habits/:id/history - Get completion history
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { removeUndefined } from '../utils/firestore-utils.js';

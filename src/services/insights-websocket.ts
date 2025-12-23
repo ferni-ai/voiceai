@@ -82,7 +82,7 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
 
   // Handle upgrade requests for /ws/insights path
   httpServer.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+    const { pathname } = new URL(request.url || '', `http://${request.headers.host}`);
 
     if (pathname === '/ws/insights') {
       wss.handleUpgrade(request, socket, head, (ws) => {
@@ -137,7 +137,7 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
     });
   });
 
-  // Heartbeat to keep connections alive
+  // Heartbeat to keep connections alive AND clean up stale connections
   heartbeatInterval = setInterval(() => {
     const heartbeat = {
       type: 'heartbeat',
@@ -145,11 +145,27 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
       clientCount: clients.size,
     };
 
+    // Collect stale connections for cleanup (can't modify Map during iteration)
+    const staleConnections: WebSocket[] = [];
+
     clients.forEach((info, ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         safeSend(ws, heartbeat);
+      } else {
+        // Connection is closed, closing, or connecting - mark for cleanup
+        staleConnections.push(ws);
       }
     });
+
+    // Clean up stale connections that didn't trigger close/error events
+    // This prevents memory leaks from network disconnections
+    if (staleConnections.length > 0) {
+      log.info(
+        { staleCount: staleConnections.length, totalClients: clients.size },
+        'Cleaning up stale WebSocket connections'
+      );
+      staleConnections.forEach((ws) => handleClientDisconnect(ws));
+    }
   }, HEARTBEAT_INTERVAL);
 
   return wss;
@@ -184,7 +200,9 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
 
       case 'scan':
         if (data.userId) {
-          void handleScanRequest(ws, data.userId);
+          handleScanRequest(ws, data.userId).catch((error: unknown) => {
+            log.error({ error, userId: data.userId }, 'Unhandled error in scan request');
+          });
         }
         break;
 
@@ -229,7 +247,9 @@ function handleSubscribe(ws: WebSocket, userId: string): void {
   startInsightMonitoring(userId);
 
   // Send current insights immediately
-  void sendCurrentState(ws, userId);
+  sendCurrentState(ws, userId).catch((error: unknown) => {
+    log.error({ error, userId }, 'Unhandled error sending initial state');
+  });
 
   log.info(
     { userId, subscribers: userSubscribers.get(userId)?.size },

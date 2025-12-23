@@ -25,7 +25,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
-  STAGE_NAMES,
+  getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
@@ -284,7 +284,7 @@ function createModal(): void {
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
   const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
-  const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
+  const stageName = getTranslatedStageName(stage);
   const progressPercent = Math.round(stageProgress.progress * 100);
 
   // Get current connection state
@@ -368,7 +368,7 @@ function createModal(): void {
           
           ${stageProgress.nextStage ? `
             <div class="journey-next-stage">
-              <span class="journey-next-stage__label">Next: ${STAGE_NAMES[stageProgress.nextStage]}</span>
+              <span class="journey-next-stage__label">Next: ${getTranslatedStageName(stageProgress.nextStage)}</span>
               <span class="journey-next-stage__req">${stageProgress.requirement}</span>
             </div>
           ` : `

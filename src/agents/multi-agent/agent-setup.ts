@@ -16,18 +16,35 @@
  * @module agents/multi-agent/agent-setup
  */
 
-import { voice } from '@livekit/agents';
-import type { JobContext } from '@livekit/agents';
+import * as genai from '@google/genai';
+import { voice, type JobContext } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
+import * as openai from '@livekit/agents-plugin-openai';
 import type { Room } from '@livekit/rtc-node';
-import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/diagnostic-logger.js';
+
+/**
+ * OpenAI Realtime mode: Use OpenAI's Realtime API instead of Gemini Live.
+ * OpenAI Realtime has NATIVE function calling - no JSON workarounds needed!
+ */
+const USE_OPENAI_REALTIME = process.env.USE_OPENAI_REALTIME === 'true';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { SessionServices } from '../../services/types.js';
-import type { UserData } from '../shared/types.js';
-import { modelConfig } from '../../services/model-config.js';
-import { getVoiceId, getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
+import { diag } from '../../services/diagnostic-logger.js';
+import { modelConfig } from '../../services/model-config.js';
+import type { SessionServices } from '../../services/types.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { UserData } from '../shared/types.js';
+// FIX: Import speech cleanup to prevent memory leaks on agent cleanup
+import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
+// FIX: Import retry counter cleanup for WeakMap session GC
+import { clearRetryCounter } from '../shared/tool-call-sanitizer.js';
+// Speech coordination for centralized speech management
+import {
+  coordinatedSay,
+  initializeSpeechCoordination,
+  cleanupSpeechCoordination,
+} from '../../speech/coordination/index.js';
 
 const log = getLogger();
 
@@ -131,28 +148,178 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   const setupStart = Date.now();
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
 
-  // Build the system prompt with handoff context
-  const systemPrompt = buildAgentSystemPrompt(config);
+  // =========================================================================
+  // BUILD SYSTEM PROMPT (Using proper prompt loader for function-calling!)
+  // FIX: Previously used buildAgentSystemPrompt which missed function-calling instructions
+  // =========================================================================
+  let systemPrompt: string;
+  try {
+    const { loadSystemPrompt } = await import('../personas/prompt-loader.js');
+    systemPrompt = await loadSystemPrompt(persona.id);
+    log.info({ personaId: persona.id }, '🎭 Loaded full system prompt with function-calling');
+  } catch (promptErr) {
+    log.warn(
+      { error: String(promptErr), personaId: persona.id },
+      '⚠️ Failed to load full prompt, using fallback'
+    );
+    systemPrompt = buildAgentSystemPrompt(config);
+  }
+
+  // Add handoff context if this is a handoff
+  if (isHandoff && previousPersonaId) {
+    const handoffContext = buildHandoffContext(config);
+    if (handoffContext) {
+      systemPrompt = `${systemPrompt}\n\n${handoffContext}`;
+    }
+  }
 
   // Create TTS with persona's voice (async)
   const tts = await createPersonaTTS(persona.id);
 
-  // Create Gemini LLM
+  // =========================================================================
+  // GET TOOLS FROM ORCHESTRATOR (Critical for music, memory, etc.)
+  // =========================================================================
+  let orchestratorTools: Record<string, unknown> = {};
+  try {
+    const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
+      await import('../../tools/orchestrator/voice-agent-integration.js');
+
+    // Initialize orchestrator if needed
+    if (!isOrchestratorInitialized()) {
+      await initializeToolOrchestrator();
+    }
+
+    // Get tools for this persona
+    const subscriptionTier =
+      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+    const { tools, meta } = await getToolsForAgent({
+      persona: { id: persona.id, displayName: persona.name },
+      userId: userId || 'anonymous',
+      userProfile: services.userProfile,
+      subscriptionTier,
+      initialTranscript: '',
+      services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+    });
+
+    orchestratorTools = tools;
+    log.info(
+      { personaId: persona.id, toolCount: meta.toolCount, mode: meta.mode },
+      '🎭 Tools loaded for multi-agent persona'
+    );
+  } catch (toolErr) {
+    log.warn(
+      { error: String(toolErr), personaId: persona.id },
+      '⚠️ Failed to load tools for multi-agent persona (will have no tools)'
+    );
+  }
+
+  // =========================================================================
+  // LLM SELECTION: OpenAI Realtime vs Gemini Live
+  // =========================================================================
   const geminiConfig = modelConfig.getDefault();
-  const llmModel = new google.beta.realtime.RealtimeModel({
-    model: geminiConfig.model,
-    temperature: geminiConfig.temperature,
-    instructions: systemPrompt,
-    language: geminiConfig.language,
-    toolChoice: 'auto',
-    geminiTools: { googleSearch: {} },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let llmModel: any;
+
+  if (USE_OPENAI_REALTIME) {
+    // =====================================================================
+    // OpenAI Realtime API - Native function calling, no JSON workarounds!
+    // Using text-only mode so Cartesia TTS handles the persona voice.
+    // =====================================================================
+    log.info(
+      { personaId: persona.id },
+      '🔮 Creating OpenAI Realtime model for multi-agent (text-only → Cartesia TTS)'
+    );
+
+    // OpenAI Realtime with text-only mode → Cartesia TTS for persona voice
+    // Docs: https://docs.livekit.io/agents/models/realtime/plugins/openai/#separate-tts
+    // Upgraded SDK to 1.0.30 which has modalities fix
+    llmModel = new openai.realtime.RealtimeModel({
+      modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
+      temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
+      turnDetection: {
+        type: 'server_vad', // Using server_vad per docs (more stable)
+        threshold: 0.5,
+        prefix_padding_ms: 300,
+        silence_duration_ms: 500,
+        create_response: true,
+        interrupt_response: true,
+      },
+    });
+
+    log.info(
+      { personaId: persona.id, modalities: ['text'], tts: 'cartesia' },
+      '🔮 OpenAI Realtime model created (text → Cartesia TTS)'
+    );
+  } else {
+    // =====================================================================
+    // Gemini Live API (default)
+    // =====================================================================
+    // CRITICAL: modalities: TEXT ensures Gemini outputs text (not audio directly)
+    // This text then goes through our Cartesia TTS with the persona's voice.
+    // Without this, Gemini outputs audio with its default male voice!
+
+    // Debug: Log what we're passing to RealtimeModel
+    log.info(
+      {
+        personaId: persona.id,
+        modalitiesValue: genai.Modality.TEXT,
+        modalitiesArray: [genai.Modality.TEXT],
+      },
+      '🎭 Creating RealtimeModel with modalities'
+    );
+
+    // NOTE: Do NOT pass instructions to RealtimeModel!
+    // In single-agent mode (which works), instructions go ONLY to the Agent, not the LLM.
+    // Passing instructions to both causes the wrong voice - possibly because Gemini
+    // interprets system instructions differently when they're on the model vs agent.
+    const realtimeModelOptions = {
+      model: geminiConfig.model,
+      modalities: [genai.Modality.TEXT], // Output text → Cartesia TTS (persona voice)
+      temperature: geminiConfig.temperature,
+      // instructions: systemPrompt,  // ← REMOVED: Goes on Agent only (matches voice-agent-entry.ts)
+      language: geminiConfig.language,
+      toolChoice: 'auto',
+      geminiTools: { googleSearch: {} },
+    };
+
+    // Debug: Log the full RealtimeModel options
+    log.info(
+      {
+        personaId: persona.id,
+        options: {
+          model: realtimeModelOptions.model,
+          modalities: realtimeModelOptions.modalities,
+          // Note: instructions are passed to Agent, not RealtimeModel
+        },
+      },
+      '🎭 RealtimeModel options BEFORE creation'
+    );
+
+    llmModel = new google.beta.realtime.RealtimeModel(realtimeModelOptions as any);
+
+    // Try to access internal _options to verify
+    const internalOptions = (llmModel as unknown as { _options?: Record<string, unknown> })
+      ._options;
+    if (internalOptions) {
+      log.info(
+        {
+          personaId: persona.id,
+          responseModalities: internalOptions.responseModalities,
+          audioOutput: (llmModel as unknown as { capabilities?: { audioOutput?: boolean } })
+            .capabilities?.audioOutput,
+        },
+        '🎭 RealtimeModel internal options AFTER creation'
+      );
+    }
+  }
 
   // Create voice session
+  // Turn detection: OpenAI uses its model config, Gemini uses 'realtime_llm'
+  // TTS: OpenAI text-only mode uses Cartesia TTS for persona voice
   const session = new voice.AgentSession<UserData>({
+    turnDetection: USE_OPENAI_REALTIME ? undefined : 'realtime_llm',
     llm: llmModel,
-    tts,
+    tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
     voiceOptions: {
       allowInterruptions: true,
@@ -164,10 +331,18 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     },
   });
 
-  // Create agent wrapper
-  const agent = new voice.Agent<UserData>({
-    instructions: systemPrompt,
-  });
+  // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
+  // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
+  // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
+  const { FerniAgent } = await import('../personas/ferni-agent.js');
+
+  const agent = new FerniAgent(systemPrompt, {
+    tools: orchestratorTools as any, // Type mismatch: ToolSet vs Record<string, unknown>
+    // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
+    // function-calling instructions. This can confuse the model and break tool calls.
+    // The model will greet naturally based on its system prompt.
+    skipGreeting: true,
+  }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
   // Track handler status
   const handlersStatus = {
@@ -241,7 +416,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
-          transcriptHandler.handler(event as import('../voice-agent/transcript-handler.js').TranscriptEvent);
+          transcriptHandler.handler(
+            event as import('../voice-agent/transcript-handler.js').TranscriptEvent
+          );
         };
         session.on(voice.AgentSessionEventTypes.UserInputTranscribed, transcriptEventHandler);
         cleanupFunctions.push(() => {
@@ -281,6 +458,16 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       handlersStatus.toolTracking = true;
       diag.entry(`🎭 [${persona.id}] Tool tracking handler wired`);
 
+      // FRONTEND PUBLISHER - Required for music state messages to frontend
+      // Without this, the frontend won't know when music is playing
+      try {
+        const { initializeFrontendPublisher } = await import('../realtime/index.js');
+        initializeFrontendPublisher(room);
+        diag.entry(`🎭 [${persona.id}] Frontend publisher initialized`);
+      } catch (pubErr) {
+        log.warn({ error: String(pubErr) }, '⚠️ Failed to initialize frontend publisher');
+      }
+
       // MUSIC HANDLER
       if (conversationManager) {
         const musicResult = await setupMusicHandler({
@@ -307,7 +494,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let isCleanedUp = false;
 
   const setupMs = Date.now() - setupStart;
-  diag.entry(`🎭 Agent setup complete: ${persona.id} (${setupMs}ms, handlers: ${JSON.stringify(handlersStatus)})`);
+  diag.entry(
+    `🎭 Agent setup complete: ${persona.id} (${setupMs}ms, handlers: ${JSON.stringify(handlersStatus)})`
+  );
 
   if (isHandoff && previousPersonaId) {
     diag.entry(`🎭 Handoff context: ${previousPersonaId} → ${persona.id}`);
@@ -333,6 +522,28 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
         }
       }
 
+      // FIX: Clean up speech session services (29+ services) to prevent memory leaks
+      // This matches what the main voice-agent cleanup does
+      try {
+        cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
+        log.debug(
+          { sessionId, personaId: persona.id },
+          '🎤 Speech session cleaned up (agent cleanup)'
+        );
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Error cleaning up speech session');
+      }
+
+      // FIX: Clear retry counter WeakMap entry explicitly
+      // While WeakMap will GC when session is collected, explicit cleanup is better practice
+      // and ensures memory is freed immediately
+      try {
+        clearRetryCounter(session);
+        log.debug({ sessionId }, '🔄 Retry counter cleared');
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Error clearing retry counter');
+      }
+
       try {
         await session.close();
       } catch (err) {
@@ -340,7 +551,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       }
     },
     say: (text: string, options?: { allowInterruptions?: boolean }) => {
-      session.say(text, { allowInterruptions: options?.allowInterruptions ?? true });
+      // Use coordinated speech for centralized speech management
+      coordinatedSay(sessionId, text, { allowInterruptions: options?.allowInterruptions ?? true });
     },
   };
 }
@@ -350,11 +562,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 // ============================================================================
 
 /**
- * Build the system prompt for an agent, including handoff context.
+ * Build the system prompt for an agent (FALLBACK ONLY).
+ * Prefer using loadSystemPrompt() from prompt-loader.js for full function-calling support.
  */
 function buildAgentSystemPrompt(config: AgentSetupConfig): string {
-  const { persona, isHandoff, previousPersonaId, conversationSummary, recentMessages, userData } =
-    config;
+  const { persona, userData } = config;
 
   const parts: string[] = [];
 
@@ -368,20 +580,31 @@ function buildAgentSystemPrompt(config: AgentSetupConfig): string {
     parts.push(`\n\n[USER CONTEXT]\nThe user's name is ${userData.userName}.`);
   }
 
-  // Handoff context
-  if (isHandoff && previousPersonaId) {
-    parts.push('\n\n[HANDOFF CONTEXT]');
-    parts.push(`You just received this conversation from ${previousPersonaId}.`);
-    parts.push('Continue naturally - acknowledge the handoff briefly but focus on helping.');
+  return parts.join('\n');
+}
 
-    if (conversationSummary) {
-      parts.push(`\nConversation summary: ${conversationSummary}`);
-    }
+/**
+ * Build handoff-specific context to append to system prompt.
+ */
+function buildHandoffContext(config: AgentSetupConfig): string | null {
+  const { isHandoff, previousPersonaId, conversationSummary, recentMessages } = config;
 
-    if (recentMessages && recentMessages.length > 0) {
-      parts.push('\nRecent conversation:');
-      parts.push(recentMessages.slice(-5).join('\n'));
-    }
+  if (!isHandoff || !previousPersonaId) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  parts.push('[HANDOFF CONTEXT]');
+  parts.push(`You just received this conversation from ${previousPersonaId}.`);
+  parts.push('Continue naturally - acknowledge the handoff briefly but focus on helping.');
+
+  if (conversationSummary) {
+    parts.push(`\nConversation summary: ${conversationSummary}`);
+  }
+
+  if (recentMessages && recentMessages.length > 0) {
+    parts.push('\nRecent conversation:');
+    parts.push(recentMessages.slice(-5).join('\n'));
   }
 
   return parts.join('\n');
@@ -397,23 +620,25 @@ async function createPersonaTTS(personaId: string) {
   const voiceId = getVoiceId(personaId);
   const voiceName = getPersonaDisplayName(personaId);
 
-  log.debug({ personaId, voiceId, voiceName }, '🎭 Creating TTS');
+  // Log the voice ID we're using - this is critical for debugging
+  log.info({ personaId, voiceId, voiceName }, '🎭 Creating TTS with Cartesia voice');
 
   // Use PersonaAwareTTS (supports voice switching)
-  return voiceManagerModule.createPersonaAwareTTS(voiceName, {
+  const tts = voiceManagerModule.createPersonaAwareTTS(voiceName, {
     voiceId,
     accent: 'american',
     isLocalizedVoice: false,
   });
+
+  log.info({ personaId, ttsVoiceId: tts.getVoiceId?.() || 'N/A' }, '🎭 TTS created');
+
+  return tts;
 }
 
 /**
  * Create a conversation summary for handoff.
  */
-export function buildConversationSummary(
-  services: SessionServices,
-  maxLength: number = 500
-): string {
+export function buildConversationSummary(services: SessionServices, maxLength = 500): string {
   const parts: string[] = [];
 
   // Get emotional context
@@ -447,10 +672,7 @@ export function buildConversationSummary(
 /**
  * Get recent messages for handoff context.
  */
-export function getRecentMessagesForHandoff(
-  services: SessionServices,
-  count: number = 5
-): string[] {
+export function getRecentMessagesForHandoff(services: SessionServices, count = 5): string[] {
   try {
     const historyTracker = services.historyTracker as {
       getSessionHistory?: () => { entries?: Array<{ role: string; content: string }> };
@@ -467,4 +689,3 @@ export function getRecentMessagesForHandoff(
 
   return [];
 }
-

@@ -16,7 +16,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
-import { openOutreachSchedule } from './outreach-schedule.ui.js';
+import { showNotificationSettings } from './notification-settings.ui.js';
 
 const log = createLogger('NextCheckin');
 
@@ -357,15 +357,15 @@ class NextCheckinWidget {
       </div>
     `;
 
-    // Bind click handler
+    // Bind click handler - opens the consolidated Notifications panel with Upcoming tab
     const widget = this.element.querySelector('.next-checkin-widget');
     widget?.addEventListener('click', () => {
-      openOutreachSchedule();
+      showNotificationSettings({ tab: 'upcoming' });
     });
     widget?.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
         e.preventDefault();
-        openOutreachSchedule();
+        showNotificationSettings({ tab: 'upcoming' });
       }
     });
   }

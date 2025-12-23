@@ -78,12 +78,11 @@ export async function handleLandingOptimizationRoutes(
   const adminKey = req.headers['x-admin-key'] as string | undefined;
   const configuredAdminKey = process.env.ADMIN_KEY;
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   // Primary check: valid ADMIN_KEY from environment
   // Dev mode bypass - ONLY works in development environment
-  const isAdmin = 
-    (configuredAdminKey && adminKey === configuredAdminKey) ||
-    (isDev && adminKey === 'dev-mode');
+  const isAdmin =
+    (configuredAdminKey && adminKey === configuredAdminKey) || (isDev && adminKey === 'dev-mode');
 
   try {
     // ============================================================================

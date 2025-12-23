@@ -19,6 +19,8 @@ import {
 // REQUEST PARSING
 // ============================================================================
 
+import { z, type ZodSchema, type ZodError } from 'zod';
+
 /**
  * Parse JSON body from incoming request
  *
@@ -41,6 +43,185 @@ export async function parseBody<T = unknown>(req: IncomingMessage): Promise<T> {
     });
     req.on('error', reject);
   });
+}
+
+/**
+ * Parse raw body from incoming request (for webhooks needing signature verification).
+ *
+ * This returns the raw string body without JSON parsing.
+ * Use this for Stripe webhooks or other services that need raw body for signature verification.
+ *
+ * IMPORTANT: This handles the race condition where:
+ * - The stream may have already ended before we attach listeners
+ * - The stream may error during reading
+ * - Timeout prevents hanging forever on malformed requests
+ *
+ * @param req - Incoming HTTP request
+ * @param options - Configuration options
+ * @returns Raw body string
+ * @throws Error if body reading fails or times out
+ */
+export async function parseRawBody(
+  req: IncomingMessage,
+  options: { timeoutMs?: number; maxBytes?: number } = {}
+): Promise<string> {
+  const { timeoutMs = 30000, maxBytes = 10 * 1024 * 1024 } = options; // 30s timeout, 10MB max
+
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let resolved = false;
+
+    // Timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        req.removeAllListeners('data');
+        req.removeAllListeners('end');
+        req.removeAllListeners('error');
+        reject(new Error('Body parsing timeout'));
+      }
+    }, timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+    };
+
+    // Check if stream already ended (edge case with keep-alive)
+    if (req.complete) {
+      cleanup();
+      // Stream already consumed or empty
+      resolve('');
+      return;
+    }
+
+    req.on('data', (chunk: Buffer) => {
+      if (resolved) return;
+      totalBytes += chunk.length;
+      if (totalBytes > maxBytes) {
+        resolved = true;
+        cleanup();
+        reject(new Error(`Body exceeds maximum size of ${maxBytes} bytes`));
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+
+    req.on('error', (err) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Validation result type for parseBodyWithSchema
+ */
+export type ValidationResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; zodError?: ZodError };
+
+/**
+ * Parse and validate JSON body using Zod schema.
+ *
+ * This is the RECOMMENDED way to parse request bodies. It ensures:
+ * 1. Valid JSON syntax
+ * 2. Data matches expected schema
+ * 3. Type-safe data extraction
+ *
+ * Usage:
+ *   const UserSchema = z.object({
+ *     email: z.string().email(),
+ *     name: z.string().min(1),
+ *   });
+ *
+ *   const result = await parseBodyWithSchema(req, UserSchema);
+ *   if (!result.success) {
+ *     return sendError(res, result.error, 400);
+ *   }
+ *   const { email, name } = result.data; // Fully typed!
+ *
+ * @param req - Incoming HTTP request
+ * @param schema - Zod schema to validate against
+ * @returns Validation result with typed data or error message
+ */
+export async function parseBodyWithSchema<T>(
+  req: IncomingMessage,
+  schema: ZodSchema<T>
+): Promise<ValidationResult<T>> {
+  try {
+    const rawBody = await parseBody<unknown>(req);
+    const result = schema.safeParse(rawBody);
+
+    if (!result.success) {
+      // Format Zod errors into human-readable message
+      const errorMessages = result.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join('; ');
+      return {
+        success: false,
+        error: `Invalid request body: ${errorMessages}`,
+        zodError: result.error,
+      };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid JSON body',
+    };
+  }
+}
+
+/**
+ * Validate query parameters using Zod schema.
+ *
+ * Usage:
+ *   const QuerySchema = z.object({
+ *     limit: z.coerce.number().min(1).max(100).default(10),
+ *     offset: z.coerce.number().min(0).default(0),
+ *   });
+ *
+ *   const result = validateQueryParams(parsedUrl, QuerySchema);
+ *   if (!result.success) {
+ *     return sendError(res, result.error, 400);
+ *   }
+ *   const { limit, offset } = result.data;
+ *
+ * @param parsedUrl - Parsed URL with searchParams
+ * @param schema - Zod schema to validate against
+ * @returns Validation result with typed data or error message
+ */
+export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): ValidationResult<T> {
+  const params: Record<string, string> = {};
+  parsedUrl.searchParams.forEach((value, key) => {
+    params[key] = value;
+  });
+
+  const result = schema.safeParse(params);
+
+  if (!result.success) {
+    const errorMessages = result.error.issues
+      .map((e) => `${e.path.join('.')}: ${e.message}`)
+      .join('; ');
+    return {
+      success: false,
+      error: `Invalid query parameters: ${errorMessages}`,
+      zodError: result.error,
+    };
+  }
+
+  return { success: true, data: result.data };
 }
 
 /**
@@ -274,18 +455,15 @@ import type { AuthContext } from './auth-middleware.js';
 
 /**
  * Securely get userId from authenticated context.
- * 
+ *
  * SECURITY: This prevents IDOR (Insecure Direct Object Reference) attacks
  * by ensuring users can only access their own data unless they're admins.
- * 
+ *
  * @param auth - Authenticated context from requireAuth()
  * @param requestedUserId - Optional userId from query params (only used by admins)
  * @returns The appropriate userId to use for the request
  */
-export function getSecureUserId(
-  auth: AuthContext,
-  requestedUserId?: string | null
-): string {
+export function getSecureUserId(auth: AuthContext, requestedUserId?: string | null): string {
   // Admins can access other users' data (for support/debugging)
   if (auth.isAdmin && requestedUserId) {
     return requestedUserId;
@@ -296,18 +474,15 @@ export function getSecureUserId(
 
 /**
  * Verify admin access with proper security checks.
- * 
+ *
  * SECURITY: This function NEVER accepts 'dev-mode' string in production.
  * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
- * 
+ *
  * @param req - Incoming HTTP request
  * @param allowDevMode - Whether to allow dev-mode bypass (only works in development)
  * @returns true if request has valid admin credentials
  */
-export function verifyAdminAccess(
-  req: IncomingMessage,
-  allowDevMode = false
-): boolean {
+export function verifyAdminAccess(req: IncomingMessage, allowDevMode = false): boolean {
   const adminKey = req.headers['x-admin-key'] as string | undefined;
   const configuredAdminKey = process.env.ADMIN_KEY;
   const isDev = process.env.NODE_ENV === 'development';
@@ -328,8 +503,8 @@ export function verifyAdminAccess(
 
 /**
  * Verify admin access from query params or headers.
- * 
- * @param req - Incoming HTTP request  
+ *
+ * @param req - Incoming HTTP request
  * @param parsedUrl - Parsed URL with searchParams
  * @param allowDevMode - Whether to allow dev-mode bypass (only in development)
  * @returns true if request has valid admin credentials
@@ -342,7 +517,7 @@ export function verifyAdminAccessFromUrl(
   const adminKeyFromHeader = req.headers['x-admin-key'] as string | undefined;
   const adminKeyFromQuery = parsedUrl.searchParams.get('admin_key');
   const adminKey = adminKeyFromHeader || adminKeyFromQuery || undefined;
-  
+
   const configuredAdminKey = process.env.ADMIN_KEY;
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -359,3 +534,15 @@ export function verifyAdminAccessFromUrl(
 
   return false;
 }
+
+// ============================================================================
+// ZOD RE-EXPORT (for convenience)
+// ============================================================================
+
+/**
+ * Re-export Zod for convenient imports.
+ *
+ * Routes can import both validation helpers and Zod from a single place:
+ *   import { parseBodyWithSchema, z, sendError } from './helpers.js';
+ */
+export { z };

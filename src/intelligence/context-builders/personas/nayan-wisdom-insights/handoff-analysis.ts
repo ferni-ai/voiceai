@@ -19,7 +19,7 @@ export function analyzeHandoffForNayan(): HandoffBriefing | null {
 
   // Extract topic from topics array or summary
   const topic = handoffContext.topics?.[0] || 'general';
-  
+
   const briefing: HandoffBriefing = {
     topic,
     seekingWhat: 'general',
@@ -108,4 +108,3 @@ export function analyzeHandoffForNayan(): HandoffBriefing | null {
 
   return briefing;
 }
-

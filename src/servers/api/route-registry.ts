@@ -275,9 +275,9 @@ export const routes: RouteDefinition[] = [
   {
     prefix: '/api/relationship/progress',
     handler: handleRelationshipRoutes,
-    predicate: (p) => p === '/api/relationship/progress',
+    predicate: (p) => p === '/api/relationship/progress' || p === '/api/relationship/team-unlocks',
     category: 'api',
-    description: 'Relationship progress (exact match)',
+    description: 'Relationship progress & team unlocks',
   },
   {
     prefix: '/api/relationship/',

@@ -62,8 +62,8 @@
     "customAmount": "Custom amount",
     "searchConversations": "Search conversations...",
     "enterValue": "Enter actual value",
-    "emailExample": "you@example.com",
-    "phoneExample": "+1 (555) 123-4567",
+    "emailExample": "email@example.com",
+    "phoneExample": "+1 555 123 4567",
     "memberName": "Their name",
     "householdName": "The Smith Family",
     "displayName": "Your preferred name",
@@ -145,7 +145,7 @@
       "createPractice": "Create Practice",
       "wearables": "Wearables",
       "calendar": "Calendar",
-      "notifications": "When I Check In",
+      "notifications": "Notifications & Check-ins",
       "toggleTheme": "Light / Dark",
       "linkSpotify": "Link Spotify",
       "spotifyConnected": "Spotify Connected",
@@ -154,13 +154,20 @@
       "householdMembers": "Family & Household",
       "contactInfo": "How to Reach You",
       "exportData": "Download Your Story",
-      "shareFerni": "Share Ferni",
+      "shareFerni": "Invite a Friend",
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
       "language": "Language",
       "whatsGrowing": "What's Growing",
       "billingPortal": "Your Support",
-      "outreachSchedule": "Stay in Touch"
+      "outreachSchedule": "Upcoming Check-ins"
+    },
+    "quickAdd": {
+      "person": "Person",
+      "todo": "Todo",
+      "event": "Event",
+      "todoPrompt": "Tell me what to remember",
+      "eventPrompt": "Tell me about the event"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
@@ -386,6 +393,48 @@
     "closeFriend": "Close Friend",
     "confidant": "Confidant",
     "soulmate": "Soulmate"
+  },
+
+  "relationshipStages": {
+    "names": {
+      "firstMeeting": "New Friends",
+      "gettingStarted": "Getting Started",
+      "buildingTrust": "Building Trust",
+      "established": "Trusted Guide",
+      "deepPartnership": "Life Partners"
+    },
+    "descriptions": {
+      "firstMeeting": "We're just meeting! I can't wait to learn about you.",
+      "gettingStarted": "We're starting to understand each other.",
+      "buildingTrust": "Our relationship is growing stronger.",
+      "established": "You can count on me. I'm here for the long haul.",
+      "deepPartnership": "We've been through a lot together. I'm honored to be your guide."
+    },
+    "taglines": {
+      "firstMeeting": "A new beginning",
+      "gettingStarted": "Getting to know you",
+      "buildingTrust": "Building something real",
+      "established": "Your Life Coach",
+      "deepPartnership": "Partners for life"
+    },
+    "stageUp": {
+      "gettingStarted": {
+        "title": "We're getting started!",
+        "message": "I'm so glad you came back. Let's keep exploring together."
+      },
+      "buildingTrust": {
+        "title": "Building something real",
+        "message": "I can feel our connection growing. You're teaching me so much about you."
+      },
+      "established": {
+        "title": "You have a Life Coach now",
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here."
+      },
+      "deepPartnership": {
+        "title": "Partners for life",
+        "message": "We've been through so much together. You mean the world to me."
+      }
+    }
   },
 
   "time": {
@@ -747,6 +796,8 @@
     "refreshData": "Refresh data",
     "exportData": "Export your data",
     "dismiss": "Dismiss",
+    "play": "Play",
+    "pause": "Pause",
     "dismissNotification": "Dismiss notification",
     "closeDashboard": "Close dashboard",
     "closeSubscription": "Close subscription options",
@@ -789,6 +840,15 @@
     "eyebrow": "FOUNDERS FUND",
     "title": "Support Ferni",
     "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "costTransparency": {
+      "title": "What it costs to run Ferni",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "aiThinking": "AI thinking",
+      "voiceSynthesis": "Voice synthesis",
+      "infrastructure": "Infrastructure",
+      "totalPerConversation": "Total per conversation",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way."
+    },
     "growTogether": "Ways to Help Us Build This",
     "plantASeed": "Plant a Seed",
     "plantDesc": "A one-time contribution to help Ferni grow.",
@@ -880,5 +940,204 @@
       "grow": "Features with more seeds get prioritized",
       "suggest": "Suggest new ideas for 5 seeds"
     }
+  },
+
+  "confirmModal": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "keep": "Keep",
+    "continue": "Continue",
+    "discard": "Discard",
+    "deleteTitle": "Delete {item}?",
+    "cannotBeUndone": "This cannot be undone."
+  },
+
+  "addPerson": {
+    "eyebrow": "Your People",
+    "title": "Add Someone",
+    "subtitle": "Tell me about someone you care about",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "relationshipLabel": "How do you know them?",
+    "addMoreDetails": "Add more details",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "birthdayLabel": "Birthday",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "adding": "Adding...",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "couldNotAdd": "Could not add person",
+    "relationships": {
+      "family": "Family",
+      "friend": "Friend",
+      "colleague": "Colleague",
+      "mentor": "Mentor",
+      "acquaintance": "Acquaintance",
+      "other": "Other"
+    }
+  },
+
+  "editPerson": {
+    "eyebrow": "Edit Details",
+    "defaultName": "Person",
+    "tabs": {
+      "basic": "Basic",
+      "preferences": "Preferences",
+      "context": "Context"
+    },
+    "nameLabel": "Name",
+    "relationshipLabel": "Relationship",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "noPreference": "No preference",
+    "phoneCall": "Phone call",
+    "textMessage": "Text message",
+    "email": "Email",
+    "inPerson": "In person",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "removeFromPeople": "Remove from Your People",
+    "areYouSure": "Are you sure?",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "remove": "Remove",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "removed": "{name} removed",
+    "couldNotSave": "Could not save changes",
+    "couldNotRemove": "Could not remove person"
+  },
+
+  "emptyStates": {
+    "noConversations": {
+      "title": "Let's start something meaningful",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "action": "Start talking"
+    },
+    "noHistory": {
+      "title": "Your story starts here",
+      "message": "As we talk, your journey will unfold in this space."
+    },
+    "noGoals": {
+      "title": "What matters to you?",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "action": "Set a goal"
+    },
+    "noTeam": {
+      "title": "Your team is growing",
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways."
+    },
+    "loading": {
+      "title": "Taking a breath...",
+      "message": "Good things are worth a moment."
+    },
+    "searchEmpty": {
+      "title": "Nothing here yet",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "action": "Ask Ferni"
+    },
+    "offline": {
+      "title": "We're offline right now",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "action": "Try again"
+    },
+    "error": {
+      "title": "Oops, something went sideways",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "action": "Try again",
+      "secondaryAction": "Get help"
+    },
+    "permissionNeeded": {
+      "title": "We need your permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "action": "Grant permission"
+    },
+    "comingSoon": {
+      "title": "Something special is coming",
+      "message": "We're building something thoughtful here. It'll be worth the wait."
+    }
+  },
+
+  "greetings": {
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "workingLate": "Working late",
+    "welcomeBack": "Welcome back.",
+    "readyWhenYouAre": "Ready when you are.",
+    "letsContinue": "Let's continue.",
+    "readyToGo": "Ready to go.",
+    "goodToSeeYou": "Good to see you.",
+    "letsGetStarted": "Let's get started.",
+    "yourTeamIsReady": "Your team is ready.",
+    "hereToHelp": "Here to help.",
+    "welcome": "Welcome.",
+    "letsBegin": "Let's begin.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "milestones": {
+      "streak3": "3 days in a row.",
+      "streak7": "One week. Well done.",
+      "streak14": "Two weeks strong.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak100": "100 days. Exceptional.",
+      "conversations5": "5 conversations.",
+      "conversations10": "10 conversations.",
+      "conversations25": "25 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "conversations100": "100 conversations. Mastery.",
+      "visits10": "10 visits.",
+      "visits50": "50 visits. Committed.",
+      "visits100": "100 visits. Dedicated.",
+      "milestoneReached": "Milestone reached."
+    }
+  },
+
+  "toasts": {
+    "saved": "Saved!",
+    "copied": "Copied!",
+    "deleted": "Deleted",
+    "added": "Added!",
+    "removed": "Removed",
+    "updated": "Updated!",
+    "settingsSaved": "Settings saved!",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "pickADate": "Pick a date",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "itemApproved": "Item approved!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "focusTimeBlocked": "Focus time blocked!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}"
   }
 }

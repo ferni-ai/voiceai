@@ -11,8 +11,8 @@ import { createLogger } from '../utils/safe-logger.js';
 import {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
-} from '../agents/shared/performance/turn-profiler.js';
-import { getReliabilityDashboard } from '../agents/shared/tool-execution-reliability.js';
+} from './performance/turn-profiler.js';
+import { getReliabilityDashboard } from './performance/tool-execution-reliability.js';
 
 const log = createLogger({ module: 'PerformanceAlerts' });
 
@@ -216,7 +216,7 @@ class PerformanceAlertingService {
   private async sendAlert(alert: Alert): Promise<void> {
     log.warn({ alert }, '🚨 Sending performance alert');
 
-    const promises: Promise<void>[] = [];
+    const promises: Array<Promise<void>> = [];
 
     if (this.config.slackEnabled && this.config.slackWebhookUrl) {
       promises.push(this.sendSlackAlert(alert));

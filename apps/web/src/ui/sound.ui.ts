@@ -34,7 +34,9 @@ type SoundName =
   | 'success'
   | 'celebrate'
   | 'thinking'
-  | 'message';
+  | 'message'
+  | 'open' // Modal/panel opening
+  | 'close'; // Modal/panel closing
 
 interface SoundConfig {
   frequency?: number;
@@ -313,6 +315,30 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
     volume: 0.04,
     attack: 0.008,
     decay: 0.09,
+  },
+
+  // 🚪 OPEN - Modal/panel opening, like a door gently opening
+  // Rising major arpeggio for invitation
+  open: {
+    frequencies: [523.25, 659.25, 783.99], // C5, E5, G5 (C major)
+    delays: [0, 0.04, 0.08],
+    duration: 0.15,
+    type: 'sine',
+    volume: 0.05,
+    attack: 0.02,
+    decay: 0.12,
+  },
+
+  // 🚪 CLOSE - Modal/panel closing, soft resolution
+  // Single descending note for gentle closure
+  close: {
+    frequencies: [659.25, 523.25], // E5, C5 (settling down)
+    delays: [0, 0.06],
+    duration: 0.12,
+    type: 'sine',
+    volume: 0.04,
+    attack: 0.02,
+    decay: 0.1,
   },
 };
 

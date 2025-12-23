@@ -12,6 +12,10 @@ import { memoryMetrics, type MemoryHealthSnapshot } from './memory-health.js';
 import { costMetrics, type CostSnapshot } from './cost-tracking.js';
 import { errorMetrics, type ErrorSnapshot } from './error-recovery.js';
 import { personaMetrics, type PersonaHealthSnapshot } from './persona-health.js';
+import {
+  getAggregateMetrics,
+  type AggregateMetrics,
+} from '../../tools/semantic-router/integration/metrics.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -33,6 +37,7 @@ export interface ObservabilitySnapshot {
   costHealth: number;
   errorHealth: number;
   personaHealth: number;
+  semanticRoutingHealth: number; // NEW: Semantic routing health
 
   // Alerts
   alerts: Alert[];
@@ -47,6 +52,7 @@ export interface ObservabilitySnapshot {
   cost: CostSnapshot;
   errors: ErrorSnapshot;
   persona: PersonaHealthSnapshot;
+  semanticRouting: AggregateMetrics; // NEW: Semantic routing metrics
 }
 
 export interface Alert {
@@ -191,6 +197,31 @@ function calculatePersonaHealth(snapshot: PersonaHealthSnapshot): number {
 
   // Unhealthy personas
   if (snapshot.unhealthyPersonas.length > 0) score -= 15;
+
+  return Math.max(0, score);
+}
+
+function calculateSemanticRoutingHealth(snapshot: AggregateMetrics): number {
+  let score = 100;
+
+  // No data is fine - just means routing hasn't been used yet
+  if (snapshot.totalRoutes === 0) return 100;
+
+  // Error rate impact (errors / total)
+  const errorRate = snapshot.errors / snapshot.totalRoutes;
+  if (errorRate > 0.1) score -= 30;
+  else if (errorRate > 0.05) score -= 15;
+
+  // Latency impact
+  if (snapshot.p95LatencyMs > 200) score -= 20;
+  else if (snapshot.p95LatencyMs > 100) score -= 10;
+
+  // LLM bypass rate (higher is better - means router is working)
+  const bypassRate = snapshot.bypassedLLM / snapshot.totalRoutes;
+  if (bypassRate < 0.1) score -= 10; // Low bypass might indicate poor routing
+
+  // Cache hit rate (higher is better)
+  if (snapshot.cacheHitRate < 0.3) score -= 10;
 
   return Math.max(0, score);
 }
@@ -379,6 +410,10 @@ function getSnapshot(windowMinutes = 60): ObservabilitySnapshot {
   const errors = errorMetrics.getSnapshot();
   const persona = personaMetrics.getSnapshot();
 
+  // Get semantic routing metrics (since window start)
+  const windowStart = new Date(now - windowMinutes * 60 * 1000);
+  const semanticRouting = getAggregateMetrics(windowStart);
+
   // Calculate health scores
   const llmHealth = calculateLLMHealth(llm);
   const connectionHealth = calculateConnectionHealth(connection);
@@ -387,16 +422,18 @@ function getSnapshot(windowMinutes = 60): ObservabilitySnapshot {
   const costHealth = calculateCostHealth(cost);
   const errorHealth = calculateErrorHealth(errors);
   const personaHealth = calculatePersonaHealth(persona);
+  const semanticRoutingHealth = calculateSemanticRoutingHealth(semanticRouting);
 
-  // Overall health (weighted average)
+  // Overall health (weighted average) - semantic routing adds 5% weight
   const overallHealth = Math.round(
-    llmHealth * 0.2 +
+    llmHealth * 0.18 +
       connectionHealth * 0.15 +
       uxHealth * 0.15 +
       memoryHealth * 0.1 +
       costHealth * 0.1 +
-      errorHealth * 0.2 +
-      personaHealth * 0.1
+      errorHealth * 0.17 +
+      personaHealth * 0.1 +
+      semanticRoutingHealth * 0.05
   );
 
   // Generate alerts
@@ -415,6 +452,7 @@ function getSnapshot(windowMinutes = 60): ObservabilitySnapshot {
     costHealth,
     errorHealth,
     personaHealth,
+    semanticRoutingHealth,
     alerts: newAlerts,
     criticalAlerts,
     warningAlerts,
@@ -425,6 +463,7 @@ function getSnapshot(windowMinutes = 60): ObservabilitySnapshot {
     cost,
     errors,
     persona,
+    semanticRouting,
   };
 }
 

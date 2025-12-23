@@ -374,7 +374,8 @@ const STYLES = `
 function render(): string {
   if (!currentAgent) return '';
 
-  const sharedWith = (currentAgent.sharedWith || []) as Array<{ email: string; name?: string; status: string }>;
+  const agent = currentAgent as unknown as Record<string, unknown>;
+  const sharedWith = (agent.sharedWith || []) as Array<{ email: string; name?: string; status: string }>;
   const shareLink = generateShareLink(currentAgent.id);
 
   return `

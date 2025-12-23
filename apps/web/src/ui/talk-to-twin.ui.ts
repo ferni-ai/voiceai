@@ -202,7 +202,11 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
     if (initialPrompt) {
       // Small delay to let the UI settle
       setTimeout(() => {
-        sendMessage(initialPrompt);
+        const input = twinModal?.querySelector('#twin-input') as HTMLTextAreaElement;
+        if (input) {
+          input.value = initialPrompt;
+          void handleSendMessage();
+        }
       }, 500);
     }
   } catch (error) {
@@ -234,9 +238,9 @@ async function buildTwinContext(agent: CustomAgent): Promise<void> {
   const journals = (await listMemories(agent.id, 'journalEntry')) || [];
 
   // Extract profile from agent data
-  const personality = (agent.personality || {}) as Record<string, unknown>;
-  const behaviors = (agent.behaviors || {}) as Record<string, unknown>;
-  const memories = (agent.memories || {}) as Record<string, unknown>;
+  const personality = (agent.personality || {}) as unknown as Record<string, unknown>;
+  const behaviors = (agent.behaviors || {}) as unknown as Record<string, unknown>;
+  const memories = (agent.memories || {}) as unknown as Record<string, unknown>;
 
   // Extract life chapters from memories
   const lifeEvents = (memories.lifeEvents as Array<Record<string, unknown>>) || [];
@@ -280,7 +284,7 @@ async function buildTwinContext(agent: CustomAgent): Promise<void> {
   const recentEntries: JournalEntry[] = [];
 
   for (const journal of journals.slice(0, 20)) {
-    const entry = journal as Record<string, unknown>;
+    const entry = journal as unknown as Record<string, unknown>;
     recentEntries.push({
       content: (entry.content as string) || '',
       mood: entry.mood as string | undefined,

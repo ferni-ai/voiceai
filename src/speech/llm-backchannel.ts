@@ -68,111 +68,76 @@ export interface BackchannelInstructions {
  *
  * These instructions tell the LLM exactly what kind of response to give,
  * ensuring it stays brief and contextual.
+ *
+ * Uses speak pseudo-tool pattern to prevent echoing of meta-instructions.
+ * The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say().
  */
 function getBackchannelInstructions(context: BackchannelContext): string {
   const { type, recentUserSpeech, emotionalTone, silenceDurationMs } = context;
 
   // Get relevant snippet (last 100 chars for context)
   const snippet = recentUserSpeech.slice(-100).trim();
-  const hasContent = snippet.length > 10;
+
+  // JSON output format (prevents echoing of instructions)
+  const jsonFormat = `OUTPUT ONLY this JSON format (nothing else):
+{"fn":"speak","args":{"text":"your brief response here"}}`;
 
   switch (type) {
     case 'acknowledgment':
-      return `The user is still speaking. Give a VERY brief listening sound (1-3 words max) that shows you're following along.
+      return `User is speaking: "${snippet}"
 
-What they just said: "${snippet}"
+Generate a brief listening sound (1-3 words). Examples: "Mm-hmm" "Yeah" "Right"
 
-Guidelines:
-- Ultra brief: "Mm-hmm" "Yeah" "Mm" "Right" - pick ONE
-- Don't ask questions
-- Don't give advice
-- Don't say "I see" or "I understand" (AI tells)
-- Just show presence, then stop
-
-Respond with ONLY the brief sound, nothing else.`;
+${jsonFormat}`;
 
     case 'empathy':
-      return `The user is sharing something difficult. Give a VERY brief empathetic acknowledgment (1-4 words max).
+      return `User shared something difficult: "${snippet}"
+Tone: ${emotionalTone || 'heavy'}
 
-What they shared: "${snippet}"
-Emotional tone: ${emotionalTone || 'heavy'}
+Generate a brief empathetic sound (1-4 words). Examples: "That's hard" "I hear you" "Yeah..."
 
-Guidelines:
-- Brief and warm: "That's hard" "I hear you" "Yeah..." "Of course"
-- Match their energy (quiet for quiet, don't be bright)
-- Physical metaphors work: "That landed" "I felt that"
-- DON'T say "I understand" or "I'm sorry" (too generic)
-- Just acknowledge, don't try to fix
-
-Respond with ONLY the brief acknowledgment, nothing else.`;
+${jsonFormat}`;
 
     case 'encouragement':
-      return `The user seems to need gentle encouragement to continue. Give a VERY brief supportive sound (1-3 words max).
+      return `User needs gentle encouragement to continue.
 
-Guidelines:
-- Presence sounds: "I'm here" "Take your time" "No rush" "Mm-hmm"
-- NOT commands: Don't say "Tell me more" or "Go on" (those feel pushy)
-- Just hold space
+Generate a presence sound (1-3 words). Examples: "I'm here" "Take your time" "No rush"
 
-Respond with ONLY the brief sound, nothing else.`;
+${jsonFormat}`;
 
     case 'excitement':
-      return `The user shared something positive! Give a VERY brief excited reaction (1-4 words max).
+      return `User shared good news: "${snippet}"
 
-What they shared: "${snippet}"
+Generate a brief excited reaction (1-4 words). Examples: "Oh!" "Yes!" "That's huge!"
 
-Guidelines:
-- Match their energy: "Oh!" "Yes!" "Nice!" "Ha!" "Wait, really?!"
-- Can be slightly longer: "That's huge!" "Love that"
-- Be genuine, not performative
-- Don't overshadow their moment
-
-Respond with ONLY the brief reaction, nothing else.`;
+${jsonFormat}`;
 
     case 'curiosity':
-      return `The user said something interesting. Give a VERY brief intrigued sound (1-2 words max).
+      return `User said something interesting: "${snippet}"
 
-What they said: "${snippet}"
+Generate a brief curious sound (1-2 words). Examples: "Huh" "Hmm" "Oh?"
 
-Guidelines:
-- Soft curiosity: "Huh" "Hmm" "Oh?" "Interesting"
-- NOT "Really?" or "Is that so?" (those sound fake)
-- Just a sound that shows you noticed
-
-Respond with ONLY the brief sound, nothing else.`;
+${jsonFormat}`;
 
     case 'silence_presence':
       if (!silenceDurationMs || silenceDurationMs < 5000) {
-        // Short silence - often best to say nothing
-        return `The user has been quiet for a moment. Decide if you should acknowledge the silence or stay quiet yourself.
+        return `User has been quiet for ${Math.round((silenceDurationMs || 0) / 1000)} seconds.
 
-Silence duration: ${Math.round((silenceDurationMs || 0) / 1000)} seconds
+Generate "..." for intentional silence, or a brief presence sound (1-3 words): "I'm here"
 
-Guidelines:
-- Often silence IS the right response (respond with just "...")
-- If you do speak, keep it to 1-3 words: "I'm here" "Take your time" "Mm"
-- Don't fill silence just to fill it
-- Heavy moments deserve space
-
-Respond with either "..." (for intentional silence) or a very brief presence sound.`;
+${jsonFormat}`;
       } else {
-        // Longer silence - gentle check-in
-        return `The user has been quiet for a while. Give a gentle presence acknowledgment.
+        return `User has been quiet for ${Math.round((silenceDurationMs || 0) / 1000)} seconds.
 
-Silence duration: ${Math.round((silenceDurationMs || 0) / 1000)} seconds
+Generate a gentle presence acknowledgment (3-5 words). Examples: "I'm here" "Still with you"
 
-Guidelines:
-- Warm but brief: "I'm here" "Still with you" "No rush"
-- DON'T ask "Are you okay?" or "What's on your mind?" (too intrusive)
-- Just show you're present, not demanding they speak
-
-Respond with ONLY the brief acknowledgment (3-5 words max).`;
+${jsonFormat}`;
       }
 
     default:
-      return `Give a very brief listening acknowledgment (1-3 words): "Mm-hmm" "Yeah" "Mm"
+      return `Generate a brief listening sound (1-3 words): "Mm-hmm" "Yeah" "Mm"
 
-Respond with ONLY the brief sound.`;
+${jsonFormat}`;
   }
 }
 

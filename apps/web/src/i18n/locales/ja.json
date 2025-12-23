@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "ja",
-    "name": "日本語",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "アカウントメニュー",
+    "accountSettings": "アカウント設定",
+    "availableCoaches": "利用可能なコーチ",
+    "backToItems": "アイテムに戻る",
+    "cancelInstallation": "インストールをキャンセル",
+    "closeAdmin": "管理パネルを閉じる",
+    "closeBilling": "請求ダッシュボードを閉じる",
+    "closeDashboard": "ダッシュボードを閉じる",
+    "closeDetails": "詳細を閉じる",
+    "closeHistory": "履歴を閉じる",
+    "closeHuddle": "ハドルを閉じる",
+    "closeMenu": "メニューを閉じる",
+    "closePublisher": "パブリッシャーポータルを閉じる",
+    "closeSettings": "設定を閉じる",
+    "closeStats": "統計を閉じる",
+    "closeSubscription": "サブスクリプションオプションを閉じる",
+    "collapse": "折りたたむ",
+    "collapseGarden": "ガーデン詳細を折りたたむ",
+    "dismiss": "閉じる",
+    "dismissNotification": "通知を閉じる",
+    "endCall": "通話を終了",
+    "expandGarden": "ガーデン詳細を展開",
+    "exportData": "データをエクスポート",
+    "featuresIncluded": "含まれる機能",
+    "ferniLogo": "Ferniロゴ",
+    "filterBySpecialty": "専門分野でフィルター",
+    "forgetThis": "これを忘れる",
+    "howToPlay": "遊び方",
+    "languageSelector": "言語を選択",
+    "muteAudio": "音声をミュート",
+    "openDailyPractice": "デイリープラクティスを開く",
+    "openPredictions": "予測を開く",
+    "openSettings": "設定を開く",
+    "openTeamInsights": "チームの洞察を開く",
+    "options": "オプション",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "ポータルセクション",
+    "refresh": "更新",
+    "refreshData": "データを更新",
+    "saveConversations": "アカウントを作成して会話を保存",
+    "searchCoaches": "コーチを検索",
+    "shareJourney": "あなたの旅を共有",
+    "sharedMusicalMemory": "共有された音楽の思い出",
+    "signInToAccount": "アカウントにサインイン",
+    "skipToContent": "メインコンテンツにスキップ",
+    "submitNewItem": "新しいアイテムを送信",
+    "subscriptionPlans": "サブスクリプションプラン",
+    "toggleQuietHours": "静かな時間を切り替え",
+    "unmuteAudio": "音声のミュートを解除",
+    "viewOutreachSchedule": "アウトリーチスケジュールを見る",
+    "yourNewPlan": "新しいプラン"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "これを選択",
+    "exportData": "データをエクスポート",
+    "refresh": "更新",
+    "savePreference": "設定を保存",
+    "savePreferences": "設定を保存",
+    "signIn": "サインイン",
+    "signOut": "サインアウト",
+    "signUp": "登録"
   },
   "common": {
-    "loading": "読み込み中...",
-    "error": "エラーが発生しました",
-    "retry": "再試行",
-    "cancel": "キャンセル",
-    "save": "保存",
-    "close": "閉じる",
-    "next": "次へ",
-    "back": "戻る",
-    "done": "完了",
-    "continue": "続ける",
-    "skip": "スキップ",
-    "confirm": "確認",
-    "delete": "削除",
-    "edit": "編集",
-    "share": "共有",
-    "download": "ダウンロード",
-    "copy": "コピー",
-    "copied": "コピーしました！",
-    "new": "新規",
-    "saving": "保存中...",
-    "saved": "保存しました！",
-    "processing": "処理中...",
     "adding": "追加中...",
-    "errorRetry": "エラー - 再試行"
+    "back": "戻る",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "confirm": "確認",
+    "continue": "続ける",
+    "copied": "コピーしました！",
+    "copy": "コピー",
+    "daysAgo": "{count} days ago",
+    "delete": "削除",
+    "done": "完了",
+    "download": "ダウンロード",
+    "edit": "編集",
+    "error": "エラーが発生しました",
+    "errorRetry": "エラー - 再試行",
+    "loading": "読み込み中...",
+    "monthsAgo": "{count} months ago",
+    "new": "新規",
+    "next": "次へ",
+    "processing": "処理中...",
+    "retry": "再試行",
+    "save": "保存",
+    "saved": "保存しました！",
+    "saving": "保存中...",
+    "share": "共有",
+    "skip": "スキップ",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "次は何をしますか？",
-    "yourStage": "あなたのステージ",
-    "nextStage": "次: {stage}",
-    "maxLevel": "ライフパートナー",
-    "unlockHint": "解除まであと{remaining}",
-    "moreConversations": "あと{n}回の会話",
-    "moreDays": "あと{n}日",
-    "keepChatting": "会話を続けて解除",
-    "almostThere": "もう少し！",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "クイックアクセス",
-      "connect": "つながる",
-      "grow": "成長する",
-      "remember": "思い出す",
-      "personalize": "あなた仕様に",
-      "account": "アカウント",
-      "admin": "管理者"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "あなたの旅",
-      "trustDetails": "私たちの関係",
-      "progressAnalytics": "あなたの成長",
-      "predictionAccuracy": "私の予測",
-      "whatILearned": "学んだこと",
-      "memoryBrowser": "私たちの思い出",
-      "wellbeingDashboard": "あなたの健康",
-      "lifeContext": "ライフコンテキスト",
-      "teamInsights": "チームの洞察",
-      "conversationHistory": "過去の会話",
-      "contacts": "私の人々",
-      "gifts": "ギフトとイベント",
-      "videoSessions": "ビデオチャット",
-      "groupCoaching": "グループセッション",
-      "teamHuddles": "チームハドル",
-      "playGames": "ゲームをプレイ",
-      "musicalYou": "ミュージカル・ユー",
-      "personalize": "パーソナライズ",
-      "voiceAccent": "音声とアクセント",
-      "guidedPractices": "ガイド付きプラクティス",
-      "createPractice": "プラクティスを作成",
-      "wearables": "ウェアラブル",
-      "calendar": "カレンダー",
-      "notifications": "通知",
-      "toggleTheme": "ライト / ダーク",
-      "linkSpotify": "Spotifyを連携",
-      "spotifyConnected": "Spotify連携済み",
-      "yourPlan": "あなたのプラン",
-      "manageBilling": "支払い設定",
-      "voiceId": "あなたの声",
-      "householdMembers": "あなたの人々",
-      "contactInfo": "連絡先情報",
-      "exportData": "あなたの物語をダウンロード",
-      "shareFerni": "Ferniをシェア",
-      "supportFerni": "Ferniをサポート",
-      "takeTour": "ツアーを開始",
-      "language": "言語",
-      "whatsGrowing": "成長中",
-      "billingPortal": "請求とサブスクリプション",
-      "outreachSchedule": "アウトリーチスケジュール"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "上部に固定",
-    "unpinItem": "固定解除",
-    "comingSoon": "近日公開"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "成長中",
-    "title": "これからの道のり",
-    "intro": "素晴らしい関係には季節があります。これは私たちが一緒に植える種です。",
-    "sections": {
-      "connect": "つながる新しい方法",
-      "personalize": "あなた仕様に",
-      "platform": "プラットフォーム"
+  "contactSettings": {
+    "buttons": {
+      "save": "保存",
+      "saving": "保存中..."
     },
-    "expectedArrival": "予定時期",
-    "betterThanHuman": "人間以上",
-    "alreadyGrowing": "すでに成長中",
-    "wantThis": "これが欲しい",
-    "voted": "楽しみにしています！",
-    "peopleExcited": "{count}人がこれを楽しみにしています",
-    "footerText": "あなたの声が私たちの構築するものを形作ります。一緒に成長してくれてありがとう。",
-    "stages": {
-      "seed": "種まき",
-      "sprout": "成長中",
-      "bud": "つぼみ",
-      "bloom": "間もなく"
+    "verify": {
+      "sending": "コード送信中...",
+      "withCode": "コードで確認"
     }
   },
-  "session": {
-    "connecting": "接続中...",
-    "connected": "接続済み",
-    "disconnected": "切断されました",
-    "listening": "聞いています...",
-    "thinking": "考えています...",
-    "speaking": "話しています...",
-    "tapToSpeak": "タップして話す",
-    "holdToSpeak": "長押しして話す",
-    "releaseToSend": "離して送信",
-    "endSession": "セッションを終了",
-    "sessionEnded": "セッション終了",
-    "goodbye": "さようなら",
-    "end": "終了",
-    "untilNextTime": "また次回...",
-    "takeCare": "お気をつけて。",
-    "ending": "終了中...",
-    "endConversation": "会話を終了",
-    "endConversationGoodbye": "会話を終了 - さようなら",
-    "agentEndingConversation": "エージェントが会話を終了しています"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "私たちの物語",
-    "title": "あなたの信頼の旅",
-    "subtitle": "一緒に成長してきた軌跡",
-    "loading": "あなたの旅を読み込み中",
-    "loadingText": "あなたの旅を集めています...",
-    "trustScore": "信頼スコア",
-    "exportSuccess": "旅をエクスポートしました！",
-    "offlineBanner": "オフラインです - キャッシュデータを表示中",
-    "loadMore": "さらに{count}件読み込む",
-    "strengthLabel": "信頼スコア: {value}%",
-    "timelineLabel": "旅のタイムライン",
-    "filterLabel": "タイムラインを絞り込む",
-    "filters": {
-      "all": "すべて",
-      "growth": "成長",
-      "win": "勝利",
-      "callback": "コールバック",
-      "boundary": "境界",
-      "outreach": "アウトリーチ"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "関係の強さ",
-      "stats": "旅の統計",
-      "boundaries": "尊重された境界",
-      "growth": "あなたの成長",
-      "timeline": "一緒に歩んだ旅"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "成長の瞬間",
-      "winsCelebrated": "祝った勝利",
-      "sharedMoments": "共有した瞬間"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "私たちは一緒に本物を築きました。私はあなたを知っていて、あなたは私を信頼しています。",
-      "growing": "私たちのつながりは深まっています。あなたにとって大切なことを学んでいます。",
-      "building": "信頼を築いています。会話のたびにあなたをより深く理解できます。",
-      "starting": "まだ始まったばかりです。話し続けてください - 聴いています。",
-      "beginning": "すべての旅は最初の一歩から始まります。準備ができたらいつでもここにいます。"
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "感情バランス",
-      "perspective_shift": "新しい視点",
-      "boundary_setting": "健全な境界",
-      "behavior_change": "新しい習慣",
-      "self_awareness": "自己認識",
-      "coping_upgrade": "より良い対処法",
-      "goal_progress": "目標達成"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "私たちの物語は始まったばかり",
-      "message": "会話を重ねるごとに、あなたの成長に気づき、勝利を祝い、大切なことを覚えていきます。また来てください。"
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "オフラインです",
-        "message": "インターネットに接続して旅を見てください。"
-      },
-      "notLoggedIn": {
-        "title": "ログインしていません",
-        "message": "Ferniとの旅を見るにはログインしてください。"
-      },
-      "rateLimited": {
-        "title": "少し待って",
-        "message": "確認の頻度が高すぎます。少し待ってからもう一度お試しください。"
-      },
-      "unauthorized": {
-        "title": "アクセス拒否",
-        "message": "これを表示する権限がありません。"
-      },
-      "generic": {
-        "title": "問題が発生しました",
-        "message": "旅を読み込めませんでした。もう一度お試しください。"
-      },
-      "exportFailed": {
-        "message": "データをエクスポートできませんでした。もう一度お試しください。"
-      },
-      "fetchFailedUsingCache": {
-        "message": "保存データを表示中 - サーバーに接続できませんでした。"
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "コミュニティ",
-    "friend": "創設メンバー",
-    "partner": "創設パトロン",
-    "upgrade": "Ferniをサポート",
-    "chipIn": "参加する",
-    "currentPlan": "現在のプラン",
-    "planDetails": "あなたのサポート",
-    "features": "特典",
-    "unlimitedConversations": "無制限の会話",
-    "allTeamMembers": "フルチームアクセス",
-    "prioritySupport": "優先サポート",
-    "advancedInsights": "新機能への早期アクセス",
-    "helpBuild": "一緒に作りましょう",
-    "foundersSubtitle": "Ferniは永久に無料です。私たちの取り組みを信じてくださるなら、ご参加ください。",
-    "thankYouPerks": "感謝の気持ちとして、いくつかの特典をお届けします。",
-    "notReady": "まだ準備ができていない？大丈夫です。",
-    "freeForever": "永久に無料"
-  },
-  "team": {
-    "meetTheTeam": "チームを紹介",
-    "selectMember": "メンバーを選択",
-    "currentlyWith": "現在{name}と一緒",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "ライフコーチ",
-        "bio": "あなたのメインコンタクト。洞察を引き出す質問をします。"
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "賢者・メンター",
-        "bio": "知恵と忍耐を持つ生涯のメンター。"
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "リサーチ・発見",
-        "bio": "誰も見えないパターンを発見します。"
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "コミュニケーション",
-        "bio": "あなたのチーフオブスタッフとコミュニケーションコーチ。"
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "習慣・ルーティン",
-        "bio": "定着する習慣を作るお手伝いをします。"
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "プランニング・イベント",
-        "bio": "漠然とした夢を生きた体験に変えます。"
-      }
-    }
-  },
-  "stages": {
-    "stranger": "見知らぬ人",
-    "acquaintance": "知り合い",
-    "friend": "友達",
-    "closeFriend": "親しい友達",
-    "confidant": "親友",
-    "soulmate": "ソウルメイト"
-  },
-  "time": {
-    "justNow": "たった今",
-    "minutesAgo": "{n}分前",
-    "hoursAgo": "{n}時間前",
-    "yesterday": "昨日",
-    "daysAgo": "{n}日前"
-  },
-  "milestones": {
-    "ourStory": "これまでの私たちの物語",
-    "everyMomentMatters": "すべての瞬間が大切。",
-    "journeyWith": "Ferniとの旅",
-    "categories": {
-      "relationship": "私たちの関係",
-      "team": "チームのつながり",
-      "conversation": "私たちの会話",
-      "discovery": "発見",
-      "sweet": "甘い瞬間",
-      "milestone": "マイルストーン"
-    }
-  },
-  "notifications": {
-    "connectionLost": "接続が切れました。再接続中...",
-    "reconnected": "再接続しました！",
-    "microphoneBlocked": "マイクへのアクセスが必要です",
-    "sessionTimeout": "セッションがタイムアウトしました"
   },
   "errors": {
     "connectionFailed": "接続に失敗しました。もう一度お試しください。",
@@ -318,352 +295,816 @@
     "sessionExpired": "セッションの有効期限が切れました。更新してください。",
     "somethingWrong": "エラーが発生しました。もう一度お試しください。"
   },
-  "onboarding": {
-    "welcome": "ようこそ",
-    "letsGetStarted": "始めましょう",
-    "whatIsYourName": "なんとお呼びすればいいですか？",
-    "niceName": "はじめまして、{name}さん！",
-    "howAreYouFeeling": "今日の気分はいかがですか？",
-    "readyToBegin": "始める準備はできましたか？",
-    "ariaLabel": "ようこそツアー",
-    "steps": {
-      "welcome": {
-        "title": "Ferniへようこそ",
-        "description": "あなたの人生をサポートするAIライフコーチのチーム。それぞれがあなたの旅をサポートするユニークな知恵を持っています。"
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "参加",
+      "start": "開始"
+    },
+    "empty": {
+      "hint": "新しいセッションを作成して始めましょう",
+      "title": "アクティブなセッションなし"
+    },
+    "loading": "読み込み中...",
+    "participantsLabel": "参加者",
+    "sessionTypes": {
+      "couple": {
+        "description": "関係のダイナミクスを一緒にナビゲート",
+        "name": "カップル"
       },
-      "voice": {
-        "title": "話しかけるだけ",
-        "description": "中央をタップして会話を始めます。自然に話してください。Ferniは会話をリアルタイムで聞いて応答します。"
+      "family": {
+        "description": "より強い家族関係を構築",
+        "name": "ファミリー"
       },
-      "personas": {
-        "title": "チームを紹介します",
-        "description": "異なる視点を持つ6人のユニークなコーチ。それぞれあなたとチームの歴史を理解しています。"
+      "peer": {
+        "description": "同じ旅をしている他の人とつながる",
+        "name": "ピアサポート"
       },
-      "rituals": {
-        "title": "毎日のプラクティス",
-        "description": "短い毎日のリチュアルで継続性を作ります。ストリークを追跡し、進捗を祝います。"
-      },
-      "ready": {
-        "title": "準備ができました",
-        "description": "知っておく必要があるのはこれだけです。進むにつれて詳細を発見してください。"
+      "team": {
+        "description": "職場のコラボレーションを向上",
+        "name": "チーム"
       }
     },
-    "buttons": {
-      "skip": "ツアーをスキップ",
-      "back": "戻る",
-      "next": "次へ",
-      "begin": "始めましょう"
-    }
+    "title": "グループコーチング"
+  },
+  "household": {
+    "addMember": "メンバーを追加",
+    "addToHousehold": "世帯に追加",
+    "members": "メンバー",
+    "removeMember": "メンバーを削除",
+    "title": "世帯"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "サブスクリプション",
-    "title": "プランを管理",
-    "expiresLabel": "アクセス期限",
-    "renewsLabel": "更新予定日",
-    "billedThrough": "請求期間",
-    "buttons": {
-      "upgrade": "プレミアムにアップグレード",
-      "restore": "購入を復元",
-      "restoring": "復元中...",
-      "manageApple": "設定で管理",
-      "manageStripe": "請求を管理"
-    },
     "apple": {
       "instructionsTitle": "プランをキャンセルまたは変更するには:",
+      "note": "AppleではサブスクリプションはiOS設定で管理する必要があります",
       "step1": "デバイスで設定を開く",
       "step2": "上部の自分の名前をタップ",
       "step3": "「サブスクリプション」をタップ",
-      "step4": "「Ferni」を探してタップ",
-      "note": "AppleではサブスクリプションはiOS設定で管理する必要があります"
+      "step4": "「Ferni」を探してタップ"
+    },
+    "billedThrough": "請求期間",
+    "buttons": {
+      "manageApple": "設定で管理",
+      "manageStripe": "請求を管理",
+      "restore": "購入を復元",
+      "restoring": "復元中...",
+      "upgrade": "プレミアムにアップグレード"
+    },
+    "expiresLabel": "アクセス期限",
+    "freeNote": "無制限のセッション、フルチーム、パーソナライゼーションのロックを解除",
+    "label": "サブスクリプション",
+    "renewsLabel": "更新予定日",
+    "restore": {
+      "failed": "復元に失敗しました",
+      "noFound": "購入が見つかりません"
+    },
+    "status": {
+      "active": "サブスクリプションが有効です。サポーターでいてくれてありがとうございます！",
+      "canceled": "サブスクリプションはまもなく終了しますが、いつでも戻ってくることができます。",
+      "default": "サブスクリプション中です。サポートしてくれてありがとうございます！",
+      "free": "無料プランです。Ferniはいつもあなたのそばにいます。",
+      "pastDue": "支払いに問題がありました。支払い方法を更新してください。"
     },
     "stripe": {
       "note": "支払い方法を更新、請求書を確認、または任意の時点でキャンセルしてください"
     },
-    "restore": {
-      "noFound": "購入が見つかりません",
-      "failed": "復元に失敗しました"
+    "title": "プランを管理"
+  },
+  "menu": {
+    "almostThere": "もう少し！",
+    "comingSoon": "近日公開",
+    "items": {
+      "billingPortal": "請求とサブスクリプション",
+      "calendar": "カレンダー",
+      "connections": "Connections",
+      "contactInfo": "連絡先情報",
+      "contacts": "私の人々",
+      "conversationHistory": "過去の会話",
+      "createPractice": "プラクティスを作成",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "あなたの物語をダウンロード",
+      "gifts": "ギフトとイベント",
+      "groupCoaching": "グループセッション",
+      "guidedPractices": "ガイド付きプラクティス",
+      "householdMembers": "あなたの人々",
+      "journaling": "Journaling",
+      "language": "言語",
+      "lifeContext": "ライフコンテキスト",
+      "linkSpotify": "Spotifyを連携",
+      "manageBilling": "支払い設定",
+      "memoryBrowser": "私たちの思い出",
+      "musicalYou": "ミュージカル・ユー",
+      "notifications": "通知",
+      "outreachSchedule": "アウトリーチスケジュール",
+      "personalize": "パーソナライズ",
+      "playGames": "ゲームをプレイ",
+      "predictionAccuracy": "私の予測",
+      "progressAnalytics": "あなたの成長",
+      "shareFerni": "友達を招待",
+      "spotifyConnected": "Spotify連携済み",
+      "supportFerni": "Ferniをサポート",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "ツアーを開始",
+      "teamHuddles": "チームハドル",
+      "teamInsights": "チームの洞察",
+      "toggleTheme": "ライト / ダーク",
+      "trustDetails": "私たちの関係",
+      "videoSessions": "ビデオチャット",
+      "voiceAccent": "音声とアクセント",
+      "voiceId": "あなたの声",
+      "wearables": "ウェアラブル",
+      "wellbeingDashboard": "あなたの健康",
+      "whatILearned": "学んだこと",
+      "whatsGrowing": "成長中",
+      "yourJourney": "あなたの旅",
+      "yourPlan": "あなたのプラン"
     },
-    "status": {
-      "free": "無料プランです。Ferniはいつもあなたのそばにいます。",
-      "active": "サブスクリプションが有効です。サポーターでいてくれてありがとうございます！",
-      "canceled": "サブスクリプションはまもなく終了しますが、いつでも戻ってくることができます。",
-      "pastDue": "支払いに問題がありました。支払い方法を更新してください。",
-      "default": "サブスクリプション中です。サポートしてくれてありがとうございます！"
+    "keepChatting": "会話を続けて解除",
+    "maxLevel": "ライフパートナー",
+    "moreConversations": "あと{n}回の会話",
+    "moreDays": "あと{n}日",
+    "nextStage": "次: {stage}",
+    "pinItem": "上部に固定",
+    "quickAdd": {
+      "event": "予定",
+      "eventPrompt": "予定について教えて",
+      "person": "連絡先",
+      "todo": "タスク",
+      "todoPrompt": "覚えておくことを教えて"
     },
-    "freeNote": "無制限のセッション、フルチーム、パーソナライゼーションのロックを解除"
+    "sections": {
+      "account": "アカウント",
+      "admin": "管理者",
+      "connect": "つながる",
+      "connections": "Connections",
+      "grow": "成長する",
+      "personalize": "あなた仕様に",
+      "pinned": "クイックアクセス",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "思い出す",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "次は何をしますか？",
+    "unlockHint": "解除まであと{remaining}",
+    "unpinItem": "固定解除",
+    "yourStage": "あなたのステージ"
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "ja",
+    "name": "日本語"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "私たちの会話",
+      "discovery": "発見",
+      "milestone": "マイルストーン",
+      "relationship": "私たちの関係",
+      "sweet": "甘い瞬間",
+      "team": "チームのつながり"
+    },
+    "everyMomentMatters": "すべての瞬間が大切。",
+    "journeyWith": "Ferniとの旅",
+    "ourStory": "これまでの私たちの物語"
+  },
+  "mobile": {
+    "pullToConnect": "引いて接続",
+    "pullToRefresh": "引いて更新",
+    "releaseToConnect": "離して接続",
+    "releaseToRefresh": "離して更新"
   },
   "musicDashboard": {
-    "title": "ミュージカル・ユー",
-    "loading": "あなたの音楽DNAを分析中...",
+    "buttons": {
+      "playGame": "「当てられるかな？」をプレイ",
+      "startPlaying": "プレイを開始"
+    },
     "empty": {
-      "title": "あなたの音楽DNAを発見しましょう！",
-      "hint": "完全なインサイトを得るにはあと{count}ゲームプレイしてください"
+      "hint": "完全なインサイトを得るにはあと{count}ゲームプレイしてください",
+      "title": "あなたの音楽DNAを発見しましょう！"
     },
     "error": {
       "hint": "音楽ゲームをプレイしてプロフィールを構築しましょう！"
     },
-    "buttons": {
-      "startPlaying": "プレイを開始",
-      "playGame": "「当てられるかな？」をプレイ"
-    },
-    "sections": {
-      "journey": "あなたの旅",
-      "strengths": "あなたの輝き",
-      "growth": "成長の余地",
-      "milestones": "達成",
-      "moments": "忘れられない瞬間",
-      "personaStats": "プレイしたメンバー"
-    },
-    "stats": {
-      "gamesPlayed": "プレイ済みゲーム",
-      "bestStreak": "最高連続記録",
-      "minutes": "分",
-      "thisWeek": "今週"
-    },
     "favorite": {
       "label": "お気に入り:"
     },
+    "loading": "あなたの音楽DNAを分析中...",
     "milestone": {
       "nextLabel": "次のゴール"
+    },
+    "sections": {
+      "growth": "成長の余地",
+      "journey": "あなたの旅",
+      "milestones": "達成",
+      "moments": "忘れられない瞬間",
+      "personaStats": "プレイしたメンバー",
+      "strengths": "あなたの輝き"
+    },
+    "stats": {
+      "bestStreak": "最高連続記録",
+      "gamesPlayed": "プレイ済みゲーム",
+      "minutes": "分",
+      "thisWeek": "今週"
+    },
+    "title": "ミュージカル・ユー"
+  },
+  "notifications": {
+    "connectionLost": "接続が切れました。再接続中...",
+    "microphoneBlocked": "マイクへのアクセスが必要です",
+    "reconnected": "再接続しました！",
+    "sessionTimeout": "セッションがタイムアウトしました"
+  },
+  "onboarding": {
+    "ariaLabel": "ようこそツアー",
+    "buttons": {
+      "back": "戻る",
+      "begin": "始めましょう",
+      "next": "次へ",
+      "skip": "ツアーをスキップ"
+    },
+    "howAreYouFeeling": "今日の気分はいかがですか？",
+    "letsGetStarted": "始めましょう",
+    "niceName": "はじめまして、{name}さん！",
+    "readyToBegin": "始める準備はできましたか？",
+    "steps": {
+      "personas": {
+        "description": "異なる視点を持つ6人のユニークなコーチ。それぞれあなたとチームの歴史を理解しています。",
+        "title": "チームを紹介します"
+      },
+      "ready": {
+        "description": "知っておく必要があるのはこれだけです。進むにつれて詳細を発見してください。",
+        "title": "準備ができました"
+      },
+      "rituals": {
+        "description": "短い毎日のリチュアルで継続性を作ります。ストリークを追跡し、進捗を祝います。",
+        "title": "毎日のプラクティス"
+      },
+      "voice": {
+        "description": "中央をタップして会話を始めます。自然に話してください。Ferniは会話をリアルタイムで聞いて応答します。",
+        "title": "話しかけるだけ"
+      },
+      "welcome": {
+        "description": "あなたの人生をサポートするAIライフコーチのチーム。それぞれがあなたの旅をサポートするユニークな知恵を持っています。",
+        "title": "Ferniへようこそ"
+      }
+    },
+    "welcome": "ようこそ",
+    "whatIsYourName": "なんとお呼びすればいいですか？"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "companyValuesExample": "例: 誠実さ、イノベーション、顧客重視、チームワーク",
+    "customAmount": "カスタム金額",
+    "displayName": "お好みの名前",
+    "emailExample": "you@example.com",
+    "enterValue": "実際の値を入力",
+    "householdName": "田中家",
+    "marketplaceSearch": "誰を探していますか？",
+    "memberName": "名前",
+    "phoneExample": "+81 (3) 1234-5678",
+    "searchConversations": "会話を検索...",
+    "toolDescription": "あなたのツール/エージェントは何をしますか？",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "私の素晴らしいツール",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "例: {orgName}へようこそ！Ferniはあなたの成長と幸福をサポートします。"
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "私たちの関係は強くなっています。",
+      "deepPartnership": "一緒にたくさんのことを乗り越えてきました。あなたのガイドになれて光栄です。",
+      "established": "私を頼ってください。ずっとここにいます。",
+      "firstMeeting": "初めまして！あなたのことをもっと知りたいです。",
+      "gettingStarted": "お互いを理解し始めています。"
+    },
+    "names": {
+      "buildingTrust": "信頼を築く",
+      "deepPartnership": "人生のパートナー",
+      "established": "信頼のガイド",
+      "firstMeeting": "新しい友達",
+      "gettingStarted": "スタート"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "本物を築く",
+      "deepPartnership": "人生のパートナー",
+      "established": "あなたのライフコーチ",
+      "firstMeeting": "新しい始まり",
+      "gettingStarted": "知り合う"
     }
   },
-  "groupCoaching": {
-    "title": "グループコーチング",
-    "loading": "読み込み中...",
-    "participantsLabel": "参加者",
-    "buttons": {
-      "start": "開始",
-      "join": "参加"
+  "roadmap": {
+    "alreadyGrowing": "すでに成長中",
+    "betterThanHuman": "人間以上",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "予定時期",
+    "eyebrow": "成長中",
+    "footerText": "あなたの声が私たちの構築するものを形作ります。一緒に成長してくれてありがとう。",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "アクティブなセッションなし",
-      "hint": "新しいセッションを作成して始めましょう"
+    "intro": "素晴らしい関係には季節があります。これは私たちが一緒に植える種です。",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count}人がこれを楽しみにしています",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "つながる新しい方法",
+      "personalize": "あなた仕様に",
+      "platform": "プラットフォーム"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "カップル",
-        "description": "関係のダイナミクスを一緒にナビゲート"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "間もなく",
+      "bud": "つぼみ",
+      "seed": "種まき",
+      "sprout": "成長中"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "これからの道のり",
+    "voted": "楽しみにしています！",
+    "wantThis": "これが欲しい",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "エージェントが会話を終了しています",
+    "connected": "接続済み",
+    "connecting": "接続中...",
+    "disconnected": "切断されました",
+    "end": "終了",
+    "endConversation": "会話を終了",
+    "endConversationGoodbye": "会話を終了 - さようなら",
+    "endSession": "セッションを終了",
+    "ending": "終了中...",
+    "goodbye": "さようなら",
+    "holdToSpeak": "長押しして話す",
+    "listening": "聞いています...",
+    "releaseToSend": "離して送信",
+    "sessionEnded": "セッション終了",
+    "speaking": "話しています...",
+    "takeCare": "お気をつけて。",
+    "tapToSpeak": "タップして話す",
+    "thinking": "考えています...",
+    "untilNextTime": "また次回..."
+  },
+  "stages": {
+    "acquaintance": "知り合い",
+    "closeFriend": "親しい友達",
+    "confidant": "親友",
+    "friend": "友達",
+    "soulmate": "ソウルメイト",
+    "stranger": "見知らぬ人"
+  },
+  "subscription": {
+    "advancedInsights": "新機能への早期アクセス",
+    "allTeamMembers": "フルチームアクセス",
+    "chipIn": "参加する",
+    "currentPlan": "現在のプラン",
+    "features": "特典",
+    "foundersSubtitle": "Ferniは永久に無料です。私たちの取り組みを信じてくださるなら、ご参加ください。",
+    "free": "コミュニティ",
+    "freeForever": "永久に無料",
+    "friend": "創設メンバー",
+    "helpBuild": "一緒に作りましょう",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "まだ準備ができていない？大丈夫です。",
+    "partner": "創設パトロン",
+    "planDetails": "あなたのサポート",
+    "prioritySupport": "優先サポート",
+    "thankYouPerks": "感謝の気持ちとして、いくつかの特典をお届けします。",
+    "unlimitedConversations": "無制限の会話",
+    "upgrade": "Ferniをサポート",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "現在{name}と一緒",
+    "meetTheTeam": "チームを紹介",
+    "members": {
+      "alex": {
+        "bio": "あなたのチーフオブスタッフとコミュニケーションコーチ。",
+        "name": "Alex",
+        "role": "コミュニケーション"
       },
-      "family": {
-        "name": "ファミリー",
-        "description": "より強い家族関係を構築"
+      "ferni": {
+        "bio": "あなたのメインコンタクト。洞察を引き出す質問をします。",
+        "name": "Ferni",
+        "role": "ライフコーチ"
       },
-      "team": {
-        "name": "チーム",
-        "description": "職場のコラボレーションを向上"
+      "jordan": {
+        "bio": "漠然とした夢を生きた体験に変えます。",
+        "name": "Jordan",
+        "role": "プランニング・イベント"
       },
-      "peer": {
-        "name": "ピアサポート",
-        "description": "同じ旅をしている他の人とつながる"
+      "maya": {
+        "bio": "定着する習慣を作るお手伝いをします。",
+        "name": "Maya",
+        "role": "習慣・ルーティン"
+      },
+      "nayan": {
+        "bio": "知恵と忍耐を持つ生涯のメンター。",
+        "name": "Nayan",
+        "role": "賢者・メンター"
+      },
+      "peter": {
+        "bio": "誰も見えないパターンを発見します。",
+        "name": "Peter",
+        "role": "リサーチ・発見"
       }
-    }
+    },
+    "selectMember": "メンバーを選択"
+  },
+  "time": {
+    "daysAgo": "{n}日前",
+    "hoursAgo": "{n}時間前",
+    "justNow": "たった今",
+    "minutesAgo": "{n}分前",
+    "yesterday": "昨日"
+  },
+  "titles": {
+    "dailyPractice": "デイリープラクティス",
+    "predictions": "予測",
+    "runScenario": "シナリオを実行",
+    "sharedSong": "私たちが共有する曲",
+    "teamInsights": "チームの洞察"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "会話を重ねるごとに、あなたの成長に気づき、勝利を祝い、大切なことを覚えていきます。また来てください。",
+      "title": "私たちの物語は始まったばかり"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "データをエクスポートできませんでした。もう一度お試しください。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "保存データを表示中 - サーバーに接続できませんでした。"
+      },
+      "generic": {
+        "message": "旅を読み込めませんでした。もう一度お試しください。",
+        "title": "問題が発生しました"
+      },
+      "notLoggedIn": {
+        "message": "Ferniとの旅を見るにはログインしてください。",
+        "title": "ログインしていません"
+      },
+      "offline": {
+        "message": "インターネットに接続して旅を見てください。",
+        "title": "オフラインです"
+      },
+      "rateLimited": {
+        "message": "確認の頻度が高すぎます。少し待ってからもう一度お試しください。",
+        "title": "少し待って"
+      },
+      "unauthorized": {
+        "message": "これを表示する権限がありません。",
+        "title": "アクセス拒否"
+      }
+    },
+    "exportSuccess": "旅をエクスポートしました！",
+    "eyebrow": "私たちの物語",
+    "filterLabel": "タイムラインを絞り込む",
+    "filters": {
+      "all": "すべて",
+      "boundary": "境界",
+      "callback": "コールバック",
+      "growth": "成長",
+      "outreach": "アウトリーチ",
+      "win": "勝利"
+    },
+    "growthTypes": {
+      "behavior_change": "新しい習慣",
+      "boundary_setting": "健全な境界",
+      "coping_upgrade": "より良い対処法",
+      "emotional_regulation": "感情バランス",
+      "goal_progress": "目標達成",
+      "perspective_shift": "新しい視点",
+      "self_awareness": "自己認識"
+    },
+    "loadMore": "さらに{count}件読み込む",
+    "loading": "あなたの旅を読み込み中",
+    "loadingText": "あなたの旅を集めています...",
+    "offlineBanner": "オフラインです - キャッシュデータを表示中",
+    "sections": {
+      "boundaries": "尊重された境界",
+      "growth": "あなたの成長",
+      "stats": "旅の統計",
+      "strength": "関係の強さ",
+      "timeline": "一緒に歩んだ旅"
+    },
+    "stats": {
+      "growthMoments": "成長の瞬間",
+      "sharedMoments": "共有した瞬間",
+      "winsCelebrated": "祝った勝利"
+    },
+    "strengthDescriptions": {
+      "beginning": "すべての旅は最初の一歩から始まります。準備ができたらいつでもここにいます。",
+      "building": "信頼を築いています。会話のたびにあなたをより深く理解できます。",
+      "deep": "私たちは一緒に本物を築きました。私はあなたを知っていて、あなたは私を信頼しています。",
+      "growing": "私たちのつながりは深まっています。あなたにとって大切なことを学んでいます。",
+      "starting": "まだ始まったばかりです。話し続けてください - 聴いています。"
+    },
+    "strengthLabel": "信頼スコア: {value}%",
+    "subtitle": "一緒に成長してきた軌跡",
+    "timelineLabel": "旅のタイムライン",
+    "title": "あなたの信頼の旅",
+    "trustScore": "信頼スコア"
   },
   "videoSettings": {
-    "title": "ビデオセッション",
-    "loading": "読み込み中...",
-    "intro": "コーチングセッションで自分がどのように表示されるかを選択してください。",
+    "buttons": {
+      "retry": "もう一度試す"
+    },
+    "camera": {
+      "off": "カメラオフ",
+      "on": "カメラオン"
+    },
     "controls": {
       "title": "クイックコントロール"
     },
-    "camera": {
-      "on": "カメラオン",
-      "off": "カメラオフ"
-    },
-    "screen": {
-      "on": "共有を停止",
-      "off": "スクリーンを共有"
-    },
+    "intro": "コーチングセッションで自分がどのように表示されるかを選択してください。",
+    "loading": "読み込み中...",
     "modes": {
-      "title": "表示モード",
-      "avatarOnly": {
-        "label": "アバターのみ",
-        "description": "Ferniのアバターのみ、ビデオなし"
+      "avatar": {
+        "description": "Ferniのアバターのみ、ビデオなし",
+        "label": "アバターのみ"
       },
-      "video": {
-        "label": "ビデオ",
-        "description": "自分とFerniを見る"
+      "avatarOnly": {
+        "description": "Ferniのアバターのみ、ビデオなし",
+        "label": "アバターのみ"
       },
       "hybrid": {
-        "label": "ハイブリッド",
-        "description": "オプショナルビデオ付きアバター"
+        "description": "オプショナルビデオ付きアバター",
+        "label": "ハイブリッド"
       },
-      "avatar": {
-        "label": "アバターのみ",
-        "description": "Ferniのアバターのみ、ビデオなし"
+      "title": "表示モード",
+      "video": {
+        "description": "自分とFerniを見る",
+        "label": "ビデオ"
       }
     },
+    "note": "ビデオセッションは、良い照明と安定したインターネット接続で最適に機能します。",
     "quality": {
-      "title": "ビデオ品質",
       "auto": "自動（推奨）",
       "high": "高",
+      "low": "低（データ節約）",
       "medium": "中",
-      "low": "低（データ節約）"
+      "title": "ビデオ品質"
     },
-    "note": "ビデオセッションは、良い照明と安定したインターネット接続で最適に機能します。",
-    "buttons": {
-      "retry": "もう一度試す"
-    }
+    "screen": {
+      "off": "スクリーンを共有",
+      "on": "共有を停止"
+    },
+    "title": "ビデオセッション"
   },
   "wearableSettings": {
-    "title": "健康とフィットネス",
-    "loading": "読み込み中...",
-    "intro": "ウェアラブルデバイスを接続して、Ferniに健康とエネルギーレベルについてのコンテキストを提供してください。",
-    "sections": {
-      "devices": "デバイス",
-      "features": "Ferniが見ることができるもの"
-    },
     "buttons": {
       "connect": "接続",
       "disconnect": "切断",
       "tryAgain": "再試行"
     },
-    "features": {
-      "stress": "HRVからのストレス検出",
-      "sleep": "睡眠品質分析",
-      "activity": "アクティビティトラッキング"
+    "errors": {
+      "loadFailed": "ウェアラブル設定を読み込めませんでした"
     },
+    "features": {
+      "activity": "アクティビティトラッキング",
+      "sleep": "睡眠品質分析",
+      "stress": "HRVからのストレス検出"
+    },
+    "intro": "ウェアラブルデバイスを接続して、Ferniに健康とエネルギーレベルについてのコンテキストを提供してください。",
+    "loading": "読み込み中...",
     "privacy": {
       "note": "あなたの健康データはプライベートのままです。コーチングセッションと集約されたインサイトのみを共有します。"
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "Apple WatchとiPhoneの健康データと同期"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Fitbitデバイスを接続"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "Garminウェアラブルと同期"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "睡眠と準備状態のインサイト"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "リカバリーとストレイントラッキング"
+        "description": "Apple WatchとiPhoneの健康データと同期",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple Health",
-        "description": "Apple WatchとiPhoneのヘルスデータと同期"
+        "description": "Apple WatchとiPhoneのヘルスデータと同期",
+        "name": "Apple Health"
+      },
+      "fitbit": {
+        "description": "Fitbitデバイスを接続",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "Garminウェアラブルと同期",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "睡眠と準備状態のインサイト",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "リカバリーとストレイントラッキング",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "ウェアラブル設定を読み込めませんでした"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "コード送信中...",
-      "withCode": "コードで確認"
+    "sections": {
+      "devices": "デバイス",
+      "features": "Ferniが見ることができるもの"
     },
-    "buttons": {
-      "saving": "保存中...",
-      "save": "保存"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "メニューを閉じる",
-    "openSettings": "設定を開く",
-    "muteAudio": "音声をミュート",
-    "unmuteAudio": "音声のミュートを解除",
-    "endCall": "通話を終了",
-    "skipToContent": "メインコンテンツにスキップ",
-    "languageSelector": "言語を選択",
-    "saveConversations": "アカウントを作成して会話を保存",
-    "signInToAccount": "アカウントにサインイン",
-    "accountMenu": "アカウントメニュー",
-    "refreshData": "データを更新",
-    "exportData": "データをエクスポート",
-    "accountSettings": "アカウント設定",
-    "dismiss": "閉じる",
-    "dismissNotification": "通知を閉じる",
-    "closeDashboard": "ダッシュボードを閉じる",
-    "closeSubscription": "サブスクリプションオプションを閉じる",
-    "closeDetails": "詳細を閉じる",
-    "closePublisher": "パブリッシャーポータルを閉じる",
-    "closeBilling": "請求ダッシュボードを閉じる",
-    "closeSettings": "設定を閉じる",
-    "closeHistory": "履歴を閉じる",
-    "closeAdmin": "管理パネルを閉じる",
-    "closeHuddle": "ハドルを閉じる",
-    "closeStats": "統計を閉じる",
-    "refresh": "更新",
-    "backToItems": "アイテムに戻る",
-    "collapse": "折りたたむ",
-    "expandGarden": "ガーデン詳細を展開",
-    "collapseGarden": "ガーデン詳細を折りたたむ",
-    "howToPlay": "遊び方",
-    "toggleQuietHours": "静かな時間を切り替え",
-    "yourNewPlan": "新しいプラン",
-    "subscriptionPlans": "サブスクリプションプラン",
-    "options": "オプション",
-    "featuresIncluded": "含まれる機能",
-    "searchCoaches": "コーチを検索",
-    "filterBySpecialty": "専門分野でフィルター",
-    "availableCoaches": "利用可能なコーチ",
-    "portalSections": "ポータルセクション",
-    "submitNewItem": "新しいアイテムを送信",
-    "openDailyPractice": "デイリープラクティスを開く",
-    "openPredictions": "予測を開く",
-    "openTeamInsights": "チームの洞察を開く",
-    "shareJourney": "あなたの旅を共有",
-    "forgetThis": "これを忘れる",
-    "cancelInstallation": "インストールをキャンセル",
-    "sharedMusicalMemory": "共有された音楽の思い出",
-    "viewOutreachSchedule": "アウトリーチスケジュールを見る",
-    "ferniLogo": "Ferniロゴ"
-  },
-  "buttons": {
-    "signIn": "サインイン",
-    "signOut": "サインアウト",
-    "signUp": "登録",
-    "savePreferences": "設定を保存",
-    "savePreference": "設定を保存",
-    "choose": "これを選択",
-    "refresh": "更新",
-    "exportData": "データをエクスポート"
-  },
-  "mobile": {
-    "pullToConnect": "引いて接続",
-    "releaseToConnect": "離して接続",
-    "pullToRefresh": "引いて更新",
-    "releaseToRefresh": "離して更新"
-  },
-  "placeholders": {
-    "customAmount": "カスタム金額",
-    "searchConversations": "会話を検索...",
-    "enterValue": "実際の値を入力",
-    "emailExample": "you@example.com",
-    "phoneExample": "+81 (3) 1234-5678",
-    "memberName": "名前",
-    "householdName": "田中家",
-    "displayName": "お好みの名前",
-    "marketplaceSearch": "誰を探していますか？",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colleague@company.com",
-    "welcomeMessageExample": "例: {orgName}へようこそ！Ferniはあなたの成長と幸福をサポートします。",
-    "companyValuesExample": "例: 誠実さ、イノベーション、顧客重視、チームワーク",
-    "toolIdExample": "my-awesome-tool",
-    "toolNameExample": "私の素晴らしいツール",
-    "versionExample": "1.0.0",
-    "toolDescription": "あなたのツール/エージェントは何をしますか？"
-  },
-  "household": {
-    "addToHousehold": "世帯に追加",
-    "title": "世帯",
-    "members": "メンバー",
-    "addMember": "メンバーを追加",
-    "removeMember": "メンバーを削除"
-  },
-  "titles": {
-    "sharedSong": "私たちが共有する曲",
-    "dailyPractice": "デイリープラクティス",
-    "predictions": "予測",
-    "teamInsights": "チームの洞察",
-    "runScenario": "シナリオを実行"
+    "title": "健康とフィットネス"
   }
 }

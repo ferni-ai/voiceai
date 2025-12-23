@@ -144,7 +144,10 @@ export class QuotedMemoryEngine {
           usedThisSession: false,
         });
 
-        log.debug({ phrase: phrase.slice(0, 50), context: contextDescription }, 'Hyper-specific memory stored');
+        log.debug(
+          { phrase: phrase.slice(0, 50), context: contextDescription },
+          'Hyper-specific memory stored'
+        );
 
         // Trim to max memories
         this.trimToMax();
@@ -266,4 +269,3 @@ export class QuotedMemoryEngine {
     }
   }
 }
-

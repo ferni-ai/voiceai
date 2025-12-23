@@ -165,4 +165,3 @@ export interface ToolManifest {
     agents?: Array<{ id: MarketplaceId; version: string }>;
   };
 }
-

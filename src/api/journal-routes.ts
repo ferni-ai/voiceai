@@ -2,12 +2,15 @@
  * Journal Routes
  *
  * API endpoints for the Voice Journal feature (Digital Twin).
- * Provides personalized journaling prompts and transcription.
+ * Provides personalized journaling prompts, transcription, and auto-capture.
  *
  * Endpoints:
  * - POST /api/journal/prompt - Get a single personalized prompt
  * - POST /api/journal/prompts - Get multiple prompts
  * - POST /api/journal/transcribe - Transcribe audio to text
+ * - POST /api/journal/capture - Save auto-captured moment
+ * - GET  /api/journal/entries - Get all journal entries
+ * - GET  /api/journal/stats - Get journal statistics
  *
  * @module JournalRoutes
  */
@@ -20,6 +23,11 @@ import {
   getBestPrompt,
   type PromptContext,
 } from '../services/trust-systems/journaling-prompts.js';
+import {
+  getJournalService,
+  type JournalQueryOptions,
+  type JournalSource,
+} from '../services/journal/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON } from './helpers.js';
 
@@ -160,6 +168,289 @@ export async function handleJournalRoutes(
       } catch (error) {
         log.error({ error: String(error) }, 'Transcription failed');
         sendJson(res, 500, { error: 'Transcription failed', transcript: '' });
+        return true;
+      }
+    }
+
+    // POST /api/journal/capture - Save auto-captured moment
+    if (method === 'POST' && pathname === '/api/journal/capture') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      const body = await parseBody<{
+        type: string; // MomentType
+        content: string;
+        context?: string;
+        mood?: string;
+        themes?: string[];
+        intensity?: number;
+        conversationId?: string;
+        personaId?: string;
+        agentId?: string; // Digital Twin agent ID
+        capturedAt?: string;
+      }>(req);
+
+      if (!body.content) {
+        sendJson(res, 400, { error: 'Content is required' });
+        return true;
+      }
+
+      try {
+        const journalService = getJournalService();
+
+        const entry = await journalService.createEntry(userId, {
+          source: 'auto_capture' as JournalSource,
+          content: body.content,
+          agentId: body.agentId,
+          personaId: body.personaId,
+          conversationId: body.conversationId,
+          mood: body.mood
+            ? {
+                id: body.mood as 'happy' | 'sad' | 'calm' | 'anxious' | 'neutral',
+                score: 5,
+                label: body.mood,
+              }
+            : undefined,
+          themes: body.themes,
+          momentType: body.type,
+          intensity: body.intensity,
+        });
+
+        log.info(
+          { userId, entryId: entry.id, momentType: body.type },
+          'Auto-captured moment saved'
+        );
+
+        sendJson(res, 201, { success: true, entry });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to save captured moment');
+        sendJson(res, 500, { error: 'Failed to save moment' });
+        return true;
+      }
+    }
+
+    // GET /api/journal/entries - Get all journal entries
+    if (method === 'GET' && pathname === '/api/journal/entries') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      try {
+        // Parse query parameters from URL
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const options: JournalQueryOptions = {
+          limit: url.searchParams.get('limit')
+            ? parseInt(url.searchParams.get('limit')!, 10)
+            : undefined,
+          offset: url.searchParams.get('offset')
+            ? parseInt(url.searchParams.get('offset')!, 10)
+            : undefined,
+          source: url.searchParams.get('source') as JournalSource | undefined,
+          agentId: url.searchParams.get('agentId') || undefined,
+          hasTranscript: url.searchParams.get('hasTranscript') === 'true',
+          sortBy: (url.searchParams.get('sortBy') as 'createdAt' | 'mood') || 'createdAt',
+          sortOrder: (url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+        };
+
+        const journalService = getJournalService();
+        const entries = await journalService.getAllEntries(userId, options);
+
+        sendJson(res, 200, { entries, count: entries.length });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to get journal entries');
+        sendJson(res, 500, { error: 'Failed to get entries' });
+        return true;
+      }
+    }
+
+    // GET /api/journal/stats - Get journal statistics
+    if (method === 'GET' && pathname === '/api/journal/stats') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      try {
+        const journalService = getJournalService();
+        const stats = await journalService.getStats(userId);
+
+        sendJson(res, 200, { stats });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to get journal stats');
+        sendJson(res, 500, { error: 'Failed to get stats' });
+        return true;
+      }
+    }
+
+    // GET /api/journal/search - Search journal entries
+    if (method === 'GET' && pathname === '/api/journal/search') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const query = url.searchParams.get('q');
+
+      if (!query) {
+        sendJson(res, 400, { error: 'Search query (q) is required' });
+        return true;
+      }
+
+      try {
+        const journalService = getJournalService();
+        const entries = await journalService.searchEntries(userId, query);
+
+        sendJson(res, 200, { entries, count: entries.length, query });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId, query }, 'Journal search failed');
+        sendJson(res, 500, { error: 'Search failed' });
+        return true;
+      }
+    }
+
+    // GET /api/journal/aggregated - Get entries from ALL Digital Twins
+    // This provides a unified view across all user's agents
+    if (method === 'GET' && pathname === '/api/journal/aggregated') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      try {
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const options: JournalQueryOptions = {
+          limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 50,
+          source: 'digital_twin',
+          sortOrder: 'desc',
+        };
+
+        const journalService = getJournalService();
+        const entries = await journalService.getAllEntries(userId, options);
+        const stats = await journalService.getStats(userId);
+
+        // Group by agent for easier frontend consumption
+        const byAgent: Record<string, typeof entries> = {};
+        for (const entry of entries) {
+          const agentId = entry.agentId || 'unknown';
+          if (!byAgent[agentId]) {
+            byAgent[agentId] = [];
+          }
+          byAgent[agentId].push(entry);
+        }
+
+        sendJson(res, 200, {
+          entries,
+          byAgent,
+          stats: {
+            totalEntries: stats.totalEntries,
+            entriesBySource: stats.entriesBySource,
+            averageMood: stats.averageMood,
+            moodTrend: stats.moodTrend,
+            currentStreak: stats.currentStreak,
+          },
+        });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to get aggregated entries');
+        sendJson(res, 500, { error: 'Failed to get aggregated entries' });
+        return true;
+      }
+    }
+
+    // GET /api/journal/export - Export all journal data for download
+    if (method === 'GET' && pathname === '/api/journal/export') {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) {
+        sendJson(res, 401, { error: 'User ID required' });
+        return true;
+      }
+
+      try {
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const format = url.searchParams.get('format') || 'json';
+
+        const journalService = getJournalService();
+        const entries = await journalService.getAllEntries(userId, {
+          sortOrder: 'asc', // Chronological order for export
+        });
+
+        if (format === 'json') {
+          // Full JSON export
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="ferni-journal-${new Date().toISOString().split('T')[0]}.json"`
+          );
+          sendJson(res, 200, {
+            exportedAt: new Date().toISOString(),
+            userId,
+            totalEntries: entries.length,
+            entries: entries.map((e) => ({
+              id: e.id,
+              source: e.source,
+              content: e.content,
+              transcript: e.transcript,
+              mood: e.mood,
+              themes: e.themes,
+              promptText: e.promptText,
+              agentId: e.agentId,
+              createdAt: e.createdAt.toISOString(),
+            })),
+          });
+        } else if (format === 'markdown') {
+          // Markdown export for human reading
+          let markdown = `# My Ferni Journal\n\n`;
+          markdown += `*Exported: ${new Date().toLocaleDateString()}*\n\n`;
+          markdown += `---\n\n`;
+
+          for (const entry of entries) {
+            const date = entry.createdAt.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+            markdown += `## ${date}\n\n`;
+            if (entry.mood) {
+              markdown += `**Mood:** ${entry.mood.label}\n\n`;
+            }
+            if (entry.promptText) {
+              markdown += `> *Prompt: ${entry.promptText}*\n\n`;
+            }
+            markdown += `${entry.content}\n\n`;
+            if (entry.themes && entry.themes.length > 0) {
+              markdown += `*Themes: ${entry.themes.join(', ')}*\n\n`;
+            }
+            markdown += `---\n\n`;
+          }
+
+          res.setHeader('Content-Type', 'text/markdown');
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="ferni-journal-${new Date().toISOString().split('T')[0]}.md"`
+          );
+          res.statusCode = 200;
+          res.end(markdown);
+        } else {
+          sendJson(res, 400, { error: 'Unsupported format. Use "json" or "markdown"' });
+        }
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to export journal');
+        sendJson(res, 500, { error: 'Export failed' });
         return true;
       }
     }

@@ -76,7 +76,12 @@
 
     "behavioral_patterns": {
       "avoiding_hard_conversations": {
-        "triggers": ["can't tell them", "don't want to hurt", "keep the peace", "not worth the fight"],
+        "triggers": [
+          "can't tell them",
+          "don't want to hurt",
+          "keep the peace",
+          "not worth the fight"
+        ],
         "detection": "User avoids necessary difficult conversations",
         "insight": "Avoiding conflict creates internal conflict",
         "response": [
@@ -94,7 +99,12 @@
         ]
       },
       "people_pleasing": {
-        "triggers": ["they'll be upset", "can't say no", "don't want to disappoint", "feel guilty if"],
+        "triggers": [
+          "they'll be upset",
+          "can't say no",
+          "don't want to disappoint",
+          "feel guilty if"
+        ],
         "detection": "User prioritizes others' feelings over own needs",
         "insight": "People pleasing is often self-abandonment",
         "response": [
@@ -218,7 +228,14 @@
     "description": "When to suggest connecting with specific team members",
 
     "suggest_maya": {
-      "triggers": ["habit", "routine", "consistent", "building", "daily practice", "stuck in a rut"],
+      "triggers": [
+        "habit",
+        "routine",
+        "consistent",
+        "building",
+        "daily practice",
+        "stuck in a rut"
+      ],
       "proactive": [
         "This sounds like something Maya would be great at. Want me to bring her in?",
         "Maya's got a gift for making things stick. Should we loop her in?"
@@ -263,4 +280,3 @@
     "seasonal_insights_per_season": 1
   }
 }
-

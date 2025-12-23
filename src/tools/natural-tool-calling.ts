@@ -13,7 +13,7 @@
  * > while expressing them in deeply human ways.
  *
  * INTEGRATION: Uses ProcessingIntelligence for context-aware processing phrases
- * when available. Falls back to legacy PRE_CALL_PHRASES for compatibility.
+ * when available. Falls back to empty strings (LLM generates naturally).
  *
  * @module NaturalToolCalling
  */
@@ -59,10 +59,10 @@ export interface NaturalToolCall {
 }
 
 // ============================================================================
-// DEPRECATED: STATIC PHRASE POOLS
+// DEPRECATED: PHRASE POOLS REMOVED
 // ============================================================================
 //
-// These static phrase pools have been replaced by LLM behavioral guidance.
+// Static phrase pools have been replaced by LLM behavioral guidance.
 // See: src/intelligence/context-builders/dynamic-speech-guidance.ts
 //
 // The new approach:
@@ -70,54 +70,19 @@ export interface NaturalToolCall {
 // - Guide it on INTENT and let it generate naturally
 // - Match energy and context, not templates
 //
-// The phrase pools below are kept for backward compatibility but return
-// empty strings or minimal pauses. The LLM will generate natural speech
-// based on the behavioral guidance in dynamic-speech-guidance.ts.
+// Functions below return empty strings or minimal SSML pauses for backward
+// compatibility. The LLM generates natural speech from behavioral guidance.
 // ============================================================================
 
 /**
- * @deprecated REMOVED - LLM generates natural speech from behavioral guidance
- * Kept for backward compatibility, returns empty or minimal values
+ * SSML pauses for thinking sounds (the only remaining functional data)
+ * @deprecated Use ProcessingIntelligence for context-aware pauses
  */
-const PRE_CALL_PHRASES = {
-  memory: [''], // Empty - LLM decides naturally
-  calendar: [''],
-  search: [''],
-  goals: [''],
-  context: [''],
-  default: [''],
-};
-
-/**
- * @deprecated REMOVED - LLM generates natural pauses from behavioral guidance
- * Kept for backward compatibility, returns only SSML pauses (no speech)
- */
-const THINKING_SOUNDS = {
-  contemplative: ['<break time="200ms"/>'],
-  curious: ['<break time="150ms"/>'],
-  caring: ['<break time="250ms"/>'],
-  energetic: ['<break time="100ms"/>'],
-};
-
-/**
- * @deprecated REMOVED - LLM weaves results naturally
- */
-const RESULT_FRAMINGS = {
-  data: [''],
-  story: [''],
-  insight: [''],
-  action: [''],
-  care: [''],
-};
-
-/**
- * @deprecated REMOVED - LLM handles transitions naturally
- */
-const POST_CALL_TRANSITIONS = {
-  toQuestion: [''],
-  toInsight: [''],
-  toAction: [''],
-  toPause: [''],
+const THINKING_SOUND_PAUSES: Record<string, string> = {
+  contemplative: '<break time="200ms"/>',
+  curious: '<break time="150ms"/>',
+  caring: '<break time="250ms"/>',
+  energetic: '<break time="100ms"/>',
 };
 
 // ============================================================================
@@ -128,34 +93,24 @@ const POST_CALL_TRANSITIONS = {
  * Get natural framing for a tool call
  *
  * @deprecated Use getContextAwareToolProcessing() for dynamic context-aware phrases
+ * Returns empty strings for phrases (LLM generates naturally from behavioral guidance)
  */
 export function getNaturalToolCall(toolName: string, context: ToolContext): NaturalToolCall {
-  // Determine tool category
-  const category = categorizeToolCall(toolName);
-
-  // Get pre-call phrase based on category
-  const preCallPhrases = PRE_CALL_PHRASES[category] || PRE_CALL_PHRASES.default;
-  const preCallPhrase = preCallPhrases[Math.floor(Math.random() * preCallPhrases.length)];
-
-  // Get thinking sound based on emotional context
+  // Get thinking sound (SSML pause) based on emotional context
   const thinkingSoundCategory = getThinkingSoundCategory(context);
-  const thinkingSounds = THINKING_SOUNDS[thinkingSoundCategory];
-  const thinkingSound = thinkingSounds[Math.floor(Math.random() * thinkingSounds.length)];
+  const thinkingSound = THINKING_SOUND_PAUSES[thinkingSoundCategory] || '<break time="200ms"/>';
 
   // Determine result framing based on tool and context
   const resultFraming = getResultFraming(toolName, context);
-
-  // Get post-call transition
-  const postCallTransition = getPostCallTransition(toolName, context);
 
   // Some tools should be invisible
   const hideToolUsage = shouldHideToolUsage(toolName, context);
 
   return {
-    preCallPhrase: hideToolUsage ? '' : preCallPhrase,
+    preCallPhrase: '', // LLM generates naturally
     thinkingSound: hideToolUsage ? '' : thinkingSound,
     resultFraming,
-    postCallTransition,
+    postCallTransition: '', // LLM generates naturally
     hideToolUsage,
   };
 }
@@ -237,34 +192,9 @@ function getToolComplexityWeight(
 }
 
 /**
- * Categorize a tool for natural framing
- */
-function categorizeToolCall(toolName: string): keyof typeof PRE_CALL_PHRASES {
-  const name = toolName.toLowerCase();
-
-  if (name.includes('memory') || name.includes('remember') || name.includes('recall')) {
-    return 'memory';
-  }
-  if (name.includes('calendar') || name.includes('schedule') || name.includes('event')) {
-    return 'calendar';
-  }
-  if (name.includes('search') || name.includes('lookup') || name.includes('find')) {
-    return 'search';
-  }
-  if (name.includes('goal') || name.includes('habit') || name.includes('track')) {
-    return 'goals';
-  }
-  if (name.includes('weather') || name.includes('context') || name.includes('time')) {
-    return 'context';
-  }
-
-  return 'default';
-}
-
-/**
  * Get thinking sound category based on context
  */
-function getThinkingSoundCategory(context: ToolContext): keyof typeof THINKING_SOUNDS {
+function getThinkingSoundCategory(context: ToolContext): keyof typeof THINKING_SOUND_PAUSES {
   if (context.isUserDistressed) {
     return 'caring';
   }
@@ -310,29 +240,11 @@ function getResultFraming(
 
 /**
  * Get post-call transition phrase
+ * @deprecated LLM generates transitions naturally from behavioral guidance
  */
-function getPostCallTransition(toolName: string, context: ToolContext): string {
-  // Distressed users → pause
-  if (context.isUserDistressed) {
-    const phrases = POST_CALL_TRANSITIONS.toPause;
-    return phrases[Math.floor(Math.random() * phrases.length)];
-  }
-
-  // Early in relationship → question
-  if (context.relationshipStage === 'new' || (context.turnCount && context.turnCount < 5)) {
-    const phrases = POST_CALL_TRANSITIONS.toQuestion;
-    return phrases[Math.floor(Math.random() * phrases.length)];
-  }
-
-  // Action-oriented tools → action
-  if (toolName.toLowerCase().includes('goal') || toolName.toLowerCase().includes('habit')) {
-    const phrases = POST_CALL_TRANSITIONS.toAction;
-    return phrases[Math.floor(Math.random() * phrases.length)];
-  }
-
-  // Default → question
-  const phrases = POST_CALL_TRANSITIONS.toQuestion;
-  return phrases[Math.floor(Math.random() * phrases.length)];
+function getPostCallTransition(_toolName: string, _context: ToolContext): string {
+  // All transitions are now handled by LLM behavioral guidance
+  return '';
 }
 
 /**
@@ -365,15 +277,14 @@ function shouldHideToolUsage(toolName: string, context: ToolContext): boolean {
 
 /**
  * Weave a tool result into natural conversation
+ * @deprecated LLM weaves results naturally from behavioral guidance
  */
 export function weaveToolResult(
   result: unknown,
-  framing: NaturalToolCall['resultFraming'],
-  context: ToolContext
+  _framing: NaturalToolCall['resultFraming'],
+  _context: ToolContext
 ): string {
-  const framingPhrases = RESULT_FRAMINGS[framing];
-  const framingPhrase = framingPhrases[Math.floor(Math.random() * framingPhrases.length)];
-
+  // LLM now handles result weaving naturally, so we just extract the text
   // Convert result to string
   let resultText: string;
   if (typeof result === 'string') {
@@ -394,12 +305,7 @@ export function weaveToolResult(
     resultText = String(result);
   }
 
-  // Don't add framing to very short results
-  if (resultText.length < 20) {
-    return resultText;
-  }
-
-  return `${framingPhrase} ${resultText}`;
+  return resultText;
 }
 
 // ============================================================================

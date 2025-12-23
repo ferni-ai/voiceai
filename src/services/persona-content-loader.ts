@@ -669,9 +669,7 @@ export async function loadSuperhumanInsights(
  * Load silence responses content for a specific persona
  * Used for meaningful silence moments that feel like genuine human connection
  */
-export async function loadSilenceResponses(
-  personaId = 'ferni'
-): Promise<SilenceResponses | null> {
+export async function loadSilenceResponses(personaId = 'ferni'): Promise<SilenceResponses | null> {
   const content = await loadPersonaContent<SilenceResponses>(personaId, 'silence_responses');
   if (content) return content;
 

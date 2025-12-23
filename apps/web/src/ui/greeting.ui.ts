@@ -5,6 +5,8 @@
  * Clean typography carries the message.
  */
 
+import { t } from '../i18n/index.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -52,10 +54,10 @@ export function getPersonalizedGreeting(): string {
  * Get time-based greeting.
  */
 function getTimeGreeting(hour: number): string {
-  if (hour >= 5 && hour < 12) return 'Good morning';
-  if (hour >= 12 && hour < 17) return 'Good afternoon';
-  if (hour >= 17 && hour < 21) return 'Good evening';
-  return 'Working late';
+  if (hour >= 5 && hour < 12) return t('greetings.goodMorning');
+  if (hour >= 12 && hour < 17) return t('greetings.goodAfternoon');
+  if (hour >= 17 && hour < 21) return t('greetings.goodEvening');
+  return t('greetings.workingLate');
 }
 
 /**
@@ -64,10 +66,10 @@ function getTimeGreeting(hour: number): string {
  */
 function getFirstTimeGreeting(timeGreeting: string): string {
   const greetings = [
-    `${timeGreeting}. Let's get started.`,
-    `${timeGreeting}. Your team is ready.`,
-    `${timeGreeting}. Here to help.`,
-    `Welcome. Let's begin.`,
+    `${timeGreeting}. ${t('greetings.letsGetStarted')}`,
+    `${timeGreeting}. ${t('greetings.yourTeamIsReady')}`,
+    `${timeGreeting}. ${t('greetings.hereToHelp')}`,
+    `${t('greetings.welcome')} ${t('greetings.letsBegin')}`,
   ];
   const selected = greetings[Math.floor(Math.random() * greetings.length)];
   return selected ?? `${timeGreeting}.`;
@@ -83,9 +85,9 @@ function getReturningGreeting(timeGreeting: string, history: UserHistory): strin
   // Same day return
   if (daysSinceVisit === 0) {
     const sameDay = [
-      `Welcome back.`,
-      `Ready when you are.`,
-      `Let's continue.`,
+      t('greetings.welcomeBack'),
+      t('greetings.readyWhenYouAre'),
+      t('greetings.letsContinue'),
     ];
     const selected = sameDay[Math.floor(Math.random() * sameDay.length)];
     return selected ?? `${timeGreeting}.`;
@@ -93,22 +95,22 @@ function getReturningGreeting(timeGreeting: string, history: UserHistory): strin
   
   // Streak celebration - subtle, no emoji
   if (history.streak >= 7) {
-    return `${history.streak} days. Impressive.`;
+    return t('greetings.streakImpressive', { days: history.streak });
   }
   if (history.streak >= 3) {
-    return `${history.streak}-day streak. Nice.`;
+    return t('greetings.streakNice', { days: history.streak });
   }
   
   // Been away for a while
   if (daysSinceVisit >= 7) {
-    return `${timeGreeting}. Good to see you.`;
+    return `${timeGreeting}. ${t('greetings.goodToSeeYou')}`;
   }
   
   // Regular return
   const regular = [
     `${timeGreeting}.`,
-    `Welcome back.`,
-    `Ready to go.`,
+    t('greetings.welcomeBack'),
+    t('greetings.readyToGo'),
   ];
   const selected = regular[Math.floor(Math.random() * regular.length)];
   return selected ?? `${timeGreeting}.`;
@@ -280,30 +282,30 @@ function getDaysSinceLastVisit(lastVisit: number): number {
 export function getMilestoneMessage(type: string, value: number): string {
   switch (type) {
     case 'streak':
-      if (value === 3) return '3 days in a row.';
-      if (value === 7) return 'One week. Well done.';
-      if (value === 14) return 'Two weeks strong.';
-      if (value === 30) return '30 days. Remarkable.';
-      if (value === 60) return '60 days. Dedication.';
-      if (value === 100) return '100 days. Exceptional.';
-      return `${value}-day streak.`;
+      if (value === 3) return t('greetings.milestones.streak3');
+      if (value === 7) return t('greetings.milestones.streak7');
+      if (value === 14) return t('greetings.milestones.streak14');
+      if (value === 30) return t('greetings.milestones.streak30');
+      if (value === 60) return t('greetings.milestones.streak60');
+      if (value === 100) return t('greetings.milestones.streak100');
+      return t('greetings.streakNice', { days: value });
       
     case 'conversations':
-      if (value === 5) return '5 conversations.';
-      if (value === 10) return '10 conversations.';
-      if (value === 25) return '25 conversations.';
-      if (value === 50) return '50 conversations. Impressive.';
-      if (value === 100) return '100 conversations. Mastery.';
+      if (value === 5) return t('greetings.milestones.conversations5');
+      if (value === 10) return t('greetings.milestones.conversations10');
+      if (value === 25) return t('greetings.milestones.conversations25');
+      if (value === 50) return t('greetings.milestones.conversations50');
+      if (value === 100) return t('greetings.milestones.conversations100');
       return `${value} conversations.`;
       
     case 'visits':
-      if (value === 10) return '10 visits.';
-      if (value === 50) return '50 visits. Committed.';
-      if (value === 100) return '100 visits. Dedicated.';
+      if (value === 10) return t('greetings.milestones.visits10');
+      if (value === 50) return t('greetings.milestones.visits50');
+      if (value === 100) return t('greetings.milestones.visits100');
       return `${value} visits.`;
       
     default:
-      return 'Milestone reached.';
+      return t('greetings.milestones.milestoneReached');
   }
 }
 

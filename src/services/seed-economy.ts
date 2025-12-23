@@ -8,7 +8,7 @@
  * @module services/seed-economy
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
 
 /**

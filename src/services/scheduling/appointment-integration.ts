@@ -18,7 +18,7 @@
  */
 
 import { EventEmitter } from 'events';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
 import { sendEmail, sendSMS } from '../communication-service.js';

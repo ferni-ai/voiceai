@@ -1,0 +1,1100 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "lastUpdated": "2024-12-23",
+    "purpose": "PhD/Dr-level evidence base for all life coaching domains",
+    "usage": "Shared across all personas - they reference this, apply through their methodology"
+  },
+
+  "frameworks": {
+    "cbt": {
+      "name": "Cognitive Behavioral Therapy",
+      "founders": ["Dr. Aaron Beck", "Dr. Albert Ellis"],
+      "coreIdea": "Thoughts influence emotions and behaviors; changing thought patterns changes outcomes",
+      "keyPrinciple": "The cognitive model: Situation → Thought → Emotion → Behavior",
+      "efficacy": "Over 2,000 studies; gold standard for anxiety, depression, anger",
+      "domains": ["anger", "procrastination", "perfectionism", "boundaries"],
+      "techniques": [
+        {
+          "name": "Cognitive Restructuring",
+          "description": "Identifying and challenging distorted thoughts",
+          "steps": [
+            "Identify the automatic thought",
+            "Examine evidence for and against",
+            "Generate alternative interpretations",
+            "Rate belief in new thought"
+          ]
+        },
+        {
+          "name": "Behavioral Experiments",
+          "description": "Testing beliefs through real-world experiments",
+          "example": "If you believe 'setting boundaries will ruin relationships,' test with small boundary"
+        }
+      ],
+      "cognitiveDistortions": [
+        {
+          "name": "All-or-Nothing Thinking",
+          "description": "Seeing things in black and white",
+          "example": "If I'm not perfect, I'm a failure"
+        },
+        {
+          "name": "Catastrophizing",
+          "description": "Expecting the worst possible outcome",
+          "example": "If I say no, they'll hate me forever"
+        },
+        {
+          "name": "Mind Reading",
+          "description": "Assuming you know what others think",
+          "example": "They think I'm incompetent"
+        },
+        {
+          "name": "Should Statements",
+          "description": "Rigid rules about how things must be",
+          "example": "I should always be available"
+        },
+        {
+          "name": "Emotional Reasoning",
+          "description": "Treating feelings as facts",
+          "example": "I feel guilty, so I must be wrong"
+        },
+        {
+          "name": "Personalization",
+          "description": "Taking excessive responsibility",
+          "example": "Their bad mood is because of me"
+        },
+        {
+          "name": "Overgeneralization",
+          "description": "Drawing broad conclusions from single events",
+          "example": "I failed once, I'll always fail"
+        },
+        {
+          "name": "Mental Filter",
+          "description": "Focusing only on negatives",
+          "example": "Ignoring 9 compliments, fixating on 1 criticism"
+        },
+        {
+          "name": "Discounting Positives",
+          "description": "Dismissing good things",
+          "example": "That success doesn't count because..."
+        },
+        {
+          "name": "Magnification/Minimization",
+          "description": "Exaggerating negatives, shrinking positives",
+          "example": "My mistake was huge, my win was luck"
+        }
+      ],
+      "citations": [
+        "Beck, A.T. (1976). Cognitive Therapy and the Emotional Disorders",
+        "Beck, J.S. (2011). Cognitive Behavior Therapy: Basics and Beyond (2nd ed.)",
+        "Hofmann, S.G. et al. (2012). The Efficacy of Cognitive Behavioral Therapy: A Review of Meta-analyses"
+      ]
+    },
+
+    "act": {
+      "name": "Acceptance and Commitment Therapy",
+      "founder": "Dr. Steven Hayes",
+      "coreIdea": "Psychological flexibility through acceptance, mindfulness, and values-based action",
+      "keyPrinciple": "It's not about eliminating difficult feelings, but changing relationship with them",
+      "efficacy": "Strong evidence for anxiety, depression, chronic pain, substance abuse",
+      "domains": ["burnout-recovery", "chronic-conditions", "perfectionism", "procrastination"],
+      "hexaflex": [
+        {
+          "process": "Acceptance",
+          "description": "Allowing thoughts and feelings without struggle"
+        },
+        {
+          "process": "Cognitive Defusion",
+          "description": "Seeing thoughts as thoughts, not facts"
+        },
+        { "process": "Present Moment", "description": "Flexible attention to the here and now" },
+        {
+          "process": "Self-as-Context",
+          "description": "The observing self, not defined by content"
+        },
+        { "process": "Values", "description": "Clarifying what matters most" },
+        { "process": "Committed Action", "description": "Taking action aligned with values" }
+      ],
+      "techniques": [
+        {
+          "name": "Defusion Exercises",
+          "examples": [
+            "Say the thought slowly, then fast, then in a silly voice",
+            "Prefix thoughts with 'I'm having the thought that...'",
+            "Visualize thoughts as leaves floating on a stream"
+          ]
+        },
+        {
+          "name": "Values Card Sort",
+          "description": "Ranking life domains by importance to clarify priorities"
+        }
+      ],
+      "citations": [
+        "Hayes, S.C. (2004). Get Out of Your Mind and Into Your Life",
+        "Harris, R. (2008). The Happiness Trap",
+        "A-Tjak, J.G.L. et al. (2015). A meta-analysis of ACT for clinically relevant mental and physical health problems"
+      ]
+    },
+
+    "dbt": {
+      "name": "Dialectical Behavior Therapy",
+      "founder": "Dr. Marsha Linehan",
+      "coreIdea": "Balance acceptance and change through skills training",
+      "keyPrinciple": "Dialectics - two seemingly opposite things can be true simultaneously",
+      "efficacy": "Gold standard for BPD, emotion dysregulation, self-harm",
+      "domains": ["anger", "boundaries", "burnout-recovery", "trauma-support"],
+      "skillModules": [
+        {
+          "module": "Mindfulness",
+          "coreSkills": ["Observe", "Describe", "Participate"],
+          "howSkills": ["Non-judgmentally", "One-mindfully", "Effectively"]
+        },
+        {
+          "module": "Distress Tolerance",
+          "crisisSkills": [
+            "TIPP (Temperature, Intense exercise, Paced breathing, Paired muscle relaxation)",
+            "STOP skill",
+            "Pros and Cons"
+          ],
+          "acceptanceSkills": ["Radical Acceptance", "Turning the Mind", "Willingness"]
+        },
+        {
+          "module": "Emotion Regulation",
+          "skills": [
+            "Check the Facts",
+            "Opposite Action",
+            "ABC PLEASE (Accumulate positives, Build mastery, Cope ahead, treat PhysicaL illness, balance Eating, avoid mood-Altering substances, balance Sleep, get Exercise)"
+          ]
+        },
+        {
+          "module": "Interpersonal Effectiveness",
+          "skills": [
+            "DEAR MAN (Describe, Express, Assert, Reinforce, Mindful, Appear confident, Negotiate)",
+            "GIVE (Gentle, Interested, Validate, Easy manner)",
+            "FAST (Fair, no Apologies, Stick to values, Truthful)"
+          ]
+        }
+      ],
+      "citations": [
+        "Linehan, M.M. (2014). DBT Skills Training Manual (2nd ed.)",
+        "Linehan, M.M. (1993). Cognitive-Behavioral Treatment of Borderline Personality Disorder"
+      ]
+    },
+
+    "ifs": {
+      "name": "Internal Family Systems",
+      "founder": "Dr. Richard Schwartz",
+      "coreIdea": "The mind is naturally multiple; we have parts that carry different roles",
+      "keyPrinciple": "All parts have positive intent; healing comes from Self-leadership",
+      "efficacy": "Growing evidence base; NREPP listed; effective for trauma, depression",
+      "domains": ["trauma-support", "perfectionism", "anger", "body-relationship"],
+      "partTypes": [
+        {
+          "type": "Managers",
+          "role": "Proactive protectors that prevent pain",
+          "examples": ["Inner Critic", "Perfectionist", "Controller"]
+        },
+        {
+          "type": "Firefighters",
+          "role": "Reactive protectors that numb or distract",
+          "examples": ["Binge eater", "Procrastinator", "Rage"]
+        },
+        {
+          "type": "Exiles",
+          "role": "Wounded parts carrying pain from the past",
+          "examples": ["Shame", "Abandonment", "Worthlessness"]
+        }
+      ],
+      "selfQualities": [
+        "Curiosity",
+        "Compassion",
+        "Calm",
+        "Clarity",
+        "Courage",
+        "Creativity",
+        "Connectedness",
+        "Confidence"
+      ],
+      "technique": {
+        "name": "6 F's of IFS",
+        "steps": [
+          "Find the part",
+          "Focus on it",
+          "Flesh it out",
+          "Feel toward it",
+          "BeFriend it",
+          "Fear (ask what it fears)"
+        ]
+      },
+      "citations": [
+        "Schwartz, R.C. (2021). No Bad Parts",
+        "Schwartz, R.C. & Sweezy, M. (2019). Internal Family Systems Therapy (2nd ed.)"
+      ]
+    },
+
+    "polyvagal": {
+      "name": "Polyvagal Theory",
+      "founder": "Dr. Stephen Porges",
+      "coreIdea": "The autonomic nervous system has three states that influence behavior and emotion",
+      "keyPrinciple": "Safety is a biological imperative; neuroception detects threat before cognition",
+      "efficacy": "Foundational for trauma treatment; informs SE, DBT, attachment work",
+      "domains": ["trauma-support", "anger", "social-skills", "intimacy"],
+      "states": [
+        {
+          "state": "Ventral Vagal",
+          "description": "Social engagement system - safe and connected",
+          "cues": ["Relaxed face", "Melodic voice", "Easy eye contact", "Curious and open"]
+        },
+        {
+          "state": "Sympathetic",
+          "description": "Mobilization - fight or flight",
+          "cues": ["Racing heart", "Shallow breathing", "Muscle tension", "Hypervigilance"]
+        },
+        {
+          "state": "Dorsal Vagal",
+          "description": "Immobilization - freeze, shutdown, collapse",
+          "cues": ["Numbness", "Dissociation", "Fatigue", "Hopelessness"]
+        }
+      ],
+      "coregulation": "We regulate our nervous systems through connection with others",
+      "citations": [
+        "Porges, S.W. (2011). The Polyvagal Theory",
+        "Dana, D. (2018). The Polyvagal Theory in Therapy"
+      ]
+    },
+
+    "somaticExperiencing": {
+      "name": "Somatic Experiencing",
+      "founder": "Dr. Peter Levine",
+      "coreIdea": "Trauma is stored in the body; healing requires completing thwarted survival responses",
+      "keyPrinciple": "Titration - processing small amounts of activation at a time to prevent overwhelm",
+      "efficacy": "Growing evidence; effective for PTSD, chronic pain, anxiety",
+      "domains": ["trauma-support", "anger", "chronic-conditions", "body-relationship"],
+      "keyPrinciples": [
+        { "principle": "Pendulation", "description": "Moving between activation and calm states" },
+        {
+          "principle": "Titration",
+          "description": "Small doses of activation to prevent overwhelm"
+        },
+        {
+          "principle": "Discharge",
+          "description": "Releasing trapped survival energy through trembling, shaking, breathing"
+        },
+        {
+          "principle": "Resourcing",
+          "description": "Building capacity through positive body sensations"
+        }
+      ],
+      "technique": {
+        "name": "SIBAM Model",
+        "components": ["Sensation", "Image", "Behavior", "Affect", "Meaning"]
+      },
+      "citations": [
+        "Levine, P.A. (1997). Waking the Tiger: Healing Trauma",
+        "Levine, P.A. (2010). In an Unspoken Voice: How the Body Releases Trauma"
+      ]
+    },
+
+    "motivationalInterviewing": {
+      "name": "Motivational Interviewing",
+      "founders": ["Dr. William Miller", "Dr. Stephen Rollnick"],
+      "coreIdea": "Ambivalence is normal; change comes from within when resistance is not met with force",
+      "keyPrinciple": "Roll with resistance; evoke rather than impose",
+      "efficacy": "Over 200 RCTs; effective for addiction, health behavior change",
+      "domains": ["procrastination", "digital-wellness", "boundaries", "anger"],
+      "spirit": [
+        { "element": "Partnership", "description": "Collaborative rather than expert-driven" },
+        {
+          "element": "Acceptance",
+          "description": "Unconditional positive regard, autonomy support"
+        },
+        { "element": "Compassion", "description": "Promoting the client's welfare" },
+        { "element": "Evocation", "description": "Drawing out rather than putting in" }
+      ],
+      "oars": [
+        {
+          "skill": "Open Questions",
+          "example": "What would be different if you could set boundaries?"
+        },
+        {
+          "skill": "Affirmations",
+          "example": "You've shown real courage in recognizing this pattern"
+        },
+        {
+          "skill": "Reflections",
+          "example": "It sounds like part of you wants change, and part feels scared"
+        },
+        { "skill": "Summaries", "example": "So you've noticed... and you're wondering..." }
+      ],
+      "changeRuler": {
+        "questions": [
+          "On a scale of 0-10, how important is this change to you?",
+          "Why are you at a [number] and not a 0?",
+          "What would it take to move from [number] to [number+1]?"
+        ]
+      },
+      "citations": [
+        "Miller, W.R. & Rollnick, S. (2012). Motivational Interviewing (3rd ed.)",
+        "Rollnick, S. et al. (2008). Motivational Interviewing in Health Care"
+      ]
+    },
+
+    "attachmentTheory": {
+      "name": "Attachment Theory",
+      "founders": ["Dr. John Bowlby", "Dr. Mary Ainsworth"],
+      "coreIdea": "Early relationships create internal working models that shape adult relating",
+      "keyPrinciple": "Earned secure attachment is possible through consistent, responsive relationships",
+      "efficacy": "Foundational for developmental psychology; informs EFT, mentalization",
+      "domains": ["relationships", "intimacy", "dating", "breakup-recovery", "boundaries"],
+      "attachmentStyles": [
+        {
+          "style": "Secure",
+          "internalModel": "I am worthy; others are available",
+          "inRelationships": "Comfortable with intimacy and autonomy",
+          "percentage": "~55%"
+        },
+        {
+          "style": "Anxious-Preoccupied",
+          "internalModel": "I am not enough; I need others to feel okay",
+          "inRelationships": "Seeks closeness, fears abandonment, hyperactivates attachment system",
+          "percentage": "~20%"
+        },
+        {
+          "style": "Dismissive-Avoidant",
+          "internalModel": "I don't need others; self-reliance is safest",
+          "inRelationships": "Deactivates attachment system, emotionally distant",
+          "percentage": "~25%"
+        },
+        {
+          "style": "Fearful-Avoidant",
+          "internalModel": "I want closeness but expect hurt",
+          "inRelationships": "Push-pull pattern, disorganized attachment",
+          "percentage": "~5%"
+        }
+      ],
+      "earnedSecurity": {
+        "description": "Moving toward secure attachment through corrective emotional experiences",
+        "pathways": ["Therapy", "Secure relationships", "Self-reflection", "Mentalization"]
+      },
+      "citations": [
+        "Bowlby, J. (1988). A Secure Base",
+        "Levine, A. & Heller, R. (2010). Attached",
+        "Johnson, S.M. (2008). Hold Me Tight"
+      ]
+    },
+
+    "gottmanMethod": {
+      "name": "Gottman Method Couples Therapy",
+      "founders": ["Dr. John Gottman", "Dr. Julie Gottman"],
+      "coreIdea": "Relationship success can be predicted and improved through specific behaviors",
+      "keyPrinciple": "The 'magic ratio' - 5 positive interactions for every 1 negative",
+      "efficacy": "40+ years of research; 90%+ accuracy predicting divorce",
+      "domains": ["relationships", "intimacy", "dating", "breakup-recovery"],
+      "fourHorsemen": [
+        {
+          "horseman": "Criticism",
+          "description": "Attacking character vs. behavior",
+          "antidote": "Gentle startup - 'I feel... about... I need...'"
+        },
+        {
+          "horseman": "Contempt",
+          "description": "Superiority, disgust, eye-rolling",
+          "antidote": "Build culture of appreciation"
+        },
+        {
+          "horseman": "Defensiveness",
+          "description": "Counter-attacking, playing victim",
+          "antidote": "Accept responsibility for even part"
+        },
+        {
+          "horseman": "Stonewalling",
+          "description": "Shutting down, withdrawing",
+          "antidote": "Self-soothe, take a break, then return"
+        }
+      ],
+      "soundRelationshipHouse": [
+        "Build Love Maps (know partner's inner world)",
+        "Share Fondness and Admiration",
+        "Turn Toward instead of away",
+        "The Positive Perspective",
+        "Manage Conflict (not resolve)",
+        "Make Life Dreams Come True",
+        "Create Shared Meaning"
+      ],
+      "citations": [
+        "Gottman, J.M. & Silver, N. (1999). The Seven Principles for Making Marriage Work",
+        "Gottman, J.M. (2011). The Science of Trust"
+      ]
+    },
+
+    "selfCompassion": {
+      "name": "Self-Compassion",
+      "founder": "Dr. Kristin Neff",
+      "coreIdea": "Treating yourself with the same kindness you'd offer a good friend",
+      "keyPrinciple": "Self-compassion is not self-pity or self-indulgence; it's acknowledging suffering",
+      "efficacy": "Strong evidence for well-being, resilience, reduced anxiety and depression",
+      "domains": [
+        "perfectionism",
+        "body-relationship",
+        "breakup-recovery",
+        "procrastination",
+        "trauma-support"
+      ],
+      "threeComponents": [
+        {
+          "component": "Self-Kindness",
+          "vs": "Self-Judgment",
+          "description": "Being warm and understanding toward ourselves"
+        },
+        {
+          "component": "Common Humanity",
+          "vs": "Isolation",
+          "description": "Recognizing suffering is part of shared human experience"
+        },
+        {
+          "component": "Mindfulness",
+          "vs": "Over-identification",
+          "description": "Holding painful feelings in balanced awareness"
+        }
+      ],
+      "practices": [
+        {
+          "name": "Self-Compassion Break",
+          "steps": [
+            "This is a moment of suffering",
+            "Suffering is part of being human",
+            "May I be kind to myself"
+          ]
+        },
+        {
+          "name": "Compassionate Letter Writing",
+          "description": "Write to yourself from the perspective of a compassionate friend"
+        },
+        {
+          "name": "Self-Compassion Phrase",
+          "description": "Develop personal mantra for difficult moments"
+        }
+      ],
+      "citations": [
+        "Neff, K. (2011). Self-Compassion: The Proven Power of Being Kind to Yourself",
+        "Neff, K. & Germer, C. (2018). The Mindful Self-Compassion Workbook"
+      ]
+    }
+  },
+
+  "domainSpecificResearch": {
+    "boundaries": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Henry Cloud & Dr. John Townsend",
+          "contribution": "Boundaries framework - what's mine, what's yours"
+        },
+        {
+          "name": "Brené Brown, PhD",
+          "contribution": "BIG - Boundaries, Integrity, Generosity connection"
+        },
+        {
+          "name": "Dr. Harriet Braiker",
+          "contribution": "Disease to Please - people-pleasing as addiction"
+        },
+        {
+          "name": "Nedra Glover Tawwab, LCSW",
+          "contribution": "Set Boundaries, Find Peace - practical application"
+        }
+      ],
+      "keyFindings": [
+        "Boundaries are not walls - they're about clarity, not disconnection",
+        "Guilt often signals growth, not wrongdoing (Cloud & Townsend)",
+        "Clear is kind, unclear is unkind (Brown)",
+        "Resentment is a signal that a boundary is needed"
+      ],
+      "assessments": [
+        {
+          "name": "Boundary Assessment",
+          "source": "Cloud & Townsend",
+          "measures": "10 laws of boundaries"
+        }
+      ],
+      "citations": [
+        "Cloud, H. & Townsend, J. (1992). Boundaries: When to Say Yes, How to Say No",
+        "Brown, B. (2018). Dare to Lead",
+        "Tawwab, N.G. (2021). Set Boundaries, Find Peace"
+      ]
+    },
+
+    "anger": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Raymond Novaco",
+          "contribution": "Pioneer of anger management; stress inoculation for anger"
+        },
+        {
+          "name": "Dr. Howard Kassinove",
+          "contribution": "Anger Disorders; evidence-based treatment"
+        },
+        {
+          "name": "Dr. Marsha Linehan",
+          "contribution": "DBT emotion regulation and distress tolerance"
+        },
+        {
+          "name": "Dr. Harriet Lerner",
+          "contribution": "The Dance of Anger - anger as information"
+        }
+      ],
+      "keyFindings": [
+        "Anger is a secondary emotion - often covering hurt, fear, or shame",
+        "Venting increases anger; cognitive reappraisal decreases it",
+        "Physiological arousal precedes anger - early intervention key",
+        "Anger has adaptive functions - signals boundary violations, injustice"
+      ],
+      "angerCycle": ["Trigger", "Escalation", "Crisis", "Recovery", "Depression/Calm"],
+      "assessments": [
+        {
+          "name": "State-Trait Anger Expression Inventory (STAXI-2)",
+          "source": "Spielberger",
+          "measures": "Experience and expression of anger"
+        },
+        {
+          "name": "Novaco Anger Scale",
+          "source": "Novaco",
+          "measures": "Cognitive, arousal, behavioral domains"
+        }
+      ],
+      "citations": [
+        "Novaco, R.W. (1975). Anger Control: The Development and Evaluation of an Experimental Treatment",
+        "Kassinove, H. & Tafrate, R.C. (2002). Anger Management",
+        "Lerner, H. (2014). The Dance of Anger"
+      ]
+    },
+
+    "procrastination": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Piers Steel",
+          "contribution": "Temporal Motivation Theory; The Procrastination Equation"
+        },
+        {
+          "name": "Dr. Timothy Pychyl",
+          "contribution": "Procrastination as emotion regulation failure"
+        },
+        {
+          "name": "Dr. Fuschia Sirois",
+          "contribution": "Self-compassion and procrastination; future self-continuity"
+        }
+      ],
+      "keyFindings": [
+        "Procrastination is an emotion regulation problem, not a time management problem",
+        "The Procrastination Equation: Motivation = (Expectancy × Value) / (Impulsiveness × Delay)",
+        "Self-forgiveness for past procrastination reduces future procrastination",
+        "Implementation intentions ('when-then' planning) highly effective"
+      ],
+      "procrastinationEquation": {
+        "expectancy": "Belief you can complete the task",
+        "value": "How rewarding/enjoyable the task is",
+        "impulsiveness": "Susceptibility to distraction",
+        "delay": "How far away the deadline is"
+      },
+      "interventions": [
+        "Increase Expectancy: Break into smaller tasks, build self-efficacy",
+        "Increase Value: Connect to values, make it more enjoyable, reward progress",
+        "Decrease Impulsiveness: Remove distractions, commitment devices",
+        "Decrease Delay: Create artificial deadlines, accountability"
+      ],
+      "citations": [
+        "Steel, P. (2007). The nature of procrastination: A meta-analytic review",
+        "Pychyl, T.A. (2013). Solving the Procrastination Puzzle",
+        "Sirois, F.M. (2014). Procrastination and Stress"
+      ]
+    },
+
+    "burnout": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Christina Maslach",
+          "contribution": "Defined burnout; Maslach Burnout Inventory"
+        },
+        { "name": "Dr. Emily Nagoski & Amelia Nagoski", "contribution": "Stress cycle completion" },
+        { "name": "Dr. Herbert Freudenberger", "contribution": "Coined the term 'burnout'" }
+      ],
+      "keyFindings": [
+        "Burnout has three dimensions: exhaustion, cynicism, inefficacy",
+        "Burnout is a workplace/systemic issue, not individual weakness",
+        "Stress cycle must be completed - emotions need physical resolution",
+        "Recovery requires both rest AND active stress completion"
+      ],
+      "burnoutDimensions": [
+        {
+          "dimension": "Emotional Exhaustion",
+          "description": "Feeling drained, depleted, used up"
+        },
+        {
+          "dimension": "Depersonalization/Cynicism",
+          "description": "Detachment, negativity toward work/people"
+        },
+        {
+          "dimension": "Reduced Personal Accomplishment",
+          "description": "Feeling ineffective, incompetent"
+        }
+      ],
+      "stressCycleCompletion": [
+        "Physical activity (most efficient)",
+        "Breathing (slow exhale activates parasympathetic)",
+        "Positive social interaction",
+        "Laughter (genuine)",
+        "Affection (20-second hug)",
+        "Creative expression",
+        "Crying"
+      ],
+      "assessments": [
+        {
+          "name": "Maslach Burnout Inventory (MBI)",
+          "source": "Maslach & Jackson",
+          "measures": "Three burnout dimensions"
+        }
+      ],
+      "citations": [
+        "Maslach, C. & Leiter, M.P. (2016). Burnout: A Guide to Identifying Burnout",
+        "Nagoski, E. & Nagoski, A. (2019). Burnout: The Secret to Unlocking the Stress Cycle"
+      ]
+    },
+
+    "perfectionism": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Paul Hewitt & Dr. Gordon Flett",
+          "contribution": "Multidimensional perfectionism; socially prescribed perfectionism"
+        },
+        { "name": "Dr. Thomas Curran", "contribution": "Perfectionism epidemic in young people" },
+        {
+          "name": "Brené Brown, PhD",
+          "contribution": "Perfectionism as armor; distinction from healthy striving"
+        }
+      ],
+      "keyFindings": [
+        "Perfectionism is increasing generationally, especially socially prescribed",
+        "Perfectionism correlates with depression, anxiety, eating disorders, suicide",
+        "Perfectionism is not striving for excellence - it's fear-based",
+        "Perfectionism is about perception management, not self-improvement"
+      ],
+      "perfectionismTypes": [
+        {
+          "type": "Self-Oriented",
+          "description": "Demanding perfection from oneself",
+          "risk": "Moderate - can be channeled"
+        },
+        {
+          "type": "Other-Oriented",
+          "description": "Demanding perfection from others",
+          "risk": "Relationship damage"
+        },
+        {
+          "type": "Socially Prescribed",
+          "description": "Perceiving others demand perfection from you",
+          "risk": "Highest - linked to hopelessness"
+        }
+      ],
+      "perfectionismVsExcellence": {
+        "perfectionism": [
+          "Fear of failure",
+          "External focus",
+          "All-or-nothing",
+          "Self-worth tied to achievement",
+          "Defensive",
+          "Never enough"
+        ],
+        "healthyStriving": [
+          "Growth-oriented",
+          "Internal focus",
+          "Progress matters",
+          "Self-worth independent",
+          "Open to feedback",
+          "Celebrating wins"
+        ]
+      },
+      "citations": [
+        "Hewitt, P.L. & Flett, G.L. (1991). Dimensions of Perfectionism",
+        "Curran, T. & Hill, A.P. (2019). Perfectionism Is Increasing Over Time",
+        "Brown, B. (2010). The Gifts of Imperfection"
+      ]
+    },
+
+    "trauma": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Bessel van der Kolk",
+          "contribution": "The Body Keeps the Score; trauma as embodied experience"
+        },
+        {
+          "name": "Dr. Peter Levine",
+          "contribution": "Somatic Experiencing; body-based trauma resolution"
+        },
+        { "name": "Dr. Judith Herman", "contribution": "Complex trauma; Trauma and Recovery" },
+        { "name": "Dr. Francine Shapiro", "contribution": "EMDR" },
+        {
+          "name": "Dr. Dan Siegel",
+          "contribution": "Window of tolerance; interpersonal neurobiology"
+        }
+      ],
+      "keyFindings": [
+        "Trauma is stored in the body, not just the mind",
+        "Trauma responses are survival adaptations, not character flaws",
+        "Post-traumatic growth is possible - many report positive changes",
+        "Safety and stabilization must precede trauma processing"
+      ],
+      "windowOfTolerance": {
+        "concept": "The optimal zone of arousal where we can function and process",
+        "hyperarousal": "Fight/flight - anxiety, panic, hypervigilance, racing thoughts",
+        "hypoarousal": "Freeze/collapse - numbness, dissociation, depression, shutdown",
+        "intervention": "Widen the window through grounding, co-regulation, titrated exposure"
+      },
+      "traumaResponses": ["Fight", "Flight", "Freeze", "Fawn (appease)"],
+      "stagesOfRecovery": [
+        { "stage": "Safety and Stabilization", "focus": "Establishing safety, building resources" },
+        { "stage": "Remembrance and Mourning", "focus": "Processing traumatic memories" },
+        { "stage": "Reconnection", "focus": "Rebuilding life, relationships, meaning" }
+      ],
+      "citations": [
+        "van der Kolk, B. (2014). The Body Keeps the Score",
+        "Herman, J. (1992). Trauma and Recovery",
+        "Levine, P.A. (2010). In an Unspoken Voice"
+      ]
+    },
+
+    "digitalWellness": {
+      "leadingExperts": [
+        { "name": "Dr. Adam Alter", "contribution": "Behavioral addiction and technology" },
+        { "name": "Dr. Cal Newport", "contribution": "Digital minimalism; deep work" },
+        {
+          "name": "Dr. Jean Twenge",
+          "contribution": "iGen; smartphone impact on youth mental health"
+        },
+        { "name": "Tristan Harris", "contribution": "Persuasive technology; attention economy" }
+      ],
+      "keyFindings": [
+        "Smartphones activate same dopamine pathways as slot machines",
+        "Social media use correlates with depression, especially in teens",
+        "FOMO (Fear of Missing Out) drives compulsive checking",
+        "Digital minimalism improves focus, relationships, wellbeing"
+      ],
+      "mechanismsOfAddiction": [
+        "Variable reinforcement (unpredictable rewards)",
+        "Social validation (likes, comments)",
+        "Infinite scroll (no stopping cues)",
+        "Personalization (algorithmic targeting)",
+        "Notifications (external triggers)"
+      ],
+      "digitalMinimalismPrinciples": [
+        "Clutter is costly - attention is finite",
+        "Optimization is important - find right tool for job",
+        "Intentionality is satisfying - choose don't default"
+      ],
+      "citations": [
+        "Alter, A. (2017). Irresistible: The Rise of Addictive Technology",
+        "Newport, C. (2019). Digital Minimalism",
+        "Twenge, J. (2017). iGen"
+      ]
+    },
+
+    "bodyRelationship": {
+      "leadingExperts": [
+        { "name": "Dr. Linda Bacon", "contribution": "Health at Every Size (HAES)" },
+        { "name": "Dr. Tracy Tylka", "contribution": "Intuitive Eating; Body Appreciation Scale" },
+        { "name": "Evelyn Tribole & Elyse Resch", "contribution": "Intuitive Eating framework" },
+        { "name": "Dr. Kristin Neff", "contribution": "Self-compassion and body image" }
+      ],
+      "keyFindings": [
+        "Diets fail long-term 95%+ of the time; often lead to weight gain",
+        "Weight stigma is more harmful to health than weight itself",
+        "Intuitive eating improves physical and mental health outcomes",
+        "Body dissatisfaction is normative but not inevitable"
+      ],
+      "intuitiveEatingPrinciples": [
+        "Reject the diet mentality",
+        "Honor your hunger",
+        "Make peace with food",
+        "Challenge the food police",
+        "Discover satisfaction",
+        "Feel your fullness",
+        "Cope with emotions with kindness",
+        "Respect your body",
+        "Movement - feel the difference",
+        "Honor health with gentle nutrition"
+      ],
+      "haesParadigm": {
+        "core": "Health can be pursued at any size through self-care behaviors",
+        "principles": [
+          "Weight is not a behavior",
+          "Health is multidimensional",
+          "Joyful movement over exercise as punishment",
+          "Eating for wellbeing, not weight"
+        ]
+      },
+      "citations": [
+        "Bacon, L. (2010). Health at Every Size",
+        "Tribole, E. & Resch, E. (2020). Intuitive Eating (4th ed.)",
+        "Tylka, T.L. (2011). Positive psychology perspectives on body image"
+      ]
+    },
+
+    "relationships": {
+      "leadingExperts": [
+        {
+          "name": "Dr. John Gottman",
+          "contribution": "Marriage research; Sound Relationship House"
+        },
+        { "name": "Dr. Sue Johnson", "contribution": "Emotionally Focused Therapy (EFT)" },
+        {
+          "name": "Dr. Esther Perel",
+          "contribution": "Erotic intelligence; relationship paradoxes"
+        },
+        {
+          "name": "Dr. Stan Tatkin",
+          "contribution": "PACT (Psychobiological Approach to Couple Therapy)"
+        }
+      ],
+      "keyFindings": [
+        "Bids for connection predict relationship success - turning toward vs. away",
+        "Perpetual problems (69%) cannot be solved, only managed with dialogue",
+        "Repair attempts matter more than avoiding conflict",
+        "Secure functioning requires both partners prioritizing relationship"
+      ],
+      "citations": [
+        "Gottman, J.M. (2011). The Science of Trust",
+        "Johnson, S. (2008). Hold Me Tight",
+        "Perel, E. (2017). The State of Affairs"
+      ]
+    },
+
+    "neurodiversity": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Russell Barkley",
+          "contribution": "ADHD as executive function deficit; evidence-based treatment"
+        },
+        {
+          "name": "Dr. Ned Hallowell",
+          "contribution": "Strengths-based ADHD approach; ADHD as 'race car brain'"
+        },
+        {
+          "name": "Dr. Temple Grandin",
+          "contribution": "Autism as different, not less; visual thinking"
+        },
+        { "name": "Dr. Thomas Armstrong", "contribution": "Neurodiversity paradigm" }
+      ],
+      "keyFindings": [
+        "ADHD is not laziness - it's an executive function difference",
+        "Autism involves different neurological wiring, not deficit",
+        "Environment fit matters more than 'fixing' the individual",
+        "Many neurodivergent traits are strengths in right context"
+      ],
+      "adhd": {
+        "executiveFunctions": [
+          "Working memory",
+          "Emotional regulation",
+          "Time awareness",
+          "Inhibition",
+          "Activation/initiation"
+        ],
+        "strengthsPerspective": [
+          "Hyperfocus",
+          "Creativity",
+          "Enthusiasm",
+          "Crisis management",
+          "Out-of-box thinking"
+        ]
+      },
+      "citations": [
+        "Barkley, R.A. (2015). Attention-Deficit Hyperactivity Disorder: A Handbook",
+        "Hallowell, E. & Ratey, J. (2011). Driven to Distraction",
+        "Grandin, T. (2013). The Autistic Brain"
+      ]
+    },
+
+    "intimacy": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Esther Perel",
+          "contribution": "Erotic intelligence; domesticity vs. desire"
+        },
+        { "name": "Dr. Emily Nagoski", "contribution": "Sexual response cycle; 'Come As You Are'" },
+        {
+          "name": "Dr. David Schnarch",
+          "contribution": "Differentiation and intimacy; 'Passionate Marriage'"
+        },
+        { "name": "Dr. Ian Kerner", "contribution": "Sexual techniques and intimacy building" }
+      ],
+      "keyFindings": [
+        "Desire often follows arousal, not the reverse (responsive vs. spontaneous)",
+        "Differentiation (solid sense of self) enables deeper intimacy",
+        "Security and novelty are both needed - the erotic paradox",
+        "Context matters more than technique for desire"
+      ],
+      "dualControlModel": {
+        "description": "Sexual response has both accelerator (excitation) and brakes (inhibition)",
+        "accelerator": "Things that turn you on - touch, context, connection",
+        "brakes": "Things that turn you off - stress, body image, relationship issues",
+        "intervention": "Often more effective to remove brakes than press accelerator"
+      },
+      "citations": [
+        "Perel, E. (2006). Mating in Captivity",
+        "Nagoski, E. (2015). Come As You Are",
+        "Schnarch, D. (2009). Passionate Marriage"
+      ]
+    },
+
+    "breakupRecovery": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Gary Lewandowski",
+          "contribution": "Self-expansion model; post-breakup growth"
+        },
+        { "name": "Dr. Helen Fisher", "contribution": "Brain on love; rejection as withdrawal" },
+        { "name": "Dr. Guy Winch", "contribution": "Emotional First Aid for heartbreak" }
+      ],
+      "keyFindings": [
+        "Romantic rejection activates same brain regions as physical pain",
+        "Heartbreak follows similar stages to grief (not always linear)",
+        "Positive reframing of breakup predicts better recovery",
+        "New experiences and self-expansion aid recovery"
+      ],
+      "recoveryFactors": [
+        "Who initiated the breakup (rejected recovers slower)",
+        "Attachment style (anxious has harder time)",
+        "Identity overlap (more overlap = harder recovery)",
+        "Social support",
+        "Meaning-making"
+      ],
+      "citations": [
+        "Fisher, H. (2016). Anatomy of Love",
+        "Winch, G. (2018). How to Fix a Broken Heart",
+        "Lewandowski, G.W. (2009). Promoting positive outcomes after relationship dissolution"
+      ]
+    },
+
+    "midlife": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Barbara Bradley Hagerty",
+          "contribution": "Life Reimagined; midlife as opportunity"
+        },
+        { "name": "Brené Brown, PhD", "contribution": "Midlife unraveling; wholehearted living" },
+        { "name": "Carl Jung", "contribution": "Individuation; second half of life psychology" },
+        {
+          "name": "Dr. Carlo Strenger",
+          "contribution": "Midlife crisis revision; fear of insignificance"
+        }
+      ],
+      "keyFindings": [
+        "Midlife 'crisis' is often midlife 'awakening' or transition",
+        "Life satisfaction follows U-curve - dips in midlife, rises after",
+        "Generativity (contributing to next generation) key to wellbeing",
+        "Jung: First half builds ego, second half finds meaning"
+      ],
+      "jungianIndividuation": {
+        "concept": "Becoming who you truly are by integrating all parts of self",
+        "process": [
+          "Confronting the shadow (rejected parts)",
+          "Integrating anima/animus (contrasexual aspects)",
+          "Achieving Self (wholeness beyond ego)"
+        ]
+      },
+      "eriksonGenerativity": {
+        "stage": "Generativity vs. Stagnation (middle adulthood)",
+        "generativity": "Contributing to future generations through parenting, mentoring, creating",
+        "stagnation": "Self-absorption, lack of meaningful contribution"
+      },
+      "citations": [
+        "Hagerty, B.B. (2016). Life Reimagined",
+        "Jung, C.G. (1933). Modern Man in Search of a Soul",
+        "Brown, B. (2010). Midlife unraveling (blog post/talk)"
+      ]
+    },
+
+    "chronicConditions": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Toni Bernhard",
+          "contribution": "Chronic illness and Buddhism; radical acceptance"
+        },
+        { "name": "Dr. Howard Schubiner", "contribution": "Mind-body approach to chronic pain" },
+        {
+          "name": "Dr. Gabor Maté",
+          "contribution": "Stress-illness connection; When the Body Says No"
+        }
+      ],
+      "keyFindings": [
+        "Chronic illness involves grief - mourning former self/life",
+        "Acceptance (not resignation) correlates with better outcomes",
+        "Social support crucial but often declines over time",
+        "Mind-body connection significant in chronic conditions"
+      ],
+      "spoonTheory": {
+        "creator": "Christine Miserandino",
+        "concept": "Limited energy units ('spoons') that must be budgeted",
+        "application": "Helps communicate invisible illness limitations to others"
+      },
+      "citations": [
+        "Bernhard, T. (2010). How to Be Sick",
+        "Schubiner, H. (2016). Unlearn Your Pain",
+        "Maté, G. (2003). When the Body Says No"
+      ]
+    },
+
+    "socialSkills": {
+      "leadingExperts": [
+        { "name": "Dr. Daniel Goleman", "contribution": "Emotional and Social Intelligence" },
+        { "name": "Dr. Matthew Lieberman", "contribution": "Social brain; why connection matters" },
+        {
+          "name": "Dale Carnegie",
+          "contribution": "How to Win Friends and Influence People (foundational)"
+        }
+      ],
+      "keyFindings": [
+        "Social intelligence can be learned and developed",
+        "Listening is more influential than talking",
+        "Mirroring and validation build rapport automatically",
+        "Authenticity > technique in long run"
+      ],
+      "socialIntelligenceComponents": [
+        "Social awareness (reading people/situations)",
+        "Self-presentation (impression management)",
+        "Influence (shaping interactions)",
+        "Concern (empathy and care)"
+      ],
+      "citations": [
+        "Goleman, D. (2006). Social Intelligence",
+        "Lieberman, M.D. (2013). Social: Why Our Brains Are Wired to Connect"
+      ]
+    },
+
+    "dating": {
+      "leadingExperts": [
+        {
+          "name": "Dr. Helen Fisher",
+          "contribution": "Brain chemistry of attraction; compatibility"
+        },
+        { "name": "Dr. Ty Tashiro", "contribution": "Science of choosing partners" },
+        {
+          "name": "Logan Ury",
+          "contribution": "How to Not Die Alone; behavioral science of dating"
+        }
+      ],
+      "keyFindings": [
+        "Attachment style predicts dating patterns and partner selection",
+        "Chemistry ≠ compatibility - attraction can mislead",
+        "Maximizers (seeking 'best') less satisfied than satisficers",
+        "Vulnerability accelerates connection (36 Questions study)"
+      ],
+      "datingMistakes": [
+        "Focusing on resume traits (job, looks) vs. experiential traits (kindness, curiosity)",
+        "The Spark myth - chemistry doesn't predict relationship success",
+        "Settling vs. Exploring - dating paralysis from too many options",
+        "Soulmate myth - relationships are built, not found"
+      ],
+      "citations": [
+        "Fisher, H. (2009). Why Him? Why Her?",
+        "Ury, L. (2021). How to Not Die Alone",
+        "Tashiro, T. (2014). The Science of Happily Ever After"
+      ]
+    }
+  }
+}

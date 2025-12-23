@@ -54,7 +54,7 @@ interface RequestContext {
   query: Record<string, string>;
   body?: unknown;
   headers: Record<string, string | string[] | undefined>;
-  /** 
+  /**
    * Authenticated user ID from Firebase auth (SECURITY: use this instead of query params)
    * Only populated after proper authentication via requireAuth middleware.
    */
@@ -695,15 +695,16 @@ async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseConte
 /**
  * GET /api/monetization/user
  * Get user's monetization data and contribution history
- * 
+ *
  * SECURITY: Uses authenticated userId (ctx.authUserId) to prevent IDOR attacks.
  */
 async function getUserMonetization(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   const requestedUserId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
-  const userId = ctx.isAdmin && requestedUserId 
-    ? String(requestedUserId) 
-    : ctx.authUserId || String(requestedUserId || '');
+  const userId =
+    ctx.isAdmin && requestedUserId
+      ? String(requestedUserId)
+      : ctx.authUserId || String(requestedUserId || '');
 
   if (!userId) {
     return {

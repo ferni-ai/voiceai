@@ -81,7 +81,23 @@ export type ToolDomain =
   | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
   | 'books' // Book tracking, recommendations, reading lists
   | 'podcasts' // Podcast discovery, listening history, recommendations
-  | 'video'; // Video content recommendations and tracking
+  | 'video' // Video content recommendations and tracking
+  // New Life Coaching Domains (Expansion)
+  | 'boundaries' // Boundary setting, people pleasing, saying no
+  | 'social-skills' // Adult friendship, conversation, social anxiety
+  | 'body-relationship' // Body image, diet culture, intuitive eating
+  | 'anger' // Anger management, healthy expression, repair
+  | 'dating' // Modern dating, online dating, red flags
+  | 'neurodiversity' // ADHD, autism, executive function support
+  | 'trauma-support' // Trauma-informed support, trigger management
+  | 'procrastination' // Root cause analysis, getting started
+  | 'digital-wellness' // Screen time, social media, phone addiction
+  | 'perfectionism' // Perfectionism, imposter syndrome, good enough
+  | 'intimacy' // Sexual wellness, desire, communication
+  | 'burnout-recovery' // Burnout recovery, rest as skill
+  | 'chronic-conditions' // Chronic illness, energy management
+  | 'midlife' // Midlife transition, aging, legacy
+  | 'breakup-recovery'; // Divorce recovery, rebuilding after breakup
 
 /**
  * All available tool domains
@@ -148,6 +164,22 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'books',
   'podcasts',
   'video',
+  // New Life Coaching Domains (Expansion)
+  'boundaries',
+  'social-skills',
+  'body-relationship',
+  'anger',
+  'dating',
+  'neurodiversity',
+  'trauma-support',
+  'procrastination',
+  'digital-wellness',
+  'perfectionism',
+  'intimacy',
+  'burnout-recovery',
+  'chronic-conditions',
+  'midlife',
+  'breakup-recovery',
 ] as const;
 
 // ============================================================================
@@ -232,6 +264,22 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   books: 'entertainment', // Book tracking, recommendations, reading lists
   podcasts: 'entertainment', // Podcast discovery, listening history
   video: 'entertainment', // Video content recommendations and tracking
+  // New Life Coaching Domains (Expansion)
+  boundaries: 'lifestyle', // Boundary setting, people pleasing recovery
+  'social-skills': 'lifestyle', // Adult friendship, conversation skills
+  'body-relationship': 'lifestyle', // Body image healing, intuitive eating
+  anger: 'lifestyle', // Anger management and healthy expression
+  dating: 'lifestyle', // Modern dating navigation
+  neurodiversity: 'lifestyle', // ADHD, autism support
+  'trauma-support': 'lifestyle', // Trauma-informed support
+  procrastination: 'productivity', // Overcoming procrastination
+  'digital-wellness': 'lifestyle', // Healthy tech relationship
+  perfectionism: 'lifestyle', // Perfectionism and imposter syndrome
+  intimacy: 'lifestyle', // Sexual wellness and intimacy
+  'burnout-recovery': 'lifestyle', // Recovering from burnout
+  'chronic-conditions': 'lifestyle', // Living well with chronic illness
+  midlife: 'lifestyle', // Midlife transitions and aging
+  'breakup-recovery': 'lifestyle', // Healing from relationship endings
 };
 
 // ============================================================================

@@ -21,13 +21,26 @@
  */
 
 // Types
-export type { CreateReviewInput, Review, ReviewStats, ReviewVote, UpdateReviewInput } from './types.js';
+export type {
+  CreateReviewInput,
+  Review,
+  ReviewStats,
+  ReviewVote,
+  UpdateReviewInput,
+} from './types.js';
 
 // State management
 export { clearReviews, clearReviewsData } from './state.js';
 
 // CRUD operations
-export { createReview, deleteReview, getReview, getUserReviews, listReviews, updateReview } from './crud.js';
+export {
+  createReview,
+  deleteReview,
+  getReview,
+  getUserReviews,
+  listReviews,
+  updateReview,
+} from './crud.js';
 
 // Voting
 export { removeVote, voteReview } from './voting.js';
@@ -45,7 +58,14 @@ export { getReviewStats } from './stats.js';
 // SERVICE FACADE
 // ============================================================================
 
-import { createReview, deleteReview, getReview, getUserReviews, listReviews, updateReview } from './crud.js';
+import {
+  createReview,
+  deleteReview,
+  getReview,
+  getUserReviews,
+  listReviews,
+  updateReview,
+} from './crud.js';
 import { flagReview, getPendingReviews, moderateReview } from './moderation.js';
 import { addPublisherResponse } from './publisher.js';
 import { clearReviews } from './state.js';

@@ -39,8 +39,8 @@ export function getBaseStyles(): string {
       position: absolute;
       inset: 0;
       background: var(--backdrop-heavy);
-      backdrop-filter: blur(var(--glass-blur-subtle));
-      -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+      backdrop-filter: blur(var(--glass-blur-heavy, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-heavy, 24px));
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
@@ -50,7 +50,8 @@ export function getBaseStyles(): string {
       width: 90vw;
       max-width: min(900px, 100%);
       max-height: 85vh;
-      background: var(--color-bg-elevated);
+      /* Solid elevated background with mesh gradient overlay for depth */
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl);
       box-shadow: var(--shadow-2xl);
       display: flex;
@@ -60,6 +61,17 @@ export function getBaseStyles(): string {
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.EXPO_OUT}, 
                   opacity ${DURATION.SLOW}ms ease;
+    }
+    
+    /* Subtle gradient overlay using design system token */
+    .marketplace-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gradient-mesh);
+      opacity: 0.5;
+      pointer-events: none;
+      border-radius: inherit;
     }
 
     .marketplace-modal.open .marketplace-container {
@@ -72,8 +84,11 @@ export function getBaseStyles(): string {
        ======================================== */
 
     .marketplace-header {
+      position: relative;
+      z-index: var(--z-raised);
       padding: var(--space-lg) var(--space-lg) var(--space-md);
       border-bottom: 1px solid var(--color-border-subtle);
+      background: var(--color-background-elevated);
     }
 
     .marketplace-title-row {
@@ -139,13 +154,18 @@ export function getBaseStyles(): string {
       display: flex;
       gap: var(--space-xs);
       margin-bottom: var(--space-md);
+      /* Subtle pill container background */
+      background: var(--color-background-tertiary);
+      padding: 4px;
+      border-radius: 9999px;
+      width: fit-content;
     }
 
     .marketplace-tab {
       padding: 10px 20px;
       border-radius: 9999px;
       background: transparent;
-      border: 1.5px solid var(--color-border-medium);
+      border: none;
       color: var(--color-text-muted);
       font-family: var(--font-body);
       font-size: 0.875rem;
@@ -158,15 +178,14 @@ export function getBaseStyles(): string {
 
     .marketplace-tab:hover,
     .marketplace-tab:focus-visible {
-      border-color: var(--color-text-muted);
-      background: var(--color-bg-subtle);
       color: var(--color-text-primary);
+      background: var(--color-background-glass);
     }
 
     .marketplace-tab.active {
       background: var(--persona-primary, var(--color-accent-primary));
-      border-color: var(--persona-primary, var(--color-accent-primary));
       color: var(--persona-text, white);
+      box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.2);
     }
 
     .marketplace-tab:active {
@@ -251,9 +270,25 @@ export function getBaseStyles(): string {
        ======================================== */
 
     .marketplace-content {
+      position: relative;
       flex: 1;
       overflow-y: auto;
       padding: var(--space-lg);
+      /* Secondary background creates visual separation from header */
+      background: var(--color-background-secondary);
+    }
+    
+    /* Warm glow at top for depth using design system token */
+    .marketplace-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 120px;
+      background: var(--gradient-sunbeam);
+      opacity: 0.6;
+      pointer-events: none;
     }
 
     .marketplace-loading,
@@ -310,12 +345,14 @@ export function getBaseStyles(): string {
        ======================================== */
 
     .marketplace-footer {
+      position: relative;
+      z-index: var(--z-raised);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: var(--space-md) var(--space-lg);
       border-top: 1px solid var(--color-border-subtle);
-      background: var(--color-bg-secondary);
+      background: var(--color-background-elevated);
     }
 
     .marketplace-creator-link {

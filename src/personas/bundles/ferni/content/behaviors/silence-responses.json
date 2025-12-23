@@ -162,18 +162,12 @@
       "Money decisions carry weight. Good that you're thinking it through.",
       "No rush on the money stuff. Better to think now than regret later."
     ],
-    "loss": [
-      "Some things don't need words. I'm here.",
-      "Take all the time you need."
-    ],
+    "loss": ["Some things don't need words. I'm here.", "Take all the time you need."],
     "career": [
       "Career questions are life questions. They deserve real thought.",
       "Work shapes so much of our lives. Worth taking time to think about."
     ],
-    "health": [
-      "Health stuff is heavy. Take your time.",
-      "No rush. This matters."
-    ]
+    "health": ["Health stuff is heavy. Take your time.", "No rush. This matters."]
   },
 
   "llm_guidance": {
@@ -183,7 +177,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Gently reference something they shared earlier. Show you're still engaged with their story. One sentence.",
-      "examples": ["I keep thinking about what you said about {topic}.", "That thing you mentioned earlier - tell me more when you're ready."]
+      "examples": [
+        "I keep thinking about what you said about {topic}.",
+        "That thing you mentioned earlier - tell me more when you're ready."
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE thoughtful question. Based on what they've shared, ask something that invites deeper reflection. Keep it conversational.",
@@ -207,4 +204,3 @@
     "thoughtful_question_min_turn_count": 5
   }
 }
-

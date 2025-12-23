@@ -15,7 +15,7 @@
  */
 
 import pino from 'pino';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 
 const log = pino({ name: 'voice-audit' });

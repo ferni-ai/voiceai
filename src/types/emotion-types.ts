@@ -152,4 +152,3 @@ export function isEmotionResult(value: unknown): value is EmotionResult {
     typeof obj.confidence === 'number'
   );
 }
-

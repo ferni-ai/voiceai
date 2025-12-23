@@ -321,6 +321,48 @@ export async function handleWebhookNotification(
         '📡 Synced events from Google webhook'
       );
 
+      // ================================================================
+      // BETTER THAN HUMAN: Check for commitment conflicts
+      // ================================================================
+      // When calendar changes, check if any commitments are now at risk
+      try {
+        const { onCalendarChange } =
+          await import('../../superhuman/commitment-calendar-integration.js');
+
+        // Check each new/updated event for conflicts with commitments
+        // onCalendarChange will fetch commitments automatically
+        for (const event of events) {
+          const conflicts = await onCalendarChange(channel.userId, {
+            type: 'created', // Treat all as potential new conflicts
+            event: {
+              id: event.id,
+              title: event.title,
+              startTime: event.startTime,
+              endTime: event.endTime,
+              isAllDay: event.isAllDay,
+            },
+          });
+
+          if (conflicts.length > 0) {
+            log.info(
+              { userId: channel.userId, eventTitle: event.title, conflictCount: conflicts.length },
+              '⚠️ Calendar event conflicts with commitments'
+            );
+          }
+        }
+
+        log.debug(
+          { userId: channel.userId, eventsChecked: events.length },
+          '📡 Checked events for commitment conflicts'
+        );
+      } catch (conflictError) {
+        // Don't fail the sync if conflict detection fails
+        log.warn(
+          { error: String(conflictError), userId: channel.userId },
+          'Failed to check commitment conflicts (non-fatal)'
+        );
+      }
+
       return { success: true, synced: events.length };
     } catch (error) {
       log.error({ error: String(error), userId: channel.userId }, 'Error processing webhook');

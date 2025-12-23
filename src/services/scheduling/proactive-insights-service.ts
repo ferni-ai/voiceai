@@ -16,7 +16,7 @@
  * - Surfaces insights via proactive notifications
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getLifeDataStore } from '../stores/life-data-store.js';
 import { getFinancialStore } from '../stores/financial-store.js';

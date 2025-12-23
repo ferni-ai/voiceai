@@ -37,6 +37,10 @@ import type { SpeechContext } from '../../speech/types/index.js';
 import { getDJIntegration } from '../dj-integration.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
+// NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
+import { logPrimingApplied } from '../shared/function-call-telemetry.js';
+// Speech coordination for centralized speech management
+import { routeSpeech, SpeechPriority } from '../../speech/coordination/index.js';
 
 // ============================================================================
 // TYPES
@@ -201,16 +205,15 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   if (!greeting && bundleRuntime) {
     // Bundle runtime standard greeting (uses greetings.json)
     const result = await generateBundleGreeting(
-        bundleRuntime,
-        services,
-        userData,
-        isReturningUser,
-        sessionPersona,
-        personaMemories
-      );
-      greeting = result.greeting;
-      hasReferencedLastConversation = result.hasReferencedLastConversation;
-    }
+      bundleRuntime,
+      services,
+      userData,
+      isReturningUser,
+      sessionPersona,
+      personaMemories
+    );
+    greeting = result.greeting;
+    hasReferencedLastConversation = result.hasReferencedLastConversation;
   } else if (!greeting) {
     // Standard greeting without bundle - include persona memories and proactive context
     const result = await generateStandardGreeting(
@@ -329,10 +332,21 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
   });
 
-  // Speak the greeting
+  // Speak the greeting via coordinated speech system
   try {
-    session.say(enhancedGreeting);
-    diag.tts('Greeting spoken');
+    const speakResult = await routeSpeech(sessionId, enhancedGreeting, {
+      priority: SpeechPriority.RESPONSE,
+      source: 'direct',
+      allowInterruptions: true,
+    });
+    if (speakResult.accepted) {
+      diag.tts('Greeting spoken via coordinator');
+    } else {
+      diag.warn('Greeting not accepted by coordinator', { reason: speakResult.reason });
+      // Fallback to direct speech if coordinator rejects
+      session.say(enhancedGreeting);
+      diag.tts('Greeting spoken (fallback)');
+    }
 
     // Track greeting usage to prevent repetition across sessions
     trackGreetingUsage(services, greeting);
@@ -340,10 +354,21 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     diag.error('Greeting failed', { error: String(e) });
   }
 
-  // Add to conversation history
+  // Add to conversation history (internal tracking)
   if (services && typeof services.addTurn === 'function') {
     services.addTurn('assistant', greeting);
   }
+
+  // =========================================================================
+  // PRIMING DISABLED - chatCtx.addMessage causes turns to be spoken aloud
+  // TODO: Find alternative approach that doesn't trigger TTS
+  // Options to explore:
+  // 1. Add priming examples directly into system prompt
+  // 2. Use a different LiveKit API that marks turns as "historical"
+  // 3. Filter priming content in the TTS sanitizer
+  // =========================================================================
+  // const personaId = sessionPersona?.id || 'ferni';
+  // diag.debug('🎯 PRIMING: Disabled - exploring alternative approaches');
 
   return {
     greeting,

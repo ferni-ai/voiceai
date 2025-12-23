@@ -11,6 +11,7 @@
 // import { createLogger } from '../utils/logger.js';
 // const log = createLogger('EmptyStateUI');
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -44,66 +45,69 @@ export interface EmptyStateConfig {
 // EMPTY STATE PRESETS
 // ============================================================================
 
-const EMPTY_STATE_PRESETS: Record<EmptyStateType, Partial<EmptyStateConfig>> = {
-  no_conversations: {
-    title: "Let's start something meaningful",
-    message: "Every great journey begins with a single conversation. I'm here whenever you're ready.",
-    actionLabel: "Start talking",
-    illustration: 'zen',
-  },
-  no_history: {
-    title: "Your story starts here",
-    message: "As we talk, your journey will unfold in this space.",
-    illustration: 'journey',
-  },
-  no_goals: {
-    title: "What matters to you?",
-    message: "Setting goals isn't about pressure—it's about pointing toward what you care about.",
-    actionLabel: "Set a goal",
-    illustration: 'sprout',
-  },
-  no_team: {
-    title: "Your team is growing",
-    message: "As our relationship deepens, you'll meet new friends who can help in different ways.",
-    illustration: 'team',
-  },
-  loading: {
-    title: "Taking a breath...",
-    message: "Good things are worth a moment.",
-    illustration: 'zen',
-    showAnimation: true,
-  },
-  search_empty: {
-    title: "Nothing here yet",
-    message: "Try different words, or we could explore this topic together.",
-    actionLabel: "Ask Ferni",
-    illustration: 'search',
-  },
-  offline: {
-    title: "We're offline right now",
-    message: "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
-    actionLabel: "Try again",
-    illustration: 'offline',
-  },
-  error: {
-    title: "Oops, something went sideways",
-    message: "Even the best of us stumble. Let's try that again.",
-    actionLabel: "Try again",
-    secondaryActionLabel: "Get help",
-    illustration: 'oops',
-  },
-  permission_needed: {
-    title: "We need your permission",
-    message: "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
-    actionLabel: "Grant permission",
-    illustration: 'lock',
-  },
-  coming_soon: {
-    title: "Something special is coming",
-    message: "We're building something thoughtful here. It'll be worth the wait.",
-    illustration: 'sparkle',
-  },
-};
+// Returns presets with translated strings - called at render time for i18n support
+function getEmptyStatePresets(): Record<EmptyStateType, Partial<EmptyStateConfig>> {
+  return {
+    no_conversations: {
+      title: t('emptyStates.noConversations.title'),
+      message: t('emptyStates.noConversations.message'),
+      actionLabel: t('emptyStates.noConversations.action'),
+      illustration: 'zen',
+    },
+    no_history: {
+      title: t('emptyStates.noHistory.title'),
+      message: t('emptyStates.noHistory.message'),
+      illustration: 'journey',
+    },
+    no_goals: {
+      title: t('emptyStates.noGoals.title'),
+      message: t('emptyStates.noGoals.message'),
+      actionLabel: t('emptyStates.noGoals.action'),
+      illustration: 'sprout',
+    },
+    no_team: {
+      title: t('emptyStates.noTeam.title'),
+      message: t('emptyStates.noTeam.message'),
+      illustration: 'team',
+    },
+    loading: {
+      title: t('emptyStates.loading.title'),
+      message: t('emptyStates.loading.message'),
+      illustration: 'zen',
+      showAnimation: true,
+    },
+    search_empty: {
+      title: t('emptyStates.searchEmpty.title'),
+      message: t('emptyStates.searchEmpty.message'),
+      actionLabel: t('emptyStates.searchEmpty.action'),
+      illustration: 'search',
+    },
+    offline: {
+      title: t('emptyStates.offline.title'),
+      message: t('emptyStates.offline.message'),
+      actionLabel: t('emptyStates.offline.action'),
+      illustration: 'offline',
+    },
+    error: {
+      title: t('emptyStates.error.title'),
+      message: t('emptyStates.error.message'),
+      actionLabel: t('emptyStates.error.action'),
+      secondaryActionLabel: t('emptyStates.error.secondaryAction'),
+      illustration: 'oops',
+    },
+    permission_needed: {
+      title: t('emptyStates.permissionNeeded.title'),
+      message: t('emptyStates.permissionNeeded.message'),
+      actionLabel: t('emptyStates.permissionNeeded.action'),
+      illustration: 'lock',
+    },
+    coming_soon: {
+      title: t('emptyStates.comingSoon.title'),
+      message: t('emptyStates.comingSoon.message'),
+      illustration: 'sparkle',
+    },
+  };
+}
 
 // ============================================================================
 // SVG ILLUSTRATIONS
@@ -200,7 +204,8 @@ export class EmptyStateUI {
    * Create an empty state element
    */
   create(config: EmptyStateConfig): HTMLElement {
-    const preset = EMPTY_STATE_PRESETS[config.type];
+    const presets = getEmptyStatePresets();
+    const preset = presets[config.type];
     const fullConfig: EmptyStateConfig = { ...preset, ...config };
     
     const element = document.createElement('div');
@@ -427,7 +432,7 @@ export class EmptyStateUI {
   searchEmpty(query: string, onAskFerni?: () => void): HTMLElement {
     return this.create({
       type: 'search_empty',
-      message: `No results for "${query}". Try different words, or we could explore this topic together.`,
+      message: t('emptyStates.searchEmpty.messageWithQuery', { query }),
       onAction: onAskFerni,
     });
   }

@@ -337,11 +337,11 @@ export async function handlePerformanceRoutes(
           slowTurnPercentage: turnMetrics.slowTurnPercentage,
           toolCacheHitRate:
             toolCache.hits + toolCache.misses > 0
-              ? ((toolCache.hits / (toolCache.hits + toolCache.misses)) * 100).toFixed(1) + '%'
+              ? `${((toolCache.hits / (toolCache.hits + toolCache.misses)) * 100).toFixed(1)}%`
               : 'N/A',
           ttsCacheHitRate:
             tts.totalRequests > 0
-              ? (((tts.cacheHits + tts.speculativeHits) / tts.totalRequests) * 100).toFixed(1) + '%'
+              ? `${(((tts.cacheHits + tts.speculativeHits) / tts.totalRequests) * 100).toFixed(1)}%`
               : 'N/A',
           totalEstimatedSavingsMs: toolCache.totalSavedMs + tts.savedLatencyMs,
           toolSuccessRate: reliability.summary.overallSuccessRate,
@@ -350,8 +350,8 @@ export async function handlePerformanceRoutes(
           triggersChecked: triggers.summary.totalChecked,
           triggersMatched: triggers.summary.totalMatched,
           triggersFired: triggers.summary.totalFired,
-          triggerMatchRate: (triggers.summary.matchRate * 100).toFixed(1) + '%',
-          triggerFireRate: (triggers.summary.fireRate * 100).toFixed(1) + '%',
+          triggerMatchRate: `${(triggers.summary.matchRate * 100).toFixed(1)}%`,
+          triggerFireRate: `${(triggers.summary.fireRate * 100).toFixed(1)}%`,
           // Semantic trigger metrics (Phase 1)
           semanticHybridMatches: semanticTriggers.totalHybridMatches,
           semanticAvgScore: semanticTriggers.averageSemanticScore.toFixed(3),
@@ -452,7 +452,7 @@ export async function handlePerformanceRoutes(
         cache: {
           memorySize: cacheStats.memorySize,
           maxSize: cacheStats.maxSize,
-          hitRate: (cacheStats.hitRate * 100).toFixed(1) + '%',
+          hitRate: `${(cacheStats.hitRate * 100).toFixed(1)}%`,
           memoryHits: cacheStats.memoryHits,
           memoryMisses: cacheStats.memoryMisses,
           firestoreHits: cacheStats.firestoreHits,

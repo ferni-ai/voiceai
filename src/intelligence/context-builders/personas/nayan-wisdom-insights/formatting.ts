@@ -195,4 +195,3 @@ export function formatNayanBriefing(
 
   return sections;
 }
-

@@ -24,6 +24,8 @@
 import type { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { FailureTracker } from './lightweight-resilience.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 const logger = getLogger();
 
@@ -69,6 +71,8 @@ export interface SafeGenerateReplyOptions {
   context?: string;
   /** Optional: session for WebSocket health check */
   session?: voice.AgentSession;
+  /** Optional: session ID for coordinated speech */
+  sessionId?: string;
 }
 
 export interface SafeGenerateReplyResult {
@@ -91,7 +95,8 @@ export interface SafeGenerateReplyResult {
 function checkCircuitBreaker(
   session: voice.AgentSession,
   fallbackMessage: string | undefined,
-  context: string
+  context: string,
+  sessionId?: string
 ): SafeGenerateReplyResult | null {
   if (!failureTracker.shouldSkip()) {
     return null;
@@ -101,7 +106,12 @@ function checkCircuitBreaker(
 
   if (fallbackMessage) {
     try {
-      session.say(fallbackMessage, { allowInterruptions: true });
+      // Use coordinated speech if sessionId available
+      if (sessionId) {
+        coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+      } else {
+        session.say(fallbackMessage, { allowInterruptions: true });
+      }
     } catch {
       // Ignore - best effort
     }
@@ -271,10 +281,16 @@ function speakFallback(
   session: voice.AgentSession,
   fallbackMessage: string,
   context: string,
-  errorMessage: string
+  errorMessage: string,
+  sessionId?: string
 ): SafeGenerateReplyResult {
   try {
-    session.say(fallbackMessage, { allowInterruptions: true });
+    // Use coordinated speech if sessionId available
+    if (sessionId) {
+      coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+    } else {
+      session.say(fallbackMessage, { allowInterruptions: true });
+    }
     logger.debug({ context, fallback: fallbackMessage.substring(0, 50) }, '🔄 Used fallback');
     return { success: false, usedFallback: true, error: errorMessage };
   } catch (fallbackError) {
@@ -318,10 +334,11 @@ export async function safeGenerateReply(
     waitForPlayout = true,
     timeoutMs = SAFE_TIMEOUT_MS,
     context = 'unknown',
+    sessionId,
   } = options;
 
   // SAFEGUARD 1: Check circuit breaker
-  const circuitResult = checkCircuitBreaker(session, fallbackMessage, context);
+  const circuitResult = checkCircuitBreaker(session, fallbackMessage, context, sessionId);
   if (circuitResult) return circuitResult;
 
   // SAFEGUARD 2: Check rate limit
@@ -371,7 +388,7 @@ export async function safeGenerateReply(
 
     if (fallbackMessage) {
       return {
-        ...speakFallback(session, fallbackMessage, context, errorMessage),
+        ...speakFallback(session, fallbackMessage, context, errorMessage, sessionId),
         contextWarning: contextSize.warning,
         connectionWarning: !connectionHealth.healthy,
       };
@@ -396,17 +413,28 @@ export async function safeGenerateReply(
 
 /**
  * Safely call session.say() with timeout protection.
+ * @param sessionId - If provided, uses coordinated speech; otherwise falls back to direct session.say
  */
 export async function safeSay(
   session: voice.AgentSession,
   text: string,
-  options?: { allowInterruptions?: boolean; timeoutMs?: number; context?: string }
+  options?: {
+    allowInterruptions?: boolean;
+    timeoutMs?: number;
+    context?: string;
+    sessionId?: string;
+  }
 ): Promise<boolean> {
-  const { allowInterruptions = true, timeoutMs = 5000, context = 'say' } = options ?? {};
+  const { allowInterruptions = true, timeoutMs = 5000, context = 'say', sessionId } = options ?? {};
 
   try {
     const sayPromise = new Promise<void>((resolve) => {
-      session.say(text, { allowInterruptions });
+      // Use coordinated speech if sessionId available
+      if (sessionId) {
+        coordinatedSay(sessionId, text, { allowInterruptions });
+      } else {
+        session.say(text, { allowInterruptions });
+      }
       resolve();
     });
 
@@ -417,7 +445,7 @@ export async function safeSay(
     await Promise.race([sayPromise, timeoutPromise]);
     return true;
   } catch (error) {
-    logger.warn({ error: String(error), context }, 'session.say() failed');
+    logger.warn({ error: String(error), context }, 'safeSay() failed');
     return false;
   }
 }
@@ -523,4 +551,88 @@ export function forceUnlockMutex(): void {
     logger.warn({ currentContext }, '⚠️ Force unlocking mutex - use with caution');
     releaseMutex();
   }
+}
+
+// ============================================================================
+// BEHAVIORAL INSTRUCTIONS: Direct guidance without leakage risk
+// ============================================================================
+
+/**
+ * Format behavioral instructions for the LLM.
+ *
+ * This creates clear, direct instructions that tell the LLM HOW to respond.
+ * Unlike the old "stage direction" approach (which wrapped content in
+ * <context> tags and hoped the LLM wouldn't read them), this gives explicit
+ * behavioral guidance that can't leak because it's already instructional.
+ *
+ * @example
+ * ```ts
+ * // Direct behavioral instruction:
+ * behavioralInstruction('User has been quiet', 'Gently check in without being pushy');
+ *
+ * // For tool results:
+ * behavioralInstruction(
+ *   'Tool executed: playMusic',
+ *   'Acknowledge naturally that music is playing'
+ * );
+ * ```
+ */
+export function behavioralInstruction(situation: string, instruction: string): string {
+  return `[SITUATION: ${situation}]\n[DO: ${instruction}]`;
+}
+
+/**
+ * Format a tool result for natural presentation.
+ *
+ * Instead of wrapping in "invisible" context tags, we give the LLM clear
+ * instructions on how to present the result naturally.
+ */
+export function formatToolResult(toolName: string, result: string): string {
+  return [
+    `[TOOL RESULT: ${toolName}]`,
+    `[DATA: ${result}]`,
+    `[DO: Share this naturally and conversationally. Don't read verbatim - summarize key points.]`,
+  ].join('\n');
+}
+
+/**
+ * @deprecated Use behavioralInstruction() instead.
+ * Kept for backward compatibility - now outputs behavioral format, not <context> tags.
+ */
+export function stageDirection(context: string | string[]): string {
+  const content = Array.isArray(context) ? context.join('\n') : context;
+  // Convert to behavioral format instead of <context> tags (which leaked)
+  return `[INTERNAL GUIDANCE]\n${content}\n[DO: Use this to inform your response. Speak naturally.]`;
+}
+
+/**
+ * Generate a reply with behavioral context.
+ * Convenience wrapper that formats context as behavioral instructions.
+ *
+ * @example
+ * ```ts
+ * await generateReplyWithContext(session, {
+ *   context: ['User has been quiet for 8 seconds', 'They seemed stressed earlier'],
+ *   fallbackMessage: "I'm here whenever you're ready.",
+ *   logContext: 'dead-air-checkin',
+ * });
+ * ```
+ */
+export async function generateReplyWithContext(
+  session: voice.AgentSession,
+  options: {
+    context: string | string[];
+    fallbackMessage?: string;
+    allowInterruptions?: boolean;
+    waitForPlayout?: boolean;
+    timeoutMs?: number;
+    logContext?: string;
+  }
+): Promise<SafeGenerateReplyResult> {
+  const { context, logContext = 'context-reply', ...rest } = options;
+  return safeGenerateReply(session, {
+    instructions: stageDirection(context),
+    context: logContext,
+    ...rest,
+  });
 }

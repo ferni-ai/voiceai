@@ -93,7 +93,11 @@ export class PredictiveAnticipationEngine {
 
     if (context.topic) this.recordTopicTransition(context.topic);
     if (context.emotion || context.valence !== undefined) {
-      this.recordEmotionalState(context.valence ?? 0, context.arousal ?? 0.5, context.emotion ?? 'neutral');
+      this.recordEmotionalState(
+        context.valence ?? 0,
+        context.arousal ?? 0.5,
+        context.emotion ?? 'neutral'
+      );
     }
 
     const voiceState = this.predictVoiceState(context.prosody);
@@ -111,20 +115,29 @@ export class PredictiveAnticipationEngine {
     };
 
     if (result.overallConfidence > 0.7) {
-      void humanizationSignalEmitter.emit({ signalType: 'anticipation', intensity: result.overallConfidence });
+      void humanizationSignalEmitter.emit({
+        signalType: 'anticipation',
+        intensity: result.overallConfidence,
+      });
     }
 
-    logger.debug({
-      voiceState: voiceState.state,
-      predictedNeed: need.primaryNeed,
-      trajectory: emotional.trajectory,
-      confidence: result.overallConfidence.toFixed(2),
-    }, '🔮 Prediction generated');
+    logger.debug(
+      {
+        voiceState: voiceState.state,
+        predictedNeed: need.primaryNeed,
+        trajectory: emotional.trajectory,
+        confidence: result.overallConfidence.toFixed(2),
+      },
+      '🔮 Prediction generated'
+    );
 
     return result;
   }
 
-  recordPredictionOutcome(predictionType: 'need' | 'topic' | 'emotional', wasCorrect: boolean): void {
+  recordPredictionOutcome(
+    predictionType: 'need' | 'topic' | 'emotional',
+    wasCorrect: boolean
+  ): void {
     if (predictionType === 'need' && this.needHistory.length > 0) {
       this.needHistory[this.needHistory.length - 1].wasCorrect = wasCorrect;
     }
@@ -197,9 +210,17 @@ export class PredictiveAnticipationEngine {
   // Topic prediction
   private recordTopicTransition(newTopic: string): void {
     if (this.currentTopic && this.currentTopic !== newTopic) {
-      const existing = this.topicTransitions.find(t => t.from === this.currentTopic && t.to === newTopic);
+      const existing = this.topicTransitions.find(
+        (t) => t.from === this.currentTopic && t.to === newTopic
+      );
       if (existing) existing.count++;
-      else this.topicTransitions.push({ from: this.currentTopic, to: newTopic, count: 1, contexts: [] });
+      else
+        this.topicTransitions.push({
+          from: this.currentTopic,
+          to: newTopic,
+          count: 1,
+          contexts: [],
+        });
     }
     this.topicHistory.push(newTopic);
     if (this.topicHistory.length > 30) this.topicHistory.shift();
@@ -209,7 +230,9 @@ export class PredictiveAnticipationEngine {
   private predictNextTopic(): TopicSequencePrediction | null {
     if (!this.currentTopic || this.topicTransitions.length < 3) return null;
 
-    const transitions = this.topicTransitions.filter(t => t.from === this.currentTopic).sort((a, b) => b.count - a.count);
+    const transitions = this.topicTransitions
+      .filter((t) => t.from === this.currentTopic)
+      .sort((a, b) => b.count - a.count);
     if (transitions.length === 0) return null;
 
     const mostLikely = transitions[0];
@@ -241,34 +264,58 @@ export class PredictiveAnticipationEngine {
     let secondaryNeed: PredictedNeed | undefined;
     let confidence = 0.4;
 
-    if (VENTING_PATTERNS.some(p => p.test(userMessage))) {
-      primaryNeed = 'venting'; confidence = 0.75; evidence.push('Venting language detected');
-    } else if (ADVICE_PATTERNS.some(p => p.test(userMessage))) {
-      primaryNeed = 'advice'; confidence = 0.8; evidence.push('Advice-seeking language');
-    } else if (VALIDATION_PATTERNS.some(p => p.test(userMessage))) {
-      primaryNeed = 'validation'; confidence = 0.85; evidence.push('Validation-seeking language');
-    } else if (DISTRACTION_PATTERNS.some(p => p.test(userMessage))) {
-      primaryNeed = 'distraction'; confidence = 0.7; evidence.push('Distraction language');
-    } else if (CONNECTION_PATTERNS.some(p => p.test(userMessage))) {
-      primaryNeed = 'connection'; confidence = 0.75; evidence.push('Connection-seeking language');
+    if (VENTING_PATTERNS.some((p) => p.test(userMessage))) {
+      primaryNeed = 'venting';
+      confidence = 0.75;
+      evidence.push('Venting language detected');
+    } else if (ADVICE_PATTERNS.some((p) => p.test(userMessage))) {
+      primaryNeed = 'advice';
+      confidence = 0.8;
+      evidence.push('Advice-seeking language');
+    } else if (VALIDATION_PATTERNS.some((p) => p.test(userMessage))) {
+      primaryNeed = 'validation';
+      confidence = 0.85;
+      evidence.push('Validation-seeking language');
+    } else if (DISTRACTION_PATTERNS.some((p) => p.test(userMessage))) {
+      primaryNeed = 'distraction';
+      confidence = 0.7;
+      evidence.push('Distraction language');
+    } else if (CONNECTION_PATTERNS.some((p) => p.test(userMessage))) {
+      primaryNeed = 'connection';
+      confidence = 0.75;
+      evidence.push('Connection-seeking language');
     }
 
     if (context.emotion) {
-      const emotionNeed = EMOTION_TO_NEED[context.emotion.toLowerCase()] as PredictedNeed | undefined;
+      const emotionNeed = EMOTION_TO_NEED[context.emotion.toLowerCase()] as
+        | PredictedNeed
+        | undefined;
       if (emotionNeed) {
         if (primaryNeed === 'unknown') {
-          primaryNeed = emotionNeed; confidence = 0.6; evidence.push(`Emotional state: ${context.emotion}`);
+          primaryNeed = emotionNeed;
+          confidence = 0.6;
+          evidence.push(`Emotional state: ${context.emotion}`);
         } else if (emotionNeed !== primaryNeed) {
-          secondaryNeed = emotionNeed; evidence.push(`Secondary need from emotion: ${context.emotion}`);
+          secondaryNeed = emotionNeed;
+          evidence.push(`Secondary need from emotion: ${context.emotion}`);
         }
       }
     }
 
     const wordCount = userMessage.split(/\s+/).length;
     if (wordCount > 80 && primaryNeed === 'unknown') {
-      primaryNeed = 'venting'; confidence = 0.5; evidence.push('Long message (likely venting)');
-    } else if (wordCount < 10 && primaryNeed === 'unknown' && context.valence !== undefined && context.valence < -0.3) {
-      primaryNeed = 'silence'; confidence = 0.5; evidence.push('Brief + negative (may need space)');
+      primaryNeed = 'venting';
+      confidence = 0.5;
+      evidence.push('Long message (likely venting)');
+    } else if (
+      wordCount < 10 &&
+      primaryNeed === 'unknown' &&
+      context.valence !== undefined &&
+      context.valence < -0.3
+    ) {
+      primaryNeed = 'silence';
+      confidence = 0.5;
+      evidence.push('Brief + negative (may need space)');
     }
 
     let guidance = NEED_GUIDANCE[primaryNeed];
@@ -279,24 +326,41 @@ export class PredictiveAnticipationEngine {
     this.needHistory.push({ need: primaryNeed, turn: this.turnCount });
     if (this.needHistory.length > 20) this.needHistory.shift();
 
-    return { primaryNeed, secondaryNeed, confidence: Math.min(1, confidence), evidence, responseGuidance: guidance };
+    return {
+      primaryNeed,
+      secondaryNeed,
+      confidence: Math.min(1, confidence),
+      evidence,
+      responseGuidance: guidance,
+    };
   }
 
   // Emotional trajectory
   private recordEmotionalState(valence: number, arousal: number, emotion: string): void {
-    this.emotionalHistory.push({ valence, arousal, emotion, turn: this.turnCount, timestamp: Date.now() });
+    this.emotionalHistory.push({
+      valence,
+      arousal,
+      emotion,
+      turn: this.turnCount,
+      timestamp: Date.now(),
+    });
     if (this.emotionalHistory.length > 15) this.emotionalHistory.shift();
   }
 
   private predictEmotionalTrajectory(): EmotionalPrediction {
     if (this.emotionalHistory.length < 2) {
-      return { currentState: { valence: 0, arousal: 0.5, dominantEmotion: 'neutral' }, trajectory: 'stable', predictedDirection: 'unknown', confidence: 0.3 };
+      return {
+        currentState: { valence: 0, arousal: 0.5, dominantEmotion: 'neutral' },
+        trajectory: 'stable',
+        predictedDirection: 'unknown',
+        confidence: 0.3,
+      };
     }
 
     const recent = this.emotionalHistory.slice(-5);
     const current = recent[recent.length - 1];
-    const valences = recent.map(e => e.valence);
-    const arousals = recent.map(e => e.arousal);
+    const valences = recent.map((e) => e.valence);
+    const arousals = recent.map((e) => e.arousal);
 
     const valenceSlope = this.calculateSlope(valences);
     const arousalSlope = this.calculateSlope(arousals);
@@ -306,29 +370,64 @@ export class PredictiveAnticipationEngine {
     let confidence = 0.5;
 
     if (Math.abs(valenceSlope) < 0.05 && Math.abs(arousalSlope) < 0.05) {
-      trajectory = 'stable'; predictedDirection = 'stable'; confidence = 0.7;
+      trajectory = 'stable';
+      predictedDirection = 'stable';
+      confidence = 0.7;
     } else if (arousalSlope > 0.1 && Math.abs(valenceSlope) < 0.1) {
-      trajectory = 'escalating'; predictedDirection = valenceSlope >= 0 ? 'more_positive' : 'more_negative'; confidence = 0.6 + arousalSlope;
+      trajectory = 'escalating';
+      predictedDirection = valenceSlope >= 0 ? 'more_positive' : 'more_negative';
+      confidence = 0.6 + arousalSlope;
     } else if (arousalSlope < -0.1) {
-      trajectory = 'de_escalating'; predictedDirection = 'more_positive'; confidence = 0.6;
+      trajectory = 'de_escalating';
+      predictedDirection = 'more_positive';
+      confidence = 0.6;
     } else if (this.detectCycling(valences)) {
-      trajectory = 'cycling'; predictedDirection = 'unknown'; confidence = 0.5;
+      trajectory = 'cycling';
+      predictedDirection = 'unknown';
+      confidence = 0.5;
     } else if (arousalSlope > 0.05 && current.valence < -0.2) {
-      trajectory = 'building_to_something'; predictedDirection = 'more_negative'; confidence = 0.55;
+      trajectory = 'building_to_something';
+      predictedDirection = 'more_negative';
+      confidence = 0.55;
     } else {
-      trajectory = 'stable'; predictedDirection = valenceSlope > 0 ? 'more_positive' : valenceSlope < 0 ? 'more_negative' : 'stable'; confidence = 0.5;
+      trajectory = 'stable';
+      predictedDirection =
+        valenceSlope > 0 ? 'more_positive' : valenceSlope < 0 ? 'more_negative' : 'stable';
+      confidence = 0.5;
     }
 
     let adjustmentSuggestion: EmotionalPrediction['adjustmentSuggestion'];
     if (trajectory === 'escalating' && predictedDirection === 'more_negative') {
-      adjustmentSuggestion = { type: 'pace', direction: 'decrease', reason: 'Slow down to help them regulate' };
+      adjustmentSuggestion = {
+        type: 'pace',
+        direction: 'decrease',
+        reason: 'Slow down to help them regulate',
+      };
     } else if (trajectory === 'de_escalating' && current.arousal > 0.6) {
-      adjustmentSuggestion = { type: 'energy', direction: 'decrease', reason: 'Match their calming energy' };
+      adjustmentSuggestion = {
+        type: 'energy',
+        direction: 'decrease',
+        reason: 'Match their calming energy',
+      };
     } else if (trajectory === 'building_to_something') {
-      adjustmentSuggestion = { type: 'tone', direction: 'shift', reason: 'Prepare for emotional disclosure' };
+      adjustmentSuggestion = {
+        type: 'tone',
+        direction: 'shift',
+        reason: 'Prepare for emotional disclosure',
+      };
     }
 
-    return { currentState: { valence: current.valence, arousal: current.arousal, dominantEmotion: current.emotion }, trajectory, predictedDirection, confidence: Math.min(1, confidence), adjustmentSuggestion };
+    return {
+      currentState: {
+        valence: current.valence,
+        arousal: current.arousal,
+        dominantEmotion: current.emotion,
+      },
+      trajectory,
+      predictedDirection,
+      confidence: Math.min(1, confidence),
+      adjustmentSuggestion,
+    };
   }
 
   private calculateSlope(values: number[]): number {
@@ -336,7 +435,8 @@ export class PredictiveAnticipationEngine {
     const n = values.length;
     const xMean = (n - 1) / 2;
     const yMean = values.reduce((a, b) => a + b, 0) / n;
-    let num = 0, den = 0;
+    let num = 0,
+      den = 0;
     for (let i = 0; i < n; i++) {
       num += (i - xMean) * (values[i] - yMean);
       den += (i - xMean) ** 2;
@@ -355,24 +455,44 @@ export class PredictiveAnticipationEngine {
     return changes >= 2;
   }
 
-  private generateSuggestions(voiceState: VoiceStatePrediction, topicSeq: TopicSequencePrediction | null, need: NeedPrediction, emotional: EmotionalPrediction): string[] {
+  private generateSuggestions(
+    voiceState: VoiceStatePrediction,
+    topicSeq: TopicSequencePrediction | null,
+    need: NeedPrediction,
+    emotional: EmotionalPrediction
+  ): string[] {
     const suggestions: string[] = [];
-    if (voiceState.acknowledgment && voiceState.confidence > 0.65) suggestions.push(`Acknowledge: "${voiceState.acknowledgment}"`);
-    if (topicSeq?.shouldPrompt && topicSeq.promptPhrase) suggestions.push(`Anticipate topic: "${topicSeq.promptPhrase}"`);
+    if (voiceState.acknowledgment && voiceState.confidence > 0.65)
+      suggestions.push(`Acknowledge: "${voiceState.acknowledgment}"`);
+    if (topicSeq?.shouldPrompt && topicSeq.promptPhrase)
+      suggestions.push(`Anticipate topic: "${topicSeq.promptPhrase}"`);
     if (need.confidence > 0.6) suggestions.push(`Need: ${need.responseGuidance.split('.')[0]}`);
-    if (emotional.adjustmentSuggestion) suggestions.push(`Adjust: ${emotional.adjustmentSuggestion.direction} ${emotional.adjustmentSuggestion.type} - ${emotional.adjustmentSuggestion.reason}`);
+    if (emotional.adjustmentSuggestion)
+      suggestions.push(
+        `Adjust: ${emotional.adjustmentSuggestion.direction} ${emotional.adjustmentSuggestion.type} - ${emotional.adjustmentSuggestion.reason}`
+      );
     return suggestions;
   }
 
-  private calculateOverallConfidence(voiceState: VoiceStatePrediction, need: NeedPrediction, emotional: EmotionalPrediction): number {
+  private calculateOverallConfidence(
+    voiceState: VoiceStatePrediction,
+    need: NeedPrediction,
+    emotional: EmotionalPrediction
+  ): number {
     return voiceState.confidence * 0.2 + need.confidence * 0.5 + emotional.confidence * 0.3;
   }
 
   exportLearning(): { topicTransitions: TopicTransition[]; baseline: UserBaseline } {
-    return { topicTransitions: this.topicTransitions.filter(t => t.count >= 2), baseline: { ...this.userBaseline } };
+    return {
+      topicTransitions: this.topicTransitions.filter((t) => t.count >= 2),
+      baseline: { ...this.userBaseline },
+    };
   }
 
-  importLearning(data: { topicTransitions?: TopicTransition[]; baseline?: Partial<UserBaseline> }): void {
+  importLearning(data: {
+    topicTransitions?: TopicTransition[];
+    baseline?: Partial<UserBaseline>;
+  }): void {
     if (data.topicTransitions) this.topicTransitions = data.topicTransitions;
     if (data.baseline) Object.assign(this.userBaseline, data.baseline);
     logger.debug('Learning imported');
@@ -403,7 +523,10 @@ const predictiveAnticipationRegistry = createSessionRegistry(
 
 registerGlobalRegistry(predictiveAnticipationRegistry);
 
-export function getPredictiveAnticipationEngine(sessionId: string, userId?: string): PredictiveAnticipationEngine {
+export function getPredictiveAnticipationEngine(
+  sessionId: string,
+  userId?: string
+): PredictiveAnticipationEngine {
   return predictiveAnticipationRegistry.get(userId || sessionId);
 }
 
@@ -420,4 +543,3 @@ export function getActivePredictiveAnticipationCount(): number {
 }
 
 export default PredictiveAnticipationEngine;
-

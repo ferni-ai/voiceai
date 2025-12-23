@@ -162,7 +162,10 @@
     },
     "memory_callback": {
       "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with practical curiosity. Show you're tracking. One sentence.",
-      "examples": ["I keep thinking about what you said about {topic}.", "What's the next step on {topic}?"]
+      "examples": [
+        "I keep thinking about what you said about {topic}.",
+        "What's the next step on {topic}?"
+      ]
     },
     "thoughtful_question": {
       "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE action-oriented question. Based on what they've shared, ask something that clarifies next steps. Keep it efficient.",
@@ -186,4 +189,3 @@
     "thoughtful_question_min_turn_count": 5
   }
 }
-

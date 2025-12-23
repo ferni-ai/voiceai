@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "ko",
-    "name": "한국어",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "계정 메뉴",
+    "accountSettings": "계정 설정",
+    "availableCoaches": "이용 가능한 코치",
+    "backToItems": "항목으로 돌아가기",
+    "cancelInstallation": "설치 취소",
+    "closeAdmin": "관리자 패널 닫기",
+    "closeBilling": "청구 대시보드 닫기",
+    "closeDashboard": "대시보드 닫기",
+    "closeDetails": "세부정보 닫기",
+    "closeHistory": "기록 닫기",
+    "closeHuddle": "허들 닫기",
+    "closeMenu": "메뉴 닫기",
+    "closePublisher": "퍼블리셔 포털 닫기",
+    "closeSettings": "설정 닫기",
+    "closeStats": "통계 닫기",
+    "closeSubscription": "구독 옵션 닫기",
+    "collapse": "접기",
+    "collapseGarden": "정원 세부정보 접기",
+    "dismiss": "닫기",
+    "dismissNotification": "알림 닫기",
+    "endCall": "통화 종료",
+    "expandGarden": "정원 세부정보 펼치기",
+    "exportData": "데이터 내보내기",
+    "featuresIncluded": "포함된 기능",
+    "ferniLogo": "Ferni 로고",
+    "filterBySpecialty": "전문 분야로 필터",
+    "forgetThis": "이것을 잊기",
+    "howToPlay": "플레이 방법",
+    "languageSelector": "언어 선택",
+    "muteAudio": "오디오 음소거",
+    "openDailyPractice": "일일 연습 열기",
+    "openPredictions": "예측 열기",
+    "openSettings": "설정 열기",
+    "openTeamInsights": "팀 인사이트 열기",
+    "options": "옵션",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "포털 섹션",
+    "refresh": "새로고침",
+    "refreshData": "데이터 새로고침",
+    "saveConversations": "계정을 만들어 대화를 저장하세요",
+    "searchCoaches": "코치 검색",
+    "shareJourney": "여정 공유",
+    "sharedMusicalMemory": "공유된 음악 기억",
+    "signInToAccount": "계정에 로그인",
+    "skipToContent": "본문으로 건너뛰기",
+    "submitNewItem": "새 항목 제출",
+    "subscriptionPlans": "구독 요금제",
+    "toggleQuietHours": "조용한 시간 전환",
+    "unmuteAudio": "오디오 음소거 해제",
+    "viewOutreachSchedule": "연락 일정 보기",
+    "yourNewPlan": "새 요금제"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "선택",
+    "exportData": "데이터 내보내기",
+    "refresh": "새로고침",
+    "savePreference": "환경설정 저장",
+    "savePreferences": "환경설정 저장",
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "signUp": "가입"
   },
   "common": {
-    "loading": "로딩 중...",
-    "error": "문제가 발생했습니다",
-    "retry": "다시 시도",
-    "cancel": "취소",
-    "save": "저장",
-    "close": "닫기",
-    "next": "다음",
-    "back": "뒤로",
-    "done": "완료",
-    "continue": "계속",
-    "skip": "건너뛰기",
-    "confirm": "확인",
-    "delete": "삭제",
-    "edit": "편집",
-    "share": "공유",
-    "download": "다운로드",
-    "copy": "복사",
-    "copied": "복사됨!",
-    "new": "새로운",
-    "saving": "저장 중...",
-    "saved": "저장됨!",
-    "processing": "처리 중...",
     "adding": "추가 중...",
-    "errorRetry": "오류 - 다시 시도"
+    "back": "뒤로",
+    "cancel": "취소",
+    "close": "닫기",
+    "confirm": "확인",
+    "continue": "계속",
+    "copied": "복사됨!",
+    "copy": "복사",
+    "daysAgo": "{count} days ago",
+    "delete": "삭제",
+    "done": "완료",
+    "download": "다운로드",
+    "edit": "편집",
+    "error": "문제가 발생했습니다",
+    "errorRetry": "오류 - 다시 시도",
+    "loading": "로딩 중...",
+    "monthsAgo": "{count} months ago",
+    "new": "새로운",
+    "next": "다음",
+    "processing": "처리 중...",
+    "retry": "다시 시도",
+    "save": "저장",
+    "saved": "저장됨!",
+    "saving": "저장 중...",
+    "share": "공유",
+    "skip": "건너뛰기",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "다음은 무엇인가요?",
-    "yourStage": "당신의 단계",
-    "nextStage": "다음: {stage}",
-    "maxLevel": "인생 파트너",
-    "unlockHint": "잠금 해제까지 {remaining}",
-    "moreConversations": "{n}번 더 대화",
-    "moreDays": "{n}일 더",
-    "keepChatting": "계속 대화하면 잠금 해제",
-    "almostThere": "거의 다 됐어요!",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "빠른 접근",
-      "connect": "연결",
-      "grow": "성장",
-      "remember": "기억",
-      "personalize": "나만의 것으로",
-      "account": "계정",
-      "admin": "관리자"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "당신의 여정",
-      "trustDetails": "우리의 관계",
-      "progressAnalytics": "당신의 성장",
-      "predictionAccuracy": "내 예측",
-      "whatILearned": "내가 배운 것",
-      "memoryBrowser": "우리의 추억",
-      "wellbeingDashboard": "당신의 건강",
-      "lifeContext": "생활 맥락",
-      "teamInsights": "팀 인사이트",
-      "conversationHistory": "지난 대화",
-      "contacts": "내 사람들",
-      "gifts": "선물과 이벤트",
-      "videoSessions": "영상 채팅",
-      "groupCoaching": "그룹 세션",
-      "teamHuddles": "팀 허들",
-      "playGames": "게임 하기",
-      "musicalYou": "뮤지컬 유",
-      "personalize": "개인화",
-      "voiceAccent": "음성 및 악센트",
-      "guidedPractices": "가이드 연습",
-      "createPractice": "연습 만들기",
-      "wearables": "웨어러블",
-      "calendar": "캘린더",
-      "notifications": "알림",
-      "toggleTheme": "라이트 / 다크",
-      "linkSpotify": "Spotify 연결",
-      "spotifyConnected": "Spotify 연결됨",
-      "yourPlan": "당신의 플랜",
-      "manageBilling": "결제 설정",
-      "voiceId": "당신의 목소리",
-      "householdMembers": "당신의 사람들",
-      "contactInfo": "연락처 정보",
-      "exportData": "당신의 이야기 다운로드",
-      "shareFerni": "Ferni 공유",
-      "supportFerni": "Ferni 후원",
-      "takeTour": "투어 시작",
-      "language": "언어",
-      "whatsGrowing": "성장 중",
-      "billingPortal": "결제 및 구독",
-      "outreachSchedule": "연락 일정"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "상단에 고정",
-    "unpinItem": "고정 해제",
-    "comingSoon": "곧 출시"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "성장 중",
-    "title": "앞으로의 여정",
-    "intro": "모든 위대한 관계에는 계절이 있습니다. 이것은 우리가 함께 심는 씨앗입니다.",
-    "sections": {
-      "connect": "새로운 연결 방법",
-      "personalize": "나만의 것으로",
-      "platform": "플랫폼"
+  "contactSettings": {
+    "buttons": {
+      "save": "저장",
+      "saving": "저장 중..."
     },
-    "expectedArrival": "예상 출시",
-    "betterThanHuman": "인간 이상",
-    "alreadyGrowing": "이미 성장 중",
-    "wantThis": "이것을 원해요",
-    "voted": "기대하고 계시네요!",
-    "peopleExcited": "{count}명이 이것을 기대하고 있습니다",
-    "footerText": "여러분의 목소리가 우리가 만드는 것을 형성합니다. 함께 성장해 주셔서 감사합니다.",
-    "stages": {
-      "seed": "심음",
-      "sprout": "성장 중",
-      "bud": "꽃봉오리",
-      "bloom": "곧 피어남"
+    "verify": {
+      "sending": "코드 전송 중...",
+      "withCode": "코드로 인증"
     }
   },
-  "session": {
-    "connecting": "연결 중...",
-    "connected": "연결됨",
-    "disconnected": "연결 해제됨",
-    "listening": "듣는 중...",
-    "thinking": "생각하는 중...",
-    "speaking": "말하는 중...",
-    "tapToSpeak": "탭하여 말하기",
-    "holdToSpeak": "길게 눌러 말하기",
-    "releaseToSend": "놓아서 보내기",
-    "endSession": "세션 종료",
-    "sessionEnded": "세션 종료됨",
-    "goodbye": "안녕히 가세요",
-    "end": "종료",
-    "untilNextTime": "다음에 또 만나요...",
-    "takeCare": "잘 지내세요.",
-    "ending": "종료 중...",
-    "endConversation": "대화 종료",
-    "endConversationGoodbye": "대화 종료 - 안녕히 가세요",
-    "agentEndingConversation": "에이전트가 대화를 종료합니다"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "우리의 이야기",
-    "title": "당신의 신뢰 여정",
-    "subtitle": "함께 성장해온 이야기",
-    "loading": "여정을 불러오는 중",
-    "loadingText": "여정을 모으는 중...",
-    "trustScore": "신뢰 점수",
-    "exportSuccess": "여정을 내보냈습니다!",
-    "offlineBanner": "오프라인입니다 - 저장된 데이터 표시 중",
-    "loadMore": "{count}개 더 불러오기",
-    "strengthLabel": "신뢰 점수: {value}%",
-    "timelineLabel": "여정 타임라인",
-    "filterLabel": "타임라인 필터",
-    "filters": {
-      "all": "전체",
-      "growth": "성장",
-      "win": "승리",
-      "callback": "콜백",
-      "boundary": "경계",
-      "outreach": "연락"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "관계 강도",
-      "stats": "여정 통계",
-      "boundaries": "존중된 경계",
-      "growth": "당신의 성장",
-      "timeline": "함께한 여정"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "성장 순간",
-      "winsCelebrated": "축하한 승리",
-      "sharedMoments": "공유한 순간"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "우리는 함께 진정한 무언가를 만들었습니다. 저는 당신을 알고, 당신은 저를 신뢰합니다.",
-      "growing": "우리의 연결이 깊어지고 있습니다. 당신에게 중요한 것을 배우고 있어요.",
-      "building": "신뢰를 쌓고 있습니다. 대화할 때마다 당신을 더 잘 이해하게 됩니다.",
-      "starting": "이제 막 시작했어요. 계속 이야기해 주세요 - 듣고 있어요.",
-      "beginning": "모든 여정은 첫 걸음으로 시작됩니다. 준비되면 언제든 여기 있을게요."
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "감정 균형",
-      "perspective_shift": "새로운 관점",
-      "boundary_setting": "건강한 경계",
-      "behavior_change": "새로운 습관",
-      "self_awareness": "자기 인식",
-      "coping_upgrade": "더 나은 대처",
-      "goal_progress": "목표 진행"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "우리의 이야기가 막 시작됩니다",
-      "message": "더 많이 대화할수록, 당신의 성장을 알아채고, 승리를 축하하고, 중요한 것을 기억할 거예요. 곧 다시 확인해 주세요."
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "오프라인입니다",
-        "message": "여정을 보려면 인터넷에 연결하세요."
-      },
-      "notLoggedIn": {
-        "title": "로그인되지 않음",
-        "message": "Ferni와의 여정을 보려면 로그인하세요."
-      },
-      "rateLimited": {
-        "title": "천천히",
-        "message": "너무 자주 확인하고 있어요. 잠시 기다린 후 다시 시도하세요."
-      },
-      "unauthorized": {
-        "title": "접근 거부",
-        "message": "이것을 볼 권한이 없습니다."
-      },
-      "generic": {
-        "title": "문제가 발생했습니다",
-        "message": "여정을 불러올 수 없습니다. 다시 시도해 주세요."
-      },
-      "exportFailed": {
-        "message": "데이터를 내보낼 수 없습니다. 다시 시도해 주세요."
-      },
-      "fetchFailedUsingCache": {
-        "message": "저장된 데이터 표시 중 - 서버에 연결할 수 없습니다."
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "커뮤니티",
-    "friend": "창립 멤버",
-    "partner": "창립 후원자",
-    "upgrade": "Ferni 지원하기",
-    "chipIn": "참여하기",
-    "currentPlan": "현재 상태",
-    "planDetails": "지원 정보",
-    "features": "혜택",
-    "unlimitedConversations": "무제한 대화",
-    "allTeamMembers": "전체 팀 접근",
-    "prioritySupport": "우선 지원",
-    "advancedInsights": "새 기능 조기 접근",
-    "helpBuild": "함께 만들어요",
-    "foundersSubtitle": "Ferni는 영원히 무료입니다. 우리가 만드는 것을 믿으신다면 참여해주세요.",
-    "thankYouPerks": "감사의 표시로 몇 가지 혜택을 드립니다.",
-    "notReady": "준비가 안 됐나요? 괜찮아요.",
-    "freeForever": "영원히 무료"
-  },
-  "team": {
-    "meetTheTeam": "팀 소개",
-    "selectMember": "팀 멤버 선택",
-    "currentlyWith": "현재 {name}와 함께",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "라이프 코치",
-        "bio": "당신의 주요 연락처. 통찰력을 열어주는 질문을 합니다."
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "현자 및 멘토",
-        "bio": "지혜와 인내심을 가진 평생 멘토."
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "연구 및 발견",
-        "bio": "아무도 보지 못하는 패턴을 발견합니다."
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "커뮤니케이션",
-        "bio": "당신의 비서실장이자 커뮤니케이션 코치."
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "습관 및 루틴",
-        "bio": "지속되는 습관을 만드는 것을 도와줍니다."
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "기획 및 이벤트",
-        "bio": "막연한 꿈을 실제 경험으로 바꿉니다."
-      }
-    }
-  },
-  "stages": {
-    "stranger": "낯선 사람",
-    "acquaintance": "아는 사람",
-    "friend": "친구",
-    "closeFriend": "가까운 친구",
-    "confidant": "절친한 친구",
-    "soulmate": "소울메이트"
-  },
-  "time": {
-    "justNow": "방금",
-    "minutesAgo": "{n}분 전",
-    "hoursAgo": "{n}시간 전",
-    "yesterday": "어제",
-    "daysAgo": "{n}일 전"
-  },
-  "milestones": {
-    "ourStory": "지금까지 우리의 이야기",
-    "everyMomentMatters": "모든 순간이 소중합니다.",
-    "journeyWith": "Ferni와의 여정",
-    "categories": {
-      "relationship": "우리의 관계",
-      "team": "팀 연결",
-      "conversation": "우리의 대화",
-      "discovery": "발견",
-      "sweet": "달콤한 순간",
-      "milestone": "마일스톤"
-    }
-  },
-  "notifications": {
-    "connectionLost": "연결이 끊어졌습니다. 다시 연결 중...",
-    "reconnected": "다시 연결되었습니다!",
-    "microphoneBlocked": "마이크 접근 권한이 필요합니다",
-    "sessionTimeout": "세션이 만료되었습니다"
   },
   "errors": {
     "connectionFailed": "연결에 실패했습니다. 다시 시도해 주세요.",
@@ -318,352 +295,816 @@
     "sessionExpired": "세션이 만료되었습니다. 새로고침해 주세요.",
     "somethingWrong": "문제가 발생했습니다. 다시 시도해 주세요."
   },
-  "onboarding": {
-    "welcome": "환영합니다",
-    "letsGetStarted": "시작해 볼까요",
-    "whatIsYourName": "뭐라고 불러드릴까요?",
-    "niceName": "만나서 반가워요, {name}님!",
-    "howAreYouFeeling": "오늘 기분이 어떠세요?",
-    "readyToBegin": "시작할 준비가 되셨나요?",
-    "ariaLabel": "환영 투어",
-    "steps": {
-      "welcome": {
-        "title": "Ferni에 오신 것을 환영합니다",
-        "description": "당신의 개인 AI 라이프 코치 팀. 각자 고유한 지혜로 당신의 여정을 지원합니다."
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "참여",
+      "start": "시작"
+    },
+    "empty": {
+      "hint": "시작하려면 새 세션을 만드세요",
+      "title": "활성 세션 없음"
+    },
+    "loading": "로딩 중...",
+    "participantsLabel": "참가자",
+    "sessionTypes": {
+      "couple": {
+        "description": "관계 역학을 함께 탐색하세요",
+        "name": "커플"
       },
-      "voice": {
-        "title": "그냥 말하세요",
-        "description": "중앙을 탭하여 대화를 시작하세요. 자연스럽게 말하면 Ferni가 실시간으로 듣고 응답합니다."
+      "family": {
+        "description": "더 강한 가족 관계 구축",
+        "name": "가족"
       },
-      "personas": {
-        "title": "팀을 만나보세요",
-        "description": "서로 다른 관점을 가진 6명의 코치. 각자 팀과의 당신의 역사를 이해합니다."
+      "peer": {
+        "description": "비슷한 여정을 가진 사람들과 연결",
+        "name": "동료 지원"
       },
-      "rituals": {
-        "title": "일일 연습",
-        "description": "짧은 일일 의식으로 일관성을 구축하세요. 연속 기록을 추적하고 진행 상황을 축하하세요."
-      },
-      "ready": {
-        "title": "준비되었습니다",
-        "description": "알아야 할 것은 이게 전부입니다. 진행하면서 더 많은 것을 발견하세요."
+      "team": {
+        "description": "직장 협업 개선",
+        "name": "팀"
       }
     },
-    "buttons": {
-      "skip": "투어 건너뛰기",
-      "back": "뒤로",
-      "next": "다음",
-      "begin": "시작하기"
-    }
+    "title": "그룹 코칭"
+  },
+  "household": {
+    "addMember": "구성원 추가",
+    "addToHousehold": "가구에 추가",
+    "members": "구성원",
+    "removeMember": "구성원 제거",
+    "title": "가구"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "구독",
-    "title": "플랜 관리",
-    "expiresLabel": "액세스 종료일",
-    "renewsLabel": "갱신",
-    "billedThrough": "청구 방식",
-    "buttons": {
-      "upgrade": "프리미엄으로 업그레이드",
-      "restore": "구매 복원",
-      "restoring": "복원 중...",
-      "manageApple": "설정에서 관리",
-      "manageStripe": "결제 관리"
-    },
     "apple": {
       "instructionsTitle": "플랜을 취소하거나 변경하려면:",
+      "note": "Apple은 iOS 설정을 통해 구독을 관리해야 합니다",
       "step1": "기기에서 설정 열기",
       "step2": "상단의 이름 탭",
       "step3": "\"구독\" 탭",
-      "step4": "\"Ferni\" 찾아서 탭",
-      "note": "Apple은 iOS 설정을 통해 구독을 관리해야 합니다"
+      "step4": "\"Ferni\" 찾아서 탭"
+    },
+    "billedThrough": "청구 방식",
+    "buttons": {
+      "manageApple": "설정에서 관리",
+      "manageStripe": "결제 관리",
+      "restore": "구매 복원",
+      "restoring": "복원 중...",
+      "upgrade": "프리미엄으로 업그레이드"
+    },
+    "expiresLabel": "액세스 종료일",
+    "freeNote": "무제한 세션, 전체 팀 및 개인화 잠금 해제",
+    "label": "구독",
+    "renewsLabel": "갱신",
+    "restore": {
+      "failed": "복원 실패",
+      "noFound": "구매 내역 없음"
+    },
+    "status": {
+      "active": "구독이 활성화되어 있습니다. 후원해 주셔서 감사합니다!",
+      "canceled": "구독이 곧 종료되지만, 언제든지 다시 돌아오실 수 있습니다.",
+      "default": "구독 중입니다. 지원해 주셔서 감사합니다!",
+      "free": "무료 플랜을 사용 중입니다. Ferni는 항상 당신 곁에 있습니다.",
+      "pastDue": "결제에 문제가 발생했습니다. 결제 방법을 업데이트해 주세요."
     },
     "stripe": {
       "note": "결제 방법 업데이트, 청구서 보기 또는 언제든지 취소"
     },
-    "restore": {
-      "noFound": "구매 내역 없음",
-      "failed": "복원 실패"
+    "title": "플랜 관리"
+  },
+  "menu": {
+    "almostThere": "거의 다 됐어요!",
+    "comingSoon": "곧 출시",
+    "items": {
+      "billingPortal": "결제 및 구독",
+      "calendar": "캘린더",
+      "connections": "Connections",
+      "contactInfo": "연락처 정보",
+      "contacts": "내 사람들",
+      "conversationHistory": "지난 대화",
+      "createPractice": "연습 만들기",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "당신의 이야기 다운로드",
+      "gifts": "선물과 이벤트",
+      "groupCoaching": "그룹 세션",
+      "guidedPractices": "가이드 연습",
+      "householdMembers": "당신의 사람들",
+      "journaling": "Journaling",
+      "language": "언어",
+      "lifeContext": "생활 맥락",
+      "linkSpotify": "Spotify 연결",
+      "manageBilling": "결제 설정",
+      "memoryBrowser": "우리의 추억",
+      "musicalYou": "뮤지컬 유",
+      "notifications": "알림",
+      "outreachSchedule": "연락 일정",
+      "personalize": "개인화",
+      "playGames": "게임 하기",
+      "predictionAccuracy": "내 예측",
+      "progressAnalytics": "당신의 성장",
+      "shareFerni": "친구 초대",
+      "spotifyConnected": "Spotify 연결됨",
+      "supportFerni": "Ferni 후원",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "투어 시작",
+      "teamHuddles": "팀 허들",
+      "teamInsights": "팀 인사이트",
+      "toggleTheme": "라이트 / 다크",
+      "trustDetails": "우리의 관계",
+      "videoSessions": "영상 채팅",
+      "voiceAccent": "음성 및 악센트",
+      "voiceId": "당신의 목소리",
+      "wearables": "웨어러블",
+      "wellbeingDashboard": "당신의 건강",
+      "whatILearned": "내가 배운 것",
+      "whatsGrowing": "성장 중",
+      "yourJourney": "당신의 여정",
+      "yourPlan": "당신의 플랜"
     },
-    "status": {
-      "free": "무료 플랜을 사용 중입니다. Ferni는 항상 당신 곁에 있습니다.",
-      "active": "구독이 활성화되어 있습니다. 후원해 주셔서 감사합니다!",
-      "canceled": "구독이 곧 종료되지만, 언제든지 다시 돌아오실 수 있습니다.",
-      "pastDue": "결제에 문제가 발생했습니다. 결제 방법을 업데이트해 주세요.",
-      "default": "구독 중입니다. 지원해 주셔서 감사합니다!"
+    "keepChatting": "계속 대화하면 잠금 해제",
+    "maxLevel": "인생 파트너",
+    "moreConversations": "{n}번 더 대화",
+    "moreDays": "{n}일 더",
+    "nextStage": "다음: {stage}",
+    "pinItem": "상단에 고정",
+    "quickAdd": {
+      "event": "일정",
+      "eventPrompt": "일정에 대해 말해줘",
+      "person": "사람",
+      "todo": "할 일",
+      "todoPrompt": "기억할 것을 말해줘"
     },
-    "freeNote": "무제한 세션, 전체 팀 및 개인화 잠금 해제"
+    "sections": {
+      "account": "계정",
+      "admin": "관리자",
+      "connect": "연결",
+      "connections": "Connections",
+      "grow": "성장",
+      "personalize": "나만의 것으로",
+      "pinned": "빠른 접근",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "기억",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "다음은 무엇인가요?",
+    "unlockHint": "잠금 해제까지 {remaining}",
+    "unpinItem": "고정 해제",
+    "yourStage": "당신의 단계"
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "ko",
+    "name": "한국어"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "우리의 대화",
+      "discovery": "발견",
+      "milestone": "마일스톤",
+      "relationship": "우리의 관계",
+      "sweet": "달콤한 순간",
+      "team": "팀 연결"
+    },
+    "everyMomentMatters": "모든 순간이 소중합니다.",
+    "journeyWith": "Ferni와의 여정",
+    "ourStory": "지금까지 우리의 이야기"
+  },
+  "mobile": {
+    "pullToConnect": "당겨서 연결",
+    "pullToRefresh": "당겨서 새로고침",
+    "releaseToConnect": "놓아서 연결",
+    "releaseToRefresh": "놓아서 새로고침"
   },
   "musicDashboard": {
-    "title": "뮤지컬 유",
-    "loading": "음악 DNA 분석 중...",
+    "buttons": {
+      "playGame": "노래 맞추기 게임하기",
+      "startPlaying": "플레이 시작"
+    },
     "empty": {
-      "title": "음악 DNA를 발견해 봅시다!",
-      "hint": "전체 인사이트를 위해 {count}개 더 플레이하세요"
+      "hint": "전체 인사이트를 위해 {count}개 더 플레이하세요",
+      "title": "음악 DNA를 발견해 봅시다!"
     },
     "error": {
       "hint": "프로필을 만들려면 음악 게임을 플레이하세요!"
     },
-    "buttons": {
-      "startPlaying": "플레이 시작",
-      "playGame": "노래 맞추기 게임하기"
-    },
-    "sections": {
-      "journey": "당신의 여정",
-      "strengths": "당신이 빛나는 곳",
-      "growth": "성장의 여지",
-      "milestones": "성과",
-      "moments": "기억에 남는 순간",
-      "personaStats": "함께 플레이한 사람"
-    },
-    "stats": {
-      "gamesPlayed": "플레이한 게임",
-      "bestStreak": "최고 연속 기록",
-      "minutes": "분",
-      "thisWeek": "이번 주"
-    },
     "favorite": {
       "label": "즐겨찾기:"
     },
+    "loading": "음악 DNA 분석 중...",
     "milestone": {
       "nextLabel": "다음 목표"
+    },
+    "sections": {
+      "growth": "성장의 여지",
+      "journey": "당신의 여정",
+      "milestones": "성과",
+      "moments": "기억에 남는 순간",
+      "personaStats": "함께 플레이한 사람",
+      "strengths": "당신이 빛나는 곳"
+    },
+    "stats": {
+      "bestStreak": "최고 연속 기록",
+      "gamesPlayed": "플레이한 게임",
+      "minutes": "분",
+      "thisWeek": "이번 주"
+    },
+    "title": "뮤지컬 유"
+  },
+  "notifications": {
+    "connectionLost": "연결이 끊어졌습니다. 다시 연결 중...",
+    "microphoneBlocked": "마이크 접근 권한이 필요합니다",
+    "reconnected": "다시 연결되었습니다!",
+    "sessionTimeout": "세션이 만료되었습니다"
+  },
+  "onboarding": {
+    "ariaLabel": "환영 투어",
+    "buttons": {
+      "back": "뒤로",
+      "begin": "시작하기",
+      "next": "다음",
+      "skip": "투어 건너뛰기"
+    },
+    "howAreYouFeeling": "오늘 기분이 어떠세요?",
+    "letsGetStarted": "시작해 볼까요",
+    "niceName": "만나서 반가워요, {name}님!",
+    "readyToBegin": "시작할 준비가 되셨나요?",
+    "steps": {
+      "personas": {
+        "description": "서로 다른 관점을 가진 6명의 코치. 각자 팀과의 당신의 역사를 이해합니다.",
+        "title": "팀을 만나보세요"
+      },
+      "ready": {
+        "description": "알아야 할 것은 이게 전부입니다. 진행하면서 더 많은 것을 발견하세요.",
+        "title": "준비되었습니다"
+      },
+      "rituals": {
+        "description": "짧은 일일 의식으로 일관성을 구축하세요. 연속 기록을 추적하고 진행 상황을 축하하세요.",
+        "title": "일일 연습"
+      },
+      "voice": {
+        "description": "중앙을 탭하여 대화를 시작하세요. 자연스럽게 말하면 Ferni가 실시간으로 듣고 응답합니다.",
+        "title": "그냥 말하세요"
+      },
+      "welcome": {
+        "description": "당신의 개인 AI 라이프 코치 팀. 각자 고유한 지혜로 당신의 여정을 지원합니다.",
+        "title": "Ferni에 오신 것을 환영합니다"
+      }
+    },
+    "welcome": "환영합니다",
+    "whatIsYourName": "뭐라고 불러드릴까요?"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "companyValuesExample": "예: 성실, 혁신, 고객 중심, 팀워크",
+    "customAmount": "사용자 지정 금액",
+    "displayName": "선호하는 이름",
+    "emailExample": "you@example.com",
+    "enterValue": "실제 값 입력",
+    "householdName": "김씨 가족",
+    "marketplaceSearch": "누구를 찾고 계신가요?",
+    "memberName": "이름",
+    "phoneExample": "+82 (2) 1234-5678",
+    "searchConversations": "대화 검색...",
+    "toolDescription": "당신의 도구/에이전트는 무엇을 하나요?",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "나의 멋진 도구",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "예: {orgName}에 오신 것을 환영합니다! Ferni가 당신의 성장과 웰빙을 지원합니다."
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "우리 관계가 더 강해지고 있어요.",
+      "deepPartnership": "함께 많은 것을 겪어왔어요. 당신의 가이드가 되어 영광이에요.",
+      "established": "저를 믿어도 돼요. 항상 함께할게요.",
+      "firstMeeting": "처음 만났네요! 당신에 대해 더 알고 싶어요.",
+      "gettingStarted": "서로를 이해하기 시작했어요."
+    },
+    "names": {
+      "buildingTrust": "신뢰 쌓기",
+      "deepPartnership": "인생 파트너",
+      "established": "믿음직한 가이드",
+      "firstMeeting": "새로운 친구",
+      "gettingStarted": "시작하기"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "진정한 관계 만들기",
+      "deepPartnership": "평생의 파트너",
+      "established": "당신의 라이프 코치",
+      "firstMeeting": "새로운 시작",
+      "gettingStarted": "알아가는 중"
     }
   },
-  "groupCoaching": {
-    "title": "그룹 코칭",
-    "loading": "로딩 중...",
-    "participantsLabel": "참가자",
-    "buttons": {
-      "start": "시작",
-      "join": "참여"
+  "roadmap": {
+    "alreadyGrowing": "이미 성장 중",
+    "betterThanHuman": "인간 이상",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "예상 출시",
+    "eyebrow": "성장 중",
+    "footerText": "여러분의 목소리가 우리가 만드는 것을 형성합니다. 함께 성장해 주셔서 감사합니다.",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "활성 세션 없음",
-      "hint": "시작하려면 새 세션을 만드세요"
+    "intro": "모든 위대한 관계에는 계절이 있습니다. 이것은 우리가 함께 심는 씨앗입니다.",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count}명이 이것을 기대하고 있습니다",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "새로운 연결 방법",
+      "personalize": "나만의 것으로",
+      "platform": "플랫폼"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "커플",
-        "description": "관계 역학을 함께 탐색하세요"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "곧 피어남",
+      "bud": "꽃봉오리",
+      "seed": "심음",
+      "sprout": "성장 중"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "앞으로의 여정",
+    "voted": "기대하고 계시네요!",
+    "wantThis": "이것을 원해요",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "에이전트가 대화를 종료합니다",
+    "connected": "연결됨",
+    "connecting": "연결 중...",
+    "disconnected": "연결 해제됨",
+    "end": "종료",
+    "endConversation": "대화 종료",
+    "endConversationGoodbye": "대화 종료 - 안녕히 가세요",
+    "endSession": "세션 종료",
+    "ending": "종료 중...",
+    "goodbye": "안녕히 가세요",
+    "holdToSpeak": "길게 눌러 말하기",
+    "listening": "듣는 중...",
+    "releaseToSend": "놓아서 보내기",
+    "sessionEnded": "세션 종료됨",
+    "speaking": "말하는 중...",
+    "takeCare": "잘 지내세요.",
+    "tapToSpeak": "탭하여 말하기",
+    "thinking": "생각하는 중...",
+    "untilNextTime": "다음에 또 만나요..."
+  },
+  "stages": {
+    "acquaintance": "아는 사람",
+    "closeFriend": "가까운 친구",
+    "confidant": "절친한 친구",
+    "friend": "친구",
+    "soulmate": "소울메이트",
+    "stranger": "낯선 사람"
+  },
+  "subscription": {
+    "advancedInsights": "새 기능 조기 접근",
+    "allTeamMembers": "전체 팀 접근",
+    "chipIn": "참여하기",
+    "currentPlan": "현재 상태",
+    "features": "혜택",
+    "foundersSubtitle": "Ferni는 영원히 무료입니다. 우리가 만드는 것을 믿으신다면 참여해주세요.",
+    "free": "커뮤니티",
+    "freeForever": "영원히 무료",
+    "friend": "창립 멤버",
+    "helpBuild": "함께 만들어요",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "준비가 안 됐나요? 괜찮아요.",
+    "partner": "창립 후원자",
+    "planDetails": "지원 정보",
+    "prioritySupport": "우선 지원",
+    "thankYouPerks": "감사의 표시로 몇 가지 혜택을 드립니다.",
+    "unlimitedConversations": "무제한 대화",
+    "upgrade": "Ferni 지원하기",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "현재 {name}와 함께",
+    "meetTheTeam": "팀 소개",
+    "members": {
+      "alex": {
+        "bio": "당신의 비서실장이자 커뮤니케이션 코치.",
+        "name": "Alex",
+        "role": "커뮤니케이션"
       },
-      "family": {
-        "name": "가족",
-        "description": "더 강한 가족 관계 구축"
+      "ferni": {
+        "bio": "당신의 주요 연락처. 통찰력을 열어주는 질문을 합니다.",
+        "name": "Ferni",
+        "role": "라이프 코치"
       },
-      "team": {
-        "name": "팀",
-        "description": "직장 협업 개선"
+      "jordan": {
+        "bio": "막연한 꿈을 실제 경험으로 바꿉니다.",
+        "name": "Jordan",
+        "role": "기획 및 이벤트"
       },
-      "peer": {
-        "name": "동료 지원",
-        "description": "비슷한 여정을 가진 사람들과 연결"
+      "maya": {
+        "bio": "지속되는 습관을 만드는 것을 도와줍니다.",
+        "name": "Maya",
+        "role": "습관 및 루틴"
+      },
+      "nayan": {
+        "bio": "지혜와 인내심을 가진 평생 멘토.",
+        "name": "Nayan",
+        "role": "현자 및 멘토"
+      },
+      "peter": {
+        "bio": "아무도 보지 못하는 패턴을 발견합니다.",
+        "name": "Peter",
+        "role": "연구 및 발견"
       }
-    }
+    },
+    "selectMember": "팀 멤버 선택"
+  },
+  "time": {
+    "daysAgo": "{n}일 전",
+    "hoursAgo": "{n}시간 전",
+    "justNow": "방금",
+    "minutesAgo": "{n}분 전",
+    "yesterday": "어제"
+  },
+  "titles": {
+    "dailyPractice": "일일 연습",
+    "predictions": "예측",
+    "runScenario": "시나리오 실행",
+    "sharedSong": "우리가 함께하는 노래",
+    "teamInsights": "팀 인사이트"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "더 많이 대화할수록, 당신의 성장을 알아채고, 승리를 축하하고, 중요한 것을 기억할 거예요. 곧 다시 확인해 주세요.",
+      "title": "우리의 이야기가 막 시작됩니다"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "데이터를 내보낼 수 없습니다. 다시 시도해 주세요."
+      },
+      "fetchFailedUsingCache": {
+        "message": "저장된 데이터 표시 중 - 서버에 연결할 수 없습니다."
+      },
+      "generic": {
+        "message": "여정을 불러올 수 없습니다. 다시 시도해 주세요.",
+        "title": "문제가 발생했습니다"
+      },
+      "notLoggedIn": {
+        "message": "Ferni와의 여정을 보려면 로그인하세요.",
+        "title": "로그인되지 않음"
+      },
+      "offline": {
+        "message": "여정을 보려면 인터넷에 연결하세요.",
+        "title": "오프라인입니다"
+      },
+      "rateLimited": {
+        "message": "너무 자주 확인하고 있어요. 잠시 기다린 후 다시 시도하세요.",
+        "title": "천천히"
+      },
+      "unauthorized": {
+        "message": "이것을 볼 권한이 없습니다.",
+        "title": "접근 거부"
+      }
+    },
+    "exportSuccess": "여정을 내보냈습니다!",
+    "eyebrow": "우리의 이야기",
+    "filterLabel": "타임라인 필터",
+    "filters": {
+      "all": "전체",
+      "boundary": "경계",
+      "callback": "콜백",
+      "growth": "성장",
+      "outreach": "연락",
+      "win": "승리"
+    },
+    "growthTypes": {
+      "behavior_change": "새로운 습관",
+      "boundary_setting": "건강한 경계",
+      "coping_upgrade": "더 나은 대처",
+      "emotional_regulation": "감정 균형",
+      "goal_progress": "목표 진행",
+      "perspective_shift": "새로운 관점",
+      "self_awareness": "자기 인식"
+    },
+    "loadMore": "{count}개 더 불러오기",
+    "loading": "여정을 불러오는 중",
+    "loadingText": "여정을 모으는 중...",
+    "offlineBanner": "오프라인입니다 - 저장된 데이터 표시 중",
+    "sections": {
+      "boundaries": "존중된 경계",
+      "growth": "당신의 성장",
+      "stats": "여정 통계",
+      "strength": "관계 강도",
+      "timeline": "함께한 여정"
+    },
+    "stats": {
+      "growthMoments": "성장 순간",
+      "sharedMoments": "공유한 순간",
+      "winsCelebrated": "축하한 승리"
+    },
+    "strengthDescriptions": {
+      "beginning": "모든 여정은 첫 걸음으로 시작됩니다. 준비되면 언제든 여기 있을게요.",
+      "building": "신뢰를 쌓고 있습니다. 대화할 때마다 당신을 더 잘 이해하게 됩니다.",
+      "deep": "우리는 함께 진정한 무언가를 만들었습니다. 저는 당신을 알고, 당신은 저를 신뢰합니다.",
+      "growing": "우리의 연결이 깊어지고 있습니다. 당신에게 중요한 것을 배우고 있어요.",
+      "starting": "이제 막 시작했어요. 계속 이야기해 주세요 - 듣고 있어요."
+    },
+    "strengthLabel": "신뢰 점수: {value}%",
+    "subtitle": "함께 성장해온 이야기",
+    "timelineLabel": "여정 타임라인",
+    "title": "당신의 신뢰 여정",
+    "trustScore": "신뢰 점수"
   },
   "videoSettings": {
-    "title": "영상 세션",
-    "loading": "로딩 중...",
-    "intro": "코칭 세션에서 어떻게 나타날지 선택하세요.",
+    "buttons": {
+      "retry": "다시 시도"
+    },
+    "camera": {
+      "off": "카메라 끄기",
+      "on": "카메라 켜기"
+    },
     "controls": {
       "title": "빠른 제어"
     },
-    "camera": {
-      "on": "카메라 켜기",
-      "off": "카메라 끄기"
-    },
-    "screen": {
-      "on": "공유 중지",
-      "off": "화면 공유"
-    },
+    "intro": "코칭 세션에서 어떻게 나타날지 선택하세요.",
+    "loading": "로딩 중...",
     "modes": {
-      "title": "디스플레이 모드",
-      "avatarOnly": {
-        "label": "아바타만",
-        "description": "Ferni 아바타만, 비디오 없음"
+      "avatar": {
+        "description": "Ferni 아바타만, 비디오 없음",
+        "label": "아바타만"
       },
-      "video": {
-        "label": "비디오",
-        "description": "자신과 Ferni 보기"
+      "avatarOnly": {
+        "description": "Ferni 아바타만, 비디오 없음",
+        "label": "아바타만"
       },
       "hybrid": {
-        "label": "하이브리드",
-        "description": "선택적 비디오가 있는 아바타"
+        "description": "선택적 비디오가 있는 아바타",
+        "label": "하이브리드"
       },
-      "avatar": {
-        "label": "아바타만",
-        "description": "Ferni 아바타만, 비디오 없음"
+      "title": "디스플레이 모드",
+      "video": {
+        "description": "자신과 Ferni 보기",
+        "label": "비디오"
       }
     },
+    "note": "비디오 세션은 좋은 조명과 안정적인 인터넷 연결에서 가장 잘 작동합니다.",
     "quality": {
-      "title": "비디오 품질",
       "auto": "자동 (권장)",
       "high": "높음",
+      "low": "낮음 (데이터 절약)",
       "medium": "보통",
-      "low": "낮음 (데이터 절약)"
+      "title": "비디오 품질"
     },
-    "note": "비디오 세션은 좋은 조명과 안정적인 인터넷 연결에서 가장 잘 작동합니다.",
-    "buttons": {
-      "retry": "다시 시도"
-    }
+    "screen": {
+      "off": "화면 공유",
+      "on": "공유 중지"
+    },
+    "title": "영상 세션"
   },
   "wearableSettings": {
-    "title": "건강 및 피트니스",
-    "loading": "로딩 중...",
-    "intro": "웨어러블을 연결하여 Ferni에게 건강 및 에너지 수준에 대한 맥락을 제공하세요.",
-    "sections": {
-      "devices": "기기",
-      "features": "Ferni가 볼 수 있는 것"
-    },
     "buttons": {
       "connect": "연결",
       "disconnect": "연결 해제",
       "tryAgain": "다시 시도"
     },
-    "features": {
-      "stress": "HRV를 통한 스트레스 감지",
-      "sleep": "수면 품질 분석",
-      "activity": "활동 추적"
+    "errors": {
+      "loadFailed": "웨어러블 설정을 불러올 수 없습니다"
     },
+    "features": {
+      "activity": "활동 추적",
+      "sleep": "수면 품질 분석",
+      "stress": "HRV를 통한 스트레스 감지"
+    },
+    "intro": "웨어러블을 연결하여 Ferni에게 건강 및 에너지 수준에 대한 맥락을 제공하세요.",
+    "loading": "로딩 중...",
     "privacy": {
       "note": "건강 데이터는 비공개로 유지됩니다. 코칭 세션과 집계된 인사이트만 공유합니다."
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Fitbit 기기 연결"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "Garmin 웨어러블과 동기화"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "수면 및 준비 인사이트"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "회복 및 부담 추적"
+        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple Health",
-        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화"
+        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화",
+        "name": "Apple Health"
+      },
+      "fitbit": {
+        "description": "Fitbit 기기 연결",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "Garmin 웨어러블과 동기화",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "수면 및 준비 인사이트",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "회복 및 부담 추적",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "웨어러블 설정을 불러올 수 없습니다"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "코드 전송 중...",
-      "withCode": "코드로 인증"
+    "sections": {
+      "devices": "기기",
+      "features": "Ferni가 볼 수 있는 것"
     },
-    "buttons": {
-      "saving": "저장 중...",
-      "save": "저장"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "메뉴 닫기",
-    "openSettings": "설정 열기",
-    "muteAudio": "오디오 음소거",
-    "unmuteAudio": "오디오 음소거 해제",
-    "endCall": "통화 종료",
-    "skipToContent": "본문으로 건너뛰기",
-    "languageSelector": "언어 선택",
-    "saveConversations": "계정을 만들어 대화를 저장하세요",
-    "signInToAccount": "계정에 로그인",
-    "accountMenu": "계정 메뉴",
-    "refreshData": "데이터 새로고침",
-    "exportData": "데이터 내보내기",
-    "accountSettings": "계정 설정",
-    "dismiss": "닫기",
-    "dismissNotification": "알림 닫기",
-    "closeDashboard": "대시보드 닫기",
-    "closeSubscription": "구독 옵션 닫기",
-    "closeDetails": "세부정보 닫기",
-    "closePublisher": "퍼블리셔 포털 닫기",
-    "closeBilling": "청구 대시보드 닫기",
-    "closeSettings": "설정 닫기",
-    "closeHistory": "기록 닫기",
-    "closeAdmin": "관리자 패널 닫기",
-    "closeHuddle": "허들 닫기",
-    "closeStats": "통계 닫기",
-    "refresh": "새로고침",
-    "backToItems": "항목으로 돌아가기",
-    "collapse": "접기",
-    "expandGarden": "정원 세부정보 펼치기",
-    "collapseGarden": "정원 세부정보 접기",
-    "howToPlay": "플레이 방법",
-    "toggleQuietHours": "조용한 시간 전환",
-    "yourNewPlan": "새 요금제",
-    "subscriptionPlans": "구독 요금제",
-    "options": "옵션",
-    "featuresIncluded": "포함된 기능",
-    "searchCoaches": "코치 검색",
-    "filterBySpecialty": "전문 분야로 필터",
-    "availableCoaches": "이용 가능한 코치",
-    "portalSections": "포털 섹션",
-    "submitNewItem": "새 항목 제출",
-    "openDailyPractice": "일일 연습 열기",
-    "openPredictions": "예측 열기",
-    "openTeamInsights": "팀 인사이트 열기",
-    "shareJourney": "여정 공유",
-    "forgetThis": "이것을 잊기",
-    "cancelInstallation": "설치 취소",
-    "sharedMusicalMemory": "공유된 음악 기억",
-    "viewOutreachSchedule": "연락 일정 보기",
-    "ferniLogo": "Ferni 로고"
-  },
-  "buttons": {
-    "signIn": "로그인",
-    "signOut": "로그아웃",
-    "signUp": "가입",
-    "savePreferences": "환경설정 저장",
-    "savePreference": "환경설정 저장",
-    "choose": "선택",
-    "refresh": "새로고침",
-    "exportData": "데이터 내보내기"
-  },
-  "mobile": {
-    "pullToConnect": "당겨서 연결",
-    "releaseToConnect": "놓아서 연결",
-    "pullToRefresh": "당겨서 새로고침",
-    "releaseToRefresh": "놓아서 새로고침"
-  },
-  "placeholders": {
-    "customAmount": "사용자 지정 금액",
-    "searchConversations": "대화 검색...",
-    "enterValue": "실제 값 입력",
-    "emailExample": "you@example.com",
-    "phoneExample": "+82 (2) 1234-5678",
-    "memberName": "이름",
-    "householdName": "김씨 가족",
-    "displayName": "선호하는 이름",
-    "marketplaceSearch": "누구를 찾고 계신가요?",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colleague@company.com",
-    "welcomeMessageExample": "예: {orgName}에 오신 것을 환영합니다! Ferni가 당신의 성장과 웰빙을 지원합니다.",
-    "companyValuesExample": "예: 성실, 혁신, 고객 중심, 팀워크",
-    "toolIdExample": "my-awesome-tool",
-    "toolNameExample": "나의 멋진 도구",
-    "versionExample": "1.0.0",
-    "toolDescription": "당신의 도구/에이전트는 무엇을 하나요?"
-  },
-  "household": {
-    "addToHousehold": "가구에 추가",
-    "title": "가구",
-    "members": "구성원",
-    "addMember": "구성원 추가",
-    "removeMember": "구성원 제거"
-  },
-  "titles": {
-    "sharedSong": "우리가 함께하는 노래",
-    "dailyPractice": "일일 연습",
-    "predictions": "예측",
-    "teamInsights": "팀 인사이트",
-    "runScenario": "시나리오 실행"
+    "title": "건강 및 피트니스"
   }
 }

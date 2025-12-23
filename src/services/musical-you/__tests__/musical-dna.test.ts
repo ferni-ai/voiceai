@@ -123,12 +123,8 @@ describe('Musical DNA', () => {
         personalityType: 'explorer',
         personalityLabel: 'The Explorer',
         personalityDescription: 'Loves discovering new music',
-        genreAffinities: [
-          { genre: 'rock', displayName: 'Rock', affinityScore: 85 },
-        ],
-        decadeAffinities: [
-          { decade: '2000s', displayName: '2000s', affinityScore: 75 },
-        ],
+        genreAffinities: [{ genre: 'rock', displayName: 'Rock', affinityScore: 85 }],
+        decadeAffinities: [{ decade: '2000s', displayName: '2000s', affinityScore: 75 }],
         artistAffinities: [],
         behavioralTraits: [],
         totalGamesPlayed: 20,

@@ -165,7 +165,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     discussionPrompts: [
       'What part made you pause?',
       'Does this change how you see your own creativity?',
-      "What would you do differently if nobody was watching?",
+      'What would you do differently if nobody was watching?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/H14bBuluwB8/maxresdefault.jpg',
   },
@@ -179,9 +179,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'reflect',
     // Ferni voice: gentle curiosity
     discussionPrompts: [
-      "What landed for you?",
+      'What landed for you?',
       "When's the last time you let yourself be truly seen?",
-      "What would you push back on?",
+      'What would you push back on?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/iCvmsMzlF7o/maxresdefault.jpg',
   },
@@ -195,8 +195,8 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'inspire',
     // Ferni voice: personal reflection
     discussionPrompts: [
-      "Does this land differently than you expected?",
-      "Who came to mind while you watched?",
+      'Does this land differently than you expected?',
+      'Who came to mind while you watched?',
       "What's the why behind what you're working on?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/arj7oStGLkU/maxresdefault.jpg',
@@ -215,7 +215,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     discussionPrompts: [
       'What part stuck with you?',
       'Does knowing this change anything for you?',
-      "What would you want to ask the scientists?",
+      'What would you want to ask the scientists?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/JQVmkDUkZT4/maxresdefault.jpg',
   },
@@ -231,7 +231,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     discussionPrompts: [
       'What hit you hardest?',
       'Who does this remind you of?',
-      "What would change if you lived as though this were true?",
+      'What would change if you lived as though this were true?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/h6fcK_fRYaI/maxresdefault.jpg',
   },
@@ -248,7 +248,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     // Ferni voice: direct but warm
     discussionPrompts: [
       "What's one thing you keep not starting?",
-      "What excuse just popped into your head?",
+      'What excuse just popped into your head?',
       "What would you do right now if I wasn't here?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/BHY0FxzoKZE/maxresdefault.jpg',
@@ -267,7 +267,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     discussionPrompts: [
       "What's something you've been carrying alone?",
       "Where do you go when you're hurting?",
-      "What would you tell a friend going through this?",
+      'What would you tell a friend going through this?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/rqoxYKtEWEc/maxresdefault.jpg',
   },
@@ -283,9 +283,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'learn',
     // Ferni voice: playful curiosity
     discussionPrompts: [
-      "When was the last time an idea hit you out of nowhere?",
-      "What gets your mind wandering in the best way?",
-      "Who do you think with?",
+      'When was the last time an idea hit you out of nowhere?',
+      'What gets your mind wandering in the best way?',
+      'Who do you think with?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/nJPERZDfyWc/maxresdefault.jpg',
   },
@@ -302,8 +302,8 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     // Ferni voice: thoughtful friend
     discussionPrompts: [
       "What do you discover when you're alone?",
-      "What thoughts show up in the quiet?",
-      "When does solitude feel like a gift vs. a punishment?",
+      'What thoughts show up in the quiet?',
+      'When does solitude feel like a gift vs. a punishment?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/wHWbZmg2hzU/maxresdefault.jpg',
   },
@@ -320,8 +320,8 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     // Ferni voice: practical exploration
     discussionPrompts: [
       "What does your body do when you're nervous?",
-      "When have you surprised yourself by showing up bigger?",
-      "What would change if you took up more space?",
+      'When have you surprised yourself by showing up bigger?',
+      'What would change if you took up more space?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/Lp7E973zozc/maxresdefault.jpg',
   },
@@ -335,7 +335,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'inspire',
     // Ferni voice: light and curious
     discussionPrompts: [
-      "Which comes first for you - happy or successful?",
+      'Which comes first for you - happy or successful?',
       "What's one thing that genuinely lights you up?",
       "What if you've had it backwards this whole time?",
     ],
@@ -351,8 +351,8 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'learn',
     // Ferni voice: supportive exploration
     discussionPrompts: [
-      "What actually gets you moving?",
-      "When does discipline feel good vs. grinding?",
+      'What actually gets you moving?',
+      'When does discipline feel good vs. grinding?',
       "What's the difference between your real goals and what you think you should want?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/UF8uR6Z6KLc/maxresdefault.jpg',
@@ -369,9 +369,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'reflect',
     // Ferni voice: existential but warm
     discussionPrompts: [
-      "Does this freak you out or free you?",
-      "If nothing matters, what would you choose to matter?",
-      "What part made you feel something?",
+      'Does this freak you out or free you?',
+      'If nothing matters, what would you choose to matter?',
+      'What part made you feel something?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/MBRqu0YOH14/maxresdefault.jpg',
   },
@@ -385,9 +385,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'learn',
     // Ferni voice: wonder
     discussionPrompts: [
-      "What do you hope is out there?",
-      "Which explanation feels most unsettling to you?",
-      "How does looking up at the sky feel different now?",
+      'What do you hope is out there?',
+      'Which explanation feels most unsettling to you?',
+      'How does looking up at the sky feel different now?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/GoJsr4IwCm4/maxresdefault.jpg',
   },
@@ -402,7 +402,7 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     // Ferni voice: philosophical curiosity
     discussionPrompts: [
       "Does this make you question what 'you' even is?",
-      "When do you feel most like yourself?",
+      'When do you feel most like yourself?',
       "What would it mean if you're not the narrator of your own story?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/rN7pkFNEg5c/maxresdefault.jpg',
@@ -419,9 +419,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'reflect',
     // Ferni voice: compassionate inquiry
     discussionPrompts: [
-      "Did anything here hit uncomfortably close?",
-      "What patterns keep showing up for you?",
-      "Who taught you what love looks like?",
+      'Did anything here hit uncomfortably close?',
+      'What patterns keep showing up for you?',
+      'Who taught you what love looks like?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/jJ6K_f7oSdg/maxresdefault.jpg',
   },
@@ -435,9 +435,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'reflect',
     // Ferni voice: deep curiosity
     discussionPrompts: [
-      "What did this stir up for you?",
-      "How has what you want from love changed?",
-      "What would you disagree with here?",
+      'What did this stir up for you?',
+      'How has what you want from love changed?',
+      'What would you disagree with here?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/GhHfQUlpj9o/maxresdefault.jpg',
   },
@@ -453,9 +453,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'learn',
     // Ferni voice: playful recognition
     discussionPrompts: [
-      "Okay, real talk - did you cringe at any part?",
+      'Okay, real talk - did you cringe at any part?',
       "What's been sitting on your to-do list the longest?",
-      "What would actually get you to start?",
+      'What would actually get you to start?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/qPKd99Pa2iU/maxresdefault.jpg',
   },
@@ -471,8 +471,8 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'learn',
     // Ferni voice: caring and practical
     discussionPrompts: [
-      "How did you sleep last night, honestly?",
-      "What gets in the way of rest for you?",
+      'How did you sleep last night, honestly?',
+      'What gets in the way of rest for you?',
       "What's one thing you could try tonight?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/5MuIMqhT8DM/maxresdefault.jpg',
@@ -489,9 +489,9 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
     mood: 'chill',
     // Ferni voice: present moment
     discussionPrompts: [
-      "How are you feeling right now?",
-      "What would make this moment better?",
-      "What are you working on?",
+      'How are you feeling right now?',
+      'What would make this moment better?',
+      'What are you working on?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/lTRiuFIWV54/maxresdefault.jpg',
   },

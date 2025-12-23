@@ -1,315 +1,292 @@
 {
-  "meta": {
-    "locale": "ar",
-    "name": "العربية",
-    "direction": "rtl"
+  "accessibility": {
+    "accountMenu": "قائمة الحساب",
+    "accountSettings": "إعدادات الحساب",
+    "availableCoaches": "المدربون المتاحون",
+    "backToItems": "العودة إلى العناصر",
+    "cancelInstallation": "إلغاء التثبيت",
+    "closeAdmin": "إغلاق لوحة الإدارة",
+    "closeBilling": "إغلاق لوحة الفوترة",
+    "closeDashboard": "إغلاق لوحة التحكم",
+    "closeDetails": "إغلاق التفاصيل",
+    "closeHistory": "إغلاق السجل",
+    "closeHuddle": "إغلاق الاجتماع",
+    "closeMenu": "إغلاق القائمة",
+    "closePublisher": "إغلاق بوابة الناشر",
+    "closeSettings": "إغلاق الإعدادات",
+    "closeStats": "إغلاق الإحصائيات",
+    "closeSubscription": "إغلاق خيارات الاشتراك",
+    "collapse": "طي",
+    "collapseGarden": "طي تفاصيل الحديقة",
+    "dismiss": "تجاهل",
+    "dismissNotification": "تجاهل الإشعار",
+    "endCall": "إنهاء المكالمة",
+    "expandGarden": "توسيع تفاصيل الحديقة",
+    "exportData": "تصدير بياناتك",
+    "featuresIncluded": "الميزات المضمنة",
+    "ferniLogo": "شعار فيرني",
+    "filterBySpecialty": "التصفية حسب التخصص",
+    "forgetThis": "نسيان هذا",
+    "howToPlay": "كيفية اللعب",
+    "languageSelector": "اختر اللغة",
+    "muteAudio": "كتم الصوت",
+    "openDailyPractice": "فتح التمرين اليومي",
+    "openPredictions": "فتح التوقعات",
+    "openSettings": "فتح الإعدادات",
+    "openTeamInsights": "فتح رؤى الفريق",
+    "options": "الخيارات",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "أقسام البوابة",
+    "refresh": "تحديث",
+    "refreshData": "تحديث البيانات",
+    "saveConversations": "احفظ محادثاتك بإنشاء حساب",
+    "searchCoaches": "البحث عن مدربين",
+    "shareJourney": "مشاركة رحلتك",
+    "sharedMusicalMemory": "ذكرى موسيقية مشتركة",
+    "signInToAccount": "تسجيل الدخول إلى حسابك",
+    "skipToContent": "تخطي إلى المحتوى الرئيسي",
+    "submitNewItem": "إرسال عنصر جديد",
+    "subscriptionPlans": "خطط الاشتراك",
+    "toggleQuietHours": "تبديل ساعات الهدوء",
+    "unmuteAudio": "إلغاء كتم الصوت",
+    "viewOutreachSchedule": "عرض جدول التواصل",
+    "yourNewPlan": "خطتك الجديدة"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "اختر هذا",
+    "exportData": "تصدير البيانات",
+    "refresh": "تحديث",
+    "savePreference": "حفظ التفضيل",
+    "savePreferences": "حفظ التفضيلات",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signUp": "إنشاء حساب"
   },
   "common": {
-    "loading": "جارٍ التحميل...",
-    "error": "حدث خطأ ما",
-    "retry": "حاول مرة أخرى",
-    "cancel": "إلغاء",
-    "save": "حفظ",
-    "close": "إغلاق",
-    "next": "التالي",
-    "back": "رجوع",
-    "done": "تم",
-    "continue": "متابعة",
-    "skip": "تخطي",
-    "confirm": "تأكيد",
-    "delete": "حذف",
-    "edit": "تعديل",
-    "share": "مشاركة",
-    "download": "تحميل",
-    "copy": "نسخ",
-    "copied": "تم النسخ!",
-    "new": "جديد",
-    "saving": "جاري الحفظ...",
-    "saved": "تم الحفظ!",
-    "processing": "جاري المعالجة...",
     "adding": "جاري الإضافة...",
-    "errorRetry": "خطأ - حاول مجدداً"
+    "back": "رجوع",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "continue": "متابعة",
+    "copied": "تم النسخ!",
+    "copy": "نسخ",
+    "daysAgo": "{count} days ago",
+    "delete": "حذف",
+    "done": "تم",
+    "download": "تحميل",
+    "edit": "تعديل",
+    "error": "حدث خطأ ما",
+    "errorRetry": "خطأ - حاول مجدداً",
+    "loading": "جارٍ التحميل...",
+    "monthsAgo": "{count} months ago",
+    "new": "جديد",
+    "next": "التالي",
+    "processing": "جاري المعالجة...",
+    "retry": "حاول مرة أخرى",
+    "save": "حفظ",
+    "saved": "تم الحفظ!",
+    "saving": "جاري الحفظ...",
+    "share": "مشاركة",
+    "skip": "تخطي",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday"
   },
-  "menu": {
-    "title": "ما التالي؟",
-    "yourStage": "مرحلتك",
-    "nextStage": "التالي: {stage}",
-    "maxLevel": "شركاء الحياة",
-    "unlockHint": "{remaining} لفتح القفل",
-    "moreConversations": "{n} محادثات أخرى",
-    "moreDays": "{n} أيام أخرى",
-    "keepChatting": "استمر في الدردشة لفتح القفل",
-    "almostThere": "قريباً!",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "وصول سريع",
-      "connect": "تواصل",
-      "grow": "انمو",
-      "remember": "تذكر",
-      "personalize": "اجعلها لك",
-      "account": "الحساب",
-      "admin": "المشرف"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "رحلتك",
-      "trustDetails": "علاقتنا",
-      "progressAnalytics": "كيف تنمو",
-      "predictionAccuracy": "توقعاتي",
-      "whatILearned": "ما تعلمته",
-      "memoryBrowser": "ذكرياتنا",
-      "wellbeingDashboard": "صحتك",
-      "lifeContext": "سياق الحياة",
-      "teamInsights": "رؤى الفريق",
-      "conversationHistory": "المحادثات السابقة",
-      "contacts": "أشخاصي",
-      "gifts": "الهدايا والمناسبات",
-      "videoSessions": "دردشة فيديو",
-      "groupCoaching": "جلسات جماعية",
-      "teamHuddles": "اجتماعات الفريق",
-      "playGames": "العب ألعاب",
-      "musicalYou": "أنت الموسيقي",
-      "personalize": "تخصيص",
-      "voiceAccent": "الصوت واللهجة",
-      "guidedPractices": "ممارسات موجهة",
-      "createPractice": "إنشاء ممارسة",
-      "wearables": "الأجهزة القابلة للارتداء",
-      "calendar": "التقويم",
-      "notifications": "الإشعارات",
-      "toggleTheme": "فاتح / داكن",
-      "linkSpotify": "ربط Spotify",
-      "spotifyConnected": "Spotify متصل",
-      "yourPlan": "خطتك",
-      "manageBilling": "إعدادات الدفع",
-      "voiceId": "صوتك",
-      "householdMembers": "أشخاصك",
-      "contactInfo": "معلومات الاتصال",
-      "exportData": "حمّل قصتك",
-      "shareFerni": "مشاركة Ferni",
-      "supportFerni": "دعم Ferni",
-      "takeTour": "ابدأ الجولة",
-      "language": "اللغة",
-      "whatsGrowing": "ما ينمو",
-      "billingPortal": "الفواتير والاشتراك",
-      "outreachSchedule": "جدول التواصل"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "تثبيت في الأعلى",
-    "unpinItem": "إلغاء التثبيت",
-    "comingSoon": "قريباً"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "ما ينمو",
-    "title": "الرحلة القادمة",
-    "intro": "كل علاقة عظيمة لها فصول. هذه بذور نزرعها معاً.",
-    "sections": {
-      "connect": "طرق جديدة للتواصل",
-      "personalize": "اجعلها خاصة بك",
-      "platform": "المنصة"
+  "contactSettings": {
+    "buttons": {
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ..."
     },
-    "expectedArrival": "الوصول المتوقع",
-    "betterThanHuman": "أفضل من الإنسان",
-    "alreadyGrowing": "ينمو بالفعل",
-    "wantThis": "أريد هذا",
-    "voted": "أنت متحمس!",
-    "peopleExcited": "{count} شخص متحمسون لهذا",
-    "footerText": "صوتك يشكل ما نبنيه. شكراً لنموك معنا.",
-    "stages": {
-      "seed": "مزروع",
-      "sprout": "ينمو",
-      "bud": "برعم",
-      "bloom": "قريباً"
+    "verify": {
+      "sending": "إرسال الرمز...",
+      "withCode": "التحقق بالرمز"
     }
   },
-  "session": {
-    "connecting": "جارٍ الاتصال...",
-    "connected": "متصل",
-    "disconnected": "غير متصل",
-    "listening": "أستمع...",
-    "thinking": "أفكر...",
-    "speaking": "أتحدث...",
-    "tapToSpeak": "انقر للتحدث",
-    "holdToSpeak": "اضغط مع الاستمرار للتحدث",
-    "releaseToSend": "اترك للإرسال",
-    "endSession": "إنهاء الجلسة",
-    "sessionEnded": "انتهت الجلسة",
-    "goodbye": "مع السلامة",
-    "end": "إنهاء",
-    "untilNextTime": "إلى اللقاء...",
-    "takeCare": "اعتنِ بنفسك.",
-    "ending": "جارٍ الإنهاء...",
-    "endConversation": "إنهاء المحادثة",
-    "endConversationGoodbye": "إنهاء المحادثة - مع السلامة",
-    "agentEndingConversation": "المساعد ينهي المحادثة"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "قصتنا",
-    "title": "رحلة الثقة الخاصة بك",
-    "subtitle": "كيف نمونا معاً",
-    "loading": "جاري تحميل رحلتك",
-    "loadingText": "جاري جمع رحلتك...",
-    "trustScore": "درجة الثقة",
-    "exportSuccess": "تم تصدير الرحلة!",
-    "offlineBanner": "أنت غير متصل - عرض البيانات المحفوظة",
-    "loadMore": "تحميل {count} المزيد",
-    "strengthLabel": "درجة الثقة: {value}%",
-    "timelineLabel": "الجدول الزمني للرحلة",
-    "filterLabel": "تصفية الجدول الزمني",
-    "filters": {
-      "all": "الكل",
-      "growth": "النمو",
-      "win": "الإنجازات",
-      "callback": "المكالمات",
-      "boundary": "الحدود",
-      "outreach": "التواصل"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "قوة العلاقة",
-      "stats": "إحصائيات الرحلة",
-      "boundaries": "الحدود المحترمة",
-      "growth": "كيف نموت",
-      "timeline": "رحلتنا معاً"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "لحظات النمو",
-      "winsCelebrated": "الإنجازات المحتفى بها",
-      "sharedMoments": "اللحظات المشتركة"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "لقد بنينا شيئاً حقيقياً معاً. أنا أعرفك، وأنت تثق بي.",
-      "growing": "علاقتنا تتعمق. أنا أتعلم ما يهمك.",
-      "building": "نحن نبني الثقة. كل محادثة تساعدني على فهمك بشكل أفضل.",
-      "starting": "نحن في البداية فقط. استمر في التحدث معي - أنا أستمع.",
-      "beginning": "كل رحلة تبدأ بخطوة. أنا هنا متى ما كنت مستعداً."
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "التوازن العاطفي",
-      "perspective_shift": "وجهات نظر جديدة",
-      "boundary_setting": "حدود صحية",
-      "behavior_change": "عادات جديدة",
-      "self_awareness": "الوعي الذاتي",
-      "coping_upgrade": "تأقلم أفضل",
-      "goal_progress": "تقدم الأهداف"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "قصتنا بدأت للتو",
-      "message": "كلما تحدثنا أكثر، سألاحظ نموك، وأحتفل بانتصاراتك، وأتذكر ما يهمك. عد قريباً."
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "أنت غير متصل",
-        "message": "اتصل بالإنترنت لرؤية رحلتك."
-      },
-      "notLoggedIn": {
-        "title": "غير مسجل الدخول",
-        "message": "سجل الدخول لرؤية رحلتك مع فيرني."
-      },
-      "rateLimited": {
-        "title": "ببطء",
-        "message": "أنت تتحقق كثيراً. انتظر لحظة وحاول مرة أخرى."
-      },
-      "unauthorized": {
-        "title": "الوصول مرفوض",
-        "message": "ليس لديك إذن لعرض هذا."
-      },
-      "generic": {
-        "title": "حدث خطأ ما",
-        "message": "لم نتمكن من تحميل رحلتك. يرجى المحاولة مرة أخرى."
-      },
-      "exportFailed": {
-        "message": "فشل تصدير بياناتك. يرجى المحاولة مرة أخرى."
-      },
-      "fetchFailedUsingCache": {
-        "message": "عرض البيانات المحفوظة - تعذر الوصول للخادم."
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "المجتمع",
-    "friend": "عضو مؤسس",
-    "partner": "راعٍ مؤسس",
-    "upgrade": "ادعم Ferni",
-    "chipIn": "ساهم",
-    "currentPlan": "أنت هنا",
-    "planDetails": "دعمك",
-    "features": "المزايا",
-    "unlimitedConversations": "محادثات غير محدودة",
-    "allTeamMembers": "وصول كامل للفريق",
-    "prioritySupport": "دعم ذو أولوية",
-    "advancedInsights": "وصول مبكر للميزات الجديدة",
-    "helpBuild": "ساعدنا في البناء",
-    "foundersSubtitle": "Ferni مجاني للأبد. إذا كنت تؤمن بما نبنيه، ساهم معنا.",
-    "thankYouPerks": "كشكر لك، سنفتح بعض المزايا.",
-    "notReady": "لست مستعداً؟ لا بأس.",
-    "freeForever": "مجاني للأبد"
-  },
-  "team": {
-    "meetTheTeam": "تعرف على الفريق",
-    "selectMember": "اختر عضو الفريق",
-    "currentlyWith": "حالياً مع {name}",
-    "members": {
-      "ferni": {
-        "name": "فيرني",
-        "role": "مدرب حياة",
-        "bio": "نقطة اتصالك الرئيسية. يطرح الأسئلة التي تفتح البصيرة."
-      },
-      "nayan": {
-        "name": "نيان",
-        "role": "حكيم ومرشد",
-        "bio": "مرشدك مدى الحياة بالحكمة والصبر."
-      },
-      "peter": {
-        "name": "بيتر",
-        "role": "البحث والاكتشاف",
-        "bio": "يكتشف أنماطاً لا يراها أحد غيره."
-      },
-      "alex": {
-        "name": "أليكس",
-        "role": "التواصل",
-        "bio": "رئيس موظفيك ومدرب التواصل."
-      },
-      "maya": {
-        "name": "مايا",
-        "role": "العادات والروتين",
-        "bio": "تساعدك على بناء عادات تدوم."
-      },
-      "jordan": {
-        "name": "جوردان",
-        "role": "التخطيط والفعاليات",
-        "bio": "يحول الأحلام الغامضة إلى تجارب حية."
-      }
-    }
-  },
-  "stages": {
-    "stranger": "غريب",
-    "acquaintance": "معرفة",
-    "friend": "صديق",
-    "closeFriend": "صديق مقرب",
-    "confidant": "موضع ثقة",
-    "soulmate": "توأم الروح"
-  },
-  "time": {
-    "justNow": "الآن",
-    "minutesAgo": "منذ {n} دقائق",
-    "hoursAgo": "منذ {n} ساعات",
-    "yesterday": "أمس",
-    "daysAgo": "منذ {n} أيام"
-  },
-  "milestones": {
-    "ourStory": "قصتنا حتى الآن",
-    "everyMomentMatters": "كل لحظة مهمة.",
-    "journeyWith": "رحلتي مع Ferni",
-    "categories": {
-      "relationship": "علاقتنا",
-      "team": "اتصال الفريق",
-      "conversation": "محادثاتنا",
-      "discovery": "اكتشاف",
-      "sweet": "لحظة حلوة",
-      "milestone": "إنجاز"
-    }
-  },
-  "notifications": {
-    "connectionLost": "انقطع الاتصال. جارٍ إعادة الاتصال...",
-    "reconnected": "تم إعادة الاتصال!",
-    "microphoneBlocked": "مطلوب الوصول إلى الميكروفون",
-    "sessionTimeout": "انتهت مهلة الجلسة"
   },
   "errors": {
     "connectionFailed": "فشل الاتصال. يرجى المحاولة مرة أخرى.",
@@ -318,352 +295,816 @@
     "sessionExpired": "انتهت صلاحية جلستك. يرجى التحديث.",
     "somethingWrong": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
   },
-  "onboarding": {
-    "welcome": "مرحباً",
-    "letsGetStarted": "لنبدأ",
-    "whatIsYourName": "بماذا تحب أن أناديك؟",
-    "niceName": "سعيد بلقائك، {name}!",
-    "howAreYouFeeling": "كيف تشعر اليوم؟",
-    "readyToBegin": "هل أنت مستعد للبدء؟",
-    "ariaLabel": "جولة الترحيب",
-    "steps": {
-      "welcome": {
-        "title": "مرحباً بك في Ferni",
-        "description": "فريقك الشخصي من مدربي الحياة بالذكاء الاصطناعي. يجلب كل منهم حكمة فريدة لدعم رحلتك."
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "انضم",
+      "start": "ابدأ"
+    },
+    "empty": {
+      "hint": "أنشئ جلسة جديدة للبدء",
+      "title": "لا توجد جلسات نشطة"
+    },
+    "loading": "جارٍ التحميل...",
+    "participantsLabel": "المشاركون",
+    "sessionTypes": {
+      "couple": {
+        "description": "التنقل في ديناميكيات العلاقة معاً",
+        "name": "زوجان"
       },
-      "voice": {
-        "title": "فقط تحدث",
-        "description": "انقر على المركز لبدء المحادثة. تحدث بشكل طبيعي - يستمع Ferni ويستجيب في الوقت الفعلي."
+      "family": {
+        "description": "بناء روابط عائلية أقوى",
+        "name": "عائلة"
       },
-      "personas": {
-        "title": "تعرف على فريقك",
-        "description": "ستة مدربين لديهم وجهات نظر مختلفة. كل منهم يفهم تاريخك مع الفريق."
+      "peer": {
+        "description": "التواصل مع الآخرين في رحلات مماثلة",
+        "name": "دعم الأقران"
       },
-      "rituals": {
-        "title": "الممارسات اليومية",
-        "description": "بناء الاتساق مع طقوس يومية قصيرة. تتبع السلاسل واحتفل بالتقدم."
-      },
-      "ready": {
-        "title": "أنت جاهز",
-        "description": "هذا كل ما تحتاج إلى معرفته. اكتشف المزيد أثناء تقدمك."
+      "team": {
+        "description": "تحسين التعاون في مكان العمل",
+        "name": "فريق"
       }
     },
-    "buttons": {
-      "skip": "تخطي الجولة",
-      "back": "رجوع",
-      "next": "التالي",
-      "begin": "لنبدأ"
-    }
+    "title": "التدريب الجماعي"
+  },
+  "household": {
+    "addMember": "إضافة عضو",
+    "addToHousehold": "إضافة إلى الأسرة",
+    "members": "الأعضاء",
+    "removeMember": "إزالة عضو",
+    "title": "الأسرة"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "الاشتراك",
-    "title": "إدارة خطتك",
-    "expiresLabel": "الوصول حتى",
-    "renewsLabel": "التجديد",
-    "billedThrough": "الفواتير من خلال",
-    "buttons": {
-      "upgrade": "الترقية إلى بريميوم",
-      "restore": "استعادة المشتريات",
-      "restoring": "جارٍ الاستعادة...",
-      "manageApple": "إدارة في الإعدادات",
-      "manageStripe": "إدارة الفواتير"
-    },
     "apple": {
       "instructionsTitle": "لإلغاء أو تغيير خطتك:",
+      "note": "تطلب Apple إدارة الاشتراكات من خلال إعدادات iOS",
       "step1": "افتح الإعدادات على جهازك",
       "step2": "انقر على اسمك في الأعلى",
       "step3": "انقر على \"الاشتراكات\"",
-      "step4": "ابحث عن \"Ferni\" وانقر عليه",
-      "note": "تطلب Apple إدارة الاشتراكات من خلال إعدادات iOS"
+      "step4": "ابحث عن \"Ferni\" وانقر عليه"
+    },
+    "billedThrough": "الفواتير من خلال",
+    "buttons": {
+      "manageApple": "إدارة في الإعدادات",
+      "manageStripe": "إدارة الفواتير",
+      "restore": "استعادة المشتريات",
+      "restoring": "جارٍ الاستعادة...",
+      "upgrade": "الترقية إلى بريميوم"
+    },
+    "expiresLabel": "الوصول حتى",
+    "freeNote": "افتح جلسات غير محدودة والفريق الكامل والتخصيص",
+    "label": "الاشتراك",
+    "renewsLabel": "التجديد",
+    "restore": {
+      "failed": "فشلت الاستعادة",
+      "noFound": "لم يتم العثور على مشتريات"
+    },
+    "status": {
+      "active": "اشتراكك نشط. شكراً لكونك داعماً!",
+      "canceled": "سينتهي اشتراكك قريباً، لكنك مرحب بك في العودة في أي وقت.",
+      "default": "أنت مشترك. شكراً لدعمك!",
+      "free": "أنت على الخطة المجانية. Ferni دائماً هنا من أجلك.",
+      "pastDue": "كانت هناك مشكلة في الدفع. يرجى تحديث طريقة الدفع الخاصة بك."
     },
     "stripe": {
       "note": "تحديث طريقة الدفع أو عرض الفواتير أو الإلغاء في أي وقت"
     },
-    "restore": {
-      "noFound": "لم يتم العثور على مشتريات",
-      "failed": "فشلت الاستعادة"
+    "title": "إدارة خطتك"
+  },
+  "menu": {
+    "almostThere": "قريباً!",
+    "comingSoon": "قريباً",
+    "items": {
+      "billingPortal": "الفواتير والاشتراك",
+      "calendar": "التقويم",
+      "connections": "Connections",
+      "contactInfo": "معلومات الاتصال",
+      "contacts": "أشخاصي",
+      "conversationHistory": "المحادثات السابقة",
+      "createPractice": "إنشاء ممارسة",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "حمّل قصتك",
+      "gifts": "الهدايا والمناسبات",
+      "groupCoaching": "جلسات جماعية",
+      "guidedPractices": "ممارسات موجهة",
+      "householdMembers": "أشخاصك",
+      "journaling": "Journaling",
+      "language": "اللغة",
+      "lifeContext": "سياق الحياة",
+      "linkSpotify": "ربط Spotify",
+      "manageBilling": "إعدادات الدفع",
+      "memoryBrowser": "ذكرياتنا",
+      "musicalYou": "أنت الموسيقي",
+      "notifications": "الإشعارات",
+      "outreachSchedule": "جدول التواصل",
+      "personalize": "تخصيص",
+      "playGames": "العب ألعاب",
+      "predictionAccuracy": "توقعاتي",
+      "progressAnalytics": "كيف تنمو",
+      "shareFerni": "ادعُ صديقًا",
+      "spotifyConnected": "Spotify متصل",
+      "supportFerni": "دعم Ferni",
+      "supportFerniExpanded": "Support Ferni",
+      "takeTour": "ابدأ الجولة",
+      "teamHuddles": "اجتماعات الفريق",
+      "teamInsights": "رؤى الفريق",
+      "toggleTheme": "فاتح / داكن",
+      "trustDetails": "علاقتنا",
+      "videoSessions": "دردشة فيديو",
+      "voiceAccent": "الصوت واللهجة",
+      "voiceId": "صوتك",
+      "wearables": "الأجهزة القابلة للارتداء",
+      "wellbeingDashboard": "صحتك",
+      "whatILearned": "ما تعلمته",
+      "whatsGrowing": "ما ينمو",
+      "yourJourney": "رحلتك",
+      "yourPlan": "خطتك"
     },
-    "status": {
-      "free": "أنت على الخطة المجانية. Ferni دائماً هنا من أجلك.",
-      "active": "اشتراكك نشط. شكراً لكونك داعماً!",
-      "canceled": "سينتهي اشتراكك قريباً، لكنك مرحب بك في العودة في أي وقت.",
-      "pastDue": "كانت هناك مشكلة في الدفع. يرجى تحديث طريقة الدفع الخاصة بك.",
-      "default": "أنت مشترك. شكراً لدعمك!"
+    "keepChatting": "استمر في الدردشة لفتح القفل",
+    "maxLevel": "شركاء الحياة",
+    "moreConversations": "{n} محادثات أخرى",
+    "moreDays": "{n} أيام أخرى",
+    "nextStage": "التالي: {stage}",
+    "pinItem": "تثبيت في الأعلى",
+    "quickAdd": {
+      "event": "حدث",
+      "eventPrompt": "أخبرني عن الحدث",
+      "person": "شخص",
+      "todo": "مهمة",
+      "todoPrompt": "أخبرني بما تريد تذكره"
     },
-    "freeNote": "افتح جلسات غير محدودة والفريق الكامل والتخصيص"
+    "sections": {
+      "account": "الحساب",
+      "admin": "المشرف",
+      "connect": "تواصل",
+      "connections": "Connections",
+      "grow": "انمو",
+      "personalize": "اجعلها لك",
+      "pinned": "وصول سريع",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "تذكر",
+      "youAndFerni": "You & Ferni"
+    },
+    "title": "ما التالي؟",
+    "unlockHint": "{remaining} لفتح القفل",
+    "unpinItem": "إلغاء التثبيت",
+    "yourStage": "مرحلتك"
+  },
+  "meta": {
+    "direction": "rtl",
+    "locale": "ar",
+    "name": "العربية"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "محادثاتنا",
+      "discovery": "اكتشاف",
+      "milestone": "إنجاز",
+      "relationship": "علاقتنا",
+      "sweet": "لحظة حلوة",
+      "team": "اتصال الفريق"
+    },
+    "everyMomentMatters": "كل لحظة مهمة.",
+    "journeyWith": "رحلتي مع Ferni",
+    "ourStory": "قصتنا حتى الآن"
+  },
+  "mobile": {
+    "pullToConnect": "اسحب للاتصال",
+    "pullToRefresh": "اسحب للتحديث",
+    "releaseToConnect": "أفلت للاتصال",
+    "releaseToRefresh": "أفلت للتحديث"
   },
   "musicDashboard": {
-    "title": "أنت الموسيقي",
-    "loading": "تحليل حمضك النووي الموسيقي...",
+    "buttons": {
+      "playGame": "العب لعبة اسم تلك اللحن",
+      "startPlaying": "ابدأ اللعب"
+    },
     "empty": {
-      "title": "دعنا نكتشف حمضك النووي الموسيقي!",
-      "hint": "العب {count} ألعاب أخرى للحصول على رؤى كاملة"
+      "hint": "العب {count} ألعاب أخرى للحصول على رؤى كاملة",
+      "title": "دعنا نكتشف حمضك النووي الموسيقي!"
     },
     "error": {
       "hint": "العب بعض الألعاب الموسيقية لبناء ملفك الشخصي!"
     },
-    "buttons": {
-      "startPlaying": "ابدأ اللعب",
-      "playGame": "العب لعبة اسم تلك اللحن"
-    },
-    "sections": {
-      "journey": "رحلتك",
-      "strengths": "حيث تتألق",
-      "growth": "مجال للنمو",
-      "milestones": "الإنجازات",
-      "moments": "لحظات لا تُنسى",
-      "personaStats": "من لعبت معهم"
-    },
-    "stats": {
-      "gamesPlayed": "الألعاب الملعوبة",
-      "bestStreak": "أفضل سلسلة",
-      "minutes": "دقائق",
-      "thisWeek": "هذا الأسبوع"
-    },
     "favorite": {
       "label": "المفضل:"
     },
+    "loading": "تحليل حمضك النووي الموسيقي...",
     "milestone": {
       "nextLabel": "الهدف التالي"
+    },
+    "sections": {
+      "growth": "مجال للنمو",
+      "journey": "رحلتك",
+      "milestones": "الإنجازات",
+      "moments": "لحظات لا تُنسى",
+      "personaStats": "من لعبت معهم",
+      "strengths": "حيث تتألق"
+    },
+    "stats": {
+      "bestStreak": "أفضل سلسلة",
+      "gamesPlayed": "الألعاب الملعوبة",
+      "minutes": "دقائق",
+      "thisWeek": "هذا الأسبوع"
+    },
+    "title": "أنت الموسيقي"
+  },
+  "notifications": {
+    "connectionLost": "انقطع الاتصال. جارٍ إعادة الاتصال...",
+    "microphoneBlocked": "مطلوب الوصول إلى الميكروفون",
+    "reconnected": "تم إعادة الاتصال!",
+    "sessionTimeout": "انتهت مهلة الجلسة"
+  },
+  "onboarding": {
+    "ariaLabel": "جولة الترحيب",
+    "buttons": {
+      "back": "رجوع",
+      "begin": "لنبدأ",
+      "next": "التالي",
+      "skip": "تخطي الجولة"
+    },
+    "howAreYouFeeling": "كيف تشعر اليوم؟",
+    "letsGetStarted": "لنبدأ",
+    "niceName": "سعيد بلقائك، {name}!",
+    "readyToBegin": "هل أنت مستعد للبدء؟",
+    "steps": {
+      "personas": {
+        "description": "ستة مدربين لديهم وجهات نظر مختلفة. كل منهم يفهم تاريخك مع الفريق.",
+        "title": "تعرف على فريقك"
+      },
+      "ready": {
+        "description": "هذا كل ما تحتاج إلى معرفته. اكتشف المزيد أثناء تقدمك.",
+        "title": "أنت جاهز"
+      },
+      "rituals": {
+        "description": "بناء الاتساق مع طقوس يومية قصيرة. تتبع السلاسل واحتفل بالتقدم.",
+        "title": "الممارسات اليومية"
+      },
+      "voice": {
+        "description": "انقر على المركز لبدء المحادثة. تحدث بشكل طبيعي - يستمع Ferni ويستجيب في الوقت الفعلي.",
+        "title": "فقط تحدث"
+      },
+      "welcome": {
+        "description": "فريقك الشخصي من مدربي الحياة بالذكاء الاصطناعي. يجلب كل منهم حكمة فريدة لدعم رحلتك.",
+        "title": "مرحباً بك في Ferni"
+      }
+    },
+    "welcome": "مرحباً",
+    "whatIsYourName": "بماذا تحب أن أناديك؟"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "companyValuesExample": "مثال: النزاهة، الابتكار، التركيز على العملاء، العمل الجماعي",
+    "customAmount": "مبلغ مخصص",
+    "displayName": "اسمك المفضل",
+    "emailExample": "you@example.com",
+    "enterValue": "أدخل القيمة الفعلية",
+    "householdName": "عائلة سميث",
+    "marketplaceSearch": "من تبحث عنه؟",
+    "memberName": "اسمهم",
+    "phoneExample": "+1 (555) 123-4567",
+    "searchConversations": "البحث في المحادثات...",
+    "toolDescription": "ماذا تفعل أداتك/وكيلك؟",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "أداتي الرائعة",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "مثال: مرحباً بكم في {orgName}! فيرني هنا لدعم نموك ورفاهيتك."
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "علاقتنا تزداد قوة.",
+      "deepPartnership": "مررنا بالكثير معاً. أنا فخور بأن أكون مرشدك.",
+      "established": "يمكنك الاعتماد علي. أنا هنا من أجلك.",
+      "firstMeeting": "نحن نتعرف للتو! أنا متحمس لمعرفة المزيد عنك.",
+      "gettingStarted": "بدأنا نفهم بعضنا البعض."
+    },
+    "names": {
+      "buildingTrust": "بناء الثقة",
+      "deepPartnership": "شركاء الحياة",
+      "established": "مرشد موثوق",
+      "firstMeeting": "أصدقاء جدد",
+      "gettingStarted": "البداية"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "نبني شيئاً حقيقياً",
+      "deepPartnership": "شركاء مدى الحياة",
+      "established": "مدربك الشخصي",
+      "firstMeeting": "بداية جديدة",
+      "gettingStarted": "نتعرف على بعضنا"
     }
   },
-  "groupCoaching": {
-    "title": "التدريب الجماعي",
-    "loading": "جارٍ التحميل...",
-    "participantsLabel": "المشاركون",
-    "buttons": {
-      "start": "ابدأ",
-      "join": "انضم"
+  "roadmap": {
+    "alreadyGrowing": "ينمو بالفعل",
+    "betterThanHuman": "أفضل من الإنسان",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "الوصول المتوقع",
+    "eyebrow": "ما ينمو",
+    "footerText": "صوتك يشكل ما نبنيه. شكراً لنموك معنا.",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "لا توجد جلسات نشطة",
-      "hint": "أنشئ جلسة جديدة للبدء"
+    "intro": "كل علاقة عظيمة لها فصول. هذه بذور نزرعها معاً.",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count} شخص متحمسون لهذا",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "طرق جديدة للتواصل",
+      "personalize": "اجعلها خاصة بك",
+      "platform": "المنصة"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "زوجان",
-        "description": "التنقل في ديناميكيات العلاقة معاً"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "قريباً",
+      "bud": "برعم",
+      "seed": "مزروع",
+      "sprout": "ينمو"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "الرحلة القادمة",
+    "voted": "أنت متحمس!",
+    "wantThis": "أريد هذا",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "المساعد ينهي المحادثة",
+    "connected": "متصل",
+    "connecting": "جارٍ الاتصال...",
+    "disconnected": "غير متصل",
+    "end": "إنهاء",
+    "endConversation": "إنهاء المحادثة",
+    "endConversationGoodbye": "إنهاء المحادثة - مع السلامة",
+    "endSession": "إنهاء الجلسة",
+    "ending": "جارٍ الإنهاء...",
+    "goodbye": "مع السلامة",
+    "holdToSpeak": "اضغط مع الاستمرار للتحدث",
+    "listening": "أستمع...",
+    "releaseToSend": "اترك للإرسال",
+    "sessionEnded": "انتهت الجلسة",
+    "speaking": "أتحدث...",
+    "takeCare": "اعتنِ بنفسك.",
+    "tapToSpeak": "انقر للتحدث",
+    "thinking": "أفكر...",
+    "untilNextTime": "إلى اللقاء..."
+  },
+  "stages": {
+    "acquaintance": "معرفة",
+    "closeFriend": "صديق مقرب",
+    "confidant": "موضع ثقة",
+    "friend": "صديق",
+    "soulmate": "توأم الروح",
+    "stranger": "غريب"
+  },
+  "subscription": {
+    "advancedInsights": "وصول مبكر للميزات الجديدة",
+    "allTeamMembers": "وصول كامل للفريق",
+    "chipIn": "ساهم",
+    "currentPlan": "أنت هنا",
+    "features": "المزايا",
+    "foundersSubtitle": "Ferni مجاني للأبد. إذا كنت تؤمن بما نبنيه، ساهم معنا.",
+    "free": "المجتمع",
+    "freeForever": "مجاني للأبد",
+    "friend": "عضو مؤسس",
+    "helpBuild": "ساعدنا في البناء",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "لست مستعداً؟ لا بأس.",
+    "partner": "راعٍ مؤسس",
+    "planDetails": "دعمك",
+    "prioritySupport": "دعم ذو أولوية",
+    "thankYouPerks": "كشكر لك، سنفتح بعض المزايا.",
+    "unlimitedConversations": "محادثات غير محدودة",
+    "upgrade": "ادعم Ferni",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves"
+  },
+  "team": {
+    "currentlyWith": "حالياً مع {name}",
+    "meetTheTeam": "تعرف على الفريق",
+    "members": {
+      "alex": {
+        "bio": "رئيس موظفيك ومدرب التواصل.",
+        "name": "أليكس",
+        "role": "التواصل"
       },
-      "family": {
-        "name": "عائلة",
-        "description": "بناء روابط عائلية أقوى"
+      "ferni": {
+        "bio": "نقطة اتصالك الرئيسية. يطرح الأسئلة التي تفتح البصيرة.",
+        "name": "فيرني",
+        "role": "مدرب حياة"
       },
-      "team": {
-        "name": "فريق",
-        "description": "تحسين التعاون في مكان العمل"
+      "jordan": {
+        "bio": "يحول الأحلام الغامضة إلى تجارب حية.",
+        "name": "جوردان",
+        "role": "التخطيط والفعاليات"
       },
-      "peer": {
-        "name": "دعم الأقران",
-        "description": "التواصل مع الآخرين في رحلات مماثلة"
+      "maya": {
+        "bio": "تساعدك على بناء عادات تدوم.",
+        "name": "مايا",
+        "role": "العادات والروتين"
+      },
+      "nayan": {
+        "bio": "مرشدك مدى الحياة بالحكمة والصبر.",
+        "name": "نيان",
+        "role": "حكيم ومرشد"
+      },
+      "peter": {
+        "bio": "يكتشف أنماطاً لا يراها أحد غيره.",
+        "name": "بيتر",
+        "role": "البحث والاكتشاف"
       }
-    }
+    },
+    "selectMember": "اختر عضو الفريق"
+  },
+  "time": {
+    "daysAgo": "منذ {n} أيام",
+    "hoursAgo": "منذ {n} ساعات",
+    "justNow": "الآن",
+    "minutesAgo": "منذ {n} دقائق",
+    "yesterday": "أمس"
+  },
+  "titles": {
+    "dailyPractice": "التمرين اليومي",
+    "predictions": "التوقعات",
+    "runScenario": "تشغيل السيناريو",
+    "sharedSong": "أغنية نتشاركها",
+    "teamInsights": "رؤى الفريق"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "كلما تحدثنا أكثر، سألاحظ نموك، وأحتفل بانتصاراتك، وأتذكر ما يهمك. عد قريباً.",
+      "title": "قصتنا بدأت للتو"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "فشل تصدير بياناتك. يرجى المحاولة مرة أخرى."
+      },
+      "fetchFailedUsingCache": {
+        "message": "عرض البيانات المحفوظة - تعذر الوصول للخادم."
+      },
+      "generic": {
+        "message": "لم نتمكن من تحميل رحلتك. يرجى المحاولة مرة أخرى.",
+        "title": "حدث خطأ ما"
+      },
+      "notLoggedIn": {
+        "message": "سجل الدخول لرؤية رحلتك مع فيرني.",
+        "title": "غير مسجل الدخول"
+      },
+      "offline": {
+        "message": "اتصل بالإنترنت لرؤية رحلتك.",
+        "title": "أنت غير متصل"
+      },
+      "rateLimited": {
+        "message": "أنت تتحقق كثيراً. انتظر لحظة وحاول مرة أخرى.",
+        "title": "ببطء"
+      },
+      "unauthorized": {
+        "message": "ليس لديك إذن لعرض هذا.",
+        "title": "الوصول مرفوض"
+      }
+    },
+    "exportSuccess": "تم تصدير الرحلة!",
+    "eyebrow": "قصتنا",
+    "filterLabel": "تصفية الجدول الزمني",
+    "filters": {
+      "all": "الكل",
+      "boundary": "الحدود",
+      "callback": "المكالمات",
+      "growth": "النمو",
+      "outreach": "التواصل",
+      "win": "الإنجازات"
+    },
+    "growthTypes": {
+      "behavior_change": "عادات جديدة",
+      "boundary_setting": "حدود صحية",
+      "coping_upgrade": "تأقلم أفضل",
+      "emotional_regulation": "التوازن العاطفي",
+      "goal_progress": "تقدم الأهداف",
+      "perspective_shift": "وجهات نظر جديدة",
+      "self_awareness": "الوعي الذاتي"
+    },
+    "loadMore": "تحميل {count} المزيد",
+    "loading": "جاري تحميل رحلتك",
+    "loadingText": "جاري جمع رحلتك...",
+    "offlineBanner": "أنت غير متصل - عرض البيانات المحفوظة",
+    "sections": {
+      "boundaries": "الحدود المحترمة",
+      "growth": "كيف نموت",
+      "stats": "إحصائيات الرحلة",
+      "strength": "قوة العلاقة",
+      "timeline": "رحلتنا معاً"
+    },
+    "stats": {
+      "growthMoments": "لحظات النمو",
+      "sharedMoments": "اللحظات المشتركة",
+      "winsCelebrated": "الإنجازات المحتفى بها"
+    },
+    "strengthDescriptions": {
+      "beginning": "كل رحلة تبدأ بخطوة. أنا هنا متى ما كنت مستعداً.",
+      "building": "نحن نبني الثقة. كل محادثة تساعدني على فهمك بشكل أفضل.",
+      "deep": "لقد بنينا شيئاً حقيقياً معاً. أنا أعرفك، وأنت تثق بي.",
+      "growing": "علاقتنا تتعمق. أنا أتعلم ما يهمك.",
+      "starting": "نحن في البداية فقط. استمر في التحدث معي - أنا أستمع."
+    },
+    "strengthLabel": "درجة الثقة: {value}%",
+    "subtitle": "كيف نمونا معاً",
+    "timelineLabel": "الجدول الزمني للرحلة",
+    "title": "رحلة الثقة الخاصة بك",
+    "trustScore": "درجة الثقة"
   },
   "videoSettings": {
-    "title": "جلسات الفيديو",
-    "loading": "جارٍ التحميل...",
-    "intro": "اختر كيف تريد أن تظهر في جلسات التدريب الخاصة بك.",
+    "buttons": {
+      "retry": "حاول مرة أخرى"
+    },
+    "camera": {
+      "off": "الكاميرا متوقفة",
+      "on": "الكاميرا قيد التشغيل"
+    },
     "controls": {
       "title": "عناصر التحكم السريعة"
     },
-    "camera": {
-      "on": "الكاميرا قيد التشغيل",
-      "off": "الكاميرا متوقفة"
-    },
-    "screen": {
-      "on": "إيقاف المشاركة",
-      "off": "مشاركة الشاشة"
-    },
+    "intro": "اختر كيف تريد أن تظهر في جلسات التدريب الخاصة بك.",
+    "loading": "جارٍ التحميل...",
     "modes": {
-      "title": "وضع العرض",
-      "avatarOnly": {
-        "label": "الأفاتار فقط",
-        "description": "فقط أفاتار فيرني، بدون فيديو"
+      "avatar": {
+        "description": "فقط أفاتار فيرني، بدون فيديو",
+        "label": "الأفاتار فقط"
       },
-      "video": {
-        "label": "فيديو",
-        "description": "انظر نفسك و Ferni"
+      "avatarOnly": {
+        "description": "فقط أفاتار فيرني، بدون فيديو",
+        "label": "الأفاتار فقط"
       },
       "hybrid": {
-        "label": "هجين",
-        "description": "أفاتار مع فيديو اختياري"
+        "description": "أفاتار مع فيديو اختياري",
+        "label": "هجين"
       },
-      "avatar": {
-        "label": "الأفاتار فقط",
-        "description": "فقط أفاتار فيرني، بدون فيديو"
+      "title": "وضع العرض",
+      "video": {
+        "description": "انظر نفسك و Ferni",
+        "label": "فيديو"
       }
     },
+    "note": "تعمل جلسات الفيديو بشكل أفضل مع إضاءة جيدة واتصال إنترنت مستقر.",
     "quality": {
-      "title": "جودة الفيديو",
       "auto": "تلقائي (موصى به)",
       "high": "عالي",
+      "low": "منخفض (توفير البيانات)",
       "medium": "متوسط",
-      "low": "منخفض (توفير البيانات)"
+      "title": "جودة الفيديو"
     },
-    "note": "تعمل جلسات الفيديو بشكل أفضل مع إضاءة جيدة واتصال إنترنت مستقر.",
-    "buttons": {
-      "retry": "حاول مرة أخرى"
-    }
+    "screen": {
+      "off": "مشاركة الشاشة",
+      "on": "إيقاف المشاركة"
+    },
+    "title": "جلسات الفيديو"
   },
   "wearableSettings": {
-    "title": "الصحة واللياقة",
-    "loading": "جارٍ التحميل...",
-    "intro": "اربط أجهزتك القابلة للارتداء لإعطاء Ferni سياقاً حول مستويات صحتك وطاقتك.",
-    "sections": {
-      "devices": "الأجهزة",
-      "features": "ما يمكن أن يراه Ferni"
-    },
     "buttons": {
       "connect": "اتصال",
       "disconnect": "قطع الاتصال",
       "tryAgain": "حاول مجدداً"
     },
-    "features": {
-      "stress": "كشف التوتر من HRV",
-      "sleep": "تحليل جودة النوم",
-      "activity": "تتبع النشاط"
+    "errors": {
+      "loadFailed": "تعذر تحميل إعدادات الأجهزة القابلة للارتداء"
     },
+    "features": {
+      "activity": "تتبع النشاط",
+      "sleep": "تحليل جودة النوم",
+      "stress": "كشف التوتر من HRV"
+    },
+    "intro": "اربط أجهزتك القابلة للارتداء لإعطاء Ferni سياقاً حول مستويات صحتك وطاقتك.",
+    "loading": "جارٍ التحميل...",
     "privacy": {
       "note": "تظل بيانات صحتك خاصة. نشارك فقط الرؤى المجمعة مع جلسات التدريب الخاصة بك."
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "المزامنة مع بيانات صحة Apple Watch و iPhone"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "اربط جهاز Fitbit الخاص بك"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "المزامنة مع أجهزة Garmin القابلة للارتداء"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "رؤى النوم والجاهزية"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "تتبع التعافي والإجهاد"
+        "description": "المزامنة مع بيانات صحة Apple Watch و iPhone",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple Health",
-        "description": "المزامنة مع بيانات Apple Watch وiPhone الصحية"
+        "description": "المزامنة مع بيانات Apple Watch وiPhone الصحية",
+        "name": "Apple Health"
+      },
+      "fitbit": {
+        "description": "اربط جهاز Fitbit الخاص بك",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "المزامنة مع أجهزة Garmin القابلة للارتداء",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "رؤى النوم والجاهزية",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "تتبع التعافي والإجهاد",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "تعذر تحميل إعدادات الأجهزة القابلة للارتداء"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "إرسال الرمز...",
-      "withCode": "التحقق بالرمز"
+    "sections": {
+      "devices": "الأجهزة",
+      "features": "ما يمكن أن يراه Ferni"
     },
-    "buttons": {
-      "saving": "جارٍ الحفظ...",
-      "save": "حفظ"
-    }
-  },
-  "accessibility": {
-    "closeMenu": "إغلاق القائمة",
-    "openSettings": "فتح الإعدادات",
-    "muteAudio": "كتم الصوت",
-    "unmuteAudio": "إلغاء كتم الصوت",
-    "endCall": "إنهاء المكالمة",
-    "skipToContent": "تخطي إلى المحتوى الرئيسي",
-    "languageSelector": "اختر اللغة",
-    "saveConversations": "احفظ محادثاتك بإنشاء حساب",
-    "signInToAccount": "تسجيل الدخول إلى حسابك",
-    "accountMenu": "قائمة الحساب",
-    "refreshData": "تحديث البيانات",
-    "exportData": "تصدير بياناتك",
-    "accountSettings": "إعدادات الحساب",
-    "dismiss": "تجاهل",
-    "dismissNotification": "تجاهل الإشعار",
-    "closeDashboard": "إغلاق لوحة التحكم",
-    "closeSubscription": "إغلاق خيارات الاشتراك",
-    "closeDetails": "إغلاق التفاصيل",
-    "closePublisher": "إغلاق بوابة الناشر",
-    "closeBilling": "إغلاق لوحة الفوترة",
-    "closeSettings": "إغلاق الإعدادات",
-    "closeHistory": "إغلاق السجل",
-    "closeAdmin": "إغلاق لوحة الإدارة",
-    "closeHuddle": "إغلاق الاجتماع",
-    "closeStats": "إغلاق الإحصائيات",
-    "refresh": "تحديث",
-    "backToItems": "العودة إلى العناصر",
-    "collapse": "طي",
-    "expandGarden": "توسيع تفاصيل الحديقة",
-    "collapseGarden": "طي تفاصيل الحديقة",
-    "howToPlay": "كيفية اللعب",
-    "toggleQuietHours": "تبديل ساعات الهدوء",
-    "yourNewPlan": "خطتك الجديدة",
-    "subscriptionPlans": "خطط الاشتراك",
-    "options": "الخيارات",
-    "featuresIncluded": "الميزات المضمنة",
-    "searchCoaches": "البحث عن مدربين",
-    "filterBySpecialty": "التصفية حسب التخصص",
-    "availableCoaches": "المدربون المتاحون",
-    "portalSections": "أقسام البوابة",
-    "submitNewItem": "إرسال عنصر جديد",
-    "openDailyPractice": "فتح التمرين اليومي",
-    "openPredictions": "فتح التوقعات",
-    "openTeamInsights": "فتح رؤى الفريق",
-    "shareJourney": "مشاركة رحلتك",
-    "forgetThis": "نسيان هذا",
-    "cancelInstallation": "إلغاء التثبيت",
-    "sharedMusicalMemory": "ذكرى موسيقية مشتركة",
-    "viewOutreachSchedule": "عرض جدول التواصل",
-    "ferniLogo": "شعار فيرني"
-  },
-  "buttons": {
-    "signIn": "تسجيل الدخول",
-    "signOut": "تسجيل الخروج",
-    "signUp": "إنشاء حساب",
-    "savePreferences": "حفظ التفضيلات",
-    "savePreference": "حفظ التفضيل",
-    "choose": "اختر هذا",
-    "refresh": "تحديث",
-    "exportData": "تصدير البيانات"
-  },
-  "mobile": {
-    "pullToConnect": "اسحب للاتصال",
-    "releaseToConnect": "أفلت للاتصال",
-    "pullToRefresh": "اسحب للتحديث",
-    "releaseToRefresh": "أفلت للتحديث"
-  },
-  "placeholders": {
-    "customAmount": "مبلغ مخصص",
-    "searchConversations": "البحث في المحادثات...",
-    "enterValue": "أدخل القيمة الفعلية",
-    "emailExample": "you@example.com",
-    "phoneExample": "+1 (555) 123-4567",
-    "memberName": "اسمهم",
-    "householdName": "عائلة سميث",
-    "displayName": "اسمك المفضل",
-    "marketplaceSearch": "من تبحث عنه؟",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colleague@company.com",
-    "welcomeMessageExample": "مثال: مرحباً بكم في {orgName}! فيرني هنا لدعم نموك ورفاهيتك.",
-    "companyValuesExample": "مثال: النزاهة، الابتكار، التركيز على العملاء، العمل الجماعي",
-    "toolIdExample": "my-awesome-tool",
-    "toolNameExample": "أداتي الرائعة",
-    "versionExample": "1.0.0",
-    "toolDescription": "ماذا تفعل أداتك/وكيلك؟"
-  },
-  "household": {
-    "addToHousehold": "إضافة إلى الأسرة",
-    "title": "الأسرة",
-    "members": "الأعضاء",
-    "addMember": "إضافة عضو",
-    "removeMember": "إزالة عضو"
-  },
-  "titles": {
-    "sharedSong": "أغنية نتشاركها",
-    "dailyPractice": "التمرين اليومي",
-    "predictions": "التوقعات",
-    "teamInsights": "رؤى الفريق",
-    "runScenario": "تشغيل السيناريو"
+    "title": "الصحة واللياقة"
   }
 }

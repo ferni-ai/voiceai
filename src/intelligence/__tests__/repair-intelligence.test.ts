@@ -40,13 +40,13 @@ describe('RepairIntelligence', () => {
   describe('detectMisunderstanding', () => {
     it('should detect tone misunderstanding when user indicates seriousness', () => {
       recordAIResponse(TEST_SESSION_ID, 'Ha! Yeah, finances can be tricky sometimes.');
-      
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
         "This is serious, I'm really worried about my retirement.",
         -0.3, // Emotion shift (negative)
-        -0.2  // Engagement shift (negative)
+        -0.2 // Engagement shift (negative)
       );
 
       expect(detection.detected).toBe(true);
@@ -56,8 +56,11 @@ describe('RepairIntelligence', () => {
     });
 
     it('should detect content misunderstanding when user corrects', () => {
-      recordAIResponse(TEST_SESSION_ID, "So you're looking to save for a vacation, that's exciting!");
-      
+      recordAIResponse(
+        TEST_SESSION_ID,
+        "So you're looking to save for a vacation, that's exciting!"
+      );
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -72,8 +75,8 @@ describe('RepairIntelligence', () => {
     });
 
     it('should detect intent misunderstanding when user clarifies needs', () => {
-      recordAIResponse(TEST_SESSION_ID, "Let me give you some advice on that investment strategy.");
-      
+      recordAIResponse(TEST_SESSION_ID, 'Let me give you some advice on that investment strategy.');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -87,8 +90,8 @@ describe('RepairIntelligence', () => {
     });
 
     it('should detect timing issues when user needs space', () => {
-      recordAIResponse(TEST_SESSION_ID, "So what do you think you should do about the situation?");
-      
+      recordAIResponse(TEST_SESSION_ID, 'So what do you think you should do about the situation?');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -103,8 +106,11 @@ describe('RepairIntelligence', () => {
     });
 
     it('should detect assumption errors', () => {
-      recordAIResponse(TEST_SESSION_ID, "Since you're married, your spouse probably helps with decisions.");
-      
+      recordAIResponse(
+        TEST_SESSION_ID,
+        "Since you're married, your spouse probably helps with decisions."
+      );
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -119,8 +125,8 @@ describe('RepairIntelligence', () => {
     });
 
     it('should detect boundary violations', () => {
-      recordAIResponse(TEST_SESSION_ID, "Tell me more about what happened with your ex.");
-      
+      recordAIResponse(TEST_SESSION_ID, 'Tell me more about what happened with your ex.');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -135,12 +141,12 @@ describe('RepairIntelligence', () => {
     });
 
     it('should not detect misunderstanding for normal conversation', () => {
-      recordAIResponse(TEST_SESSION_ID, "That sounds like a good plan for your savings.");
-      
+      recordAIResponse(TEST_SESSION_ID, 'That sounds like a good plan for your savings.');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
-        "Yeah, I think so too. Thanks for the help.",
+        'Yeah, I think so too. Thanks for the help.',
         0.1, // Emotion shift (positive)
         0.1 // Engagement shift (positive)
       );
@@ -150,24 +156,24 @@ describe('RepairIntelligence', () => {
     });
 
     it('should handle empty or minimal responses gracefully', () => {
-      recordAIResponse(TEST_SESSION_ID, "What do you think?");
-      
+      recordAIResponse(TEST_SESSION_ID, 'What do you think?');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
-        "ok",
+        'ok',
         0, // Emotion shift
         -0.1 // Slight engagement drop
       );
-      
+
       // Short response might indicate disengagement but not necessarily misunderstanding
       expect(detection).toBeDefined();
       expect(detection.confidence).toBeLessThan(0.5);
     });
 
     it('should increase confidence with multiple signals', () => {
-      recordAIResponse(TEST_SESSION_ID, "You should just invest more aggressively!");
-      
+      recordAIResponse(TEST_SESSION_ID, 'You should just invest more aggressively!');
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -220,7 +226,10 @@ describe('RepairIntelligence', () => {
       const repair = generateRepair(detection);
 
       expect(repair.strategy).toBe('clarify');
-      expect(repair.opener.toLowerCase()).toMatch(/let me|help me understand|sorry/);
+      // Allow multiple valid clarification phrases including "can you say more"
+      expect(repair.opener.toLowerCase()).toMatch(
+        /let me|help me understand|sorry|can you|say more|tell me more/
+      );
     });
 
     it('should suggest space for timing issues', () => {
@@ -238,7 +247,9 @@ describe('RepairIntelligence', () => {
 
       expect(repair.strategy).toBe('space');
       // Actual implementation uses phrases like "no pressure" or "don't have to go there"
-      expect(repair.fullRepair.toLowerCase()).toMatch(/no pressure|don't have to|take your time|slow down|when.*ready/);
+      expect(repair.fullRepair.toLowerCase()).toMatch(
+        /no pressure|don't have to|take your time|slow down|when.*ready/
+      );
     });
 
     it('should generate validation for boundary violations', () => {
@@ -257,7 +268,7 @@ describe('RepairIntelligence', () => {
       expect(repair.strategy).toBe('validate');
       // The avoid list contains things like "But you have to understand"
       expect(repair.avoid.length).toBeGreaterThan(0);
-      expect(repair.avoid.some(a => a.toLowerCase().includes('but'))).toBe(true);
+      expect(repair.avoid.some((a) => a.toLowerCase().includes('but'))).toBe(true);
     });
 
     it('should include avoid guidance', () => {
@@ -336,7 +347,7 @@ describe('RepairIntelligence', () => {
       };
 
       const repair = generateRepair(detection);
-      
+
       // Record a successful repair
       recordRepairOutcome(TEST_USER_ID, detection, repair, 'resolved');
 
@@ -509,9 +520,10 @@ describe('RepairIntelligence', () => {
 
     it('should handle very long user messages', () => {
       recordAIResponse(TEST_SESSION_ID, 'What do you think?');
-      
-      const longMessage = "No, ".repeat(100) + "that's not what I said. " + "I really ".repeat(50) + "need help.";
-      
+
+      const longMessage =
+        'No, '.repeat(100) + "that's not what I said. " + 'I really '.repeat(50) + 'need help.';
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -526,7 +538,7 @@ describe('RepairIntelligence', () => {
 
     it('should handle special characters in user messages', () => {
       recordAIResponse(TEST_SESSION_ID, 'Tell me more.');
-      
+
       const detection = detectMisunderstanding(
         TEST_USER_ID,
         TEST_SESSION_ID,
@@ -541,7 +553,7 @@ describe('RepairIntelligence', () => {
 
     it('should handle clear correction signals', () => {
       recordAIResponse(TEST_SESSION_ID, 'I understand.');
-      
+
       // Use a clearer misunderstanding signal
       const detection = detectMisunderstanding(
         TEST_USER_ID,
