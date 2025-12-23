@@ -1,0 +1,206 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "pt",
+  "$name": "Português",
+  
+  "weather_current": {
+    "phrases": [
+      "como está o tempo",
+      "qual é o tempo",
+      "está chovendo",
+      "está frio",
+      "está quente",
+      "preciso de um guarda-chuva",
+      "devo levar um casaco"
+    ],
+    "patterns": [
+      "^(?:como|qual)\\s+(?:está|é)\\s+o\\s+(?:tempo|clima)",
+      "^(?:está|vai)\\s+(?:chovendo|chover|nevando|nevar)",
+      "^está\\s+(?:frio|quente|sol|nublado)"
+    ],
+    "keywords": [
+      { "word": "tempo", "weight": 1.0 },
+      { "word": "clima", "weight": 1.0 },
+      { "word": "chuva", "weight": 0.8 },
+      { "word": "chovendo", "weight": 0.8 },
+      { "word": "sol", "weight": 0.7 },
+      { "word": "nublado", "weight": 0.7 },
+      { "word": "frio", "weight": 0.6 },
+      { "word": "quente", "weight": 0.6 },
+      { "word": "guarda-chuva", "weight": 0.8 }
+    ],
+    "antiKeywords": ["email", "calendário", "reunião", "música"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "o que tenho no calendário",
+      "ver meu calendário",
+      "minha agenda",
+      "o que tenho hoje",
+      "reuniões de hoje",
+      "quais reuniões tenho"
+    ],
+    "patterns": [
+      "^(?:o\\s+que\\s+tenho|mostra-me)\\s+(?:no\\s+)?(?:meu\\s+)?(?:calendário|agenda)",
+      "^(?:ver|verificar|mostrar)\\s+(?:meu\\s+)?(?:calendário|agenda)",
+      "^(?:quais?|alguma)\\s+(?:reuniões?|eventos?|compromissos?)\\s+(?:tenho\\s+)?(?:hoje|amanhã)"
+    ],
+    "keywords": [
+      { "word": "calendário", "weight": 1.0 },
+      { "word": "agenda", "weight": 0.9 },
+      { "word": "reunião", "weight": 0.8 },
+      { "word": "reuniões", "weight": 0.8 },
+      { "word": "compromisso", "weight": 0.8 }
+    ],
+    "antiKeywords": ["criar", "adicionar", "agendar", "cancelar", "deletar"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "eu fiz meu",
+      "eu completei",
+      "eu terminei",
+      "marcar hábito",
+      "registrar meu hábito",
+      "eu meditei",
+      "eu me exercitei",
+      "fui à academia"
+    ],
+    "patterns": [
+      "^eu\\s+(?:já\\s+)?(?:fiz|completei|terminei)\\s+(?:meu\\s+)?(.+)",
+      "^(?:marcar|registrar)\\s+(?:meu\\s+)?(?:hábito|(.+))\\s+(?:como\\s+)?(?:feito|completo)"
+    ],
+    "keywords": [
+      { "word": "feito", "weight": 0.8 },
+      { "word": "completei", "weight": 0.9 },
+      { "word": "terminei", "weight": 0.8 },
+      { "word": "meditei", "weight": 0.9 },
+      { "word": "exercitei", "weight": 0.9 },
+      { "word": "academia", "weight": 0.8 }
+    ],
+    "antiKeywords": ["criar", "adicionar", "novo", "sugerir", "ajuda", "que"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "lembra disso",
+      "lembra que",
+      "não esquece",
+      "guarda isso",
+      "anota que",
+      "tenha em mente"
+    ],
+    "patterns": [
+      "^(?:por\\s+favor\\s+)?(?:lembra|lembre-se)\\s+(?:que\\s+)?(.+)",
+      "^não\\s+(?:esquece|esqueça)\\s+(?:que\\s+)?(.+)",
+      "^(?:guarda|anota|registra)\\s+(?:que\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 1.0 },
+      { "word": "esquece", "weight": 0.9 },
+      { "word": "guarda", "weight": 0.7 },
+      { "word": "anota", "weight": 0.7 }
+    ],
+    "antiKeywords": ["que", "quando", "quem", "me diz"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "o que eu te disse",
+      "você lembra",
+      "o que você sabe sobre",
+      "qual é o meu",
+      "quem é meu",
+      "quando é meu"
+    ],
+    "patterns": [
+      "^(?:o\\s+que|quando|quem)\\s+eu\\s+te\\s+(?:disse|contei|mencionei)",
+      "^você\\s+(?:lembra|se\\s+lembra)\\s+(?:do\\s+que|quando|meu)",
+      "^(?:qual|o\\s+que|quem)\\s+é\\s+(?:o\\s+)?meu\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 0.9 },
+      { "word": "sabe", "weight": 0.6 },
+      { "word": "disse", "weight": 0.8 }
+    ],
+    "antiKeywords": ["guarda", "anota", "não esquece"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "estou ansioso",
+      "estou estressado",
+      "me sinto sobrecarregado",
+      "preciso me acalmar",
+      "me ajuda a relaxar",
+      "exercício de respiração",
+      "estou em pânico"
+    ],
+    "patterns": [
+      "^estou\\s+(?:muito\\s+)?(?:ansioso|estressado|sobrecarregado|em\\s+pânico)",
+      "^preciso\\s+(?:me\\s+)?(?:acalmar|relaxar)",
+      "^(?:me\\s+ajuda|pode\\s+me\\s+ajudar)\\s+a\\s+(?:me\\s+)?(?:acalmar|relaxar)"
+    ],
+    "keywords": [
+      { "word": "ansioso", "weight": 1.0 },
+      { "word": "ansiedade", "weight": 1.0 },
+      { "word": "estressado", "weight": 0.9 },
+      { "word": "pânico", "weight": 1.0 },
+      { "word": "acalmar", "weight": 0.8 },
+      { "word": "relaxar", "weight": 0.7 },
+      { "word": "respirar", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": [
+      "coloca música",
+      "toca música",
+      "quero ouvir",
+      "coloca um",
+      "abre spotify"
+    ],
+    "patterns": [
+      "^(?:coloca|toca|reproduz)\\s+(?:algo\\s+de\\s+)?(.+)",
+      "^quero\\s+(?:ouvir|escutar)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "coloca", "weight": 1.0 },
+      { "word": "toca", "weight": 0.9 },
+      { "word": "música", "weight": 0.8 },
+      { "word": "spotify", "weight": 0.9 },
+      { "word": "música", "weight": 0.7 },
+      { "word": "jazz", "weight": 0.8 },
+      { "word": "rock", "weight": 0.7 }
+    ],
+    "antiKeywords": ["para", "pausa", "próxima", "pula"]
+  },
+
+  "handoff": {
+    "phrases": [
+      "passa para",
+      "quero falar com",
+      "posso falar com",
+      "me conecta com",
+      "muda para"
+    ],
+    "patterns": [
+      "^(?:passa|me\\s+conecta)\\s+(?:para|com)\\s+(.+)",
+      "^(?:quero|posso)\\s+falar\\s+com\\s+(.+)",
+      "^muda\\s+(?:me\\s+)?para\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "passa", "weight": 1.0 },
+      { "word": "falar", "weight": 0.7 },
+      { "word": "maya", "weight": 0.9 },
+      { "word": "peter", "weight": 0.9 },
+      { "word": "alex", "weight": 0.9 },
+      { "word": "jordan", "weight": 0.9 },
+      { "word": "nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  }
+}
+

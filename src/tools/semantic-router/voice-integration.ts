@@ -27,9 +27,39 @@ import {
 } from './index.js';
 import { getToolRegistry } from './registry.js';
 
-// Import tool definitions
-import { handoffTools } from './tool-definitions/handoff.semantic.js';
-import { musicTools } from './tool-definitions/music.semantic.js';
+// Import all tool definitions
+import { allToolDefinitions, getToolStats } from './tool-definitions/index.js';
+
+// Import i18n support
+import {
+  preloadLocales,
+  autoDetectAndLoadLocale,
+  mergeLocaleIntoTools,
+  getLocale,
+  initializeMultilingualEmbeddings,
+} from './i18n/index.js';
+import type { SemanticToolDefinition } from './types.js';
+
+// Import advanced SOTA features
+import {
+  // Learning loop
+  enhanceWithLearning,
+  recordOutcome,
+  handleExplicitCorrection,
+  // Tool chains
+  detectToolChain,
+  learnToolSequence,
+  // Deep context
+  getDeepContext,
+  updateContextWithInput,
+  updateContextWithToolResult,
+  resolveForTool,
+  // Feedback store
+  getUserVocabulary,
+  calibrateConfidence,
+  type LearningContext,
+  type LearningOutcome,
+} from './advanced/index.js';
 
 const log = createLogger({ module: 'semantic-router:voice' });
 
@@ -43,6 +73,8 @@ export interface VoiceRouterContext {
   personaId: string;
   conversationHistory: ConversationTurn[];
   recentTools: string[];
+  /** Override locale (auto-detected if not provided) */
+  locale?: string;
 }
 
 export interface VoiceRouterResult {
@@ -60,6 +92,30 @@ export interface VoiceRouterResult {
 
   /** Processing time in ms */
   processingTimeMs: number;
+
+  /** Detected language (for multilingual support) */
+  detectedLocale?: string;
+
+  /** Tool chain detected (multi-step sequence) */
+  toolChain?: {
+    chainId: string;
+    chainName: string;
+    predictedSteps: string[];
+  };
+
+  /** User vocabulary match (per-user personalization) */
+  userVocabularyMatch?: {
+    toolId: string;
+    confidence: number;
+    phrase: string;
+  };
+
+  /** Deep context enhancements */
+  contextEnhancements?: {
+    resolvedPronouns: Record<string, string>;
+    currentTopic: string | null;
+    entityCount: number;
+  };
 }
 
 // ============================================================================
@@ -81,16 +137,21 @@ export async function initializeVoiceRouter(): Promise<void> {
   // Get the registry and register all tools
   const registry = getToolRegistry();
 
-  // Register tool definitions
-  registry.registerMany(musicTools);
-  registry.registerMany(handoffTools);
+  // Register ALL semantic tool definitions
+  registry.registerMany(allToolDefinitions);
 
-  // Add more tool definitions here as they're created
-  // registry.registerMany(calendarTools);
-  // registry.registerMany(weatherTools);
-  // registry.registerMany(memoryTools);
+  const stats = getToolStats();
+  log.info(
+    {
+      totalTools: registry.size,
+      byCategory: stats,
+    },
+    '✅ Semantic tools registered'
+  );
 
-  log.info({ toolCount: registry.size }, 'Tools registered');
+  // Pre-load common locales for faster multilingual routing
+  await preloadLocales(['en', 'es', 'fr', 'de', 'pt']);
+  log.info('🌍 Multilingual locales pre-loaded');
 
   // Create router
   router = createSemanticRouter({
@@ -112,6 +173,17 @@ export async function initializeVoiceRouter(): Promise<void> {
 
   await router.initialize(embeddingProvider);
 
+  // Initialize multilingual embeddings for language-agnostic routing
+  try {
+    await initializeMultilingualEmbeddings(
+      allToolDefinitions as SemanticToolDefinition[],
+      embeddingProvider
+    );
+    log.info('🧠 Multilingual embeddings initialized');
+  } catch (embedError) {
+    log.warn({ error: String(embedError) }, 'Multilingual embeddings failed (non-fatal)');
+  }
+
   // eslint-disable-next-line require-atomic-updates
   initialized = true;
   const duration = performance.now() - startTime;
@@ -130,10 +202,11 @@ export async function initializeVoiceRouter(): Promise<void> {
  * Route user input through the semantic router
  *
  * Call this BEFORE sending to the LLM. It will:
- * 1. Check if input likely needs a tool
- * 2. Route and extract arguments
- * 3. Execute directly if high confidence
- * 4. Return hints for LLM if medium confidence
+ * 1. Auto-detect language and load locale triggers
+ * 2. Check if input likely needs a tool
+ * 3. Route and extract arguments
+ * 4. Execute directly if high confidence
+ * 5. Return hints for LLM if medium confidence
  */
 export async function routeVoiceInput(
   inputText: string,
@@ -149,6 +222,47 @@ export async function routeVoiceInput(
   // Safe reference to router after initialization check
   const activeRouter = router as SemanticRouter;
 
+  // Auto-detect language if not provided (multilingual support)
+  let detectedLocale = context.locale || 'en';
+  if (!context.locale) {
+    try {
+      detectedLocale = await autoDetectAndLoadLocale(inputText);
+      if (detectedLocale !== 'en') {
+        log.debug({ detectedLocale, inputText: inputText.substring(0, 50) }, 'Language auto-detected');
+      }
+    } catch {
+      // Fall back to English on error
+      detectedLocale = 'en';
+    }
+  }
+
+  // ============================================================================
+  // ADVANCED FEATURES: Deep Context & Personalization
+  // ============================================================================
+
+  // Update deep context with user input (entity tracking, topic detection)
+  const deepContext = getDeepContext(context.sessionId);
+  updateContextWithInput(context.sessionId, inputText, deepContext.currentTurn);
+
+  // Check for tool chains (multi-step sequences)
+  const chainDetection = detectToolChain(inputText, {
+    recentTools: context.recentTools,
+    timeOfDay: getTimeOfDay(),
+  });
+
+  let toolChain: VoiceRouterResult['toolChain'];
+  if (chainDetection.chainId) {
+    toolChain = {
+      chainId: chainDetection.chainId,
+      chainName: chainDetection.chainName || '',
+      predictedSteps: chainDetection.predictedSteps.map((s) => s.toolId),
+    };
+    log.debug(
+      { chainId: chainDetection.chainId, steps: toolChain.predictedSteps },
+      'Tool chain detected'
+    );
+  }
+
   // Quick check - does this even look like a tool request?
   if (!mightNeedTool(inputText)) {
     // Still route for logging/analytics, but expect conversation result
@@ -158,11 +272,61 @@ export async function routeVoiceInput(
       bypassLLM: false,
       routingResult,
       processingTimeMs: performance.now() - startTime,
+      detectedLocale,
+      toolChain,
     };
   }
 
+  // ============================================================================
+  // ADVANCED FEATURES: Learning Enhancement
+  // ============================================================================
+
+  // Create learning context for enhancement
+  const learningContext: LearningContext = {
+    userId: context.userId,
+    sessionId: context.sessionId,
+    personaId: context.personaId,
+    inputText,
+    inputLocale: detectedLocale,
+    routingResult: null as unknown as SemanticRouterResult, // Will be set after routing
+    conversationHistory: context.conversationHistory.map((t) => ({
+      role: t.role,
+      text: t.text,
+    })),
+    recentTools: context.recentTools,
+  };
+
   // Full routing
   const routingResult = await activeRouter.route(inputText, context);
+
+  // Enhance with learning (user vocabulary, calibration, time patterns)
+  learningContext.routingResult = routingResult;
+  const enhancement = await enhanceWithLearning(learningContext);
+
+  // Apply calibration to confidence
+  if (routingResult.matches.length > 0) {
+    routingResult.matches[0].confidence = calibrateConfidence(
+      routingResult.matches[0].confidence
+    );
+  }
+
+  // Get context enhancements (pronoun resolution, topic)
+  let contextEnhancements: VoiceRouterResult['contextEnhancements'];
+  if (routingResult.matches.length > 0) {
+    const toolId = routingResult.matches[0].toolId;
+    const resolvedPronouns = resolveForTool(inputText, toolId, deepContext);
+
+    contextEnhancements = {
+      resolvedPronouns,
+      currentTopic: deepContext.currentTopic?.name || null,
+      entityCount: deepContext.entities.size,
+    };
+
+    // If we resolved pronouns, log it
+    if (Object.keys(resolvedPronouns).length > 0) {
+      log.debug({ resolvedPronouns, toolId }, 'Pronouns resolved');
+    }
+  }
   const { action } = routingResult;
 
   // Handle different action types
@@ -186,11 +350,33 @@ export async function routeVoiceInput(
         services: undefined,
       });
 
+      // Update deep context with tool result
+      updateContextWithToolResult(
+        context.sessionId,
+        action.toolId,
+        toolResult,
+        deepContext.currentTurn
+      );
+
+      // Learn tool sequence for chain prediction
+      learnToolSequence(context.sessionId, [...context.recentTools, action.toolId]);
+
+      // Record outcome for learning (async, don't block)
+      recordOutcome(learningContext, {
+        actualToolUsed: action.toolId,
+        wasCorrection: false,
+        wasSuccess: toolResult.success,
+      }).catch((err) => log.warn({ error: String(err) }, 'Failed to record outcome'));
+
       return {
         bypassLLM: true,
         toolResult,
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        userVocabularyMatch: enhancement.userVocabularyMatch,
+        contextEnhancements,
       };
     }
 
@@ -201,6 +387,10 @@ export async function routeVoiceInput(
         llmHint: generateLLMHint('confirm', action),
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        userVocabularyMatch: enhancement.userVocabularyMatch,
+        contextEnhancements,
       };
     }
 
@@ -211,6 +401,10 @@ export async function routeVoiceInput(
         llmHint: generateLLMHint('hint', action),
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        userVocabularyMatch: enhancement.userVocabularyMatch,
+        contextEnhancements,
       };
     }
 
@@ -221,6 +415,10 @@ export async function routeVoiceInput(
         llmHint: generateLLMHint('disambiguate', action),
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        userVocabularyMatch: enhancement.userVocabularyMatch,
+        contextEnhancements,
       };
     }
 
@@ -231,6 +429,10 @@ export async function routeVoiceInput(
         llmHint: generateLLMHint('clarify', action),
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        userVocabularyMatch: enhancement.userVocabularyMatch,
+        contextEnhancements,
       };
     }
 
@@ -241,8 +443,22 @@ export async function routeVoiceInput(
         bypassLLM: false,
         routingResult,
         processingTimeMs: performance.now() - startTime,
+        detectedLocale,
+        toolChain,
+        contextEnhancements,
       };
   }
+}
+
+/**
+ * Helper function to get time of day for chain detection
+ */
+function getTimeOfDay(): string {
+  const hour = new Date().getHours();
+  if (hour < 6) return 'night';
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
 }
 
 /**
@@ -377,3 +593,66 @@ export function resetRouterMetrics(): void {
   metrics.avgLatencyMs = 0;
   metrics.toolUsage = {};
 }
+
+// ============================================================================
+// ADVANCED FEATURES: Learning API
+// ============================================================================
+
+/**
+ * Handle explicit user correction
+ *
+ * Call this when user explicitly says something like:
+ * "No, I wanted to play music, not check calendar"
+ *
+ * This teaches the router to handle similar inputs better in the future.
+ */
+export async function recordUserCorrection(
+  userId: string,
+  inputText: string,
+  wrongTool: string | null,
+  correctTool: string
+): Promise<void> {
+  await handleExplicitCorrection(userId, inputText, wrongTool, correctTool);
+  log.info(
+    { userId, from: wrongTool, to: correctTool, input: inputText.substring(0, 30) },
+    'User correction recorded'
+  );
+}
+
+/**
+ * Record that a tool was used successfully
+ *
+ * Call this AFTER tool execution to improve learning.
+ */
+export async function recordToolSuccess(
+  context: VoiceRouterContext,
+  inputText: string,
+  toolId: string
+): Promise<void> {
+  const learningContext: LearningContext = {
+    userId: context.userId,
+    sessionId: context.sessionId,
+    personaId: context.personaId,
+    inputText,
+    inputLocale: context.locale || 'en',
+    routingResult: null as unknown as SemanticRouterResult,
+    conversationHistory: context.conversationHistory.map((t) => ({
+      role: t.role,
+      text: t.text,
+    })),
+    recentTools: context.recentTools,
+  };
+
+  await recordOutcome(learningContext, {
+    actualToolUsed: toolId,
+    wasCorrection: false,
+    wasSuccess: true,
+  });
+}
+
+/**
+ * Get the deep context for a session (entity tracking, topic)
+ *
+ * Use this for debugging or advanced features that need context awareness.
+ */
+export { getDeepContext, clearDeepContext as clearSessionContext } from './advanced/index.js';

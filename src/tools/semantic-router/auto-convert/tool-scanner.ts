@@ -47,11 +47,11 @@ interface LegacyToolDefinition {
 // ============================================================================
 
 const DOMAIN_TO_CATEGORY: Record<string, ToolCategory> = {
-  // Entertainment
-  entertainment: 'music',
+  // Music & Entertainment
   music: 'music',
   podcasts: 'music',
-  video: 'music',
+  entertainment: 'entertainment',
+  video: 'entertainment',
 
   // Information
   information: 'information',
@@ -59,30 +59,37 @@ const DOMAIN_TO_CATEGORY: Record<string, ToolCategory> = {
   weather: 'information',
   search: 'information',
   research: 'information',
-  books: 'information',
+  books: 'recommendations',
 
   // Memory
   memory: 'memory',
 
   // Calendar & Tasks
   calendar: 'calendar',
-  productivity: 'tasks',
   tasks: 'tasks',
+
+  // Productivity
+  productivity: 'productivity',
 
   // Communication
   communication: 'communication',
-  telephony: 'communication',
+  telephony: 'telephony',
 
-  // Wellness & Life Coaching
+  // Wellness
   wellness: 'wellness',
   health: 'wellness',
   presence: 'wellness',
   'self-compassion': 'wellness',
-  grief: 'wellness',
-  'burnout-recovery': 'wellness',
   'chronic-conditions': 'wellness',
   'body-relationship': 'wellness',
   'digital-wellness': 'wellness',
+
+  // Crisis (SAFETY-CRITICAL)
+  crisis: 'crisis',
+  'trauma-support': 'crisis',
+
+  // Grief
+  grief: 'grief',
 
   // Finance
   finance: 'finance',
@@ -90,47 +97,57 @@ const DOMAIN_TO_CATEGORY: Record<string, ToolCategory> = {
   financial: 'finance',
 
   // Smart Home
-  'smart-home': 'smart_home',
-  home: 'smart_home',
+  'smart-home': 'smart-home',
+  home: 'smart-home',
 
   // Handoff
   handoff: 'handoff',
   personas: 'handoff',
 
-  // Life Planning
-  'life-planning': 'utility',
-  'life-transitions': 'utility',
-  'life-thesis': 'utility',
-  decisions: 'utility',
-  career: 'utility',
-  family: 'utility',
-  relationships: 'utility',
-  midlife: 'utility',
+  // Life Planning & Decisions
+  'life-planning': 'decisions',
+  'life-transitions': 'decisions',
+  'life-thesis': 'decisions',
+  decisions: 'decisions',
+  midlife: 'decisions',
+
+  // Career
+  career: 'career',
+
+  // Relationships & Family
+  relationships: 'relationships',
+  family: 'relationships',
+  intimacy: 'relationships',
 
   // Habits
-  habits: 'utility',
-  'habit-persistence': 'utility',
+  habits: 'habits',
+  'habit-persistence': 'habits',
 
-  // Life Coaching - Personal Growth
-  boundaries: 'utility',
-  'social-skills': 'utility',
-  anger: 'utility',
-  procrastination: 'utility',
-  perfectionism: 'utility',
+  // Life Coaching
+  boundaries: 'life-coaching',
+  'social-skills': 'life-coaching',
+  anger: 'life-coaching',
+  procrastination: 'life-coaching',
+  perfectionism: 'life-coaching',
+  'burnout-recovery': 'life-coaching',
+  neurodiversity: 'life-coaching',
+  'life-coaching-shared': 'life-coaching',
 
-  // Life Coaching - Relationships
-  dating: 'utility',
-  intimacy: 'utility',
-  'breakup-recovery': 'utility',
+  // Dating
+  dating: 'dating',
+  'breakup-recovery': 'dating',
 
-  // Life Coaching - Specialized Support
-  neurodiversity: 'utility',
-  'trauma-support': 'utility',
-  'life-coaching-shared': 'utility',
+  // Learning
+  learning: 'learning',
 
-  // Other
-  engagement: 'utility',
-  games: 'utility',
+  // Games
+  games: 'games',
+  engagement: 'games',
+
+  // Recommendations
+  recommendations: 'recommendations',
+
+  // Other (keep as utility for now)
   creativity: 'utility',
   dreams: 'utility',
   meaning: 'utility',

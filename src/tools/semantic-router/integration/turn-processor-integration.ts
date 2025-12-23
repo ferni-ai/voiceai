@@ -322,13 +322,13 @@ async function executeMatchedTool(
       );
       return {
         success: true,
-        naturalResponse: result.naturalResponse,
+        naturalResponse: result.naturalResponse ?? '',
       };
     } else {
       log.warn({ toolId: match.toolId, error: result.error }, 'Tool execution returned failure');
       return {
         success: false,
-        naturalResponse: result.naturalResponse || '',
+        naturalResponse: result.naturalResponse ?? '',
         error: result.error,
       };
     }

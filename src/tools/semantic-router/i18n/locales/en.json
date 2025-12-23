@@ -1,0 +1,297 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "en",
+  "$name": "English",
+  
+  "weather_current": {
+    "phrases": [
+      "what's the weather",
+      "what's the weather like",
+      "how is the weather",
+      "what is the weather",
+      "tell me the weather",
+      "what's it like outside",
+      "how's it outside",
+      "is it raining",
+      "is it cold",
+      "is it hot",
+      "is it sunny",
+      "do I need an umbrella",
+      "should I bring a jacket"
+    ],
+    "patterns": [
+      "^(?:what(?:'s| is)|how(?:'s| is))\\s+the\\s+weather",
+      "^weather\\s+(?:in|for|at)\\s+(.+)",
+      "^is\\s+it\\s+(?:raining|snowing|cold|hot|warm|sunny|cloudy)",
+      "^do\\s+i\\s+need\\s+(?:an?\\s+)?(?:umbrella|jacket|coat)",
+      "^(?:should|do)\\s+i\\s+(?:bring|take|wear)\\s+(?:an?\\s+)?(?:umbrella|jacket|coat)"
+    ],
+    "keywords": [
+      { "word": "weather", "weight": 1.0 },
+      { "word": "temperature", "weight": 0.9 },
+      { "word": "rain", "weight": 0.8 },
+      { "word": "raining", "weight": 0.8 },
+      { "word": "sunny", "weight": 0.7 },
+      { "word": "cloudy", "weight": 0.7 },
+      { "word": "cold", "weight": 0.6 },
+      { "word": "hot", "weight": 0.6 },
+      { "word": "umbrella", "weight": 0.8 },
+      { "word": "forecast", "weight": 0.7 }
+    ],
+    "antiKeywords": ["email", "calendar", "meeting", "music", "play"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "weather forecast",
+      "weather this week",
+      "weather tomorrow",
+      "what's the forecast",
+      "upcoming weather"
+    ],
+    "patterns": [
+      "^(?:what(?:'s| is)|how(?:'s| is))\\s+the\\s+(?:weather\\s+)?forecast",
+      "^weather\\s+(?:for\\s+)?(?:this|next)\\s+(?:week|few\\s+days)",
+      "^will\\s+it\\s+(?:rain|snow)\\s+(?:tomorrow|this\\s+week)"
+    ],
+    "keywords": [
+      { "word": "forecast", "weight": 1.0 },
+      { "word": "week", "weight": 0.7 },
+      { "word": "tomorrow", "weight": 0.8 }
+    ],
+    "antiKeywords": ["current", "now", "right now"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "what's on my calendar",
+      "check my calendar",
+      "my schedule",
+      "what's my schedule",
+      "what do I have today",
+      "any meetings today",
+      "what meetings do I have",
+      "what's coming up"
+    ],
+    "patterns": [
+      "^(?:what(?:'s| is)|show\\s+me)\\s+(?:on\\s+)?my\\s+(?:calendar|schedule)",
+      "^(?:check|view|show)\\s+(?:my\\s+)?(?:calendar|schedule)",
+      "^(?:what|any)\\s+(?:meetings|events|appointments)\\s+(?:do\\s+i\\s+have\\s+)?(?:today|tomorrow|this\\s+week)",
+      "^am\\s+i\\s+(?:free|busy|available)"
+    ],
+    "keywords": [
+      { "word": "calendar", "weight": 1.0 },
+      { "word": "schedule", "weight": 0.9 },
+      { "word": "meeting", "weight": 0.8 },
+      { "word": "meetings", "weight": 0.8 },
+      { "word": "appointment", "weight": 0.8 }
+    ],
+    "antiKeywords": ["create", "add", "schedule", "set up", "cancel", "delete"]
+  },
+
+  "calendar_create_event": {
+    "phrases": [
+      "schedule a meeting",
+      "create an event",
+      "add to my calendar",
+      "set up a meeting",
+      "book a time",
+      "put on my calendar"
+    ],
+    "patterns": [
+      "^(?:schedule|create|add|set\\s+up|book)\\s+(?:a\\s+)?(?:meeting|event|appointment)",
+      "^(?:put|add)\\s+(?:on|to)\\s+my\\s+calendar"
+    ],
+    "keywords": [
+      { "word": "schedule", "weight": 1.0 },
+      { "word": "create", "weight": 0.9 },
+      { "word": "add", "weight": 0.8 },
+      { "word": "book", "weight": 0.9 }
+    ],
+    "antiKeywords": ["check", "show", "list", "cancel", "delete", "what"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "I did my",
+      "I completed",
+      "I finished",
+      "mark habit done",
+      "log my habit",
+      "track my habit",
+      "I meditated",
+      "I exercised",
+      "I worked out",
+      "I journaled"
+    ],
+    "patterns": [
+      "^i\\s+(?:just\\s+)?(?:did|completed|finished|done)\\s+(?:my\\s+)?(.+)",
+      "^(?:mark|log|track)\\s+(?:my\\s+)?(?:habit|(.+))\\s+(?:as\\s+)?(?:done|complete)",
+      "^i\\s+(?:just\\s+)?(?:meditated|exercised|worked\\s+out|journaled|read)"
+    ],
+    "keywords": [
+      { "word": "done", "weight": 0.8 },
+      { "word": "completed", "weight": 0.9 },
+      { "word": "finished", "weight": 0.8 },
+      { "word": "meditated", "weight": 0.9 },
+      { "word": "exercised", "weight": 0.9 },
+      { "word": "gym", "weight": 0.8 }
+    ],
+    "antiKeywords": ["create", "add", "new", "suggest", "help", "what"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "remember this",
+      "remember that",
+      "don't forget",
+      "save this",
+      "note that",
+      "keep in mind",
+      "remember I",
+      "make a note"
+    ],
+    "patterns": [
+      "^(?:please\\s+)?remember\\s+(?:that\\s+)?(.+)",
+      "^(?:don(?:'t|ot)\\s+)?forget\\s+(?:that\\s+)?(.+)",
+      "^(?:save|note|record)\\s+(?:that\\s+)?(.+)",
+      "^(?:keep\\s+in\\s+mind|make\\s+a\\s+note)\\s+(?:that\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "remember", "weight": 1.0 },
+      { "word": "forget", "weight": 0.9 },
+      { "word": "save", "weight": 0.7 },
+      { "word": "note", "weight": 0.7 }
+    ],
+    "antiKeywords": ["what", "when", "who", "tell me", "recall"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "what did I tell you",
+      "do you remember",
+      "what do you know about",
+      "recall",
+      "what's my",
+      "who is my",
+      "when is my"
+    ],
+    "patterns": [
+      "^(?:what|when|who)\\s+did\\s+i\\s+(?:tell|say|mention)",
+      "^do\\s+you\\s+(?:remember|recall|know)\\s+(?:what|when|who|my)",
+      "^(?:what(?:'s| is)|who(?:'s| is)|when(?:'s| is))\\s+my\\s+(.+)",
+      "^recall\\s+(?:what\\s+i\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "remember", "weight": 0.9 },
+      { "word": "recall", "weight": 1.0 },
+      { "word": "know", "weight": 0.6 },
+      { "word": "told", "weight": 0.8 }
+    ],
+    "antiKeywords": ["save", "note", "don't forget", "keep"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "I'm anxious",
+      "I'm stressed",
+      "feeling overwhelmed",
+      "need to calm down",
+      "help me relax",
+      "grounding exercise",
+      "breathing exercise",
+      "I'm panicking",
+      "calm me down"
+    ],
+    "patterns": [
+      "^i(?:'m| am)\\s+(?:feeling\\s+)?(?:anxious|stressed|overwhelmed|panicking)",
+      "^(?:i\\s+)?need\\s+(?:to\\s+)?(?:calm\\s+down|relax|ground\\s+myself)",
+      "^(?:help|can\\s+you\\s+help)\\s+me\\s+(?:calm\\s+down|relax)",
+      "^(?:do\\s+)?(?:a\\s+)?(?:grounding|breathing|calming)\\s+exercise"
+    ],
+    "keywords": [
+      { "word": "anxious", "weight": 1.0 },
+      { "word": "anxiety", "weight": 1.0 },
+      { "word": "stressed", "weight": 0.9 },
+      { "word": "panic", "weight": 1.0 },
+      { "word": "calm", "weight": 0.8 },
+      { "word": "relax", "weight": 0.7 },
+      { "word": "breathe", "weight": 0.8 },
+      { "word": "grounding", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": [
+      "play music",
+      "play some music",
+      "play spotify",
+      "start playing",
+      "put on some music",
+      "put on music"
+    ],
+    "patterns": [
+      "^play\\s+(?:me\\s+)?(?:some\\s+)?(.+)",
+      "^put\\s+on\\s+(?:some\\s+)?(.+)",
+      "^i(?:'d|\\s+would)\\s+like\\s+(?:to\\s+)?(?:hear|listen\\s+to)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "play", "weight": 1.0 },
+      { "word": "music", "weight": 0.8 },
+      { "word": "spotify", "weight": 0.9 },
+      { "word": "song", "weight": 0.7 },
+      { "word": "jazz", "weight": 0.8 },
+      { "word": "rock", "weight": 0.7 },
+      { "word": "classical", "weight": 0.7 }
+    ],
+    "antiKeywords": ["stop", "pause", "next", "skip"]
+  },
+
+  "info_time": {
+    "phrases": [
+      "what time is it",
+      "what's the time",
+      "current time",
+      "tell me the time"
+    ],
+    "patterns": [
+      "^what(?:'s| is)\\s+the\\s+time",
+      "^(?:what\\s+)?time\\s+is\\s+it",
+      "^(?:tell|give)\\s+me\\s+the\\s+time"
+    ],
+    "keywords": [
+      { "word": "time", "weight": 1.0 },
+      { "word": "clock", "weight": 0.8 }
+    ],
+    "antiKeywords": ["weather", "calendar", "meeting"]
+  },
+
+  "handoff": {
+    "phrases": [
+      "transfer me to",
+      "let me talk to",
+      "can I speak with",
+      "connect me with",
+      "I want to talk to",
+      "switch to"
+    ],
+    "patterns": [
+      "^(?:transfer|connect)\\s+(?:me\\s+)?(?:to|with)\\s+(.+)",
+      "^(?:let\\s+me|can\\s+i|i\\s+want\\s+to)\\s+(?:talk|speak)\\s+(?:to|with)\\s+(.+)",
+      "^switch\\s+(?:me\\s+)?to\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "transfer", "weight": 1.0 },
+      { "word": "talk", "weight": 0.7 },
+      { "word": "speak", "weight": 0.7 },
+      { "word": "maya", "weight": 0.9 },
+      { "word": "peter", "weight": 0.9 },
+      { "word": "alex", "weight": 0.9 },
+      { "word": "jordan", "weight": 0.9 },
+      { "word": "nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  }
+}
+

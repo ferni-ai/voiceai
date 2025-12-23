@@ -130,24 +130,83 @@ export interface SemanticToolDefinition {
 
   /** Tags for filtering and organization */
   tags?: string[];
+
+  /** Confidence scoring configuration */
+  confidence?: {
+    /** Base confidence score (0-1) */
+    baseScore: number;
+    /** Bonus for pattern matches */
+    patternMatchBonus?: number;
+    /** Multiplier for keyword density */
+    keywordDensityMultiplier?: number;
+    /** Penalty for negative keywords */
+    negativeKeywordPenalty?: number;
+  };
+
+  /** Context-based boosts */
+  contextBoosts?: {
+    /** Boost when certain emotions are detected */
+    emotionBoost?: {
+      condition: string;
+      boost: number;
+    };
+    /** Boost during certain hours */
+    timeBoost?: {
+      hours: number[];
+      boost: number;
+    };
+  };
 }
 
 /**
  * Tool categories for hierarchical routing
+ *
+ * Categories are organized by domain:
+ * - Core: music, calendar, memory, habits, handoff
+ * - Information: information, weather
+ * - Wellness: wellness, crisis (safety-critical)
+ * - Life Coaching: life-coaching, career, decisions, dating, relationships, grief
+ * - Productivity: tasks, productivity, smart-home, learning
+ * - Entertainment: games, entertainment, recommendations
+ * - Finance: finance, telephony
+ * - System: utility, settings, communication
  */
 export type ToolCategory =
+  // Core functionality
   | 'music'
-  | 'information'
-  | 'memory'
   | 'calendar'
-  | 'tasks'
-  | 'communication'
-  | 'wellness'
-  | 'finance'
-  | 'smart_home'
+  | 'memory'
+  | 'habits'
   | 'handoff'
+  // Information
+  | 'information'
+  | 'weather'
+  // Wellness & Crisis
+  | 'wellness'
+  | 'crisis' // SAFETY-CRITICAL
+  // Life Coaching
+  | 'life-coaching'
+  | 'career'
+  | 'decisions'
+  | 'dating'
+  | 'relationships'
+  | 'grief'
+  // Productivity
+  | 'tasks'
+  | 'productivity'
+  | 'smart-home'
+  | 'learning'
+  // Entertainment
+  | 'games'
+  | 'entertainment'
+  | 'recommendations'
+  // Finance & Telephony
+  | 'finance'
+  | 'telephony'
+  // System
   | 'utility'
-  | 'settings';
+  | 'settings'
+  | 'communication';
 
 // ============================================================================
 // ROUTING RESULTS
@@ -297,6 +356,9 @@ export interface ToolExecutionContext {
 
   /** Confidence that triggered execution */
   confidence: number;
+
+  /** User's location (city or coordinates) */
+  userLocation?: string;
 }
 
 /**
@@ -330,7 +392,7 @@ export interface ToolExecutionResult {
   data?: unknown;
 
   /** Human-readable result for LLM to use */
-  naturalResponse: string;
+  naturalResponse?: string;
 
   /** Error message if failed */
   error?: string;
@@ -340,6 +402,15 @@ export interface ToolExecutionResult {
 
   /** Side effects (for logging/analytics) */
   sideEffects?: string[];
+
+  /** Tool ID that should be executed (for semantic routing delegation) */
+  toolId?: string;
+
+  /** Arguments to pass to the delegated tool */
+  args?: Record<string, unknown>;
+
+  /** Domain to delegate to */
+  delegateTo?: string;
 }
 
 // ============================================================================

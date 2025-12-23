@@ -1,0 +1,267 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "fr",
+  "$name": "Français",
+  
+  "weather_current": {
+    "phrases": [
+      "quel temps fait-il",
+      "comment est le temps",
+      "il fait quel temps",
+      "est-ce qu'il pleut",
+      "il fait froid",
+      "il fait chaud",
+      "j'ai besoin d'un parapluie"
+    ],
+    "patterns": [
+      "^quel\\s+temps\\s+(?:fait-il|il\\s+fait)",
+      "^(?:comment\\s+est|c'est\\s+comment)\\s+(?:le\\s+)?temps",
+      "^(?:est-ce\\s+qu')?il\\s+(?:pleut|neige|fait\\s+(?:froid|chaud|beau))"
+    ],
+    "keywords": [
+      { "word": "temps", "weight": 1.0 },
+      { "word": "météo", "weight": 1.0 },
+      { "word": "pluie", "weight": 0.8 },
+      { "word": "pleut", "weight": 0.8 },
+      { "word": "soleil", "weight": 0.7 },
+      { "word": "nuageux", "weight": 0.7 },
+      { "word": "froid", "weight": 0.6 },
+      { "word": "chaud", "weight": 0.6 },
+      { "word": "parapluie", "weight": 0.8 }
+    ],
+    "antiKeywords": ["email", "calendrier", "réunion", "musique"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "prévisions météo",
+      "météo cette semaine",
+      "météo demain",
+      "quel sera le temps",
+      "temps ce week-end"
+    ],
+    "patterns": [
+      "^(?:quelles\\s+sont|quel\\s+est)\\s+(?:les\\s+)?prévisions\\s+météo",
+      "^(?:la\\s+)?météo\\s+(?:pour\\s+)?(?:cette|la\\s+prochaine)\\s+semaine",
+      "^(?:va-t-il)\\s+(?:pleuvoir|neiger)\\s+(?:demain|cette\\s+semaine)"
+    ],
+    "keywords": [
+      { "word": "prévisions", "weight": 1.0 },
+      { "word": "semaine", "weight": 0.7 },
+      { "word": "demain", "weight": 0.8 }
+    ],
+    "antiKeywords": ["maintenant", "actuellement"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "qu'est-ce que j'ai dans mon calendrier",
+      "voir mon calendrier",
+      "mon agenda",
+      "qu'est-ce que j'ai aujourd'hui",
+      "mes réunions aujourd'hui",
+      "quelles réunions j'ai"
+    ],
+    "patterns": [
+      "^(?:qu'est-ce\\s+que\\s+j'ai|montre-moi)\\s+(?:dans\\s+)?(?:mon\\s+)?(?:calendrier|agenda)",
+      "^(?:voir|consulter|montrer)\\s+(?:mon\\s+)?(?:calendrier|agenda)",
+      "^(?:quelles?|combien\\s+de)\\s+(?:réunions?|événements?|rendez-vous)\\s+(?:j'ai\\s+)?(?:aujourd'hui|demain)"
+    ],
+    "keywords": [
+      { "word": "calendrier", "weight": 1.0 },
+      { "word": "agenda", "weight": 0.9 },
+      { "word": "réunion", "weight": 0.8 },
+      { "word": "réunions", "weight": 0.8 },
+      { "word": "rendez-vous", "weight": 0.8 }
+    ],
+    "antiKeywords": ["créer", "ajouter", "planifier", "annuler", "supprimer"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "j'ai fait mon",
+      "j'ai terminé",
+      "j'ai fini",
+      "marquer habitude",
+      "j'ai médité",
+      "j'ai fait du sport",
+      "je suis allé à la salle"
+    ],
+    "patterns": [
+      "^j'ai\\s+(?:fait|terminé|fini)\\s+(?:mon\\s+)?(.+)",
+      "^(?:marquer|enregistrer)\\s+(?:mon\\s+)?(?:habitude|(.+))\\s+(?:comme\\s+)?(?:fait|terminé)"
+    ],
+    "keywords": [
+      { "word": "fait", "weight": 0.8 },
+      { "word": "terminé", "weight": 0.9 },
+      { "word": "fini", "weight": 0.8 },
+      { "word": "médité", "weight": 0.9 },
+      { "word": "sport", "weight": 0.9 },
+      { "word": "salle", "weight": 0.8 }
+    ],
+    "antiKeywords": ["créer", "ajouter", "nouveau", "suggérer", "aide", "quoi"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "souviens-toi de ça",
+      "rappelle-toi que",
+      "n'oublie pas",
+      "garde en mémoire",
+      "note que",
+      "retiens que"
+    ],
+    "patterns": [
+      "^(?:s'il\\s+te\\s+plaît\\s+)?(?:souviens-toi|rappelle-toi)\\s+(?:que\\s+)?(.+)",
+      "^n'oublie\\s+pas\\s+(?:que\\s+)?(.+)",
+      "^(?:garde|note|retiens)\\s+(?:que\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "souviens", "weight": 1.0 },
+      { "word": "rappelle", "weight": 0.9 },
+      { "word": "oublie", "weight": 0.9 },
+      { "word": "note", "weight": 0.7 },
+      { "word": "retiens", "weight": 0.8 }
+    ],
+    "antiKeywords": ["quoi", "quand", "qui", "dis-moi"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "qu'est-ce que je t'ai dit",
+      "tu te souviens",
+      "qu'est-ce que tu sais de",
+      "quel est mon",
+      "qui est mon",
+      "quand est mon"
+    ],
+    "patterns": [
+      "^(?:qu'est-ce\\s+que|quand|qui)\\s+(?:je\\s+)?t'ai\\s+(?:dit|raconté|mentionné)",
+      "^tu\\s+te\\s+(?:souviens|rappelles)\\s+(?:de\\s+)?(?:quoi|quand|mon)",
+      "^(?:quel|quelle|qui)\\s+est\\s+mon\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "souviens", "weight": 0.9 },
+      { "word": "rappelles", "weight": 1.0 },
+      { "word": "sais", "weight": 0.6 },
+      { "word": "dit", "weight": 0.8 }
+    ],
+    "antiKeywords": ["garde", "note", "n'oublie pas"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "je suis anxieux",
+      "je suis stressé",
+      "je me sens submergé",
+      "j'ai besoin de me calmer",
+      "aide-moi à me détendre",
+      "exercice de respiration",
+      "je panique"
+    ],
+    "patterns": [
+      "^je\\s+(?:suis|me\\s+sens)\\s+(?:très\\s+)?(?:anxieux|stressé|submergé|en\\s+panique)",
+      "^j'ai\\s+besoin\\s+de\\s+(?:me\\s+calmer|me\\s+détendre)",
+      "^(?:aide-moi|peux-tu\\s+m'aider)\\s+à\\s+(?:me\\s+calmer|me\\s+détendre)"
+    ],
+    "keywords": [
+      { "word": "anxieux", "weight": 1.0 },
+      { "word": "anxiété", "weight": 1.0 },
+      { "word": "stressé", "weight": 0.9 },
+      { "word": "panique", "weight": 1.0 },
+      { "word": "calmer", "weight": 0.8 },
+      { "word": "détendre", "weight": 0.7 },
+      { "word": "respirer", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": [
+      "mets de la musique",
+      "joue de la musique",
+      "je veux écouter",
+      "mets-moi du",
+      "lance spotify"
+    ],
+    "patterns": [
+      "^(?:mets|joue|lance)\\s+(?:de\\s+la\\s+)?(.+)",
+      "^je\\s+veux\\s+(?:écouter|entendre)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "mets", "weight": 1.0 },
+      { "word": "joue", "weight": 0.9 },
+      { "word": "musique", "weight": 0.8 },
+      { "word": "spotify", "weight": 0.9 },
+      { "word": "chanson", "weight": 0.7 },
+      { "word": "jazz", "weight": 0.8 },
+      { "word": "rock", "weight": 0.7 }
+    ],
+    "antiKeywords": ["arrête", "pause", "suivant", "passe"]
+  },
+
+  "calendar_create_event": {
+    "phrases": [
+      "créer un événement",
+      "ajouter au calendrier",
+      "planifier une réunion",
+      "prendre un rendez-vous",
+      "nouveau rendez-vous"
+    ],
+    "patterns": [
+      "^(?:créer|ajouter|planifier)\\s+(?:un|une)?\\s*(?:événement|réunion|rendez-vous)",
+      "^(?:ajouter|mettre)\\s+(?:dans\\s+)?(?:mon\\s+)?calendrier"
+    ],
+    "keywords": [
+      { "word": "créer", "weight": 1.0 },
+      { "word": "ajouter", "weight": 0.9 },
+      { "word": "planifier", "weight": 0.9 },
+      { "word": "rendez-vous", "weight": 0.8 }
+    ],
+    "antiKeywords": ["voir", "montrer", "quoi", "quelles"]
+  },
+
+  "info_time": {
+    "phrases": [
+      "quelle heure est-il",
+      "dis-moi l'heure",
+      "l'heure actuelle",
+      "il est quelle heure"
+    ],
+    "patterns": [
+      "^(?:quelle\\s+heure|il\\s+est\\s+quelle\\s+heure)\\s*(?:est-il)?",
+      "^(?:dis-moi|donne-moi)\\s+l'heure"
+    ],
+    "keywords": [
+      { "word": "heure", "weight": 1.0 },
+      { "word": "temps", "weight": 0.5 }
+    ],
+    "antiKeywords": ["météo", "calendrier", "réunion"]
+  },
+
+  "handoff": {
+    "phrases": [
+      "passe-moi à",
+      "je veux parler à",
+      "je peux parler à",
+      "connecte-moi avec",
+      "change pour"
+    ],
+    "patterns": [
+      "^(?:passe-moi|connecte-moi)\\s+(?:à)\\s+(.+)",
+      "^(?:je\\s+veux|je\\s+peux)\\s+parler\\s+(?:à|avec)\\s+(.+)",
+      "^change\\s+(?:moi\\s+)?(?:pour|à)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "passe", "weight": 1.0 },
+      { "word": "parler", "weight": 0.7 },
+      { "word": "maya", "weight": 0.9 },
+      { "word": "peter", "weight": 0.9 },
+      { "word": "alex", "weight": 0.9 },
+      { "word": "jordan", "weight": 0.9 },
+      { "word": "nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  }
+}
+

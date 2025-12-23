@@ -1,0 +1,268 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "de",
+  "$name": "Deutsch",
+  
+  "weather_current": {
+    "phrases": [
+      "wie ist das Wetter",
+      "was für Wetter ist es",
+      "regnet es",
+      "ist es kalt",
+      "ist es warm",
+      "brauche ich einen Regenschirm",
+      "soll ich eine Jacke mitnehmen"
+    ],
+    "patterns": [
+      "^wie\\s+ist\\s+(?:das\\s+)?(?:Wetter|draußen)",
+      "^(?:was\\s+für\\s+)?Wetter\\s+(?:ist\\s+)?(?:es|heute)",
+      "^(?:regnet|schneit)\\s+es",
+      "^ist\\s+es\\s+(?:kalt|warm|sonnig|bewölkt)"
+    ],
+    "keywords": [
+      { "word": "Wetter", "weight": 1.0 },
+      { "word": "Temperatur", "weight": 0.9 },
+      { "word": "Regen", "weight": 0.8 },
+      { "word": "regnet", "weight": 0.8 },
+      { "word": "sonnig", "weight": 0.7 },
+      { "word": "bewölkt", "weight": 0.7 },
+      { "word": "kalt", "weight": 0.6 },
+      { "word": "warm", "weight": 0.6 },
+      { "word": "Regenschirm", "weight": 0.8 }
+    ],
+    "antiKeywords": ["Email", "Kalender", "Termin", "Musik"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "Wettervorhersage",
+      "Wetter diese Woche",
+      "Wetter morgen",
+      "wie wird das Wetter",
+      "Wetter am Wochenende"
+    ],
+    "patterns": [
+      "^(?:wie\\s+wird|was\\s+ist)\\s+(?:das\\s+)?(?:Wetter|die\\s+Wettervorhersage)",
+      "^(?:das\\s+)?Wetter\\s+(?:für\\s+)?(?:diese|nächste)\\s+Woche",
+      "^(?:wird\\s+es)\\s+(?:morgen|diese\\s+Woche)\\s+(?:regnen|schneien)"
+    ],
+    "keywords": [
+      { "word": "Vorhersage", "weight": 1.0 },
+      { "word": "Woche", "weight": 0.7 },
+      { "word": "morgen", "weight": 0.8 }
+    ],
+    "antiKeywords": ["jetzt", "gerade", "momentan"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "was steht in meinem Kalender",
+      "zeig mir meinen Kalender",
+      "mein Terminplan",
+      "was habe ich heute",
+      "welche Termine habe ich",
+      "habe ich heute Termine"
+    ],
+    "patterns": [
+      "^(?:was\\s+steht|zeig\\s+mir)\\s+(?:in\\s+)?(?:meinem?\\s+)?(?:Kalender|Terminplan)",
+      "^(?:zeige|öffne)\\s+(?:meinen?\\s+)?(?:Kalender|Terminplan)",
+      "^(?:welche|habe\\s+ich)\\s+(?:Termine|Meetings)\\s+(?:heute|morgen)"
+    ],
+    "keywords": [
+      { "word": "Kalender", "weight": 1.0 },
+      { "word": "Terminplan", "weight": 0.9 },
+      { "word": "Termin", "weight": 0.8 },
+      { "word": "Termine", "weight": 0.8 },
+      { "word": "Meeting", "weight": 0.8 }
+    ],
+    "antiKeywords": ["erstellen", "hinzufügen", "planen", "absagen", "löschen"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "ich habe meine",
+      "ich habe es geschafft",
+      "ich habe fertig",
+      "Gewohnheit erledigt",
+      "ich habe meditiert",
+      "ich habe trainiert",
+      "ich war im Fitnessstudio"
+    ],
+    "patterns": [
+      "^ich\\s+habe\\s+(?:meine?\\s+)?(.+)\\s+(?:erledigt|geschafft|gemacht)",
+      "^(?:markiere|trag\\s+ein)\\s+(?:meine?\\s+)?(?:Gewohnheit|(.+))\\s+(?:als\\s+)?(?:erledigt|fertig)"
+    ],
+    "keywords": [
+      { "word": "erledigt", "weight": 0.8 },
+      { "word": "geschafft", "weight": 0.9 },
+      { "word": "fertig", "weight": 0.8 },
+      { "word": "meditiert", "weight": 0.9 },
+      { "word": "trainiert", "weight": 0.9 },
+      { "word": "Fitnessstudio", "weight": 0.8 }
+    ],
+    "antiKeywords": ["erstellen", "hinzufügen", "neu", "vorschlagen", "hilfe", "was"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "merk dir das",
+      "erinnere dich daran",
+      "vergiss nicht",
+      "speicher das",
+      "notiere dass",
+      "behalte im Kopf"
+    ],
+    "patterns": [
+      "^(?:bitte\\s+)?(?:merk|erinner)\\s+dir\\s+(?:dass\\s+)?(.+)",
+      "^vergiss\\s+(?:bitte\\s+)?nicht\\s+(?:dass\\s+)?(.+)",
+      "^(?:speicher|notier)\\s+(?:dass\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "merk", "weight": 1.0 },
+      { "word": "erinner", "weight": 0.9 },
+      { "word": "vergiss", "weight": 0.9 },
+      { "word": "speicher", "weight": 0.7 },
+      { "word": "notier", "weight": 0.7 }
+    ],
+    "antiKeywords": ["was", "wann", "wer", "sag mir"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "was habe ich dir gesagt",
+      "erinnerst du dich",
+      "was weißt du über",
+      "was ist mein",
+      "wer ist mein",
+      "wann ist mein"
+    ],
+    "patterns": [
+      "^(?:was|wann|wer)\\s+habe\\s+ich\\s+dir\\s+(?:gesagt|erzählt|erwähnt)",
+      "^erinnerst\\s+du\\s+dich\\s+(?:an\\s+)?(?:was|wann|mein)",
+      "^(?:was|wer|wann)\\s+ist\\s+mein\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "erinnerst", "weight": 0.9 },
+      { "word": "weißt", "weight": 0.6 },
+      { "word": "gesagt", "weight": 0.8 }
+    ],
+    "antiKeywords": ["speicher", "notier", "vergiss nicht"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "ich bin ängstlich",
+      "ich bin gestresst",
+      "ich fühle mich überfordert",
+      "ich muss mich beruhigen",
+      "hilf mir zu entspannen",
+      "Atemübung",
+      "ich habe Panik"
+    ],
+    "patterns": [
+      "^ich\\s+(?:bin|fühle\\s+mich)\\s+(?:sehr\\s+)?(?:ängstlich|gestresst|überfordert|panisch)",
+      "^ich\\s+(?:muss|brauche)\\s+(?:mich\\s+)?(?:beruhigen|entspannen)",
+      "^(?:hilf|kannst\\s+du)\\s+mir\\s+(?:mich\\s+)?(?:zu\\s+)?(?:beruhigen|entspannen)"
+    ],
+    "keywords": [
+      { "word": "ängstlich", "weight": 1.0 },
+      { "word": "Angst", "weight": 1.0 },
+      { "word": "gestresst", "weight": 0.9 },
+      { "word": "Panik", "weight": 1.0 },
+      { "word": "beruhigen", "weight": 0.8 },
+      { "word": "entspannen", "weight": 0.7 },
+      { "word": "atmen", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": [
+      "spiel Musik",
+      "spiele Musik",
+      "ich möchte hören",
+      "leg etwas auf",
+      "starte Spotify"
+    ],
+    "patterns": [
+      "^(?:spiel|spiele)\\s+(?:mir\\s+)?(?:etwas\\s+)?(.+)",
+      "^(?:leg|lege)\\s+(?:mir\\s+)?(?:etwas\\s+)?(.+)\\s+auf",
+      "^ich\\s+möchte\\s+(?:gerne\\s+)?(?:hören|anhören)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "spiel", "weight": 1.0 },
+      { "word": "Musik", "weight": 0.8 },
+      { "word": "Spotify", "weight": 0.9 },
+      { "word": "Lied", "weight": 0.7 },
+      { "word": "Jazz", "weight": 0.8 },
+      { "word": "Rock", "weight": 0.7 }
+    ],
+    "antiKeywords": ["stopp", "pause", "nächstes", "überspringen"]
+  },
+
+  "calendar_create_event": {
+    "phrases": [
+      "Termin erstellen",
+      "zum Kalender hinzufügen",
+      "Meeting planen",
+      "Verabredung eintragen",
+      "neuer Termin"
+    ],
+    "patterns": [
+      "^(?:erstelle|füge\\s+hinzu|plane)\\s+(?:einen?\\s+)?(?:Termin|Meeting|Verabredung)",
+      "^(?:trag|füge)\\s+(?:in\\s+)?(?:meinen?\\s+)?Kalender\\s+ein"
+    ],
+    "keywords": [
+      { "word": "erstellen", "weight": 1.0 },
+      { "word": "hinzufügen", "weight": 0.9 },
+      { "word": "planen", "weight": 0.9 },
+      { "word": "eintragen", "weight": 0.8 }
+    ],
+    "antiKeywords": ["zeig", "anzeigen", "was", "welche", "absagen", "löschen"]
+  },
+
+  "info_time": {
+    "phrases": [
+      "wie spät ist es",
+      "sag mir die Uhrzeit",
+      "aktuelle Uhrzeit",
+      "welche Zeit ist es"
+    ],
+    "patterns": [
+      "^wie\\s+spät\\s+ist\\s+es",
+      "^(?:sag|gib)\\s+mir\\s+(?:die\\s+)?(?:Uhrzeit|Zeit)"
+    ],
+    "keywords": [
+      { "word": "Uhrzeit", "weight": 1.0 },
+      { "word": "Zeit", "weight": 0.8 },
+      { "word": "spät", "weight": 0.7 }
+    ],
+    "antiKeywords": ["Wetter", "Kalender", "Termin"]
+  },
+
+  "handoff": {
+    "phrases": [
+      "verbinde mich mit",
+      "ich möchte mit sprechen",
+      "kann ich mit sprechen",
+      "wechsle zu",
+      "gib mir"
+    ],
+    "patterns": [
+      "^(?:verbinde|stell)\\s+mich\\s+(?:mit|zu)\\s+(.+)",
+      "^(?:ich\\s+möchte|kann\\s+ich)\\s+mit\\s+(.+)\\s+sprechen",
+      "^wechsle\\s+(?:mich\\s+)?zu\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "verbinde", "weight": 1.0 },
+      { "word": "sprechen", "weight": 0.7 },
+      { "word": "Maya", "weight": 0.9 },
+      { "word": "Peter", "weight": 0.9 },
+      { "word": "Alex", "weight": 0.9 },
+      { "word": "Jordan", "weight": 0.9 },
+      { "word": "Nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  }
+}
+
