@@ -22,6 +22,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
+import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
 import {
@@ -90,6 +91,7 @@ import { handleWaitlistRoutes } from '../../api/waitlist-routes.js';
 import { handleHabitRoutes } from '../../api/habit-routes.js';
 import { handleWellbeingRoutes } from '../../api/wellbeing.routes.js';
 import { handlePredictiveInsightsRequest } from '../../api/predictive-insights-routes.js';
+import { handleIntelligenceRoutes } from '../../api/routes/intelligence-routes.js';
 import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs.routes.js';
 import { handleEvalOpsRoutes } from '../../api/evalops.routes.js';
 import { handleHouseholdRoutes } from '../../api/household-routes.js';
@@ -527,8 +529,11 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Relationship routes
-    if (pathname === '/api/relationship/progress') {
+    // Relationship routes (progress & team-unlocks before health routes)
+    if (
+      pathname === '/api/relationship/progress' ||
+      pathname === '/api/relationship/team-unlocks'
+    ) {
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
@@ -705,6 +710,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Intelligence routes (Better Than Human)
+    if (pathname.startsWith('/api/intelligence')) {
+      const handled = await handleIntelligenceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Scheduled jobs routes
     if (pathname.startsWith('/api/jobs')) {
       const handled = await handleScheduledJobsRoutes(req, res, pathname);
@@ -764,7 +775,7 @@ const server = http.createServer(async (req, res) => {
       try {
         // Skip auth for webhooks (they use signature verification)
         const isWebhook = pathname.endsWith('/webhook');
-        
+
         // SECURITY: Get authenticated user for IDOR protection
         // Webhooks don't need auth (they use Stripe signature verification)
         let authUserId: string | undefined;
@@ -776,18 +787,16 @@ const server = http.createServer(async (req, res) => {
             isAdmin = auth.isAdmin;
           }
         }
-        
+
         let body: unknown = undefined;
 
         if (req.method === 'POST' || req.method === 'PUT') {
-          const chunks: Buffer[] = [];
-          await new Promise<void>((resolve) => {
-            req.on('data', (chunk: Buffer) => chunks.push(chunk));
-            req.on('end', resolve);
-          });
-          const rawBody = Buffer.concat(chunks).toString('utf8');
+          // Use parseRawBody to avoid race condition with async auth check
+          // Also adds timeout, max size limit, and proper error handling
+          const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
 
           if (isWebhook) {
+            // Webhooks need raw body for signature verification
             body = rawBody;
           } else {
             try {
@@ -832,16 +841,13 @@ const server = http.createServer(async (req, res) => {
           authUserId = auth.userId;
           isAdmin = auth.isAdmin;
         }
-        
+
         let body: unknown = undefined;
 
         if (req.method === 'POST' || req.method === 'PUT') {
-          const chunks: Buffer[] = [];
-          await new Promise<void>((resolve) => {
-            req.on('data', (chunk: Buffer) => chunks.push(chunk));
-            req.on('end', resolve);
-          });
-          const rawBody = Buffer.concat(chunks).toString('utf8');
+          // Use parseRawBody to avoid race condition with async auth check
+          // Also adds timeout, max size limit, and proper error handling
+          const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
           try {
             body = rawBody ? JSON.parse(rawBody) : {};
           } catch {
