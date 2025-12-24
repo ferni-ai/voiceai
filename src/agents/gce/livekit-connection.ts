@@ -247,12 +247,23 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       const { job } = message.value;
       if (!job) return;
 
-      _log('Job availability request', { jobId: job.id, roomName: job.room?.name });
+      // Enhanced logging with instance identification for multi-instance debugging
+      const roomName = job.room?.name || 'unknown';
+      _log('Job availability request', { 
+        jobId: job.id, 
+        roomName,
+        instanceId: `${_config.agentName}-${process.pid}`,
+        hostname: process.env.HOSTNAME || 'local',
+      });
 
       const acceptArgs = {
         name: _config.agentName,
         identity: `${_config.agentName}-${process.pid}`,
-        metadata: JSON.stringify({ singleProcess: true }),
+        metadata: JSON.stringify({ 
+          singleProcess: true,
+          hostname: process.env.HOSTNAME || 'local',
+          pid: process.pid,
+        }),
       };
       pendingJobs.set(job.id, { job, acceptArgs, timestamp: Date.now() });
 
@@ -275,8 +286,15 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
     case 'assignment': {
       const assignment = message.value;
       const jobId = assignment.job?.id;
+      const roomName = assignment.job?.room?.name || 'unknown';
 
-      _log('Job assignment received', { jobId });
+      // Enhanced logging with instance identification
+      _log('Job assignment received', { 
+        jobId, 
+        roomName,
+        instanceId: `${_config.agentName}-${process.pid}`,
+        hostname: process.env.HOSTNAME || 'local',
+      });
 
       if (!jobId || !assignment.job) {
         _log('Invalid assignment - no job');
@@ -304,7 +322,21 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
     }
 
     case 'termination': {
-      _log('Job termination received', { jobId: message.value.jobId });
+      // Enhanced termination logging - this is critical for debugging conflicts
+      const jobId = message.value.jobId;
+      _log('Job termination received', { 
+        jobId,
+        instanceId: `${_config.agentName}-${process.pid}`,
+        hostname: process.env.HOSTNAME || 'local',
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Write to stderr for immediate visibility
+      process.stderr.write(
+        `[livekit-connection] 🛑 JOB TERMINATED: ${jobId} ` +
+        `(instance: ${_config.agentName}-${process.pid}, ` +
+        `host: ${process.env.HOSTNAME || 'local'})\n`
+      );
       break;
     }
 

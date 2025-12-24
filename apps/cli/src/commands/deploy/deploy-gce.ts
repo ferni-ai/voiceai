@@ -802,6 +802,76 @@ function rollback(): void {
 }
 
 // ============================================================================
+// SAFETY CHECKS
+// ============================================================================
+
+/**
+ * Check for conflicting deployments that could cause LiveKit job routing issues.
+ *
+ * CRITICAL: LiveKit dispatches jobs to ALL registered workers. Having both a
+ * standalone VM and MIG running causes job conflicts (ROOM_CLOSED errors).
+ *
+ * See: docs/architecture/LIVEKIT-AUTOSCALING.md
+ */
+function checkForConflictingDeployments(useMig: boolean): { hasConflict: boolean; message: string } {
+  log.substep('Checking for conflicting deployments...');
+
+  try {
+    // Get all voice agent instances
+    const output = exec(
+      `gcloud compute instances list --project=${CONFIG.projectId} --filter="name~voiceai-agent" --format="value(name,status)"`,
+      { silent: true }
+    );
+
+    const instances = output
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [name, status] = line.split(/\s+/);
+        return { name: name ?? '', status: status ?? '' };
+      })
+      .filter((i) => i.status === 'RUNNING');
+
+    const standaloneVm = instances.find((i) => i.name === CONFIG.instanceName);
+    const migInstances = instances.filter((i) => i.name.startsWith(CONFIG.migName));
+
+    // Check for conflicts
+    if (useMig && standaloneVm) {
+      return {
+        hasConflict: true,
+        message: `⚠️  CONFLICT DETECTED!\n\n` +
+          `You're deploying to MIG but the standalone VM (${CONFIG.instanceName}) is running.\n` +
+          `Both would register with LiveKit, causing job routing conflicts.\n\n` +
+          `To fix, stop the standalone VM first:\n` +
+          `  gcloud compute instances stop ${CONFIG.instanceName} --zone=${CONFIG.zone}\n\n` +
+          `Or delete it entirely:\n` +
+          `  gcloud compute instances delete ${CONFIG.instanceName} --zone=${CONFIG.zone}`,
+      };
+    }
+
+    if (!useMig && migInstances.length > 0) {
+      return {
+        hasConflict: true,
+        message: `⚠️  CONFLICT DETECTED!\n\n` +
+          `You're deploying to standalone VM but MIG instances are running:\n` +
+          `  ${migInstances.map((i) => i.name).join('\n  ')}\n\n` +
+          `Both would register with LiveKit, causing job routing conflicts.\n\n` +
+          `To fix, delete the MIG first:\n` +
+          `  gcloud compute instance-groups managed delete ${CONFIG.migName} --zone=${CONFIG.zone}`,
+      };
+    }
+
+    log.success('No conflicting deployments found');
+    return { hasConflict: false, message: '' };
+  } catch (error) {
+    // If we can't check, warn but continue
+    log.warn(`Could not check for conflicts: ${error instanceof Error ? error.message : error}`);
+    return { hasConflict: false, message: '' };
+  }
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -811,6 +881,7 @@ async function main(): Promise<void> {
   const isRollback = args.includes('--rollback');
   const forceCloudBuild = args.includes('--cloud-build');
   const useMig = args.includes('--mig');
+  const skipConflictCheck = args.includes('--force');
 
   const headerText = useMig ? 'GCE MANAGED INSTANCE GROUP DEPLOYMENT' : 'GCE BLUE-GREEN DEPLOYMENT';
 
@@ -849,6 +920,19 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
   }
   log.info(`Zone: ${CONFIG.zone}`);
+
+  // Check for conflicting deployments (standalone VM + MIG = bad)
+  if (!skipConflictCheck) {
+    const conflict = checkForConflictingDeployments(useMig);
+    if (conflict.hasConflict) {
+      console.log(`\n${colors.red}${colors.bold}${conflict.message}${colors.reset}\n`);
+      log.error('Deploy aborted due to conflicting deployments');
+      log.info('Use --force to skip this check (NOT RECOMMENDED)');
+      process.exit(1);
+    }
+  } else {
+    log.warn('Skipping conflict check (--force). This may cause LiveKit job routing issues!');
+  }
 
   if (isRollback) {
     if (isDryRun) {

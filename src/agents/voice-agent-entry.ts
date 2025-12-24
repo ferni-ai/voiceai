@@ -1897,25 +1897,49 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.off('reconnected', reconnectedHandler);
     });
 
-    // Wait for disconnect - capture the reason for crash analytics
+    // Wait for disconnect - capture the reason with full diagnostics
     await new Promise<void>((resolve) => {
       ctx.room.on('disconnected', (reason?: unknown) => {
         const disconnectReason = String(reason || 'unknown');
         const sessionDurationMs = Date.now() - startTime;
-        process.stderr.write(
-          `[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`
-        );
 
-        // 🚨 CRASH-ANALYTICS: Log disconnect with full context
+        // 🚨 ENHANCED DISCONNECT DIAGNOSTICS
         void (async () => {
           try {
+            // Import diagnostics module for rich context
+            const { logDisconnect, analyzeDisconnect } = await import('./shared/disconnect-diagnostics.js');
             const { recordConnectionDrop } = await import('./shared/crash-analytics.js');
-            // Determine if this was a graceful disconnect
-            const isGraceful =
-              disconnectReason === 'client_left' || disconnectReason === 'participant_left';
-            recordConnectionDrop(sessionId, disconnectReason, isGraceful);
+            
+            // Get participant count if available
+            const participantCount = ctx.room.remoteParticipants?.size ?? 0;
+            
+            // Log with full diagnostic context
+            logDisconnect({
+              sessionId,
+              roomName,
+              reason: disconnectReason,
+              durationMs: sessionDurationMs,
+              turnCount: session?.turnCount,
+              participantCount: participantCount + 1, // +1 for agent
+              wasActive: sessionDurationMs > 30000, // Consider active if > 30s
+              userId,
+              personaId: persona?.id,
+            });
+            
+            // Also record in crash analytics
+            const analysis = analyzeDisconnect({
+              sessionId,
+              roomName,
+              reason: disconnectReason,
+              durationMs: sessionDurationMs,
+            });
+            recordConnectionDrop(sessionId, disconnectReason, analysis.wasGraceful);
           } catch (e) {
-            process.stderr.write(`[voice-agent-entry] Failed to capture disconnect event: ${e}\n`);
+            // Fallback to basic logging if diagnostics fail
+            process.stderr.write(
+              `[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`
+            );
+            process.stderr.write(`[voice-agent-entry] Failed to capture disconnect diagnostics: ${e}\n`);
           }
         })();
 
