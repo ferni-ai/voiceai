@@ -1336,6 +1336,86 @@ Test with:
   });
 }
 
+async function deployIntelligence(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING INTELLIGENCE WORKER (Pattern Detection, Predictive Analytics)');
+
+  if (options.dryRun) {
+    log.info('Would build and deploy intelligence worker to Cloud Run');
+    log.info('Would configure Pub/Sub subscription');
+    return true;
+  }
+
+  const intelligenceDir = join(PROJECT_ROOT, 'apps', 'intelligence-worker');
+
+  if (!existsSync(intelligenceDir)) {
+    log.error('Intelligence worker not found at apps/intelligence-worker');
+    return false;
+  }
+
+  // Typecheck before deploying
+  log.info('Typechecking intelligence worker...');
+  try {
+    exec('pnpm typecheck', { cwd: intelligenceDir });
+    log.success('Typecheck passed');
+  } catch {
+    log.error('Typecheck failed - fix errors before deploying');
+    return false;
+  }
+
+  // Submit Cloud Build
+  log.info('Submitting Cloud Build...');
+  return new Promise((resolve) => {
+    const child: ChildProcess = spawn(
+      'gcloud',
+      [
+        'builds',
+        'submit',
+        `--config=cloudbuild-intelligence.yaml`,
+        `--project=${CONFIG.projectId}`,
+      ],
+      {
+        cwd: PROJECT_ROOT,
+        stdio: options.verbose ? 'inherit' : 'pipe',
+      }
+    );
+
+    if (!options.verbose && child.stdout) {
+      const logPath = join(PROJECT_ROOT, '.deploy-logs');
+      if (!existsSync(logPath)) {
+        mkdirSync(logPath, { recursive: true });
+      }
+      const logFile = createWriteStream(join(logPath, 'intelligence.log'));
+      child.stdout.pipe(logFile);
+      child.stderr?.pipe(logFile);
+    }
+
+    child.on('exit', (code) => {
+      if (code === 0) {
+        log.success('Intelligence worker deployed to Cloud Run!');
+        log.success('Pub/Sub subscription configured');
+        console.log(`
+Intelligence worker is now running:
+  • Pub/Sub: intelligence-events -> /pubsub/push
+  • Handles: Pattern detection, Predictive intelligence, Key moments, Trust recording
+
+Test with:
+  gcloud pubsub topics publish intelligence-events --message='{"eventType":"test","payload":{}}'
+`);
+        resolve(true);
+      } else {
+        log.error(`Intelligence worker deployment failed with code ${code}`);
+        log.info('Check logs: .deploy-logs/intelligence.log');
+        resolve(false);
+      }
+    });
+
+    child.on('error', (err) => {
+      log.error(`Intelligence worker deployment error: ${err.message}`);
+      resolve(false);
+    });
+  });
+}
+
 // ============================================================================
 // PREFLIGHT CHECKS
 // ============================================================================
@@ -1571,6 +1651,10 @@ ${colors.cyan}╚═════════════════════
     case 'async':
     case 'workers': // Legacy alias
       success = await deployAsync(options);
+      break;
+
+    case 'intelligence':
+      success = await deployIntelligence(options);
       break;
 
     case 'all':

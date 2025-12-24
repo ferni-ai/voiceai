@@ -584,6 +584,13 @@ button {
   width: 120px;
   height: 120px;
   margin: 0 auto var(--space-6);
+  
+  /* Ensure container is completely transparent - no visible box */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 0 !important;
 }
 
 .hero-ferni__orb {

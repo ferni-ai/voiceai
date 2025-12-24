@@ -26,6 +26,7 @@ import { sendEmail, sendSMS } from '../services/communication-service.js';
 import { callWithPersonaVoice } from '../services/voice/voice-call.js';
 import { getDefaultStore } from '../memory/index.js';
 import { getPersonaDisplayName, getCanonicalPersonaId } from '../personas/voice-registry.js';
+import { recordOutcome } from '../services/contacts/optimal-timing.js';
 
 /**
  * Make a phone call using Twilio with persona voice (via Cartesia TTS)
@@ -186,13 +187,22 @@ export async function canReachUser(
 // IMMEDIATE OUTREACH
 // ============================================================================
 
+/** Options for immediate sends with contact ML tracking */
+export interface ImmediateContactOptions {
+  /** Contact ID for ML timing learning (if this message is ABOUT a contact) */
+  contactId?: string;
+  /** If true, this is a direct message TO the contact (not to user about contact) */
+  isDirectToContact?: boolean;
+}
+
 /**
  * Send an immediate text message to the user
  */
 export async function textUser(
   userId: string,
   message: string,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ImmediateContactOptions
 ): Promise<{ success: boolean; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -214,6 +224,26 @@ export async function textUser(
     }
 
     getLogger().info({ userId, personaId: canonicalId }, '📱 Text sent to user');
+
+    // Record outcome for ML timing learning if this message is about a contact
+    if (options?.contactId) {
+      try {
+        await recordOutcome(userId, {
+          contactId: options.contactId,
+          sentAt: new Date(),
+          channel: 'sms',
+          gotResponse: false, // Will be updated via webhooks if they respond
+        });
+        getLogger().debug(
+          { contactId: options.contactId, channel: 'sms' },
+          '📊 Recorded immediate text outcome for timing ML'
+        );
+      } catch (mlError) {
+        // Don't fail the send if ML tracking fails
+        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
+      }
+    }
+
     return { success: true };
   } catch (error) {
     getLogger().error({ error, userId, personaId }, 'Failed to text user');
@@ -228,7 +258,8 @@ export async function emailUser(
   userId: string,
   subject: string,
   message: string,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ImmediateContactOptions
 ): Promise<{ success: boolean; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -250,6 +281,26 @@ export async function emailUser(
     }
 
     getLogger().info({ userId, personaId: canonicalId, subject }, '📧 Email sent to user');
+
+    // Record outcome for ML timing learning if this message is about a contact
+    if (options?.contactId) {
+      try {
+        await recordOutcome(userId, {
+          contactId: options.contactId,
+          sentAt: new Date(),
+          channel: 'email',
+          gotResponse: false, // Will be updated via webhooks if they respond
+        });
+        getLogger().debug(
+          { contactId: options.contactId, channel: 'email' },
+          '📊 Recorded immediate email outcome for timing ML'
+        );
+      } catch (mlError) {
+        // Don't fail the send if ML tracking fails
+        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
+      }
+    }
+
     return { success: true };
   } catch (error) {
     getLogger().error({ error, userId, personaId }, 'Failed to email user');
@@ -263,7 +314,8 @@ export async function emailUser(
 export async function callUser(
   userId: string,
   message: string,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ImmediateContactOptions
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -284,6 +336,26 @@ export async function callUser(
       { userId, personaId: canonicalPersonaId, callSid: result.callSid },
       '📞 Call initiated to user'
     );
+
+    // Record outcome for ML timing learning if this message is about a contact
+    if (options?.contactId) {
+      try {
+        await recordOutcome(userId, {
+          contactId: options.contactId,
+          sentAt: new Date(),
+          channel: 'voice',
+          gotResponse: false, // Will be updated via call completion webhooks
+        });
+        getLogger().debug(
+          { contactId: options.contactId, channel: 'voice' },
+          '📊 Recorded immediate call outcome for timing ML'
+        );
+      } catch (mlError) {
+        // Don't fail the call if ML tracking fails
+        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
+      }
+    }
+
     return { success: true, callSid: result.callSid };
   } catch (error) {
     getLogger().error({ error, userId, personaId }, 'Failed to call user');
@@ -295,6 +367,20 @@ export async function callUser(
 // SCHEDULED OUTREACH
 // ============================================================================
 
+/** Options for scheduling with contact ML tracking */
+export interface ScheduleContactOptions {
+  /** Contact ID for ML timing learning */
+  contactId?: string;
+  /** Contact name for display */
+  contactName?: string;
+  /** If true, message goes directly TO the contact (not as reminder to self) */
+  isDirectToContact?: boolean;
+  /** Phone number to send to (overrides user's saved contact) */
+  toPhone?: string;
+  /** Email to send to (overrides user's saved contact) */
+  toEmail?: string;
+}
+
 /**
  * Schedule a future text message
  */
@@ -302,11 +388,14 @@ export async function scheduleText(
   userId: string,
   message: string,
   scheduledFor: Date,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
+  // Use provided phone or fall back to user's saved contact
+  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
   const contact = await getUserContactInfo(userId);
 
-  if (!contact?.phone) {
+  if (!deliveryPhone) {
     return { success: false, error: 'No phone number on file. Ask for their number first!' };
   }
 
@@ -319,11 +408,15 @@ export async function scheduleText(
       userId,
       message: `${message}\n\n— ${firstName}`,
       scheduledFor,
-      timezone: contact.timezone || 'America/New_York',
+      timezone: contact?.timezone || 'America/New_York',
       deliveryMethod: 'sms',
-      deliveryAddress: contact.phone,
+      deliveryAddress: deliveryPhone,
       createdBy: canonicalId,
       personaId: canonicalId,
+      // ML tracking
+      contactId: options?.contactId,
+      contactName: options?.contactName,
+      isDirectToContact: options?.isDirectToContact,
     });
 
     getLogger().info(
@@ -332,6 +425,7 @@ export async function scheduleText(
         reminderId: reminder.id,
         personaId: canonicalId,
         scheduledFor: scheduledFor.toISOString(),
+        contactId: options?.contactId,
       },
       '📅 Text scheduled'
     );
@@ -351,11 +445,13 @@ export async function scheduleEmail(
   subject: string,
   message: string,
   scheduledFor: Date,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
+  const deliveryEmail = options?.toEmail || (await getUserContactInfo(userId))?.email;
   const contact = await getUserContactInfo(userId);
 
-  if (!contact?.email) {
+  if (!deliveryEmail) {
     return { success: false, error: 'No email address on file. Ask for their email first!' };
   }
 
@@ -369,11 +465,15 @@ export async function scheduleEmail(
       message: `${message}\n\n— ${firstName}`,
       subject,
       scheduledFor,
-      timezone: contact.timezone || 'America/New_York',
+      timezone: contact?.timezone || 'America/New_York',
       deliveryMethod: 'email',
-      deliveryAddress: contact.email,
+      deliveryAddress: deliveryEmail,
       createdBy: canonicalId,
       personaId: canonicalId,
+      // ML tracking
+      contactId: options?.contactId,
+      contactName: options?.contactName,
+      isDirectToContact: options?.isDirectToContact,
     });
 
     getLogger().info(
@@ -382,6 +482,7 @@ export async function scheduleEmail(
         reminderId: reminder.id,
         personaId: canonicalId,
         scheduledFor: scheduledFor.toISOString(),
+        contactId: options?.contactId,
       },
       '📅 Email scheduled'
     );
@@ -400,11 +501,13 @@ export async function scheduleCall(
   userId: string,
   message: string,
   scheduledFor: Date,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
+  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
   const contact = await getUserContactInfo(userId);
 
-  if (!contact?.phone) {
+  if (!deliveryPhone) {
     return { success: false, error: 'No phone number on file. Ask for their number first!' };
   }
 
@@ -417,12 +520,16 @@ export async function scheduleCall(
       userId,
       message,
       scheduledFor,
-      timezone: contact.timezone || 'America/New_York',
+      timezone: contact?.timezone || 'America/New_York',
       deliveryMethod: 'call',
-      deliveryAddress: contact.phone,
+      deliveryAddress: deliveryPhone,
       createdBy: canonicalId,
       personaId: canonicalId,
       context: `Scheduled call from ${firstName}`,
+      // ML tracking
+      contactId: options?.contactId,
+      contactName: options?.contactName,
+      isDirectToContact: options?.isDirectToContact,
     });
 
     getLogger().info(
@@ -431,6 +538,7 @@ export async function scheduleCall(
         reminderId: reminder.id,
         personaId: canonicalId,
         scheduledFor: scheduledFor.toISOString(),
+        contactId: options?.contactId,
       },
       '📅 Call scheduled'
     );

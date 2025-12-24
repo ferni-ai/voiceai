@@ -127,6 +127,7 @@ export async function initializeCorrectionStore(): Promise<void> {
 /**
  * Record a routing correction
  * Now persists to Firestore for cross-session learning!
+ * Also reports to community learning for aggregated patterns.
  */
 export function recordCorrection(correction: Omit<RoutingCorrection, 'id' | 'timestamp'>): void {
   const fullCorrection: RoutingCorrection = {
@@ -150,6 +151,16 @@ export function recordCorrection(correction: Omit<RoutingCorrection, 'id' | 'tim
       log.warn({ error: String(err) }, 'Failed to persist correction');
     });
   }
+
+  // Report to community learning (fire-and-forget)
+  // This aggregates patterns across all users to improve routing for everyone
+  import('./community-learning.js')
+    .then(({ reportCorrectionToCommunity }) => {
+      void reportCorrectionToCommunity(fullCorrection);
+    })
+    .catch(() => {
+      // Community learning is optional - don't block on errors
+    });
 
   log.info(
     {

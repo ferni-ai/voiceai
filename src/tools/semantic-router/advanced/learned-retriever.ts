@@ -18,6 +18,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
+import { getKeywordWord, getKeywordWeight } from '../types.js';
 import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
 import { TrainingExample, loadCombinedTrainingData } from './datasets.js';
 
@@ -249,9 +250,11 @@ export class LearnedRetriever {
     // Add explicit keywords from triggers with high weight
     if (tool.triggers?.keywords) {
       for (const kwObj of tool.triggers.keywords) {
-        const tokens = this.tokenize(kwObj.word);
+        const word = getKeywordWord(kwObj);
+        const weight = getKeywordWeight(kwObj);
+        const tokens = this.tokenize(word);
         for (const token of tokens) {
-          profile.keywords.set(token, (profile.keywords.get(token) || 0) + (kwObj.weight ?? 2.0));
+          profile.keywords.set(token, (profile.keywords.get(token) || 0) + (weight ?? 2.0));
         }
       }
     }

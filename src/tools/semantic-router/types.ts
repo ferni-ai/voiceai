@@ -53,12 +53,32 @@ export interface SemanticTrigger {
   /** Regex patterns for matching */
   patterns?: RegExp[];
 
-  /** Keywords that suggest this tool (weighted) */
-  keywords?: Array<{ word: string; weight: number }>;
+  /**
+   * Keywords that suggest this tool
+   * Can be simple strings or weighted objects:
+   * - Simple: ['career', 'job', 'work']
+   * - Weighted: [{ word: 'career', weight: 1.0 }, { word: 'job', weight: 0.8 }]
+   */
+  keywords?: string[] | Array<{ word: string; weight: number }>;
 
   /** Negative keywords that suggest NOT this tool */
   antiKeywords?: string[];
 }
+
+/**
+ * Test case example for semantic matching validation
+ */
+export interface SemanticTestCase {
+  /** The input text to test */
+  input: string;
+  /** Whether this input should match the tool */
+  expectedMatch: boolean;
+}
+
+/**
+ * Example input - can be simple string or detailed test case
+ */
+export type SemanticExample = string | SemanticTestCase;
 
 /**
  * Argument definition for a tool
@@ -104,20 +124,34 @@ export interface SemanticToolDefinition {
   /** Semantic triggers for fast matching */
   triggers: SemanticTrigger;
 
-  /** Example user queries that should trigger this tool */
-  examples: string[];
+  /**
+   * Example user queries that should trigger this tool
+   * Can be simple strings or test cases with expectedMatch flag:
+   * - Simple: ['play some jazz', 'I want to hear music']
+   * - Test case: [{ input: 'play jazz', expectedMatch: true }]
+   */
+  examples: SemanticExample[];
 
-  /** Counter-examples that should NOT trigger this tool */
-  counterExamples?: string[];
+  /**
+   * Counter-examples that should NOT trigger this tool
+   * Can be simple strings or test cases with expectedMatch flag
+   */
+  counterExamples?: SemanticExample[];
 
   /** Tool arguments */
   arguments: ToolArgument[];
 
-  /** The actual tool function to execute */
+  /**
+   * The actual tool function to execute
+   * Can return full ToolExecutionResult or simple routing result
+   */
   execute: (
     args: Record<string, unknown>,
     context: ToolExecutionContext
-  ) => Promise<ToolExecutionResult>;
+  ) => Promise<ToolExecutionResult | SemanticRoutingResult>;
+
+  /** Domain to delegate tool execution to (for semantic routing) */
+  delegateTo?: string;
 
   /** Priority when multiple tools match (higher = preferred) */
   priority?: number;
@@ -186,6 +220,7 @@ export type ToolCategory =
   | 'crisis' // SAFETY-CRITICAL
   // Life Coaching
   | 'life-coaching'
+  | 'life-planning'
   | 'career'
   | 'decisions'
   | 'dating'
@@ -203,6 +238,8 @@ export type ToolCategory =
   // Finance & Telephony
   | 'finance'
   | 'telephony'
+  // Travel
+  | 'travel'
   // System
   | 'utility'
   | 'settings'
@@ -413,6 +450,21 @@ export interface ToolExecutionResult {
   delegateTo?: string;
 }
 
+/**
+ * Simple routing result for semantic tool definitions
+ * Used when a semantic tool just needs to indicate which tool to call
+ */
+export interface SemanticRoutingResult {
+  /** Tool ID to execute */
+  tool: string;
+
+  /** Confidence score (0-1) */
+  confidence: number;
+
+  /** Optional arguments to pass */
+  args?: Record<string, unknown>;
+}
+
 // ============================================================================
 // ROUTER CONFIGURATION
 // ============================================================================
@@ -530,4 +582,83 @@ export interface RoutingAnalyticsEvent {
     success?: boolean;
     userFeedback?: 'correct' | 'wrong_tool' | 'should_not_have_called';
   };
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Type guard to check if a keyword is weighted
+ */
+export function isWeightedKeyword(
+  keyword: string | { word: string; weight: number }
+): keyword is { word: string; weight: number } {
+  return typeof keyword === 'object' && 'word' in keyword && 'weight' in keyword;
+}
+
+/**
+ * Normalize a keyword to weighted format
+ */
+export function normalizeKeyword(keyword: string | { word: string; weight: number }): {
+  word: string;
+  weight: number;
+} {
+  if (isWeightedKeyword(keyword)) {
+    return keyword;
+  }
+  return { word: keyword, weight: 1.0 };
+}
+
+/**
+ * Get the word from a keyword (simple or weighted)
+ */
+export function getKeywordWord(keyword: string | { word: string; weight: number }): string {
+  return isWeightedKeyword(keyword) ? keyword.word : keyword;
+}
+
+/**
+ * Get the weight from a keyword (simple = 1.0, weighted = actual weight)
+ */
+export function getKeywordWeight(keyword: string | { word: string; weight: number }): number {
+  return isWeightedKeyword(keyword) ? keyword.weight : 1.0;
+}
+
+/**
+ * Type guard to check if an example is a test case
+ */
+export function isSemanticTestCase(example: SemanticExample): example is SemanticTestCase {
+  return typeof example === 'object' && 'input' in example && 'expectedMatch' in example;
+}
+
+/**
+ * Get the input text from an example (simple or test case)
+ */
+export function getExampleText(example: SemanticExample): string {
+  return isSemanticTestCase(example) ? example.input : example;
+}
+
+/**
+ * Normalize examples to simple strings
+ */
+export function normalizeExamples(examples: SemanticExample[]): string[] {
+  return examples.map(getExampleText);
+}
+
+/**
+ * Type guard to check if a result is a ToolExecutionResult
+ */
+export function isToolExecutionResult(
+  result: ToolExecutionResult | SemanticRoutingResult
+): result is ToolExecutionResult {
+  return 'success' in result;
+}
+
+/**
+ * Type guard to check if a result is a SemanticRoutingResult
+ */
+export function isSemanticRoutingResult(
+  result: ToolExecutionResult | SemanticRoutingResult
+): result is SemanticRoutingResult {
+  return 'tool' in result && 'confidence' in result && !('success' in result);
 }

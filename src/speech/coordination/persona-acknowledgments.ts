@@ -88,12 +88,7 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
   ferni: {
     personaId: 'ferni',
     phrases: {
-      thinking: [
-        'Hmm, give me a sec',
-        'Just a moment',
-        'One sec',
-        'Okay...',
-      ],
+      thinking: ['Hmm, give me a sec', 'Just a moment', 'One sec', 'Okay...'],
       searching: ['Checking on that', 'One moment', 'Pulling that up'],
       calculating: ['Running the numbers', 'One sec', 'Hmm...'],
       creating: ['Working on that', 'One moment', 'Almost there'],

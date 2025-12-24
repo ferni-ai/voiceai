@@ -17,6 +17,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { routeUserInput } from '../router.js';
 import type { ToolMatch } from '../types.js';
+import { isToolExecutionResult } from '../types.js';
 import {
   recordLLMBypass,
   recordHintAdded,
@@ -24,6 +25,12 @@ import {
   recordRoutingError,
 } from './metrics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
+// Better Than Human integration
+import {
+  routeVoiceInput,
+  type VoiceRouterContext,
+  type VoiceRouterResult,
+} from '../voice-integration.js';
 
 const log = createLogger({ module: 'semantic-router-transcript' });
 
@@ -54,6 +61,31 @@ export interface TranscriptRoutingContext {
   };
   conversationHistory?: Array<{ role: string; content: string }>;
   recentTools?: string[];
+
+  // ============================================================================
+  // BETTER THAN HUMAN: Voice Prosody Signals
+  // ============================================================================
+
+  /** Voice prosody signals from audio analysis */
+  voiceProsody?: {
+    stressLevel?: number;
+    arousal?: number;
+    valence?: number;
+    anxietyMarkers?: string[];
+    voiceTremor?: boolean;
+    breathingPattern?: 'normal' | 'rapid' | 'shallow';
+  };
+
+  /** Speaking pace (words per minute) */
+  wordsPerMinute?: number;
+
+  /** Detected emotion from voice/text */
+  detectedEmotion?: {
+    emotion: string;
+    intensity: number;
+    valence: number;
+    source: 'voice' | 'text' | 'inferred';
+  };
 }
 
 /** Result from transcript routing */
@@ -75,6 +107,35 @@ export interface TranscriptRoutingResult {
 
   /** Error message if any */
   error?: string;
+
+  // ============================================================================
+  // BETTER THAN HUMAN: Intelligence Results
+  // ============================================================================
+
+  /** Voice prosody tool boost decision */
+  prosodyBoost?: {
+    boostedTools: string[];
+    suppressedTools: string[];
+    reason: string;
+  };
+
+  /** Emotional arc status */
+  emotionalArc?: {
+    dominantEmotion: string;
+    trend: 'improving' | 'declining' | 'stable';
+    needsAttention: boolean;
+  };
+
+  /** Proactive intervention suggestion */
+  suggestedIntervention?: {
+    type: string;
+    message: string;
+    tool: string;
+    urgency: string;
+  };
+
+  /** User-friendly routing explanation */
+  spokenExplanation?: string;
 }
 
 // ============================================================================
@@ -132,33 +193,68 @@ export async function routeTranscript(
     // Ensure router is ready
     await ensureRouterInitialized();
 
-    // Route the transcript
-    const routeResult = await routeUserInput(transcript);
+    // Build voice router context with prosody signals
+    const voiceContext: VoiceRouterContext = {
+      userId,
+      sessionId,
+      personaId,
+      conversationHistory: (context.conversationHistory || []).map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        text: h.content,
+        timestamp: new Date(),
+      })),
+      recentTools: context.recentTools || [],
+      // Pass Better Than Human signals
+      voiceProsody: context.voiceProsody,
+      wordsPerMinute: context.wordsPerMinute,
+      detectedEmotion: context.detectedEmotion,
+    };
+
+    // Route through the enhanced voice router (with Better Than Human features)
+    const voiceResult = await routeVoiceInput(transcript, voiceContext);
     const latencyMs = Math.round(performance.now() - startTime);
 
-    const topMatch = routeResult.matches[0];
+    const topMatch = voiceResult.routingResult.matches[0];
     log.info(
       {
-        action: routeResult.action?.type,
+        action: voiceResult.routingResult.action?.type,
         confidence: topMatch?.confidence,
         toolId: topMatch?.toolId,
+        bypassLLM: voiceResult.bypassLLM,
+        hasEmotionalArc: !!voiceResult.emotionalArc,
+        hasProsodyBoost: !!voiceResult.prosodyBoost,
         latencyMs,
       },
-      '🎯 Route result'
+      '🎯 Route result (Better Than Human)'
     );
 
+    // Extract Better Than Human results for response
+    const betterThanHumanResults = {
+      prosodyBoost: voiceResult.prosodyBoost,
+      emotionalArc: voiceResult.emotionalArc,
+      suggestedIntervention: voiceResult.suggestedIntervention,
+      spokenExplanation: voiceResult.spokenExplanation,
+    };
+
     // No action or conversation - let Gemini handle
-    if (!routeResult.action || routeResult.action.type === 'conversation') {
+    if (
+      !voiceResult.routingResult.action ||
+      voiceResult.routingResult.action.type === 'conversation'
+    ) {
       recordConversation(userId, sessionId, transcript, latencyMs);
       return {
         attempted: true,
         handled: false,
+        ...betterThanHumanResults,
       };
     }
 
     // High confidence - execute tool and guide Gemini
-    if (routeResult.action.type === 'execute' && routeResult.matches.length > 0) {
-      const topMatch = routeResult.matches[0];
+    if (
+      voiceResult.routingResult.action.type === 'execute' &&
+      voiceResult.routingResult.matches.length > 0
+    ) {
+      const topMatch = voiceResult.routingResult.matches[0];
 
       try {
         // Execute the tool
@@ -195,6 +291,7 @@ export async function routeTranscript(
             response: execResult.naturalResponse,
             toolId: topMatch.toolId,
             confidence: topMatch.confidence,
+            ...betterThanHumanResults,
           };
         }
 
@@ -215,6 +312,7 @@ export async function routeTranscript(
           attempted: true,
           handled: false,
           error: execResult.error,
+          ...betterThanHumanResults,
         };
       } catch (execError) {
         const totalLatencyMs = Math.round(performance.now() - startTime);
@@ -225,13 +323,14 @@ export async function routeTranscript(
           attempted: true,
           handled: false,
           error: String(execError),
+          ...betterThanHumanResults,
         };
       }
     }
 
     // Medium confidence - add hint but let Gemini handle
-    if (routeResult.matches.length > 0) {
-      const topMatch = routeResult.matches[0];
+    if (voiceResult.routingResult.matches.length > 0) {
+      const topMatch = voiceResult.routingResult.matches[0];
       recordHintAdded(
         userId,
         sessionId,
@@ -249,6 +348,7 @@ export async function routeTranscript(
     return {
       attempted: true,
       handled: false,
+      ...betterThanHumanResults,
     };
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
@@ -310,17 +410,26 @@ async function executeToolForTranscript(
     // Execute
     const result = await tool.execute(match.extractedArgs, execContext);
 
-    if (result.success) {
-      log.info({ toolId: match.toolId }, '✅ Tool executed successfully');
+    // Handle both ToolExecutionResult and SemanticRoutingResult
+    if (isToolExecutionResult(result)) {
+      if (result.success) {
+        log.info({ toolId: match.toolId }, '✅ Tool executed successfully');
+        return {
+          success: true,
+          naturalResponse: result.naturalResponse,
+        };
+      }
       return {
-        success: true,
-        naturalResponse: result.naturalResponse,
+        success: false,
+        error: result.error || 'Tool returned failure',
       };
     }
 
+    // SemanticRoutingResult - treat as successful routing
+    log.info({ toolId: match.toolId, targetTool: result.tool }, '✅ Routing to target tool');
     return {
-      success: false,
-      error: result.error || 'Tool returned failure',
+      success: true,
+      naturalResponse: `Routing to ${result.tool}`,
     };
   } catch (error) {
     return {

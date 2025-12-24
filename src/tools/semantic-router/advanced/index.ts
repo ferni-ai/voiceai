@@ -109,7 +109,11 @@ export {
 // ============================================================================
 
 // Learned Retriever
-export { LearnedRetriever, getLearnedRetriever, initializeLearnedRetriever } from './learned-retriever.js';
+export {
+  LearnedRetriever,
+  getLearnedRetriever,
+  initializeLearnedRetriever,
+} from './learned-retriever.js';
 
 // Tool Chain Predictor (existing)
 export { ToolChainPredictor, getChainPredictor } from './tool-chain-predictor.js';
@@ -197,13 +201,31 @@ export function getAdvancedRouter(): AdvancedSemanticRouter {
 // ============================================================================
 
 export {
+  // Initialization
   initializeNER,
+  // Core extraction
   extractEntities as extractNEREntities,
   getEntitiesByType,
   getEntityForArg,
+  // Basic checks
   hasPerson,
   hasPlace,
   hasDateTime,
+  // Ferni-specific checks
+  hasEmotion,
+  hasHabit,
+  hasGoal,
+  hasRelationship,
+  hasActivity,
+  hasFrequency,
+  hasMusicMention,
+  // Emotion analysis
+  getEmotions,
+  getPrimaryEmotion,
+  analyzeSentiment,
+  // Rich summary
+  getEntitySummary,
+  // Types
   type NEREntity,
   type NEREntityType,
   type NERResult,
@@ -224,3 +246,48 @@ export {
   type StreamingConfig,
   type SignalCallback,
 } from './streaming-router.js';
+
+// ============================================================================
+// PROACTIVE SUGGESTIONS
+// ============================================================================
+
+export {
+  ProactiveSuggestionsEngine,
+  getProactiveSuggestionsEngine,
+  getProactiveSuggestions,
+  recordProactiveFeedback,
+  getProactiveStats,
+  type ProactiveSuggestion,
+  type UserContext,
+} from './proactive-suggestions.js';
+
+// ============================================================================
+// BETTER THAN HUMAN INTELLIGENCE
+// ============================================================================
+
+export {
+  // Voice prosody → tool boost
+  analyzeVoiceProsodyForToolBoost,
+  // Explanation transparency
+  generateRoutingExplanation,
+  generateSpokenExplanation,
+  // Emotional arc tracking
+  recordEmotionalDataPoint,
+  analyzeEmotionalArc,
+  getEmotionalArcSummary,
+  persistEmotionalHistory,
+  loadEmotionalHistory,
+  // Speaking pace detection
+  analyzeSpeakingPace,
+  getToolBoostFromPace,
+  // Combined analysis
+  performBetterThanHumanAnalysis,
+  // Types
+  type VoiceProsodySignals,
+  type SpeakingPaceAnalysis,
+  type EmotionalDataPoint,
+  type EmotionalArc,
+  type ToolBoostDecision,
+  type RoutingExplanation,
+  type BetterThanHumanAnalysis,
+} from './better-than-human.js';

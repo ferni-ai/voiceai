@@ -3,6 +3,7 @@
  *
  * Foundation for integrating data from wearable devices:
  * - Apple Watch / HealthKit
+ * - Eight Sleep (smart mattress)
  * - Fitbit
  * - Garmin
  * - Oura Ring
@@ -78,6 +79,7 @@ export class WearableIntegrationService {
       // Return OAuth URL for the provider
       const authUrls: Record<WearableProvider, string> = {
         apple_health: 'ferniapp://healthkit/authorize', // Deep link for iOS app
+        eight_sleep: `https://client-api.8slp.net/oauth/authorize?client_id=${process.env.EIGHT_SLEEP_CLIENT_ID}`,
         fitbit: `https://www.fitbit.com/oauth2/authorize?client_id=${process.env.FITBIT_CLIENT_ID}`,
         garmin: `https://connect.garmin.com/oauth2/authorize?client_id=${process.env.GARMIN_CLIENT_ID}`,
         oura: `https://cloud.ouraring.com/oauth/authorize?client_id=${process.env.OURA_CLIENT_ID}`,

@@ -62,6 +62,7 @@ export type ToolDomain =
   | 'legal-admin' // Documents, estate planning, insurance
   | 'games' // Interactive music games, Name That Tune, etc.
   | 'cameo' // Team member pop-in cameos during conversations
+  | 'group-conversation' // Team roundtables, conference calls with external participants
   | 'second-chances' // Fresh starts, reinvention, rebuilding after setbacks
   | 'connection' // Loneliness, friendship, belonging, community
   | 'difficult-conversations' // Preparing for and having hard conversations
@@ -79,6 +80,7 @@ export type ToolDomain =
   | 'marketing' // Social media management: content generation, publishing, analytics
   | 'referral' // Viral growth via voice calls
   | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'webhooks' // Webhook automations: IFTTT, Zapier, Home Assistant, Siri Shortcuts
   | 'books' // Book tracking, recommendations, reading lists
   | 'podcasts' // Podcast discovery, listening history, recommendations
   | 'video' // Video content recommendations and tracking
@@ -97,7 +99,9 @@ export type ToolDomain =
   | 'burnout-recovery' // Burnout recovery, rest as skill
   | 'chronic-conditions' // Chronic illness, energy management
   | 'midlife' // Midlife transition, aging, legacy
-  | 'breakup-recovery'; // Divorce recovery, rebuilding after breakup
+  | 'breakup-recovery' // Divorce recovery, rebuilding after breakup
+  | 'scheduling' // Scheduled messages, calls, emails
+  | 'concierge'; // AI-powered outreach: hotel quotes, restaurant reservations, appointments
 
 /**
  * All available tool domains
@@ -144,6 +148,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'legal-admin',
   'games',
   'cameo',
+  'group-conversation',
   'second-chances',
   'connection',
   'difficult-conversations',
@@ -161,6 +166,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'marketing',
   'referral',
   'smart-home',
+  'webhooks',
   'books',
   'podcasts',
   'video',
@@ -180,6 +186,8 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'chronic-conditions',
   'midlife',
   'breakup-recovery',
+  'scheduling',
+  'concierge',
 ] as const;
 
 // ============================================================================
@@ -244,6 +252,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'legal-admin': 'productivity',
   games: 'entertainment',
   cameo: 'core', // Team cameos should be available to coordinators
+  'group-conversation': 'core', // Team roundtables and conference calls
   'second-chances': 'lifestyle', // Core to Ferni's identity - fresh starts and rebuilding
   connection: 'lifestyle', // Loneliness, friendship, belonging - epidemic-level need
   'difficult-conversations': 'lifestyle', // Preparing for and having hard conversations with grace
@@ -261,6 +270,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
   'smart-home': 'productivity', // Home Assistant integration for smart home control
+  webhooks: 'productivity', // Webhook automations for IFTTT, Zapier, etc.
   books: 'entertainment', // Book tracking, recommendations, reading lists
   podcasts: 'entertainment', // Podcast discovery, listening history
   video: 'entertainment', // Video content recommendations and tracking
@@ -280,6 +290,8 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'chronic-conditions': 'lifestyle', // Living well with chronic illness
   midlife: 'lifestyle', // Midlife transitions and aging
   'breakup-recovery': 'lifestyle', // Healing from relationship endings
+  scheduling: 'communication', // Scheduled messages, calls, emails
+  concierge: 'communication', // AI-powered outreach: hotels, restaurants, appointments
 };
 
 // ============================================================================
@@ -300,7 +312,8 @@ export type ExternalService =
   | 'newsapi' // News aggregation
   | 'alpha-vantage' // Stock data
   | 'finnhub' // Financial data
-  | 'firebase'; // Firestore/Auth
+  | 'firebase' // Firestore/Auth
+  | 'ecobee'; // Ecobee thermostat
 
 // ============================================================================
 // TOOL DEFINITION

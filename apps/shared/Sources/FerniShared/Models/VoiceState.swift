@@ -58,6 +58,26 @@ public enum VoiceState: Equatable {
             return 0.6
         }
     }
+
+    /// VoiceOver accessibility value - descriptive state for screen readers
+    public var accessibilityValue: String {
+        switch self {
+        case .disconnected:
+            return "Ready to connect"
+        case .connecting:
+            return "Connecting to Ferni"
+        case .connected:
+            return "Connected, in conversation"
+        case .listening:
+            return "Listening to you speak"
+        case .speaking:
+            return "Ferni is speaking"
+        case .thinking:
+            return "Ferni is thinking"
+        case .error(let message):
+            return "Error: \(message)"
+        }
+    }
 }
 
 // MARK: - Voice Event

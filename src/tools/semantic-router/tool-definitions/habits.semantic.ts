@@ -330,7 +330,6 @@ export const habitCoachingTool: SemanticToolDefinition = {
       'help with habits',
       'struggling with habits',
       'habit advice',
-      'talk to maya',
       'habit coach',
       "can't stick to",
       'keep failing',
@@ -349,10 +348,10 @@ export const habitCoachingTool: SemanticToolDefinition = {
       { word: 'coach', weight: 0.9 },
       { word: 'failing', weight: 0.8 },
       { word: 'trouble', weight: 0.7 },
-      { word: 'maya', weight: 1.0 },
       { word: 'habit', weight: 0.6 },
     ],
-    antiKeywords: ['completed', 'done', 'what', 'list'],
+    // Avoid triggering on persona names - handoff tool handles those
+    antiKeywords: ['completed', 'done', 'what', 'list', 'talk to', 'speak to', 'transfer'],
   },
 
   examples: [
@@ -360,10 +359,10 @@ export const habitCoachingTool: SemanticToolDefinition = {
     'Help me stick to my routine',
     'I keep failing at meditation',
     'How do I build a habit?',
-    'Talk to Maya about habits',
     "Can't stick to my morning routine",
     'Habit advice please',
     "I'm having trouble with consistency",
+    'I need habit coaching',
   ],
 
   counterExamples: ['I completed my habit', 'What habits do I have?', 'Create a habit'],

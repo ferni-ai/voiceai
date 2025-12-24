@@ -78,9 +78,7 @@ export interface EnhancedRouting {
  * Call this AFTER the semantic router but BEFORE making decisions.
  * It applies user-specific vocabulary, time patterns, and calibration.
  */
-export async function enhanceWithLearning(
-  context: LearningContext
-): Promise<EnhancedRouting> {
+export async function enhanceWithLearning(context: LearningContext): Promise<EnhancedRouting> {
   const boosts: EnhancedRouting['boosts'] = [];
 
   // 1. Check user vocabulary for learned phrases
@@ -133,9 +131,7 @@ export async function enhanceWithLearning(
 
   // 2. Apply confidence calibration
   const originalConfidence =
-    context.routingResult.matches.length > 0
-      ? context.routingResult.matches[0].confidence
-      : 0;
+    context.routingResult.matches.length > 0 ? context.routingResult.matches[0].confidence : 0;
   const adjustedConfidence = calibrateConfidence(originalConfidence);
 
   return {
@@ -165,13 +161,9 @@ export async function recordOutcome(
     inputLocale: context.inputLocale,
     routingResult: {
       predictedTool:
-        context.routingResult.matches.length > 0
-          ? context.routingResult.matches[0].toolId
-          : null,
+        context.routingResult.matches.length > 0 ? context.routingResult.matches[0].toolId : null,
       confidence:
-        context.routingResult.matches.length > 0
-          ? context.routingResult.matches[0].confidence
-          : 0,
+        context.routingResult.matches.length > 0 ? context.routingResult.matches[0].confidence : 0,
       action: context.routingResult.action.type,
       alternativeTools: context.routingResult.matches.slice(1, 4).map((m) => m.toolId),
     },
@@ -192,9 +184,7 @@ export async function recordOutcome(
   // 2. Learn from corrections
   if (outcome.wasCorrection && outcome.actualToolUsed) {
     const predictedTool =
-      context.routingResult.matches.length > 0
-        ? context.routingResult.matches[0].toolId
-        : null;
+      context.routingResult.matches.length > 0 ? context.routingResult.matches[0].toolId : null;
 
     // Record the correction
     await recordCorrection({
@@ -202,9 +192,7 @@ export async function recordOutcome(
       inputText: context.inputText,
       predictedTool,
       predictedConfidence:
-        context.routingResult.matches.length > 0
-          ? context.routingResult.matches[0].confidence
-          : 0,
+        context.routingResult.matches.length > 0 ? context.routingResult.matches[0].confidence : 0,
       correctTool: outcome.actualToolUsed,
       signalStrength: 0.9,
     });
@@ -226,9 +214,7 @@ export async function recordOutcome(
   // 3. Reinforce successful patterns
   if (outcome.wasSuccess && !outcome.wasCorrection) {
     const predictedTool =
-      context.routingResult.matches.length > 0
-        ? context.routingResult.matches[0].toolId
-        : null;
+      context.routingResult.matches.length > 0 ? context.routingResult.matches[0].toolId : null;
 
     if (predictedTool === outcome.actualToolUsed && predictedTool) {
       // Strengthen this phrase -> tool association
@@ -464,4 +450,3 @@ export {
   calibrateConfidence,
   getFeedbackStats,
 };
-

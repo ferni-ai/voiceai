@@ -2,7 +2,7 @@
   "$schema": "./locale.schema.json",
   "$locale": "de",
   "$name": "Deutsch",
-  
+
   "weather_current": {
     "phrases": [
       "wie ist das Wetter",
@@ -222,12 +222,7 @@
   },
 
   "info_time": {
-    "phrases": [
-      "wie spät ist es",
-      "sag mir die Uhrzeit",
-      "aktuelle Uhrzeit",
-      "welche Zeit ist es"
-    ],
+    "phrases": ["wie spät ist es", "sag mir die Uhrzeit", "aktuelle Uhrzeit", "welche Zeit ist es"],
     "patterns": [
       "^wie\\s+spät\\s+ist\\s+es",
       "^(?:sag|gib)\\s+mir\\s+(?:die\\s+)?(?:Uhrzeit|Zeit)"
@@ -265,4 +260,3 @@
     "antiKeywords": []
   }
 }
-

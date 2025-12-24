@@ -13,6 +13,9 @@ struct VoiceView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var appState: AppState
 
+    // MARK: - Better Than Human Engine
+    @StateObject private var betterThanHuman = BetterThanHumanEngine()
+
     // Animation state
     @State private var emotionHint: EmotionHint? = nil
 
@@ -59,8 +62,54 @@ struct VoiceView: View {
         .onChange(of: session.state) { newState in
             handleStateChange(newState)
         }
+        // MARK: - Better Than Human Bindings
+        .onChange(of: session.isUserSpeaking) { speaking in
+            betterThanHuman.isUserSpeaking = speaking
+        }
+        .onChange(of: session.speechPauseDuration) { duration in
+            betterThanHuman.speechPauseDuration = duration
+        }
+        .onChange(of: session.audioLevel) { level in
+            betterThanHuman.audioLevel = level
+        }
+        .onChange(of: session.partialTranscript) { transcript in
+            if !transcript.isEmpty {
+                betterThanHuman.processPartialTranscript(transcript)
+            }
+        }
+        .onChange(of: session.emotionEvent) { event in
+            handleEmotionEvent(event)
+        }
         .onAppear {
             startWaveformAnimation()
+        }
+        // MARK: - Shake Gesture Easter Egg
+        #if os(iOS)
+        .onShake {
+            handleShakeGesture()
+        }
+        #endif
+    }
+
+    // MARK: - Shake Gesture Handler
+
+    private func handleShakeGesture() {
+        // Easter egg: Shake triggers a delightful micro-expression cascade
+        appState.playSuccessHaptic()
+
+        // Play a sparkle sound
+        betterThanHuman.triggerMemorySpark()
+
+        // Trigger recognition then delight in sequence
+        betterThanHuman.triggerMicroExpression(.recognition)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [self] in
+            betterThanHuman.triggerMicroExpression(.delight)
+            emotionHint = .excited
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            emotionHint = nil
         }
     }
 
@@ -111,11 +160,78 @@ struct VoiceView: View {
             persona: persona,
             isActive: session.state.isActive,
             size: orbSize,
-            emotionHint: emotionHint
+            emotionHint: emotionHint,
+            betterThanHumanState: betterThanHuman.currentState
         )
         .frame(width: frameSize, height: frameSize)
         .onTapGesture {
             handleOrbTap()
+        }
+        // MARK: - Accessibility
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(persona.name)")
+        .accessibilityValue(session.state.accessibilityValue)
+        .accessibilityHint(session.state.isActive ? "Double tap to show transcript. Swipe left or right to change persona." : "Double tap to start call")
+        .accessibilityAddTraits(.isButton)
+        // MARK: - Gesture Controls
+        // Long press for persona info
+        .onLongPressGesture(minimumDuration: 0.5) {
+            appState.playTapHaptic()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                appState.showPersonaPicker = true
+            }
+        }
+        // Swipe to switch personas
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    handleSwipeGesture(value)
+                }
+        )
+    }
+
+    // MARK: - Swipe Gesture Handler
+
+    private func handleSwipeGesture(_ value: DragGesture.Value) {
+        let horizontalAmount = value.translation.width
+        let verticalAmount = value.translation.height
+
+        // Only handle horizontal swipes
+        guard abs(horizontalAmount) > abs(verticalAmount) else { return }
+
+        let personas = PersonaRegistry.all.map { $0.id }
+        guard let currentIndex = personas.firstIndex(of: session.currentPersonaId) else { return }
+
+        if horizontalAmount > 0 {
+            // Swipe right → previous persona
+            let newIndex = currentIndex > 0 ? currentIndex - 1 : personas.count - 1
+            switchToPersona(personas[newIndex])
+        } else {
+            // Swipe left → next persona
+            let newIndex = currentIndex < personas.count - 1 ? currentIndex + 1 : 0
+            switchToPersona(personas[newIndex])
+        }
+    }
+
+    private func switchToPersona(_ personaId: String) {
+        appState.playTapHaptic()
+
+        // Trigger recognition micro-expression for delight
+        betterThanHuman.triggerMicroExpression(.delight)
+
+        // Animate the transition
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            emotionHint = .happy
+        }
+
+        // Actually switch the persona
+        Task {
+            await session.switchPersona(personaId)
+        }
+
+        // Clear emotion after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            emotionHint = nil
         }
     }
 
@@ -200,6 +316,8 @@ struct VoiceView: View {
                     session.toggleMute()
                 }
             )
+            .accessibilityLabel(session.isMuted ? "Unmute microphone" : "Mute microphone")
+            .accessibilityHint("Double tap to \(session.isMuted ? "unmute" : "mute")")
 
             // Connect/Disconnect button (large, center)
             PremiumConnectButton(
@@ -209,6 +327,8 @@ struct VoiceView: View {
                     handleConnectTap()
                 }
             )
+            .accessibilityLabel(session.state.isActive ? "End call" : "Start call")
+            .accessibilityHint(session.state.isActive ? "Double tap to disconnect" : "Double tap to connect to \(PersonaRegistry.get(session.currentPersonaId).name)")
 
             // Persona picker button
             GlassControlButton(
@@ -221,6 +341,8 @@ struct VoiceView: View {
                     }
                 }
             )
+            .accessibilityLabel("Choose persona")
+            .accessibilityHint("Double tap to show persona picker")
         }
         .padding(.horizontal, 30)
     }
@@ -267,10 +389,83 @@ struct VoiceView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 emotionHint = nil
             }
+            // Start Better Than Human engine
+            betterThanHuman.onConnectionEstablished()
+
+        case .disconnected:
+            // Stop Better Than Human engine
+            betterThanHuman.onConnectionEnded()
+
         case .error:
             appState.playErrorHaptic()
+            betterThanHuman.onConnectionEnded()
+
         default:
             break
+        }
+    }
+
+    // MARK: - Better Than Human Emotion Events
+
+    private func handleEmotionEvent(_ event: EmotionEvent?) {
+        guard let event = event else { return }
+
+        switch event.type {
+        case "micro_expression":
+            // Trigger subliminal micro-expression
+            if let type = microExpressionType(from: event.value) {
+                betterThanHuman.triggerMicroExpression(type)
+            }
+
+        case "concern_detected":
+            // Trigger concern response
+            let level = concernLevel(from: event.value)
+            betterThanHuman.signalConcern(level: level)
+
+        case "emotion_event":
+            // Trigger traditional emotion hint
+            if let emotion = emotionHint(from: event.value) {
+                emotionHint = emotion
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    emotionHint = nil
+                }
+            }
+
+        default:
+            break
+        }
+    }
+
+    private func microExpressionType(from value: String) -> MicroExpressionType? {
+        switch value.lowercased() {
+        case "recognition": return .recognition
+        case "concern": return .concern
+        case "delight": return .delight
+        case "warmth": return .warmth
+        case "interest": return .interest
+        default: return nil
+        }
+    }
+
+    private func concernLevel(from value: String) -> ConcernLevel {
+        switch value.lowercased() {
+        case "mild": return .mild
+        case "moderate": return .moderate
+        case "high": return .high
+        default: return .mild
+        }
+    }
+
+    private func emotionHint(from value: String) -> EmotionHint? {
+        switch value.lowercased() {
+        case "happy": return .happy
+        case "excited": return .excited
+        case "curious": return .curious
+        case "thinking": return .thinking
+        case "empathetic": return .empathetic
+        case "encouraging": return .encouraging
+        case "calm": return .calm
+        default: return nil
         }
     }
 
@@ -460,3 +655,54 @@ struct PremiumConnectButton: View {
         .environmentObject(IOSLiveKitSession())
         .environmentObject(AppState())
 }
+
+// MARK: - Shake Gesture Detector
+
+#if os(iOS)
+/// Detects device shake gestures for easter eggs
+struct ShakeGestureDetector: UIViewControllerRepresentable {
+    let onShake: () -> Void
+
+    func makeUIViewController(context: Context) -> ShakeGestureViewController {
+        ShakeGestureViewController(onShake: onShake)
+    }
+
+    func updateUIViewController(_ uiViewController: ShakeGestureViewController, context: Context) {}
+}
+
+class ShakeGestureViewController: UIViewController {
+    let onShake: () -> Void
+
+    init(onShake: @escaping () -> Void) {
+        self.onShake = onShake
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            onShake()
+        }
+    }
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        becomeFirstResponder()
+    }
+}
+
+extension View {
+    /// Add shake gesture detection (iOS only)
+    func onShake(perform action: @escaping () -> Void) -> some View {
+        self.background(
+            ShakeGestureDetector(onShake: action)
+                .frame(width: 0, height: 0)
+        )
+    }
+}
+#endif

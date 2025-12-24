@@ -36,6 +36,7 @@ import type {
   RoutingMetadata,
   DEFAULT_ROUTER_CONFIG,
 } from './types.js';
+import { isSemanticRoutingResult } from './types.js';
 
 const log = createLogger({ module: 'semantic-router' });
 
@@ -324,7 +325,27 @@ export class SemanticRouter {
       // Record usage
       this.registry.recordUsage(toolId);
 
-      return result;
+      // Convert SemanticRoutingResult to ToolExecutionResult if needed
+      if (isSemanticRoutingResult(result)) {
+        // This is a SemanticRoutingResult - convert to ToolExecutionResult
+        return {
+          success: true,
+          data: { toolId: result.tool, args: result.args },
+          naturalResponse: `Routing to ${result.tool}`,
+        };
+      }
+
+      // At this point result is ToolExecutionResult - explicitly construct it to ensure type safety
+      const executionResult: ToolExecutionResult = {
+        success: 'success' in result ? Boolean(result.success) : true,
+        data: 'data' in result ? result.data : undefined,
+        naturalResponse:
+          'naturalResponse' in result ? (result.naturalResponse as string) : undefined,
+        error: 'error' in result ? (result.error as string) : undefined,
+        speakImmediately:
+          'speakImmediately' in result ? (result.speakImmediately as boolean) : undefined,
+      };
+      return executionResult;
     } catch (error) {
       log.error({ error, toolId, args }, 'Tool execution failed');
       return {

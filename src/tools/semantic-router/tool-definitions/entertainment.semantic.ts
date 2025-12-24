@@ -77,7 +77,16 @@ export const movieRecommendationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Movie genre preference',
       required: false,
-      enumValues: ['action', 'comedy', 'drama', 'horror', 'thriller', 'romance', 'scifi', 'documentary'],
+      enumValues: [
+        'action',
+        'comedy',
+        'drama',
+        'horror',
+        'thriller',
+        'romance',
+        'scifi',
+        'documentary',
+      ],
       extractionPatterns: [
         /(action|comedy|drama|horror|thriller|romance|sci-?fi|documentary)\s+(?:movie|film)/i,
         /(?:movie|film)\s+(?:that(?:'s| is)\s+)?(action|comedy|drama|horror|thriller|romance)/i,
@@ -163,11 +172,7 @@ export const tvShowRecommendationTool: SemanticToolDefinition = {
     'What should I watch on Netflix?',
   ],
 
-  counterExamples: [
-    'Recommend a movie',
-    'What music should I listen to?',
-    'Show me my calendar',
-  ],
+  counterExamples: ['Recommend a movie', 'What music should I listen to?', 'Show me my calendar'],
 
   arguments: [
     {
@@ -185,9 +190,7 @@ export const tvShowRecommendationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Streaming platform',
       required: false,
-      extractionPatterns: [
-        /(?:on\s+)?(netflix|hulu|amazon|disney|hbo|apple\s*tv)/i,
-      ],
+      extractionPatterns: [/(?:on\s+)?(netflix|hulu|amazon|disney|hbo|apple\s*tv)/i],
     },
   ],
 
@@ -252,16 +255,12 @@ export const trendingEntertainmentTool: SemanticToolDefinition = {
   examples: [
     "What's trending in movies?",
     "What's new on Netflix?",
-    "What are the top shows right now?",
+    'What are the top shows right now?',
     'Any new movie releases?',
     "What's everyone watching?",
   ],
 
-  counterExamples: [
-    "What's trending in music?",
-    "What's in the news?",
-    "What's new with you?",
-  ],
+  counterExamples: ["What's trending in music?", "What's in the news?", "What's new with you?"],
 
   arguments: [
     {

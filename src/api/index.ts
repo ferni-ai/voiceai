@@ -41,7 +41,9 @@ export { handleToolsAnalyticsRoutes } from './tools-analytics-routes.js';
 export { handleTrustExportRoutes } from './trust-export-routes.js';
 export { handleTrustJourneyRoutes } from './trust-journey-routes.js';
 export { handleTrustSystemsRoutes } from './trust-systems-routes.js';
+export { handleRelationshipArcRoutes } from './relationship-arc-routes.js';
 export { handlePerformanceRoutes } from './performance-routes.js';
+export { handleConciergeRoutes } from './concierge-routes.js';
 export {
   handleSubscriptionRequest,
   isSubscriptionRoute,

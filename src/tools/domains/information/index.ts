@@ -34,6 +34,7 @@ import { getSportScores, getTeamScore } from './sports.js';
 // Import legacy tool creators for simple wrapping
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createWeatherTools } from './weather.js';
+import { createTrafficTools } from './traffic.js';
 
 // Import Apple WeatherKit tools
 import { appleWeatherTools } from './apple-weather-tools.js';
@@ -235,6 +236,38 @@ function getSportsToolDefinitions(): ToolDefinition[] {
 // Configured in voice-agent-entry.ts: tools: [{ googleSearch: {} }]
 
 // ============================================================================
+// TRAFFIC TOOLS (Directions and commute times)
+// ============================================================================
+
+function getTrafficToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createTrafficTools();
+
+  return [
+    wrapLegacyTool(
+      'getCommuteTime',
+      'Get Commute Time',
+      'Get current traffic conditions and commute time between two locations. Returns travel time with traffic, distance, and traffic conditions (light/moderate/heavy).',
+      legacyTools.getCommuteTime,
+      ['traffic', 'commute', 'driving', 'directions']
+    ),
+    wrapLegacyTool(
+      'getDirections',
+      'Get Directions',
+      'Get turn-by-turn directions between two locations. Supports driving, walking, bicycling, and transit modes.',
+      legacyTools.getDirections,
+      ['directions', 'navigation', 'route', 'maps']
+    ),
+    wrapLegacyTool(
+      'saveLocation',
+      'Save Location',
+      'Save a location with a name (like "home" or "work") for quick traffic checks later.',
+      legacyTools.saveLocation,
+      ['location', 'save', 'home', 'work']
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -242,6 +275,7 @@ const informationTools: ToolDefinition[] = [
   ...getNewsToolDefinitions(),
   ...getWeatherToolDefinitions(),
   ...getSportsToolDefinitions(),
+  ...getTrafficToolDefinitions(),
   ...appleWeatherTools, // Apple WeatherKit for detailed weather/alerts
 ];
 
@@ -254,6 +288,11 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   informationTools
 );
 
-export { getNewsToolDefinitions, getSportsToolDefinitions, getWeatherToolDefinitions };
+export {
+  getNewsToolDefinitions,
+  getSportsToolDefinitions,
+  getWeatherToolDefinitions,
+  getTrafficToolDefinitions,
+};
 
 export default getToolDefinitions;

@@ -35,6 +35,12 @@ import {
   handleMusicRoutes,
   handleAgentRoutes,
   handlePushRoutes,
+  handleWebhookRoutes,
+  handleSpotifyRoomsRoutes,
+  handleEcobeeRoutes,
+  handleEightSleepRoutes,
+  handleOuraRoutes,
+  handleAppleHealthRoutes,
 } from './routes/index.js';
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
@@ -73,12 +79,15 @@ import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
 import { handleCalendarRoutes } from '../../api/calendar-routes.js';
 import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
+import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
 import { handleMonitoringRoutes } from '../../api/monitoring-routes.js';
 import { handlePerformanceRoutes } from '../../api/performance-routes.js';
+import { handleConciergeRoutes } from '../../api/concierge-routes.js';
+import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
@@ -116,6 +125,7 @@ import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
 import { handleCrashReportRoutes } from '../../api/crash-report-routes.js';
 import { handleMarketingRoutes } from '../../api/marketing-routes.js';
+import { handleLinkedInRoutes } from '../../api/linkedin-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
@@ -144,6 +154,7 @@ import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js
 import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
+import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
@@ -238,6 +249,36 @@ const server = http.createServer(async (req, res) => {
     if (await handlePushRoutes(req, res, pathname)) return;
   }
 
+  // Eight Sleep routes
+  if (pathname.startsWith('/api/eight-sleep')) {
+    if (await handleEightSleepRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Oura Ring routes
+  if (pathname.startsWith('/api/oura')) {
+    if (await handleOuraRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Apple Health routes
+  if (pathname.startsWith('/api/apple-health')) {
+    if (await handleAppleHealthRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Webhooks routes (IFTTT, Zapier, Home Assistant, Siri Shortcuts)
+  if (pathname.startsWith('/api/webhooks')) {
+    if (await handleWebhookRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Spotify Rooms routes (multi-room audio)
+  if (pathname.startsWith('/api/spotify-rooms')) {
+    if (await handleSpotifyRoomsRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Ecobee thermostat routes
+  if (pathname.startsWith('/api/ecobee')) {
+    if (await handleEcobeeRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
   // ============================================================================
   // EXISTING API ROUTES (from src/api/)
   // ============================================================================
@@ -302,6 +343,31 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Share route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  try {
+    // Group conversation routes (Team Roundtable, Conference Calls)
+    if (pathname.startsWith('/api/group/')) {
+      const express = await import('express');
+      const mockApp = express.default();
+      mockApp.use('/api/group', groupConversationRoutes);
+
+      // Forward request to express router
+      await new Promise<void>((resolve, reject) => {
+        mockApp(req as any, res as any, (err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      if (res.writableEnded) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Group conversation route error');
     if (!res.writableEnded) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
@@ -499,6 +565,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Relationship arc routes (Better Than Human system)
+    if (pathname.startsWith('/api/relationship')) {
+      const handled = await handleRelationshipArcRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Trust export routes
     if (pathname.startsWith('/api/trust-export')) {
       const handled = await handleTrustExportRoutes(req, res, pathname, parsedUrl);
@@ -595,6 +667,18 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Concierge routes (AI-powered outreach)
+    if (pathname.startsWith('/api/concierge')) {
+      const handled = await handleConciergeRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Proactive tool suggestions routes
+    if (pathname.startsWith('/api/proactive')) {
+      const handled = await handleProactiveRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // LLM content routes (metrics, cache stats, prewarm)
     if (pathname.startsWith('/api/llm-content')) {
       const handled = await handleLLMContentRoutes(req, res, pathname);
@@ -682,6 +766,12 @@ const server = http.createServer(async (req, res) => {
     // Marketing routes (Alex's social media management - dogfooding)
     if (pathname.startsWith('/api/marketing')) {
       const handled = await handleMarketingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // LinkedIn personal profile routes (career awareness, milestones)
+    if (pathname.startsWith('/api/linkedin')) {
+      const handled = await handleLinkedInRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

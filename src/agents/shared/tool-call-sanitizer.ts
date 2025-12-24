@@ -39,6 +39,7 @@ import {
 import { coordinatedSay } from '../../speech/coordination/index.js';
 
 // TransformStream is available globally in Node.js 18+
+// Using loose type due to incompatibilities between Web Streams and Node.js streams in piping
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTransformStream = any;
 
@@ -306,6 +307,66 @@ const TOOL_NAME_PATTERNS = [
   'updateEvent',
   'addGuests',
 
+  // Scheduling domain tools (SMS, calls, emails)
+  'scheduleMessage',
+  'schedule message',
+  'Schedule message',
+  'scheduleText',
+  'schedule text',
+  'Schedule text',
+  'scheduleCall',
+  'schedule call',
+  'Schedule call',
+  'scheduleEmail',
+  'schedule email',
+  'Schedule email',
+  'sendMessageNow',
+  'send message now',
+  'sendTextNow',
+  'send text now',
+  'listScheduled',
+  'list scheduled',
+  'getScheduled',
+  'get scheduled',
+  'cancelScheduled',
+  'cancel scheduled',
+  'cancelReminder',
+  'cancel reminder',
+  'saveContactInfo',
+  'save contact info',
+  'saveContact',
+  'save contact',
+  'addContact',
+  'add contact',
+
+  // Intelligent scheduling tools (ML-based optimal timing)
+  'getOptimalSendTime',
+  'get optimal send time',
+  'Get optimal send time',
+  'optimal send time',
+  'best time to reach',
+  'Best time to reach',
+  'bestTimeToReach',
+  'when to reach',
+  'When to reach',
+  'scheduleAtBestTime',
+  'schedule at best time',
+  'Schedule at best time',
+  'schedule at optimal time',
+  'Schedule at optimal time',
+  'text at best time',
+  'Text at best time',
+  'send at best time',
+  'Send at best time',
+  'email at best time',
+  'Email at best time',
+  'call at best time',
+  'Call at best time',
+  'optimal timing',
+  'Optimal timing',
+  'when they respond',
+  'When they respond',
+
   // Communication tools
   'sendMessage',
   'send message',
@@ -400,6 +461,109 @@ const TOOL_NAME_PATTERNS = [
   // Cameo tools
   'inviteCameo',
   'completeCameo',
+
+  // Voice Memos tools
+  'saveVoiceMemo',
+  'save voice memo',
+  'listVoiceMemos',
+  'list voice memos',
+  'recallVoiceMemo',
+  'recall voice memo',
+  'deleteVoiceMemo',
+  'delete voice memo',
+  'searchVoiceMemos',
+  'search voice memos',
+
+  // SMS / Text Messages tools
+  'readSMS',
+  'read SMS',
+  'read sms',
+  'checkNewMessages',
+  'check new messages',
+  'searchMessages',
+  'search messages',
+
+  // Scheduling tools (scheduled messages, calls, emails)
+  'scheduleMessage',
+  'schedule message',
+  'Schedule message',
+  'scheduleText',
+  'schedule text',
+  'Schedule text',
+  'scheduleCall',
+  'schedule call',
+  'Schedule call',
+  'scheduleEmail',
+  'schedule email',
+  'Schedule email',
+  'sendMessageNow',
+  'send message now',
+  'sendTextNow',
+  'send text now',
+  'listScheduled',
+  'list scheduled',
+  'getScheduled',
+  'cancelScheduled',
+  'cancel scheduled',
+  'saveContact',
+  'save contact',
+  'saveContactInfo',
+  'save contact info',
+  'addContact',
+  'add contact',
+
+  // Concierge tools (AI-powered outreach)
+  'requestHotelQuotes',
+  'request hotel quotes',
+  'Request hotel quotes',
+  'hotel quotes',
+  'Hotel quotes',
+  'get hotel rates',
+  'Get hotel rates',
+  'find hotels',
+  'Find hotels',
+  'makeRestaurantReservation',
+  'make restaurant reservation',
+  'Make restaurant reservation',
+  'restaurant reservation',
+  'Restaurant reservation',
+  'book a table',
+  'Book a table',
+  'make a reservation',
+  'Make a reservation',
+  'scheduleHealthcareAppointment',
+  'schedule healthcare appointment',
+  'Schedule healthcare appointment',
+  'healthcare appointment',
+  'Healthcare appointment',
+  'schedule dentist',
+  'Schedule dentist',
+  'schedule doctor',
+  'Schedule doctor',
+  'find a doctor',
+  'Find a doctor',
+  'find a dentist',
+  'Find a dentist',
+  'getServiceQuotes',
+  'get service quotes',
+  'Get service quotes',
+  'service quotes',
+  'Service quotes',
+  'find a plumber',
+  'Find a plumber',
+  'find an electrician',
+  'Find an electrician',
+  'get quotes',
+  'Get quotes',
+  'checkConciergeStatus',
+  'check concierge status',
+  'Check concierge status',
+  'concierge status',
+  'Concierge status',
+  'check on my request',
+  'Check on my request',
+  'status of my reservation',
+  'Status of my reservation',
 ];
 
 /**
@@ -589,7 +753,10 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
       const fn = jsonMatch[1];
       const argsStr = jsonMatch[2];
       const args = JSON.parse(argsStr) as Record<string, unknown>;
-      log.info({ fn, args, method: 'simple-regex' }, '🎯 JSON function call detected in text stream');
+      log.info(
+        { fn, args, method: 'simple-regex' },
+        '🎯 JSON function call detected in text stream'
+      );
       return { fn, args };
     } catch {
       // Fall through to loose match
@@ -637,11 +804,34 @@ interface ToolExecutionResult {
  *
  * Routes to the general-purpose json-function-executor for comprehensive tool support.
  * Returns the result so it can be spoken via TTS.
+ *
+ * IMPORTANT: This is the JSON WORKAROUND path - called when LLM outputs JSON.
+ * The semantic router handles high-confidence calls directly; this is for fallback.
  */
 async function executeJsonFunctionCall(
-  call: JsonFunctionCall
+  call: JsonFunctionCall,
+  sessionId?: string,
+  userId?: string
 ): Promise<ToolExecutionResult | null> {
   try {
+    // Record JSON workaround execution for observability
+    if (sessionId) {
+      void (async () => {
+        try {
+          const { recordJsonWorkaroundExecution } =
+            await import('../../tools/semantic-router/integration/routing-observability.js');
+          recordJsonWorkaroundExecution(sessionId, userId || 'anonymous', call.fn);
+        } catch {
+          // Non-critical
+        }
+      })();
+    }
+
+    log.info(
+      { fn: call.fn, sessionId },
+      '🔄 JSON WORKAROUND: Executing tool via LLM JSON output (semantic router did not handle)'
+    );
+
     // Use the general-purpose executor
     const { executeJsonFunction } = await import('./json-function-executor.js');
     // Add 'raw' field expected by the executor
@@ -1183,6 +1373,34 @@ const PARTIAL_TOOL_PREFIXES = [
   '[💭',
   '[🎧',
   '[⚠️',
+  // Concierge prefixes
+  'request hotel',
+  'Request hotel',
+  'requestHotel',
+  'make restaurant',
+  'Make restaurant',
+  'makeRestaurant',
+  'book a table',
+  'Book a table',
+  'schedule healthcare',
+  'Schedule healthcare',
+  'scheduleHealthcare',
+  'schedule dentist',
+  'Schedule dentist',
+  'find a doctor',
+  'Find a doctor',
+  'find a dentist',
+  'Find a dentist',
+  'get service',
+  'Get service',
+  'getService',
+  'find a plumber',
+  'Find a plumber',
+  'find an electrician',
+  'Find an electrician',
+  'check concierge',
+  'Check concierge',
+  'checkConcierge',
 ];
 
 /**
@@ -1216,9 +1434,8 @@ export function createSanitizerTransformStream(): AnyTransformStream {
   /** Check if we have a natural word boundary (space, punctuation) */
   const hasWordBoundary = (text: string): boolean => /\s|[.,!?;:]/.test(text);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  return new (globalThis as any).TransformStream({
-    transform(chunk: string, controller: { enqueue: (s: string) => void }) {
+  return new TransformStream({
+    transform(chunk: string, controller: TransformStreamDefaultController<string>) {
       buffer += chunk;
 
       // If in suppress mode, wait for sentence boundary then reset
@@ -1455,6 +1672,45 @@ export function createSanitizerWithMusicFallback(
   let waitForMoreContext = false;
   let musicFallbackInFlight = false;
 
+  // 🔒 RACE CONDITION FIX: Unified tool execution tracking
+  // Prevents music fallback from racing with JSON tool execution
+  let toolExecutionInProgress = false;
+  let activeToolId: string | null = null;
+
+  // 🔒 RACE CONDITION FIX: Speech coordination mutex
+  // Prevents dual speaking (session.say() vs safeGenerateReply())
+  // NOTE: This is a LOCAL mutex for the sanitizer. The global coordination
+  // happens via coordinatedSay() from speech/coordination which uses a queue.
+  let speechInProgress = false;
+  let speechMutexReleaseTimer: ReturnType<typeof setTimeout> | null = null;
+  const SPEECH_MUTEX_TIMEOUT_MS = 10000; // Safety timeout
+
+  const acquireSpeechMutex = (context: string): boolean => {
+    if (speechInProgress) {
+      log.debug({ context, speechInProgress }, '🔒 Speech mutex blocked - already speaking');
+      return false;
+    }
+    speechInProgress = true;
+    // Safety timeout in case release is never called
+    speechMutexReleaseTimer = setTimeout(() => {
+      if (speechInProgress) {
+        log.warn({ context }, '🔒 Speech mutex timeout - force releasing');
+        speechInProgress = false;
+      }
+    }, SPEECH_MUTEX_TIMEOUT_MS);
+    log.debug({ context }, '🔒 Speech mutex acquired');
+    return true;
+  };
+
+  const releaseSpeechMutex = (context: string): void => {
+    if (speechMutexReleaseTimer) {
+      clearTimeout(speechMutexReleaseTimer);
+      speechMutexReleaseTimer = null;
+    }
+    speechInProgress = false;
+    log.debug({ context }, '🔒 Speech mutex released');
+  };
+
   // Optional: Initialize state machine integration for coordinated state tracking
   // This is lazy-loaded to avoid import cycles and only activates if sessionId provided
   let stateIntegration: typeof import('../../speech/coordination/sanitizer-integration.js') | null =
@@ -1478,9 +1734,20 @@ export function createSanitizerWithMusicFallback(
 
   /**
    * Try to execute playMusic as a fallback when we detect narrated music request.
-   * This is fire-and-forget - the tool result will be handled separately.
+   *
+   * 🔒 RACE CONDITION FIX: Now properly coordinates with JSON tool execution.
+   * Will NOT execute if another tool is already in progress.
    */
   const tryMusicFallback = async (query: string): Promise<void> => {
+    // 🔒 FIX: Check if any tool execution is in progress (JSON tools or other fallbacks)
+    if (toolExecutionInProgress) {
+      log.debug(
+        { query, activeToolId },
+        '🎵 MUSIC FALLBACK: Skipping - tool execution already in progress'
+      );
+      return;
+    }
+
     if (musicFallbackInFlight) {
       log.debug({ query }, 'Music fallback already in flight, skipping');
       return;
@@ -1488,6 +1755,9 @@ export function createSanitizerWithMusicFallback(
 
     try {
       musicFallbackInFlight = true;
+      toolExecutionInProgress = true;
+      activeToolId = 'playMusic_fallback';
+
       log.info(
         { query },
         '🎵 MUSIC FALLBACK: Executing playMusic because Gemini narrated instead of called'
@@ -1520,12 +1790,28 @@ export function createSanitizerWithMusicFallback(
       log.error({ query, error: String(err) }, '🎵 MUSIC FALLBACK: Error executing playMusic');
     } finally {
       musicFallbackInFlight = false;
+      toolExecutionInProgress = false;
+      activeToolId = null;
     }
   };
 
   // Track how many chunks to suppress after catching JSON
+  // 🔒 RACE CONDITION FIX: This is a fallback - primary suppression uses state machine
   let suppressChunksRemaining = 0;
   const SUPPRESS_CHUNKS_AFTER_JSON = 5; // Suppress 5 chunks after JSON to catch "Ok so..."
+
+  // Helper to check if output should be suppressed (uses state machine if available)
+  const shouldSuppressChunk = (): boolean => {
+    // Primary: Use state machine if available
+    if (stateIntegration && sessionId) {
+      const shouldSuppress = stateIntegration.shouldSuppressOutput(sessionId);
+      if (shouldSuppress) {
+        return true;
+      }
+    }
+    // Fallback: Use chunk counting (less reliable but backwards-compatible)
+    return suppressChunksRemaining > 0;
+  };
 
   // JSON fragment accumulator - for handling split JSON like {"  then fn":"playMusic"...
   let jsonAccumulator = '';
@@ -1536,17 +1822,24 @@ export function createSanitizerWithMusicFallback(
   // When async tool execution completes after stream closes, enqueue() fails
   let streamClosed = false;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  return new (globalThis as any).TransformStream({
-    transform(chunk: string, controller: { enqueue: (s: string) => void }) {
+  return new TransformStream({
+    transform(chunk: string, controller: TransformStreamDefaultController<string>) {
       buffer += chunk;
 
       // After catching JSON, suppress several chunks to catch trailing "Ok so..." type text
-      if (suppressChunksRemaining > 0) {
-        suppressChunksRemaining--;
+      // 🔒 RACE CONDITION FIX: Use state machine for primary suppression, fallback to counting
+      if (shouldSuppressChunk()) {
+        // Only decrement the fallback counter if it's active
+        if (suppressChunksRemaining > 0) {
+          suppressChunksRemaining--;
+        }
         log.debug(
-          { chunk: chunk.slice(0, 30), remaining: suppressChunksRemaining },
-          '🗑️ Suppressing post-JSON chunk'
+          {
+            chunk: chunk.slice(0, 30),
+            remaining: suppressChunksRemaining,
+            toolInProgress: toolExecutionInProgress,
+          },
+          '🗑️ Suppressing post-JSON chunk (state machine or fallback)'
         );
         buffer = '';
         return;
@@ -1601,6 +1894,11 @@ export function createSanitizerWithMusicFallback(
             '🎯 Accumulated JSON function call - executing'
           );
 
+          // 🔒 RACE CONDITION FIX: Set tool execution flag before starting
+          // This prevents music fallback from racing with JSON tool execution
+          toolExecutionInProgress = true;
+          activeToolId = jsonCall.fn;
+
           // Notify state machine of JSON completion and tool start
           if (stateIntegration && sessionId) {
             stateIntegration.notifyJsonComplete(sessionId, jsonCall.fn);
@@ -1626,7 +1924,8 @@ export function createSanitizerWithMusicFallback(
 
           // Execute the tool and speak the result via safeGenerateReply
           // This is the proper way to inject async tool results - not stream injection
-          executeJsonFunctionCall(jsonCall)
+          // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
+          executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId)
             .then(async (execResult) => {
               if (execResult?.success && execResult.result) {
                 const resultText =
@@ -1638,6 +1937,7 @@ export function createSanitizerWithMusicFallback(
                 // SPEAK DIRECTLY: For pseudo-tools like "speak" that generate
                 // dynamic content, bypass safeGenerateReply and use session.say()
                 // directly. This avoids the role:'model' echoing problem.
+                // 🔒 RACE CONDITION FIX: Use speech mutex to prevent dual speaking
                 // ========================================
                 if (execResult.speakDirectly) {
                   log.info(
@@ -1648,34 +1948,45 @@ export function createSanitizerWithMusicFallback(
                     },
                     '🎤 Speaking directly via coordinated speech (speakDirectly flag)'
                   );
-                  if (session && sessionId) {
-                    try {
-                      // Use coordinated speech for direct tool results
-                      coordinatedSay(sessionId, resultText, { allowInterruptions: true });
-                      log.info({ fn: jsonCall.fn }, '✅ Coordinated speech complete');
-                    } catch (sayErr) {
-                      log.warn(
-                        { fn: jsonCall.fn, error: String(sayErr) },
-                        '⚠️ Coordinated speech failed, falling back to direct'
-                      );
-                      // Fallback to direct session.say if coordinated fails
+
+                  // 🔒 Acquire speech mutex before speaking
+                  if (!acquireSpeechMutex(`speakDirectly-${jsonCall.fn}`)) {
+                    log.warn({ fn: jsonCall.fn }, '🔒 Speech blocked - another speech in progress');
+                    return; // Skip - another path is already speaking
+                  }
+
+                  try {
+                    if (session && sessionId) {
+                      try {
+                        // Use coordinated speech for direct tool results
+                        coordinatedSay(sessionId, resultText, { allowInterruptions: true });
+                        log.info({ fn: jsonCall.fn }, '✅ Coordinated speech complete');
+                      } catch (sayErr) {
+                        log.warn(
+                          { fn: jsonCall.fn, error: String(sayErr) },
+                          '⚠️ Coordinated speech failed, falling back to direct'
+                        );
+                        // Fallback to direct session.say if coordinated fails
+                        try {
+                          session.say(resultText, { allowInterruptions: true });
+                        } catch {
+                          /* ignore fallback errors */
+                        }
+                      }
+                    } else if (session) {
+                      // No sessionId - use direct speech
                       try {
                         session.say(resultText, { allowInterruptions: true });
-                      } catch {
-                        /* ignore fallback errors */
+                        log.info({ fn: jsonCall.fn }, '✅ Direct speech complete (no sessionId)');
+                      } catch (sayErr) {
+                        log.warn(
+                          { fn: jsonCall.fn, error: String(sayErr) },
+                          '⚠️ Direct speech failed'
+                        );
                       }
                     }
-                  } else if (session) {
-                    // No sessionId - use direct speech
-                    try {
-                      session.say(resultText, { allowInterruptions: true });
-                      log.info({ fn: jsonCall.fn }, '✅ Direct speech complete (no sessionId)');
-                    } catch (sayErr) {
-                      log.warn(
-                        { fn: jsonCall.fn, error: String(sayErr) },
-                        '⚠️ Direct speech failed'
-                      );
-                    }
+                  } finally {
+                    releaseSpeechMutex(`speakDirectly-${jsonCall.fn}`);
                   }
                   return; // Don't proceed to safeGenerateReply
                 }
@@ -1684,6 +1995,12 @@ export function createSanitizerWithMusicFallback(
                   { fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) },
                   '🎤 Tool result ready - triggering LLM response'
                 );
+
+                // 🔒 RACE CONDITION FIX: Acquire speech mutex for safeGenerateReply path
+                if (!acquireSpeechMutex(`safeGenerateReply-${jsonCall.fn}`)) {
+                  log.warn({ fn: jsonCall.fn }, '🔒 Speech blocked - another speech in progress');
+                  return; // Skip - another path is already speaking
+                }
 
                 // Use safeGenerateReply to speak the result properly
                 if (session) {
@@ -1718,8 +2035,11 @@ export function createSanitizerWithMusicFallback(
                       { fn: jsonCall.fn, error: String(speakErr) },
                       '⚠️ Could not speak tool result via safeGenerateReply'
                     );
+                  } finally {
+                    releaseSpeechMutex(`safeGenerateReply-${jsonCall.fn}`);
                   }
                 } else {
+                  releaseSpeechMutex(`safeGenerateReply-${jsonCall.fn}`);
                   // Fallback: try to enqueue if no session (shouldn't happen in normal flow)
                   log.warn(
                     { fn: jsonCall.fn },
@@ -1750,6 +2070,12 @@ export function createSanitizerWithMusicFallback(
               if (stateIntegration && sessionId) {
                 stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
               }
+            })
+            .finally(() => {
+              // 🔒 RACE CONDITION FIX: Always clear tool execution flag
+              toolExecutionInProgress = false;
+              activeToolId = null;
+              log.debug({ fn: jsonCall.fn }, '🔒 Tool execution flag cleared');
             });
 
           suppressMode = true;
@@ -1843,7 +2169,8 @@ export function createSanitizerWithMusicFallback(
         }
 
         // Execute the tool and speak the result via safeGenerateReply
-        executeJsonFunctionCall(jsonCall)
+        // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
+        executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId)
           .then(async (execResult) => {
             if (execResult?.success && execResult.result) {
               const resultText =
@@ -2025,14 +2352,22 @@ export function createSanitizerWithMusicFallback(
               '🎯 LAST-CHANCE SAVE: Detected JSON that earlier checks missed!'
             );
             // Execute the tool
-            executeJsonFunctionCall(lastChanceJson)
+            // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
+            executeJsonFunctionCall(lastChanceJson, sessionId, toolContext?.userId)
               .then(async (result) => {
-                log.info({ fn: lastChanceJson.fn, success: result?.success }, '✅ Last-chance tool executed');
+                log.info(
+                  { fn: lastChanceJson.fn, success: result?.success },
+                  '✅ Last-chance tool executed'
+                );
                 // Speak the result if we have a session
                 if (result?.success && result.result && session) {
                   try {
-                    const { safeGenerateReply, formatToolResult } = await import('./safe-generate-reply.js');
-                    const resultText = typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
+                    const { safeGenerateReply, formatToolResult } =
+                      await import('./safe-generate-reply.js');
+                    const resultText =
+                      typeof result.result === 'string'
+                        ? result.result
+                        : JSON.stringify(result.result);
                     const instructions = formatToolResult(lastChanceJson.fn, resultText);
                     await safeGenerateReply(session, {
                       instructions,
@@ -2045,7 +2380,10 @@ export function createSanitizerWithMusicFallback(
                 }
               })
               .catch((err) => {
-                log.error({ fn: lastChanceJson.fn, error: String(err) }, '❌ Last-chance tool failed');
+                log.error(
+                  { fn: lastChanceJson.fn, error: String(err) },
+                  '❌ Last-chance tool failed'
+                );
               });
             suppressMode = true;
             suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;

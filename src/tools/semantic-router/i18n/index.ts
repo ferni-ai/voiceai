@@ -48,4 +48,3 @@ export {
   type MultilingualConfig,
   type MultilingualRoutingResult,
 } from './multilingual.js';
-

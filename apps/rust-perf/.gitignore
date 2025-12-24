@@ -1,0 +1,10 @@
+# Rust build artifacts
+target/
+
+# NAPI build artifacts
+*.node
+index.js
+index.d.ts
+
+# OS files
+.DS_Store

@@ -42,7 +42,9 @@ type CompromiseMatch = {
 
 type CompromiseStatic = {
   (text: string): CompromiseDoc;
-  extend: (fn: (Doc: unknown, world: { addWords: (words: Record<string, string>) => void }) => void) => void;
+  extend: (
+    fn: (Doc: unknown, world: { addWords: (words: Record<string, string>) => void }) => void
+  ) => void;
   plugin: (plugin: unknown) => void;
 };
 
@@ -51,6 +53,7 @@ type CompromiseStatic = {
 // ============================================================================
 
 export type NEREntityType =
+  // Core entities
   | 'person'
   | 'place'
   | 'organization'
@@ -58,14 +61,36 @@ export type NEREntityType =
   | 'time'
   | 'duration'
   | 'money'
+  | 'quantity'
+  // Music & Entertainment
   | 'song'
   | 'artist'
+  | 'album'
+  | 'genre'
+  | 'playlist'
+  // Communication
   | 'email'
   | 'phone'
   | 'url'
   | 'hashtag'
-  | 'quantity'
+  // Life Coaching (Ferni-specific)
+  | 'emotion'
+  | 'mood'
+  | 'habit'
+  | 'goal'
+  | 'relationship'
+  | 'activity'
+  | 'frequency'
+  // Events & Scheduling
   | 'event'
+  | 'meeting'
+  | 'reminder'
+  // Lifestyle
+  | 'food'
+  | 'drink'
+  | 'weather_condition'
+  | 'workout'
+  // Catch-all
   | 'unknown';
 
 export interface NEREntity {
@@ -101,13 +126,13 @@ export async function initializeNER(): Promise<void> {
   try {
     // Dynamic import of compromise and plugins
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const compromiseModule = await import('compromise') as any;
+    const compromiseModule = (await import('compromise')) as any;
     nlp = compromiseModule.default as CompromiseStatic;
 
     // Try to load plugins (optional enhancements)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const datesModule = await import('compromise-dates') as any;
+      const datesModule = (await import('compromise-dates')) as any;
       nlpDates = datesModule.default;
       nlp!.plugin(nlpDates);
     } catch {
@@ -116,7 +141,7 @@ export async function initializeNER(): Promise<void> {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const numbersModule = await import('compromise-numbers') as any;
+      const numbersModule = (await import('compromise-numbers')) as any;
       nlpNumbers = numbersModule.default;
       nlp!.plugin(nlpNumbers);
     } catch {
@@ -137,30 +162,105 @@ export async function initializeNER(): Promise<void> {
  * Add custom patterns for our domain
  */
 function addCustomPatterns(nlpInstance: CompromiseStatic): void {
-  // Extend lexicon for music domain
-  nlpInstance.extend((Doc: unknown, world: { addWords: (words: Record<string, string>) => void }) => {
-    // Add music-related terms
-    world.addWords({
-      spotify: 'Organization',
-      playlist: 'Noun',
-      album: 'Noun',
-      track: 'Noun',
-      artist: 'Noun',
-      genre: 'Noun',
-      jazz: 'Genre',
-      rock: 'Genre',
-      classical: 'Genre',
-      pop: 'Genre',
-      hiphop: 'Genre',
-      country: 'Genre',
-      electronic: 'Genre',
-      beatles: 'Artist',
-      coldplay: 'Artist',
-      adele: 'Artist',
-      drake: 'Artist',
-      taylor: 'Person', // Taylor Swift
-    });
-  });
+  // Extend lexicon for Ferni's domains
+  nlpInstance.extend(
+    (Doc: unknown, world: { addWords: (words: Record<string, string>) => void }) => {
+      // Music & Entertainment
+      world.addWords({
+        spotify: 'Organization',
+        playlist: 'Noun',
+        album: 'Noun',
+        track: 'Noun',
+        artist: 'Noun',
+        jazz: 'Genre',
+        rock: 'Genre',
+        classical: 'Genre',
+        pop: 'Genre',
+        hiphop: 'Genre',
+        country: 'Genre',
+        electronic: 'Genre',
+        indie: 'Genre',
+        rnb: 'Genre',
+        lofi: 'Genre',
+        ambient: 'Genre',
+        beatles: 'Artist',
+        coldplay: 'Artist',
+        adele: 'Artist',
+        drake: 'Artist',
+        taylor: 'Person',
+      });
+
+      // Emotions & Moods (Life Coaching)
+      world.addWords({
+        stressed: 'Emotion',
+        anxious: 'Emotion',
+        overwhelmed: 'Emotion',
+        happy: 'Emotion',
+        sad: 'Emotion',
+        frustrated: 'Emotion',
+        excited: 'Emotion',
+        nervous: 'Emotion',
+        calm: 'Emotion',
+        tired: 'Emotion',
+        exhausted: 'Emotion',
+        motivated: 'Emotion',
+        unmotivated: 'Emotion',
+        grateful: 'Emotion',
+        lonely: 'Emotion',
+        content: 'Emotion',
+        worried: 'Emotion',
+        confident: 'Emotion',
+        insecure: 'Emotion',
+      });
+
+      // Activities & Habits
+      world.addWords({
+        workout: 'Activity',
+        exercise: 'Activity',
+        meditation: 'Activity',
+        yoga: 'Activity',
+        running: 'Activity',
+        walking: 'Activity',
+        journaling: 'Activity',
+        reading: 'Activity',
+        cooking: 'Activity',
+        cleaning: 'Activity',
+        studying: 'Activity',
+        working: 'Activity',
+        sleeping: 'Activity',
+        napping: 'Activity',
+      });
+
+      // Food & Drinks
+      world.addWords({
+        coffee: 'Drink',
+        tea: 'Drink',
+        water: 'Drink',
+        smoothie: 'Drink',
+        breakfast: 'Food',
+        lunch: 'Food',
+        dinner: 'Food',
+        snack: 'Food',
+        meal: 'Food',
+      });
+
+      // Weather
+      world.addWords({
+        sunny: 'Weather',
+        rainy: 'Weather',
+        cloudy: 'Weather',
+        snowy: 'Weather',
+        windy: 'Weather',
+        humid: 'Weather',
+        foggy: 'Weather',
+        stormy: 'Weather',
+        cold: 'Weather',
+        hot: 'Weather',
+        warm: 'Weather',
+        freezing: 'Weather',
+      });
+    }
+  );
 }
 
 // ============================================================================
@@ -229,16 +329,22 @@ export async function extractEntities(text: string): Promise<NERResult> {
 
   // Extract dates
   const dates = doc.dates();
-  dates.forEach((match: { text: () => string; offset: () => { start: number }; get?: (key: string) => unknown }) => {
-    entities.push({
-      text: match.text(),
-      type: 'date',
-      start: match.offset().start,
-      end: match.offset().start + match.text().length,
-      confidence: 0.9,
-      metadata: match.get ? { parsed: match.get('dates') } : undefined,
-    });
-  });
+  dates.forEach(
+    (match: {
+      text: () => string;
+      offset: () => { start: number };
+      get?: (key: string) => unknown;
+    }) => {
+      entities.push({
+        text: match.text(),
+        type: 'date',
+        start: match.offset().start,
+        end: match.offset().start + match.text().length,
+        confidence: 0.9,
+        metadata: match.get ? { parsed: match.get('dates') } : undefined,
+      });
+    }
+  );
 
   // Extract times
   const times = doc.match('#Time');
@@ -323,6 +429,50 @@ export async function extractEntities(text: string): Promise<NERResult> {
   // Custom extraction: durations
   const durations = extractDurations(text);
   entities.push(...durations);
+
+  // ========================================================================
+  // FERNI-SPECIFIC ENTITY EXTRACTION (Life Coaching Domain)
+  // ========================================================================
+
+  // Emotions & Moods
+  const emotions = extractEmotions(text);
+  entities.push(...emotions);
+
+  // Habits
+  const habits = extractHabits(text);
+  entities.push(...habits);
+
+  // Goals & Intentions
+  const goals = extractGoals(text);
+  entities.push(...goals);
+
+  // Relationships
+  const relationships = extractRelationships(text);
+  entities.push(...relationships);
+
+  // Activities
+  const activities = extractActivities(text);
+  entities.push(...activities);
+
+  // Frequency/Recurrence
+  const frequencies = extractFrequencies(text);
+  entities.push(...frequencies);
+
+  // Genres (music)
+  const genres = extractGenres(text);
+  entities.push(...genres);
+
+  // Food & Drinks
+  const foodDrinks = extractFoodDrinks(text);
+  entities.push(...foodDrinks);
+
+  // Weather conditions
+  const weatherConditions = extractWeatherConditions(text);
+  entities.push(...weatherConditions);
+
+  // Reminders
+  const reminders = extractReminders(text);
+  entities.push(...reminders);
 
   // Deduplicate overlapping entities (prefer higher confidence)
   const deduplicated = deduplicateEntities(entities);
@@ -438,6 +588,474 @@ function extractDurations(text: string): NEREntity[] {
   return entities;
 }
 
+// ============================================================================
+// FERNI-SPECIFIC EXTRACTION FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract emotion mentions
+ */
+function extractEmotions(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Emotion patterns with context
+  const emotionPatterns = [
+    // "I feel/am [emotion]"
+    {
+      pattern:
+        /\b(?:i\s+)?(?:feel|feeling|am|i'm|been)\s+(?:so\s+|really\s+|very\s+|a\s+bit\s+)?(stressed|anxious|overwhelmed|happy|sad|frustrated|excited|nervous|calm|tired|exhausted|motivated|unmotivated|grateful|lonely|content|worried|confident|insecure|depressed|angry|peaceful|hopeful|hopeless|scared|afraid|proud|ashamed|guilty|embarrassed|jealous|envious|relieved|disappointed|confused|curious|bored|restless|irritated|annoyed|hurt|heartbroken)\b/gi,
+    },
+    // Standalone strong emotions
+    {
+      pattern:
+        /\b(stressed out|burned out|burnt out|freaking out|breaking down|falling apart|on edge|at peace|in a good mood|in a bad mood)\b/gi,
+    },
+  ];
+
+  for (const { pattern } of emotionPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      const emotionWord = match[1] || match[0];
+      entities.push({
+        text: emotionWord,
+        type: 'emotion',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.85,
+        normalized: emotionWord.toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract habit mentions
+ */
+function extractHabits(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Habit patterns
+  const habitPatterns = [
+    // "my [habit] habit"
+    /\bmy\s+(\w+(?:\s+\w+)?)\s+habit\b/gi,
+    // "habit of [doing X]"
+    /\bhabit\s+of\s+(\w+(?:ing)?(?:\s+\w+)*)\b/gi,
+    // Common habits
+    /\b(morning routine|evening routine|bedtime routine|daily routine|workout routine|exercise routine|meditation practice|journaling practice|reading habit|sleep schedule|water intake|screen time|phone usage)\b/gi,
+  ];
+
+  for (const pattern of habitPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[1] || match[0],
+        type: 'habit',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.8,
+        normalized: (match[1] || match[0]).toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract goal/intention mentions
+ */
+function extractGoals(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Goal patterns
+  const goalPatterns = [
+    // "I want to [goal]"
+    /\bi\s+(?:want|need|plan|hope|wish|intend|aim|trying)\s+to\s+(\w+(?:\s+\w+){0,5})/gi,
+    // "my goal is to [goal]"
+    /\bmy\s+goal\s+(?:is\s+)?to\s+(\w+(?:\s+\w+){0,5})/gi,
+    // Explicit goals
+    /\b(lose weight|gain weight|build muscle|get fit|save money|pay off debt|learn \w+|quit smoking|drink less|eat healthier|sleep better|be more \w+|spend more time|spend less time|start \w+|stop \w+)\b/gi,
+  ];
+
+  for (const pattern of goalPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[1] || match[0],
+        type: 'goal',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.75,
+        normalized: (match[1] || match[0]).toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract relationship mentions
+ */
+function extractRelationships(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Relationship patterns
+  const relationshipPatterns = [
+    // "my [relationship]"
+    /\bmy\s+(wife|husband|partner|girlfriend|boyfriend|spouse|fiancée?|ex|mom|mother|dad|father|parent|parents|sister|brother|sibling|son|daughter|child|children|kids|grandma|grandmother|grandpa|grandfather|aunt|uncle|cousin|niece|nephew|friend|best friend|boss|coworker|colleague|manager|therapist|doctor|roommate|neighbor)\b/gi,
+    // "[name]'s [relationship]"
+    /\b(\w+)'s\s+(wife|husband|partner|girlfriend|boyfriend|mom|dad|sister|brother)\b/gi,
+  ];
+
+  for (const pattern of relationshipPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[1] || match[0],
+        type: 'relationship',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.85,
+        normalized: (match[1] || match[0]).toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract activity mentions
+ */
+function extractActivities(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Activity patterns
+  const activities = [
+    'workout',
+    'exercise',
+    'meditation',
+    'yoga',
+    'running',
+    'jogging',
+    'walking',
+    'hiking',
+    'swimming',
+    'cycling',
+    'biking',
+    'lifting',
+    'stretching',
+    'pilates',
+    'journaling',
+    'reading',
+    'writing',
+    'cooking',
+    'cleaning',
+    'organizing',
+    'studying',
+    'working',
+    'meeting',
+    'call',
+    'video call',
+    'zoom',
+    'shopping',
+    'grocery shopping',
+    'errands',
+    'chores',
+    'therapy',
+    'appointment',
+    'checkup',
+    'doctor visit',
+    'date night',
+    'movie night',
+    'game night',
+    'family dinner',
+    'nap',
+    'rest',
+    'break',
+    'vacation',
+    'trip',
+  ];
+
+  for (const activity of activities) {
+    const pattern = new RegExp(`\\b${activity}(?:s|ing)?\\b`, 'gi');
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'activity',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.8,
+        normalized: activity,
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract frequency/recurrence mentions
+ */
+function extractFrequencies(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Frequency patterns
+  const frequencyPatterns = [
+    /\b(every day|daily|every morning|every evening|every night|every week|weekly|every month|monthly|twice a day|twice a week|three times a week|once a week|once a month|every other day|on weekdays|on weekends|always|never|sometimes|often|rarely|occasionally|regularly|frequently|constantly)\b/gi,
+    /\b(\d+)\s+times?\s+(?:a|per)\s+(day|week|month|year)\b/gi,
+  ];
+
+  for (const pattern of frequencyPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'frequency',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.9,
+        normalized: match[0].toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract music genre mentions
+ */
+function extractGenres(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  const genres = [
+    'jazz',
+    'rock',
+    'pop',
+    'classical',
+    'hip hop',
+    'hiphop',
+    'rap',
+    'r&b',
+    'rnb',
+    'country',
+    'electronic',
+    'edm',
+    'house',
+    'techno',
+    'indie',
+    'alternative',
+    'metal',
+    'punk',
+    'folk',
+    'blues',
+    'soul',
+    'reggae',
+    'latin',
+    'salsa',
+    'lofi',
+    'lo-fi',
+    'ambient',
+    'chill',
+    'acoustic',
+    'instrumental',
+    'k-pop',
+    'kpop',
+    'j-pop',
+    'anime',
+    'soundtrack',
+    'musical',
+  ];
+
+  for (const genre of genres) {
+    const pattern = new RegExp(`\\b${genre}\\b`, 'gi');
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'genre',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.85,
+        normalized: genre.toLowerCase(),
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract food and drink mentions
+ */
+function extractFoodDrinks(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Foods
+  const foods = [
+    'breakfast',
+    'lunch',
+    'dinner',
+    'brunch',
+    'snack',
+    'meal',
+    'food',
+    'salad',
+    'sandwich',
+    'soup',
+    'pizza',
+    'pasta',
+    'burger',
+    'sushi',
+    'fruit',
+    'vegetables',
+    'protein',
+    'carbs',
+  ];
+
+  // Drinks
+  const drinks = [
+    'coffee',
+    'tea',
+    'water',
+    'juice',
+    'smoothie',
+    'shake',
+    'soda',
+    'beer',
+    'wine',
+    'cocktail',
+    'drink',
+    'beverage',
+  ];
+
+  for (const food of foods) {
+    const pattern = new RegExp(`\\b${food}s?\\b`, 'gi');
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'food',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.8,
+        normalized: food,
+      });
+    }
+  }
+
+  for (const drink of drinks) {
+    const pattern = new RegExp(`\\b${drink}s?\\b`, 'gi');
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'drink',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.8,
+        normalized: drink,
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract weather condition mentions
+ */
+function extractWeatherConditions(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  const conditions = [
+    'sunny',
+    'rainy',
+    'cloudy',
+    'snowy',
+    'windy',
+    'humid',
+    'foggy',
+    'stormy',
+    'cold',
+    'hot',
+    'warm',
+    'freezing',
+    'chilly',
+    'mild',
+    'clear',
+    'rain',
+    'snow',
+    'storm',
+    'thunder',
+    'lightning',
+    'hail',
+    'sleet',
+  ];
+
+  for (const condition of conditions) {
+    const pattern = new RegExp(`\\b${condition}(?:ing|y)?\\b`, 'gi');
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'weather_condition',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.85,
+        normalized: condition,
+      });
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Extract reminder mentions
+ */
+function extractReminders(text: string): NEREntity[] {
+  const entities: NEREntity[] = [];
+  const lowerText = text.toLowerCase();
+
+  // Reminder patterns
+  const reminderPatterns = [
+    /\bremind\s+me\s+(?:to\s+)?(\w+(?:\s+\w+){0,5})/gi,
+    /\bdon't\s+(?:let\s+me\s+)?forget\s+(?:to\s+)?(\w+(?:\s+\w+){0,5})/gi,
+    /\bset\s+(?:a\s+)?reminder\s+(?:to\s+|for\s+)?(\w+(?:\s+\w+){0,5})/gi,
+  ];
+
+  for (const pattern of reminderPatterns) {
+    let match;
+    while ((match = pattern.exec(lowerText)) !== null) {
+      entities.push({
+        text: match[1] || match[0],
+        type: 'reminder',
+        start: match.index,
+        end: match.index + match[0].length,
+        confidence: 0.85,
+        normalized: (match[1] || match[0]).toLowerCase().trim(),
+      });
+    }
+  }
+
+  return entities;
+}
+
 /**
  * Deduplicate overlapping entities, preferring higher confidence
  */
@@ -499,14 +1117,33 @@ export function hasDateTime(result: NERResult): boolean {
  */
 export function getEntityForArg(
   result: NERResult,
-  argType: 'location' | 'person' | 'date' | 'time' | 'query'
+  argType:
+    | 'location'
+    | 'person'
+    | 'date'
+    | 'time'
+    | 'query'
+    | 'genre'
+    | 'emotion'
+    | 'activity'
+    | 'relationship'
+    | 'habit'
+    | 'goal'
+    | 'frequency'
 ): string | undefined {
   const typeMap: Record<string, NEREntityType[]> = {
     location: ['place'],
-    person: ['person'],
+    person: ['person', 'relationship'],
     date: ['date'],
     time: ['time'],
-    query: ['song', 'artist', 'person', 'place'],
+    query: ['song', 'artist', 'person', 'place', 'album', 'playlist'],
+    genre: ['genre'],
+    emotion: ['emotion', 'mood'],
+    activity: ['activity', 'workout'],
+    relationship: ['relationship', 'person'],
+    habit: ['habit', 'activity'],
+    goal: ['goal'],
+    frequency: ['frequency', 'duration'],
   };
 
   const types = typeMap[argType] || [];
@@ -522,8 +1159,169 @@ export function getEntityForArg(
 }
 
 // ============================================================================
+// ADDITIONAL UTILITY FUNCTIONS FOR NEW ENTITY TYPES
+// ============================================================================
+
+/**
+ * Check if text mentions an emotion
+ */
+export function hasEmotion(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'emotion' || e.type === 'mood');
+}
+
+/**
+ * Check if text mentions a habit
+ */
+export function hasHabit(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'habit');
+}
+
+/**
+ * Check if text mentions a goal
+ */
+export function hasGoal(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'goal');
+}
+
+/**
+ * Check if text mentions a relationship
+ */
+export function hasRelationship(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'relationship');
+}
+
+/**
+ * Check if text mentions an activity
+ */
+export function hasActivity(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'activity' || e.type === 'workout');
+}
+
+/**
+ * Check if text mentions a frequency
+ */
+export function hasFrequency(result: NERResult): boolean {
+  return result.entities.some((e) => e.type === 'frequency');
+}
+
+/**
+ * Check if text mentions music (song, artist, genre, etc.)
+ */
+export function hasMusicMention(result: NERResult): boolean {
+  return result.entities.some(
+    (e) =>
+      e.type === 'song' ||
+      e.type === 'artist' ||
+      e.type === 'genre' ||
+      e.type === 'album' ||
+      e.type === 'playlist'
+  );
+}
+
+/**
+ * Get all emotions from the result
+ */
+export function getEmotions(result: NERResult): NEREntity[] {
+  return result.entities.filter((e) => e.type === 'emotion' || e.type === 'mood');
+}
+
+/**
+ * Get primary emotion (highest confidence)
+ */
+export function getPrimaryEmotion(result: NERResult): string | undefined {
+  const emotions = getEmotions(result);
+  if (emotions.length === 0) return undefined;
+
+  const primary = emotions.reduce((a, b) => (a.confidence > b.confidence ? a : b));
+  return primary.normalized || primary.text;
+}
+
+/**
+ * Analyze sentiment based on emotions
+ */
+export function analyzeSentiment(result: NERResult): 'positive' | 'negative' | 'neutral' {
+  const emotions = getEmotions(result);
+  if (emotions.length === 0) return 'neutral';
+
+  const positiveEmotions = [
+    'happy',
+    'excited',
+    'grateful',
+    'calm',
+    'content',
+    'confident',
+    'motivated',
+    'proud',
+    'relieved',
+    'peaceful',
+    'hopeful',
+  ];
+  const negativeEmotions = [
+    'stressed',
+    'anxious',
+    'overwhelmed',
+    'sad',
+    'frustrated',
+    'nervous',
+    'tired',
+    'exhausted',
+    'unmotivated',
+    'lonely',
+    'worried',
+    'insecure',
+    'depressed',
+    'angry',
+    'hopeless',
+    'scared',
+    'afraid',
+    'ashamed',
+    'guilty',
+    'disappointed',
+    'hurt',
+    'heartbroken',
+  ];
+
+  let positiveCount = 0;
+  let negativeCount = 0;
+
+  for (const emotion of emotions) {
+    const normalized = emotion.normalized?.toLowerCase() || emotion.text.toLowerCase();
+    if (positiveEmotions.includes(normalized)) positiveCount++;
+    if (negativeEmotions.includes(normalized)) negativeCount++;
+  }
+
+  if (positiveCount > negativeCount) return 'positive';
+  if (negativeCount > positiveCount) return 'negative';
+  return 'neutral';
+}
+
+/**
+ * Extract context-rich summary of entities
+ */
+export function getEntitySummary(result: NERResult): {
+  people: string[];
+  places: string[];
+  dates: string[];
+  emotions: string[];
+  activities: string[];
+  goals: string[];
+  relationships: string[];
+  sentiment: 'positive' | 'negative' | 'neutral';
+} {
+  return {
+    people: getEntitiesByType(result, 'person').map((e) => e.text),
+    places: getEntitiesByType(result, 'place').map((e) => e.text),
+    dates: getEntitiesByType(result, 'date').map((e) => e.text),
+    emotions: getEmotions(result).map((e) => e.normalized || e.text),
+    activities: getEntitiesByType(result, 'activity').map((e) => e.text),
+    goals: getEntitiesByType(result, 'goal').map((e) => e.text),
+    relationships: getEntitiesByType(result, 'relationship').map((e) => e.text),
+    sentiment: analyzeSentiment(result),
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export { initializeNER as initialize };
-

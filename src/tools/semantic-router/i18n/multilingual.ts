@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingProvider, EmbeddingVector } from '../types.js';
+import { getExampleText, getKeywordWord, getKeywordWeight } from '../types.js';
 
 const log = createLogger({ module: 'SemanticRouter.Multilingual' });
 
@@ -76,10 +77,13 @@ export async function initializeMultilingualEmbeddings(
 
       // Embed examples (limit to 5 for performance)
       const exampleEmbeddings = await Promise.all(
-        tool.examples.slice(0, 5).map(async (example: string) => ({
-          text: example,
-          embedding: await embeddingProvider.embed(example),
-        }))
+        tool.examples.slice(0, 5).map(async (example) => {
+          const text = getExampleText(example);
+          return {
+            text,
+            embedding: await embeddingProvider.embed(text),
+          };
+        })
       );
 
       toolEmbeddingsCache.set(tool.id, {
@@ -89,7 +93,10 @@ export async function initializeMultilingualEmbeddings(
         examples: exampleEmbeddings,
       });
 
-      log.debug({ toolId: tool.id, exampleCount: exampleEmbeddings.length }, 'Tool embeddings cached');
+      log.debug(
+        { toolId: tool.id, exampleCount: exampleEmbeddings.length },
+        'Tool embeddings cached'
+      );
     } catch (error) {
       log.error({ toolId: tool.id, error: String(error) }, 'Failed to embed tool');
     }
@@ -254,8 +261,10 @@ function matchByKeywords(
     // Check keywords (handle optional)
     const keywords = tool.triggers.keywords || [];
     for (const keyword of keywords) {
-      if (words.some((w) => w.includes(keyword.word.toLowerCase()))) {
-        score += keyword.weight;
+      const word = getKeywordWord(keyword);
+      const weight = getKeywordWeight(keyword);
+      if (words.some((w) => w.includes(word.toLowerCase()))) {
+        score += weight;
       }
     }
 
@@ -305,8 +314,4 @@ function matchByKeywords(
 // EXPORTS
 // ============================================================================
 
-export {
-  toolEmbeddingsCache,
-  cosineSimilarity,
-};
-
+export { toolEmbeddingsCache, cosineSimilarity };

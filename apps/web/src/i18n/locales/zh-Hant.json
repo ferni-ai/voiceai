@@ -290,6 +290,7 @@
   },
   "errors": {
     "connectionFailed": "連線失敗。請重試。",
+    "invalidLanguage": "此語言目前尚不可用",
     "microphoneAccess": "請允許麥克風存取以繼續。",
     "networkError": "網路錯誤。請檢查您的連線。",
     "sessionExpired": "您的會話已過期。請重新整理。",

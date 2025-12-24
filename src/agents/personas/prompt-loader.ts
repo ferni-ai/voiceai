@@ -115,35 +115,62 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
 }
 
 /**
+ * Load the shared safety disclaimer.
+ * This ensures all personas have consistent legal/safety guardrails.
+ */
+async function loadSafetyDisclaimer(): Promise<string | null> {
+  return loadSharedFile('safety-disclaimer.md');
+}
+
+/**
  * Load function calling prompt with base + specialty pattern.
  *
  * This assembles:
- * 1. shared/function-calling-base.md (common tools + critical rules)
- * 2. identity/function-calling-specialty.md (persona-specific tools)
+ * 1. shared/safety-disclaimer.md (legal/safety guardrails - ALL personas)
+ * 2. shared/function-calling-base.md (common tools + critical rules)
+ * 3. identity/function-calling-specialty.md (persona-specific tools)
  *
  * Falls back to legacy identity/function-calling.md if new files don't exist.
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
+  // Load safety disclaimer (always include if available)
+  const safetyDisclaimer = await loadSafetyDisclaimer();
+
   // Try new pattern first: base + specialty
   const base = await loadSharedFile('function-calling-base.md');
   const specialty = await loadFile(bundleDir, 'identity/function-calling-specialty.md');
 
+  const parts: string[] = [];
+
+  // Safety disclaimer comes first (sets the tone)
+  if (safetyDisclaimer) {
+    parts.push(safetyDisclaimer);
+  }
+
   if (base && specialty) {
     log.debug({ bundleDir }, 'Loaded function-calling with base + specialty pattern');
-    return `${base}\n\n---\n\n${specialty}`;
+    parts.push(base, specialty);
+    return parts.join('\n\n---\n\n');
   }
 
   // Fall back to legacy single-file pattern
   const legacy = await loadFile(bundleDir, 'identity/function-calling.md');
   if (legacy) {
     log.debug({ bundleDir }, 'Loaded legacy function-calling.md');
-    return legacy;
+    parts.push(legacy);
+    return parts.join('\n\n---\n\n');
   }
 
   // Last resort: just the base if specialty doesn't exist
   if (base) {
     log.warn({ bundleDir }, 'No specialty file found, using base only');
-    return base;
+    parts.push(base);
+    return parts.join('\n\n---\n\n');
+  }
+
+  // If we only have safety disclaimer, still return it
+  if (safetyDisclaimer) {
+    return safetyDisclaimer;
   }
 
   return null;

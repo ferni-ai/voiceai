@@ -5,7 +5,13 @@
  */
 
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { detectLanguage, loadLocale, getAvailableLocales, setLocale, getLocale } from '../loader.js';
+import {
+  detectLanguage,
+  loadLocale,
+  getAvailableLocales,
+  setLocale,
+  getLocale,
+} from '../loader.js';
 
 // Mock the logger
 vi.mock('../../../../utils/safe-logger.js', () => ({
@@ -275,10 +281,14 @@ describe('Locale Content Validation', () => {
             expect(trigger.phrases?.length, `${toolId} should have phrases`).toBeGreaterThan(0);
 
             // Check patterns
-            expect(Array.isArray(trigger.patterns), `${toolId} patterns should be array`).toBe(true);
+            expect(Array.isArray(trigger.patterns), `${toolId} patterns should be array`).toBe(
+              true
+            );
 
             // Check keywords
-            expect(Array.isArray(trigger.keywords), `${toolId} keywords should be array`).toBe(true);
+            expect(Array.isArray(trigger.keywords), `${toolId} keywords should be array`).toBe(
+              true
+            );
             expect(trigger.keywords?.length, `${toolId} should have keywords`).toBeGreaterThan(0);
 
             // Validate keyword structure
@@ -301,7 +311,10 @@ describe('Locale Content Validation', () => {
 
           if (trigger?.patterns) {
             for (const pattern of trigger.patterns) {
-              expect(() => new RegExp(pattern, 'i'), `Invalid regex in ${toolId}: ${pattern}`).not.toThrow();
+              expect(
+                () => new RegExp(pattern, 'i'),
+                `Invalid regex in ${toolId}: ${pattern}`
+              ).not.toThrow();
             }
           }
         }

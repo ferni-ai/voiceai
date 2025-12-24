@@ -347,7 +347,9 @@ You are their lifeline right now. Be fully present.`,
       // Speak the tool result through the coordinator to prevent overlap
       if (currentSession && toolResult.speakableResponse) {
         const { coordinatedSay } = await import('../../speech/coordination/index.js');
-        coordinatedSay(services.sessionId, toolResult.speakableResponse, { allowInterruptions: true });
+        coordinatedSay(services.sessionId, toolResult.speakableResponse, {
+          allowInterruptions: true,
+        });
       }
 
       // Track tool usage (fire-and-forget)

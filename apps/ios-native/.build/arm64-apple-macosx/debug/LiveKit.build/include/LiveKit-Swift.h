@@ -1357,6 +1357,19 @@ SWIFT_CLASS("_TtC7LiveKit16LocalParticipant")
 - (void)streamBytesWithOptions:(StreamByteOptions * _Nonnull)options streamHandler:(void (^ _Nonnull)(ByteStreamWriter * _Nonnull))streamHandler onError:(void (^ _Nullable)(NSError * _Nonnull))onError SWIFT_UNAVAILABLE_MSG("Use async streamBytes(options:) method instead.");
 @end
 
+@interface LocalParticipant (SWIFT_EXTENSION(LiveKit))
+- (void)setCameraWithEnabled:(BOOL)enabled captureOptions:(CameraCaptureOptions * _Nullable)captureOptions publishOptions:(VideoPublishOptions * _Nullable)publishOptions completionHandler:(void (^ _Nonnull)(LocalTrackPublication * _Nullable, NSError * _Nullable))completionHandler;
+- (void)setMicrophoneWithEnabled:(BOOL)enabled captureOptions:(AudioCaptureOptions * _Nullable)captureOptions publishOptions:(AudioPublishOptions * _Nullable)publishOptions completionHandler:(void (^ _Nonnull)(LocalTrackPublication * _Nullable, NSError * _Nullable))completionHandler;
+/// Enable or disable screen sharing. This has different behavior depending on the platform.
+/// For iOS, this will use <code>InAppScreenCapturer</code> to capture in-app screen only due to Apple’s limitation.
+/// If you would like to capture the screen when the app is in the background, you will need to create a “Broadcast Upload Extension”.
+/// For macOS, this will use <code>MacOSScreenCapturer</code> to capture the main screen. <code>MacOSScreenCapturer</code> has the ability
+/// to capture other screens and windows. See <code>MacOSScreenCapturer</code> for details.
+/// For advanced usage, you can create a relevant <code>LocalVideoTrack</code> and call <code>LocalParticipant/publishVideoTrack(track:publishOptions:)</code>.
+- (void)setScreenShareWithEnabled:(BOOL)enabled completionHandler:(void (^ _Nonnull)(LocalTrackPublication * _Nullable, NSError * _Nullable))completionHandler;
+- (void)setWithSource:(enum TrackSource)source enabled:(BOOL)enabled captureOptions:(id <CaptureOptions> _Nullable)captureOptions publishOptions:(id <TrackPublishOptions> _Nullable)publishOptions completionHandler:(void (^ _Nonnull)(LocalTrackPublication * _Nullable, NSError * _Nullable))completionHandler;
+@end
+
 SWIFT_CLASS("_TtC7LiveKit16TrackPublication")
 @interface TrackPublication : NSObject
 @property (nonatomic, readonly, strong) TrackSid * _Nonnull sid;

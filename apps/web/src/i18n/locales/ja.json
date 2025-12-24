@@ -290,6 +290,7 @@
   },
   "errors": {
     "connectionFailed": "接続に失敗しました。もう一度お試しください。",
+    "invalidLanguage": "その言語はまだ利用できません",
     "microphoneAccess": "続行するにはマイクへのアクセスを許可してください。",
     "networkError": "ネットワークエラー。接続を確認してください。",
     "sessionExpired": "セッションの有効期限が切れました。更新してください。",

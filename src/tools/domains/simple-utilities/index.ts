@@ -93,6 +93,64 @@ import {
   translationToolDefinitions,
 } from './translation-tools.js';
 
+// App Settings tools (voice-controlled settings)
+import { appSettingsToolDefinitions, setAppLanguageDef } from './app-settings-tools.js';
+
+// Dictionary tools
+import {
+  dictionaryToolDefinitions,
+  defineWordDef,
+  getSynonymsDef,
+  wordOfDayDef,
+} from './dictionary-tools.js';
+
+// Currency tools
+import {
+  currencyToolDefinitions,
+  convertCurrencyDef,
+  getExchangeRateDef,
+  listCurrenciesDef,
+} from './currency-tools.js';
+
+// Alarm tools
+import {
+  alarmToolDefinitions,
+  setAlarmDef,
+  getAlarmsDef,
+  deleteAlarmDef,
+  snoozeAlarmDef,
+} from './alarm-tools.js';
+
+// List tools (general purpose lists)
+import {
+  listToolDefinitions,
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+} from './list-tools.js';
+
+// SMS Reading tools
+import {
+  smsReadingToolDefinitions,
+  readSMSDef,
+  checkNewMessagesDef,
+  searchMessagesDef,
+} from './sms-reading-tools.js';
+
+// Voice Memos tools
+import {
+  voiceMemosToolDefinitions,
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
+} from './voice-memos-tools.js';
+
 // Proactive tools - DISABLED pending implementation
 // import {
 //   getUtilitySuggestionsDef,
@@ -197,10 +255,51 @@ export {
   timerToolDefinitions,
   timezoneToolDefinitions,
   translationToolDefinitions,
+  dictionaryToolDefinitions,
+  currencyToolDefinitions,
+  alarmToolDefinitions,
+  listToolDefinitions,
+  smsReadingToolDefinitions,
+  voiceMemosToolDefinitions,
 };
 
 // Translation tools
 export { culturalContextDef, detectLanguageDef, learnPhrasesDef, pronounceDef, translateDef };
+
+// App Settings tools
+export { appSettingsToolDefinitions, setAppLanguageDef };
+
+// Dictionary tools
+export { defineWordDef, getSynonymsDef, wordOfDayDef };
+
+// Currency tools
+export { convertCurrencyDef, getExchangeRateDef, listCurrenciesDef };
+
+// Alarm tools
+export { setAlarmDef, getAlarmsDef, deleteAlarmDef, snoozeAlarmDef };
+
+// List tools
+export {
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+};
+
+// SMS Reading tools
+export { readSMSDef, checkNewMessagesDef, searchMessagesDef };
+
+// Voice Memos tools
+export {
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
+};
 
 // ============================================================================
 // DOMAIN EXPORT
@@ -240,6 +339,39 @@ const simpleUtilitiesTools: ToolDefinition[] = [
   learnPhrasesDef,
   detectLanguageDef,
   culturalContextDef,
+  // App Settings (voice-controlled)
+  setAppLanguageDef,
+  // Dictionary
+  defineWordDef,
+  getSynonymsDef,
+  wordOfDayDef,
+  // Currency
+  convertCurrencyDef,
+  getExchangeRateDef,
+  listCurrenciesDef,
+  // Alarms
+  setAlarmDef,
+  getAlarmsDef,
+  deleteAlarmDef,
+  snoozeAlarmDef,
+  // Lists
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+  // SMS Reading
+  readSMSDef,
+  checkNewMessagesDef,
+  searchMessagesDef,
+  // Voice Memos
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
   // Proactive - DISABLED
   // getUtilitySuggestionsDef,
   // checkTimerStatusDef,

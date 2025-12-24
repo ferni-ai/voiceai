@@ -163,6 +163,34 @@ export interface UserData {
   keyMoments?: string[];
 
   // ============================================================
+  // BETTER THAN HUMAN - Prosody & Emotional Intelligence
+  // Voice prosody signals and proactive interventions
+  // ============================================================
+
+  /** Voice prosody tool boost (from Better Than Human analysis) */
+  prosodyBoost?: {
+    boostedTools: string[];
+    suppressedTools: string[];
+    reason: string;
+    confidence?: number;
+  };
+
+  /** Proactive intervention suggestion (from emotional arc tracking) */
+  suggestedIntervention?: {
+    type: string;
+    message: string;
+    tool: string;
+    urgency: string;
+  };
+
+  /** Emotional arc tracking status */
+  emotionalArc?: {
+    dominantEmotion: string;
+    trend: 'improving' | 'declining' | 'stable';
+    needsAttention: boolean;
+  };
+
+  // ============================================================
   // HUMANIZING STATE
   // Tracks mood, spontaneous shares, and relationship depth
   // ============================================================

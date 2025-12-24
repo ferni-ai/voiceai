@@ -144,7 +144,7 @@
   },
 
   "glassMorphism": {
-    "_documentation": "Apple-inspired glass morphism for depth and dimensionality. Creates the 'Liquid Glass' aesthetic.",
+    "_documentation": "Apple iOS 26 'Liquid Glass' aesthetic - translucent, vibrant, responsive. Creates depth through layered transparency, specular highlights, and dynamic interactions.",
 
     "midnight": {
       "surface": {
@@ -186,6 +186,70 @@
       "innerGlow": "inset 0 1px 0 0 rgba(255, 255, 255, 0.8)"
     },
 
+    "vibrancy": {
+      "_documentation": "iOS-style vibrancy - makes colors behind glass pop. Combines saturate + contrast for material depth.",
+      "none": "saturate(1) contrast(1)",
+      "subtle": "saturate(1.2) contrast(1.02)",
+      "medium": "saturate(1.5) contrast(1.05)",
+      "high": "saturate(1.8) contrast(1.1)",
+      "ultra": "saturate(2) contrast(1.15)"
+    },
+
+    "specular": {
+      "_documentation": "Specular highlights create the 'liquid' illusion - light catching on glass surface.",
+      "highlight": {
+        "gradient": "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%)",
+        "position": "top left",
+        "size": "200% 200%"
+      },
+      "shimmer": {
+        "gradient": "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
+        "animation": "specularShimmer 3s ease-in-out infinite"
+      },
+      "fresnel": {
+        "_documentation": "Fresnel effect - edges appear brighter at oblique angles",
+        "light": "linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%)",
+        "dark": "linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.03) 100%)"
+      }
+    },
+
+    "noise": {
+      "_documentation": "Subtle grain texture adds organic quality to glass - prevents 'too digital' feel.",
+      "opacity": {
+        "subtle": "0.015",
+        "medium": "0.025",
+        "visible": "0.04"
+      },
+      "filter": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+      "blendMode": "overlay"
+    },
+
+    "interaction": {
+      "_documentation": "Liquid Glass responds to interaction - blur deepens, highlights shift.",
+      "hoverBlur": "2px",
+      "activeScale": "0.98",
+      "focusRing": "0 0 0 2px var(--persona-primary)",
+      "tilt": {
+        "maxAngle": "5deg",
+        "perspective": "1000px",
+        "transition": "transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+      },
+      "ripple": {
+        "duration": "600ms",
+        "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "color": "rgba(255, 255, 255, 0.15)"
+      }
+    },
+
+    "chromatic": {
+      "_documentation": "Subtle chromatic aberration at edges - like light bending through real glass.",
+      "offset": "0.5px",
+      "colors": {
+        "red": "rgba(255, 0, 0, 0.03)",
+        "blue": "rgba(0, 0, 255, 0.03)"
+      }
+    },
+
     "depthLayers": {
       "_documentation": "Use these for consistent elevation across components",
       "raised": {
@@ -200,6 +264,90 @@
         "transform": "translateZ(16px)",
         "filter": "drop-shadow(0 16px 32px rgba(0,0,0,0.2))"
       }
+    },
+
+    "presets": {
+      "_documentation": "Ready-to-use Liquid Glass presets for common use cases.",
+      "modal": {
+        "surface": "var(--glass-surface-2)",
+        "blur": "var(--glass-blur-strong)",
+        "vibrancy": "var(--glass-vibrancy-medium)",
+        "border": "var(--glass-border-light)"
+      },
+      "card": {
+        "surface": "var(--glass-surface-1)",
+        "blur": "var(--glass-blur-medium)",
+        "vibrancy": "var(--glass-vibrancy-subtle)",
+        "border": "var(--glass-border-subtle)"
+      },
+      "toolbar": {
+        "surface": "var(--glass-surface-3)",
+        "blur": "var(--glass-blur-intense)",
+        "vibrancy": "var(--glass-vibrancy-high)",
+        "border": "var(--glass-border-medium)"
+      },
+      "tooltip": {
+        "surface": "var(--glass-surface-2)",
+        "blur": "var(--glass-blur-subtle)",
+        "vibrancy": "var(--glass-vibrancy-none)",
+        "border": "var(--glass-border-subtle)"
+      }
+    }
+  },
+
+  "gradients": {
+    "_documentation": "Semantic gradient tokens. Use these instead of hardcoding linear-gradient() values. All gradients use CSS variables for theming.",
+    
+    "surface": {
+      "_description": "Background surface gradients",
+      "subtle": "linear-gradient(180deg, var(--color-background-primary) 0%, var(--color-background-secondary) 100%)",
+      "warm": "linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-secondary) 100%)",
+      "elevated": "linear-gradient(180deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%)"
+    },
+    
+    "persona": {
+      "_description": "Persona-aware gradients that respond to --persona-* variables",
+      "glow": "linear-gradient(135deg, var(--persona-tint) 0%, transparent 100%)",
+      "intense": "linear-gradient(135deg, var(--persona-primary) 0%, var(--persona-secondary) 100%)",
+      "subtle": "linear-gradient(135deg, var(--persona-tint) 0%, transparent 50%, transparent 100%)",
+      "radial": "radial-gradient(circle at center, var(--persona-glow) 0%, transparent 70%)",
+      "spotlight": "radial-gradient(ellipse at top, var(--persona-tint) 0%, transparent 50%)"
+    },
+    
+    "accent": {
+      "_description": "Accent color gradients for buttons and highlights",
+      "primary": "linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-pressed) 100%)",
+      "hover": "linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent-primary) 100%)",
+      "glow": "linear-gradient(180deg, var(--color-accent-glow) 0%, transparent 100%)"
+    },
+    
+    "semantic": {
+      "_description": "Semantic gradients for status indicators",
+      "success": "linear-gradient(135deg, var(--color-semantic-success) 0%, var(--color-semantic-successGlow) 100%)",
+      "error": "linear-gradient(135deg, var(--color-semantic-error) 0%, var(--color-semantic-errorGlow) 100%)",
+      "warning": "linear-gradient(135deg, var(--color-semantic-warning) 0%, var(--color-semantic-warningGlow) 100%)",
+      "info": "linear-gradient(135deg, var(--color-semantic-info) 0%, var(--color-semantic-infoGlow) 100%)"
+    },
+    
+    "decorative": {
+      "_description": "Decorative gradients for visual interest",
+      "shimmer": "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
+      "fade-out": "linear-gradient(180deg, var(--color-background-primary) 0%, transparent 100%)",
+      "fade-in": "linear-gradient(180deg, transparent 0%, var(--color-background-primary) 100%)",
+      "vignette": "radial-gradient(ellipse at center, transparent 40%, var(--color-background-overlay) 100%)"
+    },
+    
+    "glass": {
+      "_description": "Glass morphism gradients for liquid glass effects",
+      "specular": "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%)",
+      "fresnel": "linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%)",
+      "tint": "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)"
+    },
+    
+    "progress": {
+      "_description": "Progress bar and loading gradients",
+      "bar": "linear-gradient(90deg, var(--persona-secondary) 0%, var(--persona-primary) 100%)",
+      "shimmer": "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)"
     }
   },
 

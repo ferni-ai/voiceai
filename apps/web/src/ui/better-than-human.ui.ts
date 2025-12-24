@@ -585,10 +585,11 @@ export function detectAndTriggerMicroExpression(content: {
 
 // ============================================================================
 // EMPATHETIC NODDING - Active Listening Signals
+// BETTER THAN HUMAN: Real humans nod every 1-2 seconds when actively listening
 // ============================================================================
 
-const MIN_NOD_INTERVAL = 2000; // Minimum ms between nods
-const NOD_PROBABILITY_BASE = 0.3; // Base probability per pause
+const MIN_NOD_INTERVAL = 1200; // Minimum ms between nods (was 2000 - too robotic!)
+const NOD_PROBABILITY_BASE = 0.5; // Base probability per pause (was 0.3 - too rare!)
 
 /**
  * Perform a micro-nod - barely perceptible acknowledgment.
@@ -685,25 +686,40 @@ export function onUserSpeechPause(pauseDuration: number): void {
 
   // =========================================================================
   // ACTIVE LISTENING: Visual feedback based on pause duration
+  // BETTER THAN HUMAN: Lower thresholds and more responsive feedback
   // =========================================================================
-  if (pauseDuration > 300 && pauseDuration < 800) {
-    // Short pause - maybe micro-nod
-    if (Math.random() < NOD_PROBABILITY_BASE + activeListening.pauseCount * 0.05) {
+  if (pauseDuration >= 150 && pauseDuration < 400) {
+    // Very short pause (breath pause) - occasional micro-nod
+    // BETTER THAN HUMAN: Catch natural breath pauses, not just long pauses
+    if (Math.random() < NOD_PROBABILITY_BASE + activeListening.pauseCount * 0.08) {
       performMicroNod('micro');
     }
-  } else if (pauseDuration > 800 && pauseDuration < 1500) {
+  } else if (pauseDuration >= 400 && pauseDuration < 800) {
+    // Short pause - more likely micro-nod
+    if (Math.random() < NOD_PROBABILITY_BASE + 0.2 + activeListening.pauseCount * 0.05) {
+      performMicroNod('micro');
+    }
+  } else if (pauseDuration >= 800 && pauseDuration < 1200) {
     // Medium pause - subtle acknowledgment
     performMicroNod('subtle');
-    // Maybe lean in
-    if (Math.random() < 0.3) {
+    // Maybe show warmth micro-expression
+    if (Math.random() < 0.25) {
+      playMicroExpression('understanding');
+    }
+  } else if (pauseDuration >= 1200 && pauseDuration < 2000) {
+    // Longer pause - visible nod + maybe lean in
+    performMicroNod('visible');
+    if (Math.random() < 0.4) {
       performListeningLean();
     }
-  } else if (pauseDuration > 1500 && pauseDuration < 3000) {
+  } else if (pauseDuration >= 2000 && pauseDuration < 3500) {
     // Long pause - they're thinking, show patience
     ferniExpressions.setExpression('contemplative', 300);
-  } else if (pauseDuration > 3000) {
+    playMicroExpression('contemplation');
+  } else if (pauseDuration >= 3500) {
     // Very long pause - gentle concern check
     ferniExpressions.setExpression('attentive', 400);
+    playMicroExpression('warmth_pulse');
     // Trigger soft check-in after very long pauses
     if (pauseDuration > 5000) {
       document.dispatchEvent(new CustomEvent('ferni:soft-checkin'));
@@ -1044,6 +1060,9 @@ export function getConcernState(): ConcernState {
  * Predict emotion from partial speech and show it early.
  * This creates the "they understand me before I finish" feeling.
  *
+ * BETTER THAN HUMAN: We respond to emotional cues DURING speech,
+ * not after. This makes Ferni feel like she truly understands.
+ *
  * Now with Avatar Soul integration:
  * - Anticipation shimmer plays BEFORE expression change
  * - Pupil responds to predicted emotional content
@@ -1081,6 +1100,94 @@ export function anticipateEmotion(partial: {
     );
   };
 
+  const text = partial.transcript.toLowerCase();
+
+  // =========================================================================
+  // PRIORITY 1: CONCERN/DISTRESS - Show care immediately
+  // =========================================================================
+
+  // Worry/anxiety words - show protective concern
+  if (/\b(worried|anxious|scared|nervous|afraid|terrified|freaking out)\b/i.test(text)) {
+    playMicroExpression('concern_flash');
+    void playAnticipatedResponse('attentive', 'attentive', 300);
+    return 'attentive';
+  }
+
+  // Struggle/difficulty - show understanding
+  if (/\b(struggling|hard|difficult|tough|overwhelming|can't handle|too much)\b/i.test(text)) {
+    playMicroExpression('protective');
+    void playAnticipatedResponse('holding', 'empathetic', 350);
+    return 'holding';
+  }
+
+  // Sadness/loss - show warmth
+  if (/\b(sad|upset|hurt|crying|miss|lost|lonely|alone)\b/i.test(text)) {
+    playMicroExpression('warmth_pulse');
+    void playAnticipatedResponse('holding', 'empathetic', 400);
+    return 'holding';
+  }
+
+  // Frustration/anger - show attentive presence
+  if (/\b(frustrated|annoyed|angry|mad|furious|pissed|hate)\b/i.test(text)) {
+    playMicroExpression('noticing');
+    void playAnticipatedResponse('attentive', 'attentive', 300);
+    return 'attentive';
+  }
+
+  // =========================================================================
+  // PRIORITY 2: POSITIVE EMOTIONS - Match their energy
+  // =========================================================================
+
+  // Excitement/joy - show delight
+  if (/\b(excited|amazing|incredible|awesome|fantastic|wonderful|love it)\b/i.test(text)) {
+    playMicroExpression('delight_flash');
+    void playAnticipatedResponse('pleased', 'pleased', 300);
+    return 'pleased';
+  }
+
+  // Achievement/pride - show pride
+  if (/\b(did it|finally|accomplished|proud|succeeded|made it|got it)\b/i.test(text)) {
+    playMicroExpression('pride_flash');
+    void playAnticipatedResponse('proud', 'proud', 350);
+    return 'proud';
+  }
+
+  // Good news - show interest
+  if (/\b(great news|good news|you won't believe|guess what)\b/i.test(text)) {
+    playMicroExpression('interest_flash');
+    void playAnticipatedResponse('curious', 'curious', 250);
+    return 'curious';
+  }
+
+  // =========================================================================
+  // PRIORITY 3: COGNITIVE STATES - Show engagement
+  // =========================================================================
+
+  // Confusion/uncertainty - show thoughtful attention
+  if (/\b(confused|don't know|not sure|don't understand|lost|stuck)\b/i.test(text)) {
+    playMicroExpression('contemplation');
+    void playAnticipatedResponse('contemplative', 'contemplative', 300);
+    return 'contemplative';
+  }
+
+  // Realization/insight - show recognition
+  if (/\b(realized|figured out|it hit me|just understood|makes sense now)\b/i.test(text)) {
+    playMicroExpression('aha_flash');
+    void playAnticipatedResponse('pleased', 'pleased', 300);
+    return 'pleased';
+  }
+
+  // Decision making - show engaged listening
+  if (/\b(deciding|should i|weighing|torn between|don't know if)\b/i.test(text)) {
+    playMicroExpression('curious_lean');
+    void playAnticipatedResponse('attentive', 'attentive', 300);
+    return 'attentive';
+  }
+
+  // =========================================================================
+  // PRIORITY 4: SPECIFIC PHRASE PATTERNS (Original patterns)
+  // =========================================================================
+
   // "I've been thinking about..." + falling tone = reflective/sad
   if (
     /i('ve| have) been (thinking|wondering)/i.test(partial.transcript) &&
@@ -1088,12 +1195,6 @@ export function anticipateEmotion(partial: {
   ) {
     void playAnticipatedResponse('contemplative', 'contemplative', 300);
     return 'contemplative';
-  }
-
-  // "Guess what!" + rising tone = excitement incoming
-  if (/guess what/i.test(partial.transcript) && partial.tone === 'rising') {
-    void playAnticipatedResponse('curious', 'curious', 200);
-    return 'curious';
   }
 
   // "Remember when..." = nostalgia/emotional - triggers memory spark!
@@ -1122,6 +1223,10 @@ export function anticipateEmotion(partial: {
     return 'curious';
   }
 
+  // =========================================================================
+  // PRIORITY 5: TONE/ENERGY FALLBACKS - Always respond to emotional signals
+  // =========================================================================
+
   // High energy = excitement building
   if (partial.energy > 0.7 && partial.tone === 'rising') {
     void (async () => {
@@ -1131,6 +1236,36 @@ export function anticipateEmotion(partial: {
         soul.setPupilDilation('INTERESTED', 'fast');
       }
     })();
+    playMicroExpression('interest_flash');
+    return 'curious';
+  }
+
+  // Low energy + falling tone = gentle presence (user might be struggling)
+  if (partial.energy < 0.4 && partial.tone === 'falling') {
+    playMicroExpression('warmth_pulse');
+    void (async () => {
+      const soul = await getAvatarSoul();
+      if (soul) {
+        soul.setPupilDilation('CONNECTED', 'slow');
+      }
+    })();
+    return 'present';
+  }
+
+  // Rising tone without specific pattern = show interest (questions, excitement)
+  if (partial.tone === 'rising') {
+    // 30% chance to show subtle interest (not every time)
+    if (Math.random() < 0.3) {
+      playMicroExpression('interest_flash');
+    }
+  }
+
+  // Flat tone with longer message = engaged listening
+  if (partial.tone === 'flat' && partial.transcript.length > 50) {
+    // Occasional micro-nod equivalent via micro-expression
+    if (Math.random() < 0.2) {
+      playMicroExpression('understanding');
+    }
   }
 
   return null;

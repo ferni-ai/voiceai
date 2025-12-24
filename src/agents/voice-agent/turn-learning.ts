@@ -249,26 +249,26 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         logger.debug({ error: String(err) }, 'Shared moment recording (non-critical)');
       });
 
-    // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities
-    // If user asks follow-up, shows interest, or continues on a capability topic, mark engaged
-    const sessionKey = `${ctx.userId}-${ctx.sessionId}`;
-    const recentDomains = getRecentlySurfacedDomains(sessionKey);
+      // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities
+      // If user asks follow-up, shows interest, or continues on a capability topic, mark engaged
+      const sessionKey = `${ctx.userId}-${ctx.sessionId}`;
+      const recentDomains = getRecentlySurfacedDomains(sessionKey);
 
-    if (recentDomains.length > 0) {
-      // Detect engagement signals
-      const engagementSignals = detectCapabilityEngagement(ctx.userText);
+      if (recentDomains.length > 0) {
+        // Detect engagement signals
+        const engagementSignals = detectCapabilityEngagement(ctx.userText);
 
-      if (engagementSignals.engaged) {
-        // Mark all recently surfaced domains as engaged
-        for (const domain of recentDomains) {
-          onUserEngagedWithCapability(sessionKey, domain);
+        if (engagementSignals.engaged) {
+          // Mark all recently surfaced domains as engaged
+          for (const domain of recentDomains) {
+            onUserEngagedWithCapability(sessionKey, domain);
+          }
+          logger.debug(
+            { domains: recentDomains, signals: engagementSignals.reasons },
+            '📚 Capability engagement detected'
+          );
         }
-        logger.debug(
-          { domains: recentDomains, signals: engagementSignals.reasons },
-          '📚 Capability engagement detected'
-        );
       }
-    }
     }
   }
 
@@ -300,12 +300,14 @@ function detectCapabilityEngagement(userText: string): {
 
   // Positive engagement signals
   const followUpPatterns = /\b(tell me more|how does|can you|what about|show me|help me with)\b/i;
-  const interestPatterns = /\b(that's? (cool|interesting|helpful|great)|i'd like|sounds good|yes please|love that)\b/i;
+  const interestPatterns =
+    /\b(that's? (cool|interesting|helpful|great)|i'd like|sounds good|yes please|love that)\b/i;
   const continuationPatterns = /\b(yeah|okay|sure|go on|continue|and then)\b/i;
   const questionMark = userText.includes('?');
 
   // Negative signals (disengagement / topic change)
-  const topicChangePatterns = /\b(anyway|actually|different|something else|never ?mind|forget it|change|instead)\b/i;
+  const topicChangePatterns =
+    /\b(anyway|actually|different|something else|never ?mind|forget it|change|instead)\b/i;
 
   if (followUpPatterns.test(lower)) reasons.push('follow_up');
   if (interestPatterns.test(lower)) reasons.push('interest');

@@ -985,7 +985,7 @@ button {
 .team-card__avatar {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
+  border-radius: 50%; /* Circle, not rounded square */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -993,6 +993,7 @@ button {
   font-size: 24px;
   font-weight: 700;
   color: white;
+  background: transparent; /* Ensure no background */
   margin-bottom: var(--space-5);
   box-shadow: var(--shadow-md);
   transition: transform var(--duration-normal) var(--ease-spring);

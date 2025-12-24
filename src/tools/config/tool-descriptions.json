@@ -608,6 +608,10 @@
       "file": "src/tools/domains/cameo/index.ts",
       "_original": "Check if bringing in a team member would add value to the current conversation. Use this when you"
     },
+    "checkConciergeStatus": {
+      "description": "Check the status of active concierge outreach requests (hotel quotes, restaurant reservations, appointments, service quotes). Use when user asks about pending requests.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "checkFinancialHealth": {
       "description": "Get a holistic view of financial health based on linked accounts. Includes net worth, savings rate, debt ratios. Use when user asks: -.",
       "file": "src/tools/plaid.ts",
@@ -2097,6 +2101,10 @@
       "file": "src/tools/financial-habits.ts",
       "_original": "Get status of all savings goals. Use when the user asks about: - Savings progress - Goal status - Emergency fund"
     },
+    "getServiceQuotes": {
+      "description": "Contact local service providers (plumbers, electricians, cleaners, etc.) to get quotes. AI-powered concierge calls businesses on user's behalf to get pricing and availability. Use when user needs home services quotes.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "getShoppingList": {
       "description": "Show the current shopping list. Use when user asks.",
       "file": "src/tools/shopping.ts",
@@ -2631,6 +2639,10 @@
     "makeReservation": {
       "description": "Make a restaurant reservation - tries online booking first (OpenTable/Resy), falls back to phone call. Use when the user wants to: - Book a table at a restaurant - Make a dinner/lunch reservation - Reserve for a special occasion Alex will try to book instantly online, or call if needed.",
       "file": "src/tools/scheduling/appointments-tools.ts"
+    },
+    "makeRestaurantReservation": {
+      "description": "Book restaurant tables via AI-powered concierge. Calls restaurants to check availability, make reservations, and handle special requests. Use when user wants to reserve a table, book for a party, or make dining reservations.",
+      "file": "src/tools/domains/concierge/index.ts"
     },
     "makeTextGameMove": {
       "description": "Make a move in the current text game.",
@@ -3397,6 +3409,10 @@
       "description": "Help user address and repair a rupture or distance in an important relationship.",
       "file": "src/tools/domains/difficult-conversations/index.ts"
     },
+    "requestHotelQuotes": {
+      "description": "Contact hotels to get room rates and availability. AI-powered concierge calls hotels on user's behalf to compare prices and book rooms. Use when user wants hotel quotes, room rates, or to book accommodations.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "requestMayaRetirementHelp": {
       "description": "Request Maya.",
       "file": "src/tools/retirement-planning.ts",
@@ -3555,6 +3571,10 @@
     "scheduleFollowUp": {
       "description": "Schedule a follow-up on a topic for a future conversation. Use when the user mentions wanting to revisit something later.",
       "file": "src/tools/proactive.ts"
+    },
+    "scheduleHealthcareAppointment": {
+      "description": "Schedule doctor, dentist, specialist, or other healthcare appointments. AI-powered concierge calls providers to find availability and book appointments. Use when user wants to schedule medical appointments or find healthcare providers.",
+      "file": "src/tools/domains/concierge/index.ts"
     },
     "scheduleJoy": {
       "description": "Help the user intentionally schedule joy into their life.",

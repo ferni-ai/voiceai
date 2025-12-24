@@ -33,6 +33,16 @@ import {
   type OutreachTone,
   type RelationshipStage,
 } from './persona-voice-generator.js';
+import {
+  getTimingRecommendation,
+  type TimeSlot,
+  type DayOfWeek,
+} from '../contacts/optimal-timing.js';
+import {
+  getPendingCheckIns,
+  recordCheckInSent,
+  type CheckInType,
+} from './onboarding-checkin-arc.js';
 
 // ============================================================================
 // TYPES
@@ -62,6 +72,14 @@ export type OutreachTriggerType =
   | 'accountability' // Agreed accountability check
   | 'personal_share' // User wants to share Ferni with someone
   | 'check_in' // General check-in
+
+  // Onboarding triggers (first 14 days)
+  | 'onboarding_welcome' // Day 1: Welcome and invitation to explore
+  | 'onboarding_nextday' // Day 2: "How was it?" check
+  | 'onboarding_topic_deepdive' // Days 3-5: Go deeper on a topic from first convo
+  | 'onboarding_first_week' // Day 7: First week reflection
+  | 'onboarding_momentum' // Days 8-10: Momentum/habit building nudge
+  | 'onboarding_two_week' // Day 14: Two-week celebration/commitment
 
   // Content triggers
   | 'content_share' // Relevant content found
@@ -241,6 +259,60 @@ const DEFAULT_CONFIG: DecisionEngineConfig = {
 };
 
 // ============================================================================
+// ML TIMING HELPERS (Thompson Sampling integration)
+// ============================================================================
+
+/** Convert hour number to TimeSlot for ML timing */
+function hourToTimeSlot(hour: number): TimeSlot {
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'midday';
+  if (hour >= 14 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+/** Convert day number (0=Sunday) to DayOfWeek for ML timing */
+function dayNumberToName(day: number): DayOfWeek {
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
+  return days[day] || 'monday';
+}
+
+/** Convert DayOfWeek back to day number */
+function dayNameToNumber(day: DayOfWeek): number {
+  const map: Record<DayOfWeek, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+  return map[day];
+}
+
+/** Get representative hour for a TimeSlot */
+function timeSlotToHour(slot: TimeSlot): number {
+  const map: Record<TimeSlot, number> = {
+    early_morning: 7,
+    morning: 9,
+    midday: 12,
+    afternoon: 15,
+    evening: 18,
+    night: 21,
+  };
+  return map[slot];
+}
+
+// ============================================================================
 // STORAGE
 // ============================================================================
 
@@ -370,6 +442,90 @@ class OutreachDecisionEngine extends EventEmitter {
       if (found) return found;
     }
     return undefined;
+  }
+
+  /**
+   * Check for pending onboarding check-ins and create triggers
+   * Should be called periodically by the scheduled job
+   */
+  async checkOnboardingTriggers(userId: string): Promise<string[]> {
+    const createdTriggerIds: string[] = [];
+
+    try {
+      // Get pending check-ins from the onboarding arc service
+      const pendingCheckIns = await getPendingCheckIns(userId);
+
+      if (pendingCheckIns.length === 0) {
+        return createdTriggerIds;
+      }
+
+      log.info(
+        { userId, pendingCount: pendingCheckIns.length },
+        '🎓 Found pending onboarding check-ins'
+      );
+
+      // Map check-in types to trigger types
+      const checkInTypeToTrigger: Record<CheckInType, OutreachTriggerType> = {
+        welcome_followup: 'onboarding_welcome',
+        next_day_check: 'onboarding_nextday',
+        topic_deepdive: 'onboarding_topic_deepdive',
+        first_week_reflection: 'onboarding_first_week',
+        momentum_check: 'onboarding_momentum',
+        two_week_celebration: 'onboarding_two_week',
+        habit_nudge: 'onboarding_momentum',
+        win_celebration: 'celebration',
+      };
+
+      for (const checkIn of pendingCheckIns) {
+        // Create a trigger for this check-in
+        const triggerType = checkInTypeToTrigger[checkIn.type] || 'check_in';
+
+        const triggerId = this.addTrigger({
+          type: triggerType,
+          userId,
+          priority: checkIn.priority,
+          reason: checkIn.reason,
+          context: {
+            checkInType: checkIn.type,
+            scheduledFor: checkIn.scheduledFor,
+          },
+          suggestedTime: checkIn.scheduledFor,
+          // Use the persona from the check-in (usually ferni for onboarding)
+          suggestedPersona: checkIn.persona as AgentId,
+        });
+
+        createdTriggerIds.push(triggerId);
+
+        log.debug(
+          { userId, checkInType: checkIn.type, triggerId },
+          '🎓 Created onboarding trigger'
+        );
+      }
+
+      return createdTriggerIds;
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Failed to check onboarding triggers');
+      return createdTriggerIds;
+    }
+  }
+
+  /**
+   * Mark an onboarding check-in as sent (called after successful outreach)
+   */
+  markOnboardingCheckInSent(
+    userId: string,
+    checkInType: CheckInType,
+    responseReceived = false
+  ): void {
+    try {
+      recordCheckInSent(userId, checkInType, responseReceived);
+      log.debug({ userId, checkInType, responseReceived }, '✅ Onboarding check-in marked as sent');
+    } catch (error) {
+      log.warn(
+        { error: String(error), userId, checkInType },
+        'Failed to mark onboarding check-in as sent'
+      );
+    }
   }
 
   // ============================================================================
@@ -591,7 +747,7 @@ class OutreachDecisionEngine extends EventEmitter {
     }
 
     // Decision 3: Is this a good time?
-    const timingDecision = this.evaluateTiming(state, trigger, now);
+    const timingDecision = await this.evaluateTiming(state, trigger, now);
     if (timingDecision.defer) {
       return this.createDecision(
         trigger,
@@ -716,11 +872,11 @@ class OutreachDecisionEngine extends EventEmitter {
   // TIMING EVALUATION
   // ============================================================================
 
-  private evaluateTiming(
+  private async evaluateTiming(
     state: UserOutreachState,
     trigger: OutreachTrigger,
     now: Date
-  ): { defer: boolean; reason?: string; deferUntil?: Date } {
+  ): Promise<{ defer: boolean; reason?: string; deferUntil?: Date }> {
     const hour = now.getHours();
     const day = now.getDay();
 
@@ -741,14 +897,61 @@ class OutreachDecisionEngine extends EventEmitter {
       return { defer: true, reason: 'Quiet hours', deferUntil };
     }
 
-    // Check learned patterns (unless urgent)
+    // Check timing patterns (unless urgent/high priority)
     if (trigger.priority !== 'urgent' && trigger.priority !== 'high') {
+      // Try ML timing first (Thompson Sampling)
+      try {
+        const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
+
+        // Use ML if we have enough data (not in 'learning' phase)
+        if (mlRecommendation.confidenceLevel !== 'learning') {
+          // Check if current time slot matches ML recommendation
+          const currentSlot = hourToTimeSlot(hour);
+          const currentDayName = dayNumberToName(day);
+
+          const isRecommendedNow =
+            mlRecommendation.recommendedTimeSlot === currentSlot &&
+            mlRecommendation.recommendedDay === currentDayName;
+
+          if (!isRecommendedNow) {
+            // ML says this isn't a good time - defer to recommended time
+            log.debug(
+              {
+                userId: state.userId,
+                currentSlot,
+                currentDay: currentDayName,
+                confidence: mlRecommendation.confidenceLevel,
+              },
+              '📊 ML timing: deferring to better time'
+            );
+            return {
+              defer: true,
+              reason: 'ML timing - not optimal time',
+              deferUntil: mlRecommendation.suggestedSendTime,
+            };
+          }
+
+          // ML says now is a good time
+          log.debug(
+            { userId: state.userId, currentSlot, currentDay: currentDayName },
+            '📊 ML timing: current time is optimal'
+          );
+          return { defer: false };
+        }
+      } catch (mlError) {
+        log.debug(
+          { error: String(mlError), userId: state.userId },
+          'ML timing check failed, using static patterns'
+        );
+      }
+
+      // Fallback to static patterns
       const isPreferredHour = state.patterns.preferredHours.includes(hour);
       const isPreferredDay = state.patterns.preferredDays.includes(day);
 
       if (!isPreferredHour || !isPreferredDay) {
         // Find next optimal time
-        const deferUntil = this.findNextOptimalTime(state, now);
+        const deferUntil = await this.findNextOptimalTime(state, now);
         return { defer: true, reason: 'Not optimal time', deferUntil };
       }
     }
@@ -756,11 +959,63 @@ class OutreachDecisionEngine extends EventEmitter {
     return { defer: false };
   }
 
-  private findNextOptimalTime(state: UserOutreachState, now: Date): Date {
+  private async findNextOptimalTime(state: UserOutreachState, now: Date): Promise<Date> {
     const result = new Date(now);
     const currentHour = now.getHours();
     const currentDay = now.getDay();
 
+    // Try ML timing first (Thompson Sampling) - uses 'self' contactId for user-level timing
+    try {
+      const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
+
+      // Use ML if we have enough data (not in 'learning' phase)
+      if (mlRecommendation.confidenceLevel !== 'learning') {
+        // The recommendation already includes the best send time
+        // Just use it directly if it's in the future
+        if (mlRecommendation.suggestedSendTime > now) {
+          log.debug(
+            {
+              userId: state.userId,
+              day: mlRecommendation.recommendedDay,
+              slot: mlRecommendation.recommendedTimeSlot,
+              confidence: mlRecommendation.confidenceLevel,
+            },
+            '📊 ML timing: using learned optimal time'
+          );
+          return mlRecommendation.suggestedSendTime;
+        }
+
+        // If suggested time is in the past, calculate next occurrence
+        const mlDay = dayNameToNumber(mlRecommendation.recommendedDay);
+        const mlHour = timeSlotToHour(mlRecommendation.recommendedTimeSlot);
+
+        // Calculate days until recommended day (at least 1 day since today's time has passed)
+        let daysUntil = (mlDay - currentDay + 7) % 7;
+        if (daysUntil === 0) {
+          daysUntil = 7; // Same day, defer to next week
+        }
+
+        result.setDate(result.getDate() + daysUntil);
+        result.setHours(mlHour, 0, 0, 0);
+        log.debug(
+          {
+            userId: state.userId,
+            day: mlRecommendation.recommendedDay,
+            slot: mlRecommendation.recommendedTimeSlot,
+            confidence: mlRecommendation.confidenceLevel,
+          },
+          '📊 ML timing: using learned optimal time (next occurrence)'
+        );
+        return result;
+      }
+    } catch (mlError) {
+      log.debug(
+        { error: String(mlError), userId: state.userId },
+        'ML timing unavailable, using static patterns'
+      );
+    }
+
+    // Fallback to static patterns if ML confidence is low or unavailable
     // Try to find a good hour today
     const nextGoodHourToday = state.patterns.preferredHours.find((h) => h > currentHour);
     if (nextGoodHourToday !== undefined && state.patterns.preferredDays.includes(currentDay)) {
@@ -867,6 +1122,14 @@ class OutreachDecisionEngine extends EventEmitter {
       growth_reflection: 'sms',
       shared_memory: 'sms',
       life_rhythm_prediction: 'sms',
+
+      // Onboarding check-ins (gentle texts, not too intrusive)
+      onboarding_welcome: 'sms',
+      onboarding_nextday: 'sms',
+      onboarding_topic_deepdive: 'sms',
+      onboarding_first_week: 'sms',
+      onboarding_momentum: 'sms',
+      onboarding_two_week: 'email', // Longer, more celebratory - email fits better
 
       // Detailed stuff goes to email
       content_share: 'email',

@@ -438,9 +438,8 @@ function createDefaultCalibration(): CalibrationData {
 async function getFirestoreInstance(): Promise<unknown | null> {
   try {
     // Use the existing firestore-persistence module
-    const { getFirestore, initializeFirestorePersistence } = await import(
-      '../persistence/firestore-persistence.js'
-    );
+    const { getFirestore, initializeFirestorePersistence } =
+      await import('../persistence/firestore-persistence.js');
 
     // Initialize if not already
     await initializeFirestorePersistence();
@@ -454,22 +453,25 @@ async function getFirestoreInstance(): Promise<unknown | null> {
 }
 
 async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
-  const db = await getFirestoreInstance() as { collection: (name: string) => unknown } | null;
+  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
   if (!db) return;
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).collection('semantic_routing_feedback').doc(feedback.id).set({
-      ...feedback,
-      timestamp: feedback.timestamp.toISOString(),
-    });
+    await (db as any)
+      .collection('semantic_routing_feedback')
+      .doc(feedback.id)
+      .set({
+        ...feedback,
+        timestamp: feedback.timestamp.toISOString(),
+      });
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist feedback');
   }
 }
 
 async function persistCorrection(correction: UserCorrection): Promise<void> {
-  const db = await getFirestoreInstance() as { collection: (name: string) => unknown } | null;
+  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
   if (!db) return;
 
   try {
@@ -489,7 +491,7 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
 }
 
 async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
-  const db = await getFirestoreInstance() as { collection: (name: string) => unknown } | null;
+  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
   if (!db) return;
 
   try {
@@ -511,7 +513,7 @@ async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
 }
 
 async function loadVocabulary(userId: string): Promise<UserVocabulary | undefined> {
-  const db = await getFirestoreInstance() as { collection: (name: string) => unknown } | null;
+  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
   if (!db) return undefined;
 
   try {
@@ -524,7 +526,14 @@ async function loadVocabulary(userId: string): Promise<UserVocabulary | undefine
       ...data,
       updatedAt: new Date(data.updatedAt),
       phrases: data.phrases.map(
-        (p: { phrase: string; toolId: string; confidence: number; usageCount: number; lastUsed: string; source: 'explicit' | 'implicit' }) => ({
+        (p: {
+          phrase: string;
+          toolId: string;
+          confidence: number;
+          usageCount: number;
+          lastUsed: string;
+          source: 'explicit' | 'implicit';
+        }) => ({
           ...p,
           lastUsed: new Date(p.lastUsed),
         })
@@ -578,4 +587,3 @@ export function getUserStats(userId: string): {
     toolPreferences: Object.keys(vocab?.toolPreferences || {}).length,
   };
 }
-

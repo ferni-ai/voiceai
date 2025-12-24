@@ -1,5 +1,11 @@
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
 // MARK: - Ferni Typography System
 /// Brand-aligned typography for iOS.
 ///
@@ -17,10 +23,17 @@ enum FerniFont {
     /// Display font - for headlines and prominent UI
     /// Brand: Plus Jakarta Sans | Fallback: SF Pro Display
     static func display(size: CGFloat, weight: Font.Weight = .semibold) -> Font {
+        #if os(iOS)
         // Check if Plus Jakarta Sans is available (bundled)
-        if let _ = UIFont(name: "PlusJakartaSans-SemiBold", size: size) {
+        if UIFont(name: "PlusJakartaSans-SemiBold", size: size) != nil {
             return .custom("PlusJakartaSans", size: size).weight(weight)
         }
+        #elseif os(macOS)
+        // Check if Plus Jakarta Sans is available (bundled)
+        if NSFont(name: "PlusJakartaSans-SemiBold", size: size) != nil {
+            return .custom("PlusJakartaSans", size: size).weight(weight)
+        }
+        #endif
         // Fallback to SF Pro (system default, not rounded)
         return .system(size: size, weight: weight, design: .default)
     }
@@ -30,10 +43,17 @@ enum FerniFont {
     /// Body font - for readable content and UI elements
     /// Brand: Inter | Fallback: SF Pro Text
     static func body(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        #if os(iOS)
         // Check if Inter is available (bundled)
-        if let _ = UIFont(name: "Inter-Regular", size: size) {
+        if UIFont(name: "Inter-Regular", size: size) != nil {
             return .custom("Inter", size: size).weight(weight)
         }
+        #elseif os(macOS)
+        // Check if Inter is available (bundled)
+        if NSFont(name: "Inter-Regular", size: size) != nil {
+            return .custom("Inter", size: size).weight(weight)
+        }
+        #endif
         // Fallback to SF Pro (system default)
         return .system(size: size, weight: weight, design: .default)
     }

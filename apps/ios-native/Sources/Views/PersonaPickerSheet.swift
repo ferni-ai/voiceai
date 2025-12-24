@@ -146,6 +146,11 @@ struct PersonaCard: View {
                     )
             )
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(persona.name), \(persona.role)")
+        .accessibilityValue(isSelected ? "Currently selected" : "")
+        .accessibilityHint("Double tap to switch to \(persona.name)")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

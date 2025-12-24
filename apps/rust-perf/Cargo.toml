@@ -1,0 +1,36 @@
+[package]
+name = "ferni-perf"
+version = "0.1.0"
+edition = "2021"
+description = "SIMD-optimized performance-critical operations for Ferni"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# NAPI-RS for Node.js bindings
+napi = { version = "2", features = ["napi9"] }
+napi-derive = "2"
+
+# Parallel processing
+rayon = "1.10"
+
+# Hashing for LSH
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Error handling
+thiserror = "1.0"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true

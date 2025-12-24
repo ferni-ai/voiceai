@@ -290,6 +290,7 @@
   },
   "errors": {
     "connectionFailed": "החיבור נכשל. אנא נסה שוב.",
+    "invalidLanguage": "שפה זו עדיין לא זמינה",
     "microphoneAccess": "אנא אפשר גישה למיקרופון להמשך.",
     "networkError": "שגיאת רשת. אנא בדוק את החיבור שלך.",
     "sessionExpired": "הפגישה שלך פגה. אנא רענן.",

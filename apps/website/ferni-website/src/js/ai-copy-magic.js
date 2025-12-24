@@ -626,7 +626,7 @@
     { who: 'Your sibling', status: 'Lives far away. You\'ve drifted apart.' },
     // Modern realities
     { who: 'Your journal', status: 'Doesn\'t talk back. You need someone to hear you.' },
-    { who: 'The internet', status: 'Generic advice. No one knows your story.' },
+    { who: 'The internet', status: 'Generic tips. No one knows your story.' },
     { who: 'AI chatbots', status: 'Forgot everything you told them last week.' },
   ];
 

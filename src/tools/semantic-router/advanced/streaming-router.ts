@@ -18,6 +18,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, SemanticRouterResult } from '../types.js';
+import { getKeywordWord, getKeywordWeight } from '../types.js';
 
 const log = createLogger({ module: 'SemanticRouter.Streaming' });
 
@@ -406,8 +407,10 @@ export class StreamingRouter {
 
     // Check keywords
     for (const keyword of tool.triggers.keywords || []) {
-      if (words.some((w) => w.includes(keyword.word.toLowerCase()))) {
-        score += keyword.weight * 0.2;
+      const word = getKeywordWord(keyword);
+      const weight = getKeywordWeight(keyword);
+      if (words.some((w) => w.includes(word.toLowerCase()))) {
+        score += weight * 0.2;
       }
     }
 
@@ -537,4 +540,3 @@ export function getCurrentPrediction(
     confidence: state.currentBest.confidence ?? 0,
   };
 }
-

@@ -29,6 +29,7 @@ import {
 } from '../integration/redis-cache.js';
 import { getEmbedding, getEmbeddings } from '../embedding-providers.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
+import { getExampleText, normalizeExamples } from '../types.js';
 
 const log = createLogger({ module: 'semantic-router:tool-embedding-index' });
 
@@ -263,7 +264,7 @@ class ToolEmbeddingIndexService {
         // Example texts
         for (let i = 0; i < tool.examples.length; i++) {
           textsToEmbed.push({ toolId: tool.id, type: 'example', index: i });
-          texts.push(tool.examples[i]);
+          texts.push(getExampleText(tool.examples[i]));
         }
       }
 
@@ -372,7 +373,8 @@ class ToolEmbeddingIndexService {
 
     // Get embeddings
     const description = await getEmbedding(descriptionText);
-    const examples = await getEmbeddings(tool.examples);
+    const exampleTexts = normalizeExamples(tool.examples);
+    const examples = await getEmbeddings(exampleTexts);
 
     return { description, examples };
   }

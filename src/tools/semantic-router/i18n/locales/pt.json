@@ -2,7 +2,7 @@
   "$schema": "./locale.schema.json",
   "$locale": "pt",
   "$name": "Português",
-  
+
   "weather_current": {
     "phrases": [
       "como está o tempo",
@@ -30,6 +30,27 @@
       { "word": "guarda-chuva", "weight": 0.8 }
     ],
     "antiKeywords": ["email", "calendário", "reunião", "música"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "previsão do tempo",
+      "tempo esta semana",
+      "tempo amanhã",
+      "qual é a previsão",
+      "tempo nos próximos dias"
+    ],
+    "patterns": [
+      "^(?:qual\\s+é\\s+a|como\\s+é\\s+a)\\s+previsão",
+      "^(?:o\\s+)?tempo\\s+(?:para\\s+)?(?:esta|a\\s+próxima)\\s+semana",
+      "^vai\\s+(?:chover|nevar)\\s+(?:amanhã|esta\\s+semana)"
+    ],
+    "keywords": [
+      { "word": "previsão", "weight": 1.0 },
+      { "word": "semana", "weight": 0.7 },
+      { "word": "amanhã", "weight": 0.8 }
+    ],
+    "antiKeywords": ["agora", "atualmente"]
   },
 
   "calendar_list_events": {
@@ -155,13 +176,7 @@
   },
 
   "spotify_play": {
-    "phrases": [
-      "coloca música",
-      "toca música",
-      "quero ouvir",
-      "coloca um",
-      "abre spotify"
-    ],
+    "phrases": ["coloca música", "toca música", "quero ouvir", "coloca um", "abre spotify"],
     "patterns": [
       "^(?:coloca|toca|reproduz)\\s+(?:algo\\s+de\\s+)?(.+)",
       "^quero\\s+(?:ouvir|escutar)\\s+(.+)"
@@ -178,14 +193,43 @@
     "antiKeywords": ["para", "pausa", "próxima", "pula"]
   },
 
-  "handoff": {
+  "calendar_create_event": {
     "phrases": [
-      "passa para",
-      "quero falar com",
-      "posso falar com",
-      "me conecta com",
-      "muda para"
+      "criar evento",
+      "adicionar ao calendário",
+      "agendar reunião",
+      "marcar compromisso",
+      "novo compromisso"
     ],
+    "patterns": [
+      "^(?:criar|adicionar|agendar|marcar)\\s+(?:um|uma)?\\s*(?:evento|reunião|compromisso)",
+      "^(?:colocar|adicionar)\\s+(?:no\\s+)?(?:meu\\s+)?calendário"
+    ],
+    "keywords": [
+      { "word": "criar", "weight": 1.0 },
+      { "word": "adicionar", "weight": 0.9 },
+      { "word": "agendar", "weight": 0.9 },
+      { "word": "marcar", "weight": 0.8 }
+    ],
+    "antiKeywords": ["ver", "mostrar", "que", "quais"]
+  },
+
+  "info_time": {
+    "phrases": ["que horas são", "me diz a hora", "hora atual", "são quantas horas"],
+    "patterns": [
+      "^(?:que\\s+horas|são\\s+quantas\\s+horas)\\s*(?:são)?",
+      "^(?:me\\s+diz|me\\s+dá)\\s+a\\s+hora"
+    ],
+    "keywords": [
+      { "word": "hora", "weight": 1.0 },
+      { "word": "horas", "weight": 1.0 },
+      { "word": "tempo", "weight": 0.5 }
+    ],
+    "antiKeywords": ["tempo", "clima", "calendário", "reunião"]
+  },
+
+  "handoff": {
+    "phrases": ["passa para", "quero falar com", "posso falar com", "me conecta com", "muda para"],
     "patterns": [
       "^(?:passa|me\\s+conecta)\\s+(?:para|com)\\s+(.+)",
       "^(?:quero|posso)\\s+falar\\s+com\\s+(.+)",
@@ -203,4 +247,3 @@
     "antiKeywords": []
   }
 }
-

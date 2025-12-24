@@ -484,4 +484,3 @@ export function getChainStats(): {
     learnedTransitions: totalTransitions,
   };
 }
-

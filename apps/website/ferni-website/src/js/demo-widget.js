@@ -170,7 +170,7 @@
     },
     depth: {
       label: 'Real Depth',
-      description: 'Not just surface-level advice'
+      description: 'Not just surface-level help'
     },
     'emotional-intelligence': {
       label: 'Emotional Intelligence',

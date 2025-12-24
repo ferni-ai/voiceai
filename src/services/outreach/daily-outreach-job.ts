@@ -21,7 +21,7 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getOutreachDecisionEngine } from './decision-engine.js';
+import { getOutreachDecisionEngine, type OutreachPriority } from './decision-engine.js';
 import { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } from './life-rhythm-outreach.js';
 import { getOutreachOrchestrator } from './outreach-orchestrator.js';
 import {
@@ -32,6 +32,14 @@ import {
   publishMilestoneCelebration,
   publishSetbackRecoveryTrigger,
 } from './maya-habit-outreach.js';
+import { getPendingCheckIns, recordCheckInSent } from './onboarding-checkin-arc.js';
+import {
+  updateReengagementState,
+  getPendingReengagements,
+  recordReengagementSent,
+  type ReengagementType,
+} from './reengagement-arc.js';
+import { recordOutreachEvent } from './outreach-analytics.js';
 
 const log = createLogger({ module: 'DailyOutreachJob' });
 
@@ -150,6 +158,34 @@ export async function runDailyOutreachJob(
             log.debug(
               { userId: profile.id, error: String(mayaError) },
               'Maya habit outreach error (non-fatal)'
+            );
+          }
+
+          // 🎓 ONBOARDING ARC: Check-ins during first 14 days
+          try {
+            const onboardingResult = await evaluateOnboardingOutreach(profile.id);
+            if (onboardingResult.sent > 0) {
+              outreachSent += onboardingResult.sent;
+              byType['onboarding'] = (byType['onboarding'] || 0) + onboardingResult.sent;
+            }
+          } catch (onboardingError) {
+            log.debug(
+              { userId: profile.id, error: String(onboardingError) },
+              'Onboarding outreach error (non-fatal)'
+            );
+          }
+
+          // 🔄 RE-ENGAGEMENT ARC: Reconnect with silent users
+          try {
+            const reengagementResult = await evaluateReengagementOutreach(profile);
+            if (reengagementResult.sent > 0) {
+              outreachSent += reengagementResult.sent;
+              byType['reengagement'] = (byType['reengagement'] || 0) + reengagementResult.sent;
+            }
+          } catch (reengagementError) {
+            log.debug(
+              { userId: profile.id, error: String(reengagementError) },
+              'Re-engagement outreach error (non-fatal)'
             );
           }
         }
@@ -319,6 +355,180 @@ async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutre
     }
   } catch (error) {
     log.debug({ userId, error: String(error) }, 'Maya habit outreach evaluation failed');
+  }
+
+  return result;
+}
+
+// ============================================================================
+// ONBOARDING ARC EVALUATION
+// ============================================================================
+
+interface OnboardingOutreachResult {
+  sent: number;
+  checkInsProcessed: string[];
+}
+
+/**
+ * Evaluate and trigger onboarding check-ins for a user
+ *
+ * Creates triggers for any pending check-ins in the onboarding arc (first 14 days).
+ * Check-ins are then processed by the decision engine's normal flow.
+ */
+async function evaluateOnboardingOutreach(userId: string): Promise<OnboardingOutreachResult> {
+  const result: OnboardingOutreachResult = { sent: 0, checkInsProcessed: [] };
+
+  try {
+    // Get pending check-ins from the onboarding arc service
+    const pendingCheckIns = await getPendingCheckIns(userId);
+
+    if (pendingCheckIns.length === 0) {
+      return result;
+    }
+
+    log.debug(
+      { userId, pendingCount: pendingCheckIns.length },
+      '🎓 Found pending onboarding check-ins'
+    );
+
+    // Use the decision engine to create triggers (it handles ML timing)
+    const engine = getOutreachDecisionEngine();
+    const triggerIds = await engine.checkOnboardingTriggers(userId);
+
+    // Mark check-ins as processed (triggers will be sent by the decision engine)
+    for (const checkIn of pendingCheckIns) {
+      result.checkInsProcessed.push(checkIn.type);
+      // Note: We don't mark as sent yet - that happens when the trigger is actually processed
+      // The decision engine will call markOnboardingCheckInSent after successful delivery
+    }
+
+    result.sent = triggerIds.length;
+
+    if (result.sent > 0) {
+      log.info(
+        { userId, triggerCount: result.sent, checkInTypes: result.checkInsProcessed },
+        '🎓 Created onboarding triggers'
+      );
+    }
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Onboarding outreach evaluation failed');
+  }
+
+  return result;
+}
+
+// ============================================================================
+// RE-ENGAGEMENT ARC EVALUATION
+// ============================================================================
+
+interface ReengagementOutreachResult {
+  sent: number;
+  types: ReengagementType[];
+}
+
+/**
+ * Evaluate and trigger re-engagement outreach for a user
+ *
+ * Updates the user's re-engagement state based on their last conversation,
+ * then checks for pending re-engagements and creates triggers for them.
+ */
+async function evaluateReengagementOutreach(
+  profile: UserProfile
+): Promise<ReengagementOutreachResult> {
+  const result: ReengagementOutreachResult = { sent: 0, types: [] };
+
+  if (!profile.id) return result;
+
+  try {
+    // Get last conversation date from profile
+    const lastConversationDate = profile.customData?.lastConversationDate
+      ? new Date(profile.customData.lastConversationDate as string)
+      : profile.updatedAt
+        ? new Date(profile.updatedAt)
+        : null;
+
+    if (!lastConversationDate) {
+      return result;
+    }
+
+    // Update re-engagement state
+    const state = updateReengagementState(profile.id, lastConversationDate, {
+      interests: profile.customData?.interests as string[] | undefined,
+      preferredPersona: profile.customData?.preferredPersona as string | undefined,
+      name: profile.name,
+      totalConversations: profile.customData?.totalConversations as number | undefined,
+    });
+
+    // Skip if user is active or in respect_space stage
+    if (state.stage === 'active' || state.stage === 'respect_space') {
+      return result;
+    }
+
+    // Get pending re-engagements
+    const pending = await getPendingReengagements(profile.id);
+
+    if (pending.length === 0) {
+      return result;
+    }
+
+    log.debug(
+      { userId: profile.id, pendingCount: pending.length, stage: state.stage },
+      '🔄 Found pending re-engagements'
+    );
+
+    // Use the decision engine to create triggers
+    const engine = getOutreachDecisionEngine();
+
+    for (const reengagement of pending) {
+      // Map priority string to OutreachPriority type
+      const priorityMap: Record<string, OutreachPriority> = {
+        high: 'high',
+        medium: 'medium',
+        low: 'low',
+      };
+      const priority: OutreachPriority = priorityMap[reengagement.priority] || 'medium';
+
+      // Create a trigger for this re-engagement
+      const trigger = {
+        type: 'reengagement' as const,
+        userId: profile.id,
+        persona: reengagement.persona,
+        priority,
+        reason: reengagement.reason,
+        suggestedTime: reengagement.scheduledFor,
+        context: {
+          reengagementType: reengagement.type,
+          message: reengagement.message,
+          daysSilent: state.daysSinceLastConversation,
+        },
+      };
+
+      engine.addTrigger(trigger);
+
+      // Record that we sent this re-engagement
+      recordReengagementSent(profile.id, reengagement.type);
+
+      // Record in analytics
+      recordOutreachEvent({
+        id: reengagement.id,
+        userId: profile.id,
+        type: `reengagement_${reengagement.type}`,
+        channel: 'push', // Default channel
+        delivered: true,
+      });
+
+      result.sent++;
+      result.types.push(reengagement.type);
+    }
+
+    if (result.sent > 0) {
+      log.info(
+        { userId: profile.id, sent: result.sent, types: result.types, stage: state.stage },
+        '🔄 Created re-engagement triggers'
+      );
+    }
+  } catch (error) {
+    log.debug({ userId: profile.id, error: String(error) }, 'Re-engagement evaluation failed');
   }
 
   return result;

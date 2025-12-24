@@ -36,6 +36,12 @@ import {
   uxQualityMetrics,
 } from '../services/observability/index.js';
 import {
+  getAggregateMetrics,
+  getDashboardData as getSemanticDashboardData,
+} from '../tools/semantic-router/integration/metrics.js';
+import { getProactiveStats } from '../tools/semantic-router/advanced/proactive-suggestions.js';
+import { getAgentEvolution } from '../intelligence/agent-evolution.js';
+import {
   getAllCircuitStats,
   getAllClientStats,
   getAnomalyHistory,
@@ -138,6 +144,80 @@ async function getSelfHealingDashboardData() {
       openCircuits,
       halfOpenCircuits,
     },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Get semantic routing metrics for the admin dashboard
+ */
+function getSemanticRoutingMetrics() {
+  // Get aggregate metrics from semantic router
+  const aggregate = getAggregateMetrics();
+  const { hourly } = getSemanticDashboardData();
+
+  // Learning metrics (corrections, etc.)
+  // Note: This is a simplified version - could be expanded with Firestore data
+  const learning = {
+    totalCorrections: 0,
+    correctionRate: 0,
+    recentCorrections: [] as Array<{
+      query: string;
+      predicted: string;
+      actual: string;
+      timestamp: string;
+    }>,
+  };
+
+  // A/B test status from agent evolution
+  const evolution = getAgentEvolution();
+  const evolutionStates = evolution.exportState();
+  const allExperiments: Array<{
+    id: string;
+    name: string;
+    status: string;
+    variants: number;
+  }> = [];
+
+  for (const state of evolutionStates.values()) {
+    for (const exp of state.experiments) {
+      allExperiments.push({
+        id: exp.id,
+        name: exp.name,
+        status: exp.status,
+        variants: 2, // control + treatment
+      });
+    }
+  }
+
+  const abTests = {
+    active: allExperiments.filter((e) => e.status === 'running').length,
+    experiments: allExperiments.slice(0, 10),
+  };
+
+  // Proactive suggestions
+  const proactiveStats = getProactiveStats();
+  const proactive = {
+    suggestionsToday: proactiveStats.totalSuggestions,
+    acceptanceRate: proactiveStats.acceptanceRate,
+  };
+
+  // Community patterns (from intelligence layer)
+  const communityInsights = getCommunityInsights();
+  const insightsStats = communityInsights.getStats();
+  const community = {
+    totalPatterns: insightsStats.totalPatterns,
+    avgConfidence: insightsStats.avgPatternConfidence,
+    lastAggregation: null as string | null,
+  };
+
+  return {
+    aggregate,
+    learning,
+    abTests,
+    proactive,
+    community,
+    hourly,
     timestamp: new Date().toISOString(),
   };
 }
@@ -342,6 +422,13 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/resilience' && req.method === 'GET') {
       const snapshot = resilienceMetrics.getSnapshot();
       sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/semantic-routing - Semantic router metrics
+    if (pathname === '/api/observability/semantic-routing' && req.method === 'GET') {
+      const semanticData = getSemanticRoutingMetrics();
+      sendJSON(res, semanticData);
       return true;
     }
 

@@ -293,6 +293,75 @@ function generateSpacingCSS(spacing) {
     lines.push(`  --container-${key}: ${value};`);
   }
 
+  // Gradients - semantic gradient tokens
+  if (spacing.gradients) {
+    lines.push('');
+    lines.push('  /* Gradient Tokens - Use instead of hardcoding linear-gradient() */');
+    
+    // Surface gradients
+    if (spacing.gradients.surface) {
+      for (const [key, value] of Object.entries(spacing.gradients.surface)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-surface-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Persona gradients
+    if (spacing.gradients.persona) {
+      for (const [key, value] of Object.entries(spacing.gradients.persona)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-persona-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Accent gradients
+    if (spacing.gradients.accent) {
+      for (const [key, value] of Object.entries(spacing.gradients.accent)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-accent-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Semantic gradients
+    if (spacing.gradients.semantic) {
+      for (const [key, value] of Object.entries(spacing.gradients.semantic)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-semantic-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Decorative gradients
+    if (spacing.gradients.decorative) {
+      for (const [key, value] of Object.entries(spacing.gradients.decorative)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Glass gradients
+    if (spacing.gradients.glass) {
+      for (const [key, value] of Object.entries(spacing.gradients.glass)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-glass-${key}: ${value};`);
+        }
+      }
+    }
+    
+    // Progress gradients
+    if (spacing.gradients.progress) {
+      for (const [key, value] of Object.entries(spacing.gradients.progress)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --gradient-progress-${key}: ${value};`);
+        }
+      }
+    }
+  }
+
   lines.push('}');
 
   // Theme-specific shadows
@@ -373,6 +442,105 @@ function generateSpacingCSS(spacing) {
       }
       if (zenGlass.outerGlow) {
         lines.push(`  --glass-outer-glow: ${zenGlass.outerGlow};`);
+      }
+      lines.push('}');
+    }
+
+    // Vibrancy levels (theme-agnostic)
+    if (spacing.glassMorphism.vibrancy) {
+      lines.push('');
+      lines.push('/* Vibrancy - iOS-style saturation boost */');
+      lines.push(':root {');
+      for (const [key, value] of Object.entries(spacing.glassMorphism.vibrancy)) {
+        if (!key.startsWith('_')) {
+          lines.push(`  --glass-vibrancy-${key}: ${value};`);
+        }
+      }
+      lines.push('}');
+    }
+
+    // Specular highlights
+    if (spacing.glassMorphism.specular) {
+      lines.push('');
+      lines.push('/* Specular - Light reflection effects */');
+      lines.push(':root {');
+      const specular = spacing.glassMorphism.specular;
+      if (specular.highlight) {
+        lines.push(`  --glass-specular-gradient: ${specular.highlight.gradient};`);
+        lines.push(`  --glass-specular-position: ${specular.highlight.position};`);
+        lines.push(`  --glass-specular-size: ${specular.highlight.size};`);
+      }
+      if (specular.shimmer) {
+        lines.push(`  --glass-shimmer-gradient: ${specular.shimmer.gradient};`);
+        lines.push(`  --glass-shimmer-animation: ${specular.shimmer.animation};`);
+      }
+      if (specular.fresnel) {
+        lines.push(`  --glass-fresnel-light: ${specular.fresnel.light};`);
+        lines.push(`  --glass-fresnel-dark: ${specular.fresnel.dark};`);
+      }
+      lines.push('}');
+    }
+
+    // Noise texture
+    if (spacing.glassMorphism.noise) {
+      lines.push('');
+      lines.push('/* Noise - Organic grain texture */');
+      lines.push(':root {');
+      const noise = spacing.glassMorphism.noise;
+      if (noise.opacity) {
+        for (const [key, value] of Object.entries(noise.opacity)) {
+          lines.push(`  --glass-noise-opacity-${key}: ${value};`);
+        }
+      }
+      if (noise.filter) {
+        lines.push(`  --glass-noise-texture: ${noise.filter};`);
+      }
+      if (noise.blendMode) {
+        lines.push(`  --glass-noise-blend: ${noise.blendMode};`);
+      }
+      lines.push('}');
+    }
+
+    // Interaction effects
+    if (spacing.glassMorphism.interaction) {
+      lines.push('');
+      lines.push('/* Interaction - Dynamic response */');
+      lines.push(':root {');
+      const interaction = spacing.glassMorphism.interaction;
+      if (interaction.hoverBlur) {
+        lines.push(`  --glass-hover-blur-increase: ${interaction.hoverBlur};`);
+      }
+      if (interaction.activeScale) {
+        lines.push(`  --glass-active-scale: ${interaction.activeScale};`);
+      }
+      if (interaction.focusRing) {
+        lines.push(`  --glass-focus-ring: ${interaction.focusRing};`);
+      }
+      if (interaction.tilt) {
+        lines.push(`  --glass-tilt-max: ${interaction.tilt.maxAngle};`);
+        lines.push(`  --glass-tilt-perspective: ${interaction.tilt.perspective};`);
+        lines.push(`  --glass-tilt-transition: ${interaction.tilt.transition};`);
+      }
+      if (interaction.ripple) {
+        lines.push(`  --glass-ripple-duration: ${interaction.ripple.duration};`);
+        lines.push(`  --glass-ripple-easing: ${interaction.ripple.easing};`);
+        lines.push(`  --glass-ripple-color: ${interaction.ripple.color};`);
+      }
+      lines.push('}');
+    }
+
+    // Chromatic aberration
+    if (spacing.glassMorphism.chromatic) {
+      lines.push('');
+      lines.push('/* Chromatic - Light refraction at edges */');
+      lines.push(':root {');
+      const chromatic = spacing.glassMorphism.chromatic;
+      if (chromatic.offset) {
+        lines.push(`  --glass-chromatic-offset: ${chromatic.offset};`);
+      }
+      if (chromatic.colors) {
+        lines.push(`  --glass-chromatic-red: ${chromatic.colors.red};`);
+        lines.push(`  --glass-chromatic-blue: ${chromatic.colors.blue};`);
       }
       lines.push('}');
     }
@@ -754,6 +922,174 @@ function generateEffectsCSS(effects) {
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
   border: var(--glass-border-medium);
   box-shadow: var(--glass-inner-glow);
+}
+
+/* ========================================
+   LIQUID GLASS - iOS 26 Inspired
+   Apple's new translucent, vibrant design
+   ======================================== */
+
+/* Liquid Glass Base - Use on modals, cards, overlays */
+.glass-liquid {
+  position: relative;
+  background: var(--glass-surface-2);
+  backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  border: var(--glass-border-light);
+  box-shadow: var(--glass-inner-glow);
+  overflow: hidden;
+  transition: 
+    backdrop-filter 300ms var(--ease-gentle),
+    transform 300ms var(--ease-spring),
+    box-shadow 300ms var(--ease-gentle);
+}
+
+/* Specular highlight layer (pseudo-element) */
+.glass-liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-specular-gradient);
+  background-size: var(--glass-specular-size);
+  background-position: var(--glass-specular-position);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-gentle);
+}
+
+/* Noise texture layer */
+.glass-liquid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--glass-noise-texture);
+  background-size: 128px 128px;
+  opacity: var(--glass-noise-opacity-subtle);
+  mix-blend-mode: var(--glass-noise-blend);
+  pointer-events: none;
+}
+
+/* Hover: Deeper blur, brighter specular */
+.glass-liquid:hover {
+  backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+}
+
+.glass-liquid:hover::before {
+  opacity: 0.8;
+}
+
+/* Active: Slight press */
+.glass-liquid:active {
+  transform: scale(var(--glass-active-scale));
+}
+
+/* Focus: Persona-colored ring */
+.glass-liquid:focus-visible {
+  outline: none;
+  box-shadow: var(--glass-inner-glow), var(--glass-focus-ring);
+}
+
+/* Liquid Glass - Light variant */
+.glass-liquid-light {
+  background: var(--glass-surface-1);
+  backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+}
+
+/* Liquid Glass - Heavy variant */
+.glass-liquid-heavy {
+  background: var(--glass-surface-3);
+  backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+  -webkit-backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+}
+
+/* Liquid Glass with Tilt Effect (3D) */
+.glass-liquid-tilt {
+  transform-style: preserve-3d;
+  perspective: var(--glass-tilt-perspective);
+  transition: var(--glass-tilt-transition);
+}
+
+.glass-liquid-tilt:hover {
+  /* JS should set --tilt-x and --tilt-y based on cursor position */
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+}
+
+/* Liquid Glass with Shimmer Animation */
+.glass-liquid-shimmer::before {
+  background: var(--glass-shimmer-gradient);
+  background-size: 200% 100%;
+  animation: var(--glass-shimmer-animation);
+}
+
+@keyframes specularShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Liquid Glass with Fresnel Edge Effect */
+.glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-light);
+}
+
+[data-theme="midnight"] .glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-dark);
+}
+
+/* Liquid Glass with Chromatic Aberration */
+.glass-liquid-chromatic {
+  position: relative;
+}
+
+.glass-liquid-chromatic::before {
+  box-shadow: 
+    calc(var(--glass-chromatic-offset) * -1) 0 0 var(--glass-chromatic-red),
+    var(--glass-chromatic-offset) 0 0 var(--glass-chromatic-blue);
+}
+
+/* Liquid Glass Ripple Effect */
+.glass-liquid-ripple {
+  overflow: hidden;
+}
+
+.glass-liquid-ripple .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--glass-ripple-color);
+  transform: scale(0);
+  animation: glassRipple var(--glass-ripple-duration) var(--glass-ripple-easing) forwards;
+  pointer-events: none;
+}
+
+@keyframes glassRipple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Reduced Motion: Disable animations */
+@media (prefers-reduced-motion: reduce) {
+  .glass-liquid,
+  .glass-liquid::before,
+  .glass-liquid::after {
+    transition: none;
+    animation: none;
+  }
+  
+  .glass-liquid-tilt:hover {
+    transform: none;
+  }
+  
+  .glass-liquid-shimmer::before {
+    animation: none;
+  }
+  
+  .glass-liquid-ripple .ripple {
+    animation: none;
+    display: none;
+  }
 }
 `);
 
@@ -2040,6 +2376,140 @@ function generateEffectsCSS(effects) {
 }
 
 // ============================================================================
+// HIGH CONTRAST CSS GENERATION
+// ============================================================================
+
+function generateHighContrastCSS() {
+  const lines = [];
+  
+  lines.push(`/* High contrast mode - for users who need enhanced visibility */
+@media (prefers-contrast: more) {
+  :root {
+    /* Boost text contrast */
+    --color-text-primary: #000000;
+    --color-text-secondary: #1a1a1a;
+    --color-text-muted: #333333;
+    
+    /* Remove subtle backgrounds */
+    --color-background-glass: transparent;
+    --glass-surface-1: rgba(255, 255, 255, 0.95);
+    --glass-surface-2: rgba(255, 255, 255, 0.98);
+    --glass-surface-3: #ffffff;
+    
+    /* Remove blur effects - they can hinder readability */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Stronger borders */
+    --color-border-subtle: rgba(0, 0, 0, 0.3);
+    --color-border-medium: rgba(0, 0, 0, 0.5);
+    --color-border-strong: rgba(0, 0, 0, 0.8);
+    
+    /* Simplified shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35);
+    
+    /* Disable noise and complex effects */
+    --glass-noise-opacity-subtle: 0;
+    --glass-noise-opacity-medium: 0;
+    --glass-noise-opacity-visible: 0;
+    --glass-vibrancy-subtle: saturate(1) contrast(1);
+    --glass-vibrancy-medium: saturate(1) contrast(1);
+    --glass-vibrancy-high: saturate(1) contrast(1);
+    
+    /* Bolder focus rings */
+    --glass-focus-ring: 0 0 0 3px #000000;
+  }
+  
+  [data-theme="midnight"] {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #f0f0f0;
+    --color-text-muted: #e0e0e0;
+    
+    --glass-surface-1: rgba(0, 0, 0, 0.95);
+    --glass-surface-2: rgba(0, 0, 0, 0.98);
+    --glass-surface-3: #000000;
+    
+    --color-border-subtle: rgba(255, 255, 255, 0.3);
+    --color-border-medium: rgba(255, 255, 255, 0.5);
+    --color-border-strong: rgba(255, 255, 255, 0.8);
+    
+    --glass-focus-ring: 0 0 0 3px #ffffff;
+  }
+  
+  /* Ensure buttons have visible borders */
+  button, .btn {
+    border: 2px solid currentColor !important;
+  }
+  
+  /* Remove decorative gradients in high contrast */
+  .gradient-decorative,
+  [class*="gradient-"] {
+    background: none !important;
+    background-color: var(--color-background-primary) !important;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  :root {
+    /* Let the system handle colors */
+    --color-text-primary: CanvasText;
+    --color-text-secondary: CanvasText;
+    --color-background-primary: Canvas;
+    --color-background-elevated: Canvas;
+    --color-accent-primary: LinkText;
+    --color-border-medium: CanvasText;
+  }
+  
+  /* Ensure focus indicators are visible */
+  *:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+  
+  /* Button styling for forced colors */
+  button, .btn {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  
+  button:hover, .btn:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* Reduced transparency for users who prefer it */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    /* Use solid backgrounds instead of translucent */
+    --glass-surface-1: var(--color-background-secondary);
+    --glass-surface-2: var(--color-background-tertiary);
+    --glass-surface-3: var(--color-background-elevated);
+    
+    /* Remove backdrop filters */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Solid overlays */
+    --backdrop-light: var(--color-background-overlay);
+    --backdrop-medium: var(--color-background-overlay);
+    --backdrop-heavy: var(--color-background-overlay);
+  }
+}`);
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // MAIN BUILD
 // ============================================================================
 
@@ -2131,6 +2601,13 @@ function build() {
   output.push('   EFFECTS & MAGICAL UTILITIES');
   output.push('   ======================================== */');
   output.push(generateEffectsCSS(effects));
+
+  // Accessibility - High Contrast Mode
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   ACCESSIBILITY - HIGH CONTRAST MODE');
+  output.push('   ======================================== */');
+  output.push(generateHighContrastCSS());
 
   // Write output
   const outputDir = path.join(__dirname, 'dist');

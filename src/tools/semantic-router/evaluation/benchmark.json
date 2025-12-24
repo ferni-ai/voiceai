@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Semantic Router Benchmark Dataset - Test cases for measuring routing accuracy",
   "createdAt": "2024-12-23",
-  
+
   "categories": {
     "easy": "Clear intent, standard phrasing",
     "medium": "Slight ambiguity or informal language",
@@ -467,4 +467,3 @@
     }
   }
 }
-

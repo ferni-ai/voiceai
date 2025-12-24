@@ -21,6 +21,7 @@ import type {
   ToolCategory,
   ToolMatch,
 } from './types.js';
+import { getKeywordWord, getKeywordWeight } from './types.js';
 
 // ============================================================================
 // TEXT NORMALIZATION
@@ -71,6 +72,31 @@ interface PatternMatchResult {
 }
 
 /**
+ * Escape special regex characters in a string
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Check if a phrase matches as a complete word/phrase (not substring)
+ * Examples:
+ *   matchesAsWord("next", "next") → true (exact match)
+ *   matchesAsWord("next", "play next") → true (word at end)
+ *   matchesAsWord("next song", "skip to next song please") → true (words in middle)
+ *   matchesAsWord("ex", "next") → false ("ex" is inside "next", not a separate word)
+ */
+function matchesAsWord(phrase: string, text: string): boolean {
+  // Exact match is always valid
+  if (text === phrase) return true;
+
+  // Use word boundary regex to ensure the phrase appears as complete word(s)
+  // \b matches word boundaries (start/end of string, or between word/non-word chars)
+  const phrasePattern = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i');
+  return phrasePattern.test(text);
+}
+
+/**
  * Fast pattern matching against triggers
  */
 export function matchPatterns(
@@ -84,12 +110,12 @@ export function matchPatterns(
   const results: PatternMatchResult[] = [];
 
   for (const tool of tools) {
-    // Check exact phrases
+    // Check phrases - must match as complete words, not substrings
     for (const phrase of tool.normalizedPhrases) {
-      if (normalizedText.includes(phrase)) {
+      if (matchesAsWord(phrase, normalizedText)) {
         results.push({
           toolId: tool.definition.id,
-          score: 1.0, // Exact match = full confidence
+          score: 1.0, // Phrase match = full confidence
           matchedPattern: phrase,
         });
         break; // One match per tool is enough
@@ -145,10 +171,12 @@ export function scoreKeywords(
 
     // Score positive keywords
     for (const kw of keywords) {
-      totalWeight += kw.weight;
-      if (tokenSet.has(kw.word.toLowerCase())) {
-        matchedWeight += kw.weight;
-        matchedKeywords.push(kw.word);
+      const weight = getKeywordWeight(kw);
+      const word = getKeywordWord(kw);
+      totalWeight += weight;
+      if (tokenSet.has(word.toLowerCase())) {
+        matchedWeight += weight;
+        matchedKeywords.push(word);
       }
     }
 
@@ -314,13 +342,15 @@ export function calculateContextBoosts(
 
     // Check if keywords appear in recent conversation
     const keywords = triggers.keywords || [];
-    const keywordMatches = keywords.filter((kw) => recentText.includes(kw.word.toLowerCase()));
+    const keywordMatches = keywords.filter((kw) =>
+      recentText.includes(getKeywordWord(kw).toLowerCase())
+    );
 
     if (keywordMatches.length > 0) {
       boosts.push({
         toolId: tool.definition.id,
         boost: 0.05 * keywordMatches.length,
-        reason: `Conversation mentions ${keywordMatches.map((k) => k.word).join(', ')}`,
+        reason: `Conversation mentions ${keywordMatches.map((k) => getKeywordWord(k)).join(', ')}`,
       });
     }
   }

@@ -61,11 +61,7 @@ export const lightsControlTool: SemanticToolDefinition = {
     'Brighten the living room',
   ],
 
-  counterExamples: [
-    'What time is it?',
-    'Light rain expected',
-    'Daylight savings',
-  ],
+  counterExamples: ['What time is it?', 'Light rain expected', 'Daylight savings'],
 
   arguments: [
     {
@@ -74,10 +70,7 @@ export const lightsControlTool: SemanticToolDefinition = {
       description: 'Light action',
       required: false,
       enumValues: ['on', 'off', 'dim', 'brighten', 'color'],
-      extractionPatterns: [
-        /lights?\s+(on|off)/i,
-        /(dim|brighten)\s+(?:the\s+)?lights?/i,
-      ],
+      extractionPatterns: [/lights?\s+(on|off)/i, /(dim|brighten)\s+(?:the\s+)?lights?/i],
     },
     {
       name: 'room',
@@ -94,18 +87,14 @@ export const lightsControlTool: SemanticToolDefinition = {
       type: 'number',
       description: 'Brightness level (0-100)',
       required: false,
-      extractionPatterns: [
-        /(?:to\s+)?(\d+)\s*(?:%|percent)/i,
-      ],
+      extractionPatterns: [/(?:to\s+)?(\d+)\s*(?:%|percent)/i],
     },
     {
       name: 'color',
       type: 'string',
       description: 'Light color',
       required: false,
-      extractionPatterns: [
-        /(?:to\s+)?(red|blue|green|yellow|purple|orange|white|warm|cool)/i,
-      ],
+      extractionPatterns: [/(?:to\s+)?(red|blue|green|yellow|purple|orange|white|warm|cool)/i],
     },
   ],
 
@@ -180,11 +169,7 @@ export const thermostatControlTool: SemanticToolDefinition = {
     'Adjust the thermostat',
   ],
 
-  counterExamples: [
-    "What's the weather?",
-    'Temperature outside',
-    'Weather forecast',
-  ],
+  counterExamples: ["What's the weather?", 'Temperature outside', 'Weather forecast'],
 
   arguments: [
     {
@@ -192,9 +177,7 @@ export const thermostatControlTool: SemanticToolDefinition = {
       type: 'number',
       description: 'Target temperature',
       required: false,
-      extractionPatterns: [
-        /(?:to\s+)?(\d+)\s*(?:degrees|°)?/i,
-      ],
+      extractionPatterns: [/(?:to\s+)?(\d+)\s*(?:degrees|°)?/i],
     },
     {
       name: 'action',
@@ -213,9 +196,7 @@ export const thermostatControlTool: SemanticToolDefinition = {
       description: 'Direction to adjust',
       required: false,
       enumValues: ['up', 'down'],
-      extractionPatterns: [
-        /turn\s+(up|down)/i,
-      ],
+      extractionPatterns: [/turn\s+(up|down)/i],
     },
   ],
 
@@ -283,11 +264,7 @@ export const locksControlTool: SemanticToolDefinition = {
     'Lock up for the night',
   ],
 
-  counterExamples: [
-    'Lock my phone',
-    'Screen lock',
-    'Password lock',
-  ],
+  counterExamples: ['Lock my phone', 'Screen lock', 'Password lock'],
 
   arguments: [
     {
@@ -296,9 +273,7 @@ export const locksControlTool: SemanticToolDefinition = {
       description: 'Lock action',
       required: false,
       enumValues: ['lock', 'unlock', 'check'],
-      extractionPatterns: [
-        /^(lock|unlock)/i,
-      ],
+      extractionPatterns: [/^(lock|unlock)/i],
     },
     {
       name: 'door',
@@ -306,9 +281,7 @@ export const locksControlTool: SemanticToolDefinition = {
       description: 'Which door',
       required: false,
       enumValues: ['front', 'back', 'garage', 'all'],
-      extractionPatterns: [
-        /(front|back|garage|side)\s+door/i,
-      ],
+      extractionPatterns: [/(front|back|garage|side)\s+door/i],
     },
   ],
 
@@ -377,10 +350,7 @@ export const deviceControlTool: SemanticToolDefinition = {
     'Turn on the fireplace',
   ],
 
-  counterExamples: [
-    "I'm a fan of that",
-    'TV show recommendation',
-  ],
+  counterExamples: ["I'm a fan of that", 'TV show recommendation'],
 
   arguments: [
     {

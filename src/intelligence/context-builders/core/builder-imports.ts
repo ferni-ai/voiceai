@@ -86,6 +86,9 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'deep-understanding': () => import('../deep-understanding.js'), // Unified deep intelligence
   'life-context-synthesis': () => import('../life-context-synthesis.js'), // Phase 6: Cross-domain life context
 
+  // CAPABILITY AWARENESS
+  'domain-fluency': () => import('../domain-fluency.js'), // Conceptual capability awareness
+
   // ENGAGEMENT
   engagement: () => import('../engagement.js'),
   'engagement-context': () => import('../engagement-context.js'),
@@ -127,6 +130,9 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
 
   // EXTERNAL
   biometrics: () => import('../biometrics.js'),
+  'career-awareness': () => import('../awareness/career-awareness.js'),
+  'device-awareness': () => import('../awareness/device-awareness.js'),
+  'linkedin-awareness': () => import('../awareness/linkedin-awareness.js'),
   'financial-prediction': () => import('../financial-prediction.js'),
   anticipation: () => import('../anticipation.js'),
   'social-relationships': () => import('../social-relationships.js'),
@@ -155,4 +161,14 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'commitment-follow-up': () => import('../commitment-follow-up.js'), // Accountability tracking
   'temporal-intelligence': () => import('../temporal-intelligence.js'), // Time patterns, dates
   'deep-relationship': () => import('../deep-relationship.js'), // Shared vocabulary, milestones
+
+  // RELATIONSHIP ARC (Complete relationship development system - Dec 2024)
+  // Uses Firestore storage for persistence, tracks first words, key moments, stages
+  'first-meeting-magic': () => import('../relationship-arc/first-meeting-magic.js'), // Stage: Stranger (turns 0-3)
+  'acquaintance-deepening': () => import('../relationship-arc/acquaintance-deepening.js'), // Stage: Acquaintance (sessions 2-5)
+  'friendship-flowering': () => import('../relationship-arc/friendship-flowering.js'), // Stage: Friend (sessions 6-15)
+  'trusted-advisor': () => import('../relationship-arc/trusted-advisor.js'), // Stage: Trusted Advisor (sessions 15+)
+
+  // REVELATION AWARENESS (Capability throttling, anti-surveillance, permissions)
+  'revelation-awareness': () => import('../revelation-awareness.js'), // Ensures capabilities feel human
 };

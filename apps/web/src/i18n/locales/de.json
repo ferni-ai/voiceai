@@ -290,6 +290,7 @@
   },
   "errors": {
     "connectionFailed": "Verbindung fehlgeschlagen. Bitte erneut versuchen.",
+    "invalidLanguage": "Diese Sprache ist noch nicht verfügbar",
     "microphoneAccess": "Bitte erlauben Sie den Mikrofonzugriff, um fortzufahren.",
     "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
     "sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte aktualisieren.",

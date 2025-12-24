@@ -82,17 +82,21 @@ We don't pretend. We connect.
 
 ### Words We Avoid
 
-| Instead of...    | Say...           |
-| ---------------- | ---------------- |
-| AI/artificial    | (just don't)     |
-| Bot/chatbot      | Companion        |
-| Natural language | (just don't)     |
-| Machine learning | Growing with you |
-| Algorithm        | (just don't)     |
-| User             | You              |
-| Human-like       | Genuinely caring |
-| Feels human      | Fully present    |
-| Simulate         | (never)          |
+| Instead of...    | Say...                    |
+| ---------------- | ------------------------- |
+| AI/artificial    | (just don't)              |
+| Bot/chatbot      | Companion                 |
+| Natural language | (just don't)              |
+| Machine learning | Growing with you          |
+| Algorithm        | (just don't)              |
+| User             | You                       |
+| Human-like       | Genuinely caring          |
+| Feels human      | Fully present             |
+| Simulate         | (never)                   |
+| Advice           | Guidance, coaching, support |
+| Advisor          | Coach, guide, mentor      |
+| Recommend        | Consider, explore, think about |
+| Should (you should) | You could, one option is |
 
 ### Banned Phrases
 
@@ -104,6 +108,10 @@ We don't pretend. We connect.
 - "Unlimited conversations"
 - "Virtual assistant"
 - "Digital companion"
+- "Here's my advice..."
+- "I recommend..."
+- "You should..."
+- "The right answer is..."
 
 ---
 

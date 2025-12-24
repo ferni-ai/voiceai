@@ -290,6 +290,7 @@
   },
   "errors": {
     "connectionFailed": "Échec de connexion. Veuillez réessayer.",
+    "invalidLanguage": "Cette langue n'est pas encore disponible",
     "microphoneAccess": "Veuillez autoriser l'accès au microphone pour continuer.",
     "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
     "sessionExpired": "Votre session a expiré. Veuillez actualiser.",

@@ -62,18 +62,13 @@ export const griefSupportTool: SemanticToolDefinition = {
     'I lost my father last week',
     "My mom passed away and I'm struggling",
     "I'm grieving and don't know what to do",
-    "I miss my grandmother so much",
+    'I miss my grandmother so much',
     "My best friend died and I can't stop crying",
     'How do I deal with this loss?',
     "My dog died and I'm devastated",
   ],
 
-  counterExamples: [
-    'I lost my phone',
-    'I lost my job',
-    'I lost weight',
-    'Lost and found',
-  ],
+  counterExamples: ['I lost my phone', 'I lost my job', 'I lost weight', 'Lost and found'],
 
   arguments: [
     {
@@ -162,14 +157,11 @@ export const griefWavesTool: SemanticToolDefinition = {
     "I saw their photo and I'm suddenly overwhelmed",
     'The anniversary of their death is coming up',
     'Something reminded me of them and I lost it',
-    "The grief came back out of nowhere",
-    "Holidays are so hard without them",
+    'The grief came back out of nowhere',
+    'Holidays are so hard without them',
   ],
 
-  counterExamples: [
-    'I was triggered by something at work',
-    'The anniversary of my job',
-  ],
+  counterExamples: ['I was triggered by something at work', 'The anniversary of my job'],
 
   arguments: [
     {
@@ -188,9 +180,7 @@ export const griefWavesTool: SemanticToolDefinition = {
       description: 'Special occasion if applicable',
       required: false,
       enumValues: ['anniversary', 'birthday', 'holiday', 'other'],
-      extractionPatterns: [
-        /(anniversary|birthday|holiday|christmas|thanksgiving)/i,
-      ],
+      extractionPatterns: [/(anniversary|birthday|holiday|christmas|thanksgiving)/i],
     },
   ],
 
@@ -258,14 +248,11 @@ export const honoringMemoryTool: SemanticToolDefinition = {
     'I want to keep their legacy alive',
     'Ideas for a memorial',
     'Ways to remember my grandmother',
-    "I want to celebrate their life",
+    'I want to celebrate their life',
     'How do I create a tribute?',
   ],
 
-  counterExamples: [
-    'Help me forget',
-    'How do I move on?',
-  ],
+  counterExamples: ['Help me forget', 'How do I move on?'],
 
   arguments: [
     {

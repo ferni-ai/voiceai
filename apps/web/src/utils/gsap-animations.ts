@@ -317,7 +317,7 @@ export function animateEnergyTransfer(
     border-radius: 50%;
     background: ${color};
     pointer-events: none;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     filter: blur(2px);
     box-shadow: 0 0 20px ${color};
   `;

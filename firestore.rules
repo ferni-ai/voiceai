@@ -70,6 +70,12 @@ service cloud.firestore {
       match /utility_preferences/{prefId} {
         allow read, write: if isOwner(userId) || isServiceAccount();
       }
+      
+      // Group conversation sessions (Team Roundtables, Conference Calls)
+      // Stores session metadata, participants, and transcripts
+      match /group_sessions/{sessionId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
     }
     
     // ============================================================================

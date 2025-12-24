@@ -111,6 +111,8 @@ interface SuperpowersSessionData {
   forecastGivenThisSession: boolean;
   challengeGivenThisSession: boolean;
   metaMomentThisSession: boolean;
+  // Better Than Human: Session continuation
+  sessionContinuationDone: boolean;
   // Tracking
   hadDeepSharing: boolean;
   hadLaughter: boolean;
@@ -138,6 +140,8 @@ function getSessionData(sessionId: string): SuperpowersSessionData {
       forecastGivenThisSession: false,
       challengeGivenThisSession: false,
       metaMomentThisSession: false,
+      // Better Than Human: Session continuation
+      sessionContinuationDone: false,
       // Tracking
       hadDeepSharing: false,
       hadLaughter: false,
@@ -235,10 +239,14 @@ async function buildConversationalSuperpowers(
 
   // ============================================================================
   // 2. SURFACE RELEVANT MEMORIES (once per session each)
+  // BETTER THAN HUMAN: More aggressive memory callbacks - this is what makes
+  // Ferni feel like a real friend who actually remembers your conversations.
   // ============================================================================
 
   // Quote callback (most impactful - do first)
-  if (!data.quoteSurfacedThisSession && turnCount >= 3) {
+  // ENHANCED: Start at turn 2 (was 3) and lower threshold from 25 to 15
+  // A human friend who remembers what you said is rare and precious
+  if (!data.quoteSurfacedThisSession && turnCount >= 2) {
     const relevantQuote = findRelevantQuote({
       userId,
       currentTopic: currentTopics[0],
@@ -247,7 +255,9 @@ async function buildConversationalSuperpowers(
       turnCount,
     });
 
-    if (relevantQuote && relevantQuote.relevanceScore > 25) {
+    // BETTER THAN HUMAN: Lowered threshold from 25 to 15 for more frequent callbacks
+    // Users consistently report quote callbacks as the most impactful feature
+    if (relevantQuote && relevantQuote.relevanceScore > 15) {
       injections.push(
         createHintInjection('conversational_quote_callback', formatQuoteForPrompt(relevantQuote), {
           category: 'superhuman',
@@ -255,7 +265,39 @@ async function buildConversationalSuperpowers(
       );
       markQuoteSurfaced(userId, relevantQuote.quote.id);
       data.quoteSurfacedThisSession = true;
-      log.info({ userId, quoteId: relevantQuote.quote.id }, '💬 Quote callback surfaced');
+      log.info(
+        { userId, quoteId: relevantQuote.quote.id, score: relevantQuote.relevanceScore },
+        '💬 BETTER THAN HUMAN: Quote callback surfaced - "Last time you said..."'
+      );
+    }
+  }
+
+  // BETTER THAN HUMAN: Session start continuation
+  // On the first turn of a returning user, reference something from last session
+  if (turnCount === 1 && relationshipStage !== 'stranger' && !data.sessionContinuationDone) {
+    const continuationQuote = findRelevantQuote({
+      userId,
+      currentTopic: undefined, // Any topic
+      currentEmotion: 'neutral',
+      relationshipStage,
+      turnCount: 1,
+    });
+
+    if (continuationQuote && continuationQuote.relevanceScore > 10) {
+      injections.push(
+        createHintInjection(
+          'session_continuation',
+          `[SESSION CONTINUATION - BETTER THAN HUMAN]
+You remember from a previous conversation: "${continuationQuote.quote.quote}"
+${continuationQuote.reason === 'long-term memory' ? 'This was from a while ago - showing you remember matters.' : ''}
+
+Consider naturally acknowledging this early in the conversation. This shows genuine care.
+Don't force it - only bring it up if it flows naturally from what they say.`,
+          { category: 'superhuman' }
+        )
+      );
+      data.sessionContinuationDone = true;
+      log.info({ userId }, '🔄 Session continuation available');
     }
   }
 

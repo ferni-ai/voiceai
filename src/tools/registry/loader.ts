@@ -496,6 +496,13 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/smart-home/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
+    // === WEBHOOKS DOMAIN (IFTTT, Zapier, Siri Shortcuts) ===
+    {
+      name: 'webhooks' as ToolDomain,
+      loader: async () =>
+        import('../domains/webhooks/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
     // === REFERRAL DOMAIN (Viral growth via voice calls) ===
     {
       name: 'referral' as ToolDomain,
@@ -595,6 +602,20 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'breakup-recovery' as ToolDomain,
       loader: async () =>
         import('../domains/breakup-recovery/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === SCHEDULING DOMAIN (Voice-accessible scheduling) ===
+    {
+      name: 'scheduling' as ToolDomain,
+      loader: async () =>
+        import('../domains/scheduling/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === CONCIERGE DOMAIN (AI-powered outreach) ===
+    {
+      name: 'concierge' as ToolDomain,
+      loader: async () =>
+        import('../domains/concierge/index.js').then(async (m) => m.getToolDefinitions()),
     },
   ];
 

@@ -577,10 +577,7 @@ const PRONOUNS: Record<string, EntityType[]> = {
 /**
  * Resolve pronouns in text to actual entities
  */
-export function resolvePronouns(
-  text: string,
-  context: DeepContext
-): Map<string, ResolutionResult> {
+export function resolvePronouns(text: string, context: DeepContext): Map<string, ResolutionResult> {
   const resolutions = new Map<string, ResolutionResult>();
   const lowerText = text.toLowerCase();
 
@@ -684,10 +681,7 @@ export function resolveForTool(
   for (const [pronoun, resolution] of resolutions) {
     if (resolution.resolved && resolution.entity) {
       // Check if entity type matches tool preferences
-      if (
-        preferredTypes.length === 0 ||
-        preferredTypes.includes(resolution.entity.type)
-      ) {
+      if (preferredTypes.length === 0 || preferredTypes.includes(resolution.entity.type)) {
         resolved[pronoun] = resolution.resolvedValue!;
       }
     }
@@ -844,4 +838,3 @@ export function cleanupOldContexts(maxAgeMs: number = 30 * 60 * 1000): number {
 
   return cleaned;
 }
-

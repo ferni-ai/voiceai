@@ -58,12 +58,7 @@ export const makeCallTool: SemanticToolDefinition = {
     'I need to call my dentist',
   ],
 
-  counterExamples: [
-    'Set up a Zoom call',
-    'Text mom',
-    'Send a message',
-    'Video call',
-  ],
+  counterExamples: ['Set up a Zoom call', 'Text mom', 'Send a message', 'Video call'],
 
   arguments: [
     {
@@ -81,10 +76,7 @@ export const makeCallTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Phone number if provided',
       required: false,
-      extractionPatterns: [
-        /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/,
-        /(\+\d{1,3}\s?\d{10,})/,
-      ],
+      extractionPatterns: [/(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/, /(\+\d{1,3}\s?\d{10,})/],
     },
   ],
 
@@ -151,11 +143,7 @@ export const requestCallbackTool: SemanticToolDefinition = {
     'Can they call me tomorrow?',
   ],
 
-  counterExamples: [
-    'Call the bank',
-    'I want to call them',
-    'Dial customer service',
-  ],
+  counterExamples: ['Call the bank', 'I want to call them', 'Dial customer service'],
 
   arguments: [
     {
@@ -241,11 +229,7 @@ export const voicemailTool: SemanticToolDefinition = {
     'Listen to voicemail from mom',
   ],
 
-  counterExamples: [
-    'Check my email',
-    'Read my texts',
-    'Send a message',
-  ],
+  counterExamples: ['Check my email', 'Read my texts', 'Send a message'],
 
   arguments: [
     {
@@ -260,9 +244,7 @@ export const voicemailTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Filter by sender',
       required: false,
-      extractionPatterns: [
-        /voicemail\s+(?:from|by)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/voicemail\s+(?:from|by)\s+(.+?)$/i],
     },
   ],
 

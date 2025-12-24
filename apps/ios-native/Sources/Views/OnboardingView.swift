@@ -1,6 +1,10 @@
 import SwiftUI
 import AVFoundation
 
+#if os(macOS)
+import AVKit
+#endif
+
 // MARK: - Onboarding View
 /// First-launch experience that introduces Ferni and requests microphone permission.
 
@@ -21,7 +25,9 @@ struct OnboardingView: View {
                     microphonePage.tag(1)
                     readyPage.tag(2)
                 }
+                #if os(iOS)
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                #endif
 
                 // Page indicator
                 HStack(spacing: 8) {
@@ -204,6 +210,7 @@ struct OnboardingView: View {
     }
 
     private func requestMicrophonePermission() {
+        #if os(iOS)
         AVAudioSession.sharedInstance().requestRecordPermission { granted in
             DispatchQueue.main.async {
                 micPermissionGranted = granted
@@ -212,6 +219,16 @@ struct OnboardingView: View {
                 }
             }
         }
+        #elseif os(macOS)
+        AVCaptureDevice.requestAccess(for: .audio) { granted in
+            DispatchQueue.main.async {
+                micPermissionGranted = granted
+                if granted {
+                    withAnimation { currentPage = 2 }
+                }
+            }
+        }
+        #endif
     }
 
     private func completeOnboarding() {

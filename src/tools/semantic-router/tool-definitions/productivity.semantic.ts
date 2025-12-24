@@ -54,17 +54,13 @@ export const taskManagementTool: SemanticToolDefinition = {
   examples: [
     'Add a task to call mom',
     'Show my to-do list',
-    "What do I need to do today?",
-    "Remind me to buy milk",
+    'What do I need to do today?',
+    'Remind me to buy milk',
     'Create a task for the project',
     "What's on my task list?",
   ],
 
-  counterExamples: [
-    'Grocery list',
-    'Add to playlist',
-    'Shopping list',
-  ],
+  counterExamples: ['Grocery list', 'Add to playlist', 'Shopping list'],
 
   arguments: [
     {
@@ -151,10 +147,7 @@ export const notesTool: SemanticToolDefinition = {
     'Note: call dentist tomorrow',
   ],
 
-  counterExamples: [
-    'Play a music note',
-    'High note in the song',
-  ],
+  counterExamples: ['Play a music note', 'High note in the song'],
 
   arguments: [
     {
@@ -244,10 +237,7 @@ export const focusTool: SemanticToolDefinition = {
     'Start a pomodoro',
   ],
 
-  counterExamples: [
-    'Camera focus',
-    'Focus group results',
-  ],
+  counterExamples: ['Camera focus', 'Focus group results'],
 
   arguments: [
     {
@@ -255,9 +245,7 @@ export const focusTool: SemanticToolDefinition = {
       type: 'number',
       description: 'Focus session duration in minutes',
       required: false,
-      extractionPatterns: [
-        /(?:for\s+)?(\d+)\s*(?:min|minutes)/i,
-      ],
+      extractionPatterns: [/(?:for\s+)?(\d+)\s*(?:min|minutes)/i],
     },
     {
       name: 'method',
@@ -331,14 +319,11 @@ export const timeManagementTool: SemanticToolDefinition = {
     'I have too much to do',
     'How do I prioritize?',
     'Plan my day',
-    "What should I tackle first?",
+    'What should I tackle first?',
     "I'm overwhelmed with tasks",
   ],
 
-  counterExamples: [
-    'Schedule a meeting',
-    'Add to calendar',
-  ],
+  counterExamples: ['Schedule a meeting', 'Add to calendar'],
 
   arguments: [
     {
@@ -347,9 +332,7 @@ export const timeManagementTool: SemanticToolDefinition = {
       description: 'Time period to plan',
       required: false,
       enumValues: ['today', 'this_week', 'general'],
-      extractionPatterns: [
-        /plan\s+(?:my\s+)?(today|this\s+week|tomorrow)/i,
-      ],
+      extractionPatterns: [/plan\s+(?:my\s+)?(today|this\s+week|tomorrow)/i],
     },
   ],
 

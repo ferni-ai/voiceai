@@ -15,6 +15,7 @@ import type {
   CachedEmbedding,
   EmbeddingProvider,
 } from './types.js';
+import { getExampleText } from './types.js';
 
 const log = createLogger({ module: 'semantic-router:registry' });
 
@@ -190,7 +191,7 @@ class SemanticToolRegistry {
           toolId,
           type: 'example',
           index: i,
-          text: registered.definition.examples[i],
+          text: getExampleText(registered.definition.examples[i]),
         });
       }
     });

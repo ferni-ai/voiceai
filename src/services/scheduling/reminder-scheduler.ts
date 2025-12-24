@@ -14,6 +14,7 @@ import { getFirestoreStore, type FirestoreStore } from '../../memory/firestore-s
 import { InMemoryStore } from '../../memory/in-memory-store.js';
 import type { MemoryStore } from '../../memory/store.js';
 import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
+import { recordOutcome } from '../contacts/optimal-timing.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -40,6 +41,14 @@ export interface ScheduledReminder {
   // Delivery
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string; // Phone or email
+
+  // Contact tracking (for ML timing learning)
+  /** If this reminder is about reaching out to a contact, track their ID */
+  contactId?: string;
+  /** Name of the contact for display purposes */
+  contactName?: string;
+  /** Whether this is a direct message TO the contact (vs. reminder to self about contact) */
+  isDirectToContact?: boolean;
 
   // Status
   status: 'pending' | 'delivered' | 'failed' | 'cancelled';
@@ -110,6 +119,10 @@ export async function createReminder(params: {
   deliveryAddress: string;
   createdBy?: string;
   personaId?: string;
+  // Contact tracking for ML timing
+  contactId?: string;
+  contactName?: string;
+  isDirectToContact?: boolean;
 }): Promise<ScheduledReminder> {
   const reminder: ScheduledReminder = {
     id: `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -121,6 +134,10 @@ export async function createReminder(params: {
     timezone: params.timezone || 'America/New_York',
     deliveryMethod: params.deliveryMethod,
     deliveryAddress: params.deliveryAddress,
+    // Contact tracking for ML
+    contactId: params.contactId,
+    contactName: params.contactName,
+    isDirectToContact: params.isDirectToContact,
     status: 'pending',
     attempts: 0,
     createdAt: new Date(),
@@ -408,6 +425,34 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
 
     updateReminderStatus(reminder.id, 'delivered');
     getLogger().info({ reminderId: reminder.id }, '✅ Reminder delivered');
+
+    // Record outcome for ML timing learning (if this reminder is about a contact)
+    if (reminder.contactId && reminder.isDirectToContact) {
+      try {
+        const channel =
+          reminder.deliveryMethod === 'sms' || reminder.deliveryMethod === 'voice_message'
+            ? 'sms'
+            : reminder.deliveryMethod === 'email'
+              ? 'email'
+              : 'voice';
+
+        await recordOutcome(reminder.userId, {
+          contactId: reminder.contactId,
+          sentAt: new Date(),
+          channel,
+          gotResponse: false, // Will be updated when/if they respond
+        });
+
+        getLogger().debug(
+          { contactId: reminder.contactId, channel },
+          '📊 Recorded outcome for timing ML'
+        );
+      } catch (error) {
+        // Don't fail delivery if ML tracking fails
+        getLogger().warn({ error: String(error) }, 'Failed to record timing outcome');
+      }
+    }
+
     return true;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

@@ -57,8 +57,27 @@ import {
   // Feedback store
   getUserVocabulary,
   calibrateConfidence,
+  // NER engine
+  initializeNER,
+  extractNEREntities,
+  // Streaming router
+  initializeStreamingRouter,
+  getStreamingRouter,
+  type StreamingSignal,
   type LearningContext,
   type LearningOutcome,
+  // Better Than Human
+  analyzeVoiceProsodyForToolBoost,
+  generateRoutingExplanation,
+  recordEmotionalDataPoint,
+  analyzeEmotionalArc,
+  analyzeSpeakingPace,
+  getToolBoostFromPace,
+  performBetterThanHumanAnalysis,
+  type VoiceProsodySignals,
+  type SpeakingPaceAnalysis,
+  type RoutingExplanation,
+  type BetterThanHumanAnalysis,
 } from './advanced/index.js';
 
 const log = createLogger({ module: 'semantic-router:voice' });
@@ -75,6 +94,24 @@ export interface VoiceRouterContext {
   recentTools: string[];
   /** Override locale (auto-detected if not provided) */
   locale?: string;
+
+  // ============================================================================
+  // BETTER THAN HUMAN: Voice Prosody Signals
+  // ============================================================================
+
+  /** Voice prosody signals from audio analysis */
+  voiceProsody?: Partial<VoiceProsodySignals>;
+
+  /** Speaking pace (words per minute) */
+  wordsPerMinute?: number;
+
+  /** Detected emotion from text/voice */
+  detectedEmotion?: {
+    emotion: string;
+    intensity: number;
+    valence: number;
+    source: 'voice' | 'text' | 'inferred';
+  };
 }
 
 export interface VoiceRouterResult {
@@ -115,6 +152,42 @@ export interface VoiceRouterResult {
     resolvedPronouns: Record<string, string>;
     currentTopic: string | null;
     entityCount: number;
+  };
+
+  // ============================================================================
+  // BETTER THAN HUMAN: Intelligence Results
+  // ============================================================================
+
+  /** Voice prosody tool boost decision */
+  prosodyBoost?: {
+    boostedTools: string[];
+    suppressedTools: string[];
+    reason: string;
+    confidence: number;
+  };
+
+  /** Speaking pace analysis */
+  paceAnalysis?: SpeakingPaceAnalysis;
+
+  /** Routing explanation (transparency) */
+  routingExplanation?: RoutingExplanation;
+
+  /** User-friendly spoken explanation */
+  spokenExplanation?: string;
+
+  /** Emotional arc summary */
+  emotionalArc?: {
+    dominantEmotion: string;
+    trend: 'improving' | 'declining' | 'stable';
+    needsAttention: boolean;
+  };
+
+  /** Proactive intervention suggestion */
+  suggestedIntervention?: {
+    type: string;
+    message: string;
+    tool: string;
+    urgency: string;
   };
 }
 
@@ -184,6 +257,22 @@ export async function initializeVoiceRouter(): Promise<void> {
     log.warn({ error: String(embedError) }, 'Multilingual embeddings failed (non-fatal)');
   }
 
+  // Initialize NER engine (compromise.js)
+  try {
+    await initializeNER();
+    log.info('🔍 NER engine initialized');
+  } catch (nerError) {
+    log.warn({ error: String(nerError) }, 'NER engine failed (non-fatal, using regex fallback)');
+  }
+
+  // Initialize streaming router
+  try {
+    initializeStreamingRouter(allToolDefinitions as SemanticToolDefinition[]);
+    log.info('⚡ Streaming router initialized');
+  } catch (streamError) {
+    log.warn({ error: String(streamError) }, 'Streaming router failed (non-fatal)');
+  }
+
   // eslint-disable-next-line require-atomic-updates
   initialized = true;
   const duration = performance.now() - startTime;
@@ -228,7 +317,10 @@ export async function routeVoiceInput(
     try {
       detectedLocale = await autoDetectAndLoadLocale(inputText);
       if (detectedLocale !== 'en') {
-        log.debug({ detectedLocale, inputText: inputText.substring(0, 50) }, 'Language auto-detected');
+        log.debug(
+          { detectedLocale, inputText: inputText.substring(0, 50) },
+          'Language auto-detected'
+        );
       }
     } catch {
       // Fall back to English on error
@@ -263,6 +355,83 @@ export async function routeVoiceInput(
     );
   }
 
+  // ============================================================================
+  // BETTER THAN HUMAN: Prosody Analysis & Emotional Intelligence
+  // ============================================================================
+
+  // Perform "Better Than Human" analysis (prosody + pace + emotional arc)
+  let betterThanHumanAnalysis: BetterThanHumanAnalysis | undefined;
+  let prosodyBoost: VoiceRouterResult['prosodyBoost'];
+  let paceAnalysis: VoiceRouterResult['paceAnalysis'];
+  let emotionalArc: VoiceRouterResult['emotionalArc'];
+  let suggestedIntervention: VoiceRouterResult['suggestedIntervention'];
+
+  if (context.voiceProsody || context.wordsPerMinute) {
+    // Full prosody analysis
+    const prosodySignals: VoiceProsodySignals = {
+      stressLevel: context.voiceProsody?.stressLevel ?? 0,
+      arousal: context.voiceProsody?.arousal ?? 0.5,
+      valence: context.voiceProsody?.valence ?? 0,
+      wordsPerMinute: context.wordsPerMinute,
+      anxietyMarkers: context.voiceProsody?.anxietyMarkers,
+      voiceTremor: context.voiceProsody?.voiceTremor,
+      breathingPattern: context.voiceProsody?.breathingPattern,
+    };
+
+    betterThanHumanAnalysis = performBetterThanHumanAnalysis(
+      context.userId,
+      prosodySignals,
+      context.wordsPerMinute
+    );
+
+    // Extract components for response
+    prosodyBoost = {
+      boostedTools: betterThanHumanAnalysis.toolBoost.boostedTools,
+      suppressedTools: betterThanHumanAnalysis.toolBoost.suppressedTools,
+      reason: betterThanHumanAnalysis.toolBoost.reason,
+      confidence: betterThanHumanAnalysis.toolBoost.confidence,
+    };
+
+    paceAnalysis = betterThanHumanAnalysis.paceAnalysis;
+
+    if (betterThanHumanAnalysis.recentEmotionalState) {
+      emotionalArc = {
+        dominantEmotion: betterThanHumanAnalysis.recentEmotionalState.dominantEmotion,
+        trend: betterThanHumanAnalysis.recentEmotionalState.trend as
+          | 'improving'
+          | 'declining'
+          | 'stable',
+        needsAttention: betterThanHumanAnalysis.recentEmotionalState.needsAttention,
+      };
+    }
+
+    if (betterThanHumanAnalysis.suggestedIntervention) {
+      suggestedIntervention = betterThanHumanAnalysis.suggestedIntervention;
+    }
+
+    log.debug(
+      {
+        boostedTools: prosodyBoost.boostedTools.slice(0, 3),
+        pace: paceAnalysis?.pace,
+        emotionalTrend: emotionalArc?.trend,
+        hasIntervention: !!suggestedIntervention,
+      },
+      '🧠 Better Than Human analysis complete'
+    );
+  }
+
+  // Record emotional data point if detected
+  if (context.detectedEmotion) {
+    recordEmotionalDataPoint(
+      context.userId,
+      context.detectedEmotion.emotion,
+      context.detectedEmotion.intensity,
+      context.detectedEmotion.valence,
+      context.detectedEmotion.source,
+      inputText.substring(0, 100) // Context snippet
+    );
+  }
+
   // Quick check - does this even look like a tool request?
   if (!mightNeedTool(inputText)) {
     // Still route for logging/analytics, but expect conversation result
@@ -274,6 +443,11 @@ export async function routeVoiceInput(
       processingTimeMs: performance.now() - startTime,
       detectedLocale,
       toolChain,
+      // Better Than Human results (even for non-tool requests)
+      prosodyBoost,
+      paceAnalysis,
+      emotionalArc,
+      suggestedIntervention,
     };
   }
 
@@ -305,9 +479,7 @@ export async function routeVoiceInput(
 
   // Apply calibration to confidence
   if (routingResult.matches.length > 0) {
-    routingResult.matches[0].confidence = calibrateConfidence(
-      routingResult.matches[0].confidence
-    );
+    routingResult.matches[0].confidence = calibrateConfidence(routingResult.matches[0].confidence);
   }
 
   // Get context enhancements (pronoun resolution, topic)
@@ -368,6 +540,34 @@ export async function routeVoiceInput(
         wasSuccess: toolResult.success,
       }).catch((err) => log.warn({ error: String(err) }, 'Failed to record outcome'));
 
+      // Generate routing explanation (transparency)
+      // Parse match reason string for explanation factors
+      const matchReason = routingResult.matches[0]?.matchReason || '';
+      const matchedPhrases = matchReason.includes('Pattern:')
+        ? [matchReason.split('Pattern: ')[1]?.split(';')[0]?.replace(/"/g, '')]
+        : undefined;
+      const matchedKeywords = matchReason.includes('Keywords:')
+        ? matchReason.split('Keywords: ')[1]?.split(';')[0]?.split(', ')
+        : undefined;
+
+      const routingExplanation = generateRoutingExplanation(
+        action.toolId,
+        action.confidence,
+        {
+          matchedPhrases: matchedPhrases?.filter(Boolean),
+          matchedKeywords: matchedKeywords?.filter(Boolean),
+          entityMatches: contextEnhancements
+            ? Object.entries(contextEnhancements.resolvedPronouns).map(([k, v]) => ({
+                type: k,
+                value: v,
+              }))
+            : undefined,
+          userVocabulary: !!enhancement.userVocabularyMatch,
+          emotionBoost: prosodyBoost && prosodyBoost.boostedTools.includes(action.toolId),
+        },
+        routingResult.matches.slice(1).map((m) => ({ toolId: m.toolId, confidence: m.confidence }))
+      );
+
       return {
         bypassLLM: true,
         toolResult,
@@ -377,6 +577,13 @@ export async function routeVoiceInput(
         toolChain,
         userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
+        // Better Than Human results
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
+        routingExplanation,
+        spokenExplanation: routingExplanation.userFriendlyExplanation,
       };
     }
 
@@ -391,6 +598,10 @@ export async function routeVoiceInput(
         toolChain,
         userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
       };
     }
 
@@ -405,6 +616,10 @@ export async function routeVoiceInput(
         toolChain,
         userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
       };
     }
 
@@ -419,6 +634,10 @@ export async function routeVoiceInput(
         toolChain,
         userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
       };
     }
 
@@ -433,6 +652,10 @@ export async function routeVoiceInput(
         toolChain,
         userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
       };
     }
 
@@ -446,6 +669,11 @@ export async function routeVoiceInput(
         detectedLocale,
         toolChain,
         contextEnhancements,
+        // Better Than Human results (even for conversations)
+        prosodyBoost,
+        paceAnalysis,
+        emotionalArc,
+        suggestedIntervention,
       };
   }
 }
@@ -656,3 +884,72 @@ export async function recordToolSuccess(
  * Use this for debugging or advanced features that need context awareness.
  */
 export { getDeepContext, clearDeepContext as clearSessionContext } from './advanced/index.js';
+
+// ============================================================================
+// STREAMING ROUTING (Route as user speaks)
+// ============================================================================
+
+/**
+ * Process a partial transcript (streaming mode)
+ *
+ * Call this as the user speaks to get early routing signals.
+ * Returns a signal if confidence crosses a threshold.
+ */
+export async function processPartialTranscript(
+  sessionId: string,
+  partialTranscript: string
+): Promise<StreamingSignal | null> {
+  const streamingRouter = getStreamingRouter();
+  return streamingRouter.processPartial(sessionId, partialTranscript);
+}
+
+/**
+ * Subscribe to streaming signals for a session
+ *
+ * Callback is called whenever a routing signal is emitted.
+ * Signals: 'likely' (0.4), 'probable' (0.6), 'certain' (0.85)
+ */
+export function onStreamingSignal(
+  sessionId: string,
+  callback: (signal: StreamingSignal) => void
+): () => void {
+  const streamingRouter = getStreamingRouter();
+  return streamingRouter.onSignal(sessionId, callback);
+}
+
+/**
+ * Start a streaming session
+ */
+export function startStreamingSession(sessionId: string): void {
+  const streamingRouter = getStreamingRouter();
+  streamingRouter.startSession(sessionId);
+}
+
+/**
+ * End a streaming session and get final state
+ */
+export function endStreamingSession(sessionId: string): {
+  signalsEmitted: number;
+  finalToolId: string | null;
+  finalConfidence: number;
+} {
+  const streamingRouter = getStreamingRouter();
+  const state = streamingRouter.endSession(sessionId);
+
+  return {
+    signalsEmitted: state?.emittedSignals.length ?? 0,
+    finalToolId: state?.currentBest.toolId ?? null,
+    finalConfidence: state?.currentBest.confidence ?? 0,
+  };
+}
+
+// ============================================================================
+// NER (Named Entity Recognition)
+// ============================================================================
+
+/**
+ * Extract entities from text using real NER (compromise.js)
+ */
+export { extractNEREntities } from './advanced/index.js';
+
+export type { StreamingSignal };

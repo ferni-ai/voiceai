@@ -60,11 +60,7 @@ export const datingAdviceTool: SemanticToolDefinition = {
     'Help me with the dating scene',
   ],
 
-  counterExamples: [
-    'Going through a breakup',
-    'My ex',
-    'Relationship problems with my partner',
-  ],
+  counterExamples: ['Going through a breakup', 'My ex', 'Relationship problems with my partner'],
 
   arguments: [
     {
@@ -146,10 +142,7 @@ export const datingAppsTool: SemanticToolDefinition = {
     'Why am I not getting likes?',
   ],
 
-  counterExamples: [
-    'Delete my dating app',
-    'I quit dating apps',
-  ],
+  counterExamples: ['Delete my dating app', 'I quit dating apps'],
 
   arguments: [
     {
@@ -158,9 +151,7 @@ export const datingAppsTool: SemanticToolDefinition = {
       description: 'Which dating app',
       required: false,
       enumValues: ['tinder', 'hinge', 'bumble', 'other'],
-      extractionPatterns: [
-        /(tinder|hinge|bumble|okcupid|match)/i,
-      ],
+      extractionPatterns: [/(tinder|hinge|bumble|okcupid|match)/i],
     },
     {
       name: 'issue',
@@ -237,10 +228,7 @@ export const firstDateTool: SemanticToolDefinition = {
     'What to wear on a first date',
   ],
 
-  counterExamples: [
-    'Anniversary date night',
-    "Date with my spouse of 10 years",
-  ],
+  counterExamples: ['Anniversary date night', 'Date with my spouse of 10 years'],
 
   arguments: [
     {
@@ -255,9 +243,7 @@ export const firstDateTool: SemanticToolDefinition = {
       type: 'string',
       description: 'When the date is',
       required: false,
-      extractionPatterns: [
-        /date\s+(tonight|tomorrow|this\s+(?:week|weekend))/i,
-      ],
+      extractionPatterns: [/date\s+(tonight|tomorrow|this\s+(?:week|weekend))/i],
     },
   ],
 
@@ -330,10 +316,7 @@ export const breakupRecoveryTool: SemanticToolDefinition = {
     'Got dumped yesterday',
   ],
 
-  counterExamples: [
-    'Break up a fight',
-    'Company breakup',
-  ],
+  counterExamples: ['Break up a fight', 'Company breakup'],
 
   arguments: [
     {
@@ -342,9 +325,7 @@ export const breakupRecoveryTool: SemanticToolDefinition = {
       description: 'How recent the breakup was',
       required: false,
       enumValues: ['just_happened', 'recent', 'months_ago', 'long_ago'],
-      extractionPatterns: [
-        /(?:broke\s+up|dumped)\s+(today|yesterday|last\s+week|last\s+month)/i,
-      ],
+      extractionPatterns: [/(?:broke\s+up|dumped)\s+(today|yesterday|last\s+week|last\s+month)/i],
     },
     {
       name: 'concern',

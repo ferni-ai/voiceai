@@ -25,6 +25,13 @@
 import 'dotenv/config';
 
 // ============================================================================
+// GLOBAL ERROR HANDLERS (Must be first - prevents process crashes)
+// ============================================================================
+
+import { registerGlobalErrorHandlers } from '../utils/safe-fire-and-forget.js';
+registerGlobalErrorHandlers();
+
+// ============================================================================
 // STARTUP LOGGING
 // ============================================================================
 

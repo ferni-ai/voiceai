@@ -12,6 +12,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition } from '../types.js';
+import { getKeywordWord, normalizeKeyword } from '../types.js';
 
 const log = createLogger({ module: 'SemanticRouter.i18n' });
 
@@ -227,9 +228,10 @@ export async function mergeLocaleIntoTools(
     // Merge phrases and keywords (additive)
     const mergedPhrases = [...new Set([...existingPhrases, ...trigger.phrases])];
 
-    const mergedKeywords = [...existingKeywords];
+    // Normalize existing keywords to weighted format for consistent comparison
+    const mergedKeywords = existingKeywords.map(normalizeKeyword);
     for (const kw of trigger.keywords) {
-      if (!mergedKeywords.some((k) => k.word === kw.word)) {
+      if (!mergedKeywords.some((k) => getKeywordWord(k) === kw.word)) {
         mergedKeywords.push(kw);
       }
     }

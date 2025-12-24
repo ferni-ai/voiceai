@@ -101,10 +101,14 @@ export function dispatchUserSpeechEnd(): void {
 /**
  * Dispatch user speech pause event
  * Called when a pause is detected during speech
+ *
+ * BETTER THAN HUMAN: Lowered threshold from 200ms to 150ms to catch
+ * more natural breath pauses and enable more frequent micro-feedback.
  */
 export function dispatchUserSpeechPause(duration: number): void {
-  // Only dispatch meaningful pauses (200ms - 5000ms)
-  if (duration < 200 || duration > 5000) return;
+  // Only dispatch meaningful pauses (150ms - 5000ms)
+  // Lowered from 200ms to catch more natural pauses
+  if (duration < 150 || duration > 5000) return;
   
   // Track for breath sync
   state.pausePatterns.push(duration);
@@ -222,9 +226,10 @@ export function updateFromVoiceMetrics(metrics: {
   // Detect pauses during speech (when silence duration indicates a pause)
   // This catches brief pauses where isSpeaking might still be true
   // but silence duration is increasing
+  // BETTER THAN HUMAN: Lowered from 300ms to 200ms for more responsive nodding
   if (state.pauseStartTime > 0 && metrics.isSpeaking) {
     const pauseDuration = Date.now() - state.pauseStartTime;
-    if (pauseDuration >= 300 && pauseDuration < 5000) {
+    if (pauseDuration >= 200 && pauseDuration < 5000) {
       dispatchUserSpeechPause(pauseDuration);
       state.pauseStartTime = 0; // Reset after dispatching
     }

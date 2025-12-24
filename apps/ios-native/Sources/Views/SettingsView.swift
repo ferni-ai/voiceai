@@ -6,14 +6,61 @@ import FerniShared
 
 struct SettingsView: View {
     @EnvironmentObject var session: IOSLiveKitSession
+    @EnvironmentObject var relationshipService: RelationshipArcService
     @Environment(\.dismiss) var dismiss
 
     @AppStorage("useCloudMode") private var useCloudMode = true
     @AppStorage("autoConnect") private var autoConnect = false
+    @State private var showJourney = false
 
     var body: some View {
         NavigationView {
             List {
+                // Our Journey Section (Relationship Progress)
+                Section {
+                    Button {
+                        showJourney = true
+                    } label: {
+                        HStack(spacing: 16) {
+                            // Stage icon with color
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hexString: relationshipService.currentStage.color).opacity(0.2))
+                                    .frame(width: 44, height: 44)
+
+                                Image(systemName: relationshipService.currentStage.iconName)
+                                    .font(.system(size: 18))
+                                    .foregroundColor(Color(hexString: relationshipService.currentStage.color))
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(relationshipService.currentStage.title)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+
+                                Text(relationshipService.stageSubtitle)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.3))
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("View relationship journey")
+                    .accessibilityValue("\(relationshipService.currentStage.title), \(relationshipService.metrics.totalCalls) conversations")
+                    .accessibilityHint("Double tap to see your journey with Ferni")
+                } header: {
+                    Text("Our Journey")
+                } footer: {
+                    Text("\(relationshipService.metrics.totalCalls) conversations • \(relationshipService.metrics.formattedDuration) together")
+                }
+
                 // Audio Section
                 Section {
                     Toggle("Auto-connect on launch", isOn: $autoConnect)
@@ -139,6 +186,23 @@ struct SettingsView: View {
                 }
             }
             #endif
+        }
+        .sheet(isPresented: $showJourney) {
+            NavigationView {
+                StageProgressView(relationshipService: relationshipService)
+                    .navigationTitle("Our Journey")
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showJourney = false
+                            }
+                        }
+                    }
+                    #endif
+            }
+            .preferredColorScheme(.dark)
         }
         .preferredColorScheme(.dark)
     }

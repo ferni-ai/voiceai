@@ -392,6 +392,12 @@ export async function recordOutcome(userId: string, outcome: OutreachOutcome): P
 
   await saveTimingProfile(profile);
 
+  // Track this outcome for potential response update later
+  // Only track if we haven't received a response yet (gotResponse: false)
+  if (!outcome.gotResponse) {
+    trackRecentOutcome(userId, outcome.contactId, outcome.sentAt, timeSlot, day);
+  }
+
   log.debug(
     {
       contactId: outcome.contactId,
@@ -441,6 +447,197 @@ function findBestDay(dayPrefs: Record<DayOfWeek, BetaParams>): DayOfWeek {
   }
 
   return best;
+}
+
+// ============================================================================
+// RESPONSE TRACKING - UPDATE AFTER RESPONSE RECEIVED
+// ============================================================================
+
+/**
+ * Track recent outcomes for potential response updates
+ * Key: `${userId}_${contactId}` → Array of recent outcomes with timestamps
+ */
+const recentOutcomes = new Map<
+  string,
+  Array<{ sentAt: Date; timeSlot: TimeSlot; day: DayOfWeek }>
+>();
+const MAX_RECENT_OUTCOMES = 10;
+const OUTCOME_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Store recent outcome for potential response update
+ */
+function trackRecentOutcome(
+  userId: string,
+  contactId: string,
+  sentAt: Date,
+  timeSlot: TimeSlot,
+  day: DayOfWeek
+): void {
+  const key = `${userId}_${contactId}`;
+  const outcomes = recentOutcomes.get(key) || [];
+
+  // Add new outcome
+  outcomes.unshift({ sentAt, timeSlot, day });
+
+  // Keep only recent outcomes
+  const now = Date.now();
+  const filtered = outcomes
+    .filter((o) => now - o.sentAt.getTime() < OUTCOME_EXPIRY_MS)
+    .slice(0, MAX_RECENT_OUTCOMES);
+
+  recentOutcomes.set(key, filtered);
+}
+
+/**
+ * Mark a contact as having responded - corrects the ML model
+ *
+ * When we initially send a message, we record gotResponse: false (beta +1).
+ * When they respond, we need to correct this:
+ * - Decrement beta (undo the failure)
+ * - Increment alpha (add the success)
+ *
+ * @param userId - The user ID
+ * @param contactId - The contact who responded
+ * @param responseTime - Time when response was received (optional, defaults to now)
+ */
+export async function markContactResponded(
+  userId: string,
+  contactId: string,
+  responseTime?: Date
+): Promise<{ updated: boolean; reason: string }> {
+  const key = `${userId}_${contactId}`;
+  const outcomes = recentOutcomes.get(key);
+
+  if (!outcomes || outcomes.length === 0) {
+    return { updated: false, reason: 'No recent outcomes found for this contact' };
+  }
+
+  // Find the most recent outcome that could be the one they're responding to
+  const now = responseTime || new Date();
+  const recentOutcome = outcomes.find(
+    (o) => now.getTime() - o.sentAt.getTime() < OUTCOME_EXPIRY_MS
+  );
+
+  if (!recentOutcome) {
+    return { updated: false, reason: 'No matching outcome within time window' };
+  }
+
+  // Load the profile
+  const profile = await getTimingProfile(userId, contactId);
+
+  // Correct the model: undo the failure, add a success
+  // beta -1 (undo failure from initial record)
+  // alpha +1 (add success for response)
+  const slot = recentOutcome.timeSlot;
+  const day = recentOutcome.day;
+
+  // Ensure we don't go below 1 (prior minimum)
+  if (profile.timeSlots[slot].beta > 1) {
+    profile.timeSlots[slot].beta -= 1;
+  }
+  profile.timeSlots[slot].alpha += 1;
+
+  if (profile.dayPreferences[day].beta > 1) {
+    profile.dayPreferences[day].beta -= 1;
+  }
+  profile.dayPreferences[day].alpha += 1;
+
+  // Update response count
+  profile.totalResponses += 1;
+  profile.lastUpdated = new Date();
+
+  // Update best time/day if we have enough data
+  if (profile.totalAttempts >= 5) {
+    profile.bestTimeSlot = findBestSlot(profile.timeSlots);
+    profile.bestDay = findBestDay(profile.dayPreferences);
+  }
+
+  await saveTimingProfile(profile);
+
+  // Remove the matched outcome so we don't double-count
+  const updatedOutcomes = outcomes.filter((o) => o !== recentOutcome);
+  recentOutcomes.set(key, updatedOutcomes);
+
+  log.info(
+    {
+      contactId,
+      timeSlot: slot,
+      day,
+      totalResponses: profile.totalResponses,
+      totalAttempts: profile.totalAttempts,
+    },
+    '✅ Contact response recorded - ML model updated'
+  );
+
+  return { updated: true, reason: `Updated timing model: ${slot} on ${day}` };
+}
+
+/**
+ * Look up a contact by their phone number
+ * Returns userId and contactId if found
+ */
+export async function findContactByPhone(
+  phone: string
+): Promise<{ userId: string; contactId: string; contactName: string } | null> {
+  // Normalize phone
+  const normalizedPhone = phone.replace(/[^\d+]/g, '');
+
+  const firestore = await getFirestore();
+  if (!firestore) return null;
+
+  try {
+    // Search across all users' contacts for this phone number
+    // Note: In production, consider a phone->contact index for efficiency
+    const usersSnapshot = await firestore.collection('bogle_users').limit(100).get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      const contactsSnapshot = await firestore
+        .collection('bogle_users')
+        .doc(userDoc.id)
+        .collection('contacts')
+        .where('phone', '==', normalizedPhone)
+        .limit(1)
+        .get();
+
+      if (!contactsSnapshot.empty) {
+        const contactDoc = contactsSnapshot.docs[0];
+        const data = contactDoc.data();
+        return {
+          userId: userDoc.id,
+          contactId: contactDoc.id,
+          contactName: data.name || 'Unknown',
+        };
+      }
+
+      // Also check with +1 prefix for US numbers
+      if (!normalizedPhone.startsWith('+1') && normalizedPhone.length === 10) {
+        const withPrefix = `+1${normalizedPhone}`;
+        const prefixSnapshot = await firestore
+          .collection('bogle_users')
+          .doc(userDoc.id)
+          .collection('contacts')
+          .where('phone', '==', withPrefix)
+          .limit(1)
+          .get();
+
+        if (!prefixSnapshot.empty) {
+          const contactDoc = prefixSnapshot.docs[0];
+          const data = contactDoc.data();
+          return {
+            userId: userDoc.id,
+            contactId: contactDoc.id,
+            contactName: data.name || 'Unknown',
+          };
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    log.warn({ error: String(error), phone }, 'Failed to look up contact by phone');
+    return null;
+  }
 }
 
 // ============================================================================
@@ -621,6 +818,8 @@ export async function groupByOptimalTime(
 export const optimalTiming = {
   getProfile: getTimingProfile,
   recordOutcome,
+  markContactResponded,
+  findContactByPhone,
   getRecommendation: getTimingRecommendation,
   getBatchRecommendations: getBatchTimingRecommendations,
   groupByOptimalTime,

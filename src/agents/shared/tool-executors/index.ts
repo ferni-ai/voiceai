@@ -24,6 +24,8 @@ import { memoryExecutor } from './memory-executor.js';
 import { calendarExecutor } from './calendar-executor.js';
 import { habitsExecutor } from './habits-executor.js';
 import { homeExecutor } from './home-executor.js';
+import { schedulingExecutor } from './scheduling-executor.js';
+import { conciergeExecutor } from './concierge-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -43,6 +45,8 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   calendarExecutor,
   habitsExecutor,
   homeExecutor,
+  schedulingExecutor,
+  conciergeExecutor,
   // TODO: Add more executors:
   // - handoffExecutor
   // - engagementExecutor
@@ -150,3 +154,5 @@ export { memoryExecutor } from './memory-executor.js';
 export { calendarExecutor } from './calendar-executor.js';
 export { habitsExecutor } from './habits-executor.js';
 export { homeExecutor } from './home-executor.js';
+export { schedulingExecutor } from './scheduling-executor.js';
+export { conciergeExecutor } from './concierge-executor.js';

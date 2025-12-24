@@ -4,6 +4,19 @@ This directory contains shared content that applies to ALL personas.
 
 ## Files
 
+### `safety-disclaimer.md`
+
+**Critical legal/safety guardrails for all personas.**
+
+This file establishes that Ferni personas:
+- Are **coaches**, not advisors
+- Offer **guidance**, not advice
+- Never provide medical, financial, or legal advice
+- Help users think through decisions, but users make their own choices
+- Know when to redirect to professional resources
+
+This file is **automatically loaded before all other content** to ensure consistent safety messaging.
+
 ### `function-calling-base.md`
 
 **Single source of truth for function calling rules and common tools.**
@@ -31,6 +44,8 @@ Voice output rules for Cartesia Sonic-3 TTS. Contains:
 ```
 prompt-loader.ts automatically assembles:
 ┌─────────────────────────────────────┐
+│  shared/safety-disclaimer.md       │  ← Legal/safety guardrails (FIRST)
+├─────────────────────────────────────┤
 │  shared/function-calling-base.md   │  ← Common rules + shared tools
 ├─────────────────────────────────────┤
 │  {persona}/function-calling-       │  ← Persona-specific tools

@@ -337,12 +337,25 @@ export async function setLocale(
     // Notify listeners first (for any cleanup/prep)
     localeChangeListeners.forEach((listener) => listener(locale));
 
-    // Reload page to re-render all UI with new translations
-    // This is the most reliable approach since 70+ components use t()
-    // and don't individually subscribe to locale changes
     if (reload) {
+      // Reload page to re-render all UI with new translations
+      // This is the most reliable approach since 70+ components use t()
+      // and don't individually subscribe to locale changes
       log.info(`Locale changed from ${previousLocale} to ${locale}, reloading page`);
       window.location.reload();
+    } else {
+      // No reload - dispatch DOM event for reactive UI components
+      // This enables voice-triggered language changes without disconnecting
+      log.info(`Locale changed from ${previousLocale} to ${locale} (no reload)`);
+      window.dispatchEvent(
+        new CustomEvent('ferni:locale-changed', {
+          detail: {
+            locale,
+            previousLocale,
+            direction: getDirection(),
+          },
+        })
+      );
     }
   }
 }

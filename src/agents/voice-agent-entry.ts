@@ -59,6 +59,11 @@ import { finops } from '../services/observability/finops.js';
 // Multi-agent system for natural persona handoffs
 // Each persona gets its own Gemini session + TTS voice
 import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './multi-agent/index.js';
+// Group conversations - Team Roundtables and Conference Calls
+import {
+  createGroupVoiceIntegration,
+  type GroupVoiceIntegration,
+} from './group-conversation/voice-integration.js';
 // FIX: Import handoffEvents to wire LLM-triggered handoffs to orchestrator
 import { handoffEvents } from '../tools/handoff/state.js';
 // FIX: Import retry counter cleanup for WeakMap session GC
@@ -1111,6 +1116,23 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // FIX: Verify the orchestrator has an active agent before proceeding
         // If start() failed silently, we should fall back to single-agent mode
         const activePersona = multiAgentResult.orchestrator.getCurrentPersonaId();
+
+        // Initialize group conversation integration for Team Roundtables and Conference Calls
+        let groupConversationIntegration: GroupVoiceIntegration | null = null;
+        if (ctx.room && participant) {
+          groupConversationIntegration = createGroupVoiceIntegration({
+            ctx,
+            room: ctx.room,
+            userParticipant: participant,
+            sessionId,
+            userId,
+            webhookBaseUrl: process.env.WEBHOOK_BASE_URL ?? 'https://api.ferni.ai',
+            // createRoundtableAgent will be provided when roundtable starts
+          });
+          process.stderr.write(
+            `[voice-agent-entry] 🎙️ Group conversation integration initialized\n`
+          );
+        }
         if (!activePersona) {
           throw new Error(
             'Multi-agent orchestrator has no active agent after initialization - falling back to single-agent'
@@ -1130,6 +1152,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
                 `[voice-agent-entry] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
               );
               const message = JSON.parse(rawMessage);
+
+              // Handle group conversation messages
+              if (message.type?.startsWith('group_') && groupConversationIntegration) {
+                await groupConversationIntegration.handleDataChannelMessage(message);
+                return; // Group messages are fully handled
+              }
 
               if (message.type === 'handoff_request') {
                 process.stderr.write(
@@ -1293,6 +1321,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
         // Cleanup
         handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+        if (groupConversationIntegration) {
+          await groupConversationIntegration.cleanup();
+          process.stderr.write(`[voice-agent-entry] 🎙️ Group conversation cleaned up\n`);
+        }
         await multiAgentResult.cleanup();
         process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
         return;

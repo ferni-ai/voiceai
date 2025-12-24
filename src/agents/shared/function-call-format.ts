@@ -12,6 +12,10 @@
  * See docs/architecture/FUNCTION-CALLING-SYSTEM.md for full documentation.
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'function-call-format' });
+
 // ============================================================================
 // FORMAT SPECIFICATION
 // ============================================================================
@@ -130,6 +134,18 @@ export const REGISTERED_TOOLS = [
   'manageMedication',
   'medicationSchedule',
 
+  // Voice Memos
+  'saveVoiceMemo',
+  'listVoiceMemos',
+  'recallVoiceMemo',
+  'deleteVoiceMemo',
+  'searchVoiceMemos',
+
+  // SMS / Text Messages
+  'readSMS',
+  'checkNewMessages',
+  'searchMessages',
+
   // Wellness
   'getCrisisResources',
   'groundingExercise',
@@ -178,6 +194,27 @@ export const REGISTERED_TOOLS = [
   // Utility
   'calculateTip',
   'wrapUpConversation',
+
+  // Scheduling (scheduled messages, calls, emails)
+  'scheduleMessage',
+  'scheduleText',
+  'scheduleCall',
+  'scheduleEmail',
+  'sendMessageNow',
+  'sendTextNow',
+  'listScheduled',
+  'getScheduled',
+  'cancelScheduled',
+  'saveContact',
+  'saveContactInfo',
+  'addContact',
+
+  // Concierge (AI-powered outreach)
+  'requestHotelQuotes',
+  'makeRestaurantReservation',
+  'scheduleHealthcareAppointment',
+  'getServiceQuotes',
+  'checkConciergeStatus',
 ] as const;
 
 export type RegisteredToolName = (typeof REGISTERED_TOOLS)[number];
@@ -246,7 +283,7 @@ export function parseAndValidateFunctionCall(text: string): FunctionCallFormat |
       const call = { fn, args };
       const error = validateFunctionCall(call);
       if (error) {
-        console.warn(`[function-call-format] Validation failed: ${error}`);
+        log.warn({ error }, 'Validation failed');
         return null;
       }
       return call;
@@ -261,7 +298,7 @@ export function parseAndValidateFunctionCall(text: string): FunctionCallFormat |
     const call = { fn, args };
     const error = validateFunctionCall(call);
     if (error) {
-      console.warn(`[function-call-format] Validation failed: ${error}`);
+      log.warn({ error }, 'Validation failed');
       return null;
     }
     return call;

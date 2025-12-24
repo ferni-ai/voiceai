@@ -186,6 +186,21 @@ export const ICON_LAYOUT_GRID = `<svg ${ICON_ATTRS}><rect width="7" height="7" x
 /** Sparkles / Avatar Soul */
 export const ICON_SPARKLES = `<svg ${ICON_ATTRS}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`;
 
+/** Routing / Git Branch */
+export const ICON_ROUTING = `<svg ${ICON_ATTRS}><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>`;
+
+/** Timer / Stopwatch */
+export const ICON_TIMER = `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+/** Learning / Graduate Cap */
+export const ICON_LEARNING = `<svg ${ICON_ATTRS}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`;
+
+/** Beaker / Flask */
+export const ICON_BEAKER = `<svg ${ICON_ATTRS}><path d="M4.5 3h15"/><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"/><path d="M6 14h12"/></svg>`;
+
+/** Wrench / Tool */
+export const ICON_WRENCH = `<svg ${ICON_ATTRS}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+
 // ============================================================================
 // ICON MAP (for dynamic lookup)
 // ============================================================================
@@ -244,6 +259,11 @@ export const ICONS = {
   'arrow-right': ICON_ARROW_RIGHT,
   handoff: ICON_HANDOFF,
   sparkles: ICON_SPARKLES,
+  routing: ICON_ROUTING,
+  timer: ICON_TIMER,
+  learning: ICON_LEARNING,
+  beaker: ICON_BEAKER,
+  wrench: ICON_WRENCH,
 } as const;
 
 export type IconName = keyof typeof ICONS;

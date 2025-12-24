@@ -60,11 +60,7 @@ export const budgetCheckTool: SemanticToolDefinition = {
     "What's my budget status?",
   ],
 
-  counterExamples: [
-    'Buy some stocks',
-    'How is the market?',
-    'Invest in crypto',
-  ],
+  counterExamples: ['Buy some stocks', 'How is the market?', 'Invest in crypto'],
 
   arguments: [
     {
@@ -73,9 +69,7 @@ export const budgetCheckTool: SemanticToolDefinition = {
       description: 'Time period for budget review',
       required: false,
       enumValues: ['today', 'this_week', 'this_month', 'last_month', 'this_year'],
-      extractionPatterns: [
-        /(today|this\s+week|this\s+month|last\s+month|this\s+year)/i,
-      ],
+      extractionPatterns: [/(today|this\s+week|this\s+month|last\s+month|this\s+year)/i],
     },
     {
       name: 'category',
@@ -157,10 +151,7 @@ export const billTrackingTool: SemanticToolDefinition = {
     'Track my subscription payments',
   ],
 
-  counterExamples: [
-    'Pay for dinner',
-    'What did I spend at the restaurant?',
-  ],
+  counterExamples: ['Pay for dinner', 'What did I spend at the restaurant?'],
 
   arguments: [
     {
@@ -252,10 +243,7 @@ export const calculatorTool: SemanticToolDefinition = {
     'Convert 50 dollars to euros',
   ],
 
-  counterExamples: [
-    'What time is it?',
-    'Calculate my horoscope',
-  ],
+  counterExamples: ['What time is it?', 'Calculate my horoscope'],
 
   arguments: [
     {
@@ -263,10 +251,7 @@ export const calculatorTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Math expression or question',
       required: false,
-      extractionPatterns: [
-        /calculate\s+(.+)/i,
-        /(?:what(?:'s| is))\s+(.+)/i,
-      ],
+      extractionPatterns: [/calculate\s+(.+)/i, /(?:what(?:'s| is))\s+(.+)/i],
     },
     {
       name: 'calculationType',
@@ -343,11 +328,7 @@ export const savingsGoalTool: SemanticToolDefinition = {
     'Add $100 to my savings',
   ],
 
-  counterExamples: [
-    'Check my budget',
-    'How much did I spend?',
-    'Invest in stocks',
-  ],
+  counterExamples: ['Check my budget', 'How much did I spend?', 'Invest in stocks'],
 
   arguments: [
     {

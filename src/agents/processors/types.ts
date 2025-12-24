@@ -244,6 +244,19 @@ export interface SemanticRoutingResult {
     confidence: number;
     matchPath: 'pattern' | 'keyword' | 'embedding' | 'combined' | 'none';
   };
+
+  /**
+   * Which routing path was taken - for observability.
+   * Helps understand whether semantic router handled the call or fell back to JSON workaround.
+   */
+  routingPath:
+    | 'semantic_auto_execute' // Semantic router auto-executed (LLM bypassed)
+    | 'semantic_hint' // Semantic router hinted to LLM
+    | 'semantic_confirm' // Semantic router requested confirmation
+    | 'semantic_conversation' // Semantic router determined no tool needed
+    | 'json_fallback' // Fell back to JSON workaround
+    | 'disabled' // Semantic routing disabled
+    | 'error'; // Routing error
 }
 
 /**

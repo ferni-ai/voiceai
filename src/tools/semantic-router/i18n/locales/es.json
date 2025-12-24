@@ -2,7 +2,7 @@
   "$schema": "./locale.schema.json",
   "$locale": "es",
   "$name": "Español",
-  
+
   "weather_current": {
     "phrases": [
       "qué tiempo hace",
@@ -229,16 +229,8 @@
   },
 
   "info_time": {
-    "phrases": [
-      "qué hora es",
-      "dime la hora",
-      "hora actual",
-      "tienes hora"
-    ],
-    "patterns": [
-      "^(?:qué|cuál\\s+es\\s+la)\\s+hora(?:\\s+es)?",
-      "^(?:dime|dame)\\s+la\\s+hora"
-    ],
+    "phrases": ["qué hora es", "dime la hora", "hora actual", "tienes hora"],
+    "patterns": ["^(?:qué|cuál\\s+es\\s+la)\\s+hora(?:\\s+es)?", "^(?:dime|dame)\\s+la\\s+hora"],
     "keywords": [
       { "word": "hora", "weight": 1.0 },
       { "word": "tiempo", "weight": 0.5 }
@@ -247,13 +239,7 @@
   },
 
   "handoff": {
-    "phrases": [
-      "pásame con",
-      "quiero hablar con",
-      "puedo hablar con",
-      "conéctame con",
-      "cambia a"
-    ],
+    "phrases": ["pásame con", "quiero hablar con", "puedo hablar con", "conéctame con", "cambia a"],
     "patterns": [
       "^(?:pásame|conéctame)\\s+(?:con)\\s+(.+)",
       "^(?:quiero|puedo)\\s+hablar\\s+con\\s+(.+)",
@@ -271,4 +257,3 @@
     "antiKeywords": []
   }
 }
-

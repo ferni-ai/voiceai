@@ -155,7 +155,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // CONTEXT - Situational awareness
   [BuilderCategory.CONTEXT]: [
-    'tool-capabilities', // CRITICAL: Injects prominent tool capabilities so LLM knows what it can do
+    'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
+    'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request
     'intent',
     'topics',
@@ -178,6 +179,9 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // EXTERNAL - External data sources
   [BuilderCategory.EXTERNAL]: [
     'biometrics',
+    'career-awareness', // Career sentiment tracking over time
+    'device-awareness', // Mobile/desktop context, headphones, motion
+    'linkedin-awareness', // LinkedIn career milestones and professional context
     'financial-prediction',
     'anticipation',
     'social-relationships',
@@ -191,6 +195,14 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // Legacy builders are DISABLED as context builders to avoid duplicate injections.
   // The files are kept because turn-processor.ts imports specific functions from them directly.
   [BuilderCategory.HUMANIZING]: [
+    // RELATIONSHIP ARC SYSTEM (Complete relationship development - Dec 2024)
+    // Full stranger→trusted_advisor journey with Firestore persistence
+    'first-meeting-magic', // Stage: Stranger (turns 0-3) - energy matching, vulnerability, noticing
+    'acquaintance-deepening', // Stage: Acquaintance (sessions 2-5) - callbacks, trust, patterns
+    'friendship-flowering', // Stage: Friend (sessions 6-15) - inside jokes, growth reflection
+    'trusted-advisor', // Stage: Trusted Advisor (15+) - life arc, values accountability
+    // REVELATION SYSTEM (Ensures capabilities feel human, not tracked)
+    'revelation-awareness', // Anti-surveillance, throttling, permission prompts
     'dynamic-speech-guidance', // LLM behavioral guidance (replaces static phrase pools)
     'unified-humanizing', // Single consolidated humanization orchestrator
     // 'humanizing',           // DISABLED: Consolidated into unified-humanizing

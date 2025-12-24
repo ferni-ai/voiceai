@@ -552,6 +552,14 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     shared_memory: 'casual', // Callback to shared experiences
     growth_reflection: 'emotional', // Reflecting on their journey
     personal_share: 'casual', // Sharing Ferni with a friend
+
+    // Onboarding triggers (first 14 days)
+    onboarding_welcome: 'casual', // Welcome and invitation
+    onboarding_nextday: 'casual', // Day 2 check-in
+    onboarding_topic_deepdive: 'casual', // Deeper exploration
+    onboarding_first_week: 'celebration', // First week reflection
+    onboarding_momentum: 'accountability', // Momentum/habit nudge
+    onboarding_two_week: 'celebration', // Two-week celebration
   };
 
   return mapping[triggerType] || 'casual';

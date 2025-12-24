@@ -21,6 +21,7 @@
  *   domains/life-planning/ - Goals, milestones
  *   domains/entertainment/ - Music, media
  *   domains/telephony/    - Phone calls, callbacks
+ *   domains/concierge/    - AI-powered outreach (hotels, restaurants, appointments, services)
  *
  *   === DEEP HUMAN ENGAGEMENT DOMAINS ===
  *   domains/relationships/ - Connection, conflict, nurturing relationships
@@ -103,6 +104,9 @@ export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/i
 
 // Cameo domain - team member pop-in interactions
 export { getToolDefinitions as getCameoToolDefinitions } from './cameo/index.js';
+
+// Group Conversation domain - team roundtables, conference calls
+export { getToolDefinitions as getGroupConversationToolDefinitions } from './group-conversation/index.js';
 
 // Behavior domain - modes, pacing, processing, presence (bidirectional behavior system)
 export { getToolDefinitions as getBehaviorToolDefinitions } from './behavior/index.js';
@@ -247,6 +251,12 @@ export { getToolDefinitions as getChronicConditionsToolDefinitions } from './chr
 // Midlife domain - navigating midlife transitions and meaning
 export { getToolDefinitions as getMidlifeToolDefinitions } from './midlife/index.js';
 
+// Scheduling domain - scheduled messages, calls, emails
+export { getToolDefinitions as getSchedulingToolDefinitions } from './scheduling/index.js';
+
+// Concierge domain - AI-powered outreach for hotels, restaurants, appointments, services
+export { getToolDefinitions as getConciergeToolDefinitions } from './concierge/index.js';
+
 // ============================================================================
 // PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS
 // ============================================================================
@@ -338,6 +348,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
     // Cameo domain - team member pop-ins
     import('./cameo/index.js').then(async (m) => m.getToolDefinitions()),
+    // Group Conversation domain - team roundtables, conference calls
+    import('./group-conversation/index.js').then(async (m) => m.getToolDefinitions()),
     // Deep human engagement domains
     import('./relationships/index.js').then(async (m) => m.getToolDefinitions()),
     import('./meaning/index.js').then(async (m) => m.getToolDefinitions()),
@@ -409,6 +421,10 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./podcasts/index.js').then(async (m) => m.getToolDefinitions()),
     import('./video/index.js').then(async (m) => m.getToolDefinitions()),
     import('./books/index.js').then(async (m) => m.getToolDefinitions()),
+    // Scheduling domain - scheduled messages, calls, emails
+    import('./scheduling/index.js').then(async (m) => m.getToolDefinitions()),
+    // Concierge domain - AI-powered outreach for hotels, restaurants, appointments
+    import('./concierge/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -873,6 +889,19 @@ export const DOMAIN_METADATA = {
     name: 'Books',
     description: 'Book discovery, reading lists, and progress tracking via Google Books',
     icon: '📖',
+    status: 'active',
+  },
+  scheduling: {
+    name: 'Scheduling',
+    description: 'Schedule text messages, phone calls, and emails for later delivery',
+    icon: '📲',
+    status: 'active',
+  },
+  concierge: {
+    name: 'AI Concierge',
+    description:
+      'AI-powered outreach: hotel quotes, restaurant reservations, healthcare appointments, service provider quotes',
+    icon: '🛎️',
     status: 'active',
   },
 } as const;

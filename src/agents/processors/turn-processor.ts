@@ -30,6 +30,13 @@ import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { updateUserContextForHandoff } from '../../tools/handoff/index.js';
+import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
+import {
+  publishPatternDetection,
+  publishPredictiveIntelligence,
+  publishKeyMoment,
+  publishOutreachExtraction,
+} from '../../services/intelligence-publisher.js';
 import type {
   BundleRuntimeContext,
   ContextInjection,
@@ -123,6 +130,9 @@ import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voi
 
 // Predictive Intelligence - Superhuman pattern prediction
 import { processForPredictiveIntelligence } from '../integrations/predictive-intelligence-integration.js';
+
+// Relationship Arc - "Better than Human" key moment detection
+import { detectAndRecordKeyMoment } from '../integrations/relationship-arc-integration.js';
 
 // Viral Growth - Natural referral prompts and conversation context
 import {
@@ -246,6 +256,14 @@ async function buildContextInjections(
     userProfile: services.userProfile,
     persona,
     bundleRuntime,
+    // Pass voice emotion with speechRate for relationship-arc builders
+    voiceEmotion: userData.voiceEmotion
+      ? {
+          emotion: userData.voiceEmotion.primary || 'neutral',
+          confidence: userData.voiceEmotion.confidence || 0.5,
+          speechRate: userData.voiceEmotion.prosody?.speechRate,
+        }
+      : undefined,
   };
 
   // 2a. SAFETY FIRST: Crisis Detection (extracted to injection-builders.ts)
@@ -963,18 +981,20 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         ? recentTranscripts.reduce((sum, t) => sum + t.length, 0) / recentTranscripts.length
         : 100;
 
-    // Fire-and-forget: Process trigger outcomes
-    void import('./trigger-outcome-handler.js').then(({ processTriggerOutcomes }) => {
-      processTriggerOutcomes(userData, {
-        sessionId: services.sessionId,
-        userResponse: userText,
-        averageResponseLength: avgLen,
-        previousTopic: userData.lastTopic,
-        currentTopic: analysisResult.currentTopic,
-      }).catch((e) =>
-        diag.debug('Trigger outcome processing failed (non-fatal)', { error: String(e) })
-      );
-    });
+    // Process trigger outcomes (safe fire-and-forget)
+    safeFireAndForget(
+      async () => {
+        const { processTriggerOutcomes } = await import('./trigger-outcome-handler.js');
+        await processTriggerOutcomes(userData, {
+          sessionId: services.sessionId,
+          userResponse: userText,
+          averageResponseLength: avgLen,
+          previousTopic: userData.lastTopic,
+          currentTopic: analysisResult.currentTopic,
+        });
+      },
+      { context: 'trigger-outcome-processing' }
+    );
   }
 
   // ============================================================================
@@ -992,18 +1012,15 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       pauseBeforeMs: userData?.pauseBeforeSpeakingMs,
     });
 
-    // Fire-and-forget: Process transcript for pattern detection (cross-session)
-    void processTranscriptForPatterns(
-      services.userId,
-      userText,
-      analysisResult.currentTopic || 'general',
-      analysisResult.analysis.emotion.primary
-    );
+    // Publish to intelligence worker: Pattern detection (cross-session)
+    publishPatternDetection(services.userId, services.sessionId, {
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+    });
 
-    // Fire-and-forget: Predictive Intelligence - feeds superhuman predictions system
-    void processForPredictiveIntelligence({
-      userId: services.userId,
-      sessionId: services.sessionId,
+    // Publish to intelligence worker: Predictive Intelligence
+    publishPredictiveIntelligence(services.userId, services.sessionId, {
       message: userText,
       topic: analysisResult.currentTopic || 'general',
       emotion: analysisResult.analysis.emotion.primary,
@@ -1015,6 +1032,15 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         userData?.conversationState?.getFlowContext?.()?.turnCount || userData?.turnCount || 0,
       sessionCount: services.userProfile?.totalConversations || 1,
       relationshipStage: services.userProfile?.relationshipStage,
+    });
+
+    // Publish to intelligence worker: Key Moment Detection
+    publishKeyMoment(services.userId, services.sessionId, {
+      personaId: ctx.persona?.id || 'ferni',
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+      emotionIntensity: analysisResult.analysis.emotion.intensity,
     });
   }
 
@@ -1034,21 +1060,25 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       content: text,
     }));
 
+    // Get recently used tools from conversation state for routing context
+    const toolExecData = userData?.conversationState?.getToolExecutionData?.();
+    const recentTools = toolExecData?.recentlyUsedTools || [];
+
     semanticRoutingPromise = startSemanticRouting(userText, {
       userId: services.userId || 'unknown',
       sessionId: services.sessionId,
       personaId: ctx.persona.id,
       conversationHistory,
-      recentTools: [], // TODO: Track recent tools in userData
+      recentTools,
     });
   }
 
   // Start independent async operations in parallel
   const easterEggPromise = checkEasterEggs(ctx, turnCtx);
 
-  // Fire-and-forget humanization processing (doesn't block turn)
-  void (async () => {
-    try {
+  // Humanization processing (safe fire-and-forget)
+  safeFireAndForget(
+    async () => {
       const { processUserMessage } =
         await import('../../conversation/humanization/voice-agent-integration.js');
       processUserMessage(services.sessionId, userText, {
@@ -1060,16 +1090,15 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           : undefined,
         topic: analysisResult.currentTopic,
       });
-    } catch {
-      // Non-fatal - don't log noise
-    }
-  })();
+    },
+    { context: 'humanization-processing' }
+  );
 
-  // Fire-and-forget Creative You topic recording (for content personalization)
+  // Creative You topic recording (safe fire-and-forget)
   const userIdForCreativeYou = services.userId;
   if (userIdForCreativeYou && analysisResult.analysis.topics?.detected?.length > 0) {
-    void (async () => {
-      try {
+    safeFireAndForget(
+      async () => {
         const { recordConversationTopics } =
           await import('../../services/creative-you/conversation-integration.js');
         recordConversationTopics(
@@ -1077,10 +1106,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           analysisResult.analysis.topics.detected,
           services.sessionId
         );
-      } catch {
-        // Non-fatal - Creative You topic recording is optional
-      }
-    })();
+      },
+      { context: 'creative-you-topics' }
+    );
   }
 
   // 4. Build emotional state (synchronous - depends on analysis)
@@ -1320,13 +1348,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 13. INTELLIGENT OUTREACH: Extract commitments, emotions, life events
   // This feeds the "Better Than Human" proactive outreach system
-  // Runs async to not block the response - outreach happens later anyway
+  // Publishes to intelligence worker for async processing
   const userId = services.userId;
   if (userId && userText.length > 10) {
-    // Fire and forget - don't await
-    extractOutreachContext(userId, userText).catch((outreachErr) => {
-      // Non-fatal - outreach extraction should never block conversation
-      diag.debug('Outreach extraction skipped', { error: String(outreachErr) });
+    publishOutreachExtraction(userId, services.sessionId, {
+      message: userText,
     });
   }
 
@@ -1362,12 +1388,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     currentTurnCount > 0 &&
     currentTurnCount % AUTO_SAVE_INTERVAL === 0
   ) {
-    // Fire and forget - don't block the response
-    services.saveProfile().catch((saveErr) => {
-      diag.warn('Periodic auto-save failed (non-fatal)', {
-        error: String(saveErr),
-        turnCount: currentTurnCount,
-      });
+    // Safe fire-and-forget profile save
+    safeFireAndForget(() => services.saveProfile!(), {
+      context: 'periodic-auto-save',
+      critical: true,
     });
     diag.debug('Periodic auto-save triggered', { turnCount: currentTurnCount });
   }

@@ -427,7 +427,8 @@ export async function runBenchmarkCLI(): Promise<void> {
 
   // Create a wrapper that matches the expected interface
   const routerWrapper = {
-    route: (input: string, context: unknown) => router.route(input, context as Parameters<typeof router.route>[1]),
+    route: (input: string, context: unknown) =>
+      router.route(input, context as Parameters<typeof router.route>[1]),
   };
 
   // Run benchmark
@@ -452,4 +453,3 @@ export async function runBenchmarkCLI(): Promise<void> {
   }
   console.log('\n' + '='.repeat(60));
 }
-

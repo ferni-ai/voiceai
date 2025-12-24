@@ -60,11 +60,7 @@ export const bookRecommendationTool: SemanticToolDefinition = {
     'I need a book recommendation',
   ],
 
-  counterExamples: [
-    'Find audiobooks',
-    'Read my book to me',
-    'Cookbook recommendations',
-  ],
+  counterExamples: ['Find audiobooks', 'Read my book to me', 'Cookbook recommendations'],
 
   arguments: [
     {
@@ -72,7 +68,16 @@ export const bookRecommendationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Book genre',
       required: false,
-      enumValues: ['fiction', 'nonfiction', 'self-help', 'biography', 'mystery', 'scifi', 'fantasy', 'business'],
+      enumValues: [
+        'fiction',
+        'nonfiction',
+        'self-help',
+        'biography',
+        'mystery',
+        'scifi',
+        'fantasy',
+        'business',
+      ],
       extractionPatterns: [
         /(fiction|nonfiction|non-fiction|self[- ]help|biography|mystery|sci-?fi|fantasy|business)\s+book/i,
       ],
@@ -154,11 +159,7 @@ export const podcastRecommendationTool: SemanticToolDefinition = {
     'Looking for a new podcast',
   ],
 
-  counterExamples: [
-    'Play music',
-    'Recommend a song',
-    'Make a playlist',
-  ],
+  counterExamples: ['Play music', 'Recommend a song', 'Make a playlist'],
 
   arguments: [
     {
@@ -166,16 +167,23 @@ export const podcastRecommendationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Podcast topic',
       required: false,
-      extractionPatterns: [
-        /podcast\s+(?:about|on)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/podcast\s+(?:about|on)\s+(.+?)$/i],
     },
     {
       name: 'category',
       type: 'string',
       description: 'Podcast category',
       required: false,
-      enumValues: ['business', 'tech', 'health', 'comedy', 'true_crime', 'news', 'education', 'self_improvement'],
+      enumValues: [
+        'business',
+        'tech',
+        'health',
+        'comedy',
+        'true_crime',
+        'news',
+        'education',
+        'self_improvement',
+      ],
       extractionPatterns: [
         /(business|tech|health|comedy|true\s*crime|news|education|self[- ]improvement)\s+podcast/i,
       ],
@@ -249,11 +257,7 @@ export const restaurantRecommendationTool: SemanticToolDefinition = {
     'Best sushi place?',
   ],
 
-  counterExamples: [
-    'What should I cook?',
-    'Give me a recipe',
-    'How do I make pasta?',
-  ],
+  counterExamples: ['What should I cook?', 'Give me a recipe', 'How do I make pasta?'],
 
   arguments: [
     {
@@ -271,9 +275,7 @@ export const restaurantRecommendationTool: SemanticToolDefinition = {
       description: 'Dining occasion',
       required: false,
       enumValues: ['date', 'family', 'business', 'casual', 'special'],
-      extractionPatterns: [
-        /(?:for\s+(?:a\s+)?)(date|family|business|casual|special\s+occasion)/i,
-      ],
+      extractionPatterns: [/(?:for\s+(?:a\s+)?)(date|family|business|casual|special\s+occasion)/i],
     },
   ],
 
@@ -344,10 +346,7 @@ export const giftRecommendationTool: SemanticToolDefinition = {
     'What do you get someone who has everything?',
   ],
 
-  counterExamples: [
-    'How do I wrap a gift?',
-    'Return a gift',
-  ],
+  counterExamples: ['How do I wrap a gift?', 'Return a gift'],
 
   arguments: [
     {
@@ -375,9 +374,7 @@ export const giftRecommendationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Budget range',
       required: false,
-      extractionPatterns: [
-        /(?:under|around|about)\s+\$?(\d+)/i,
-      ],
+      extractionPatterns: [/(?:under|around|about)\s+\$?(\d+)/i],
     },
   ],
 

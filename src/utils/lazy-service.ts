@@ -16,6 +16,10 @@
  *   - Better tree-shaking (dynamic imports are separate chunks)
  */
 
+import { createLogger } from './safe-logger.js';
+
+const log = createLogger({ module: 'lazy-service' });
+
 type ServiceLoader<T> = () => Promise<T>;
 
 interface LazyServiceOptions {
@@ -43,11 +47,11 @@ export function lazyService<T>(
   if (preloadDelay > 0) {
     setTimeout(() => {
       if (!cachedService && !loadingPromise) {
-        if (debug) console.log(`[lazy-service] Preloading ${name}...`);
+        if (debug) log.debug({ name }, 'Preloading service...');
         loadingPromise = loader().then((service) => {
           cachedService = service;
           loadingPromise = null;
-          if (debug) console.log(`[lazy-service] Preloaded ${name}`);
+          if (debug) log.debug({ name }, 'Preloaded service');
           return service;
         });
       }
@@ -66,7 +70,7 @@ export function lazyService<T>(
     }
 
     // Load the service
-    if (debug) console.log(`[lazy-service] Loading ${name}...`);
+    if (debug) log.debug({ name }, 'Loading service...');
     const startTime = Date.now();
 
     loadingPromise = loader().then((service) => {
@@ -74,7 +78,7 @@ export function lazyService<T>(
       loadingPromise = null;
       if (debug) {
         const duration = Date.now() - startTime;
-        console.log(`[lazy-service] Loaded ${name} in ${duration}ms`);
+        log.debug({ name, duration }, 'Loaded service');
       }
       return service;
     });

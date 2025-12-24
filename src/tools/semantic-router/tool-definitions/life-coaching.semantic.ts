@@ -62,11 +62,7 @@ export const burnoutTool: SemanticToolDefinition = {
     'Nothing left to give',
   ],
 
-  counterExamples: [
-    "I'm tired today",
-    'I need a nap',
-    'Physically exhausted from workout',
-  ],
+  counterExamples: ["I'm tired today", 'I need a nap', 'Physically exhausted from workout'],
 
   arguments: [
     {
@@ -82,9 +78,7 @@ export const burnoutTool: SemanticToolDefinition = {
       description: 'Source of burnout',
       required: false,
       enumValues: ['work', 'caregiving', 'life', 'parenting', 'multiple'],
-      extractionPatterns: [
-        /(?:from|because\s+of|due\s+to)\s+(work|caregiving|parenting|life)/i,
-      ],
+      extractionPatterns: [/(?:from|because\s+of|due\s+to)\s+(work|caregiving|parenting|life)/i],
     },
   ],
 
@@ -156,10 +150,7 @@ export const boundariesTool: SemanticToolDefinition = {
     'I do too much for others',
   ],
 
-  counterExamples: [
-    'Property boundaries',
-    'Country borders',
-  ],
+  counterExamples: ['Property boundaries', 'Country borders'],
 
   arguments: [
     {
@@ -168,9 +159,7 @@ export const boundariesTool: SemanticToolDefinition = {
       description: 'Where boundaries are needed',
       required: false,
       enumValues: ['work', 'family', 'friends', 'romantic', 'general'],
-      extractionPatterns: [
-        /boundaries\s+(?:with|at)\s+(work|family|friends|partner)/i,
-      ],
+      extractionPatterns: [/boundaries\s+(?:with|at)\s+(work|family|friends|partner)/i],
     },
   ],
 
@@ -243,10 +232,7 @@ export const angerTool: SemanticToolDefinition = {
     'I keep losing my temper',
   ],
 
-  counterExamples: [
-    "I'm a little annoyed",
-    'Mildly frustrated',
-  ],
+  counterExamples: ["I'm a little annoyed", 'Mildly frustrated'],
 
   arguments: [
     {
@@ -261,9 +247,7 @@ export const angerTool: SemanticToolDefinition = {
       type: 'string',
       description: 'What triggered the anger',
       required: false,
-      extractionPatterns: [
-        /(?:angry|furious|mad)\s+(?:at|about|because\s+of)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:angry|furious|mad)\s+(?:at|about|because\s+of)\s+(.+?)$/i],
     },
   ],
 
@@ -302,11 +286,11 @@ export const procrastinationTool: SemanticToolDefinition = {
     phrases: [
       "i'm procrastinating",
       "can't get started",
-      "keep putting it off",
-      "avoiding",
-      "been meaning to",
+      'keep putting it off',
+      'avoiding',
+      'been meaning to',
       "just can't start",
-      "stuck in avoidance",
+      'stuck in avoidance',
     ],
     patterns: [
       /^(?:i(?:'m| am)?|i(?:'ve| have)?\s+been)\s+(?:procrastinating|avoiding|putting\s+(?:it|things)\s+off)/i,
@@ -334,10 +318,7 @@ export const procrastinationTool: SemanticToolDefinition = {
     'Stuck in avoidance',
   ],
 
-  counterExamples: [
-    "I'm being productive",
-    'Got a lot done today',
-  ],
+  counterExamples: ["I'm being productive", 'Got a lot done today'],
 
   arguments: [
     {
@@ -376,7 +357,7 @@ export const procrastinationTool: SemanticToolDefinition = {
 // PERFECTIONISM
 // ============================================================================
 
-export const perfectionismTool: SemanticToolDefinition = {
+export const coachingPerfectionismTool: SemanticToolDefinition = {
   id: 'coaching_perfectionism',
   name: 'Perfectionism Help',
   description: 'Help with perfectionism, self-criticism, and unrealistic standards.',
@@ -413,17 +394,14 @@ export const perfectionismTool: SemanticToolDefinition = {
 
   examples: [
     "I'm such a perfectionist",
-    "Nothing I do is good enough",
+    'Nothing I do is good enough',
     "I'm too hard on myself",
     "I can't accept mistakes",
     'My standards are too high',
     'Fear of failure is paralyzing me',
   ],
 
-  counterExamples: [
-    "I'm okay with imperfection",
-    "Good enough is fine",
-  ],
+  counterExamples: ["I'm okay with imperfection", 'Good enough is fine'],
 
   arguments: [
     {
@@ -502,10 +480,7 @@ export const selfCompassionTool: SemanticToolDefinition = {
     "I don't like who I am",
   ],
 
-  counterExamples: [
-    "I love myself",
-    "I'm pretty kind to myself",
-  ],
+  counterExamples: ['I love myself', "I'm pretty kind to myself"],
 
   arguments: [
     {
@@ -586,10 +561,7 @@ export const motivationTool: SemanticToolDefinition = {
     'Need some motivation',
   ],
 
-  counterExamples: [
-    "I'm so motivated right now",
-    'Feeling driven',
-  ],
+  counterExamples: ["I'm so motivated right now", 'Feeling driven'],
 
   arguments: [
     {
@@ -597,9 +569,7 @@ export const motivationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Area lacking motivation',
       required: false,
-      extractionPatterns: [
-        /(?:motivation|motivated)\s+(?:for|to|about)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:motivation|motivated)\s+(?:for|to|about)\s+(.+?)$/i],
     },
   ],
 
@@ -632,7 +602,7 @@ export const lifeCoachingTools: SemanticToolDefinition[] = [
   boundariesTool,
   angerTool,
   procrastinationTool,
-  perfectionismTool,
+  coachingPerfectionismTool,
   selfCompassionTool,
   motivationTool,
 ];

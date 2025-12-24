@@ -61,11 +61,7 @@ export const explainConceptTool: SemanticToolDefinition = {
     'Tell me about the Renaissance',
   ],
 
-  counterExamples: [
-    "What's the weather?",
-    "What's on my calendar?",
-    "What's the time?",
-  ],
+  counterExamples: ["What's the weather?", "What's on my calendar?", "What's the time?"],
 
   arguments: [
     {
@@ -159,10 +155,7 @@ export const languageLearningTool: SemanticToolDefinition = {
     'Quiz me on Spanish vocabulary',
   ],
 
-  counterExamples: [
-    'Programming language',
-    'What language is this code?',
-  ],
+  counterExamples: ['Programming language', 'What language is this code?'],
 
   arguments: [
     {
@@ -170,7 +163,16 @@ export const languageLearningTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Target language',
       required: false,
-      enumValues: ['spanish', 'french', 'german', 'italian', 'japanese', 'chinese', 'korean', 'portuguese'],
+      enumValues: [
+        'spanish',
+        'french',
+        'german',
+        'italian',
+        'japanese',
+        'chinese',
+        'korean',
+        'portuguese',
+      ],
       extractionPatterns: [
         /(?:in|to)\s+(spanish|french|german|italian|japanese|chinese|korean|portuguese)/i,
         /(?:learn|practice|study)\s+(?:my\s+)?(spanish|french|german|italian|japanese|chinese|korean)/i,
@@ -262,10 +264,7 @@ export const studyHelpTool: SemanticToolDefinition = {
     'Review the material with me',
   ],
 
-  counterExamples: [
-    'Get a blood test',
-    'Covid test results',
-  ],
+  counterExamples: ['Get a blood test', 'Covid test results'],
 
   arguments: [
     {

@@ -13,7 +13,13 @@
 /**
  * Supported wearable providers
  */
-export type WearableProvider = 'apple_health' | 'fitbit' | 'garmin' | 'oura' | 'whoop';
+export type WearableProvider =
+  | 'apple_health'
+  | 'eight_sleep'
+  | 'fitbit'
+  | 'garmin'
+  | 'oura'
+  | 'whoop';
 
 // ============================================================================
 // CONFIGURATION

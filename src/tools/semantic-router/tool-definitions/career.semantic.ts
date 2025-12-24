@@ -57,15 +57,11 @@ export const jobSearchTool: SemanticToolDefinition = {
     'Help me with my job search',
     'How do I find jobs in tech?',
     'Job hunting tips',
-    "I want to change careers",
+    'I want to change careers',
     'Where should I apply?',
   ],
 
-  counterExamples: [
-    'I want to quit my job',
-    'I got fired',
-    'How do I resign?',
-  ],
+  counterExamples: ['I want to quit my job', 'I got fired', 'How do I resign?'],
 
   arguments: [
     {
@@ -73,10 +69,7 @@ export const jobSearchTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Career field or industry',
       required: false,
-      extractionPatterns: [
-        /job\s+(?:in|for)\s+(.+?)$/i,
-        /(?:career\s+in|field\s+of)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/job\s+(?:in|for)\s+(.+?)$/i, /(?:career\s+in|field\s+of)\s+(.+?)$/i],
     },
     {
       name: 'level',
@@ -84,9 +77,7 @@ export const jobSearchTool: SemanticToolDefinition = {
       description: 'Career level',
       required: false,
       enumValues: ['entry', 'mid', 'senior', 'executive'],
-      extractionPatterns: [
-        /(entry[\s-]level|junior|mid[\s-]level|senior|executive|manager)/i,
-      ],
+      extractionPatterns: [/(entry[\s-]level|junior|mid[\s-]level|senior|executive|manager)/i],
     },
   ],
 
@@ -151,18 +142,14 @@ export const interviewPrepTool: SemanticToolDefinition = {
 
   examples: [
     'Help me prepare for my interview',
-    "I have an interview tomorrow",
+    'I have an interview tomorrow',
     'Practice behavioral questions with me',
     'Common interview questions',
     'Mock interview please',
     'Interview tips for Google',
   ],
 
-  counterExamples: [
-    'Watch an interview',
-    'Podcast interview',
-    'News interview',
-  ],
+  counterExamples: ['Watch an interview', 'Podcast interview', 'News interview'],
 
   arguments: [
     {
@@ -170,9 +157,7 @@ export const interviewPrepTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Company interviewing with',
       required: false,
-      extractionPatterns: [
-        /interview\s+(?:at|with|for)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/interview\s+(?:at|with|for)\s+(.+?)$/i],
     },
     {
       name: 'interviewType',
@@ -180,9 +165,7 @@ export const interviewPrepTool: SemanticToolDefinition = {
       description: 'Type of interview',
       required: false,
       enumValues: ['behavioral', 'technical', 'case', 'phone', 'panel'],
-      extractionPatterns: [
-        /(behavioral|technical|case\s+study|phone|panel)\s+interview/i,
-      ],
+      extractionPatterns: [/(behavioral|technical|case\s+study|phone|panel)\s+interview/i],
     },
   ],
 
@@ -251,10 +234,7 @@ export const resumeHelpTool: SemanticToolDefinition = {
     'Cover letter help',
   ],
 
-  counterExamples: [
-    'Resume a video',
-    'Resume playback',
-  ],
+  counterExamples: ['Resume a video', 'Resume playback'],
 
   arguments: [
     {
@@ -269,9 +249,7 @@ export const resumeHelpTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Target role or industry',
       required: false,
-      extractionPatterns: [
-        /(?:for|targeting)\s+(.+?)(?:\s+jobs?|\s+roles?|$)/i,
-      ],
+      extractionPatterns: [/(?:for|targeting)\s+(.+?)(?:\s+jobs?|\s+roles?|$)/i],
     },
   ],
 
@@ -344,11 +322,7 @@ export const careerDevelopmentTool: SemanticToolDefinition = {
     'Professional development tips',
   ],
 
-  counterExamples: [
-    'Find a new job',
-    'I want to quit',
-    'Job search help',
-  ],
+  counterExamples: ['Find a new job', 'I want to quit', 'Job search help'],
 
   arguments: [
     {
@@ -356,10 +330,7 @@ export const careerDevelopmentTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Current job or role',
       required: false,
-      extractionPatterns: [
-        /(?:i(?:'m| am)\s+(?:a|an))\s+(.+?)$/i,
-        /(?:as\s+(?:a|an))\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:i(?:'m| am)\s+(?:a|an))\s+(.+?)$/i, /(?:as\s+(?:a|an))\s+(.+?)$/i],
     },
     {
       name: 'focus',
@@ -409,7 +380,7 @@ export const workplaceChallengesTool: SemanticToolDefinition = {
       'work stress',
       'boss is difficult',
       'workplace conflict',
-      "hate my job",
+      'hate my job',
       'burnout at work',
     ],
     patterns: [
@@ -439,10 +410,7 @@ export const workplaceChallengesTool: SemanticToolDefinition = {
     'I hate my job but need it',
   ],
 
-  counterExamples: [
-    'Find a new job',
-    'Help with resume',
-  ],
+  counterExamples: ['Find a new job', 'Help with resume'],
 
   arguments: [
     {
@@ -457,9 +425,7 @@ export const workplaceChallengesTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Who the issue is with',
       required: false,
-      extractionPatterns: [
-        /(?:with\s+(?:my\s+)?)(boss|coworker|colleague|manager|team)/i,
-      ],
+      extractionPatterns: [/(?:with\s+(?:my\s+)?)(boss|coworker|colleague|manager|team)/i],
     },
   ],
 

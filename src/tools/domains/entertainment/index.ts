@@ -23,6 +23,9 @@ import { createSpotifyTools } from './spotify.js';
 // Import Apple Music tools
 import { appleMusicTools } from './apple-music-tools.js';
 
+// Import Spotify Connect multi-room tools
+import { spotifyConnectTools } from './spotify-connect.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -351,6 +354,7 @@ log.info('🎵 [DIAG] Building entertainmentTools array...');
 const entertainmentTools: ToolDefinition[] = [
   ...getUnifiedMusicToolDefinitions(), // PRIMARY: iTunes-based, works for everyone
   ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
+  ...spotifyConnectTools, // Spotify Connect multi-room playback
   ...appleMusicTools, // Apple Music catalog search
 ];
 

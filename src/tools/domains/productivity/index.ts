@@ -23,6 +23,8 @@ import { createShoppingTools } from '../home/shopping.js';
 import { createBillTools } from '../finance/bills.js';
 import { createPackageTools } from '../home/packages.js';
 import { createTravelTools } from '../travel/travel.js';
+import { createReminderTools } from './reminders.js';
+import { createCommitmentTools } from './commitments.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -268,6 +270,22 @@ function getTravelToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// REMINDER TOOLS
+// ============================================================================
+
+function getReminderToolDefinitions(): ToolDefinition[] {
+  return createReminderTools();
+}
+
+// ============================================================================
+// COMMITMENT TOOLS
+// ============================================================================
+
+function getCommitmentToolDefinitions(): ToolDefinition[] {
+  return createCommitmentTools();
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -279,6 +297,8 @@ const productivityTools: ToolDefinition[] = [
   ...getBillToolDefinitions(),
   ...getPackageToolDefinitions(),
   ...getTravelToolDefinitions(),
+  ...getReminderToolDefinitions(),
+  ...getCommitmentToolDefinitions(),
 ];
 
 // ============================================================================
@@ -299,6 +319,8 @@ export {
   getBillToolDefinitions,
   getPackageToolDefinitions,
   getTravelToolDefinitions,
+  getReminderToolDefinitions,
+  getCommitmentToolDefinitions,
 };
 
 export default getToolDefinitions;

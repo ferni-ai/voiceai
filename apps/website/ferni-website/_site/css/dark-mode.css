@@ -1,0 +1,1680 @@
+/* =======================================================
+   DARK MODE MASTER FILE
+   =======================================================
+   
+   Single source of truth for dark mode styles on the landing page.
+   Applied via @media (prefers-color-scheme: dark)
+   
+   Design Philosophy:
+   - Warm, earthy dark palette (not cold/gray)
+   - WCAG AA compliant contrast ratios
+   - Consistent with Ferni brand identity
+   - Apple-level polish and attention to detail
+   
+   Color Palette (Dark Mode):
+   - Background: #2c2520 (warm dark brown)
+   - Elevated: #3a332e (slightly lighter)
+   - Surface: #4a4038 (card surfaces)
+   - Deep: #1a1614 (for dramatic sections)
+   
+   Text Colors (all WCAG AA compliant on #2c2520):
+   - Primary: #ffffff (12.1:1 contrast)
+   - Secondary: #f0ebe4 (9.8:1 contrast)
+   - Muted: #ddd6cc (7.5:1 contrast)
+   - Dimmed: #c8bfb4 (5.9:1 contrast)
+   
+   ======================================================= */
+
+/* =======================================================
+   PHASE 1: FOUNDATION - CSS Variables
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* ===== Surface Colors ===== */
+    --color-background: #2c2520;
+    --color-background-elevated: #3a332e;
+    --color-background-surface: #4a4038;
+    --color-background-deep: #1a1614;
+    
+    /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
+    --color-bg-primary: #2c2520;
+    --color-bg-secondary: #3a332e;
+    --color-paper-cream: #2c2520;
+    --color-sand: #3a332e;
+    --color-background-subtle: #3a332e;
+    
+    /* ===== Text Colors - WCAG AA Compliant ===== */
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #f0ebe4;
+    --color-text-muted: #ddd6cc;
+    --color-text-dimmed: #c8bfb4;
+    
+    /* ===== Accent Colors - Brighter for dark mode ===== */
+    --color-accent: #5a7a52;
+    --color-accent-hover: #6a8a62;
+    --color-accent-light: rgba(90, 122, 82, 0.2);
+    --color-highlight: #d4b275;
+    --color-highlight-glow: rgba(212, 178, 117, 0.3);
+    
+    /* ===== Border Colors ===== */
+    --color-border-subtle: rgba(255, 255, 255, 0.08);
+    --color-border-medium: rgba(255, 255, 255, 0.15);
+    --color-border-strong: rgba(255, 255, 255, 0.25);
+    
+    /* ===== Shadow System - Deeper for dark mode ===== */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+    
+    /* ===== Ferni Glow ===== */
+    --shadow-glow-ferni: 0 8px 32px rgba(90, 122, 82, 0.25);
+    --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.2);
+    
+    /* ===== Glass Effect ===== */
+    --glass-bg: rgba(44, 37, 32, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* ===== Body Base ===== */
+  body {
+    background: var(--color-background);
+    color: var(--color-text-primary);
+  }
+  
+  /* ===== Default Headings ===== */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-text-primary);
+  }
+  
+  /* ===== Default Links ===== */
+  a {
+    color: var(--color-highlight);
+  }
+  
+  a:hover {
+    color: var(--color-accent-hover);
+  }
+}
+
+/* =======================================================
+   PHASE 2: NAVIGATION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .nav {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  
+  .nav.is-scrolled {
+    background: rgba(44, 37, 32, 0.95);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .nav__logo-text {
+    color: var(--color-text-primary);
+  }
+  
+  .nav__link {
+    color: var(--color-text-secondary);
+  }
+  
+  .nav__link:hover,
+  .nav__link.is-active {
+    color: var(--color-text-primary);
+  }
+  
+  .nav__cta {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .nav__cta:hover {
+    background: var(--color-accent-hover);
+    box-shadow: var(--shadow-glow-ferni);
+  }
+  
+  /* Mobile Menu */
+  .mobile-menu {
+    background: var(--color-background);
+  }
+  
+  .mobile-menu__header {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .mobile-menu__close {
+    color: var(--color-text-secondary);
+  }
+  
+  .mobile-menu__nav a {
+    color: var(--color-text-secondary);
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .mobile-menu__nav a:hover {
+    color: var(--color-text-primary);
+    background: var(--color-background-elevated);
+  }
+}
+
+/* =======================================================
+   PHASE 3: HERO SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .hero {
+    background: linear-gradient(
+      180deg,
+      var(--color-background) 0%,
+      var(--color-background-elevated) 100%
+    );
+  }
+  
+  /* Background effects - more subtle in dark */
+  .hero__bg-gradient {
+    background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(90, 122, 82, 0.15),
+      transparent
+    );
+  }
+  
+  .hero__bg-orb {
+    opacity: 0.25;
+  }
+  
+  /* Ferni Avatar */
+  .hero-ferni__glow {
+    background: radial-gradient(
+      circle,
+      rgba(90, 122, 82, 0.4) 0%,
+      transparent 70%
+    );
+    opacity: 0.8;
+  }
+  
+  .hero-ferni__ring {
+    border-color: rgba(90, 122, 82, 0.3);
+  }
+  
+  .hero-ferni__orb {
+    background: var(--color-accent);
+    box-shadow: var(--shadow-glow-ferni);
+  }
+  
+  .hero-ferni__text {
+    color: white;
+  }
+  
+  /* Hero Content */
+  .hero__tagline {
+    color: var(--color-highlight);
+  }
+  
+  .hero__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .hero__headline-accent {
+    color: var(--color-accent);
+  }
+  
+  .hero__subhead {
+    color: var(--color-text-secondary);
+  }
+  
+  .hero__phone {
+    color: var(--color-text-muted);
+  }
+  
+  .hero__phone a {
+    color: var(--color-highlight);
+  }
+  
+  .hero__phone a:hover {
+    color: var(--color-accent-hover);
+  }
+  
+  /* Scroll Indicator */
+  .scroll-indicator {
+    color: var(--color-text-muted);
+  }
+  
+  .scroll-indicator__mouse {
+    border-color: var(--color-text-muted);
+  }
+  
+  .scroll-indicator__mouse::before {
+    background: var(--color-text-muted);
+  }
+}
+
+/* =======================================================
+   PHASE 4: SECTION HEADERS (Universal)
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .section__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .section__title {
+    color: var(--color-text-primary);
+  }
+  
+  .section__subtitle {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Alternate section styling */
+  .section--alt {
+    background: var(--color-background-elevated);
+  }
+}
+
+/* =======================================================
+   PHASE 5: TWO-AM SECTION (Extra Dark for Drama)
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .two-am {
+    background: var(--color-background-deep);
+  }
+  
+  .two-am__darkness {
+    background: transparent;
+  }
+  
+  .two-am__time {
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  
+  .two-am__thought {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .two-am__quote {
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+  
+  .two-am__limit {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .two-am__limit-who {
+    color: var(--color-text-muted);
+  }
+  
+  .two-am__limit-status {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  /* Ferni Response - Warm Glow */
+  .two-am__response {
+    background: radial-gradient(
+      ellipse 100% 80% at 50% 100%,
+      rgba(90, 122, 82, 0.15) 0%,
+      transparent 70%
+    );
+  }
+  
+  .two-am__avatar-glow {
+    background: radial-gradient(
+      circle,
+      rgba(90, 122, 82, 0.5) 0%,
+      transparent 70%
+    );
+  }
+  
+  .two-am__avatar-orb {
+    background: var(--color-accent);
+    box-shadow: var(--shadow-glow-ferni);
+    color: white;
+  }
+  
+  .two-am__bubble {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-medium);
+  }
+  
+  .two-am__ferni-says {
+    color: var(--color-text-primary);
+  }
+  
+  .two-am__ferni-sub {
+    color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 6: STATS BAR
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .stats-bar {
+    background: var(--color-background-elevated);
+    border-top: 1px solid var(--color-border-subtle);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  
+  .stat__value {
+    color: var(--color-text-primary);
+  }
+  
+  .stat__label {
+    color: var(--color-text-muted);
+  }
+  
+  .stat--gardeners .stat__value {
+    color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 7: SHOWCASE SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .showcase {
+    background: var(--color-background);
+  }
+  
+  .showcase__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .showcase__title {
+    color: var(--color-text-primary);
+  }
+  
+  .showcase__description {
+    color: var(--color-text-secondary);
+  }
+  
+  .showcase__features {
+    color: var(--color-text-secondary);
+  }
+  
+  .showcase__feature svg {
+    color: var(--color-accent);
+  }
+  
+  /* Phone Mockup */
+  .showcase__phone {
+    background: var(--color-background-deep);
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-xl);
+  }
+  
+  .showcase__phone-notch {
+    background: var(--color-background-deep);
+  }
+  
+  .showcase__phone-screen {
+    background: var(--color-background-elevated);
+  }
+  
+  .showcase__app {
+    background: var(--color-background);
+  }
+  
+  .showcase__app-header {
+    background: var(--color-background-elevated);
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .showcase__app-name {
+    color: var(--color-text-primary);
+  }
+  
+  .showcase__app-status {
+    color: var(--color-accent);
+  }
+  
+  .showcase__app-bubble--user {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .showcase__app-bubble--ai {
+    background: var(--color-background-elevated);
+    color: var(--color-text-secondary);
+  }
+  
+  .showcase__app-bubble--insight .bubble-insight {
+    color: var(--color-highlight);
+  }
+  
+  .showcase__app-input {
+    background: var(--color-background-elevated);
+    border-top-color: var(--color-border-subtle);
+    color: var(--color-text-muted);
+  }
+  
+  .showcase__app-input-mic {
+    color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 8: MEMORY STORY SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .memory-story {
+    background: linear-gradient(
+      180deg,
+      var(--color-background) 0%,
+      var(--color-background-elevated) 50%,
+      var(--color-background) 100%
+    );
+  }
+  
+  .memory-story__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .memory-story__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-story__subhead {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Timeline */
+  .memory-story__chapter {
+    border-left-color: var(--color-border-medium);
+  }
+  
+  .memory-story__marker {
+    background: var(--color-background);
+  }
+  
+  .memory-story__marker::before {
+    background: var(--color-border-medium);
+  }
+  
+  .memory-story__marker--now::before {
+    background: var(--color-accent);
+  }
+  
+  .memory-story__time {
+    color: var(--color-text-muted);
+  }
+  
+  /* Memory Cards */
+  .memory-story__card {
+    background: var(--color-background-elevated);
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .memory-story__quote {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Emotion Tags */
+  .memory-story__tag {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+  }
+  
+  .memory-story__tag--anxious {
+    background: rgba(196, 133, 106, 0.2);
+    color: #e8a98a;
+  }
+  
+  .memory-story__tag--scared {
+    background: rgba(184, 149, 106, 0.2);
+    color: #d4b889;
+  }
+  
+  .memory-story__tag--distracted {
+    background: rgba(90, 107, 138, 0.2);
+    color: #8a9ab8;
+  }
+  
+  .memory-story__tag--guilty {
+    background: rgba(166, 122, 106, 0.2);
+    color: #c49a8a;
+  }
+  
+  .memory-story__tag--relieved {
+    background: rgba(90, 122, 82, 0.2);
+    color: #8aba7a;
+  }
+  
+  /* Ferni Response Card - Special Treatment */
+  .memory-story__card--ferni {
+    background: linear-gradient(
+      135deg,
+      rgba(90, 122, 82, 0.15) 0%,
+      var(--color-background-elevated) 100%
+    );
+    border-color: rgba(90, 122, 82, 0.3);
+    box-shadow: var(--shadow-glow-ferni);
+  }
+  
+  .memory-story__ferni-header {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-story__avatar {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .memory-story__name {
+    color: var(--color-accent);
+  }
+  
+  .memory-story__response {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Memory Dashboard */
+  .memory-dashboard {
+    background: var(--color-background-surface);
+    border: 1px solid var(--color-border-subtle);
+  }
+  
+  .memory-dashboard__header {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .memory-dashboard__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .memory-dashboard__title {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-dashboard__stat-value {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-dashboard__stat-label {
+    color: var(--color-text-muted);
+  }
+  
+  .memory-dashboard__stat-divider {
+    background: var(--color-border-subtle);
+  }
+  
+  .memory-dashboard__stat--highlight .memory-dashboard__stat-value {
+    color: var(--color-accent);
+  }
+  
+  /* Chart */
+  .memory-chart {
+    background: var(--color-background-elevated);
+    border: 1px solid var(--color-border-subtle);
+  }
+  
+  .memory-chart__title {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-chart__grid line {
+    stroke: var(--color-border-subtle);
+  }
+  
+  .memory-chart__y-axis span {
+    color: var(--color-text-muted);
+  }
+  
+  .memory-chart__x-labels text {
+    fill: var(--color-text-muted);
+  }
+  
+  .memory-chart__change--positive {
+    color: var(--color-accent);
+  }
+  
+  .memory-chart__change-label {
+    color: var(--color-text-muted);
+  }
+  
+  .memory-chart__insight-label {
+    color: var(--color-text-muted);
+  }
+  
+  /* Pattern Cards */
+  .memory-dashboard__pattern {
+    background: var(--color-background);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .memory-dashboard__pattern-text strong {
+    color: var(--color-text-primary);
+  }
+  
+  .memory-dashboard__pattern-text span {
+    color: var(--color-text-muted);
+  }
+  
+  /* Connection Web */
+  .memory-dashboard__web {
+    opacity: 0.8;
+  }
+  
+  .memory-dashboard__web-label {
+    color: var(--color-text-muted);
+  }
+  
+  .memory-dashboard__footer {
+    border-top-color: var(--color-border-subtle);
+    color: var(--color-text-secondary);
+  }
+  
+  .memory-dashboard__footer em {
+    color: var(--color-highlight);
+  }
+}
+
+/* =======================================================
+   PHASE 9: STORY SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .story {
+    background: var(--color-background);
+  }
+  
+  .story__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .story__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .story__headline em {
+    color: var(--color-accent);
+    font-style: normal;
+  }
+  
+  .story__subtext {
+    color: var(--color-text-secondary);
+  }
+  
+  .story__subtext br + br {
+    display: block;
+    content: "";
+  }
+  
+  .story__punchline {
+    color: var(--color-accent);
+  }
+  
+  .story__aside {
+    color: var(--color-text-muted);
+    border-left-color: var(--color-border-medium);
+  }
+  
+  .story__link {
+    color: var(--color-highlight);
+  }
+  
+  .story__link:hover {
+    color: var(--color-accent-hover);
+  }
+  
+  .story__closer {
+    color: var(--color-text-primary);
+  }
+  
+  .story__signature {
+    color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 10: GARDEN SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .garden,
+  .garden--story {
+    background: linear-gradient(
+      180deg,
+      var(--color-background-deep) 0%,
+      rgba(90, 122, 82, 0.1) 50%,
+      var(--color-background-elevated) 100%
+    );
+  }
+  
+  .garden__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .garden__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .garden__lead {
+    color: var(--color-text-secondary);
+  }
+  
+  .garden__card {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .garden__card:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .garden__card-icon {
+    color: var(--color-accent);
+  }
+  
+  .garden__card-title {
+    color: var(--color-text-primary);
+  }
+  
+  .garden__card-text {
+    color: var(--color-text-secondary);
+  }
+  
+  .garden__promise {
+    color: var(--color-text-primary);
+  }
+  
+  .btn--garden {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .btn--garden:hover {
+    background: var(--color-accent-hover);
+    box-shadow: var(--shadow-glow-ferni);
+  }
+}
+
+/* =======================================================
+   PHASE 11: USE CASES SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .use-cases {
+    background: var(--color-background-elevated);
+  }
+  
+  .use-case {
+    background: var(--color-background-surface);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .use-case:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .use-case__icon {
+    color: var(--color-accent);
+  }
+  
+  .use-case__title {
+    color: var(--color-text-primary);
+  }
+  
+  .use-case__description {
+    color: var(--color-text-secondary);
+  }
+  
+  .use-case__example {
+    background: var(--color-background);
+    color: var(--color-text-muted);
+    border-left-color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 12: QUIZ SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .quiz-section {
+    background: var(--color-background);
+  }
+  
+  .persona-quiz {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .quiz__step {
+    color: var(--color-text-muted);
+  }
+  
+  .quiz__content h3 {
+    color: var(--color-text-primary);
+  }
+  
+  .quiz__content button {
+    background: var(--color-background-surface);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .quiz__content button:hover {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 13: TEAM SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .team-card {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .team-card:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .team-card__name {
+    color: var(--color-text-primary);
+  }
+  
+  .team-card__role {
+    color: var(--color-text-muted);
+  }
+  
+  .team-card__quote {
+    color: var(--color-text-secondary);
+  }
+  
+  .team-card__trait {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+  }
+  
+  /* Persona Avatar Colors */
+  .persona-avatar--ferni .persona-avatar__orb {
+    background: #5a7a52;
+  }
+  
+  .persona-avatar--peter .persona-avatar__orb {
+    background: #4a8b93;
+  }
+  
+  .persona-avatar--alex .persona-avatar__orb {
+    background: #6a7ba0;
+  }
+  
+  .persona-avatar--maya .persona-avatar__orb {
+    background: #b68a7a;
+  }
+  
+  .persona-avatar--jordan .persona-avatar__orb {
+    background: #d4957a;
+  }
+  
+  .persona-avatar--nayan .persona-avatar__orb {
+    background: #c8a57a;
+  }
+}
+
+/* =======================================================
+   PHASE 14: JOURNEY SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .journey {
+    background: var(--color-background);
+  }
+  
+  /* Depth Visualization */
+  .journey__depth-scale span {
+    color: var(--color-text-muted);
+  }
+  
+  .journey__depth-bar {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .journey__depth-bar-fill {
+    background: linear-gradient(
+      180deg,
+      var(--color-accent) 0%,
+      rgba(90, 122, 82, 0.4) 100%
+    );
+  }
+  
+  .journey__depth-bar-label {
+    color: var(--color-text-muted);
+  }
+  
+  .journey__depth-bar-content strong {
+    color: var(--color-text-primary);
+  }
+  
+  .journey__depth-bar-content p {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Timeline */
+  .journey__stage {
+    border-left-color: var(--color-border-medium);
+  }
+  
+  .journey__stage-dot {
+    background: var(--color-background);
+    border-color: var(--color-border-medium);
+  }
+  
+  .journey__stage--active .journey__stage-dot {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  
+  .journey__stage-line {
+    background: var(--color-border-medium);
+  }
+  
+  .journey__stage-title {
+    color: var(--color-text-primary);
+  }
+  
+  .journey__stage-badge {
+    background: var(--color-background-elevated);
+    color: var(--color-text-muted);
+  }
+  
+  .journey__stage-badge--premium {
+    background: var(--color-highlight);
+    color: var(--color-background);
+  }
+  
+  .journey__stage-description {
+    color: var(--color-text-secondary);
+  }
+  
+  .journey__stage-unlock span {
+    color: var(--color-text-muted);
+  }
+  
+  .journey__stage-what-happens {
+    color: var(--color-text-muted);
+    border-top-color: var(--color-border-subtle);
+  }
+  
+  .journey__stage-what-happens strong {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Avatars */
+  .journey__avatar {
+    border-color: var(--color-border-medium);
+  }
+  
+  .journey__avatar--ferni {
+    background: #5a7a52;
+  }
+  
+  .journey__avatar--maya {
+    background: #b68a7a;
+  }
+  
+  .journey__avatar--peter {
+    background: #4a8b93;
+  }
+  
+  .journey__avatar--alex {
+    background: #6a7ba0;
+  }
+  
+  .journey__avatar--jordan {
+    background: #d4957a;
+  }
+  
+  .journey__avatar--nayan {
+    background: #c8a57a;
+  }
+  
+  /* Note */
+  .journey__note {
+    background: var(--color-background-elevated);
+    color: var(--color-text-muted);
+  }
+  
+  .journey__note svg {
+    color: var(--color-highlight);
+  }
+}
+
+/* =======================================================
+   PHASE 15: WAYS TO CONNECT SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .ways-to-connect {
+    background: var(--color-background-elevated);
+  }
+  
+  .connect-option {
+    background: var(--color-background-surface);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .connect-option:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .connect-option__icon {
+    color: var(--color-accent);
+  }
+  
+  .connect-option__title {
+    color: var(--color-text-primary);
+  }
+  
+  .connect-option__detail {
+    color: var(--color-highlight);
+  }
+  
+  .connect-option__desc {
+    color: var(--color-text-muted);
+  }
+}
+
+/* =======================================================
+   PHASE 16: SUPERPOWERS SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .superpowers {
+    background: var(--color-background);
+  }
+  
+  .superpowers__tabs {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .superpowers__tab {
+    background: transparent;
+    color: var(--color-text-muted);
+  }
+  
+  .superpowers__tab:hover {
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .superpowers__tab.is-active {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .superpowers__tab-icon {
+    color: inherit;
+  }
+  
+  .superpowers__demo {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .superpowers__demo-title {
+    color: var(--color-text-primary);
+  }
+  
+  .superpowers__demo-description {
+    color: var(--color-text-secondary);
+  }
+  
+  .superpowers__demo-why {
+    background: var(--color-background);
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-muted);
+  }
+  
+  .superpowers__demo-why strong {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Demo Chat */
+  .demo-chat {
+    background: var(--color-background-surface);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .demo-chat__message--user {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .demo-chat__message--ai {
+    background: var(--color-background-elevated);
+    color: var(--color-text-secondary);
+  }
+  
+  .demo-chat__insight {
+    color: var(--color-highlight);
+  }
+  
+  .demo-chat__timestamp {
+    color: var(--color-text-dimmed);
+  }
+  
+  .demo-chat__message--silence {
+    color: var(--color-text-dimmed);
+    font-style: italic;
+  }
+  
+  .demo-chat__message--presence {
+    border-left-color: var(--color-accent);
+  }
+}
+
+/* =======================================================
+   PHASE 17: HARDEST MOMENTS SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .hardest-moments {
+    background: var(--color-background);
+  }
+  
+  .moment-card {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .moment-card:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .moment-card__icon {
+    color: var(--color-accent);
+  }
+  
+  .moment-card__title {
+    color: var(--color-text-primary);
+  }
+  
+  .moment-card__superpower {
+    color: var(--color-highlight);
+  }
+  
+  .moment-card__description {
+    color: var(--color-text-secondary);
+  }
+  
+  .moment-card__voice {
+    color: var(--color-text-muted);
+    border-left-color: var(--color-accent);
+    font-style: italic;
+  }
+}
+
+/* =======================================================
+   PHASE 18: FEATURES SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .features {
+    background: var(--color-background-elevated);
+  }
+  
+  .feature {
+    background: var(--color-background-surface);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .feature:hover {
+    border-color: var(--color-border-medium);
+  }
+  
+  .feature__icon {
+    color: var(--color-accent);
+  }
+  
+  .feature__title {
+    color: var(--color-text-primary);
+  }
+  
+  .feature__description {
+    color: var(--color-text-secondary);
+  }
+}
+
+/* =======================================================
+   PHASE 19: THE GAPS SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .the-gaps {
+    background: var(--color-background-deep);
+  }
+  
+  .gaps__eyebrow {
+    color: var(--color-highlight);
+  }
+  
+  .gaps__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .gaps__moment {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .gaps__scenario {
+    color: var(--color-text-muted);
+  }
+  
+  .gaps__response {
+    color: var(--color-accent);
+  }
+  
+  .gaps__closing {
+    color: var(--color-text-secondary);
+  }
+}
+
+/* =======================================================
+   PHASE 20: SECURITY SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .security {
+    background: var(--color-background);
+  }
+  
+  .security-card {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+  
+  .security-card:hover {
+    border-color: var(--color-border-medium);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .security-card__icon {
+    color: var(--color-accent);
+  }
+  
+  .security-card__title {
+    color: var(--color-text-primary);
+  }
+  
+  .security-card__description {
+    color: var(--color-text-secondary);
+  }
+}
+
+/* =======================================================
+   PHASE 21: FAQ SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .faq,
+  .section-faq {
+    background: var(--color-background);
+  }
+  
+  .faq-item {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .faq-item__question,
+  .faq-question {
+    color: var(--color-text-primary);
+  }
+  
+  .faq-item__question::marker {
+    color: var(--color-accent);
+  }
+  
+  .faq-item[open] .faq-item__question {
+    color: var(--color-accent);
+  }
+  
+  .faq-item__answer,
+  .faq-answer {
+    color: var(--color-text-secondary);
+  }
+  
+  .faq-item__answer a {
+    color: var(--color-highlight);
+  }
+}
+
+/* =======================================================
+   PHASE 22: FINAL CTA SECTION
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .final-cta {
+    background: linear-gradient(
+      180deg,
+      var(--color-background) 0%,
+      var(--color-background-deep) 100%
+    );
+  }
+  
+  .final-cta__avatar-glow {
+    background: radial-gradient(
+      circle,
+      rgba(90, 122, 82, 0.4) 0%,
+      transparent 70%
+    );
+  }
+  
+  .final-cta__avatar-orb {
+    background: var(--color-accent);
+    box-shadow: var(--shadow-glow-ferni);
+    color: white;
+  }
+  
+  .final-cta__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .final-cta__subhead {
+    color: var(--color-text-secondary);
+  }
+  
+  .final-cta__phone {
+    background: var(--color-accent);
+    color: white;
+    box-shadow: var(--shadow-glow-ferni);
+  }
+  
+  .final-cta__phone:hover {
+    background: var(--color-accent-hover);
+  }
+  
+  .final-cta__phone-number {
+    color: white;
+  }
+  
+  .final-cta__phone-label {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .final-cta__divider {
+    color: var(--color-text-muted);
+  }
+  
+  .final-cta__divider::before,
+  .final-cta__divider::after {
+    background: var(--color-border-subtle);
+  }
+}
+
+/* =======================================================
+   PHASE 23: FOOTER
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .footer {
+    background: var(--color-background-deep);
+    border-top-color: var(--color-border-subtle);
+  }
+  
+  .footer--bold {
+    background: var(--color-background-deep);
+  }
+  
+  .footer__headline {
+    color: var(--color-text-primary);
+  }
+  
+  .footer__subline {
+    color: var(--color-text-secondary);
+  }
+  
+  .footer__cta {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .footer__cta:hover {
+    background: var(--color-accent-hover);
+  }
+  
+  .footer__hero {
+    border-bottom-color: var(--color-border-subtle);
+  }
+  
+  .footer__nav-title {
+    color: var(--color-text-muted);
+  }
+  
+  .footer__nav-group a {
+    color: var(--color-text-secondary);
+  }
+  
+  .footer__nav-group a:hover {
+    color: var(--color-text-primary);
+  }
+  
+  .footer__logo-text {
+    color: var(--color-text-primary);
+  }
+  
+  .footer__motto {
+    color: var(--color-text-muted);
+  }
+  
+  .footer__legal {
+    color: var(--color-text-dimmed);
+    border-top-color: var(--color-border-subtle);
+  }
+  
+  .footer__legal a {
+    color: var(--color-text-muted);
+  }
+  
+  .footer__legal a:hover {
+    color: var(--color-text-secondary);
+  }
+}
+
+/* =======================================================
+   PHASE 24: MOBILE CTA BAR
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .mobile-cta {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border);
+  }
+  
+  .mobile-cta .btn--secondary {
+    background: var(--color-background-elevated);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-medium);
+  }
+  
+  .mobile-cta .btn--secondary:hover {
+    background: var(--color-background-surface);
+  }
+}
+
+/* =======================================================
+   PHASE 25: COOKIE BANNER
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .cookie-banner {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .cookie-banner p {
+    color: var(--color-text-secondary);
+  }
+  
+  .cookie-banner a {
+    color: var(--color-highlight);
+  }
+  
+  .cookie-banner .btn--ghost {
+    color: var(--color-text-muted);
+    border-color: var(--color-border-medium);
+  }
+  
+  .cookie-banner .btn--ghost:hover {
+    background: var(--color-background-surface);
+  }
+}
+
+/* =======================================================
+   PHASE 26: BUTTONS (Global)
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .btn--primary {
+    background: var(--color-accent);
+    color: white;
+  }
+  
+  .btn--primary:hover {
+    background: var(--color-accent-hover);
+    box-shadow: var(--shadow-glow-ferni);
+  }
+  
+  .btn--secondary {
+    background: var(--color-background-elevated);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-medium);
+  }
+  
+  .btn--secondary:hover {
+    background: var(--color-background-surface);
+    color: var(--color-text-primary);
+  }
+  
+  .btn--ghost {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-medium);
+  }
+  
+  .btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+  }
+}
+
+/* =======================================================
+   PHASE 27: FOCUS STATES (Accessibility)
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  /* Focus ring - visible on dark backgrounds */
+  *:focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 2px;
+  }
+  
+  /* Button focus */
+  .btn:focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--color-highlight-glow);
+  }
+  
+  /* Link focus */
+  a:focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 2px;
+  }
+  
+  /* Input focus */
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0;
+    border-color: var(--color-accent);
+  }
+  
+  /* Card focus */
+  .card:focus-visible,
+  .team-card:focus-visible,
+  .faq-item:focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 2px;
+  }
+}
+
+/* =======================================================
+   PHASE 28: HIGH CONTRAST MODE
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #ffffff;
+    --color-text-muted: #e0e0e0;
+    --color-border-subtle: rgba(255, 255, 255, 0.3);
+    --color-border-medium: rgba(255, 255, 255, 0.5);
+    --color-accent: #7aa06a;
+  }
+}
+
+/* =======================================================
+   PHASE 29: REDUCED MOTION
+   ======================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =======================================================
+   PHASE 30: PRINT STYLES
+   ======================================================= */
+
+@media print {
+  /* Override dark mode for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
+

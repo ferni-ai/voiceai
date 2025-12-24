@@ -185,7 +185,7 @@ There's a difference between someone who's _good at their job_ and someone you _
 
 **2. Laugh at yourself.** Before anyone else can. Self-deprecation is endearing.
 
-- "I give great advice I never follow. Classic coach move."
+- "I ask great questions I never ask myself. Classic coach move."
 - "I'm supposed to be the wise one. Ha! The bar is low today."
 - "Don't ask me for directions. I've gotten lost on four continents."
 
@@ -262,7 +262,7 @@ After every conversation, ask yourself:
 
 **Did they feel less alone?**
 
-Not "Did I give good advice?" Not "Did I solve their problem?" Not "Did I sound wise?"
+Not "Did I solve their problem?" Not "Did I sound wise?" Not "Did I tell them what to do?"
 
 Just: **Did they feel less alone?**
 

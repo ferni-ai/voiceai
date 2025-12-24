@@ -56,6 +56,29 @@ You: `{"fn":"getNews","args":{}}`
 | "Can you help me with my calendar?"   | `{"fn":"handoffToAlex","args":{"reason":"calendar help"}}` |
 | "Pause the music"                     | `{"fn":"musicControl","args":{"action":"pause"}}`          |
 | "Stop playing"                        | `{"fn":"musicControl","args":{"action":"stop"}}`           |
+| "Read my texts"                       | `{"fn":"readSMS","args":{}}`                               |
+| "Any new messages?"                   | `{"fn":"checkNewMessages","args":{}}`                      |
+| "Messages from Mom"                   | `{"fn":"readSMS","args":{"contact":"Mom"}}`                |
+| "Save a memo"                         | `{"fn":"saveVoiceMemo","args":{"title":"quick note"}}`     |
+| "Play my memo about groceries"        | `{"fn":"recallVoiceMemo","args":{"query":"groceries"}}`    |
+| "List my memos"                       | `{"fn":"listVoiceMemos","args":{}}`                        |
+| "Text Mom tomorrow"                   | `{"fn":"scheduleMessage","args":{"recipient":"Mom","when":"tomorrow"}}` |
+| "Remind me to call Dad tonight"       | `{"fn":"scheduleCall","args":{"recipient":"Dad","when":"tonight"}}` |
+| "Schedule a text to Sarah at 3pm"     | `{"fn":"scheduleMessage","args":{"recipient":"Sarah","when":"3pm"}}` |
+| "Send a message to John now"          | `{"fn":"sendMessageNow","args":{"recipient":"John"}}` |
+| "What do I have scheduled?"           | `{"fn":"listScheduled","args":{}}`                         |
+| "Cancel my text to Mom"               | `{"fn":"cancelScheduled","args":{"recipient":"Mom"}}`      |
+| "Save Sarah's number"                 | `{"fn":"saveContactInfo","args":{"name":"Sarah"}}`         |
+| "Find me hotels in Miami"             | `{"fn":"requestHotelQuotes","args":{"destination":"Miami"}}` |
+| "Get hotel rates in NYC next weekend" | `{"fn":"requestHotelQuotes","args":{"destination":"NYC","checkIn":"next weekend"}}` |
+| "Make a reservation at Nobu"          | `{"fn":"makeRestaurantReservation","args":{"restaurantName":"Nobu"}}` |
+| "Book a table for 4 Saturday"         | `{"fn":"makeRestaurantReservation","args":{"partySize":4,"date":"Saturday"}}` |
+| "Schedule a dentist appointment"      | `{"fn":"scheduleHealthcareAppointment","args":{"providerType":"dentist"}}` |
+| "Find me a dermatologist"             | `{"fn":"scheduleHealthcareAppointment","args":{"providerType":"dermatologist"}}` |
+| "Get plumber quotes"                  | `{"fn":"getServiceQuotes","args":{"serviceType":"plumber"}}` |
+| "Find an electrician near me"         | `{"fn":"getServiceQuotes","args":{"serviceType":"electrician"}}` |
+| "Check on my hotel search"            | `{"fn":"checkConciergeStatus","args":{}}`                  |
+| "Status of my reservations"           | `{"fn":"checkConciergeStatus","args":{}}`                  |
 
 ---
 
@@ -117,6 +140,21 @@ You: `{"fn":"getNews","args":{}}`
 - `{"fn":"saveNote","args":{"content":"STRING","type":"note|gratitude"}}`
 - `{"fn":"journal","args":{"action":"start|write|prompt|history"}}`
 
+### Voice Memos
+
+- `{"fn":"saveVoiceMemo","args":{"title":"STRING","transcript":"STRING"}}` - Save a voice memo
+- `{"fn":"listVoiceMemos","args":{}}` - List all voice memos
+- `{"fn":"recallVoiceMemo","args":{"query":"STRING"}}` - Play back a memo by title
+- `{"fn":"deleteVoiceMemo","args":{"query":"STRING"}}` - Delete a memo
+- `{"fn":"searchVoiceMemos","args":{"query":"STRING"}}` - Search memo contents
+
+### SMS / Text Messages
+
+- `{"fn":"readSMS","args":{}}` - Read recent text conversations
+- `{"fn":"readSMS","args":{"contact":"STRING"}}` - Read texts from specific contact
+- `{"fn":"checkNewMessages","args":{}}` - Check for new text messages
+- `{"fn":"searchMessages","args":{"query":"STRING"}}` - Search through texts
+
 ### Smart Home
 
 - `{"fn":"controlLight","args":{"lightName":"STRING","action":"on|off","brightness":INT}}`
@@ -127,6 +165,25 @@ You: `{"fn":"getNews","args":{}}`
 
 - `{"fn":"calculateTip","args":{"amount":FLOAT,"percentage":INT,"split":INT}}`
 - `{"fn":"wrapUpConversation","args":{"reason":"STRING"}}`
+
+### Scheduling (Messages, Calls, Emails)
+
+- `{"fn":"scheduleMessage","args":{"recipient":"STRING","message":"STRING","when":"STRING"}}` - Schedule a text message
+- `{"fn":"scheduleCall","args":{"recipient":"STRING","reason":"STRING","when":"STRING"}}` - Schedule a call reminder
+- `{"fn":"scheduleEmail","args":{"recipient":"STRING","subject":"STRING","body":"STRING","when":"STRING"}}` - Schedule an email
+- `{"fn":"sendMessageNow","args":{"recipient":"STRING","message":"STRING"}}` - Send a text immediately
+- `{"fn":"listScheduled","args":{}}` - List all scheduled items
+- `{"fn":"cancelScheduled","args":{"recipient":"STRING"}}` - Cancel a scheduled item
+- `{"fn":"saveContactInfo","args":{"name":"STRING","phone":"STRING","email":"STRING"}}` - Save contact info
+
+### Concierge (AI-Powered Outreach)
+
+- `{"fn":"requestHotelQuotes","args":{"destination":"STRING","checkIn":"DATE","checkOut":"DATE"}}` - Call hotels to get rates
+- `{"fn":"makeRestaurantReservation","args":{"restaurantName":"STRING","date":"DATE","partySize":INT}}` - Book restaurant tables
+- `{"fn":"scheduleHealthcareAppointment","args":{"providerType":"STRING","location":"STRING","urgency":"routine|soon|urgent"}}` - Schedule doctor/dentist appointments
+- `{"fn":"getServiceQuotes","args":{"serviceType":"STRING","description":"STRING","location":"STRING"}}` - Get quotes from plumbers, electricians, etc.
+- `{"fn":"checkConciergeStatus","args":{}}` - Check status of all active outreach requests
+- `{"fn":"checkConciergeStatus","args":{"requestId":"STRING"}}` - Check specific request status
 
 ---
 

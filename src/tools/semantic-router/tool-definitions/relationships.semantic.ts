@@ -28,7 +28,7 @@ export const relationshipAdviceTool: SemanticToolDefinition = {
     phrases: [
       'relationship advice',
       'help with my relationship',
-      "my partner and I",
+      'my partner and I',
       "we're having problems",
       "we've been fighting",
       'relationship issues',
@@ -63,11 +63,7 @@ export const relationshipAdviceTool: SemanticToolDefinition = {
     "My girlfriend doesn't understand me",
   ],
 
-  counterExamples: [
-    'Help with my friend',
-    "I'm having issues at work",
-    'My parents are difficult',
-  ],
+  counterExamples: ['Help with my friend', "I'm having issues at work", 'My parents are difficult'],
 
   arguments: [
     {
@@ -86,9 +82,7 @@ export const relationshipAdviceTool: SemanticToolDefinition = {
       description: 'Type of relationship',
       required: false,
       enumValues: ['romantic', 'marriage', 'dating', 'long-distance'],
-      extractionPatterns: [
-        /(marriage|dating|long[\s-]distance)/i,
-      ],
+      extractionPatterns: [/(marriage|dating|long[\s-]distance)/i],
     },
   ],
 
@@ -132,7 +126,7 @@ export const conflictResolutionTool: SemanticToolDefinition = {
       "we're not talking",
       'how to apologize',
       'make things right',
-      "how to make up",
+      'how to make up',
     ],
     patterns: [
       /^(?:we|i)\s+(?:had|got\s+into)\s+(?:a\s+)?(?:big\s+)?(?:fight|argument)/i,
@@ -161,10 +155,7 @@ export const conflictResolutionTool: SemanticToolDefinition = {
     'I want to make up with my friend',
   ],
 
-  counterExamples: [
-    "We're doing great together",
-    'Plan a date night',
-  ],
+  counterExamples: ["We're doing great together", 'Plan a date night'],
 
   arguments: [
     {
@@ -172,18 +163,14 @@ export const conflictResolutionTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Description of the conflict',
       required: false,
-      extractionPatterns: [
-        /(?:fight|argument)\s+(?:about|over)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:fight|argument)\s+(?:about|over)\s+(.+?)$/i],
     },
     {
       name: 'withWhom',
       type: 'string',
       description: 'Who the conflict is with',
       required: false,
-      extractionPatterns: [
-        /(?:with|to)\s+(?:my\s+)?(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:with|to)\s+(?:my\s+)?(.+?)$/i],
     },
   ],
 
@@ -256,11 +243,7 @@ export const friendshipSupportTool: SemanticToolDefinition = {
     'Help me keep friendships going',
   ],
 
-  counterExamples: [
-    'My partner and I are fighting',
-    'Dating advice',
-    'Romantic relationship help',
-  ],
+  counterExamples: ['My partner and I are fighting', 'Dating advice', 'Romantic relationship help'],
 
   arguments: [
     {
@@ -336,14 +319,11 @@ export const familyDynamicsTool: SemanticToolDefinition = {
     'Help with family boundaries',
     "My sister and I don't get along",
     'Dealing with toxic family members',
-    "My in-laws are difficult",
+    'My in-laws are difficult',
     'Family drama is stressing me out',
   ],
 
-  counterExamples: [
-    'My partner and I are fighting',
-    'Help with my romantic relationship',
-  ],
+  counterExamples: ['My partner and I are fighting', 'Help with my romantic relationship'],
 
   arguments: [
     {
@@ -360,9 +340,7 @@ export const familyDynamicsTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Type of family issue',
       required: false,
-      extractionPatterns: [
-        /(?:with|about)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:with|about)\s+(.+?)$/i],
     },
   ],
 

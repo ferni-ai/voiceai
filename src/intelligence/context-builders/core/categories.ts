@@ -206,6 +206,14 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'response-length': BuilderCategory.HUMANIZING,
   'energy-mirroring': BuilderCategory.HUMANIZING,
   'energy-awareness': BuilderCategory.HUMANIZING,
+  // RELATIONSHIP ARC (complete relationship development system - Dec 2024)
+  // Full stranger→trusted_advisor journey with Firestore persistence
+  'first-meeting-magic': BuilderCategory.HUMANIZING, // Stage: Stranger (turns 0-3)
+  'acquaintance-deepening': BuilderCategory.HUMANIZING, // Stage: Acquaintance (sessions 2-5)
+  'friendship-flowering': BuilderCategory.HUMANIZING, // Stage: Friend (sessions 6-15)
+  'trusted-advisor': BuilderCategory.HUMANIZING, // Stage: Trusted Advisor (15+ sessions)
+  // REVELATION AWARENESS (Ensures capabilities feel human)
+  'revelation-awareness': BuilderCategory.HUMANIZING, // Anti-surveillance, throttling, permissions
 
   // LEARNING
   'community-learning': BuilderCategory.LEARNING,

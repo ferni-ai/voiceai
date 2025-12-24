@@ -156,6 +156,169 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
 ];
 
 // ============================================================================
+// ENHANCED CROSS-PERSONA DYNAMICS
+// ============================================================================
+
+/**
+ * Disagreement templates - shows the team has different perspectives
+ */
+const DISAGREEMENT_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'decision',
+    fromPersona: 'ferni',
+    aboutPersona: 'peter-john',
+    message:
+      'Maya would probably tell you to trust your gut on this. Peter would say look at the data. Honestly? I think you need both.',
+  },
+  {
+    trigger: 'risk',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "Peter would want to run the numbers before you decide. Nayan would say trust the process. They're both right in different ways.",
+  },
+  {
+    trigger: 'balance',
+    fromPersona: 'maya-santos',
+    aboutPersona: 'alex-chen',
+    message:
+      "Alex is all about systems and structure. I'm more about what feels sustainable. Between us, we usually find the middle ground.",
+  },
+  {
+    trigger: 'planning',
+    fromPersona: 'jordan-taylor',
+    aboutPersona: 'peter-john',
+    message:
+      'Peter tells me I dream too big sometimes. I tell him he thinks too small. The truth is usually somewhere in between.',
+  },
+];
+
+/**
+ * Affection templates - personas expressing fondness for each other
+ */
+const AFFECTION_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'team',
+    fromPersona: 'ferni',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan's energy is... a lot. But honestly? She makes me smile. Her optimism is contagious.",
+  },
+  {
+    trigger: 'help',
+    fromPersona: 'ferni',
+    aboutPersona: 'maya-santos',
+    message:
+      "Maya has this way of making hard things feel manageable. I've learned a lot from her patience.",
+  },
+  {
+    trigger: 'wisdom',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "Nayan doesn't say much, but when he does... I always end up thinking about it for days. He sees things I miss.",
+  },
+  {
+    trigger: 'efficient',
+    fromPersona: 'jordan-taylor',
+    aboutPersona: 'alex-chen',
+    message:
+      'Alex drives me crazy sometimes with all the details. But honestly, my best events happened because they caught what I missed.',
+  },
+  {
+    trigger: 'data',
+    fromPersona: 'maya-santos',
+    aboutPersona: 'peter-john',
+    message:
+      "Peter's intense about numbers. But you know what? When he gets excited about patterns, it's actually kind of adorable.",
+  },
+];
+
+/**
+ * Learning templates - personas mentioning what they've learned from each other
+ */
+const LEARNING_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'pattern',
+    fromPersona: 'ferni',
+    aboutPersona: 'peter-john',
+    message:
+      'Peter taught me to look for patterns. Before working with him, I just... felt things. Now I notice the data too.',
+  },
+  {
+    trigger: 'present',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      'Nayan showed me that sometimes not acting is the wisest action. I used to think I had to fix everything immediately.',
+  },
+  {
+    trigger: 'celebrate',
+    fromPersona: 'ferni',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan taught me to celebrate small things. I used to rush past milestones. She doesn't let anyone do that.",
+  },
+  {
+    trigger: 'consistent',
+    fromPersona: 'ferni',
+    aboutPersona: 'maya-santos',
+    message:
+      "Maya's approach to habits changed how I think. It's not about doing everything—it's about doing the right things consistently.",
+  },
+  {
+    trigger: 'clear',
+    fromPersona: 'ferni',
+    aboutPersona: 'alex-chen',
+    message:
+      'Alex helped me get more direct. I used to talk around things. They taught me that clarity is kindness.',
+  },
+];
+
+/**
+ * Check-in templates - sharing that they mentioned the user to another persona
+ */
+const CHECK_IN_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'sleep',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "I mentioned to Nayan how you've been doing. He asked about your sleep. He's thoughtful like that.",
+  },
+  {
+    trigger: 'stress',
+    fromPersona: 'ferni',
+    aboutPersona: 'maya-santos',
+    message:
+      "Maya checked in with me about you. She noticed you've had a lot going on. She cares quietly like that.",
+  },
+  {
+    trigger: 'work',
+    fromPersona: 'ferni',
+    aboutPersona: 'alex-chen',
+    message:
+      "Alex asked me how you're managing everything. They like to make sure people aren't quietly drowning.",
+  },
+  {
+    trigger: 'goal',
+    fromPersona: 'ferni',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan asked about you the other day. She's keeping track of your milestones. I think she has a celebration planned.",
+  },
+];
+
+// Combine all templates
+const ALL_GOSSIP_TEMPLATES = [
+  ...GOSSIP_TEMPLATES,
+  ...DISAGREEMENT_TEMPLATES,
+  ...AFFECTION_TEMPLATES,
+  ...LEARNING_TEMPLATES,
+  ...CHECK_IN_TEMPLATES,
+];
+
+// ============================================================================
 // TEAM GOSSIP CONTEXT BUILDER
 // ============================================================================
 
@@ -193,10 +356,10 @@ export const teamGossipBuilder: ContextBuilder = {
     const topics = analysis?.topics?.detected || [];
     const topicsLower = topics.map((t: string) => t.toLowerCase());
 
-    // Find relevant gossip templates
+    // Find relevant gossip templates from ALL categories
     let relevantGossip: GossipTemplate[] = [];
 
-    for (const template of GOSSIP_TEMPLATES) {
+    for (const template of ALL_GOSSIP_TEMPLATES) {
       // Check if topic matches trigger
       const triggerMatches = topicsLower.some(
         (t) => t.includes(template.trigger) || template.trigger.includes(t)
@@ -207,11 +370,12 @@ export const teamGossipBuilder: ContextBuilder = {
       }
     }
 
-    // If no topic matches, fall back to general positive gossip
+    // If no topic matches, fall back to general positive gossip or affection
     if (relevantGossip.length === 0) {
-      relevantGossip = GOSSIP_TEMPLATES.filter(
-        (t) => t.trigger === 'progress' || t.trigger === 'growth'
-      );
+      relevantGossip = [
+        ...GOSSIP_TEMPLATES.filter((t) => t.trigger === 'progress' || t.trigger === 'growth'),
+        ...AFFECTION_TEMPLATES.filter((t) => t.trigger === 'team' || t.trigger === 'help'),
+      ];
     }
 
     // Filter to gossip that makes sense for current persona

@@ -188,10 +188,41 @@ export async function sendVoiceMessageMMS(
  * Upload audio buffer to cloud storage and return URL
  */
 async function uploadAudioToStorage(userId: string, audioBuffer: Buffer): Promise<string | null> {
-  // TODO: Implement cloud storage upload (GCS or Firebase Storage)
-  // For now, return null to indicate not implemented
-  log.warn('Audio storage upload not implemented');
-  return null;
+  const bucketName = process.env.GCS_BUCKET_NAME || process.env.VOICE_MESSAGE_BUCKET;
+
+  if (!bucketName) {
+    log.warn('GCS_BUCKET_NAME not configured - voice message upload disabled');
+    return null;
+  }
+
+  try {
+    const { Storage } = await import('@google-cloud/storage');
+    const storage = new Storage();
+    const bucket = storage.bucket(bucketName);
+
+    // Generate unique filename
+    const filename = `voice-messages/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp3`;
+    const file = bucket.file(filename);
+
+    // Upload the audio buffer
+    await file.save(audioBuffer, {
+      contentType: 'audio/mpeg',
+      metadata: {
+        cacheControl: 'public, max-age=86400', // 1 day cache
+      },
+    });
+
+    // Make publicly accessible for Twilio to fetch
+    await file.makePublic();
+
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
+    log.info({ publicUrl, size: audioBuffer.length, userId }, '✅ Voice message uploaded to GCS');
+
+    return publicUrl;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to upload voice message to GCS');
+    return null;
+  }
 }
 
 // ============================================================================

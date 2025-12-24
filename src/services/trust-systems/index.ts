@@ -805,6 +805,63 @@ export {
 } from './voice-aware-detection.js';
 
 // ============================================================================
+// BETWEEN-SESSION THINKING (Continuous Presence)
+// ============================================================================
+
+export {
+  detectThinkingWorthy,
+  getAllUnsurfacedThinking,
+  getThinkingMomentToSurface,
+  getThinkingRecordsForPersistence,
+  incrementSessionCount,
+  loadThinkingRecords,
+  markThinkingSurfaced,
+  recordThinkingMoment,
+  type ThinkingMoment,
+  type ThinkingRecord,
+  type ThinkingType,
+} from './between-session-thinking.js';
+
+// ============================================================================
+// TONAL MEMORY (Remember HOW things were said)
+// ============================================================================
+
+export {
+  clearSessionState as clearTonalSessionState,
+  detectRecurringPatterns as detectTonalPatterns,
+  getAllTopicPatterns,
+  getBestInsight as getBestTonalInsight,
+  getTonalDescription,
+  getTonalProfileForPersistence,
+  hasTonalMemory,
+  loadTonalProfile,
+  markInsightSurfaced as markTonalInsightSurfaced,
+  recordTonalObservation,
+  type TonalInsight,
+  type TonalMemoryProfile,
+  type TonalSignature,
+  type TopicTonalPattern,
+} from './tonal-memory.js';
+
+// ============================================================================
+// PERSONA GROWTH (Mutual Growth - Level 5)
+// ============================================================================
+
+export {
+  detectGrowthOpportunity,
+  getAllGrowthProfiles,
+  getGrowthMomentToShare,
+  getPersonaGrowthForPersistence,
+  loadPersonaGrowthProfile,
+  markGrowthShared,
+  recordPersonaGrowth,
+  type GrowthMoment,
+  type GrowthType,
+  type PersonaGrowthProfile,
+  type PersonaGrowthRecord,
+} from './persona-growth.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

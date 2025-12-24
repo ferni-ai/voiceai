@@ -24,6 +24,68 @@
 | **Confidence Calibration**  | ✅ Done | Temperature scaling, ECE tracking                         |
 | **Tool Chain Prediction**   | ✅ Done | 6 predefined chains + learned co-occurrence               |
 | **Deep Context**            | ✅ Done | Entity tracking, pronoun resolution, topic continuity     |
+| **Real NER**                | ✅ Done | 30+ entity types via compromise.js                        |
+| **Streaming Routing**       | ✅ Done | Route as user speaks, early signals                       |
+
+---
+
+## 🧠 Better Than Human Intelligence (NEW!)
+
+| Feature                        | Status  | Description                                     |
+| ------------------------------ | ------- | ----------------------------------------------- |
+| **Voice Prosody → Tool Boost** | ✅ Done | Stress, arousal, valence → boost wellness tools |
+| **Explanation Transparency**   | ✅ Done | Tell user WHY we routed to a tool               |
+| **Emotional Arc Tracking**     | ✅ Done | 7-day trend, proactive interventions            |
+| **Speaking Pace Detection**    | ✅ Done | WPM → urgency level → response pacing           |
+
+### Voice Prosody → Tool Boost
+
+```typescript
+// High stress detected → boost wellness tools
+if (prosody.stressLevel > 0.6) {
+  boostedTools.push('wellness_checkin', 'grounding_exercise');
+  suppressedTools.push('task_create'); // Don't overwhelm
+}
+```
+
+### Emotional Arc Tracking
+
+```typescript
+// Analyze 7-day emotional trend
+const arc = analyzeEmotionalArc(userId, '7d');
+// Returns: dominantEmotion, trend, volatility, concerningPatterns
+
+// Proactive interventions
+if (arc.concerningPatterns.some((p) => p.severity === 'high')) {
+  suggestIntervention({
+    type: 'support',
+    message: "I've noticed things have been tough lately...",
+    tool: 'wellness_checkin',
+  });
+}
+```
+
+### Speaking Pace Detection
+
+```typescript
+// Fast speech (>200 WPM) = urgent/anxious
+const pace = analyzeSpeakingPace(wordsPerMinute);
+if (pace.pace === 'very_fast') {
+  // Boost quick-answer tools, suggest calming
+  boostTools(['quick_answer', 'breathing_exercise']);
+}
+```
+
+### API Endpoints
+
+```bash
+# Get 7-day emotional arc
+GET /api/intelligence/emotional-arc?period=7d
+
+# Record emotional data point
+POST /api/intelligence/record-emotion
+{ emotion: "stressed", intensity: 0.7, valence: -0.3, source: "voice" }
+```
 
 ---
 
@@ -307,13 +369,13 @@ Fine-tune embedding model on our specific tool descriptions.
 
 **🎉 Ferni is now the ONLY system with all five core SOTA features!**
 
-### Remaining Gaps (Not Blocking)
+### ✅ BONUS: Beyond SOTA Features
 
-| Feature                   | Status     | Why We Skip It                                |
-| ------------------------- | ---------- | --------------------------------------------- |
-| **Real NER**              | ❌ Regex   | OpenAI embedding handles entities well enough |
-| **Streaming**             | ❌ Missing | Gemini voice is fast enough, marginal gain    |
-| **Fine-tuned Embeddings** | ❌ OpenAI  | Custom training expensive, minimal lift       |
+| Feature                   | Status     | Description                                        |
+| ------------------------- | ---------- | -------------------------------------------------- |
+| **Real NER**              | ✅ Done    | compromise.js for people, places, dates, songs     |
+| **Streaming Routing**     | ✅ Done    | Route as user speaks, emit likely/probable/certain |
+| **Fine-tuned Embeddings** | ❌ Not Yet | Custom training expensive, minimal lift            |
 
 ---
 
@@ -351,6 +413,86 @@ await fetch('/api/intelligence/correction', {
     correctTool: 'spotify_play', // What they wanted
   }),
 });
+```
+
+### Real NER (Named Entity Recognition)
+
+```typescript
+import { extractNEREntities, getEntitySummary, analyzeSentiment } from './advanced/index.js';
+
+// Extract entities using compromise.js
+const result = await extractNEREntities(
+  "I'm feeling stressed about my meeting with Sarah tomorrow. " +
+    'I want to start a meditation habit and exercise more.'
+);
+
+// Returns 30+ entity types:
+// {
+//   entities: [
+//     { text: "stressed", type: "emotion", confidence: 0.85 },
+//     { text: "meeting", type: "activity", confidence: 0.8 },
+//     { text: "Sarah", type: "person", confidence: 0.85 },
+//     { text: "tomorrow", type: "date", confidence: 0.9 },
+//     { text: "meditation habit", type: "habit", confidence: 0.8 },
+//     { text: "exercise more", type: "goal", confidence: 0.75 }
+//   ]
+// }
+
+// Rich summary with sentiment analysis
+const summary = getEntitySummary(result);
+// {
+//   people: ["Sarah"],
+//   emotions: ["stressed"],
+//   activities: ["meeting"],
+//   goals: ["exercise more"],
+//   sentiment: "negative"
+// }
+```
+
+**30+ Supported Entity Types:**
+
+| Category          | Types                                                              |
+| ----------------- | ------------------------------------------------------------------ |
+| **Core**          | person, place, organization, date, time, duration, money, quantity |
+| **Music**         | song, artist, album, genre, playlist                               |
+| **Life Coaching** | emotion, mood, habit, goal, relationship, activity, frequency      |
+| **Events**        | event, meeting, reminder                                           |
+| **Lifestyle**     | food, drink, weather_condition, workout                            |
+| **Communication** | email, phone, url, hashtag                                         |
+
+### Streaming Routing (Route as user speaks)
+
+```typescript
+import {
+  startStreamingSession,
+  processPartialTranscript,
+  onStreamingSignal,
+  endStreamingSession,
+} from './voice-integration.js';
+
+// Start streaming session
+startStreamingSession('session123');
+
+// Subscribe to signals
+onStreamingSignal('session123', (signal) => {
+  if (signal.type === 'likely') {
+    // Confidence > 0.4 - start pre-loading tool data
+    preloadToolData(signal.toolId);
+  }
+  if (signal.type === 'certain') {
+    // Confidence > 0.85 - can execute before user finishes
+    executeToolEarly(signal.toolId);
+  }
+});
+
+// Process partial transcripts as ASR emits them
+await processPartialTranscript('session123', 'play');
+await processPartialTranscript('session123', 'play some');
+await processPartialTranscript('session123', 'play some jazz');
+// Signal emitted: { type: 'certain', toolId: 'spotify_play', confidence: 0.92 }
+
+// End session when user stops speaking
+const { finalToolId, finalConfidence } = endStreamingSession('session123');
 ```
 
 ---
@@ -400,6 +542,61 @@ await fetch('/api/intelligence/correction', {
 5. **Plan-and-Solve**: Prompting Multi-step Reasoning (MSRA)
 6. **Semantic Kernel**: Microsoft's Tool Orchestration
 7. **LangChain**: Tool calling and chaining patterns
+
+---
+
+## 📦 Semantic Tool Coverage (December 2024)
+
+**Total: 45 semantic route files, 226 tools**
+
+### Phase 1: Core Domains (Existing)
+| File | Tools | Domain |
+|------|-------|--------|
+| books.semantic.ts | 8 | Reading & reflection |
+| health.semantic.ts | 10 | Health & wellness |
+| connection.semantic.ts | 6 | Social & relationships |
+| calendar.semantic.ts | 8 | Scheduling |
+| career.semantic.ts | 10 | Career development |
+| ... | ... | ... |
+
+### Phase 2: Safety-Critical (NEW ✅)
+| File | Tools | Domain |
+|------|-------|--------|
+| anger.semantic.ts | 5 | Emotional regulation |
+| trauma-support.semantic.ts | 7 | Trauma-aware support |
+| burnout-recovery.semantic.ts | 5 | Burnout assessment & recovery |
+
+### Phase 3: Growth & Meaning (NEW ✅)
+| File | Tools | Domain |
+|------|-------|--------|
+| self-compassion.semantic.ts | 12 | Inner critic, self-kindness |
+| dreams.semantic.ts | 8 | Bucket list, aspirations |
+| meaning.semantic.ts | 12 | Purpose, values, legacy |
+
+### Phase 4: Life Management (NEW ✅)
+| File | Tools | Domain |
+|------|-------|--------|
+| family.semantic.ts | 11 | Parenting, elder care, dynamics |
+| home.semantic.ts | 8 | Maintenance, organization, moving |
+| legal-admin.semantic.ts | 7 | Documents, estate planning, taxes |
+
+### Tool Type Distribution
+| Category | Count | Examples |
+|----------|-------|----------|
+| wellness | 45+ | grounding, burnout, self-compassion |
+| life-coaching | 60+ | career, meaning, dreams, family |
+| life-planning | 30+ | goals, milestones, decisions |
+| entertainment | 15+ | music, games, books |
+| productivity | 20+ | calendar, habits, notes |
+| information | 15+ | weather, news, search |
+| finance | 12+ | budgeting, bills, investing |
+
+### Unique Capabilities
+- **Trauma-Informed**: 7 specialized tools with safety protocols
+- **Emotional Regulation**: Anger management with escalation detection
+- **Life Transitions**: Empty nest, divorce, blending families
+- **Deep Meaning**: Purpose exploration, legacy building, values alignment
+- **Self-Compassion**: Inner critic work, perfectionism, imposter syndrome
 
 ---
 

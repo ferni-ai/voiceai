@@ -449,8 +449,44 @@ export function applyPreset(
 }
 
 // ============================================================================
+// GEMINI-OPTIMIZED PRESET (Option C: Semantic Router Primary)
+// ============================================================================
+
+/**
+ * Gemini-optimized preset - aggressive auto-execution to reduce JSON workaround usage.
+ *
+ * Since Gemini is cheaper but has unreliable native function calling,
+ * we lean heavily on the semantic router to bypass the LLM for tool calls.
+ */
+export const GEMINI_OPTIMIZED_PRESET: Partial<SemanticRouterConfig> = {
+  flags: {
+    ...DEFAULT_FLAGS,
+    autoExecuteEnabled: true,
+    hintsEnabled: true,
+    learningEnabled: true,
+    metricsEnabled: true,
+    debugEnabled: false,
+  },
+  thresholds: {
+    autoExecute: 0.85, // Lower than production (0.95) to bypass LLM more often
+    confirm: 0.75, // Ask for confirmation at moderate confidence
+    hint: 0.5, // Hint to LLM at lower confidence
+    minimum: 0.3, // Consider matches at low confidence for hints
+    maxLatencyMs: 100,
+    maxEmbeddings: 15,
+  },
+};
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
+
+/**
+ * Check if using Gemini (not OpenAI Realtime)
+ */
+function isUsingGemini(): boolean {
+  return process.env.USE_OPENAI_REALTIME !== 'true';
+}
 
 /**
  * Initialize configuration based on environment
@@ -460,7 +496,14 @@ export function initializeConfig(): void {
 
   // Auto-apply environment preset
   if (process.env.NODE_ENV === 'production') {
-    updateConfig(PRODUCTION_PRESET);
+    // For Gemini users, use optimized preset (aggressive auto-execute)
+    if (isUsingGemini()) {
+      updateConfig(GEMINI_OPTIMIZED_PRESET);
+      log.info('🎯 Using GEMINI_OPTIMIZED preset (aggressive semantic routing)');
+    } else {
+      updateConfig(PRODUCTION_PRESET);
+      log.info('Using PRODUCTION preset (OpenAI native function calling)');
+    }
   } else if (process.env.NODE_ENV === 'development') {
     updateConfig(DEVELOPMENT_PRESET);
   }
@@ -470,6 +513,7 @@ export function initializeConfig(): void {
       flags: currentConfig.flags,
       thresholds: currentConfig.thresholds,
       embeddingModel: currentConfig.embeddingModel,
+      usingGemini: isUsingGemini(),
     },
     'Semantic router configuration initialized'
   );

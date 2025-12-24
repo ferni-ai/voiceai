@@ -41,6 +41,9 @@ export interface AwarenessFacts {
   /** Current time in user's timezone */
   currentTime?: string;
 
+  /** Current date (e.g., "December 23, 2024") */
+  currentDate?: string;
+
   /** Time of day category */
   timeOfDay?: 'early_morning' | 'morning' | 'afternoon' | 'evening' | 'night' | 'late_night';
 
@@ -114,16 +117,70 @@ export async function buildAwarenessFacts(input: ContextBuilderInput): Promise<A
   // TEMPORAL AWARENESS
   // =========================================
   const now = new Date();
-  const hour = now.getHours();
+
+  // Try to get user's timezone from profile or userData
+  const userTimezone =
+    (userProfile as { contact?: { timezone?: string } })?.contact?.timezone ||
+    (userData as { timezone?: string })?.timezone ||
+    undefined;
+
+  // Create locale options with user's timezone if available
+  const localeOptions: Intl.DateTimeFormatOptions = userTimezone ? { timeZone: userTimezone } : {};
+
+  // Get the hour in user's timezone (for time-of-day calculation)
+  let hour: number;
+  let dayOfWeek: number;
+  try {
+    if (userTimezone) {
+      // Parse the time in user's timezone
+      const userTimeStr = now.toLocaleString('en-US', {
+        ...localeOptions,
+        hour: 'numeric',
+        hour12: false,
+      });
+      hour = parseInt(userTimeStr, 10);
+
+      // Get day of week in user's timezone
+      const userDayStr = now.toLocaleDateString('en-US', {
+        ...localeOptions,
+        weekday: 'short',
+      });
+      const dayMap: Record<string, number> = {
+        Sun: 0,
+        Mon: 1,
+        Tue: 2,
+        Wed: 3,
+        Thu: 4,
+        Fri: 5,
+        Sat: 6,
+      };
+      dayOfWeek = dayMap[userDayStr] ?? now.getDay();
+    } else {
+      hour = now.getHours();
+      dayOfWeek = now.getDay();
+    }
+  } catch {
+    // Fall back to server time if timezone parsing fails
+    hour = now.getHours();
+    dayOfWeek = now.getDay();
+  }
 
   facts.currentTime = now.toLocaleTimeString('en-US', {
+    ...localeOptions,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
 
-  facts.dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
-  facts.isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  facts.currentDate = now.toLocaleDateString('en-US', {
+    ...localeOptions,
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  facts.dayOfWeek = now.toLocaleDateString('en-US', { ...localeOptions, weekday: 'long' });
+  facts.isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
   // Time of day category
   if (hour >= 0 && hour < 5) {
@@ -141,7 +198,22 @@ export async function buildAwarenessFacts(input: ContextBuilderInput): Promise<A
   }
 
   // Season (northern hemisphere approximation)
-  const month = now.getMonth();
+  // Get month in user's timezone
+  let month: number;
+  try {
+    if (userTimezone) {
+      const userMonthStr = now.toLocaleDateString('en-US', {
+        ...localeOptions,
+        month: 'numeric',
+      });
+      month = parseInt(userMonthStr, 10) - 1; // Convert to 0-indexed
+    } else {
+      month = now.getMonth();
+    }
+  } catch {
+    month = now.getMonth();
+  }
+
   if (month >= 2 && month <= 4) facts.season = 'spring';
   else if (month >= 5 && month <= 7) facts.season = 'summer';
   else if (month >= 8 && month <= 10) facts.season = 'fall';
@@ -222,13 +294,19 @@ export function formatAwarenessFacts(facts: AwarenessFacts): string {
   lines.push('## Current Awareness');
   lines.push('');
 
-  // Time
-  if (facts.currentTime) {
-    let timeStr = `**Time:** ${facts.currentTime}`;
-    if (facts.dayOfWeek) {
-      timeStr += ` (${facts.dayOfWeek})`;
+  // Date and Time
+  if (facts.currentDate || facts.currentTime) {
+    let dateTimeStr = '**Date/Time:** ';
+    if (facts.currentDate) {
+      dateTimeStr += facts.currentDate;
     }
-    lines.push(timeStr);
+    if (facts.dayOfWeek) {
+      dateTimeStr += ` (${facts.dayOfWeek})`;
+    }
+    if (facts.currentTime) {
+      dateTimeStr += ` at ${facts.currentTime}`;
+    }
+    lines.push(dateTimeStr);
   }
 
   // User
@@ -282,8 +360,18 @@ export function formatAwarenessFacts(facts: AwarenessFacts): string {
 export function formatAwarenessCompact(facts: AwarenessFacts): string {
   const parts: string[] = [];
 
-  if (facts.currentTime && facts.dayOfWeek) {
-    parts.push(`${facts.dayOfWeek} ${facts.currentTime}`);
+  if (facts.currentDate || facts.currentTime) {
+    let dateTime = '';
+    if (facts.currentDate) {
+      dateTime = facts.currentDate;
+    }
+    if (facts.dayOfWeek) {
+      dateTime += dateTime ? ` (${facts.dayOfWeek})` : facts.dayOfWeek;
+    }
+    if (facts.currentTime) {
+      dateTime += dateTime ? ` ${facts.currentTime}` : facts.currentTime;
+    }
+    parts.push(dateTime);
   }
 
   if (facts.userName) {

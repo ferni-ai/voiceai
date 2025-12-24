@@ -31,7 +31,7 @@ import {
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-import { t } from '../i18n/index.js';
+import { t, setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '../i18n/index.js';
 // 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { engagementService, handoffService, moodService } from '../services/index.js';
@@ -83,6 +83,11 @@ import {
   estimateMomentType,
   type CapturedMoment,
 } from '../services/journal-capture.service.js';
+// 🧠 Semantic Router Observability - Dev panel stats
+import {
+  routingStatsUI,
+  type SemanticRoutingData,
+} from '../ui/routing-stats.ui.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -218,6 +223,12 @@ export function handleDataMessage(message: DataMessage): void {
       }
       break;
 
+    case 'set_language':
+      // 🌐 VOICE-TRIGGERED LANGUAGE CHANGE
+      // Ferni can change the app language without disconnecting the call
+      handleSetLanguage(message as SetLanguageMessage);
+      break;
+
     case 'cameo_unlock':
       // 🎭 CAMEO UNLOCK: Ferni just introduced a new team member!
       // This is triggered when Ferni uses the introduceMember tool
@@ -317,6 +328,24 @@ export function handleDataMessage(message: DataMessage): void {
       handleCinematicExperience(message as CinematicExperienceEvent);
       break;
 
+    case 'humanization_signal':
+      // 🚀 BETTER THAN HUMAN: Emotion signals from backend for EQ responses
+      // This is the CRITICAL bridge between backend emotion analysis and frontend avatar
+      handleHumanizationSignal(message as HumanizationSignalEvent);
+      break;
+
+    case 'laughter_detected':
+      // 😄 BETTER THAN HUMAN: User laughed → Avatar smiles/laughs along!
+      // This makes Ferni feel like a friend who shares in your joy
+      handleLaughterDetected(message as LaughterDetectedEvent);
+      break;
+
+    case 'semantic_routing':
+      // 🧠 SEMANTIC ROUTER: Tool routing decision for dev panel observability
+      // This helps us understand how the semantic router is performing
+      handleSemanticRouting(message as SemanticRoutingEvent);
+      break;
+
     default:
   }
 }
@@ -339,6 +368,9 @@ interface PartialTranscriptEvent extends DataMessage {
  *
  * This enables the "Better than Human" capability of anticipating
  * emotions before the user finishes speaking.
+ *
+ * BETTER THAN HUMAN: We detect emotional signals DURING speech and
+ * respond immediately - before the user even finishes their thought.
  */
 function handlePartialTranscript(event: PartialTranscriptEvent): void {
   const { text } = event;
@@ -350,12 +382,34 @@ function handlePartialTranscript(event: PartialTranscriptEvent): void {
   const tone = detectAnticipatedTone(text);
   const energy = estimateEnergyFromText(text);
 
-  // Trigger anticipation
+  // Trigger anticipation (handles emotion word detection)
   ferni.anticipateEmotion({
     transcript: text,
     tone,
     energy,
   });
+
+  // =========================================================================
+  // BETTER THAN HUMAN: Run concern detection on partials too!
+  // This lets us respond to distress signals DURING speech, not after.
+  // =========================================================================
+  const concernPatterns = [
+    /\b(can't|cannot) (take|handle|do|deal)/i,
+    /\b(hate|worst|terrible|awful|horrible)\b/i,
+    /\b(failing|failed|failure|mess|disaster)\b/i,
+    /\bi('m| am) (so )?(tired|exhausted|done|over it)\b/i,
+    /\b(hopeless|pointless|why bother|give up)\b/i,
+    /\bno one (understands|cares|listens)\b/i,
+  ];
+
+  // Check for quick concern patterns (lighter than full analyzeConcern)
+  const hasConcernSignal = concernPatterns.some((p) => p.test(text));
+
+  if (hasConcernSignal) {
+    // Run full concern analysis for avatar response
+    ferni.analyzeConcern({ transcript: text });
+    log.debug('🛡️ Concern signal detected in partial:', { textLength: text.length });
+  }
 
   log.debug('🔮 Anticipation from partial:', { tone, energy, textLength: text.length });
 }
@@ -434,10 +488,14 @@ interface VoiceProsodyEvent extends DataMessage {
 /**
  * Handle voice prosody data from backend for Ferni EQ concern detection
  *
- * This enables "Better than Human" emotional intelligence by:
- * 1. Detecting voice strain/breaking for concern response
- * 2. Tracking pause patterns for breath synchronization
- * 3. Mapping stress levels to empathetic expressions
+ * BETTER THAN HUMAN: This enables instant emotional intelligence by:
+ * 1. Triggering micro-expressions IMMEDIATELY on voice distress signals
+ * 2. Detecting voice strain/breaking for concern response
+ * 3. Tracking pause patterns for breath synchronization
+ * 4. Mapping stress levels to empathetic expressions
+ *
+ * Key insight: Real humans unconsciously respond to voice tone changes.
+ * We make this visible through immediate avatar feedback.
  */
 function handleVoiceProsody(event: VoiceProsodyEvent): void {
   log.debug('🚀 Voice prosody received', {
@@ -445,6 +503,56 @@ function handleVoiceProsody(event: VoiceProsodyEvent): void {
     anxietyMarkers: event.anxietyMarkers,
     valence: event.valence,
   });
+
+  // =========================================================================
+  // BETTER THAN HUMAN: Instant micro-expressions on voice signals
+  // These trigger BEFORE concern analysis for immediate visual feedback
+  // =========================================================================
+
+  const { playMicroExpression } = ferni;
+
+  // HIGH STRESS: Immediate protective response
+  if (event.stressLevel > 0.7) {
+    playMicroExpression('protective');
+    log.debug('🛡️ High stress detected - protective micro-expression');
+  }
+
+  // ANXIETY MARKERS: Show we notice
+  if (event.anxietyMarkers && event.stressLevel > 0.5) {
+    playMicroExpression('concern_flash');
+    log.debug('💚 Anxiety markers detected - concern flash');
+  }
+
+  // VOICE BREAKING: Strong empathetic response
+  if (event.stressLevel > 0.7 && event.anxietyMarkers) {
+    playMicroExpression('warmth_pulse');
+    log.debug('💛 Voice breaking detected - warmth pulse');
+  }
+
+  // LOW VALENCE (negative emotion): Show attentive presence
+  if (event.valence < 0.3) {
+    playMicroExpression('noticing');
+    log.debug('👀 Low valence detected - noticing');
+  }
+
+  // HIGH AROUSAL + HIGH VALENCE: Match excitement
+  if (event.arousal > 0.7 && event.valence > 0.6) {
+    playMicroExpression('delight_flash');
+    log.debug('✨ High excitement detected - delight flash');
+  }
+
+  // SIGHING (breathiness + low speech rate): Gentle presence
+  const isSighing =
+    (event.breathiness !== undefined && event.breathiness > 0.6) ||
+    (event.speechRate !== undefined && event.speechRate < 0.3);
+  if (isSighing) {
+    playMicroExpression('warmth_pulse');
+    log.debug('😮‍💨 Sighing detected - warmth pulse');
+  }
+
+  // =========================================================================
+  // CONCERN DETECTION (existing logic enhanced)
+  // =========================================================================
 
   // Map backend prosody to concern detection parameters
   const concernParams: Parameters<typeof ferni.analyzeConcern>[0] = {
@@ -460,13 +568,11 @@ function handleVoiceProsody(event: VoiceProsodyEvent): void {
         ? Math.min(1, event.pauseDuration / 1000) // Normalize to 0-1
         : undefined,
 
-    // Sighing indicated by low speech rate + breathiness
-    sighing:
-      (event.breathiness !== undefined && event.breathiness > 0.6) ||
-      (event.speechRate !== undefined && event.speechRate < 0.3),
+    // Sighing
+    sighing: isSighing,
   };
 
-  // Run concern detection
+  // Run concern detection (triggers more sustained avatar responses)
   const concernLevel = ferni.analyzeConcern(concernParams);
 
   if (concernLevel !== 'none') {
@@ -555,6 +661,245 @@ function handleBreathSync(event: BreathSyncEvent): void {
       },
     })
   );
+}
+
+// ============================================================================
+// HUMANIZATION SIGNAL HANDLER - "Better Than Human" Emotion Bridge (CRITICAL!)
+// ============================================================================
+
+/**
+ * Humanization signal types from backend emotion dispatcher
+ */
+type HumanizationSignalType =
+  | 'concern_detected'
+  | 'voice_state_detected'
+  | 'emotional_trajectory'
+  | 'vulnerability'
+  | 'breakthrough'
+  | 'high_engagement'
+  | 'disengagement';
+
+/**
+ * Humanization signal event from backend
+ * This is the CRITICAL bridge that enables "Better Than Human" emotional intelligence!
+ */
+interface HumanizationSignalEvent extends DataMessage {
+  type: 'humanization_signal';
+  signalType: HumanizationSignalType;
+  intensity?: number;
+  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
+  concernType?: string;
+  voiceState?: string;
+  emotionalTrajectory?: 'de_escalating' | 'escalating' | 'volatile';
+  mismatchType?: string;
+  timestamp: number;
+}
+
+/**
+ * Handle humanization signals from the backend emotion dispatcher
+ * 
+ * CRITICAL: This is the main bridge between backend emotion analysis and frontend EQ!
+ * Without this, all the backend's emotional intelligence has no way to affect the avatar.
+ * 
+ * Signals handled:
+ * - concern_detected: User is distressed → protective mode
+ * - voice_state_detected: Voice-text mismatch → extra care
+ * - emotional_trajectory: Mood is changing → adapt presence
+ * - high_engagement: User is excited → match energy
+ * - disengagement: User is drifting → gentle reconnection
+ * - vulnerability: User shared something hard → holding space
+ * - breakthrough: User had realization → celebrate subtly
+ */
+function handleHumanizationSignal(event: HumanizationSignalEvent): void {
+  const { signalType, intensity = 0.7 } = event;
+
+  log.info('🚀 BETTER THAN HUMAN: Humanization signal received', {
+    signalType,
+    intensity,
+    concernLevel: event.concernLevel,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  switch (signalType) {
+    case 'concern_detected':
+      // User is showing distress signals - activate protective presence
+      if (event.concernLevel === 'crisis') {
+        // Crisis level - full protective mode
+        playMicroExpression('protective');
+        ferniExpressions.setExpression('holdingSpace', 800, 5000);
+        ferni.analyzeConcern({ voiceStrain: 1.0, voiceBreaking: true });
+      } else if (event.concernLevel === 'elevated') {
+        // Elevated concern - strong empathy
+        playMicroExpression('concern_flash');
+        ferniExpressions.setExpression('attentive', 500, 3000);
+        ferni.analyzeConcern({ voiceStrain: 0.8 });
+      } else if (event.concernLevel === 'moderate') {
+        // Moderate concern - gentle attention
+        playMicroExpression('warmth_pulse');
+        ferniExpressions.setExpression('attentive', 400, 2000);
+        ferni.analyzeConcern({ voiceStrain: 0.5 });
+      } else {
+        // Mild concern - subtle acknowledgment
+        playMicroExpression('noticing');
+      }
+      break;
+
+    case 'voice_state_detected':
+      // Voice-text mismatch detected (e.g., says "I'm fine" but voice says otherwise)
+      playMicroExpression('concern_flash');
+      // This triggers the "protective instinct" - noticing what's NOT being said
+      ferniExpressions.setExpression('contemplative', 400, 2500);
+      log.info('🛡️ Voice-text mismatch detected:', event.mismatchType);
+      break;
+
+    case 'emotional_trajectory':
+      if (event.emotionalTrajectory === 'escalating') {
+        // Emotional intensity rising - increase empathy presence
+        playMicroExpression('warmth_pulse');
+        ferniExpressions.setExpression('attentive', 400, 3000);
+      } else if (event.emotionalTrajectory === 'de_escalating') {
+        // Calming down - gentle supportive presence
+        playMicroExpression('recognition');
+        ferniExpressions.setExpression('present', 300, 2000);
+      } else if (event.emotionalTrajectory === 'volatile') {
+        // High variability - extra patience and steadiness
+        playMicroExpression('noticing');
+        ferniExpressions.setExpression('holdingSpace', 500, 4000);
+      }
+      break;
+
+    case 'high_engagement':
+      // User is excited and engaged - match their energy!
+      playMicroExpression('delight_flash');
+      if (intensity > 0.8) {
+        ferniExpressions.setExpression('excited', 300, 1500);
+      } else {
+        ferniExpressions.setExpression('happy', 300, 1500);
+      }
+      break;
+
+    case 'disengagement':
+      // User is drifting - gentle attempt to reconnect
+      playMicroExpression('interest_flash');
+      ferniExpressions.setExpression('curious', 400, 2000);
+      break;
+
+    case 'vulnerability':
+      // User shared something vulnerable - honor it with gentle presence
+      playMicroExpression('warmth_pulse');
+      ferniExpressions.setExpression('holdingSpace', 600, 4000);
+      break;
+
+    case 'breakthrough':
+      // User had a realization or breakthrough - celebrate subtly!
+      playMicroExpression('delight_flash');
+      setTimeout(() => {
+        playMicroExpression('recognition');
+      }, 100);
+      ferniExpressions.setExpression('pleased', 500, 2000);
+      break;
+  }
+}
+
+// ============================================================================
+// LAUGHTER DETECTION HANDLER - "Better Than Human" Shared Joy
+// ============================================================================
+
+/**
+ * Laughter detection event from backend
+ */
+interface LaughterDetectedEvent extends DataMessage {
+  type: 'laughter_detected';
+  laughType: 'chuckle' | 'giggle' | 'laugh' | 'hearty' | 'nervous' | 'polite' | 'unknown';
+  socialFunction: 'amusement' | 'relief' | 'affiliation' | 'nervous' | 'polite' | 'unknown';
+  confidence: number;
+  suggestedResponse: 'join' | 'acknowledge' | 'smile' | 'wait' | 'none';
+  timestamp: number;
+}
+
+/**
+ * Handle laughter detection from backend
+ * 
+ * BETTER THAN HUMAN: When the user laughs, Ferni's avatar laughs along!
+ * This is one of the most powerful ways to build connection - shared joy.
+ * 
+ * Response varies by laugh type:
+ * - Hearty laugh → Full delighted expression, maybe join in
+ * - Chuckle/giggle → Warm smile, pleased expression  
+ * - Nervous laugh → Gentle warmth, supportive presence
+ * - Polite laugh → Subtle smile, acknowledgment
+ */
+function handleLaughterDetected(event: LaughterDetectedEvent): void {
+  log.info('😄 BETTER THAN HUMAN: User laughter detected!', {
+    laughType: event.laughType,
+    socialFunction: event.socialFunction,
+    confidence: event.confidence,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  // Only respond to confident detections
+  if (event.confidence < 0.6) {
+    log.debug('Laughter confidence too low, subtle response only');
+    playMicroExpression('warmth_pulse');
+    return;
+  }
+
+  switch (event.laughType) {
+    case 'hearty':
+      // Full hearty laugh - join in the joy!
+      playMicroExpression('delight_flash');
+      setTimeout(() => {
+        ferniExpressions.setExpression('delighted', 400, 2500);
+      }, 50);
+      // Maybe add laughter sound effect or [laughter] response
+      break;
+
+    case 'laugh':
+      // Regular laugh - show genuine delight
+      playMicroExpression('delight_flash');
+      ferniExpressions.setExpression('happy', 350, 2000);
+      break;
+
+    case 'chuckle':
+    case 'giggle':
+      // Light amusement - warm smile
+      playMicroExpression('warmth_pulse');
+      ferniExpressions.setExpression('pleased', 300, 1500);
+      break;
+
+    case 'nervous':
+      // Nervous laugh - supportive, not judgmental
+      playMicroExpression('recognition');
+      ferniExpressions.setExpression('warm', 400, 2000);
+      // The user might be uncomfortable - show gentle presence
+      break;
+
+    case 'polite':
+      // Social/polite laugh - subtle acknowledgment
+      playMicroExpression('warmth_pulse');
+      ferniExpressions.setExpression('pleased', 250, 1000);
+      break;
+
+    default:
+      // Unknown type - default to warm response
+      playMicroExpression('warmth_pulse');
+      ferniExpressions.setExpression('warm', 300, 1500);
+  }
+
+  // Based on social function, maybe adjust response
+  if (event.socialFunction === 'relief') {
+    // Relief laughter - extra warmth
+    setTimeout(() => {
+      playMicroExpression('warmth_pulse');
+    }, 300);
+  } else if (event.socialFunction === 'affiliation') {
+    // Bonding laughter - we're connecting!
+    setTimeout(() => {
+      playMicroExpression('recognition');
+    }, 200);
+  }
 }
 
 // ============================================================================
@@ -949,7 +1294,12 @@ function isProactiveOutreachMessage(message: DataMessage): message is DataMessag
 function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreachData }): void {
   const outreach = message.data;
   
-  log.info({ type: outreach.type, personaId: outreach.personaId }, '💭 Proactive outreach received');
+  log.info({ type: outreach.type, personaId: outreach.personaId }, '💭 BETTER THAN HUMAN: Proactive outreach received');
+
+  // =========================================================================
+  // BETTER THAN HUMAN: Enhanced EQ response to proactive outreach
+  // This is a genuine care moment - the avatar should reflect warmth
+  // =========================================================================
 
   // Show the outreach notification
   proactiveOutreachUI.show(outreach);
@@ -957,8 +1307,36 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
   // Play a subtle warm sound
   soundUI.play('message');
 
-  // Trigger a warm expression
-  ferniExpressions.setExpression('warm', 300, 1500);
+  // Trigger MULTIPLE expressions for maximum warmth perception
+  const { playMicroExpression } = ferni;
+  
+  // First: Quick recognition micro-expression (subliminal)
+  playMicroExpression('recognition');
+  
+  // Then: Warm expression held longer
+  setTimeout(() => {
+    ferniExpressions.setExpression('warm', 400, 2000);
+  }, 100);
+  
+  // Type-specific expressions based on outreach type
+  // Types: 'thinking_of_you' | 'growth_reflection' | 'celebration' | 'life_event' | 'random_warmth'
+  if (outreach.type === 'life_event') {
+    // They may be going through something difficult or significant
+    setTimeout(() => {
+      playMicroExpression('concern_flash');
+      ferniExpressions.setExpression('holdingSpace', 500, 2500);
+    }, 300);
+  } else if (outreach.type === 'celebration' || outreach.type === 'growth_reflection') {
+    // Something good happened - celebrate!
+    setTimeout(() => {
+      playMicroExpression('delight_flash');
+    }, 200);
+  } else if (outreach.type === 'thinking_of_you' || outreach.type === 'random_warmth') {
+    // Pure warmth without agenda - the most "Better than Human" moment
+    setTimeout(() => {
+      playMicroExpression('warmth_pulse');
+    }, 200);
+  }
 
   // Dispatch event for other systems
   document.dispatchEvent(new CustomEvent('ferni:data-message', {
@@ -1198,6 +1576,62 @@ export function handleWrapUp(event: WrapUpEvent): void {
 }
 
 // ============================================================================
+// VOICE-TRIGGERED LANGUAGE CHANGE
+// ============================================================================
+
+/**
+ * Message sent when Ferni changes the app language via voice command.
+ */
+interface SetLanguageMessage extends DataMessage {
+  readonly type: 'set_language';
+  readonly language: string;
+  readonly timestamp: number;
+}
+
+/**
+ * Handle voice-triggered language changes.
+ *
+ * This enables Ferni to change the app language WITHOUT disconnecting
+ * the voice call. The key insight: we use { reload: false } which
+ * dispatches a 'ferni:locale-changed' event instead of reloading.
+ *
+ * UI components that care about language changes listen for this event
+ * and re-render themselves. The LiveKit connection stays alive!
+ */
+async function handleSetLanguage(event: SetLanguageMessage): Promise<void> {
+  const requestedLocale = event.language;
+
+  // Validate the locale
+  const isValid = SUPPORTED_LOCALES.some((l) => l.code === requestedLocale);
+  if (!isValid) {
+    log.warn('🌐 Invalid language requested:', requestedLocale);
+    messageUI.show(t('errors.invalidLanguage'), 'warning');
+    return;
+  }
+
+  const locale = requestedLocale as SupportedLocale;
+  const localeInfo = SUPPORTED_LOCALES.find((l) => l.code === locale);
+
+  log.info('🌐 Voice-triggered language change', {
+    locale,
+    name: localeInfo?.nativeName,
+  });
+
+  // Show a brief confirmation (in the NEW language after change)
+  // We show this before the change so it's visible immediately
+  messageUI.show(`Switching to ${localeInfo?.nativeName || locale}...`, 'info', 1500);
+
+  // Change locale WITHOUT reloading - keeps LiveKit connection alive!
+  await setLocale(locale, { reload: false });
+
+  // Play a subtle sound for feedback
+  soundUI.play('message');
+
+  // Show Ferni expression - friendly acknowledgment
+  ferniExpressions.setExpression('happy', 400, 1500);
+}
+
+// ============================================================================
 // CAMEO UNLOCK: Team Member Introduction
 // ============================================================================
 
@@ -1352,4 +1786,40 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
     // Dispatch disconnect event - the app.ts will handle the actual disconnect
     window.dispatchEvent(new CustomEvent('ferni:conversation-end-disconnect'));
   }, delay);
+}
+
+// ============================================================================
+// SEMANTIC ROUTING HANDLER - Dev Panel Observability
+// ============================================================================
+
+/**
+ * Semantic routing event from backend
+ */
+interface SemanticRoutingEvent extends DataMessage {
+  type: 'semantic_routing';
+  toolId?: string;
+  confidence?: number;
+  bypassed_llm?: boolean;
+  routing_path?: string;
+}
+
+/**
+ * Handle semantic routing events for dev panel observability.
+ * This lets us see how the semantic router is performing in real-time.
+ */
+function handleSemanticRouting(event: SemanticRoutingEvent): void {
+  log.debug('Semantic routing event received', {
+    toolId: event.toolId,
+    confidence: event.confidence,
+    bypassedLlm: event.bypassed_llm,
+    routingPath: event.routing_path,
+  });
+
+  // Update routing stats UI (dev panel)
+  routingStatsUI.handleRoutingData({
+    toolId: event.toolId,
+    confidence: event.confidence,
+    bypassed_llm: event.bypassed_llm,
+    routing_path: event.routing_path as SemanticRoutingData['routing_path'],
+  });
 }

@@ -117,6 +117,11 @@
       "account": "You & Ferni",
       "admin": "Admin"
     },
+    "subgroups": {
+      "yourBody": "Your Body",
+      "yourCalendar": "Your Calendar",
+      "yourSpace": "Your Space"
+    },
     "items": {
       "yourJourney": "Your Journey",
       "trustDetails": "Your Trust Journey",
@@ -144,11 +149,17 @@
       "guidedPractices": "Guided Practices",
       "createPractice": "Create Practice",
       "wearables": "Wearables",
+      "linkedin": "LinkedIn",
       "calendar": "Calendar",
       "notifications": "Notifications & Check-ins",
       "toggleTheme": "Light / Dark",
       "linkSpotify": "Link Spotify",
       "spotifyConnected": "Spotify Connected",
+      "spotifyRooms": "Music Rooms",
+      "thermostat": "Thermostat",
+      "eightSleep": "Eight Sleep",
+      "oura": "Oura Ring",
+      "appleHealth": "Apple Health",
       "supportFerniExpanded": "Support Ferni",
       "voiceId": "Your Voice",
       "householdMembers": "Family & Household",
@@ -468,6 +479,7 @@
 
   "errors": {
     "connectionFailed": "Failed to connect. Please try again.",
+    "invalidLanguage": "That language isn't available yet",
     "microphoneAccess": "Please allow microphone access to continue.",
     "networkError": "Network error. Please check your connection.",
     "sessionExpired": "Your session has expired. Please refresh.",

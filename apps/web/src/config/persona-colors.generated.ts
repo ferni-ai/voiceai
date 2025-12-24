@@ -4,7 +4,7 @@
  * Persona colors generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
- * Generated: 2025-12-23T21:07:55.008Z
+ * Generated: 2025-12-24T14:23:30.073Z
  */
 
 import type { PersonaColorConfig } from '../types/colors.js';

@@ -147,6 +147,51 @@ export async function handleAdminDashboardRoutes(
       return true;
     }
 
+    // ========================================================================
+    // CAPABILITY PATTERNS - Collective learning insights
+    // ========================================================================
+    if (subPath === '/capability-patterns' && method === 'GET') {
+      const { getAllPatterns, getMostEffectiveDomains } =
+        await import('../../../intelligence/capability-learning.js');
+
+      const allPatterns = getAllPatterns();
+      const topPatterns = getMostEffectiveDomains(10);
+
+      // Calculate summary stats
+      const totalSamples = allPatterns.reduce((sum, p) => sum + p.sampleSize, 0);
+      const avgEngagement =
+        allPatterns.length > 0
+          ? allPatterns.reduce((sum, p) => sum + p.engagementRate, 0) / allPatterns.length
+          : 0;
+
+      sendJSON(res, {
+        summary: {
+          totalDomains: allPatterns.length,
+          totalSamples,
+          averageEngagementRate: Math.round(avgEngagement * 100) / 100,
+          topEngagingDomains: topPatterns.slice(0, 5).map((p) => p.domain),
+        },
+        topPatterns: topPatterns.map((p) => ({
+          domain: p.domain,
+          engagementRate: Math.round(p.engagementRate * 100) / 100,
+          toolUseRate: Math.round(p.toolUseRate * 100) / 100,
+          sampleSize: p.sampleSize,
+          bestEmotionalContext: p.bestEmotionalContexts[0]?.emotion || null,
+          bestPersona: p.bestPersonas[0]?.personaId || null,
+        })),
+        allPatterns: allPatterns.map((p) => ({
+          domain: p.domain,
+          surfaceCount: p.surfaceCount,
+          engagementCount: p.engagementCount,
+          toolUseCount: p.toolUseCount,
+          engagementRate: Math.round(p.engagementRate * 100) / 100,
+          sampleSize: p.sampleSize,
+          lastUpdated: p.lastUpdated,
+        })),
+      });
+      return true;
+    }
+
     // Route not matched
     return false;
   } catch (error) {

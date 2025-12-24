@@ -24,6 +24,7 @@ import {
   ICON_LEAF,
   ICON_MENU,
   ICON_REFRESH,
+  ICON_ROUTING,
   ICON_SETTINGS,
   ICON_SPARKLES,
   ICON_SPEAKER,
@@ -84,6 +85,19 @@ const ADMIN_SECTIONS: AdminSection[] = [
     description: 'DAU/WAU/MAU, MRR, churn',
     badge: 'NEW',
     component: async () => (await import('./sections/BusinessMetricsSection.js')).render(),
+  },
+  {
+    id: 'semantic-routing',
+    name: 'Semantic Routing',
+    icon: ICON_ROUTING,
+    description: 'Tool routing accuracy, learning, A/B tests',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/SemanticRoutingSection.js');
+      const html = section.render();
+      setTimeout(() => section.init(), 100);
+      return html;
+    },
   },
   {
     id: 'agents',

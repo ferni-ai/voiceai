@@ -535,7 +535,7 @@ class NowPlayingUI {
         position: fixed;
         bottom: 140px;
         right: var(--space-4);
-        z-index: 1900; /* Above dev panel (--z-tooltip: 1800) for visibility during testing */
+        z-index: calc(var(--z-tooltip) + 100); /* Above dev panel for visibility during testing */
         
         display: none;
         align-items: center;

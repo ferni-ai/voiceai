@@ -34,7 +34,7 @@ export const decisionHelpTool: SemanticToolDefinition = {
       'weighing options',
       'big decision',
       'hard choice',
-      "what should I do",
+      'what should I do',
     ],
     patterns: [
       /^(?:i(?:'m| am)?|i(?:'ve| have)?\s+been)\s+(?:struggling\s+(?:to|with)|(?:can(?:'t|not)))\s+decide/i,
@@ -58,17 +58,14 @@ export const decisionHelpTool: SemanticToolDefinition = {
   examples: [
     "I can't decide whether to take the job",
     'Help me decide between two apartments',
-    "Should I move or stay?",
+    'Should I move or stay?',
     "I'm torn between two options",
     "I don't know what to do",
     'Big decision ahead',
     'Weighing my options',
   ],
 
-  counterExamples: [
-    'I made a decision',
-    'Decision is final',
-  ],
+  counterExamples: ['I made a decision', 'Decision is final'],
 
   arguments: [
     {
@@ -155,9 +152,7 @@ export const proConListTool: SemanticToolDefinition = {
     'List the benefits and drawbacks',
   ],
 
-  counterExamples: [
-    'I already made a list',
-  ],
+  counterExamples: ['I already made a list'],
 
   arguments: [
     {
@@ -210,7 +205,7 @@ export const valuesAlignmentTool: SemanticToolDefinition = {
       'values check',
       'what matters most',
       'priority check',
-      "does this fit who I am",
+      'does this fit who I am',
       'authentic choice',
     ],
     patterns: [
@@ -237,13 +232,10 @@ export const valuesAlignmentTool: SemanticToolDefinition = {
     'Help me understand my priorities',
     'Is this authentic to who I am?',
     'Values check on this decision',
-    "I want to stay true to what matters",
+    'I want to stay true to what matters',
   ],
 
-  counterExamples: [
-    "What's my horoscope?",
-    'Financial values',
-  ],
+  counterExamples: ["What's my horoscope?", 'Financial values'],
 
   arguments: [
     {
@@ -251,9 +243,7 @@ export const valuesAlignmentTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Context for values check',
       required: false,
-      extractionPatterns: [
-        /values?\s+(?:check\s+)?(?:on|for|about)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/values?\s+(?:check\s+)?(?:on|for|about)\s+(.+?)$/i],
     },
   ],
 
@@ -290,7 +280,7 @@ export const regretMinimizationTool: SemanticToolDefinition = {
 
   triggers: {
     phrases: [
-      "will I regret",
+      'will I regret',
       'regret this',
       'look back on this',
       'when I am old',
@@ -323,10 +313,7 @@ export const regretMinimizationTool: SemanticToolDefinition = {
     'Is this now or never?',
   ],
 
-  counterExamples: [
-    'I regret what I did',
-    'Past regrets',
-  ],
+  counterExamples: ['I regret what I did', 'Past regrets'],
 
   arguments: [
     {
@@ -344,9 +331,7 @@ export const regretMinimizationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Future timeframe to consider',
       required: false,
-      extractionPatterns: [
-        /(?:in\s+)?(\d+)\s+years/i,
-      ],
+      extractionPatterns: [/(?:in\s+)?(\d+)\s+years/i],
     },
   ],
 

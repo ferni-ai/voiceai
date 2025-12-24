@@ -25,6 +25,11 @@ import {
   type MetricAlert,
   type PruneResult,
 } from '../../memory/index.js';
+import {
+  findDuplicatesLSH,
+  type DuplicatePair,
+  type LSHConfig,
+} from '../../memory/lsh-deduplication.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -446,30 +451,12 @@ export class MemoryDeduplicationJob extends ScheduledJob<
         usersProcessed++;
         totalMemoriesScanned += Math.min(memories.length, config.maxMemoriesToScan);
 
-        // Check for duplicates within this user's memories
+        // Check for duplicates within this user's memories using LSH
+        // O(n) average case instead of O(n²) - massive performance improvement
         const memoriesToCheck = memories.slice(0, config.maxMemoriesToScan);
-        const duplicatePairs: Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> =
-          [];
-
-        // Simple O(n²) duplicate check - could be optimized with embeddings
-        for (let i = 0; i < memoriesToCheck.length; i++) {
-          for (let j = i + 1; j < memoriesToCheck.length; j++) {
-            const m1 = memoriesToCheck[i];
-            const m2 = memoriesToCheck[j];
-
-            // Check for exact content match
-            if (m1.content === m2.content) {
-              duplicatePairs.push({ first: m1, second: m2, similarity: 1.0 });
-              continue;
-            }
-
-            // Check for high similarity (simple text comparison)
-            const similarity = simpleTextSimilarity(m1.content, m2.content);
-            if (similarity >= config.exactDuplicateThreshold) {
-              duplicatePairs.push({ first: m1, second: m2, similarity });
-            }
-          }
-        }
+        const duplicatePairs = findDuplicatesWithLSH(memoriesToCheck, {
+          threshold: config.exactDuplicateThreshold,
+        });
 
         totalDuplicatesFound += duplicatePairs.length;
 
@@ -516,22 +503,36 @@ export class MemoryDeduplicationJob extends ScheduledJob<
 }
 
 /**
- * Simple text similarity using Jaccard index on word tokens
+ * Find duplicates using LSH (Locality-Sensitive Hashing)
+ *
+ * Performance: O(n) average case instead of O(n²)
+ * - 100 memories: 4,950 comparisons → ~100 hash lookups
+ * - 1000 memories: 499,500 comparisons → ~1000 hash lookups
  */
-function simpleTextSimilarity(text1: string, text2: string): number {
-  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(Boolean));
-  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(Boolean));
+function findDuplicatesWithLSH(
+  memories: MemoryItem[],
+  config: { threshold: number }
+): Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> {
+  // Adapt MemoryItem to LSH input format
+  const items = memories.map((m) => ({
+    id: m.id,
+    content: m.content,
+    original: m,
+  }));
 
-  if (words1.size === 0 && words2.size === 0) return 1;
-  if (words1.size === 0 || words2.size === 0) return 0;
+  // Use LSH for O(n) duplicate detection
+  const lshResults = findDuplicatesLSH(items, {
+    threshold: config.threshold,
+    numHashes: 100, // Good balance of accuracy vs speed
+    numBands: 20, // 20 bands of 5 rows each
+  });
 
-  let intersection = 0;
-  for (const word of words1) {
-    if (words2.has(word)) intersection++;
-  }
-
-  const union = words1.size + words2.size - intersection;
-  return union > 0 ? intersection / union : 0;
+  // Map back to MemoryItem format
+  return lshResults.map((pair) => ({
+    first: (pair.first as { original: MemoryItem }).original,
+    second: (pair.second as { original: MemoryItem }).original,
+    similarity: pair.similarity,
+  }));
 }
 
 // ============================================================================

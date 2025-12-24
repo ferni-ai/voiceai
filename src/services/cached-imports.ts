@@ -51,10 +51,6 @@ interface CachedModuleRefs {
     | typeof import('./identity/user-identification.js').identifyFromMetadata
     | null;
 
-  // Startup
-  startup: typeof import('../startup.js').startup | null;
-  registerShutdownHandlers: typeof import('../startup.js').registerShutdownHandlers | null;
-
   // Environment
   isMusicEnabled: typeof import('../config/environment.js').isMusicEnabled | null;
 }
@@ -73,8 +69,6 @@ const cachedModules: CachedModuleRefs = {
   getVoiceManager: null,
   getMusicPlayer: null,
   identifyFromMetadata: null,
-  startup: null,
-  registerShutdownHandlers: null,
   isMusicEnabled: null,
 };
 
@@ -236,28 +230,6 @@ export async function getIdentifyFromMetadataCached(): Promise<
     cachedModules.identifyFromMetadata = mod.identifyFromMetadata;
   }
   return cachedModules.identifyFromMetadata!;
-}
-
-// ============================================================================
-// STARTUP
-// ============================================================================
-
-/**
- * Get cached startup functions
- */
-export async function getStartupFunctionsCached(): Promise<{
-  startup: NonNullable<CachedModuleRefs['startup']>;
-  registerShutdownHandlers: NonNullable<CachedModuleRefs['registerShutdownHandlers']>;
-}> {
-  if (!cachedModules.startup) {
-    const mod = await import('../startup.js');
-    cachedModules.startup = mod.startup;
-    cachedModules.registerShutdownHandlers = mod.registerShutdownHandlers;
-  }
-  return {
-    startup: cachedModules.startup!,
-    registerShutdownHandlers: cachedModules.registerShutdownHandlers!,
-  };
 }
 
 // ============================================================================

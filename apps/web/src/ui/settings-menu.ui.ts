@@ -59,6 +59,11 @@ export interface SettingsMenuUICallbacks {
   onThemeToggle?: () => void;
   onNotificationSettingsClick?: () => void;
   onSpotifyClick?: () => void;
+  onSpotifyRoomsClick?: () => void;
+  onEcobeeClick?: () => void;
+  onEightSleepClick?: () => void;
+  onOuraClick?: () => void;
+  onAppleHealthClick?: () => void;
   onTeamHuddleClick?: () => void;
   onTrustJourneyClick?: () => void;
   onMusicDashboardClick?: () => void;
@@ -89,6 +94,7 @@ export interface SettingsMenuUICallbacks {
   onContactsClick?: () => void;
   onGiftsClick?: () => void;
   onJournalClick?: () => void;
+  onLinkedInClick?: () => void;
   onClose?: () => void;
 }
 
@@ -149,6 +155,12 @@ const ICONS = {
 
   // Voice & Sound
   mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+  thermostat:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><line x1="12" y1="14" x2="12" y2="10"/></svg>',
+  bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 8h20"/><path d="M2 16h20"/><path d="M6 8v8"/><path d="M18 8v8"/></svg>',
+  ring: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>',
+  rooms:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="8" height="10" rx="1"/><rect x="14" y="7" width="8" height="10" rx="1"/><path d="M10 12h4"/></svg>',
   music:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
 
@@ -182,6 +194,10 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h4"/><circle cx="12" cy="18" r="1"/></svg>',
   gift:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M12 8V22"/><path d="M3 12h18"/><path d="M12 8a4 4 0 0 0-4-4c-1.7 0-3 1.3-3 3 0 1 .4 1.9 1 2.5"/><path d="M12 8a4 4 0 0 1 4-4c1.7 0 3 1.3 3 3 0 1-.4 1.9-1 2.5"/></svg>',
+
+  // Social & Professional
+  linkedin:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
 
   // Help & Support
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
@@ -672,7 +688,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Connections - Integrations & wearables -->
+          <!-- SECTION: Connections - Organized by life domain -->
           ${
             this.isSectionVisible('connections')
               ? this.renderCollapsibleSection(
@@ -680,8 +696,29 @@ class SettingsMenuUI {
                   t('menu.sections.connections'),
                   expandedSections.has('connections'),
                   `
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
-            ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
+            <!-- Your Body - Health & Rest -->
+            <div class="settings-menu__subgroup">
+              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourBody')}</span>
+              ${this.renderMenuItem('apple-health-settings', ICONS.heart, t('menu.items.appleHealth'))}
+              ${this.renderMenuItem('oura-settings', ICONS.ring, t('menu.items.oura'))}
+              ${this.renderMenuItem('eight-sleep-settings', ICONS.bed, t('menu.items.eightSleep'))}
+              ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
+            </div>
+
+            <!-- Your Calendar - Time & Work -->
+            <div class="settings-menu__subgroup">
+              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourCalendar')}</span>
+              ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
+              ${this.renderMenuItem('linkedin-settings', ICONS.linkedin, t('menu.items.linkedin'))}
+            </div>
+
+            <!-- Your Space - Home & Sound -->
+            <div class="settings-menu__subgroup">
+              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourSpace')}</span>
+              ${this.renderMenuItem('spotify-rooms', ICONS.rooms, t('menu.items.spotifyRooms'))}
+              ${this.renderMenuItem('ecobee-settings', ICONS.thermostat, t('menu.items.thermostat'))}
+            </div>
+
             <button aria-label="Settings" class="settings-menu__item" data-action="spotify" style="display: none;">
               <span class="settings-menu__icon">${ICONS.music}</span>
               <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
@@ -912,6 +949,7 @@ class SettingsMenuUI {
       commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
       'wearable-settings': { icon: ICONS.watch, label: t('menu.items.wearables') },
+      'linkedin-settings': { icon: ICONS.linkedin, label: t('menu.items.linkedin') },
       'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.calendar') },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
@@ -1114,6 +1152,21 @@ class SettingsMenuUI {
       case 'spotify':
         this.callbacks.onSpotifyClick?.();
         break;
+      case 'spotify-rooms':
+        this.callbacks.onSpotifyRoomsClick?.();
+        break;
+      case 'ecobee-settings':
+        this.callbacks.onEcobeeClick?.();
+        break;
+      case 'eight-sleep-settings':
+        this.callbacks.onEightSleepClick?.();
+        break;
+      case 'oura-settings':
+        this.callbacks.onOuraClick?.();
+        break;
+      case 'apple-health-settings':
+        this.callbacks.onAppleHealthClick?.();
+        break;
       // trust-journey removed - consolidated into your-journey
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();
@@ -1171,6 +1224,9 @@ class SettingsMenuUI {
         break;
       case 'wearable-settings':
         this.callbacks.onWearableSettingsClick?.();
+        break;
+      case 'linkedin-settings':
+        this.callbacks.onLinkedInClick?.();
         break;
       case 'video-settings':
         this.callbacks.onVideoSettingsClick?.();
@@ -1426,6 +1482,26 @@ class SettingsMenuUI {
 
       .settings-menu__section-content > * {
         overflow: hidden;
+      }
+
+      /* Subgroups within sections - organize by life domain */
+      .settings-menu__subgroup {
+        margin-bottom: var(--space-3, 12px);
+      }
+
+      .settings-menu__subgroup:last-child {
+        margin-bottom: 0;
+      }
+
+      .settings-menu__subgroup-label {
+        display: block;
+        padding: var(--space-2, 8px) var(--space-4, 16px) var(--space-1, 4px);
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
+        opacity: 0.8;
       }
 
       /* Quick Actions at bottom */

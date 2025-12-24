@@ -20,6 +20,32 @@ struct TranscriptMessage: Identifiable {
     let timestamp: Date
 }
 
+// MARK: - Emotion Event (from backend)
+
+struct EmotionEvent: Equatable {
+    let id: UUID               // Unique identifier for Equatable
+    let type: String           // "micro_expression", "concern", "emotion"
+    let value: String          // Expression/emotion type
+    let confidence: Float
+    let timestamp: Date
+
+    init?(from json: [String: Any]) {
+        guard let type = json["type"] as? String,
+              let emotion = json["emotion"] as? String else {
+            return nil
+        }
+        self.id = UUID()
+        self.type = type
+        self.value = emotion
+        self.confidence = json["confidence"] as? Float ?? 1.0
+        self.timestamp = Date()
+    }
+
+    static func == (lhs: EmotionEvent, rhs: EmotionEvent) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 // MARK: - iOS LiveKit Voice Session
 /// Native iOS implementation using LiveKit's Swift SDK.
 /// Handles AVAudioSession configuration for iOS voice chat.
@@ -38,6 +64,23 @@ class IOSLiveKitSession: ObservableObject {
     @Published private(set) var isHandoffInProgress: Bool = false
     @Published private(set) var handoffTargetPersona: String?
 
+    // MARK: - Better Than Human State (for superhuman EQ)
+
+    /// Whether user is currently speaking
+    @Published private(set) var isUserSpeaking: Bool = false
+
+    /// Current audio level (0-1) for visualization and breath sync
+    @Published private(set) var audioLevel: Float = 0
+
+    /// Duration of current speech pause (for active listening)
+    @Published private(set) var speechPauseDuration: TimeInterval = 0
+
+    /// Latest partial (non-final) transcript for anticipation
+    @Published private(set) var partialTranscript: String = ""
+
+    /// Emotion events from backend
+    @Published private(set) var emotionEvent: EmotionEvent? = nil
+
     var currentPersona: Persona {
         PersonaRegistry.get(currentPersonaId)
     }
@@ -54,10 +97,92 @@ class IOSLiveKitSession: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    // MARK: - Speech Pause Tracking
+
+    private var lastSpeechTime: Date = Date()
+    private var pauseUpdateTimer: Timer?
+    private let silenceThreshold: Float = 0.05
+    private var consecutiveSilentFrames: Int = 0
+    private let framesForPause: Int = 10  // ~160ms at 60fps
+
+    // MARK: - Call Tracking (for RelationshipArcService)
+
+    private var callStartTime: Date?
+    private var sessionId: String?
+    private var hadMeaningfulExchange: Bool = false
+
+    // MARK: - Better Than Human Services
+
+    private let emotionalHaptics = EmotionalHapticsEngine()
+
     // MARK: - Initialization
 
     init() {
         setupAudioSession()
+        setupEmotionEventHandler()
+    }
+
+    private func setupEmotionEventHandler() {
+        // React to emotion events with haptics
+        $emotionEvent
+            .compactMap { $0 }
+            .sink { [weak self] event in
+                self?.handleEmotionEventHaptics(event)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func handleEmotionEventHaptics(_ event: EmotionEvent) {
+        // Mark as meaningful exchange when emotion events occur
+        if event.type == "concern_detected" || event.type == "emotion_event" {
+            hadMeaningfulExchange = true
+
+            // Record insight shared for relationship tracking
+            RelationshipArcService.shared.recordInsightShared()
+        }
+
+        // Update Live Activity with emotional tone
+        if event.type == "concern_detected" {
+            showLiveActivityConcern()
+            updateLiveActivityEmotionalTone(.concerned)
+        } else if event.value == "joy" || event.value == "excitement" {
+            updateLiveActivityEmotionalTone(.excited)
+        } else if event.value == "empathy" {
+            updateLiveActivityEmotionalTone(.warm)
+        }
+
+        // Play haptics using EmotionalHapticsEngine API
+        switch event.type {
+        case "micro_expression":
+            switch event.value {
+            case "recognition":
+                emotionalHaptics.playMicroExpression(.recognition)
+            case "delight":
+                emotionalHaptics.playMicroExpression(.delight)
+            case "warmth", "empathy":
+                emotionalHaptics.playMicroExpression(.warmth)
+            case "interest":
+                emotionalHaptics.playMicroExpression(.interest)
+            default:
+                break
+            }
+
+        case "concern_detected":
+            emotionalHaptics.playConcern(level: .moderate)
+
+        case "emotion_event":
+            switch event.value {
+            case "joy", "excitement":
+                emotionalHaptics.playMicroExpression(.delight)
+            case "sadness", "concern":
+                emotionalHaptics.playConcern(level: .mild)
+            default:
+                break
+            }
+
+        default:
+            break
+        }
     }
 
     // MARK: - Audio Session Setup
@@ -198,6 +323,16 @@ class IOSLiveKitSession: ObservableObject {
             state = .connected
             sessionLog.info("Voice session connected")
 
+            // Track call start for relationship arc
+            callStartTime = Date()
+            hadMeaningfulExchange = false
+
+            // Start Live Activity
+            startLiveActivity(for: currentPersona, sessionId: sessionId ?? UUID().uuidString)
+
+            // Start Better Than Human tracking
+            startPauseTracking()
+
         } catch {
             sessionLog.error("Connection failed: \(error.localizedDescription)")
             state = .error("Connection failed")
@@ -239,6 +374,24 @@ class IOSLiveKitSession: ObservableObject {
         connectionProgress = ""
         isMuted = false
         deactivateAudioSession()
+
+        // Record call with RelationshipArcService
+        if let startTime = self.callStartTime {
+            let duration = Date().timeIntervalSince(startTime)
+            let meaningful = self.hadMeaningfulExchange
+            RelationshipArcService.shared.recordCall(
+                duration: duration,
+                hadMeaningfulExchange: meaningful
+            )
+            self.callStartTime = nil
+            sessionLog.info("Recorded call: \(Int(duration))s, meaningful: \(meaningful)")
+        }
+
+        // End Live Activity
+        endLiveActivity()
+
+        // Stop Better Than Human tracking
+        stopPauseTracking()
     }
 
     private var isErrorState: Bool {
@@ -342,21 +495,94 @@ class IOSLiveKitSession: ObservableObject {
     // MARK: - Transcription Handling
 
     private func handleTranscription(_ text: String, isAgent: Bool, isFinal: Bool) {
-        guard isFinal && !text.isEmpty else { return }
-
-        let message = TranscriptMessage(
-            text: text,
-            isAgent: isAgent,
-            personaId: currentPersonaId,
-            timestamp: Date()
-        )
+        guard !text.isEmpty else { return }
 
         DispatchQueue.main.async {
-            self.transcriptMessages.append(message)
+            if !isAgent {
+                // Track user speech state for Better Than Human
+                self.isUserSpeaking = true
+                self.lastSpeechTime = Date()
+                self.speechPauseDuration = 0
 
-            // Keep only last 50 messages
-            if self.transcriptMessages.count > 50 {
-                self.transcriptMessages.removeFirst()
+                // Update Live Activity speaking state
+                self.updateLiveActivitySpeakingState(.userSpeaking)
+
+                if !isFinal {
+                    // Partial transcript for anticipation
+                    self.partialTranscript = text
+                } else {
+                    self.partialTranscript = ""
+                }
+            } else {
+                // Agent is speaking
+                self.updateLiveActivitySpeakingState(.agentSpeaking)
+                if isFinal {
+                    // Show recent transcript in Dynamic Island
+                    self.updateLiveActivityTranscript(text)
+                }
+            }
+
+            // Only save final transcripts
+            if isFinal {
+                let message = TranscriptMessage(
+                    text: text,
+                    isAgent: isAgent,
+                    personaId: self.currentPersonaId,
+                    timestamp: Date()
+                )
+
+                self.transcriptMessages.append(message)
+
+                // Keep only last 50 messages
+                if self.transcriptMessages.count > 50 {
+                    self.transcriptMessages.removeFirst()
+                }
+            }
+        }
+    }
+
+    // MARK: - Speech Pause Tracking
+
+    private func startPauseTracking() {
+        pauseUpdateTimer?.invalidate()
+
+        // Update pause duration every 100ms
+        pauseUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                if self.isUserSpeaking {
+                    let pauseDuration = Date().timeIntervalSince(self.lastSpeechTime)
+                    self.speechPauseDuration = pauseDuration
+
+                    // If pause is too long, user stopped speaking
+                    if pauseDuration > 2.0 {
+                        self.isUserSpeaking = false
+                        self.speechPauseDuration = 0
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopPauseTracking() {
+        pauseUpdateTimer?.invalidate()
+        pauseUpdateTimer = nil
+        isUserSpeaking = false
+        speechPauseDuration = 0
+        partialTranscript = ""
+    }
+
+    /// Update audio level from local microphone track
+    func updateAudioLevel(_ level: Float) {
+        DispatchQueue.main.async {
+            self.audioLevel = level
+
+            // Track speech state from audio level
+            if level > self.silenceThreshold {
+                self.isUserSpeaking = true
+                self.lastSpeechTime = Date()
+                self.speechPauseDuration = 0
             }
         }
     }
@@ -398,15 +624,20 @@ class IOSLiveKitSession: ObservableObject {
                 self.state = .connected
             }
 
-        case "emotion_event":
-            // Forward to UI for avatar expression
-            if let emotion = json["emotion"] as? String {
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("FerniEmotionEvent"),
-                    object: nil,
-                    userInfo: json
-                )
+        case "emotion_event", "micro_expression", "concern_detected":
+            // Parse emotion event for Better Than Human system
+            if let event = EmotionEvent(from: json) {
+                DispatchQueue.main.async {
+                    self.emotionEvent = event
+                }
             }
+
+            // Also forward to legacy notification for backward compatibility
+            NotificationCenter.default.post(
+                name: NSNotification.Name("FerniEmotionEvent"),
+                object: nil,
+                userInfo: json
+            )
 
         default:
             break
@@ -470,6 +701,68 @@ extension IOSLiveKitSession: RoomDelegate {
             guard let self = self, self.room != nil else { return }
             self.handleDataMessage(dataCopy)
         }
+    }
+}
+
+// MARK: - Live Activity Helpers
+// These methods wrap FerniLiveActivityManager calls with proper availability annotations.
+// Live Activities are iOS-only (ActivityKit doesn't exist on macOS).
+
+extension IOSLiveKitSession {
+
+    /// Start Live Activity for a call (iOS 16.2+ only, no-op on macOS)
+    private func startLiveActivity(for persona: Persona, sessionId: String) {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.startActivity(for: persona, sessionId: sessionId)
+            FerniLiveActivityManager.shared.onConnected()
+        }
+        #endif
+    }
+
+    /// End the current Live Activity (iOS 16.2+ only, no-op on macOS)
+    private func endLiveActivity() {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.endActivity(reason: .userEnded)
+        }
+        #endif
+    }
+
+    /// Update speaking state in Live Activity (iOS 16.2+ only, no-op on macOS)
+    private func updateLiveActivitySpeakingState(_ state: SpeakingState) {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.updateSpeakingState(state)
+        }
+        #endif
+    }
+
+    /// Update transcript snippet in Live Activity (iOS 16.2+ only, no-op on macOS)
+    private func updateLiveActivityTranscript(_ text: String) {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.updateTranscript(text)
+        }
+        #endif
+    }
+
+    /// Show concern indicator in Live Activity (iOS 16.2+ only, no-op on macOS)
+    private func showLiveActivityConcern() {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.showConcern()
+        }
+        #endif
+    }
+
+    /// Update emotional tone in Live Activity (iOS 16.2+ only, no-op on macOS)
+    private func updateLiveActivityEmotionalTone(_ tone: EmotionalTone) {
+        #if os(iOS)
+        if #available(iOS 16.2, *) {
+            FerniLiveActivityManager.shared.updateEmotionalTone(tone)
+        }
+        #endif
     }
 }
 #endif

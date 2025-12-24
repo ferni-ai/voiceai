@@ -82,18 +82,14 @@ export const playGameTool: SemanticToolDefinition = {
       description: 'Type of game to play',
       required: false,
       enumValues: ['20questions', 'trivia', 'wordgame', 'riddles', 'storytelling', 'random'],
-      extractionPatterns: [
-        /play\s+(20\s+questions|trivia|word\s+game|riddles?|story)/i,
-      ],
+      extractionPatterns: [/play\s+(20\s+questions|trivia|word\s+game|riddles?|story)/i],
     },
     {
       name: 'topic',
       type: 'string',
       description: 'Topic for the game',
       required: false,
-      extractionPatterns: [
-        /(?:about|on|with)\s+(.+?)(?:\s+please)?$/i,
-      ],
+      extractionPatterns: [/(?:about|on|with)\s+(.+?)(?:\s+please)?$/i],
     },
   ],
 
@@ -161,11 +157,7 @@ export const triviaTool: SemanticToolDefinition = {
     'Ask me something',
   ],
 
-  counterExamples: [
-    'What is trivia?',
-    'Help me study',
-    'Explain this to me',
-  ],
+  counterExamples: ['What is trivia?', 'Help me study', 'Explain this to me'],
 
   arguments: [
     {
@@ -266,18 +258,14 @@ export const storytellingTool: SemanticToolDefinition = {
       description: 'Story genre',
       required: false,
       enumValues: ['adventure', 'mystery', 'fantasy', 'scifi', 'romance', 'comedy'],
-      extractionPatterns: [
-        /(adventure|mystery|fantasy|sci-?fi|romance|comedy|funny)\s+story/i,
-      ],
+      extractionPatterns: [/(adventure|mystery|fantasy|sci-?fi|romance|comedy|funny)\s+story/i],
     },
     {
       name: 'about',
       type: 'string',
       description: 'Story subject',
       required: false,
-      extractionPatterns: [
-        /story\s+(?:about|with|featuring)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/story\s+(?:about|with|featuring)\s+(.+?)$/i],
     },
   ],
 
@@ -305,8 +293,4 @@ export const storytellingTool: SemanticToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const gamesTools: SemanticToolDefinition[] = [
-  playGameTool,
-  triviaTool,
-  storytellingTool,
-];
+export const gamesTools: SemanticToolDefinition[] = [playGameTool, triviaTool, storytellingTool];

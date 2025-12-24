@@ -11,4 +11,10 @@ export { handleMicrosoftCalendarRoutes } from './microsoft-calendar.js';
 export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';
 export { handlePushRoutes } from './push.js';
+export { handleWebhookRoutes } from './webhooks.js';
+export { handleSpotifyRoomsRoutes } from './spotify-rooms.js';
+export { handleEcobeeRoutes } from './ecobee.js';
+export { handleEightSleepRoutes } from './eight-sleep.js';
+export { handleOuraRoutes } from './oura.js';
+export { handleAppleHealthRoutes } from './apple-health.js';
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

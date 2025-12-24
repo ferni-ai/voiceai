@@ -58,6 +58,8 @@ import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Relationship Management (Your People) - unified contact & gift management
 import { initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
 // openAddPerson available via Your People panel
+// Group Conversations - Team Roundtables and Conference Calls
+import { initGroupConversationUI } from './ui/group-conversation.ui.js';
 
 // Premium UI Features
 import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
@@ -215,6 +217,20 @@ import { showCalendarView, setCalendarViewCallbacks } from './ui/calendar-view.u
 import { showWearableSettings } from './ui/wearable-settings.ui.js';
 // Video Settings UI - Video session controls
 import { showVideoSettings } from './ui/video-settings.ui.js';
+// LinkedIn Settings UI - Career milestone awareness
+import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
+// Spotify Rooms UI - Multi-room music control
+import { showSpotifyRooms } from './ui/spotify-rooms.ui.js';
+// Ecobee Settings UI - Smart thermostat control
+import { showEcobeeSettings } from './ui/ecobee-settings.ui.js';
+// Eight Sleep Settings UI - Smart mattress control
+import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
+// Oura Ring Settings UI - Sleep and readiness tracking
+import { showOuraSettings } from './ui/oura-settings.ui.js';
+// Apple Health Settings UI - iOS HealthKit sync
+import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
+// LinkedIn connection for career awareness (used as fallback)
+import { connectLinkedIn, handleLinkedInCallback } from './services/linkedin.service.js';
 // Group Coaching UI - Multi-participant sessions
 import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
@@ -886,7 +902,7 @@ class VoiceAIApp {
       document.body.style.height = 'auto';
       appContent.innerHTML = `
         <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff; overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem; z-index: 1000;">
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
           ← Back to App
         </a>
       `;
@@ -1468,6 +1484,8 @@ class VoiceAIApp {
     this.safeInit('CameoRoster', () => initCameoRoster());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
+    // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
+    this.safeInit('GroupConversationUI', () => initGroupConversationUI());
     // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 
     // 🌱 Progressive Relationship Features - All quick wins in one init
@@ -1584,6 +1602,15 @@ class VoiceAIApp {
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
+        onLinkedInClick: () => {
+          initLinkedInSettings();
+          showLinkedInSettings();
+        },
+        onSpotifyRoomsClick: () => void showSpotifyRooms(),
+        onEcobeeClick: () => void showEcobeeSettings(),
+        onEightSleepClick: () => void showEightSleepSettings(),
+        onOuraClick: () => void showOuraSettings(),
+        onAppleHealthClick: () => void showAppleHealthSettings(),
         onVideoSettingsClick: () => void showVideoSettings(),
         onGroupCoachingClick: () => void showGroupCoaching(),
         onMarketplaceAdminClick: () => {
@@ -1628,6 +1655,18 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
       showTeamHuddle();
     });
+    // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
+    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
+      // Import dynamically to avoid circular deps
+      void import('./ui/group-conversation.ui.js').then((m) => {
+        m.showTeamSelector(e.detail?.preselected);
+      });
+    }) as EventListener);
+    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
+      void import('./ui/group-conversation.ui.js').then((m) => {
+        m.showAddParticipant();
+      });
+    });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -1660,6 +1699,9 @@ class VoiceAIApp {
         window.history.replaceState({}, '', window.location.pathname);
       }, 800);
     }
+
+    // 💼 Handle LinkedIn OAuth callback
+    handleLinkedInCallback();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {

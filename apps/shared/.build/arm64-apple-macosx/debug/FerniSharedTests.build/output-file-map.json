@@ -2,11 +2,81 @@
   "": {
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/master.swiftdeps"
   },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/BetterThanHumanTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/BetterThanHumanTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/BetterThanHumanTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/BetterThanHumanTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/BetterThanHumanTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/BetterThanHumanTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/ColorHexTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/ColorHexTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/ColorHexTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/ColorHexTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/ColorHexTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/ColorHexTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/EmotionalSoundEngineTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniActivityAttributesTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniSharedTests.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.d",
     "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swift.o",
     "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests~partial.swiftmodule",
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/OnboardingJourneyViewTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PersonaTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/RelationshipArcServiceTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/StageProgressViewTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.dia"
   }
 }

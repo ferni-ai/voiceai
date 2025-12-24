@@ -79,11 +79,7 @@ export const crisisSupportTool: SemanticToolDefinition = {
     'I need someone to talk to urgently',
   ],
 
-  counterExamples: [
-    "I'm feeling a bit down",
-    'Having a rough day',
-    'Work is stressful',
-  ],
+  counterExamples: ["I'm feeling a bit down", 'Having a rough day', 'Work is stressful'],
 
   arguments: [
     {
@@ -159,10 +155,7 @@ export const safetyPlanningTool: SemanticToolDefinition = {
     'Review my crisis plan with me',
   ],
 
-  counterExamples: [
-    'Plan my weekend',
-    'Safety features in cars',
-  ],
+  counterExamples: ['Plan my weekend', 'Safety features in cars'],
 
   arguments: [
     {
@@ -198,7 +191,4 @@ export const safetyPlanningTool: SemanticToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const crisisTools: SemanticToolDefinition[] = [
-  crisisSupportTool,
-  safetyPlanningTool,
-];
+export const crisisTools: SemanticToolDefinition[] = [crisisSupportTool, safetyPlanningTool];

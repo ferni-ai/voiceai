@@ -49,6 +49,9 @@ import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/capab
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
+// Embedding cache precomputation for fast semantic search
+import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -218,145 +221,199 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     // They'll be ready by the time context building needs them (after first user turn)
     fireAndForget(async () => {
       await Promise.all([
-          // Trust profiles
-          loadTrustProfiles(userId)
-            .then(() => diag.session('Trust profiles loaded for user', { userId }))
-            .catch((trustErr) =>
-              diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) })
-            ),
+        // Trust profiles
+        loadTrustProfiles(userId)
+          .then(() => diag.session('Trust profiles loaded for user', { userId }))
+          .catch((trustErr) =>
+            diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) })
+          ),
 
-          // Deep understanding profiles (silence, rhythm, relational network, etc.)
-          loadDeepUnderstandingProfiles(userId)
-            .then(() => diag.session('Deep understanding profiles loaded for user', { userId }))
-            .catch((deepErr) =>
-              diag.warn('Failed to load deep understanding profiles (non-fatal)', {
-                error: String(deepErr),
-              })
-            ),
+        // Deep understanding profiles (silence, rhythm, relational network, etc.)
+        loadDeepUnderstandingProfiles(userId)
+          .then(() => diag.session('Deep understanding profiles loaded for user', { userId }))
+          .catch((deepErr) =>
+            diag.warn('Failed to load deep understanding profiles (non-fatal)', {
+              error: String(deepErr),
+            })
+          ),
 
-          // Superhuman intelligence data
-          (async () => {
-            try {
-              // Use firebase-admin directly (same pattern as humanization/persistence.ts)
-              const admin = await import('firebase-admin');
+        // Superhuman intelligence data
+        (async () => {
+          try {
+            // Use firebase-admin directly (same pattern as humanization/persistence.ts)
+            const admin = await import('firebase-admin');
 
-              // Initialize Firebase Admin if not already done
-              if (admin.apps.length === 0) {
-                admin.initializeApp();
-              }
-              const db = admin.firestore();
+            // Initialize Firebase Admin if not already done
+            if (admin.apps.length === 0) {
+              admin.initializeApp();
+            }
+            const db = admin.firestore();
 
-              // Cast to the expected interface - firebase-admin Firestore is compatible
-              type FirestoreInterface = {
-                collection: (name: string) => {
-                  doc: (id: string) => {
-                    get: () => Promise<{ exists: boolean; data: () => unknown }>;
-                    set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
-                    delete: () => Promise<void>;
-                  };
+            // Cast to the expected interface - firebase-admin Firestore is compatible
+            type FirestoreInterface = {
+              collection: (name: string) => {
+                doc: (id: string) => {
+                  get: () => Promise<{ exists: boolean; data: () => unknown }>;
+                  set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
+                  delete: () => Promise<void>;
                 };
               };
+            };
 
-              const superhumanStore = createFirestoreSuperhumanStore(
-                async () => db as unknown as FirestoreInterface
-              );
-              await loadSuperhumanData(userId, sessionId, superhumanStore);
-              diag.session('🧠 Superhuman intelligence loaded', { userId });
-            } catch (superhumanErr) {
-              diag.warn('Superhuman data load failed (non-fatal)', {
-                error: String(superhumanErr),
-              });
+            const superhumanStore = createFirestoreSuperhumanStore(
+              async () => db as unknown as FirestoreInterface
+            );
+            await loadSuperhumanData(userId, sessionId, superhumanStore);
+            diag.session('🧠 Superhuman intelligence loaded', { userId });
+          } catch (superhumanErr) {
+            diag.warn('Superhuman data load failed (non-fatal)', {
+              error: String(superhumanErr),
+            });
+          }
+        })(),
+
+        // Predictive Intelligence - initialize pattern tracking for predictions
+        (async () => {
+          try {
+            const { initializePredictiveIntelligence } =
+              await import('../integrations/predictive-intelligence-integration.js');
+            initializePredictiveIntelligence(sessionId, userId);
+            diag.session('🔮 Predictive intelligence initialized', { userId });
+          } catch (predictiveErr) {
+            diag.warn('Predictive intelligence init failed (non-fatal)', {
+              error: String(predictiveErr),
+            });
+          }
+        })(),
+
+        // Capability Learning - load community patterns for domain fluency optimization
+        (async () => {
+          try {
+            await loadCapabilityPatterns();
+            diag.session('📚 Capability patterns loaded', { userId });
+          } catch (capErr) {
+            diag.warn('Capability patterns load failed (non-fatal)', {
+              error: String(capErr),
+            });
+          }
+        })(),
+
+        // Phase 5: Anticipatory Intelligence - load user's trigger profile
+        (async () => {
+          try {
+            const { loadUserTriggerContext } =
+              await import('../../intelligence/triggers/voice-agent-integration.js');
+            const triggerContext = await loadUserTriggerContext(userId, sessionId);
+
+            // Store in session state for access during transcript processing
+            // This will be set on userData after session state manager is created
+            (globalThis as Record<string, unknown>)[`_triggerContext_${sessionId}`] = {
+              anticipatoryIntelligence: triggerContext.profile.anticipatoryIntelligence,
+              triggerProfile: triggerContext.profile,
+            };
+
+            diag.session('🔮 Anticipatory intelligence loaded', {
+              userId,
+              learnedSignals: triggerContext.profile.anticipatoryIntelligence?.signals?.length ?? 0,
+              recentEvents:
+                triggerContext.profile.anticipatoryIntelligence?.recentEvents?.length ?? 0,
+            });
+          } catch (triggerErr) {
+            diag.warn('Anticipatory intelligence load failed (non-fatal)', {
+              error: String(triggerErr),
+            });
+          }
+        })(),
+
+        // Phase 6: Life Context Synthesis - aggregate cross-domain life context
+        (async () => {
+          try {
+            const { aggregateLifeContext, populateSynthesisTriggers, summarizeLifeContext } =
+              await import('../../intelligence/triggers/index.js');
+
+            const lifeContext = await aggregateLifeContext(userId, {
+              analysisWindowDays: 7,
+              minConfidence: 0.3,
+            });
+
+            // Populate synthesis triggers
+            const contextWithTriggers = populateSynthesisTriggers(lifeContext);
+
+            // Store for access during context building
+            (globalThis as Record<string, unknown>)[`_lifeContext_${sessionId}`] =
+              contextWithTriggers;
+
+            diag.session('🌍 Life context synthesized', {
+              userId,
+              loadScore: contextWithTriggers.overallLoadScore.toFixed(2),
+              wellbeingScore: contextWithTriggers.wellbeingScore.toFixed(2),
+              domainsWithData: contextWithTriggers.metadata.domainsWithData.length,
+              patterns: contextWithTriggers.patterns.length,
+              triggers: contextWithTriggers.synthesizedTriggers.length,
+              summary: summarizeLifeContext(contextWithTriggers),
+            });
+          } catch (lifeContextErr) {
+            diag.warn('Life context synthesis failed (non-fatal)', {
+              error: String(lifeContextErr),
+            });
+          }
+        })(),
+
+        // Phase 7: Embedding Cache Precomputation - warm cache for fast semantic search
+        (async () => {
+          try {
+            // Build memory content from user profile (already loaded)
+            const memoryContent: Array<{ content: string }> = [];
+            const priorityKeywords: string[] = [];
+
+            const profile = services.userProfile;
+            if (profile) {
+              // User's name as priority keyword
+              if (profile.name) {
+                priorityKeywords.push(profile.name);
+              }
+
+              // Preferences as searchable content
+              if (profile.preferences) {
+                for (const [key, value] of Object.entries(profile.preferences)) {
+                  const content = `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`;
+                  if (content.length >= 10) {
+                    memoryContent.push({ content });
+                  }
+                }
+              }
+
+              // Facts/memories if available on profile
+              const profileAny = profile as unknown as Record<string, unknown>;
+              const facts = profileAny.facts || profileAny.memories;
+              if (facts && typeof facts === 'object') {
+                for (const value of Object.values(facts as Record<string, unknown>)) {
+                  if (typeof value === 'string' && value.length >= 10) {
+                    memoryContent.push({ content: value });
+                  }
+                }
+              }
             }
-          })(),
 
-          // Predictive Intelligence - initialize pattern tracking for predictions
-          (async () => {
-            try {
-              const { initializePredictiveIntelligence } =
-                await import('../integrations/predictive-intelligence-integration.js');
-              initializePredictiveIntelligence(sessionId, userId);
-              diag.session('🔮 Predictive intelligence initialized', { userId });
-            } catch (predictiveErr) {
-              diag.warn('Predictive intelligence init failed (non-fatal)', {
-                error: String(predictiveErr),
+            if (memoryContent.length > 0 || priorityKeywords.length > 0) {
+              precomputeUserMemoryEmbeddings(memoryContent, {
+                limit: 50,
+                priorityKeywords,
               });
-            }
-          })(),
 
-          // Capability Learning - load community patterns for domain fluency optimization
-          (async () => {
-            try {
-              await loadCapabilityPatterns();
-              diag.session('📚 Capability patterns loaded', { userId });
-            } catch (capErr) {
-              diag.warn('Capability patterns load failed (non-fatal)', {
-                error: String(capErr),
-              });
-            }
-          })(),
-
-          // Phase 5: Anticipatory Intelligence - load user's trigger profile
-          (async () => {
-            try {
-              const { loadUserTriggerContext } =
-                await import('../../intelligence/triggers/voice-agent-integration.js');
-              const triggerContext = await loadUserTriggerContext(userId, sessionId);
-
-              // Store in session state for access during transcript processing
-              // This will be set on userData after session state manager is created
-              (globalThis as Record<string, unknown>)[`_triggerContext_${sessionId}`] = {
-                anticipatoryIntelligence: triggerContext.profile.anticipatoryIntelligence,
-                triggerProfile: triggerContext.profile,
-              };
-
-              diag.session('🔮 Anticipatory intelligence loaded', {
+              diag.session('🔥 Embedding cache precomputation started', {
                 userId,
-                learnedSignals:
-                  triggerContext.profile.anticipatoryIntelligence?.signals?.length ?? 0,
-                recentEvents:
-                  triggerContext.profile.anticipatoryIntelligence?.recentEvents?.length ?? 0,
-              });
-            } catch (triggerErr) {
-              diag.warn('Anticipatory intelligence load failed (non-fatal)', {
-                error: String(triggerErr),
+                memoryCount: memoryContent.length,
+                priorityKeywords: priorityKeywords.length,
               });
             }
-          })(),
-
-          // Phase 6: Life Context Synthesis - aggregate cross-domain life context
-          (async () => {
-            try {
-              const { aggregateLifeContext, populateSynthesisTriggers, summarizeLifeContext } =
-                await import('../../intelligence/triggers/index.js');
-
-              const lifeContext = await aggregateLifeContext(userId, {
-                analysisWindowDays: 7,
-                minConfidence: 0.3,
-              });
-
-              // Populate synthesis triggers
-              const contextWithTriggers = populateSynthesisTriggers(lifeContext);
-
-              // Store for access during context building
-              (globalThis as Record<string, unknown>)[`_lifeContext_${sessionId}`] =
-                contextWithTriggers;
-
-              diag.session('🌍 Life context synthesized', {
-                userId,
-                loadScore: contextWithTriggers.overallLoadScore.toFixed(2),
-                wellbeingScore: contextWithTriggers.wellbeingScore.toFixed(2),
-                domainsWithData: contextWithTriggers.metadata.domainsWithData.length,
-                patterns: contextWithTriggers.patterns.length,
-                triggers: contextWithTriggers.synthesizedTriggers.length,
-                summary: summarizeLifeContext(contextWithTriggers),
-              });
-            } catch (lifeContextErr) {
-              diag.warn('Life context synthesis failed (non-fatal)', {
-                error: String(lifeContextErr),
-              });
-            }
-          })(),
-        ]);
+          } catch (embeddingErr) {
+            diag.warn('Embedding precomputation failed (non-fatal)', {
+              error: String(embeddingErr),
+            });
+          }
+        })(),
+      ]);
 
       const profileDuration = Date.now() - profileLoadStart;
       logger.info({ durationMs: profileDuration }, '⚡ Background profiles loaded');

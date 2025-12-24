@@ -1,38 +1,46 @@
 # Documentation State & Cleanup Plan
 
-> Last Updated: December 20, 2024
+> Last Updated: December 23, 2024
 
 ## Executive Summary
 
-The Ferni AI codebase has **~380 markdown files** across multiple directories. This document tracks the documentation structure, cleanup progress, and maintenance guidelines.
+The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This document tracks the documentation structure, cleanup progress, and maintenance guidelines.
 
 ### December 2024 Consolidation Complete ✅
 
-Major consolidation work completed Dec 13, 2024:
-- **Brand documentation consolidated** to `design-system/brand/` (single source of truth)
-- **Brand assets separated** to `brand/` (logos, icons, favicons only)
-- **Root-level plans moved** to `docs/plans/`
-- **Duplicate files removed** (18 duplicate brand docs, frontend copies)
-- Updated all cross-references to use correct paths
+**Phase 1 (Dec 13):** Brand documentation and assets consolidation
+- Brand documentation consolidated to `design-system/brand/` (single source of truth)
+- Brand assets separated to `brand/` (logos, icons, favicons only)
+- Root-level plans moved to `docs/plans/`
+- Duplicate files removed (18 duplicate brand docs, frontend copies)
+
+**Phase 2 (Dec 23):** Documentation cleanup and reorganization
+- Moved 7 misplaced docs from `/docs/` root to proper subdirectories
+- Archived 4 completed audits to `docs/archive/completed-audits/`
+- Archived 3 completed plans to `docs/archive/completed-plans/`
+- Archived point-in-time progress report
+- Updated all cross-references and counts
 - Created [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) as implementation status source
 
 ---
 
 ## Current State (After Consolidation)
 
-### Documentation Volume
+### Documentation Volume (Updated Dec 23, 2024)
 
 | Category | Files | Notes |
 |----------|-------|-------|
 | **Root docs** | 9 | CLAUDE.md, README.md, ONBOARDING.md, etc. |
 | **CLAUDE.md files** | 11 | Root + 10 subdirectory contexts |
-| **docs/architecture/** | 49 | System design and ADRs |
-| **docs/audits/** | 45 | Quality audits |
-| **docs/plans/** | 28 | Active implementation plans |
-| **docs/guides/** | 22 | How-to guides |
-| **docs/features/** | 20 | Feature specs |
-| **docs/research/** | 3 | Research and academic analysis |
-| **docs/archive/** | 10 | Completed/outdated plans |
+| **docs/architecture/** | 60 | System design and ADRs |
+| **docs/audits/** | 50 | Active quality audits |
+| **docs/plans/** | 40 | Implementation plans |
+| **docs/guides/** | 24 | How-to guides |
+| **docs/features/** | 19 | Feature specs |
+| **docs/research/** | 4 | Research and academic analysis |
+| **docs/refactoring/** | 7 | Refactoring guides |
+| **docs/status/** | 5 | Implementation status & health |
+| **docs/archive/** | 20 | Completed/outdated docs |
 | **design-system/brand/** | 19 | All brand documentation (canonical) |
 | **brand/** | ~70 assets | Logos, icons, favicons (NO docs) |
 | **marketplace-agents/** | 70+ | Agent knowledge bases |

@@ -14,6 +14,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'route-registry' });
 
 // =============================================================================
 // Types
@@ -73,17 +76,20 @@ import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
 import { handleCalendarRoutes } from '../../api/calendar-routes.js';
 import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
+import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
 import { handleMonitoringRoutes } from '../../api/monitoring-routes.js';
 import { handlePerformanceRoutes } from '../../api/performance-routes.js';
+import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
 import { handleSpeechMetricsRoutes } from '../../api/speech-metrics-routes.js';
+import { handleSemanticRouterRoutes } from '../../api/semantic-router-routes.js';
 import { handleVoiceAuthRoutes } from '../../api/voice-auth.routes.js';
 import { handleUserRoutes } from '../../api/user-routes.js';
 import { handleWaitlistRoutes } from '../../api/waitlist-routes.js';
@@ -518,6 +524,12 @@ export const routes: RouteDefinition[] = [
     description: 'Performance metrics',
   },
   {
+    prefix: '/api/concierge',
+    handler: handleConciergeRoutes,
+    category: 'api',
+    description: 'AI Concierge - hotel quotes, restaurant reservations, appointments',
+  },
+  {
     prefix: '/api/llm-content',
     handler: handleLLMContentRoutes,
     category: 'api',
@@ -578,6 +590,12 @@ export const routes: RouteDefinition[] = [
     description: 'Speech metrics',
   },
   {
+    prefix: '/api/semantic-router',
+    handler: handleSemanticRouterRoutes,
+    category: 'api',
+    description: 'Semantic router telemetry and analytics',
+  },
+  {
     prefix: '/api/story-journey',
     handler: handleStoryJourneyRoutes,
     category: 'api',
@@ -600,6 +618,12 @@ export const routes: RouteDefinition[] = [
     handler: handleTrustJourneyRoutes,
     category: 'api',
     description: 'Trust journey',
+  },
+  {
+    prefix: '/api/relationship',
+    handler: handleRelationshipArcRoutes,
+    category: 'api',
+    description: 'Relationship arc (Better Than Human)',
   },
   {
     prefix: '/api/trust/',
@@ -755,19 +779,19 @@ export function getRouteStats(): {
  * Log all routes (for debugging).
  */
 export function logRoutes(): void {
-  console.log('\n=== Route Registry ===');
-  console.log(`Total routes: ${routes.length}`);
-
   const stats = getRouteStats();
-  console.log('\nBy category:');
-  for (const [cat, count] of Object.entries(stats.byCategory)) {
-    console.log(`  ${cat}: ${count}`);
-  }
-
-  console.log('\nRoutes:');
-  for (const route of routes) {
+  const routeList = routes.map((route) => {
     const prefix = route.prefix || '(predicate)';
     const cat = route.category ?? 'uncategorized';
-    console.log(`  [${cat}] ${prefix} - ${route.description}`);
-  }
+    return `[${cat}] ${prefix} - ${route.description}`;
+  });
+
+  log.info(
+    {
+      totalRoutes: routes.length,
+      byCategory: stats.byCategory,
+      routes: routeList,
+    },
+    'Route Registry'
+  );
 }

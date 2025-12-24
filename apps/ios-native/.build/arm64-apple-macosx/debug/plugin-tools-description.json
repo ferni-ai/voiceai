@@ -1212,7 +1212,51 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift"
         },
         {
           "kind" : "file",
@@ -1224,11 +1268,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift"
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift"
         },
         {
           "kind" : "file",
@@ -1250,11 +1314,27 @@
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarSoul.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.swift.o"
       ],
       "otherArguments" : [
@@ -1328,7 +1408,51 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swift.o"
         },
         {
           "kind" : "file",
@@ -1340,11 +1464,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o"
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swift.o"
         },
         {
           "kind" : "file",
@@ -1360,11 +1504,27 @@
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarLamp.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarSoul.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/PixarAnimations.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/Persona.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/VoiceOrb.swift"
       ],
       "tempsPath" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build",
@@ -1381,7 +1541,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/Typography.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/IOSLiveKitSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/ConnectingView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/OnboardingView.swift"
         },
         {
           "kind" : "file",
@@ -1390,6 +1562,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SplashView.swift"
         },
         {
           "kind" : "file",
@@ -1429,9 +1605,13 @@
       "moduleOutputPath" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/Modules/FerniVoiceiOS.swiftmodule",
       "objects" : [
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/FerniVoiceApp.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/Typography.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/IOSLiveKitSession.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/ConnectingView.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/OnboardingView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/PersonaPickerSheet.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/SettingsView.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/SplashView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/TranscriptView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/VoiceView.swift.o"
       ],
@@ -1518,7 +1698,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/Typography.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/IOSLiveKitSession.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/ConnectingView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/OnboardingView.swift.o"
         },
         {
           "kind" : "file",
@@ -1527,6 +1719,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/SplashView.swift.o"
         },
         {
           "kind" : "file",
@@ -1544,9 +1740,13 @@
       "prepareForIndexing" : false,
       "sources" : [
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/FerniVoiceApp.swift",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/Typography.swift",
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/IOSLiveKitSession.swift",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/ConnectingView.swift",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/OnboardingView.swift",
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/PersonaPickerSheet.swift",
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SettingsView.swift",
+        "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SplashView.swift",
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/TranscriptView.swift",
         "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/VoiceView.swift"
       ],
@@ -1571,12 +1771,12 @@
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/Modules/FerniVoiceiOSTests.swiftmodule"
         },
         {
-          "kind" : "file",
-          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/liblivekit_uniffi.a"
-        },
-        {
           "kind" : "directory",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitWebRTC.framework"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/liblivekit_uniffi.a"
         },
         {
           "kind" : "file",
@@ -1700,12 +1900,12 @@
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/Modules/FerniVoiceiOS.swiftmodule"
         },
         {
-          "kind" : "file",
-          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/liblivekit_uniffi.a"
-        },
-        {
           "kind" : "directory",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/LiveKitWebRTC.framework"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/liblivekit_uniffi.a"
         },
         {
           "kind" : "file",
@@ -11280,11 +11480,27 @@
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarLamp.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarSoul.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/PixarAnimations.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/Persona.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/VoiceOrb.swift",
       "-I",
       "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/Modules",
@@ -11352,9 +11568,13 @@
       "ios_native",
       "-c",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/FerniVoiceApp.swift",
+      "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/Typography.swift",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/IOSLiveKitSession.swift",
+      "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/ConnectingView.swift",
+      "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/OnboardingView.swift",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/PersonaPickerSheet.swift",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SettingsView.swift",
+      "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SplashView.swift",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/TranscriptView.swift",
       "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/VoiceView.swift",
       "-I",
@@ -13442,7 +13662,51 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift"
         },
         {
           "kind" : "file",
@@ -13454,11 +13718,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift"
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift"
         },
         {
           "kind" : "file",
@@ -13480,7 +13764,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/Typography.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/IOSLiveKitSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/ConnectingView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/OnboardingView.swift"
         },
         {
           "kind" : "file",
@@ -13489,6 +13785,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SplashView.swift"
         },
         {
           "kind" : "file",
@@ -13588,6 +13888,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/AvatarLamp.swift.o"
         },
         {
@@ -13596,11 +13904,51 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o"
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o"
         },
         {
           "kind" : "file",
@@ -13612,7 +13960,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swift.o"
         },
         {
           "kind" : "file",
@@ -13624,11 +13988,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/ConnectingView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/FerniVoiceApp.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/IOSLiveKitSession.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/OnboardingView.swift.o"
         },
         {
           "kind" : "file",
@@ -13640,7 +14012,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/SplashView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/TranscriptView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniVoiceiOS.build/Typography.swift.o"
         },
         {
           "kind" : "file",

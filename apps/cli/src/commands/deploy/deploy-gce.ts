@@ -417,6 +417,8 @@ function deployToSlot(
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
     // Firebase needs FIREBASE_PROJECT_ID for initialization
     FIREBASE_PROJECT_ID: CONFIG.projectId,
+    // GCS bucket for voice messages and audio storage
+    GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
     // Redis connection - using Docker host gateway to reach the Redis sidecar
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
@@ -466,6 +468,7 @@ function promoteSlot(
     NODE_ENV: 'production',
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
     FIREBASE_PROJECT_ID: CONFIG.projectId,
+    GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
   });
@@ -612,6 +615,7 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('NODE_ENV=production');
   envVarsArray.push(`GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}`);
   envVarsArray.push(`FIREBASE_PROJECT_ID=${CONFIG.projectId}`);
+  envVarsArray.push('GCS_BUCKET_NAME=ferni-voice-audio-3235');
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');

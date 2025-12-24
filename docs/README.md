@@ -12,7 +12,7 @@
 | **Contribute**             | [CONTRIBUTING.md](../CONTRIBUTING.md)       |
 | **Deploy**                 | [DEPLOYMENT.md](../DEPLOYMENT.md)           |
 | **Run commands**           | [SCRIPTS.md](../SCRIPTS.md)                 |
-| **Check implementation status** | [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) 🆕 |
+| **Check implementation status** | [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) |
 
 ---
 
@@ -32,21 +32,26 @@ voiceai/
 
 docs/
 ├── README.md              # THIS FILE - Index
-├── CURRENT-STATE-SUMMARY.md  # ⭐ AUTHORITATIVE implementation status
-├── DOCUMENTATION-STATE.md    # Documentation audit & cleanup plan
+├── status/                # Implementation status & health
+│   ├── CURRENT-STATE-SUMMARY.md  # ⭐ AUTHORITATIVE implementation status
+│   ├── DOCUMENTATION-STATE.md    # Documentation audit & cleanup plan
+│   ├── SYSTEM-HEALTH-REPORT.md   # System health tracking
+│   └── TECH-DEBT.md             # Auto-generated tech debt report
 │
-├── architecture/          # System design (49 docs)
-├── audits/                # Quality audits (45 docs)
-├── plans/                 # Implementation plans (28 active)
-├── features/              # Feature specs (21 docs)
-├── guides/                # How-to guides (22 docs)
+├── architecture/          # System design (60 docs + 5 ADRs)
+├── audits/                # Quality audits (50 active)
+├── plans/                 # Implementation plans (40 docs)
+├── features/              # Feature specs (19 docs)
+├── guides/                # How-to guides (24 docs)
 ├── deployment/            # Deploy guides (12 docs)
-├── security/              # Security checklists
-├── api/                   # API documentation
-├── operations/            # Runbooks & operations
-├── strategy/              # Business & launch docs
-├── marketplace/           # Marketplace docs
-└── archive/               # 📦 Completed/outdated plans (7 docs)
+├── security/              # Security checklists (3 docs)
+├── api/                   # API documentation (5 docs)
+├── operations/            # Runbooks & operations (4 docs)
+├── research/              # Research documents (4 docs)
+├── refactoring/           # Refactoring guides (7 docs)
+├── strategy/              # Business & launch docs (3 docs)
+├── marketplace/           # Marketplace docs (3 docs)
+└── archive/               # 📦 Completed/outdated docs (20 docs)
 
 brand/                     # Brand ASSETS (logos, icons)
 design-system/brand/       # Brand DOCUMENTATION
@@ -210,7 +215,7 @@ System and code quality audits.
 | [GAMES-AUDIT.md](./audits/GAMES-AUDIT.md)                         | Games system               |
 | [BEHAVIOR-AUDIT.md](./audits/BEHAVIOR-AUDIT.md)                   | Persona behaviors          |
 | [SDLC-AUDIT.md](./audits/SDLC-AUDIT.md)                           | Dev lifecycle              |
-| [TECH-DEBT.md](./TECH-DEBT.md)                                    | Auto-generated debt report |
+| [TECH-DEBT.md](./status/TECH-DEBT.md)                             | Auto-generated debt report |
 
 ---
 
@@ -317,7 +322,8 @@ Completed plans and outdated documentation preserved for historical reference.
 
 | Category | Contents |
 |----------|----------|
-| `completed-plans/` | 6 plans now fully implemented (Animation, Trust Systems, Personas, etc.) |
+| `completed-audits/` | 4 point-in-time audits that are resolved |
+| `completed-plans/` | 10 plans now fully implemented (Animation, Trust Systems, Personas, etc.) |
 | Root archive | Superseded status documents |
 
 See [archive/README.md](./archive/README.md) for details.
@@ -328,9 +334,9 @@ See [archive/README.md](./archive/README.md) for details.
 
 For documentation cleanup status and maintenance guidelines, see:
 
-- [DOCUMENTATION-STATE.md](./DOCUMENTATION-STATE.md) - Documentation audit & cleanup plan
-- [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) - **Authoritative** implementation status
+- [status/DOCUMENTATION-STATE.md](./status/DOCUMENTATION-STATE.md) - Documentation audit & cleanup plan
+- [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) - **Authoritative** implementation status
 
 ---
 
-_Last updated: December 20, 2024_
+_Last updated: December 23, 2024_

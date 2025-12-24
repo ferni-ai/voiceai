@@ -23,12 +23,89 @@
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarAnimations.dia"
   },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/ActiveListening.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Anticipation.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BetterThanHumanEngine.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/BreathSync.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.d",
     "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o",
     "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex~partial.swiftmodule",
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.dia"
   },
   "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/Persona.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/Persona.d",
@@ -44,6 +121,13 @@
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.dia"
   },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.d",
     "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o",
@@ -51,12 +135,40 @@
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.dia"
   },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.d",
     "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o",
     "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb~partial.swiftmodule",
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.dia"
   },
   "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/VoiceOrb.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/ios-native/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.d",

@@ -13,6 +13,7 @@ import UIKit
 struct FerniVoiceApp: App {
     @StateObject private var session = IOSLiveKitSession()
     @StateObject private var appState = AppState()
+    @StateObject private var relationshipService = RelationshipArcService.shared
     @State private var showSplash = true
 
     var body: some Scene {
@@ -21,17 +22,36 @@ struct FerniVoiceApp: App {
                 ContentView()
                     .environmentObject(session)
                     .environmentObject(appState)
+                    .environmentObject(relationshipService)
                     .preferredColorScheme(.dark)
 
-                // Animated splash screen overlay
+                // Animated splash screen overlay - uses MagicalSplash with relationship awareness
                 if showSplash {
-                    SplashView(showSplash: $showSplash)
+                    splashView
                         .transition(.opacity)
                         .zIndex(1)
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: showSplash)
         }
+    }
+
+    /// Relationship-aware splash view
+    /// - Returns user name and greeting based on relationship stage
+    @ViewBuilder
+    private var splashView: some View {
+        let isReturning = !relationshipService.isFirstSession
+        let userName = UserDefaults.standard.string(forKey: "userName")
+        let stageColor = Color(hexString: relationshipService.currentStage.color)
+
+        MagicalSplashView(
+            onComplete: {
+                showSplash = false
+            },
+            isReturningUser: isReturning,
+            userName: userName,
+            personaColor: stageColor
+        )
     }
 }
 
@@ -81,6 +101,7 @@ class AppState: ObservableObject {
 struct ContentView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var relationshipService: RelationshipArcService
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
     var body: some View {
@@ -89,8 +110,24 @@ struct ContentView: View {
                 // Main app
                 mainAppView
             } else {
-                // First launch onboarding
-                OnboardingView(isComplete: $hasCompletedOnboarding)
+                // First launch onboarding using new journey-based flow
+                OnboardingJourneyView(
+                    onComplete: { result in
+                        // Save user preferences
+                        if let name = result.userName {
+                            UserDefaults.standard.set(name, forKey: "userName")
+                        }
+
+                        // Save selected reasons for personalization
+                        let reasonStrings = result.selectedReasons.map { $0.rawValue }
+                        UserDefaults.standard.set(reasonStrings, forKey: "onboardingReasons")
+
+                        // Mark onboarding complete
+                        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                        hasCompletedOnboarding = true
+                    },
+                    personaColor: Color(hexString: session.currentPersona.primaryHex)
+                )
             }
         }
     }
@@ -107,6 +144,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
+                .environmentObject(relationshipService)
         }
         .sheet(isPresented: $appState.showTranscript) {
             TranscriptView()

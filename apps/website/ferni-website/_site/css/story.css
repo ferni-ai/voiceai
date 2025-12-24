@@ -493,7 +493,7 @@
 .team-card__avatar {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 50%; /* Circle, not rounded square */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -501,6 +501,7 @@
   font-size: 18px;
   font-weight: 700;
   color: white;
+  background: transparent; /* Ensure no background */
   margin-bottom: var(--space-4);
 }
 

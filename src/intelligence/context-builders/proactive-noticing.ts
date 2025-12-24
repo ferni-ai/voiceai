@@ -28,6 +28,14 @@ import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { loadPersonaContent } from '../../services/persona-content-loader.js';
 
+// Tonal memory - remember HOW things were said
+import {
+  getBestInsight as getBestTonalInsight,
+  markInsightSurfaced as markTonalInsightSurfaced,
+  recordTonalObservation,
+  type TonalInsight,
+} from '../../services/trust-systems/tonal-memory.js';
+
 const log = createLogger({ module: 'ProactiveNoticing' });
 
 // ============================================================================
@@ -492,6 +500,37 @@ async function buildProactiveNoticingContext(
   const frequency = detectFrequencyPattern(userText, userData, analysis);
   if (frequency) patterns.push(frequency);
 
+  // 4. Check for tonal patterns (HOW they're saying things)
+  // Also record this observation for future pattern detection
+  const currentTopic = analysis?.topics?.primary;
+  if (currentTopic && analysis?.emotion) {
+    recordTonalObservation({
+      userId,
+      topic: currentTopic,
+      voiceSignals: {
+        pitch: analysis.emotion.intensity, // Using intensity as proxy for pitch variation
+        energy: analysis.emotion.intensity,
+        speechRate: (userData as Record<string, unknown> | undefined)?.speechRate as
+          | number
+          | undefined,
+        tremor: analysis.emotion.markers?.includes('tremor') ?? false,
+      },
+      emotion: analysis.emotion.primary,
+      confidence: analysis.emotion.confidence || 0.7,
+    });
+  }
+
+  // Check if we have a tonal pattern worth surfacing
+  const tonalInsight = getBestTonalInsight(userId);
+  if (tonalInsight && tonalInsight.confidence > 0.6 && tonalInsight.occurrences >= 3) {
+    patterns.push({
+      type: 'energy' as const, // Using 'energy' type for tonal patterns
+      description: tonalInsight.observation,
+      confidence: tonalInsight.confidence,
+      surfacePhrase: tonalInsight.surfacingPhrase,
+    });
+  }
+
   // No patterns detected and no dynamic trigger
   if (patterns.length === 0 && !dynamicTrigger) return [];
 
@@ -533,6 +572,11 @@ async function buildProactiveNoticingContext(
 
   // Record that we surfaced a notice
   lastNoticeSurfaced.set(userId, turnCount);
+
+  // If this was a tonal pattern, mark it as surfaced
+  if (bestPattern.type === 'energy' && tonalInsight) {
+    markTonalInsightSurfaced(userId, tonalInsight.topic);
+  }
 
   // Build guidance with pattern categories if available
   let patternGuidance = '';

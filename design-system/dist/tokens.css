@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-23T22:48:30.660Z
+ * Build: 2025-12-24T14:23:29.952Z
  */
 
 /* ========================================
@@ -539,6 +539,32 @@
   --container-6xl: 72rem;
   --container-7xl: 80rem;
   --container-full: 100%;
+
+  /* Gradient Tokens - Use instead of hardcoding linear-gradient() */
+  --gradient-surface-subtle: linear-gradient(180deg, var(--color-background-primary) 0%, var(--color-background-secondary) 100%);
+  --gradient-surface-warm: linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-secondary) 100%);
+  --gradient-surface-elevated: linear-gradient(180deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%);
+  --gradient-persona-glow: linear-gradient(135deg, var(--persona-tint) 0%, transparent 100%);
+  --gradient-persona-intense: linear-gradient(135deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
+  --gradient-persona-subtle: linear-gradient(135deg, var(--persona-tint) 0%, transparent 50%, transparent 100%);
+  --gradient-persona-radial: radial-gradient(circle at center, var(--persona-glow) 0%, transparent 70%);
+  --gradient-persona-spotlight: radial-gradient(ellipse at top, var(--persona-tint) 0%, transparent 50%);
+  --gradient-accent-primary: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-pressed) 100%);
+  --gradient-accent-hover: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent-primary) 100%);
+  --gradient-accent-glow: linear-gradient(180deg, var(--color-accent-glow) 0%, transparent 100%);
+  --gradient-semantic-success: linear-gradient(135deg, var(--color-semantic-success) 0%, var(--color-semantic-successGlow) 100%);
+  --gradient-semantic-error: linear-gradient(135deg, var(--color-semantic-error) 0%, var(--color-semantic-errorGlow) 100%);
+  --gradient-semantic-warning: linear-gradient(135deg, var(--color-semantic-warning) 0%, var(--color-semantic-warningGlow) 100%);
+  --gradient-semantic-info: linear-gradient(135deg, var(--color-semantic-info) 0%, var(--color-semantic-infoGlow) 100%);
+  --gradient-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  --gradient-fade-out: linear-gradient(180deg, var(--color-background-primary) 0%, transparent 100%);
+  --gradient-fade-in: linear-gradient(180deg, transparent 0%, var(--color-background-primary) 100%);
+  --gradient-vignette: radial-gradient(ellipse at center, transparent 40%, var(--color-background-overlay) 100%);
+  --gradient-glass-specular: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%);
+  --gradient-glass-fresnel: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+  --gradient-glass-tint: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-progress-bar: linear-gradient(90deg, var(--persona-secondary) 0%, var(--persona-primary) 100%);
+  --gradient-progress-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
 }
 
 /* Shadows - Midnight Theme */
@@ -595,6 +621,55 @@
   --glass-border-light: 1px solid rgba(0, 0, 0, 0.08);
   --glass-border-medium: 1px solid rgba(0, 0, 0, 0.12);
   --glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Vibrancy - iOS-style saturation boost */
+:root {
+  --glass-vibrancy-none: saturate(1) contrast(1);
+  --glass-vibrancy-subtle: saturate(1.2) contrast(1.02);
+  --glass-vibrancy-medium: saturate(1.5) contrast(1.05);
+  --glass-vibrancy-high: saturate(1.8) contrast(1.1);
+  --glass-vibrancy-ultra: saturate(2) contrast(1.15);
+}
+
+/* Specular - Light reflection effects */
+:root {
+  --glass-specular-gradient: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%);
+  --glass-specular-position: top left;
+  --glass-specular-size: 200% 200%;
+  --glass-shimmer-gradient: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  --glass-shimmer-animation: specularShimmer 3s ease-in-out infinite;
+  --glass-fresnel-light: linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+  --glass-fresnel-dark: linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.03) 100%);
+}
+
+/* Noise - Organic grain texture */
+:root {
+  --glass-noise-opacity-subtle: 0.015;
+  --glass-noise-opacity-medium: 0.025;
+  --glass-noise-opacity-visible: 0.04;
+  --glass-noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  --glass-noise-blend: overlay;
+}
+
+/* Interaction - Dynamic response */
+:root {
+  --glass-hover-blur-increase: 2px;
+  --glass-active-scale: 0.98;
+  --glass-focus-ring: 0 0 0 2px var(--persona-primary);
+  --glass-tilt-max: 5deg;
+  --glass-tilt-perspective: 1000px;
+  --glass-tilt-transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --glass-ripple-duration: 600ms;
+  --glass-ripple-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --glass-ripple-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Chromatic - Light refraction at edges */
+:root {
+  --glass-chromatic-offset: 0.5px;
+  --glass-chromatic-red: rgba(255, 0, 0, 0.03);
+  --glass-chromatic-blue: rgba(0, 0, 255, 0.03);
 }
 
 /* ========================================
@@ -1260,6 +1335,174 @@
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
   border: var(--glass-border-medium);
   box-shadow: var(--glass-inner-glow);
+}
+
+/* ========================================
+   LIQUID GLASS - iOS 26 Inspired
+   Apple's new translucent, vibrant design
+   ======================================== */
+
+/* Liquid Glass Base - Use on modals, cards, overlays */
+.glass-liquid {
+  position: relative;
+  background: var(--glass-surface-2);
+  backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  border: var(--glass-border-light);
+  box-shadow: var(--glass-inner-glow);
+  overflow: hidden;
+  transition: 
+    backdrop-filter 300ms var(--ease-gentle),
+    transform 300ms var(--ease-spring),
+    box-shadow 300ms var(--ease-gentle);
+}
+
+/* Specular highlight layer (pseudo-element) */
+.glass-liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-specular-gradient);
+  background-size: var(--glass-specular-size);
+  background-position: var(--glass-specular-position);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-gentle);
+}
+
+/* Noise texture layer */
+.glass-liquid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--glass-noise-texture);
+  background-size: 128px 128px;
+  opacity: var(--glass-noise-opacity-subtle);
+  mix-blend-mode: var(--glass-noise-blend);
+  pointer-events: none;
+}
+
+/* Hover: Deeper blur, brighter specular */
+.glass-liquid:hover {
+  backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+}
+
+.glass-liquid:hover::before {
+  opacity: 0.8;
+}
+
+/* Active: Slight press */
+.glass-liquid:active {
+  transform: scale(var(--glass-active-scale));
+}
+
+/* Focus: Persona-colored ring */
+.glass-liquid:focus-visible {
+  outline: none;
+  box-shadow: var(--glass-inner-glow), var(--glass-focus-ring);
+}
+
+/* Liquid Glass - Light variant */
+.glass-liquid-light {
+  background: var(--glass-surface-1);
+  backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+}
+
+/* Liquid Glass - Heavy variant */
+.glass-liquid-heavy {
+  background: var(--glass-surface-3);
+  backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+  -webkit-backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+}
+
+/* Liquid Glass with Tilt Effect (3D) */
+.glass-liquid-tilt {
+  transform-style: preserve-3d;
+  perspective: var(--glass-tilt-perspective);
+  transition: var(--glass-tilt-transition);
+}
+
+.glass-liquid-tilt:hover {
+  /* JS should set --tilt-x and --tilt-y based on cursor position */
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+}
+
+/* Liquid Glass with Shimmer Animation */
+.glass-liquid-shimmer::before {
+  background: var(--glass-shimmer-gradient);
+  background-size: 200% 100%;
+  animation: var(--glass-shimmer-animation);
+}
+
+@keyframes specularShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Liquid Glass with Fresnel Edge Effect */
+.glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-light);
+}
+
+[data-theme="midnight"] .glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-dark);
+}
+
+/* Liquid Glass with Chromatic Aberration */
+.glass-liquid-chromatic {
+  position: relative;
+}
+
+.glass-liquid-chromatic::before {
+  box-shadow: 
+    calc(var(--glass-chromatic-offset) * -1) 0 0 var(--glass-chromatic-red),
+    var(--glass-chromatic-offset) 0 0 var(--glass-chromatic-blue);
+}
+
+/* Liquid Glass Ripple Effect */
+.glass-liquid-ripple {
+  overflow: hidden;
+}
+
+.glass-liquid-ripple .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--glass-ripple-color);
+  transform: scale(0);
+  animation: glassRipple var(--glass-ripple-duration) var(--glass-ripple-easing) forwards;
+  pointer-events: none;
+}
+
+@keyframes glassRipple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Reduced Motion: Disable animations */
+@media (prefers-reduced-motion: reduce) {
+  .glass-liquid,
+  .glass-liquid::before,
+  .glass-liquid::after {
+    transition: none;
+    animation: none;
+  }
+  
+  .glass-liquid-tilt:hover {
+    transform: none;
+  }
+  
+  .glass-liquid-shimmer::before {
+    animation: none;
+  }
+  
+  .glass-liquid-ripple .ripple {
+    animation: none;
+    display: none;
+  }
 }
 
 /* ========================================
@@ -2503,4 +2746,132 @@
   .toast-progress-bar { animation: none; transform: scaleX(0); }
   .toast-loading .toast-icon { animation: none; }
   .toast-container:hover .toast { transition: none; }
+}
+
+
+/* ========================================
+   ACCESSIBILITY - HIGH CONTRAST MODE
+   ======================================== */
+/* High contrast mode - for users who need enhanced visibility */
+@media (prefers-contrast: more) {
+  :root {
+    /* Boost text contrast */
+    --color-text-primary: #000000;
+    --color-text-secondary: #1a1a1a;
+    --color-text-muted: #333333;
+    
+    /* Remove subtle backgrounds */
+    --color-background-glass: transparent;
+    --glass-surface-1: rgba(255, 255, 255, 0.95);
+    --glass-surface-2: rgba(255, 255, 255, 0.98);
+    --glass-surface-3: #ffffff;
+    
+    /* Remove blur effects - they can hinder readability */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Stronger borders */
+    --color-border-subtle: rgba(0, 0, 0, 0.3);
+    --color-border-medium: rgba(0, 0, 0, 0.5);
+    --color-border-strong: rgba(0, 0, 0, 0.8);
+    
+    /* Simplified shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35);
+    
+    /* Disable noise and complex effects */
+    --glass-noise-opacity-subtle: 0;
+    --glass-noise-opacity-medium: 0;
+    --glass-noise-opacity-visible: 0;
+    --glass-vibrancy-subtle: saturate(1) contrast(1);
+    --glass-vibrancy-medium: saturate(1) contrast(1);
+    --glass-vibrancy-high: saturate(1) contrast(1);
+    
+    /* Bolder focus rings */
+    --glass-focus-ring: 0 0 0 3px #000000;
+  }
+  
+  [data-theme="midnight"] {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #f0f0f0;
+    --color-text-muted: #e0e0e0;
+    
+    --glass-surface-1: rgba(0, 0, 0, 0.95);
+    --glass-surface-2: rgba(0, 0, 0, 0.98);
+    --glass-surface-3: #000000;
+    
+    --color-border-subtle: rgba(255, 255, 255, 0.3);
+    --color-border-medium: rgba(255, 255, 255, 0.5);
+    --color-border-strong: rgba(255, 255, 255, 0.8);
+    
+    --glass-focus-ring: 0 0 0 3px #ffffff;
+  }
+  
+  /* Ensure buttons have visible borders */
+  button, .btn {
+    border: 2px solid currentColor !important;
+  }
+  
+  /* Remove decorative gradients in high contrast */
+  .gradient-decorative,
+  [class*="gradient-"] {
+    background: none !important;
+    background-color: var(--color-background-primary) !important;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  :root {
+    /* Let the system handle colors */
+    --color-text-primary: CanvasText;
+    --color-text-secondary: CanvasText;
+    --color-background-primary: Canvas;
+    --color-background-elevated: Canvas;
+    --color-accent-primary: LinkText;
+    --color-border-medium: CanvasText;
+  }
+  
+  /* Ensure focus indicators are visible */
+  *:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+  
+  /* Button styling for forced colors */
+  button, .btn {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  
+  button:hover, .btn:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* Reduced transparency for users who prefer it */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    /* Use solid backgrounds instead of translucent */
+    --glass-surface-1: var(--color-background-secondary);
+    --glass-surface-2: var(--color-background-tertiary);
+    --glass-surface-3: var(--color-background-elevated);
+    
+    /* Remove backdrop filters */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Solid overlays */
+    --backdrop-light: var(--color-background-overlay);
+    --backdrop-medium: var(--color-background-overlay);
+    --backdrop-heavy: var(--color-background-overlay);
+  }
 }

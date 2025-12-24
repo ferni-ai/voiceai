@@ -616,7 +616,7 @@ export function startDDoSMonitoring(serverName: string, intervalMs = 30_000): ()
     checkAndAlertDDoS(serverName).catch((err) => {
       // Silently ignore alert failures to prevent cascading issues
       if (process.env.NODE_ENV === 'development') {
-        console.error('[DDoS Monitor] Alert failed:', err);
+        log.error({ error: String(err) }, 'DDoS Monitor alert failed');
       }
     });
   }, intervalMs);

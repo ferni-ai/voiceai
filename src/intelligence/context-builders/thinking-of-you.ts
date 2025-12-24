@@ -31,6 +31,14 @@ import {
   type ProactiveTrigger,
 } from './dynamic-trigger-utils.js';
 
+// Between-session thinking - "I've been thinking about what you said"
+import {
+  getThinkingMomentToSurface,
+  markThinkingSurfaced,
+  incrementSessionCount,
+  type ThinkingMoment,
+} from '../../services/trust-systems/between-session-thinking.js';
+
 const log = createLogger({ module: 'ThinkingOfYouContextBuilder' });
 
 // ============================================================================
@@ -187,7 +195,47 @@ export const thinkingOfYouBuilder: ContextBuilder = {
       }
     }
 
-    // Only surface callbacks in turns 1-3 (greeting phase)
+    // ============================================================================
+    // BETWEEN-SESSION THINKING - "I've been thinking about what you said"
+    // Priority over regular callbacks - this is the deepest form of care
+    // ============================================================================
+    if (turnCount <= 2 && userId) {
+      // Increment session count on first turn to update thinking records
+      if (turnCount === 1) {
+        incrementSessionCount(userId);
+      }
+
+      // Check for a thinking moment to surface
+      const thinkingMoment = getThinkingMomentToSurface(userId, personaId, sessionId);
+
+      if (thinkingMoment) {
+        // 60% chance to surface (don't do it every time)
+        if (Math.random() < 0.6) {
+          const injection = buildThinkingMomentInjection(thinkingMoment, personaId);
+          injections.push(injection);
+
+          // Mark as surfaced
+          markThinkingSurfaced(thinkingMoment.record.id);
+          sessionCallbacks.set(sessionId, { surfaced: true, timestamp: Date.now() });
+
+          log.info(
+            {
+              userId,
+              personaId,
+              topic: thinkingMoment.record.topic,
+              thinkingType: thinkingMoment.record.thinkingType,
+              sessionsSince: thinkingMoment.record.sessionsSince,
+            },
+            '💭 BETTER-THAN-HUMAN: Surfacing between-session thinking'
+          );
+
+          // Return early - thinking moment takes precedence
+          return injections;
+        }
+      }
+    }
+
+    // Only surface other callbacks in turns 1-3 (greeting phase)
     // Dynamic triggers above can still fire in later turns
     if (turnCount > 3) {
       return injections;
@@ -411,6 +459,66 @@ function getPersonaVoice(personaId: string, _callback: MemoryCallback): string {
   };
 
   return voices[personaId] || voices.ferni;
+}
+
+/**
+ * Build injection for between-session thinking moment
+ */
+function buildThinkingMomentInjection(moment: ThinkingMoment, personaId: string): ContextInjection {
+  const { record, phrase, shouldAskPermission } = moment;
+
+  const typeDescriptions: Record<string, string> = {
+    mulling: "You've been processing what they said",
+    connecting: 'You connected something they said to something else',
+    realizing: 'You had a realization about their situation',
+    questioning: 'You have questions about what they shared',
+    remembering: 'Something reminded you of them',
+    concerned: "You've been worried about them",
+  };
+
+  const personaVoices: Record<string, string> = {
+    ferni: `Ferni shares this gently, like he's been genuinely mulling it over:
+"I was thinking about what you said..." with warmth and curiosity.`,
+    'maya-santos': `Maya connects it to patterns she's noticed:
+"Something you said has been on my mind..." with supportive energy.`,
+    'alex-chen': `Alex is direct but caring:
+"I've been processing what you shared..." with practical warmth.`,
+    'jordan-taylor': `Jordan makes it feel like excited connection:
+"So I couldn't stop thinking about..." with genuine enthusiasm.`,
+    'peter-john': `Peter frames it thoughtfully:
+"I've been reflecting on something you mentioned..." with analytical care.`,
+    'nayan-patel': `Nayan brings gentle wisdom:
+"What you shared has been sitting with me..." with peaceful presence.`,
+  };
+
+  const content = `[💭 I'VE BEEN THINKING - ${record.thinkingType.toUpperCase()}]
+
+${typeDescriptions[record.thinkingType] || "You've been thinking about them"}
+
+TOPIC: ${record.topic}
+${record.userQuote ? `THEIR WORDS: "${record.userQuote}"` : ''}
+${record.sessionsSince > 0 ? `SESSIONS SINCE: ${record.sessionsSince}` : ''}
+EMOTIONAL WEIGHT: ${record.emotionalWeight}
+
+HOW TO BRING IT UP:
+${phrase}
+
+${shouldAskPermission ? `⚠️ Ask permission first: "Can I share something I was thinking about?"` : ''}
+
+PERSONA VOICE (${personaId}):
+${personaVoices[personaId] || personaVoices.ferni}
+
+IMPORTANT:
+- This is SUPERHUMAN: Real friends rarely follow up on what you said sessions ago
+- Make it feel natural, like a thought that's been percolating
+- Show genuine curiosity about their answer
+- If they seem uncomfortable, gracefully move on
+- Don't make it feel like you're keeping a dossier on them`;
+
+  return createHighInjection('between_session_thinking', content, {
+    category: 'memory',
+    confidence: 0.85,
+  });
 }
 
 // Clean up old session states periodically

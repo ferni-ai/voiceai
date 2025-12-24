@@ -147,6 +147,18 @@ export interface EngagementDataMessage extends BaseMessage {
 }
 
 /**
+ * Set language message - voice-triggered app language change
+ *
+ * Sent when the user asks Ferni to change the app language.
+ * The frontend will change the locale WITHOUT reloading, keeping
+ * the LiveKit connection alive.
+ */
+export interface SetLanguageMessage extends BaseMessage {
+  type: 'set_language';
+  language: string;
+}
+
+/**
  * All possible message types
  */
 export type FrontendMessage =
@@ -158,7 +170,8 @@ export type FrontendMessage =
   | MoodMessage
   | CelebrationMessage
   | MusicStateMessage
-  | EngagementDataMessage;
+  | EngagementDataMessage
+  | SetLanguageMessage;
 
 /**
  * Publisher configuration
@@ -525,6 +538,28 @@ export class FrontendPublisher {
     return this.send<EngagementDataMessage>({
       type: 'engagement_data',
       ...data,
+    });
+  }
+
+  // ============================================================================
+  // APP SETTINGS MESSAGES
+  // ============================================================================
+
+  /**
+   * Send a language change request to the frontend
+   *
+   * The frontend will change the locale WITHOUT reloading the page,
+   * keeping the LiveKit connection alive. This enables voice-triggered
+   * language changes without disconnecting the call.
+   *
+   * @param language - The locale code (e.g., 'es', 'fr', 'ja')
+   */
+  async sendSetLanguage(language: string): Promise<boolean> {
+    this.logger.info({ language }, '🌐 Sending language change to frontend');
+
+    return this.send<SetLanguageMessage>({
+      type: 'set_language',
+      language,
     });
   }
 

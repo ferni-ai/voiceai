@@ -23,6 +23,21 @@ public struct PixarVoiceOrb: View {
     public let size: CGFloat
     public let emotionHint: EmotionHint?
 
+    // MARK: - Better Than Human Integration
+    /// Optional state from BetterThanHumanEngine for superhuman EQ
+    public var betterThanHumanState: BetterThanHumanState?
+
+    // MARK: - Pixar Personality
+    /// Optional personality engine for Luxo Jr.-style behaviors
+    public var personalityEngine: PixarPersonalityEngine?
+
+    /// Whether to show expressive eyes
+    public var showEyes: Bool = true
+
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Continuous animation driver
     @State private var time: Double = 0
     @State private var isTimerRunning = false
@@ -46,11 +61,31 @@ public struct PixarVoiceOrb: View {
     @State private var warmthScale: CGFloat = 1.0
     @State private var sparkOpacity: CGFloat = 0
 
-    public init(persona: Persona, isActive: Bool, size: CGFloat, emotionHint: EmotionHint? = nil) {
+    // Better Than Human effects
+    @State private var listeningOffset: CGPoint = .zero
+    @State private var listeningScale: CGFloat = 1.0
+    @State private var listeningRotation: CGFloat = 0
+    @State private var microWarmth: CGFloat = 0
+    @State private var microSpark: CGFloat = 0
+    @State private var anticipationLean: CGFloat = 0
+    @State private var anticipationWarmth: CGFloat = 0
+
+    public init(
+        persona: Persona,
+        isActive: Bool,
+        size: CGFloat,
+        emotionHint: EmotionHint? = nil,
+        betterThanHumanState: BetterThanHumanState? = nil,
+        personalityEngine: PixarPersonalityEngine? = nil,
+        showEyes: Bool = true
+    ) {
         self.persona = persona
         self.isActive = isActive
         self.size = size
         self.emotionHint = emotionHint
+        self.betterThanHumanState = betterThanHumanState
+        self.personalityEngine = personalityEngine
+        self.showEyes = showEyes
     }
 
     public var body: some View {
@@ -77,8 +112,15 @@ public struct PixarVoiceOrb: View {
             // Layer 6: Memory spark (on top)
             memorySpark
 
-            // Layer 7: Persona initials
-            personaInitials
+            // Layer 7: Pixar Eyes (optional)
+            if showEyes {
+                pixarEyes
+            }
+
+            // Layer 8: Persona initials (when no eyes)
+            if !showEyes {
+                personaInitials
+            }
         }
         .frame(width: size * 2.2, height: size * 2.2)
         .onAppear {
@@ -94,13 +136,40 @@ public struct PixarVoiceOrb: View {
                 triggerEmotionReaction(emotion)
             }
         }
+        // MARK: - Better Than Human State Changes
+        .onChange(of: betterThanHumanState?.listeningGesture) { gesture in
+            if let gesture = gesture {
+                applyListeningGesture(gesture)
+            }
+        }
+        .onChange(of: betterThanHumanState?.microExpression) { expression in
+            if let expression = expression {
+                applyMicroExpression(expression)
+            }
+        }
+        .onChange(of: betterThanHumanState?.anticipatedEmotion) { emotion in
+            if let emotion = emotion {
+                applyAnticipation(emotion)
+            } else {
+                clearAnticipation()
+            }
+        }
+        .onChange(of: betterThanHumanState?.concernLevel) { level in
+            if let level = level, level != .none {
+                applyConcern(level)
+            }
+        }
     }
 
     // MARK: - Soul Shimmer
 
     private var soulShimmer: some View {
-        let phase = sin(time * .pi * 2 / PixarTiming.shimmerCycle)
-        let opacity = (0.4 + phase * 0.2) * Double(activeIntensity)
+        // Reduce motion: static shimmer
+        let phase = reduceMotion ? 0.5 : sin(time * .pi * 2 / PixarTiming.shimmerCycle)
+
+        // Apply time-aware brightness for contextual presence
+        let baseOpacity = (0.4 + phase * 0.2) * Double(activeIntensity)
+        let opacity = baseOpacity * Double(timeAwareBrightness)
 
         return Circle()
             .fill(
@@ -122,12 +191,15 @@ public struct PixarVoiceOrb: View {
     // MARK: - Soul Warmth
 
     private var soulWarmth: some View {
-        Circle()
+        // Combined warmth from reactions + micro-expressions + anticipation
+        let totalWarmth = warmthOpacity + microWarmth + anticipationWarmth
+
+        return Circle()
             .fill(
                 RadialGradient(
                     colors: [
-                        Color(hex: 0xc4a265).opacity(warmthOpacity * 0.6),
-                        Color(hex: 0xc4a265).opacity(warmthOpacity * 0.2),
+                        Color(hex: 0xc4a265).opacity(totalWarmth * 0.6),
+                        Color(hex: 0xc4a265).opacity(totalWarmth * 0.2),
                         Color.clear
                     ],
                     center: .center,
@@ -143,12 +215,15 @@ public struct PixarVoiceOrb: View {
     // MARK: - Memory Spark
 
     private var memorySpark: some View {
-        Circle()
+        // Combined spark from reactions + micro-expressions
+        let totalSpark = sparkOpacity + microSpark
+
+        return Circle()
             .fill(
                 RadialGradient(
                     colors: [
-                        Color(hex: 0xc4a265).opacity(sparkOpacity * 0.9),
-                        Color(hex: 0xc4a265).opacity(sparkOpacity * 0.4),
+                        Color(hex: 0xc4a265).opacity(totalSpark * 0.9),
+                        Color(hex: 0xc4a265).opacity(totalSpark * 0.4),
                         Color.clear
                     ],
                     center: .center,
@@ -163,11 +238,12 @@ public struct PixarVoiceOrb: View {
     // MARK: - Avatar Body
 
     private var avatarBody: some View {
-        // Combined Lamp transforms
-        let combinedScaleX = lampScaleX * reactionScale
-        let combinedScaleY = lampScaleY * reactionScale
-        let combinedOffsetY = lampOffsetY + reactionOffset.y
-        let combinedRotation = lampRotation + reactionRotation
+        // Combined Lamp transforms (base breathing + reactions + listening + anticipation)
+        let combinedScaleX = lampScaleX * reactionScale * listeningScale
+        let combinedScaleY = lampScaleY * reactionScale * listeningScale
+        let combinedOffsetY = lampOffsetY + reactionOffset.y + listeningOffset.y + anticipationLean
+        let combinedOffsetX = reactionOffset.x + listeningOffset.x
+        let combinedRotation = lampRotation + reactionRotation + listeningRotation
 
         return Circle()
             .fill(
@@ -180,7 +256,7 @@ public struct PixarVoiceOrb: View {
             .frame(width: size, height: size)
             .shadow(color: persona.glowColor.opacity(0.5), radius: 10)
             .scaleEffect(x: combinedScaleX, y: combinedScaleY)
-            .offset(x: reactionOffset.x, y: combinedOffsetY)
+            .offset(x: combinedOffsetX, y: combinedOffsetY)
             .rotationEffect(.degrees(Double(combinedRotation)))
     }
 
@@ -226,6 +302,43 @@ public struct PixarVoiceOrb: View {
             .rotationEffect(.degrees(Double(lampRotation + reactionRotation)))
     }
 
+    // MARK: - Pixar Eyes
+
+    @ViewBuilder
+    private var pixarEyes: some View {
+        // Combined personality transforms
+        let squishFactor = personalityEngine?.squishFactor ?? 0
+        let curiousLean = personalityEngine?.curiousLean ?? 0
+        let fidgetOffset = personalityEngine?.fidgetOffset ?? .zero
+
+        Group {
+            if let personality = personalityEngine {
+                // Full personality-driven eyes
+                ExpressivePixarEyes(
+                    orbSize: size,
+                    personaColor: persona.primaryColor,
+                    personality: personality
+                )
+            } else {
+                // Simple self-animating eyes
+                SimpleAnimatedEyes(
+                    orbSize: size,
+                    personaColor: persona.primaryColor
+                )
+            }
+        }
+        // Apply Lamp + personality transforms
+        .scaleEffect(
+            x: (lampScaleX * reactionScale * listeningScale) * (1 - squishFactor * 0.3),
+            y: (lampScaleY * reactionScale * listeningScale) * (1 + squishFactor * 0.3)
+        )
+        .offset(
+            x: reactionOffset.x + listeningOffset.x + fidgetOffset.x,
+            y: lampOffsetY + reactionOffset.y + listeningOffset.y + anticipationLean + fidgetOffset.y
+        )
+        .rotationEffect(.degrees(Double(lampRotation + reactionRotation + listeningRotation + curiousLean)))
+    }
+
     // MARK: - Simulated Audio Level
 
     private var simulatedAudioLevel: CGFloat {
@@ -244,6 +357,17 @@ public struct PixarVoiceOrb: View {
 
         activeIntensity = isActive ? 1.0 : 0.0
 
+        // Respect reduce motion preference
+        if reduceMotion {
+            // Static orb - no continuous animation
+            // Just set static values and return
+            lampScaleX = 1.0
+            lampScaleY = 1.0
+            lampOffsetY = 0
+            lampRotation = 0
+            return
+        }
+
         // 60fps continuous timer
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
             time += 1.0 / 60.0
@@ -252,7 +376,13 @@ public struct PixarVoiceOrb: View {
     }
 
     private func updateBreathing() {
-        let cycle = isActive ? PixarTiming.breathCycleActive : PixarTiming.breathCycleIdle
+        // Skip if reduce motion is enabled
+        guard !reduceMotion else { return }
+
+        // Use synced breath rate from BetterThanHuman if available
+        let defaultCycle = isActive ? PixarTiming.breathCycleActive : PixarTiming.breathCycleIdle
+        let cycle = betterThanHumanState?.breathRate ?? defaultCycle
+
         let phase = sin(time * .pi * 2 / cycle)
 
         let intensity = isActive ? SquashStretch.active : SquashStretch.idle
@@ -264,9 +394,52 @@ public struct PixarVoiceOrb: View {
         lampRotation = intensity.rotation * CGFloat(phase)
     }
 
+    // MARK: - Time-Aware Context
+
+    /// Adjust glow brightness based on time of day
+    private var timeAwareBrightness: CGFloat {
+        let hour = Calendar.current.component(.hour, from: Date())
+
+        // Morning (6-12): Full brightness, fresh energy
+        // Afternoon (12-18): Slightly reduced
+        // Evening (18-22): Warm, softer
+        // Night (22-6): Gentle, calming
+        switch hour {
+        case 6..<12:
+            return 1.0
+        case 12..<18:
+            return 0.95
+        case 18..<22:
+            return 0.85
+        default:
+            return 0.75  // Late night - calming presence
+        }
+    }
+
     // MARK: - Emotion Reactions
 
     private func triggerEmotionReaction(_ emotion: EmotionHint) {
+        // Skip complex animations if reduce motion is enabled
+        // (Still allow simple opacity changes)
+        guard !reduceMotion else {
+            // Just trigger soul effects (opacity-based, not motion)
+            switch emotion.soulEffect {
+            case .warmthBloom, .warmthGlow:
+                warmthOpacity = 0.5
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    warmthOpacity = 0
+                }
+            case .memorySpark:
+                sparkOpacity = 0.6
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    sparkOpacity = 0
+                }
+            default:
+                break
+            }
+            return
+        }
+
         // Lamp animation
         switch emotion.lampAnimation {
         case .none:
@@ -439,6 +612,101 @@ public struct PixarVoiceOrb: View {
             sparkOpacity = 0
         }
     }
+
+    // MARK: - Better Than Human Methods
+
+    /// Apply active listening gesture transform
+    private func applyListeningGesture(_ gesture: ListeningGesture) {
+        guard gesture != .none else {
+            // Reset listening state
+            withAnimation(SpringPreset.gentle) {
+                listeningOffset = .zero
+                listeningScale = 1.0
+                listeningRotation = 0
+            }
+            return
+        }
+
+        let transform = gesture.transform
+
+        withAnimation(.easeOut(duration: gesture.duration * 0.4)) {
+            listeningOffset.y = transform.translateY
+            listeningRotation = transform.rotate
+            listeningScale = transform.scale
+        }
+
+        // Return to neutral after gesture
+        DispatchQueue.main.asyncAfter(deadline: .now() + gesture.duration) { [self] in
+            withAnimation(SpringPreset.gentle) {
+                listeningOffset = .zero
+                listeningScale = 1.0
+                listeningRotation = 0
+            }
+        }
+    }
+
+    /// Apply micro-expression soul effect (subliminal 40-150ms)
+    private func applyMicroExpression(_ type: MicroExpressionType) {
+        let effect = type.soulEffect
+
+        // Instant application (no animation - subliminal)
+        microWarmth = effect.warmthOpacity
+        microSpark = effect.sparkOpacity
+
+        // Fade out over expression duration
+        DispatchQueue.main.asyncAfter(deadline: .now() + type.duration) { [self] in
+            withAnimation(.easeOut(duration: type.duration / 2)) {
+                microWarmth = 0
+                microSpark = 0
+            }
+        }
+    }
+
+    /// Apply anticipation visual shift (lean toward user)
+    private func applyAnticipation(_ emotion: AnticipatedEmotion) {
+        let visual = emotion.visualShift
+
+        withAnimation(.easeOut(duration: 0.3)) {
+            anticipationLean = visual.leanY
+            anticipationWarmth = visual.warmth
+        }
+    }
+
+    /// Clear anticipation state
+    private func clearAnticipation() {
+        withAnimation(.easeOut(duration: 0.4)) {
+            anticipationLean = 0
+            anticipationWarmth = 0
+        }
+    }
+
+    /// Apply concern visual response
+    private func applyConcern(_ level: ConcernLevel) {
+        switch level {
+        case .none:
+            break
+        case .mild:
+            withAnimation(.easeInOut(duration: 0.3)) {
+                anticipationWarmth = 0.3
+                anticipationLean = -2
+            }
+        case .moderate:
+            withAnimation(.easeInOut(duration: 0.3)) {
+                anticipationWarmth = 0.5
+                anticipationLean = -3
+            }
+        case .high:
+            withAnimation(.easeInOut(duration: 0.3)) {
+                anticipationWarmth = 0.7
+                anticipationLean = -4
+            }
+        }
+
+        // Auto-clear after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [self] in
+            clearAnticipation()
+        }
+    }
 }
 
 // MARK: - Stable Wrapper
@@ -449,12 +717,20 @@ public struct StablePixarVoiceOrb: View, Equatable {
     public let isActive: Bool
     public let size: CGFloat
     public let emotionHint: EmotionHint?
+    public var betterThanHumanState: BetterThanHumanState?
 
-    public init(personaId: String, isActive: Bool, size: CGFloat, emotionHint: EmotionHint? = nil) {
+    public init(
+        personaId: String,
+        isActive: Bool,
+        size: CGFloat,
+        emotionHint: EmotionHint? = nil,
+        betterThanHumanState: BetterThanHumanState? = nil
+    ) {
         self.personaId = personaId
         self.isActive = isActive
         self.size = size
         self.emotionHint = emotionHint
+        self.betterThanHumanState = betterThanHumanState
     }
 
     public var body: some View {
@@ -462,7 +738,8 @@ public struct StablePixarVoiceOrb: View, Equatable {
             persona: PersonaRegistry.get(personaId),
             isActive: isActive,
             size: size,
-            emotionHint: emotionHint
+            emotionHint: emotionHint,
+            betterThanHumanState: betterThanHumanState
         )
     }
 
@@ -471,5 +748,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
         lhs.isActive == rhs.isActive &&
         lhs.size == rhs.size &&
         lhs.emotionHint == rhs.emotionHint
+        // Note: BetterThanHumanState changes frequently, so we don't compare it
+        // The orb handles state changes via onChange internally
     }
 }
