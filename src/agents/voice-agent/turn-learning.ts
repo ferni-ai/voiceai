@@ -22,6 +22,12 @@ import { learnTemporalPattern } from '../../intelligence/context-builders/tempor
 import { recordSharedMoment } from '../../intelligence/context-builders/deep-relationship.js';
 import { recordTrustSystemsData } from './index.js';
 
+// Capability learning - track engagement with surfaced capabilities
+import {
+  onUserEngagedWithCapability,
+  getRecentlySurfacedDomains,
+} from '../../intelligence/capability-learning.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -242,11 +248,78 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
       }).catch((err) => {
         logger.debug({ error: String(err) }, 'Shared moment recording (non-critical)');
       });
+
+    // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities
+    // If user asks follow-up, shows interest, or continues on a capability topic, mark engaged
+    const sessionKey = `${ctx.userId}-${ctx.sessionId}`;
+    const recentDomains = getRecentlySurfacedDomains(sessionKey);
+
+    if (recentDomains.length > 0) {
+      // Detect engagement signals
+      const engagementSignals = detectCapabilityEngagement(ctx.userText);
+
+      if (engagementSignals.engaged) {
+        // Mark all recently surfaced domains as engaged
+        for (const domain of recentDomains) {
+          onUserEngagedWithCapability(sessionKey, domain);
+        }
+        logger.debug(
+          { domains: recentDomains, signals: engagementSignals.reasons },
+          '📚 Capability engagement detected'
+        );
+      }
+    }
     }
   }
 
   return {
     trustRecorded,
     learningRecorded,
+  };
+}
+
+// ============================================================================
+// CAPABILITY ENGAGEMENT DETECTION
+// ============================================================================
+
+/**
+ * Detect if user is engaging with a recently surfaced capability.
+ *
+ * Engagement signals:
+ * - Follow-up questions ("tell me more", "how does that work?")
+ * - Interest expressions ("that's cool", "I'd like that")
+ * - Continuations ("yeah", "okay", "go on")
+ * - NOT topic changes ("anyway", "but actually", "different question")
+ */
+function detectCapabilityEngagement(userText: string): {
+  engaged: boolean;
+  reasons: string[];
+} {
+  const lower = userText.toLowerCase();
+  const reasons: string[] = [];
+
+  // Positive engagement signals
+  const followUpPatterns = /\b(tell me more|how does|can you|what about|show me|help me with)\b/i;
+  const interestPatterns = /\b(that's? (cool|interesting|helpful|great)|i'd like|sounds good|yes please|love that)\b/i;
+  const continuationPatterns = /\b(yeah|okay|sure|go on|continue|and then)\b/i;
+  const questionMark = userText.includes('?');
+
+  // Negative signals (disengagement / topic change)
+  const topicChangePatterns = /\b(anyway|actually|different|something else|never ?mind|forget it|change|instead)\b/i;
+
+  if (followUpPatterns.test(lower)) reasons.push('follow_up');
+  if (interestPatterns.test(lower)) reasons.push('interest');
+  if (continuationPatterns.test(lower) && userText.length < 20) reasons.push('continuation');
+  if (questionMark && !topicChangePatterns.test(lower)) reasons.push('question');
+
+  // Topic change signals indicate disengagement
+  if (topicChangePatterns.test(lower)) {
+    return { engaged: false, reasons: ['topic_change'] };
+  }
+
+  // Engaged if any positive signal detected
+  return {
+    engaged: reasons.length > 0,
+    reasons,
   };
 }

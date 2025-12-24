@@ -48,6 +48,9 @@ import {
 
 // Better-than-human API services cleanup
 import { clearEmotionalArc } from '../../intelligence/context-builders/emotional/advanced-voice-emotion.js';
+
+// Capability learning - track which capabilities resonated
+import { finalizeSessionLearning } from '../../intelligence/capability-learning.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
@@ -58,6 +61,9 @@ import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanu
 
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
+
+// Relationship Arc - Better Than Human relationship progression
+import { incrementSessionStats } from '../../intelligence/context-builders/relationship-arc/storage.js';
 // Resilience metrics
 import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 
@@ -297,6 +303,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       // Deep understanding profiles
       userId ? cleanupDeepUnderstandingProfiles(userId, sessionId) : Promise.resolve(),
 
+      // Capability learning - track which capabilities resonated for collective learning
+      userId ? cleanupCapabilityLearning(userId, sessionId) : Promise.resolve(),
+
       // Trial time recording
       userData?.isTrialUser && userId
         ? (async () => {
@@ -336,6 +345,15 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
                 newBalance: result.newBalance,
               });
             }
+          })()
+        : Promise.resolve(),
+
+      // Relationship Arc - track session for stage progression (Better Than Human)
+      userId
+        ? (async () => {
+            const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
+            await incrementSessionStats(userId, turnCount);
+            diag.session('💕 Relationship arc session recorded', { userId, turnCount });
           })()
         : Promise.resolve(),
 
@@ -519,6 +537,14 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         const { cleanupSessionDynamics } =
           await import('../integrations/session-dynamics-integration.js');
         cleanupSessionDynamics(sessionId);
+      })(),
+
+      // Routing observability (log summary & cleanup)
+      (async () => {
+        const { logSessionRoutingSummary, cleanupSessionStats } =
+          await import('../../tools/semantic-router/integration/routing-observability.js');
+        logSessionRoutingSummary(sessionId);
+        cleanupSessionStats(sessionId);
       })(),
     ]);
 
@@ -783,6 +809,16 @@ async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: strin
     }
   } catch (learningErr) {
     diag.warn('Collective learning flush failed (non-fatal)', { error: String(learningErr) });
+  }
+}
+
+async function cleanupCapabilityLearning(userId: string, sessionId: string): Promise<void> {
+  try {
+    const sessionKey = `${userId}-${sessionId}`;
+    await finalizeSessionLearning(sessionKey, userId);
+    diag.session('📚 Capability learning finalized', { userId, sessionId });
+  } catch (capErr) {
+    diag.warn('Capability learning cleanup failed (non-fatal)', { error: String(capErr) });
   }
 }
 

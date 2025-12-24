@@ -1,6 +1,9 @@
 packages:
   - .
   - apps/web
+  - apps/async
+  - apps/intelligence-worker
+  - packages/shared-types
   - design-system
 
 patchedDependencies:

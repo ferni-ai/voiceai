@@ -22,6 +22,11 @@ import { deprecationService } from '../../tools/deprecation.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
 import type { UserData } from '../shared/types.js';
 
+// Capability learning - track tool execution for collective learning
+import { onToolExecuted } from '../../intelligence/capability-learning.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -98,7 +103,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
   const logger = log();
 
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
-    void (async () => {
+    fireAndForget(async () => {
       const toolStartTime = Date.now();
 
       // Verbose tool result logging (controlled by admin config)
@@ -171,6 +176,13 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
+
+          // 📚 CAPABILITY LEARNING: Track tool execution for collective learning
+          // This feeds into domain fluency optimization over time
+          if (!hasError) {
+            const sessionKey = `${services.userId || 'anon'}-${sessionId}`;
+            onToolExecuted(sessionKey, toolName);
+          }
 
           // 🔄 BEHAVIOR TOOL SIGNAL EMISSION
           // When behavior tools execute, emit signals to frontend for avatar updates
@@ -257,7 +269,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           });
         }
       }
-    })();
+    }, 'tool-tracking-handler');
   });
 
   return {

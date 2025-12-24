@@ -47,6 +47,8 @@ import {
   completeTurnProfiling,
 } from '../shared/performance/turn-profiler.js';
 import { speculateTTS } from '../shared/performance/speculative-tts.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -306,7 +308,7 @@ You are their lifeline right now. Be fully present.`,
     // without going through the LLM. This provides <20ms responses.
     // ================================================================
     if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
-      const { toolResult, metrics } = result.semanticRouting;
+      const { toolResult, metrics, routingPath } = result.semanticRouting;
 
       diag.state('🎯 SEMANTIC ROUTING: Bypassing LLM for direct tool response', {
         toolId: toolResult.toolId,
@@ -314,7 +316,21 @@ You are their lifeline right now. Be fully present.`,
         matchPath: metrics.matchPath,
         latencyMs: metrics.latencyMs,
         cacheHit: metrics.cacheHit,
+        routingPath,
       });
+
+      // Record for observability (fire-and-forget)
+      fireAndForget(async () => {
+        const { recordRoutingPathEvent } =
+          await import('../../tools/semantic-router/integration/routing-observability.js');
+        recordRoutingPathEvent(
+          services.sessionId,
+          services.userId || 'anonymous',
+          routingPath || 'semantic_auto_execute',
+          toolResult.toolId,
+          metrics.latencyMs
+        );
+      }, 'semantic-routing-observability');
 
       // Send data message about semantic routing (for frontend/analytics)
       try {
@@ -322,25 +338,23 @@ You are their lifeline right now. Be fully present.`,
           toolId: toolResult.toolId,
           confidence: metrics.confidence,
           bypassed_llm: true,
+          routingPath,
         });
       } catch {
         // Non-critical
       }
 
-      // Speak the tool result directly
+      // Speak the tool result through the coordinator to prevent overlap
       if (currentSession && toolResult.speakableResponse) {
-        currentSession.say(toolResult.speakableResponse, { allowInterruptions: true });
+        const { coordinatedSay } = await import('../../speech/coordination/index.js');
+        coordinatedSay(services.sessionId, toolResult.speakableResponse, { allowInterruptions: true });
       }
 
       // Track tool usage (fire-and-forget)
-      void (async () => {
-        try {
-          const { recordToolUsage } = await import('../../tools/semantic-router/learning/index.js');
-          recordToolUsage(services.userId || 'anonymous', toolResult.toolId);
-        } catch {
-          // Non-critical
-        }
-      })();
+      fireAndForget(async () => {
+        const { recordToolUsage } = await import('../../tools/semantic-router/learning/index.js');
+        recordToolUsage(services.userId || 'anonymous', toolResult.toolId);
+      }, 'semantic-routing-tool-usage');
 
       // Early return - don't proceed to LLM
       return;

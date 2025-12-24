@@ -210,7 +210,7 @@ async function processVoiceEmotion(
 
   // Process voice humanization features
   if (sessionId && voiceEmotion.prosody) {
-    await processVoiceHumanization(voiceEmotion, sessionId, userData, logger);
+    await processVoiceHumanization(voiceEmotion, sessionId, userData, sendDataMessage, logger);
   }
 
   // Get emotion modulation for response
@@ -245,6 +245,7 @@ async function processVoiceHumanization(
   voiceEmotion: VoiceEmotionResult,
   sessionId: string,
   userData: UserData | undefined,
+  sendDataMessage: (type: string, payload: Record<string, unknown>) => Promise<void>,
   logger: ReturnType<typeof log>
 ): Promise<void> {
   try {
@@ -282,7 +283,14 @@ async function processVoiceHumanization(
 
     // Multi-signal laughter detection
     if (advFlags.enableMultiSignalLaughter) {
-      await processMultiSignalLaughter(voiceEmotion, sessionId, userData, advFlags, logger);
+      await processMultiSignalLaughter(
+        voiceEmotion,
+        sessionId,
+        userData,
+        advFlags,
+        sendDataMessage,
+        logger
+      );
     }
 
     // Word-timing rhythm analysis
@@ -340,6 +348,7 @@ async function processMultiSignalLaughter(
   sessionId: string,
   userData: UserData | undefined,
   advFlags: ReturnType<typeof getSessionFlags>,
+  sendDataMessage: (type: string, payload: Record<string, unknown>) => Promise<void>,
   logger: ReturnType<typeof log>
 ): Promise<void> {
   try {
@@ -364,6 +373,18 @@ async function processMultiSignalLaughter(
         },
         '😂 Multi-signal laughter detected'
       );
+
+      // =========================================================================
+      // BETTER THAN HUMAN: Send laughter to frontend for avatar response
+      // When user laughs, Ferni's avatar should smile/laugh along!
+      // =========================================================================
+      await sendDataMessage('laughter_detected', {
+        laughType: laughterResult.laughType,
+        socialFunction: laughterResult.socialFunction,
+        confidence: laughterResult.confidence,
+        suggestedResponse: laughterResult.suggestedResponse.type,
+        timestamp: Date.now(),
+      }).catch((e) => logger.debug({ error: String(e) }, 'Laughter publish (non-critical)'));
 
       // Record metrics
       if (advFlags.enableMetrics) {

@@ -1,0 +1,41 @@
+{
+  "name": "@ferni/intelligence-worker",
+  "version": "0.1.0",
+  "description": "Intelligence worker for Ferni - pattern detection, predictive analytics, trust recording",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:fast": "node esbuild.config.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.0.0",
+    "@google-cloud/pubsub": "^4.10.0",
+    "express": "5.1.0",
+    "firebase-admin": "^13.6.0",
+    "pino": "10.1.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "^22.15.29",
+    "esbuild": "^0.25.5",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+

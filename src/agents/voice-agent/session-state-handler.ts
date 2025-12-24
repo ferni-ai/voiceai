@@ -49,6 +49,8 @@ import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-gene
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
 import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 // ============================================================================
 // TYPES
@@ -663,18 +665,14 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       }
 
       // GAME DUCKING: Lower music volume when user speaks during a game
-      void (async () => {
-        try {
-          const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } =
-            await import('../../services/games/index.js');
-          if (isGameCurrentlyActive()) {
-            duckForUserGuess();
-            updateGameActivity();
-          }
-        } catch {
-          // Games module not loaded
+      fireAndForget(async () => {
+        const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } =
+          await import('../../services/games/index.js');
+        if (isGameCurrentlyActive()) {
+          duckForUserGuess();
+          updateGameActivity();
         }
-      })();
+      }, 'game-ducking-on-user-speak');
 
       // Schedule potential backchannel after user has been speaking a while
       if ((userData.turnCount || 0) >= 3) {
@@ -838,17 +836,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       }, 10000);
 
       // GAME UNDUCK: Restore music volume after user finishes speaking
-      void (async () => {
-        try {
-          const { isGameCurrentlyActive, unduckAfterGuess } =
-            await import('../../services/games/index.js');
-          if (isGameCurrentlyActive()) {
-            unduckAfterGuess();
-          }
-        } catch {
-          // Games module not loaded
+      fireAndForget(async () => {
+        const { isGameCurrentlyActive, unduckAfterGuess } =
+          await import('../../services/games/index.js');
+        if (isGameCurrentlyActive()) {
+          unduckAfterGuess();
         }
-      })();
+      }, 'game-unduck-on-user-finish');
     }
 
     // ----------------------------------------------------------------
@@ -959,14 +953,14 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                   confidence: insight.confidence,
                 });
 
-                void (async () => {
+                fireAndForget(async () => {
                   const { humanizationAnalytics } =
                     await import('../../conversation/humanization/analytics.js');
                   humanizationAnalytics.recordApplied(sessionId, 'voice_print_detection', {
                     emotion: insight.emotion,
                     confidence: insight.confidence,
                   });
-                })();
+                }, 'humanization-analytics-voice-print');
               }
             } catch (insightErr) {
               getLogger().debug({ error: insightErr }, 'Failed to deliver voice insight');
@@ -1021,47 +1015,43 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         });
 
         // Try LLM-driven response using safe wrapper to prevent native crash
-        void (async () => {
-          try {
-            if (silenceInstructions.instructions) {
-              // FIX: Use safeGenerateReply to prevent native mutex crash
-              // The SDK's generateReply can timeout and trigger a native crash
-              // in @livekit/rtc-node when cleanup races with the mutex
-              const result = await safeGenerateReply(session, {
-                instructions: silenceInstructions.instructions,
-                allowInterruptions: silenceInstructions.allowInterruptions,
-                fallbackMessage: silenceInstructions.fallback,
-                context: `silence-${silenceInstructions.type}`,
+        fireAndForget(async () => {
+          if (silenceInstructions.instructions) {
+            // FIX: Use safeGenerateReply to prevent native mutex crash
+            // The SDK's generateReply can timeout and trigger a native crash
+            // in @livekit/rtc-node when cleanup races with the mutex
+            const result = await safeGenerateReply(session, {
+              instructions: silenceInstructions.instructions,
+              allowInterruptions: silenceInstructions.allowInterruptions,
+              fallbackMessage: silenceInstructions.fallback,
+              context: `silence-${silenceInstructions.type}`,
+            });
+
+            if (result.success) {
+              diag.state('LLM silence response complete', { type: silenceInstructions.type });
+            } else if (result.usedFallback) {
+              diag.state('LLM silence used fallback', {
+                type: silenceInstructions.type,
+                error: result.error,
               });
-
-              if (result.success) {
-                diag.state('LLM silence response complete', { type: silenceInstructions.type });
-              } else if (result.usedFallback) {
-                diag.state('LLM silence used fallback', {
-                  type: silenceInstructions.type,
-                  error: result.error,
-                });
-              }
-            } else if (silenceInstructions.fallback) {
-              // No LLM instructions (e.g., music playing) - use fallback if present
-              sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
             }
-
-            // If we offered music, actually play it after a short delay
-            if (silenceInstructions.type === 'music_offering') {
-              setTimeout(() => {
-                void (async () => {
-                  const musicStarted = await playAmbientMusicDuringSilence();
-                  if (musicStarted) {
-                    diag.state('Started ambient music during silence');
-                  }
-                })();
-              }, 3000);
-            }
-          } catch (silenceErr) {
-            getLogger().warn({ error: silenceErr }, 'Silence response error');
+          } else if (silenceInstructions.fallback) {
+            // No LLM instructions (e.g., music playing) - use fallback if present
+            sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
           }
-        })();
+
+          // If we offered music, actually play it after a short delay
+          if (silenceInstructions.type === 'music_offering') {
+            setTimeout(() => {
+              fireAndForget(async () => {
+                const musicStarted = await playAmbientMusicDuringSilence();
+                if (musicStarted) {
+                  diag.state('Started ambient music during silence');
+                }
+              }, 'play-ambient-music-during-silence');
+            }, 3000);
+          }
+        }, 'llm-driven-silence-response');
 
         silenceResponseCount++;
         lastSilenceResponseAt = Date.now();

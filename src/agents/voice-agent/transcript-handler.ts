@@ -55,6 +55,7 @@ import type { ConversationContext as FeedbackContext } from '../../tools/feedbac
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
+import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import {
   validateTranscript,
   isLikelyNoise,
@@ -940,6 +941,32 @@ async function processFinalTranscript(
   // ===============================================
   if (isSemanticRoutingEnabled() && event.transcript) {
     try {
+      // Build voice prosody context from userData (Better Than Human)
+      const voiceProsody = userData.voiceEmotion
+        ? {
+            stressLevel: userData.voiceEmotion.stressLevel,
+            arousal: userData.voiceEmotion.arousal,
+            valence: userData.voiceEmotion.valence,
+            anxietyMarkers: userData.voiceEmotion.anxietyMarkers ? ['detected'] : undefined,
+            voiceTremor: userData.voiceEmotion.prosody?.breathiness
+              ? userData.voiceEmotion.prosody.breathiness > 0.7
+              : undefined,
+          }
+        : undefined;
+
+      // Calculate WPM from prosody if available
+      const wordsPerMinute = userData.voiceEmotion?.prosody?.speechRate;
+
+      // Build detected emotion from voice analysis
+      const detectedEmotion = userData.voiceEmotion
+        ? {
+            emotion: String(userData.voiceEmotion.primary),
+            intensity: userData.voiceEmotion.confidence,
+            valence: userData.voiceEmotion.valence,
+            source: 'voice' as const,
+          }
+        : undefined;
+
       const routingResult = await routeTranscript(event.transcript, {
         userId: userId || 'anonymous',
         sessionId,
@@ -948,6 +975,10 @@ async function processFinalTranscript(
         // ConversationHistory and recentTools are optional
         conversationHistory: [],
         recentTools: [],
+        // Better Than Human: Voice prosody signals
+        voiceProsody,
+        wordsPerMinute,
+        detectedEmotion,
       });
 
       // If semantic router handled it, skip normal processing
@@ -955,11 +986,24 @@ async function processFinalTranscript(
         diag.state('🎯 Semantic router handled transcript', {
           toolId: routingResult.toolId,
           confidence: routingResult.confidence,
+          // Better Than Human features
+          emotionalArc: routingResult.emotionalArc?.trend,
+          prosodyBoost: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
+          hasIntervention: !!routingResult.suggestedIntervention,
         });
 
         // Still track the turn count and user message
         userData.turnCount = (userData.turnCount || 0) + 1;
         userData.lastUserMessage = event.transcript;
+
+        // If there's a suggested intervention, store it for potential use
+        if (routingResult.suggestedIntervention) {
+          userData.suggestedIntervention = routingResult.suggestedIntervention;
+          diag.state('🧠 Proactive intervention suggested', {
+            type: routingResult.suggestedIntervention.type,
+            urgency: routingResult.suggestedIntervention.urgency,
+          });
+        }
 
         return; // Skip Gemini processing
       }
@@ -968,7 +1012,14 @@ async function processFinalTranscript(
       if (routingResult.attempted) {
         diag.state('🎯 Semantic routing attempted, passing to Gemini', {
           confidence: routingResult.confidence,
+          emotionalTrend: routingResult.emotionalArc?.trend,
+          boostedTools: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
         });
+
+        // Store prosody boost for Gemini context injection
+        if (routingResult.prosodyBoost?.boostedTools?.length) {
+          userData.prosodyBoost = routingResult.prosodyBoost;
+        }
       }
     } catch (routingError) {
       // Non-fatal - let Gemini handle
@@ -1122,57 +1173,53 @@ function processTrialStatus(
     return;
   }
 
-  void (async () => {
-    try {
-      const sessionDurationMs = Date.now() - services.sessionStartTime;
-      const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
+  fireAndForget(async () => {
+    const sessionDurationMs = Date.now() - services.sessionStartTime;
+    const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
 
-      // Update userData with latest trial status
-      userData.trialStatus = {
-        inTrial: trialStatus.inTrial,
+    // Update userData with latest trial status
+    userData.trialStatus = {
+      inTrial: trialStatus.inTrial,
+      timeRemainingMs: trialStatus.timeRemainingMs,
+      approachingEnd: trialStatus.approachingEnd,
+      trialEnded: trialStatus.trialEnded,
+    };
+
+    // If trial is ending and we should show transition, inject it
+    if (trialStatus.showTransition && trialStatus.transitionPrompt) {
+      userData.hasSpokenTrialEndPrompt = true;
+      diag.session('Trial ending - speaking transition prompt', {
         timeRemainingMs: trialStatus.timeRemainingMs,
-        approachingEnd: trialStatus.approachingEnd,
         trialEnded: trialStatus.trialEnded,
-      };
+      });
 
-      // If trial is ending and we should show transition, inject it
-      if (trialStatus.showTransition && trialStatus.transitionPrompt) {
-        userData.hasSpokenTrialEndPrompt = true;
-        diag.session('Trial ending - speaking transition prompt', {
-          timeRemainingMs: trialStatus.timeRemainingMs,
-          trialEnded: trialStatus.trialEnded,
-        });
-
-        // Speak the transition prompt after the agent's next response via coordinated speech
-        setTimeout(() => {
-          try {
-            if (session && !conversationManager.isAgentSpeaking()) {
-              coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
-                allowInterruptions: true,
-              });
-            } else if (session) {
-              // Agent is speaking - retry after another delay
-              setTimeout(() => {
-                try {
-                  if (session && !conversationManager.isAgentSpeaking()) {
-                    coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
-                      allowInterruptions: true,
-                    });
-                  }
-                } catch {
-                  // Ignore retry errors
+      // Speak the transition prompt after the agent's next response via coordinated speech
+      setTimeout(() => {
+        try {
+          if (session && !conversationManager.isAgentSpeaking()) {
+            coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+              allowInterruptions: true,
+            });
+          } else if (session) {
+            // Agent is speaking - retry after another delay
+            setTimeout(() => {
+              try {
+                if (session && !conversationManager.isAgentSpeaking()) {
+                  coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+                    allowInterruptions: true,
+                  });
                 }
-              }, 3000);
-            }
-          } catch (sayErr) {
-            diag.warn('Failed to speak trial transition', { error: String(sayErr) });
+              } catch {
+                // Ignore retry errors
+              }
+            }, 3000);
           }
-        }, 2000);
-      }
-    } catch (trialErr) {
-      diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
+        } catch (sayErr) {
+          diag.warn('Failed to speak trial transition', { error: String(sayErr) });
+        }
+      }, 2000);
     }
-  })();
+  }, 'trial-status-check');
 }
 
 /**
@@ -1183,8 +1230,8 @@ function processHumanListeningPipeline(
   userData: UserData,
   sessionId: string
 ): void {
-  void (async () => {
-    try {
+  safeFireAndForget(
+    async () => {
       const pipeline = getHumanListeningPipeline(sessionId);
 
       // Get prosody features from voice emotion if available
@@ -1231,10 +1278,9 @@ function processHumanListeningPipeline(
           assessment: listeningResult.overallAssessment.slice(0, 100),
         });
       }
-    } catch (listeningErr) {
-      diag.warn('Human listening pipeline error', { error: String(listeningErr) });
-    }
-  })();
+    },
+    { context: 'human-listening-pipeline' }
+  );
 }
 
 /**
@@ -1245,131 +1291,118 @@ function processGameTopicChange(
   silenceContext: SilenceContext,
   sessionId: string
 ): void {
-  void (async () => {
-    try {
-      const {
-        isSessionGameActive,
-        getSessionGameType,
-        detectTopicChange,
-        getSessionGameEngine,
-        resetSessionGameActivity,
-      } = await import('../../services/games/index.js');
+  fireAndForget(async () => {
+    const {
+      isSessionGameActive,
+      getSessionGameType,
+      detectTopicChange,
+      getSessionGameEngine,
+      resetSessionGameActivity,
+    } = await import('../../services/games/index.js');
 
-      if (isSessionGameActive(sessionId)) {
-        type GameType = import('../../services/games/types.js').GameType;
-        const gameType = getSessionGameType(sessionId) as GameType | null;
-        const hasChangedTopic = detectTopicChange(transcript, gameType);
+    if (isSessionGameActive(sessionId)) {
+      type GameType = import('../../services/games/types.js').GameType;
+      const gameType = getSessionGameType(sessionId) as GameType | null;
+      const hasChangedTopic = detectTopicChange(transcript, gameType);
 
-        if (hasChangedTopic) {
-          // User seems to have moved on from the game
-          const engine = getSessionGameEngine(sessionId);
-          const gameSession = engine.endGame();
-          resetSessionGameActivity(sessionId);
+      if (hasChangedTopic) {
+        // User seems to have moved on from the game
+        const engine = getSessionGameEngine(sessionId);
+        const gameSession = engine.endGame();
+        resetSessionGameActivity(sessionId);
 
-          diag.state('Game auto-ended due to topic change', {
-            gameType,
-            score: gameSession.score,
-            rounds: gameSession.roundsPlayed,
-          });
-        }
-
-        // Update silence context to reflect game state
-        silenceContext.isGameActive = isSessionGameActive(sessionId);
-        silenceContext.activeGameType = getSessionGameType(sessionId) || undefined;
+        diag.state('Game auto-ended due to topic change', {
+          gameType,
+          score: gameSession.score,
+          rounds: gameSession.roundsPlayed,
+        });
       }
-    } catch {
-      // Games module not loaded - that's fine
+
+      // Update silence context to reflect game state
+      silenceContext.isGameActive = isSessionGameActive(sessionId);
+      silenceContext.activeGameType = getSessionGameType(sessionId) || undefined;
     }
-  })();
+  }, 'game-topic-change');
 }
 
 /**
  * Process voice identity for trust/identity context
  */
 function processVoiceIdentity(sessionId: string, transcript: string, userData: UserData): void {
-  void (async () => {
-    try {
-      const { onUserMessage } =
-        await import('../../services/trust-and-identity/voice-agent-integration.js');
-      const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
-      const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
+  fireAndForget(async () => {
+    const { onUserMessage } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
+    const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
+    const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
 
-      if (identityUpdate.shouldAskForContact ?? false) {
-        diag.state('Identity: Should ask for contact', {
-          reason: identityUpdate.contactAskReason ?? 'unknown',
-        });
-      }
-
-      if (identityUpdate.requiresVerification ?? false) {
-        diag.state('Identity: Verification required', {
-          reason: 'Speaker or content change detected',
-        });
-      }
-    } catch (identityErr) {
-      diag.warn('Identity message processing failed', { error: String(identityErr) });
+    if (identityUpdate.shouldAskForContact ?? false) {
+      diag.state('Identity: Should ask for contact', {
+        reason: identityUpdate.contactAskReason ?? 'unknown',
+      });
     }
-  })();
+
+    if (identityUpdate.requiresVerification ?? false) {
+      diag.state('Identity: Verification required', {
+        reason: 'Speaker or content change detected',
+      });
+    }
+  }, 'voice-identity-processing');
 }
 
 /**
  * Process DJ session flow tracking
  */
 function processDJSessionFlow(transcript: string, userData: UserData): void {
-  void (async () => {
-    try {
-      const booth = getDJBooth();
-      if (!booth) return;
+  fireAndForget(async () => {
+    const booth = getDJBooth();
+    if (!booth) return;
 
-      // Track topics discussed for session summary
-      const topicKeywords: Record<string, string[]> = {
-        work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
-        family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
-        health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
-        finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
-        relationships: ['dating', 'relationship', 'partner', 'friend', 'boyfriend', 'girlfriend'],
-        goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
-        stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
-      };
+    // Track topics discussed for session summary
+    const topicKeywords: Record<string, string[]> = {
+      work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
+      family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
+      health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
+      finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
+      relationships: ['dating', 'relationship', 'partner', 'friend', 'boyfriend', 'girlfriend'],
+      goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
+      stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
+    };
 
-      const transcriptLower = transcript.toLowerCase();
-      for (const [topic, keywords] of Object.entries(topicKeywords)) {
-        if (keywords.some((kw) => transcriptLower.includes(kw))) {
-          booth.trackTopic(topic);
-          diag.state('Session flow: tracked topic', { topic });
-          break;
-        }
+    const transcriptLower = transcript.toLowerCase();
+    for (const [topic, keywords] of Object.entries(topicKeywords)) {
+      if (keywords.some((kw) => transcriptLower.includes(kw))) {
+        booth.trackTopic(topic);
+        diag.state('Session flow: tracked topic', { topic });
+        break;
       }
-
-      // Track emotional moments
-      const emotionKeywords: Record<string, string[]> = {
-        happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
-        sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
-        anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
-        grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
-      };
-
-      for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-        if (keywords.some((kw) => transcriptLower.includes(kw))) {
-          booth.trackEmotion(emotion);
-          diag.state('Session flow: tracked emotion', { emotion });
-          break;
-        }
-      }
-
-      // "OUR SONGS" - Process user speech during music for meaningful moments
-      if (booth.isPlayingMusic()) {
-        const voiceEmotion = userData.voiceEmotion?.primary || undefined;
-        booth.processUserSpeechDuringMusic(transcript, voiceEmotion, userData.lastTopic);
-        diag.state('Processed user speech during music for "Our Songs"', {
-          transcript: transcript.slice(0, 50),
-          emotion: voiceEmotion,
-        });
-      }
-    } catch (e) {
-      // Session flow tracking is non-critical
-      getLogger().debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
     }
-  })();
+
+    // Track emotional moments
+    const emotionKeywords: Record<string, string[]> = {
+      happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
+      sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
+      anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
+      grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
+    };
+
+    for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+      if (keywords.some((kw) => transcriptLower.includes(kw))) {
+        booth.trackEmotion(emotion);
+        diag.state('Session flow: tracked emotion', { emotion });
+        break;
+      }
+    }
+
+    // "OUR SONGS" - Process user speech during music for meaningful moments
+    if (booth.isPlayingMusic()) {
+      const voiceEmotion = userData.voiceEmotion?.primary || undefined;
+      booth.processUserSpeechDuringMusic(transcript, voiceEmotion, userData.lastTopic);
+      diag.state('Processed user speech during music for "Our Songs"', {
+        transcript: transcript.slice(0, 50),
+        emotion: voiceEmotion,
+      });
+    }
+  }, 'dj-session-flow-tracking');
 }
 
 /**
@@ -1406,20 +1439,16 @@ function processDailyCheckInTranscript(
   }
 
   // Process asynchronously (non-blocking)
-  void (async () => {
-    try {
-      const recorded = await processDailyCheckIn(transcript, checkInCtx, sendDataMessage);
+  fireAndForget(async () => {
+    const recorded = await processDailyCheckIn(transcript, checkInCtx, sendDataMessage);
 
-      if (recorded) {
-        diag.state('✅ Daily check-in recorded successfully', { sessionId });
+    if (recorded) {
+      diag.state('✅ Daily check-in recorded successfully', { sessionId });
 
-        // Clean up stale sessions periodically
-        cleanupStaleCheckIns();
-      }
-    } catch (error) {
-      diag.warn('Daily check-in processing error', { error: String(error) });
+      // Clean up stale sessions periodically
+      cleanupStaleCheckIns();
     }
-  })();
+  }, 'daily-check-in-processing');
 }
 
 /**

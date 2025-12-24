@@ -67,6 +67,8 @@ import { getDJIntegration } from '../dj-integration.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 // ============================================================================
 // TYPES
@@ -799,7 +801,7 @@ function setupMusicStateCallback(
     }
 
     // Non-time-sensitive operations can be async
-    void (async () => {
+    fireAndForget(async () => {
       // Forward state changes to DJ Booth (after speaking)
       if (djBooth) {
         try {
@@ -1001,7 +1003,7 @@ function setupMusicStateCallback(
           diag.warn('Failed to publish music state', { error: errorStr });
         }
       }
-    })();
+    }, 'music-state-change-handler');
   });
 }
 

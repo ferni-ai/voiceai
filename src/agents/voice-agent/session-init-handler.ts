@@ -44,6 +44,11 @@ import { abTestingService } from '../../tools/ab-testing.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
 import { autoOptimizer } from '../../tools/auto-optimizer.js';
 
+// Capability learning - load patterns on startup
+import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/capability-learning.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -211,9 +216,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
     // Fire-and-forget: All profile loads run in background
     // They'll be ready by the time context building needs them (after first user turn)
-    void (async () => {
-      try {
-        await Promise.all([
+    fireAndForget(async () => {
+      await Promise.all([
           // Trust profiles
           loadTrustProfiles(userId)
             .then(() => diag.session('Trust profiles loaded for user', { userId }))
@@ -275,6 +279,18 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             } catch (predictiveErr) {
               diag.warn('Predictive intelligence init failed (non-fatal)', {
                 error: String(predictiveErr),
+              });
+            }
+          })(),
+
+          // Capability Learning - load community patterns for domain fluency optimization
+          (async () => {
+            try {
+              await loadCapabilityPatterns();
+              diag.session('📚 Capability patterns loaded', { userId });
+            } catch (capErr) {
+              diag.warn('Capability patterns load failed (non-fatal)', {
+                error: String(capErr),
               });
             }
           })(),
@@ -342,13 +358,10 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           })(),
         ]);
 
-        const profileDuration = Date.now() - profileLoadStart;
-        logger.info({ durationMs: profileDuration }, '⚡ Background profiles loaded');
-        recordPhase?.(sessionId, 'profile_loading', profileDuration);
-      } catch (bgErr) {
-        diag.warn('Background profile loading had errors (non-fatal)', { error: String(bgErr) });
-      }
-    })();
+      const profileDuration = Date.now() - profileLoadStart;
+      logger.info({ durationMs: profileDuration }, '⚡ Background profiles loaded');
+      recordPhase?.(sessionId, 'profile_loading', profileDuration);
+    }, 'session-init-profile-loading');
 
     // Don't wait - continue to greeting immediately!
     diag.session('🚀 Profile loading started in background (non-blocking)');
