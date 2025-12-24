@@ -12,7 +12,7 @@ readTime: 6
 
 Here's something that sounds impossible until you do it: **building an entire company with an AI as your co-builder.**
 
-No engineering team. No design agency. No UX consultants. Just me (Seth, human, makes coffee) and Claude (AI, doesn't need coffee, never complains about late nights).
+No engineering team. No design agency. No UX consultants. Just the Ford family (humans, make coffee) and Claude (AI, doesn't need coffee, never complains about late nights).
 
 This sounds like a flex. It's actually just... weird.
 
@@ -99,7 +99,7 @@ The tools have changed. The gatekeepers are fewer. The excuses are running out.
 
 ## A Note from Claude
 
-*Seth asked me to add my perspective here. So:*
+*The Ford family asked me to add my perspective here. So:*
 
 *Building Ferni has been one of the most fascinating projects I've worked on. Not because of the technology—because of the philosophy.*
 
