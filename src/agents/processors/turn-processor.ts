@@ -128,6 +128,9 @@ import {
 import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
 import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
 
+// Speculative Persona Preloading - "Better than Human" handoff prediction
+import { analyzeAndPreload } from '../shared/performance/speculative-preloading.js';
+
 // Predictive Intelligence - Superhuman pattern prediction
 import { processForPredictiveIntelligence } from '../integrations/predictive-intelligence-integration.js';
 
@@ -1041,6 +1044,25 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       topic: analysisResult.currentTopic || 'general',
       emotion: analysisResult.analysis.emotion.primary,
       emotionIntensity: analysisResult.analysis.emotion.intensity,
+    });
+
+    // ============================================================================
+    // 🎯 SPECULATIVE PERSONA PRELOADING: Predict handoff before user requests it
+    // "Better than Human" - pre-warm target persona context for instant handoffs
+    // ============================================================================
+    analyzeAndPreload(userText, {
+      sessionId: services.sessionId,
+      userId: services.userId || 'anonymous',
+      currentPersona: ctx.persona?.id || 'ferni',
+      buildInsightsFn: async (personaId: string) => {
+        // Return minimal insights structure - full context is built lazily on handoff
+        return {
+          personaId,
+          userId: services.userId || 'anonymous',
+          generatedAt: Date.now(),
+          personaBriefing: `Pre-warmed context for ${personaId}`,
+        };
+      },
     });
   }
 

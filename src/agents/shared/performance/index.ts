@@ -148,6 +148,19 @@ export {
   type AdaptiveTimeouts,
 } from './adaptive-timing.js';
 
+// Speculative Persona Preloading - "Better than Human" handoff prediction
+export {
+  predictHandoff,
+  analyzeAndPreload,
+  analyzeAndPreloadImmediate,
+  clearSpeculativeState,
+  getRecentPrediction,
+  initializeSpeculativePreloading,
+  type PersonaId,
+  type HandoffPrediction,
+  type SpeculativePreloadContext,
+} from './speculative-preloading.js';
+
 // Tool Execution Reliability - Retry, circuit breaker, metrics
 export {
   executeWithReliability,

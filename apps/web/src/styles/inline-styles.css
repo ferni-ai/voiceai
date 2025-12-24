@@ -274,11 +274,28 @@ body {
   --transition-slow: 350ms var(--ease-out-expo);
   --transition-slower: 500ms var(--ease-out-expo);
 
-  /* Z-Index */
-  --z-base: 1;
+  /* Z-Index Scale (per CLAUDE.md) */
+  --z-base: 0;              /* Default stacking */
+  --z-raised: 1;            /* Within-component layering */
+  --z-content: 10;          /* Content elements (waveforms) */
+  --z-floating: 20;         /* Floating elements */
+  --z-overlay: 30;          /* Local overlays */
+  --z-sticky: 100;          /* Sticky headers, nav */
+  --z-dropdown: 1000;       /* Dropdowns, tooltips */
+  --z-modal-backdrop: 2000; /* Modal backdrop */
+  --z-modal: 2100;          /* Modal content */
+  --z-modal-elevated: 2200; /* Above modals (close buttons) */
+  --z-notification: 3000;   /* Toast notifications */
+  --z-loading: 4000;        /* Loading overlays */
+  --z-system: 9999;         /* Critical system UI (splash) */
+  /* Legacy aliases for backwards compatibility */
   --z-elevated: 10;
-  --z-modal: 100;
-  --z-toast: 1000;
+  --z-toast: 3000;
+
+  /* Backdrop overlays */
+  --backdrop-light: rgba(20, 16, 14, 0.4);
+  --backdrop-medium: rgba(20, 16, 14, 0.6);
+  --backdrop-heavy: rgba(20, 16, 14, 0.75);
 
   /* ========================================================================
      TEAM ROSTER TOKENS - Consistent scaling across all breakpoints

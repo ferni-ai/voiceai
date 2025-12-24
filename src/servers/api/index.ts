@@ -159,6 +159,7 @@ import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
 import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
+import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
@@ -346,6 +347,12 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/musical')) {
       const query = new URLSearchParams(parsedUrl.search || '');
       const handled = await handleMusicalYouRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+
+    // Games routes (Music games catalog, stats, insights - powers Musical You dashboard)
+    if (pathname.startsWith('/api/games')) {
+      const handled = await handleGamesRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

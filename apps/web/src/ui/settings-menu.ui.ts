@@ -82,6 +82,7 @@ export interface SettingsMenuUICallbacks {
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
+  onFutureInsightsClick?: () => void;
   onShareFerniClick?: () => void;
   onAccentSettingsClick?: () => void;
   onWearableSettingsClick?: () => void;
@@ -693,6 +694,7 @@ class SettingsMenuUI {
                   expandedSections.has('grow'),
                   `
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
+            ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
             ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
             ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
             ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
@@ -990,6 +992,7 @@ class SettingsMenuUI {
     // Map of all menu items for quick lookup
     const menuItems: Record<string, { icon: string; label: string }> = {
       'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
+      'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
       predictions: { icon: ICONS.target, label: t('menu.items.predictionAccuracy') },
       cognitive: { icon: ICONS.brain, label: t('menu.items.whatILearned') },
@@ -1278,6 +1281,9 @@ class SettingsMenuUI {
         break;
       case 'your-journey':
         this.callbacks.onYourJourneyClick?.();
+        break;
+      case 'future-insights':
+        this.callbacks.onFutureInsightsClick?.();
         break;
       case 'share-ferni':
         this.callbacks.onShareFerniClick?.();

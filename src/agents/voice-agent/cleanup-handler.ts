@@ -559,6 +559,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           await import('../../intelligence/context-builders/tool-timing-context.js');
         clearToolTimings(sessionId);
       })(),
+
+      // Speculative persona preloading cleanup (handoff prediction state)
+      (async () => {
+        const { clearSpeculativeState } =
+          await import('../shared/performance/speculative-preloading.js');
+        clearSpeculativeState(sessionId);
+      })(),
     ]);
 
     // Log any failures from service group

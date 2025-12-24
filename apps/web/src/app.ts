@@ -253,6 +253,7 @@ import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
+import { futureInsightsUI } from './ui/future-insights.ui.js';
 import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
@@ -1622,6 +1623,7 @@ class VoiceAIApp {
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => journeyUI.open(),
+        onFutureInsightsClick: () => futureInsightsUI.open(),
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),

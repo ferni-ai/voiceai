@@ -8,7 +8,7 @@
  * @module api/insights-routes
  */
 
-import http from 'http';
+import type http from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'insights-routes' });
@@ -64,7 +64,7 @@ export async function handleInsightsRoutes(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   pathname: string,
-  parsedUrl?: URL
+  _parsedUrl?: URL
 ): Promise<boolean> {
   // GET /api/insights/:userId - Fetch insights for a user
   const userIdMatch = pathname.match(/^\/api\/insights\/([^/]+)$/);
@@ -132,11 +132,14 @@ async function handleGetInsights(
     // Energy patterns
     if (energyHistory.length >= 3) {
       const recentEnergy = energyHistory.slice(0, 3);
-      const lowCount = recentEnergy.filter((e) => e.energyLevel === 'low' || e.energyLevel === 'depleted').length;
+      const lowCount = recentEnergy.filter(
+        (e) => e.energyLevel === 'low' || e.energyLevel === 'depleted'
+      ).length;
       if (lowCount >= 2) {
         noticing.push({
           type: 'concern',
-          insight: "Your energy has been running low lately. I'm here if you need to talk about it.",
+          insight:
+            "Your energy has been running low lately. I'm here if you need to talk about it.",
           evidence: `${lowCount} of last 3 check-ins showed low energy`,
         });
       }
@@ -148,7 +151,8 @@ async function handleGetInsights(
       if (activeCommitments.length > 3) {
         noticing.push({
           type: 'pattern',
-          insight: "You've taken on quite a bit. Want to talk about what's most important right now?",
+          insight:
+            "You've taken on quite a bit. Want to talk about what's most important right now?",
           evidence: `${activeCommitments.length} active commitments`,
         });
       }
@@ -156,7 +160,9 @@ async function handleGetInsights(
       // Look for completed commitments to celebrate
       const recentCompleted = commitments.filter(
         (c) =>
-          c.status === 'completed' && c.lastMentioned && Date.now() - c.lastMentioned < 7 * 24 * 60 * 60 * 1000
+          c.status === 'completed' &&
+          c.lastMentioned &&
+          Date.now() - c.lastMentioned < 7 * 24 * 60 * 60 * 1000
       );
       if (recentCompleted.length > 0) {
         noticing.push({
@@ -186,7 +192,9 @@ async function handleGetInsights(
     let chapter: InsightsResponse['chapter'] = undefined;
     const currentChapter = chapters.find((c) => !c.endDate);
     if (currentChapter) {
-      const daysInChapter = Math.floor((Date.now() - currentChapter.startDate) / (1000 * 60 * 60 * 24));
+      const daysInChapter = Math.floor(
+        (Date.now() - currentChapter.startDate) / (1000 * 60 * 60 * 24)
+      );
       chapter = {
         title: currentChapter.title,
         type: currentChapter.type as InsightsResponse['chapter'] extends undefined
@@ -232,14 +240,16 @@ async function handleGetInsights(
     if (store) {
       const streaks = await store.getAllStreaks(userId);
       if (streaks && streaks.length > 0) {
-        const bestStreak = streaks.reduce(
-          (best: (typeof streaks)[0], s: (typeof streaks)[0]) =>
-            s.currentStreak > best.currentStreak ? s : best
+        const bestStreak = streaks.reduce((best: (typeof streaks)[0], s: (typeof streaks)[0]) =>
+          s.currentStreak > best.currentStreak ? s : best
         );
         if (bestStreak.currentStreak >= 3) {
           growth = {
             message: `${bestStreak.currentStreak} days of showing up. You're building something real.`,
-            details: bestStreak.currentStreak >= 7 ? 'A full week! This is becoming part of you.' : undefined,
+            details:
+              bestStreak.currentStreak >= 7
+                ? 'A full week! This is becoming part of you.'
+                : undefined,
           };
         }
       }
@@ -252,7 +262,9 @@ async function handleGetInsights(
       if (profile) {
         // Calculate days together from lastEngagementAt (approximate)
         const daysTogether = profile.lastEngagementAt
-          ? Math.floor((Date.now() - new Date(profile.lastEngagementAt).getTime()) / (1000 * 60 * 60 * 24)) + profile.totalRitualDays
+          ? Math.floor(
+              (Date.now() - new Date(profile.lastEngagementAt).getTime()) / (1000 * 60 * 60 * 24)
+            ) + profile.totalRitualDays
           : profile.totalRitualDays;
         const conversations = profile.stats.totalSkyChecks + profile.stats.totalPredictions;
 
@@ -261,11 +273,11 @@ async function handleGetInsights(
           if (conversations >= 100) {
             milestone = "100+ check-ins! We've built something meaningful.";
           } else if (daysTogether >= 30) {
-            milestone = "A month of growth. Thank you for trusting me.";
+            milestone = 'A month of growth. Thank you for trusting me.';
           } else if (conversations >= 50) {
             milestone = "50+ conversations. I see how far you've come.";
           } else if (daysTogether >= 7) {
-            milestone = "A week of showing up. That matters.";
+            milestone = 'A week of showing up. That matters.';
           }
 
           if (milestone) {
@@ -301,4 +313,3 @@ async function handleGetInsights(
     return true;
   }
 }
-
