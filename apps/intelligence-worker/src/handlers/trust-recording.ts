@@ -89,25 +89,25 @@ async function updateTrustSummary(
     const summaryDoc = await transaction.get(summaryRef);
 
     const currentSummary = summaryDoc.exists
-      ? summaryDoc.data()
+      ? (summaryDoc.data() as Record<string, unknown>)
       : {
           totalSignals: 0,
-          signalCounts: {},
+          signalCounts: {} as Record<string, number>,
           lastSignal: null,
           trustScore: 0.5,
         };
 
     // Update signal counts
-    const signalCounts = currentSummary.signalCounts || {};
+    const signalCounts = (currentSummary.signalCounts as Record<string, number>) || {};
     signalCounts[payload.signalType] = (signalCounts[payload.signalType] || 0) + 1;
 
     // Calculate updated trust score (simplified)
-    const totalSignals = (currentSummary.totalSignals || 0) + 1;
+    const totalSignals = ((currentSummary.totalSignals as number) || 0) + 1;
     const positiveSignals =
-      (signalCounts.vulnerability_shared || 0) +
-      (signalCounts.boundary_respected || 0) +
-      (signalCounts.growth_noted || 0) +
-      (signalCounts.callback_made || 0);
+      (signalCounts['vulnerability_shared'] || 0) +
+      (signalCounts['boundary_respected'] || 0) +
+      (signalCounts['growth_noted'] || 0) +
+      (signalCounts['callback_made'] || 0);
 
     const trustScore = Math.min(0.3 + (positiveSignals / totalSignals) * 0.6, 0.95);
 

@@ -152,7 +152,7 @@ async function updatePersonaQualityMetrics(
     const metricsDoc = await transaction.get(metricsRef);
 
     const current = metricsDoc.exists
-      ? metricsDoc.data()
+      ? (metricsDoc.data() as Record<string, number>)
       : {
           totalResponses: 0,
           avgResponseRatio: 0,
@@ -205,14 +205,14 @@ async function contributeToCommunityInsights(
     const insightsDoc = await transaction.get(insightsRef);
 
     const current = insightsDoc.exists
-      ? insightsDoc.data()
+      ? (insightsDoc.data() as { totalSamples?: number; byPersona?: Record<string, { samples: number; empathyRate: number; questionRate: number }> })
       : {
           totalSamples: 0,
-          byPersona: {},
+          byPersona: {} as Record<string, { samples: number; empathyRate: number; questionRate: number }>,
         };
 
     const total = (current.totalSamples || 0) + 1;
-    const byPersona = current.byPersona || {};
+    const byPersona = current.byPersona || {} as Record<string, { samples: number; empathyRate: number; questionRate: number }>;
 
     if (!byPersona[personaId]) {
       byPersona[personaId] = { samples: 0, empathyRate: 0, questionRate: 0 };

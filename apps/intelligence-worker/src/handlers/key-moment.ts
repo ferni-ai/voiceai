@@ -257,9 +257,9 @@ async function updateRelationshipArc(
     const arcDoc = await transaction.get(arcRef);
 
     const currentArc = arcDoc.exists
-      ? arcDoc.data()
+      ? (arcDoc.data() as Record<string, unknown>)
       : {
-          stage: 'building_trust',
+          stage: 'building_trust' as string,
           vulnerabilityCount: 0,
           breakthroughCount: 0,
           celebrationCount: 0,
@@ -273,11 +273,11 @@ async function updateRelationshipArc(
     };
 
     if (moment.type === 'vulnerability') {
-      updates.vulnerabilityCount = (currentArc.vulnerabilityCount || 0) + 1;
+      updates.vulnerabilityCount = ((currentArc.vulnerabilityCount as number) || 0) + 1;
     } else if (moment.type === 'breakthrough') {
-      updates.breakthroughCount = (currentArc.breakthroughCount || 0) + 1;
+      updates.breakthroughCount = ((currentArc.breakthroughCount as number) || 0) + 1;
     } else if (moment.type === 'celebration') {
-      updates.celebrationCount = (currentArc.celebrationCount || 0) + 1;
+      updates.celebrationCount = ((currentArc.celebrationCount as number) || 0) + 1;
     }
 
     // Progress relationship stage if thresholds met
