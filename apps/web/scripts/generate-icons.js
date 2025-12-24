@@ -35,20 +35,20 @@ function generateThreeStonesSVG(size, options = {}) {
   const {
     background = '#F5F1E8',  // Paper cream
     rounded = true,
-    circular = true,  // NEW: Use circular background by default
-    cornerRadius = size >= 32 ? Math.round(size * 0.1875) : Math.round(size * 0.15),
-    showGlow = size >= 64,
-    showGlowRing = size >= 64,
+    circular = false,  // Use rounded rectangle by default (brand standard)
+    cornerRadius = size >= 32 ? Math.round(size * 0.1875) : Math.round(size * 0.1875),
+    showGlow = size >= 32,
+    showGlowRing = size >= 32,
   } = options;
 
   const center = size / 2;
   const stoneRadius = size * 0.343;  // Outer stone radius
   const eyeWhiteRadius = stoneRadius * 0.41;  // Eye white
-  const irisRadius = stoneRadius * 0.266;  // Iris
-  const pupilRadius = stoneRadius * 0.133;  // Pupil
-  const catchlightRadius = size >= 64 ? stoneRadius * 0.055 : stoneRadius * 0.04;
+  const irisRadius = stoneRadius * 0.273;  // Iris (slightly larger for visibility)
+  const pupilRadius = stoneRadius * 0.136;  // Pupil
+  const catchlightRadius = size >= 64 ? stoneRadius * 0.055 : stoneRadius * 0.055;
 
-  // NEW: Circular background for PWA/favicon icons
+  // Rounded rectangle background (brand standard)
   let bgShape;
   if (circular && rounded) {
     bgShape = `<circle cx="${center}" cy="${center}" r="${center}" fill="${background}"/>`;
@@ -71,7 +71,7 @@ function generateThreeStonesSVG(size, options = {}) {
   const catchlightOffset = stoneRadius * 0.16;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-  <!-- Ferni Three Stones Logo - ${size}x${size} (circular) -->
+  <!-- Ferni Three Stones Logo - ${size}x${size} -->
   <defs>
     <radialGradient id="stoneGrad${size}" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -187,11 +187,11 @@ function generateOGImageSVG() {
 }
 
 /**
- * Generate animated favicon SVG (breathing effect) - CIRCULAR
+ * Generate animated favicon SVG (breathing effect)
  */
 function generateAnimatedFaviconSVG() {
   return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Animated Favicon - Three Stones with Breathing (Circular) -->
+  <!-- Ferni Animated Favicon - Three Stones with Breathing -->
   <defs>
     <style>
       @keyframes breathe {
@@ -221,7 +221,7 @@ function generateAnimatedFaviconSVG() {
         .stone-body, .glow-ring, .catchlight { animation: none; }
       }
     </style>
-    
+
     <radialGradient id="stoneGradAnim" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
       <stop offset="70%" stop-color="#4a6741"/>
@@ -229,11 +229,11 @@ function generateAnimatedFaviconSVG() {
     </radialGradient>
   </defs>
 
-  <!-- Background - CIRCULAR -->
-  <circle cx="16" cy="16" r="16" fill="#F5F1E8"/>
+  <!-- Background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
 
   <!-- Glow ring -->
-  <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.3"/>
+  <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.3"/>
 
   <!-- Outer Stone: Body -->
   <circle class="stone-body" cx="16" cy="16" r="11" fill="url(#stoneGradAnim)"/>

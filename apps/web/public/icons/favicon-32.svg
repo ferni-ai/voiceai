@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- Ferni Three Stones Logo - 32x32 (circular) -->
+  <!-- Ferni Three Stones Logo - 32x32 -->
   <defs>
     <radialGradient id="stoneGrad32" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -10,24 +10,29 @@
       <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </radialGradient>
+    <filter id="glowFilter32" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
   </defs>
 
   <!-- Background -->
-  <circle cx="16" cy="16" r="16" fill="#F5F1E8"/>
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
   
+  <circle cx="16" cy="16" r="12.073600000000003" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.25"/>
   <!-- Outer Stone: Body -->
-  <circle cx="16" cy="16" r="10.976" fill="url(#stoneGrad32)"/>
+  <circle cx="16" cy="16" r="10.976" fill="url(#stoneGrad32)" filter="url(#glowFilter32)"/>
 
   <!-- Middle Stone: Eye White -->
   <circle cx="16" cy="16" r="4.50016" fill="white"/>
 
   <!-- Iris -->
-  <circle cx="16" cy="16" r="2.9196160000000004" fill="#5a8060"/>
+  <circle cx="16" cy="16" r="2.9964480000000004" fill="#5a8060"/>
 
   <!-- Inner Stone: Pupil -->
-  <circle cx="16" cy="16" r="1.4598080000000002" fill="#2c2520"/>
+  <circle cx="16" cy="16" r="1.4927360000000003" fill="#2c2520"/>
 
   <!-- Catchlight (life spark) -->
-  <circle cx="14.24384" cy="14.24384" r="0.43904000000000004" fill="url(#catchlightGrad32)"/>
+  <circle cx="14.24384" cy="14.24384" r="0.6036800000000001" fill="url(#catchlightGrad32)"/>
   
 </svg>

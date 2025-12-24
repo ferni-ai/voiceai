@@ -1,5 +1,5 @@
 <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Animated Favicon - Three Stones with Breathing (Circular) -->
+  <!-- Ferni Animated Favicon - Three Stones with Breathing -->
   <defs>
     <style>
       @keyframes breathe {
@@ -29,7 +29,7 @@
         .stone-body, .glow-ring, .catchlight { animation: none; }
       }
     </style>
-    
+
     <radialGradient id="stoneGradAnim" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
       <stop offset="70%" stop-color="#4a6741"/>
@@ -37,11 +37,11 @@
     </radialGradient>
   </defs>
 
-  <!-- Background - CIRCULAR -->
-  <circle cx="16" cy="16" r="16" fill="#F5F1E8"/>
+  <!-- Background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
 
   <!-- Glow ring -->
-  <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.3"/>
+  <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.3"/>
 
   <!-- Outer Stone: Body -->
   <circle class="stone-body" cx="16" cy="16" r="11" fill="url(#stoneGradAnim)"/>
