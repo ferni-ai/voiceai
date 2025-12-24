@@ -48,6 +48,8 @@ export interface TTSRequest {
   text: string;
   /** Voice ID/persona */
   voiceId: string;
+  /** Emotional context (affects voice tone) */
+  emotion?: string;
   /** Speech rate multiplier */
   rate?: number;
   /** Pitch adjustment */
@@ -65,6 +67,8 @@ export interface TTSResult {
   cached: boolean;
   /** Generation time (0 if cached) */
   generationTimeMs: number;
+  /** Emotion used for generation (for cache key tracking) */
+  emotion?: string;
 }
 
 export interface SpeculativeCandidate {
@@ -74,6 +78,8 @@ export interface SpeculativeCandidate {
   confidence: number;
   /** Context triggers */
   triggers: string[];
+  /** Emotional context for this candidate */
+  emotion?: string;
 }
 
 export interface SpeculativeTTSConfig {
@@ -92,6 +98,17 @@ export interface SpeculativeTTSConfig {
 // ============================================================================
 // COMMON RESPONSE STARTERS (Pre-generated)
 // ============================================================================
+
+/**
+ * Common emotions to pre-warm in cache
+ * These cover the most frequent emotional contexts in conversations
+ */
+const COMMON_EMOTIONS = ['neutral', 'warm', 'concerned', 'supportive', 'curious'] as const;
+
+/**
+ * Default emotion when none specified
+ */
+const DEFAULT_EMOTION = 'neutral';
 
 /**
  * Response starters by emotional context
@@ -455,17 +472,19 @@ class SpeculativeTTSEngine {
   }
 
   /**
-   * Generate TTS and cache result
+   * Generate TTS and cache result with emotion-awareness
    */
   private async generateAndCache(
     text: string,
     voiceId: string,
-    priority: 'high' | 'normal' | 'low'
+    priority: 'high' | 'normal' | 'low',
+    emotion?: string
   ): Promise<TTSResult> {
     const startTime = Date.now();
 
     try {
       // Use existing TTS infrastructure
+      // Note: Future enhancement could pass emotion to TTS for tone adjustment
       const audio = await this.callTTSProvider(text, voiceId);
 
       const generationTimeMs = Date.now() - startTime;
@@ -479,15 +498,16 @@ class SpeculativeTTSEngine {
         durationSeconds: this.estimateAudioDuration(text),
         cached: false,
         generationTimeMs,
+        emotion: emotion || DEFAULT_EMOTION,
       };
 
-      // Cache the result
-      const key = this.getCacheKey(text, voiceId);
+      // Cache the result with emotion-aware key
+      const key = this.getCacheKey(text, voiceId, emotion);
       this.audioCache.set(key, result);
 
       return result;
     } catch (error) {
-      log.warn({ text: text.slice(0, 50), voiceId, error: String(error) }, 'TTS generation failed');
+      log.warn({ text: text.slice(0, 50), voiceId, emotion, error: String(error) }, 'TTS generation failed');
       throw error;
     }
   }
@@ -575,12 +595,20 @@ class SpeculativeTTSEngine {
   }
 
   /**
-   * Generate cache key
+   * Generate cache key with emotion-awareness
+   *
+   * PERFORMANCE OPTIMIZATION: Cache TTS output keyed by text + emotion + persona.
+   * The same text spoken with different emotions sounds different, so we need
+   * separate cache entries for each emotion variant.
+   *
+   * Key format: `${voiceId}:${emotion}:${normalized_text}`
    */
-  private getCacheKey(text: string, voiceId: string): string {
+  private getCacheKey(text: string, voiceId: string, emotion?: string): string {
     // Normalize text for caching
     const normalized = text.toLowerCase().trim();
-    return `${voiceId}:${normalized}`;
+    // Use default emotion if none specified for consistent cache keys
+    const emotionKey = (emotion || DEFAULT_EMOTION).toLowerCase();
+    return `${voiceId}:${emotionKey}:${normalized}`;
   }
 
   /**
