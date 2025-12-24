@@ -988,6 +988,16 @@ if (typeof document !== 'undefined') {
 
 export const groupConversationUI = new GroupConversationUI();
 
+/**
+ * Initialize the group conversation UI.
+ * Called during app startup.
+ */
+export function initGroupConversationUI(): void {
+  // GroupConversationUI is self-initializing via constructor
+  // This function exists for consistency with other UI modules
+  groupConversationUI.init?.();
+}
+
 export function showTeamSelector(options: {
   unlockedPersonas: string[];
   onSelect: (personas: string[], topic?: string) => void;
