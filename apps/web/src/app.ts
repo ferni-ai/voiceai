@@ -104,6 +104,7 @@ import { initAdminPortal } from './admin/index.js';
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
 import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
+import { getInsightsView, initializeInsightsView } from './ui/insights-view.ui.js';
 // Notifications & Celebrations
 import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
@@ -1337,6 +1338,7 @@ class VoiceAIApp {
 
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());
+    this.safeInit('InsightsView', () => initializeInsightsView());
     this.safeInit('PredictionsUI', () => {
       initializePredictionsUI();
       // Wire up prediction resolution callback
@@ -1391,7 +1393,8 @@ class VoiceAIApp {
     });
     this.safeInit('EngagementTriggerUI', () =>
       initEngagementTriggerUI({
-        onEngagementClick: () => getEngagementUI().toggle(),
+        // Show InsightsView ("What I'm Noticing") - the relationship-focused daily check-in
+        onEngagementClick: () => getInsightsView().toggle(),
         onPredictionsClick: () => getPredictionsUI().toggle(),
         onInsightsClick: () => teamInsightsUI.toggle(),
       })
@@ -1694,7 +1697,8 @@ class VoiceAIApp {
 
     // 📬 Listen for push notification navigation events
     this.addTrackedListener(window, 'ferni:open-engagement', () => {
-      getEngagementUI().show();
+      // Open InsightsView ("What I'm Noticing") - the relationship-focused view
+      getInsightsView().show();
     });
     this.addTrackedListener(window, 'ferni:open-predictions', () => {
       getPredictionsUI().show();
@@ -1764,8 +1768,8 @@ class VoiceAIApp {
       getOnboardingUI().start();
     });
     this.addTrackedListener(window, 'ferni:open-daily-practice', () => {
-      // Daily check-in uses engagement UI rituals
-      getEngagementUI().show();
+      // Daily check-in - open the relationship-focused InsightsView
+      getInsightsView().show();
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
       void marketplaceUI.open();

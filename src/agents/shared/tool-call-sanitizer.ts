@@ -37,6 +37,8 @@ import {
 } from './conversation-priming.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// "Better than Human" semantic tool presence for emotion-aware feedback
+import { startToolPresence } from '../../tools/execution/index.js';
 
 // TransformStream is available globally in Node.js 18+
 // Using loose type due to incompatibilities between Web Streams and Node.js streams in piping
@@ -811,7 +813,8 @@ interface ToolExecutionResult {
 async function executeJsonFunctionCall(
   call: JsonFunctionCall,
   sessionId?: string,
-  userId?: string
+  userId?: string,
+  personaId?: string
 ): Promise<ToolExecutionResult | null> {
   try {
     // Record JSON workaround execution for observability
@@ -832,10 +835,30 @@ async function executeJsonFunctionCall(
       '🔄 JSON WORKAROUND: Executing tool via LLM JSON output (semantic router did not handle)'
     );
 
-    // Use the general-purpose executor
+    // 🎯 "Better than Human": Start semantic tool presence tracking
+    // This enables emotion-aware feedback during tool execution
+    if (sessionId) {
+      startToolPresence({
+        toolName: call.fn,
+        sessionId,
+        userId: userId || 'anonymous',
+        personaId: personaId || 'ferni',
+        startTime: Date.now(),
+        // userEmotion will be detected from session state if available
+      });
+    }
+
+    // Use the general-purpose executor with context
     const { executeJsonFunction } = await import('./json-function-executor.js');
     // Add 'raw' field expected by the executor
-    const result = await executeJsonFunction({ ...call, raw: JSON.stringify(call) });
+    const result = await executeJsonFunction(
+      { ...call, raw: JSON.stringify(call) },
+      {
+        sessionId,
+        userId,
+        personaId: personaId || 'ferni',
+      }
+    );
     return {
       success: result.success,
       fn: call.fn,
