@@ -750,13 +750,15 @@ class ConnectionService {
         void playAudio();
 
         // 🎚️ Route music tracks to MusicAudioController for ducking
+        // Music tracks have their own visualization via MusicAudioController.startVisualization()
         if (isMusicTrack) {
           this.callbacks.onMusicTrack?.(audioEl, trackKey);
+        } else {
+          // Pass VOICE audio element AND track for visualization
+          // Track-based visualization works better for WebRTC streams
+          // NOTE: Only for voice tracks - music visualization is handled separately
+          this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
         }
-
-        // Pass audio element AND track for visualization
-        // Track-based visualization works better for WebRTC streams
-        this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
       }
     };
     this.room.on('trackSubscribed', onTrackSubscribed);

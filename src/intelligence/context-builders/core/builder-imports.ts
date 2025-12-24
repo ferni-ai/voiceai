@@ -111,6 +111,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // CONTEXT (in awareness/)
   'tool-capabilities': () => import('../tool-capabilities.js'),
   'dynamic-tool-guidance': () => import('../dynamic-tool-guidance.js'),
+  'tool-timing-context': () => import('../tool-timing-context.js'), // Tool execution timing for natural framing
   intent: () => import('../intent.js'),
   topics: () => import('../topics.js'),
   discovery: () => import('../discovery.js'),

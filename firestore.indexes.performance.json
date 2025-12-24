@@ -1,0 +1,91 @@
+{
+  "indexes": [
+    {
+      "_comment": "Associative memory - ordered by recency for fast retrieval",
+      "collectionGroup": "associative_memory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Behavioral patterns - ordered by last observed",
+      "collectionGroup": "behavioral_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastObserved", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Emotional threads - ordered by last mentioned",
+      "collectionGroup": "emotional_threads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastMentioned", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Conversation summaries - by timestamp for recency",
+      "collectionGroup": "conversation_summaries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "User memories - by type and timestamp for filtered retrieval",
+      "collectionGroup": "user_memories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Commitments - by status and due date for active tracking",
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dueDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "Calendar events - meeting followup automation",
+      "collectionGroup": "calendar_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "processedAt", "order": "ASCENDING" },
+        { "fieldPath": "endTime", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Extracted facts - by category and recency",
+      "collectionGroup": "extracted_facts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "extractedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Values - by demonstrated vs stated and confidence",
+      "collectionGroup": "values",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "confidence", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "Session analytics - for performance monitoring",
+      "collectionGroup": "session_analytics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sessionStart", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

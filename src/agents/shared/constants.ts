@@ -74,56 +74,75 @@ export const IDLE_TIMEOUT = {
 // RESPONSE PROCESSING
 // ============================================================================
 
+/**
+ * Static processing timeouts - FALLBACK ONLY
+ *
+ * PREFER: Use getAdaptiveTimeouts() from ./performance/adaptive-timing.ts
+ * for dynamic timeouts based on actual session performance.
+ *
+ * These static values are used:
+ * 1. During first few turns before we have latency data
+ * 2. As absolute maximums that adaptive timing won't exceed
+ */
 export const PROCESSING_TIMEOUTS = {
   /**
-   * Maximum time to wait for turn processing before speaking a filler (ms)
-   * DEAD AIR FIX: Prevents long silences during LLM processing
-   * After this timeout, we speak a thinking filler and continue processing
+   * STATIC fallback for filler injection timing (ms)
    *
-   * NOTE: 2.5s was too aggressive - LLM + tool calls often take 3-4s
-   * Increased to 4s to reduce unnecessary fillers while still preventing dead air
+   * ADAPTIVE ALTERNATIVE: Use shouldInjectFiller() from adaptive-timing.ts
+   * which adjusts based on actual processing latency.
+   *
+   * Reduced from 4s to 2s for faster perceived response.
+   * Research shows human turn-taking gaps are 200-500ms.
    */
-  TURN_PROCESSING_SOFT_TIMEOUT: 4000,
+  TURN_PROCESSING_SOFT_TIMEOUT: 2000,
 
   /**
-   * Hard timeout for turn processing - if exceeded, skip context building (ms)
-   * This is the absolute maximum before we give up on rich context
+   * Hard timeout for turn processing (ms)
    *
-   * NOTE: Increased from 7s to 12s to allow progressive tool execution.
-   * Tools now provide progressive feedback ("Checking...", "Still looking...")
-   * so users know we're working on it. See src/tools/execution/ for details.
+   * Reduced from 12s to 8s - if we can't respond in 8s,
+   * we should fall back to simpler context rather than delay further.
    */
-  TURN_PROCESSING_HARD_TIMEOUT: 12000,
+  TURN_PROCESSING_HARD_TIMEOUT: 8000,
 } as const;
 
 // ============================================================================
 // PROGRESSIVE TOOL EXECUTION (Better than Human)
 // ============================================================================
 
+/**
+ * Progressive tool execution timeouts
+ *
+ * "Better than Human" means responding faster than humans expect.
+ * These timeouts are tuned for perceived responsiveness.
+ */
 export const PROGRESSIVE_TIMEOUTS = {
   /**
    * Duration to wait silently before any feedback (ms)
-   * Fast responses (< 1.5s) need no acknowledgment - feels instant
+   * Fast responses need no acknowledgment - feels instant
+   * Reduced from 1.5s to 1s for snappier feel
    */
-  SILENT_WINDOW: 1500,
+  SILENT_WINDOW: 1000,
 
   /**
    * When to send first acknowledgment "Checking..." (ms)
    * User knows we're working on it
+   * Reduced from 2s to 1.5s
    */
-  ACKNOWLEDGMENT_AT: 2000,
+  ACKNOWLEDGMENT_AT: 1500,
 
   /**
    * When to send update "Still looking..." (ms)
    * Reassures user for slower operations
+   * Reduced from 5s to 3.5s
    */
-  UPDATE_AT: 5000,
+  UPDATE_AT: 3500,
 
   /**
    * Hard timeout for tool execution (ms)
    * After this, return cached/fallback data
+   * Reduced from 10s to 6s - fail fast, use cache
    */
-  TOOL_HARD_TIMEOUT: 10000,
+  TOOL_HARD_TIMEOUT: 6000,
 
   /**
    * Maximum age of cached data to accept as fallback (ms)

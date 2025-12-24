@@ -49,6 +49,14 @@ import {
 import { speculateTTS } from '../shared/performance/speculative-tts.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Adaptive timing for "Better than Human" response latency
+import {
+  getAdaptiveTimeouts,
+  shouldInjectFiller,
+  recordFillerInjection,
+  startTurnProfile,
+  completeTurnProfile,
+} from '../shared/performance/adaptive-timing.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -191,47 +199,64 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     };
 
     // ================================================================
-    // DEAD AIR FIX: Timeout wrapper for turn processing
+    // ADAPTIVE TIMING: Start profiling for "Better than Human" latency
+    // ================================================================
+    const turnStartTime = Date.now();
+    startTurnProfile(services.sessionId, turnNumber);
+
+    // Get adaptive timeouts based on session performance
+    const adaptiveTimeouts = getAdaptiveTimeouts(services.sessionId);
+
+    // ================================================================
+    // DEAD AIR FIX: Adaptive filler injection
+    // Uses session-specific timing instead of static 4s timeout
     // ================================================================
     let spokeFiller = false;
-    let fillerTimeout: ReturnType<typeof setTimeout> | null = null;
+    let fillerCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-    // Schedule filler if processing takes too long
-    const fillerPromise = new Promise<void>((resolve) => {
-      fillerTimeout = setTimeout(() => {
-        if (!spokeFiller && currentSession) {
-          spokeFiller = true;
-          // Dead air prevention: use forDeadAirPrevention option for actual verbal content
-          const filler = getContextAwareThinkingFiller(persona.id, {
-            forDeadAirPrevention: true,
-          });
-          currentSession.say(filler, { allowInterruptions: true });
-          diag.filler('Spoke dead air thinking filler', {
-            personaId: persona.id,
-            filler,
-            timeoutMs: PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT,
-          });
+    // Check periodically if we should inject a filler (more responsive than fixed timeout)
+    fillerCheckInterval = setInterval(() => {
+      const elapsed = Date.now() - turnStartTime;
+      if (!spokeFiller && currentSession && shouldInjectFiller(services.sessionId, elapsed)) {
+        spokeFiller = true;
+        recordFillerInjection(services.sessionId);
+
+        const filler = getContextAwareThinkingFiller(persona.id, {
+          forDeadAirPrevention: true,
+        });
+        currentSession.say(filler, { allowInterruptions: true });
+        diag.filler('Spoke adaptive thinking filler', {
+          personaId: persona.id,
+          filler,
+          elapsedMs: elapsed,
+          adaptiveTimeoutMs: adaptiveTimeouts.fillerTimeoutMs,
+          strategy: adaptiveTimeouts.strategy,
+        });
+
+        // Stop checking after filler
+        if (fillerCheckInterval) {
+          clearInterval(fillerCheckInterval);
+          fillerCheckInterval = null;
         }
-        resolve();
-      }, PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT);
-    });
+      }
+    }, 200); // Check every 200ms for responsive filler injection
 
-    // Process the turn with hard timeout
+    // Process the turn with adaptive hard timeout
     const result = await Promise.race([
       processTurn(turnContext),
       new Promise<never>((_, reject) => {
         setTimeout(
           () => reject(new Error('Turn processing hard timeout')),
-          PROCESSING_TIMEOUTS.TURN_PROCESSING_HARD_TIMEOUT
+          adaptiveTimeouts.hardTimeoutMs
         );
       }),
     ]).finally(() => {
-      if (fillerTimeout) {
-        clearTimeout(fillerTimeout);
+      if (fillerCheckInterval) {
+        clearInterval(fillerCheckInterval);
       }
+      // Record turn latency for future adaptive calculations
+      completeTurnProfile(services.sessionId, turnNumber);
     });
-
-    void fillerPromise;
 
     // ================================================================
     // PERFORMANCE: Mark analysis complete, trigger speculative TTS

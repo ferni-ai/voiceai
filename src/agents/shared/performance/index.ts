@@ -133,6 +133,21 @@ export {
 // Speculative TTS - Pre-generate likely response audio
 export { getSpeculativeTTSMetrics, speculateTTS } from './speculative-tts.js';
 
+// Adaptive Timing - "Better than Human" dynamic latency management
+export {
+  LATENCY_TARGETS,
+  FILLER_STRATEGY,
+  recordTurnLatency,
+  getAdaptiveTimeouts,
+  shouldInjectFiller,
+  recordFillerInjection,
+  startTurnProfile,
+  completeTurnProfile,
+  cleanupSessionTiming,
+  getSessionPerformanceSummary as getAdaptiveTimingSummary,
+  type AdaptiveTimeouts,
+} from './adaptive-timing.js';
+
 // Tool Execution Reliability - Retry, circuit breaker, metrics
 export {
   executeWithReliability,

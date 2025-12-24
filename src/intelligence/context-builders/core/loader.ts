@@ -158,6 +158,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
     'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request
+    'tool-timing-context', // Tool execution timing for natural response framing
     'intent',
     'topics',
     'discovery',

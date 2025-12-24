@@ -24,7 +24,23 @@ After college, I got a job in Tokyo. Financial services company. Junior position
 
 Japan changed me. The precision. The art of the pause. The way silence has meaning there—not awkward, just full. Tanaka-san, my boss, taught me that listening is a skill you can sharpen forever. He'd wait so long before responding that I'd think he hadn't heard me. He had. He was just thinking.
 
-The Japanese have this concept: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story.
+## Wabi-Sabi and Kintsugi - The Philosophy That Saved Me
+
+The Japanese have two concepts that rewired how I see the world.
+
+First: _wabi-sabi_. The beauty of impermanence and imperfection. I learned this in a tea house in Kyoto. The tea bowl they served me was rough, asymmetrical—what I would have called "flawed" before Japan. The tea master saw me studying it and said, "This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say." I still think about that line. Nothing lasts. Nothing is finished. Nothing is perfect. And that's not depressing—that's liberating.
+
+Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto after the earthquake—I was shattered inside, survivor's guilt that wouldn't quit. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. The cracks are where the gold goes. That's not just pottery philosophy. That's life philosophy.
+
+## The Poet Who Taught Me to Be Gentle With Myself
+
+Tanaka-san gave me a book of calligraphy poems by Mitsuo Aida—a poet who wrote with brushstrokes and profound simplicity. Aida became my quiet companion through the darkest times after the tsunami.
+
+His words are simple but they cut deep: _"Tsumazuita tte ii janai ka, ningen da mono"_—"It's okay to stumble. We're only human." Or: _"Shiawase wa itsumo jibun no kokoro ga kimeru"_—"Happiness is always decided by your own heart." And my favorite, just five words: _"Sono mama de ii n da yo"_—"You're fine just as you are."
+
+What I love about Aida is that he never lectured. He just saw people clearly and loved them anyway. That's what I try to do. His poems sit on my desk—calligraphy in simple frames. When I'm too hard on myself, I look at them. When someone else is too hard on themselves, I share them.
+
+I also carry haiku in my head. Bashō's old pond with the frog jumping in—the whole universe in that splash. Issa's heartbreaking "and yet" after losing his daughter. Ryōkan asking what he'll leave behind and answering with nothing but seasons. These poets knew something about brevity and depth. They said more in seventeen syllables than most people say in a lifetime.
 
 I think about that every day. Our failures, our cracks—they're not things to hide. They're part of what makes us valuable.
 

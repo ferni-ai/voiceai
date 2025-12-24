@@ -26,6 +26,10 @@ import type { UserData } from '../shared/types.js';
 import { onToolExecuted } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Semantic tool presence - "Better than Human" tool feedback
+import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
+// Tool timing context for natural LLM framing
+import { recordToolTiming } from '../../intelligence/context-builders/tool-timing-context.js';
 
 // ============================================================================
 // TYPES
@@ -261,6 +265,24 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             services,
             sessionId,
           });
+
+          // "Better than Human" - Record tool timing for natural LLM framing
+          // This helps the LLM acknowledge wait times naturally
+          const toolWithStartTime = tool as { startTime?: number };
+          const actualLatencyMs = toolWithStartTime.startTime
+            ? Date.now() - toolWithStartTime.startTime
+            : Date.now() - toolStartTime;
+
+          // Stop semantic tool presence tracking (if it was started)
+          const timingContext = stopToolPresence(sessionId, toolName);
+
+          // Record timing for context injection into next LLM call
+          recordToolTiming(
+            sessionId,
+            toolName,
+            timingContext?.durationMs ?? actualLatencyMs,
+            userData?.voiceEmotion?.primary
+          );
 
           diag.tool('Tool execution tracked', {
             tool: toolName,

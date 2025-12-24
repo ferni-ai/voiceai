@@ -140,6 +140,7 @@ import { handleSessionAnalyticsRoutes } from '../../api/session-analytics-routes
 import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.js';
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
+import { handleInsightsRoutes } from '../../api/insights-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -298,6 +299,21 @@ const server = http.createServer(async (req, res) => {
     if (engagementHandled) return;
   } catch (err) {
     log.error({ error: String(err) }, 'Engagement route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  try {
+    // Insights routes - "What I'm Noticing" superhuman insights
+    if (pathname.startsWith('/api/insights/')) {
+      const handled = await handleInsightsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Insights route error');
     if (!res.writableEnded) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));

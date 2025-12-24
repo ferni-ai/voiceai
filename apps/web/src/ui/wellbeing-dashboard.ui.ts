@@ -501,9 +501,93 @@ const styles = `
   }
   
   /* Empty State - Storytelling Design */
+  /* =========================================
+   * MAGICAL EMPTY STATE 
+   * - Animated gradients & glowing cards
+   * - Shimmer effects & floating particles
+   * - Full-color vibrant dimensions
+   * ========================================= */
+
+  @keyframes wellbeing-gradient-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes wellbeing-pulse-glow {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  @keyframes wellbeing-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes wellbeing-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-8px) rotate(2deg); }
+    66% { transform: translateY(-4px) rotate(-1deg); }
+  }
+
+  @keyframes wellbeing-sparkle {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+  }
+
+  @keyframes wellbeing-fade-in-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes wellbeing-calendar-wave {
+    0%, 100% { transform: scale(1); opacity: var(--base-opacity); }
+    50% { transform: scale(1.1); opacity: calc(var(--base-opacity) * 1.5); }
+  }
+
   .wellbeing-empty {
+    position: relative;
     padding: var(--space-6, 24px) var(--space-4, 16px);
     color: var(--color-text-secondary);
+    overflow: hidden;
+    /* Subtle animated gradient background */
+    background: 
+      linear-gradient(
+        135deg,
+        rgba(74, 103, 65, 0.03) 0%,
+        rgba(58, 107, 115, 0.03) 25%,
+        rgba(166, 122, 106, 0.03) 50%,
+        rgba(184, 149, 106, 0.03) 75%,
+        rgba(74, 103, 65, 0.03) 100%
+      );
+    background-size: 400% 400%;
+    animation: wellbeing-gradient-flow 15s ease infinite;
+  }
+
+  /* Floating sparkle particles */
+  .wellbeing-empty::before,
+  .wellbeing-empty::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  
+  .wellbeing-empty::before {
+    top: 20%;
+    left: 15%;
+    background: radial-gradient(circle, var(--color-ferni) 0%, transparent 70%);
+    animation: wellbeing-sparkle 4s ease-in-out infinite;
+    animation-delay: 0s;
+  }
+  
+  .wellbeing-empty::after {
+    top: 60%;
+    right: 20%;
+    background: radial-gradient(circle, var(--color-maya) 0%, transparent 70%);
+    animation: wellbeing-sparkle 4s ease-in-out infinite;
+    animation-delay: 2s;
   }
   
   .wellbeing-empty__hero {
@@ -511,14 +595,16 @@ const styles = `
     gap: var(--space-4, 16px);
     align-items: flex-start;
     margin-bottom: var(--space-6, 24px);
+    animation: wellbeing-fade-in-up 0.6s ease-out both;
   }
   
   .wellbeing-empty__icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     flex-shrink: 0;
-    opacity: 0.6;
     color: var(--color-ferni);
+    filter: drop-shadow(0 0 12px rgba(74, 103, 65, 0.4));
+    animation: wellbeing-pulse-glow 3s ease-in-out infinite;
   }
 
   .wellbeing-empty__icon svg {
@@ -532,109 +618,252 @@ const styles = `
   
   .wellbeing-empty__title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px) 0;
     line-height: 1.3;
+    /* Subtle gradient text */
+    background: linear-gradient(
+      135deg,
+      var(--color-text-primary) 0%,
+      var(--color-ferni) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   
   .wellbeing-empty__subtitle {
     font-size: 14px;
     color: var(--color-text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
   }
   
   /* Preview Section - What's Coming */
   .wellbeing-empty__preview {
     margin-bottom: var(--space-6, 24px);
+    animation: wellbeing-fade-in-up 0.6s ease-out both;
+    animation-delay: 0.1s;
   }
   
   .wellbeing-empty__preview-label {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-3, 12px);
+    letter-spacing: 0.1em;
+    color: var(--color-ferni);
+    margin-bottom: var(--space-4, 16px);
+    text-align: center;
   }
   
   .wellbeing-empty__dimensions {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-2, 8px);
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3, 12px);
   }
   
   .wellbeing-empty__dimension {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: var(--space-2, 8px);
-    padding: var(--space-3, 12px);
-    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border-radius: var(--radius-lg, 12px);
-    opacity: 0.6;
-    transition: opacity var(--duration-fast, 100ms) ease;
+    padding: var(--space-4, 16px) var(--space-2, 8px);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-xl, 16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: wellbeing-float 6s ease-in-out infinite;
+    /* Stagger the float animation */
+    animation-delay: calc(var(--dimension-index, 0) * 0.5s);
   }
   
+  .wellbeing-empty__dimension:nth-child(1) { --dimension-index: 0; }
+  .wellbeing-empty__dimension:nth-child(2) { --dimension-index: 1; }
+  .wellbeing-empty__dimension:nth-child(3) { --dimension-index: 2; }
+  .wellbeing-empty__dimension:nth-child(4) { --dimension-index: 3; }
+  .wellbeing-empty__dimension:nth-child(5) { --dimension-index: 4; }
+  .wellbeing-empty__dimension:nth-child(6) { --dimension-index: 5; }
+  
   .wellbeing-empty__dimension:hover {
-    opacity: 0.8;
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+      0 0 20px var(--_glow-color, rgba(74, 103, 65, 0.3));
   }
   
   .wellbeing-empty__dimension-icon {
-    width: 20px;
-    height: 20px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
+    color: inherit;
+    filter: drop-shadow(0 0 10px currentColor);
+    transition: transform 0.3s ease, filter 0.3s ease;
+  }
+  
+  .wellbeing-empty__dimension:hover .wellbeing-empty__dimension-icon {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 16px currentColor);
   }
   
   .wellbeing-empty__dimension-icon svg {
     width: 100%;
     height: 100%;
+    stroke: currentColor;
   }
   
   .wellbeing-empty__dimension-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: inherit;
+    opacity: 0.9;
   }
   
-  /* Calendar Preview */
+  /* Calendar Preview - Alive with possibility */
   .wellbeing-empty__calendar-preview {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
+    gap: 4px;
     margin-bottom: var(--space-6, 24px);
-    padding: var(--space-3, 12px);
-    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-4, 16px);
+    background: 
+      linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6)),
+      linear-gradient(45deg, 
+        rgba(74, 103, 65, 0.05) 0%, 
+        rgba(166, 122, 106, 0.05) 50%,
+        rgba(184, 149, 106, 0.05) 100%
+      );
+    border-radius: var(--radius-xl, 16px);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: wellbeing-fade-in-up 0.6s ease-out both;
+    animation-delay: 0.2s;
+    /* Shimmer overlay */
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .wellbeing-empty__calendar-preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: wellbeing-shimmer 3s ease-in-out infinite;
+    pointer-events: none;
   }
   
   .wellbeing-empty__calendar-cell {
     aspect-ratio: 1;
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-md, 8px);
     background: var(--color-border-subtle, rgba(112, 96, 90, 0.08));
-    opacity: 0.4;
+    --base-opacity: 0.5;
+    opacity: var(--base-opacity);
+    transition: all 0.3s ease;
   }
   
   .wellbeing-empty__calendar-cell--highlight {
-    background: var(--color-ferni);
-    opacity: 0.25;
+    --base-opacity: 0.7;
+    animation: wellbeing-calendar-wave 2s ease-in-out infinite;
+    /* Each highlight gets a different color */
   }
   
-  /* Vision Statement */
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+1) {
+    background: var(--color-ferni);
+    animation-delay: 0s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+2) {
+    background: var(--color-peter);
+    animation-delay: 0.3s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+3) {
+    background: var(--color-maya);
+    animation-delay: 0.6s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+4) {
+    background: var(--color-alex);
+    animation-delay: 0.9s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+5) {
+    background: var(--color-nayan);
+    animation-delay: 1.2s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n+6) {
+    background: var(--color-jack);
+    animation-delay: 1.5s;
+  }
+  .wellbeing-empty__calendar-cell--highlight:nth-child(7n) {
+    background: var(--color-ferni);
+    animation-delay: 1.8s;
+  }
+  
+  /* Vision Statement - Inspiring & alive */
   .wellbeing-empty__vision {
     text-align: center;
-    font-size: 14px;
-    color: var(--color-text-muted);
-    font-style: italic;
-    padding: var(--space-4, 16px) var(--space-2, 8px);
-    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--color-text-secondary);
+    padding: var(--space-5, 20px) var(--space-4, 16px);
     margin-bottom: var(--space-4, 16px);
+    background: linear-gradient(
+      135deg,
+      rgba(74, 103, 65, 0.04) 0%,
+      rgba(166, 122, 106, 0.04) 50%,
+      rgba(184, 149, 106, 0.04) 100%
+    );
+    border-radius: var(--radius-xl, 16px);
+    border: 1px solid rgba(74, 103, 65, 0.1);
+    animation: wellbeing-fade-in-up 0.6s ease-out both;
+    animation-delay: 0.3s;
+    /* Subtle gradient text effect */
+    font-weight: 500;
+  }
+  
+  .wellbeing-empty__vision strong {
+    color: var(--color-ferni);
+    font-weight: 600;
   }
   
   /* CTA Section */
   .wellbeing-empty__cta {
     text-align: center;
+    animation: wellbeing-fade-in-up 0.6s ease-out both;
+    animation-delay: 0.4s;
+  }
+  
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .wellbeing-empty,
+    .wellbeing-empty__dimension,
+    .wellbeing-empty__calendar-preview::after,
+    .wellbeing-empty__calendar-cell--highlight,
+    .wellbeing-empty::before,
+    .wellbeing-empty::after,
+    .wellbeing-empty__icon {
+      animation: none;
+    }
+    .wellbeing-empty__hero,
+    .wellbeing-empty__preview,
+    .wellbeing-empty__calendar-preview,
+    .wellbeing-empty__vision,
+    .wellbeing-empty__cta {
+      animation: none;
+      opacity: 1;
+    }
   }
   
   /* Footer */
@@ -759,33 +988,110 @@ const styles = `
     border-top-color: var(--color-accent-secondary);
   }
 
+  /* Dark theme - Magical empty state with deep glows */
   [data-theme="midnight"] .wellbeing-empty {
     color: var(--color-text-secondary);
+    background: 
+      linear-gradient(
+        135deg,
+        rgba(74, 103, 65, 0.08) 0%,
+        rgba(58, 107, 115, 0.08) 25%,
+        rgba(166, 122, 106, 0.08) 50%,
+        rgba(184, 149, 106, 0.08) 75%,
+        rgba(74, 103, 65, 0.08) 100%
+      );
+    background-size: 400% 400%;
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty::before {
+    background: radial-gradient(circle, var(--color-ferni) 0%, transparent 70%);
+    opacity: 0.8;
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty::after {
+    background: radial-gradient(circle, var(--color-maya) 0%, transparent 70%);
+    opacity: 0.8;
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__icon {
+    filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.6));
   }
   
   [data-theme="midnight"] .wellbeing-empty__title {
     color: var(--color-text-primary);
+    background: linear-gradient(
+      135deg,
+      var(--color-text-primary) 0%,
+      var(--color-accent-secondary) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
   }
   
   [data-theme="midnight"] .wellbeing-empty__dimension {
-    background: var(--color-background-secondary);
+    background: rgba(30, 30, 35, 0.6);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 0 40px var(--_glow-color, rgba(74, 103, 65, 0.15));
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__dimension:hover {
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+      0 0 60px var(--_glow-color, rgba(74, 103, 65, 0.3));
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__dimension-icon {
+    filter: drop-shadow(0 0 12px currentColor);
   }
   
   [data-theme="midnight"] .wellbeing-empty__calendar-preview {
-    background: var(--color-background-secondary);
+    background: 
+      linear-gradient(135deg, rgba(30, 30, 35, 0.8), rgba(25, 25, 30, 0.6)),
+      linear-gradient(45deg, 
+        rgba(74, 103, 65, 0.1) 0%, 
+        rgba(166, 122, 106, 0.1) 50%,
+        rgba(184, 149, 106, 0.1) 100%
+      );
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__calendar-preview::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
   }
   
   [data-theme="midnight"] .wellbeing-empty__calendar-cell {
-    background: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    background: rgba(255, 255, 255, 0.06);
   }
   
   [data-theme="midnight"] .wellbeing-empty__calendar-cell--highlight {
-    background: var(--color-ferni);
-    opacity: 0.3;
+    --base-opacity: 0.6;
+    filter: brightness(1.1);
   }
   
   [data-theme="midnight"] .wellbeing-empty__vision {
-    border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    background: linear-gradient(
+      135deg,
+      rgba(74, 103, 65, 0.08) 0%,
+      rgba(166, 122, 106, 0.08) 50%,
+      rgba(184, 149, 106, 0.08) 100%
+    );
+    border-color: rgba(74, 103, 65, 0.2);
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__preview-label {
+    color: var(--color-accent-secondary);
   }
 
   [data-theme="midnight"] .wellbeing-modal__footer {
@@ -1285,14 +1591,14 @@ function createModal(): void {
  * Shows preview dimensions and calendar to paint a picture of the future.
  */
 function renderEmptyState(): string {
-  // Preview dimensions to show what they'll track
+  // Preview dimensions to show what they'll track - now with hex fallbacks for glow
   const previewDimensions = [
-    { name: 'Mood', icon: ICONS.smile, color: 'var(--color-ferni)' },
-    { name: 'Energy', icon: ICONS.sun, color: 'var(--color-jack)' },
-    { name: 'Connection', icon: ICONS.users, color: 'var(--color-peter)' },
-    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-alex)' },
-    { name: 'Purpose', icon: ICONS.compass, color: 'var(--color-nayan)' },
-    { name: 'Hope', icon: ICONS.sunrise, color: 'var(--color-maya)' },
+    { name: 'Mood', icon: ICONS.smile, color: 'var(--color-ferni)', hex: '#4a6741' },
+    { name: 'Energy', icon: ICONS.sun, color: 'var(--color-jack)', hex: '#c4a84a' },
+    { name: 'Connection', icon: ICONS.users, color: 'var(--color-peter)', hex: '#3a6b73' },
+    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-alex)', hex: '#5a6b8a' },
+    { name: 'Purpose', icon: ICONS.compass, color: 'var(--color-nayan)', hex: '#b8956a' },
+    { name: 'Hope', icon: ICONS.sunrise, color: 'var(--color-maya)', hex: '#a67a6a' },
   ];
 
   // Generate calendar preview cells (28 days = 4 weeks)
@@ -1323,9 +1629,16 @@ function renderEmptyState(): string {
           ${previewDimensions
             .map(
               (dim) => `
-            <div class="wellbeing-empty__dimension" style="color: ${dim.color}">
-              <div class="wellbeing-empty__dimension-icon">${dim.icon}</div>
-              <div class="wellbeing-empty__dimension-name">${dim.name}</div>
+            <div class="wellbeing-empty__dimension" style="
+              color: ${dim.hex}; 
+              --_glow-color: ${dim.hex}40;
+              --_bg-tint: ${dim.hex}18;
+              background: linear-gradient(145deg, rgba(255,255,255,0.95), ${dim.hex}20);
+              border: 2px solid ${dim.hex}50;
+              box-shadow: 0 4px 20px ${dim.hex}20, inset 0 1px 0 rgba(255,255,255,0.8);
+            ">
+              <div class="wellbeing-empty__dimension-icon" style="color: ${dim.hex};">${dim.icon}</div>
+              <div class="wellbeing-empty__dimension-name" style="color: ${dim.hex};">${dim.name}</div>
             </div>
           `
             )
@@ -1340,8 +1653,8 @@ function renderEmptyState(): string {
       
       <!-- Vision Statement -->
       <div class="wellbeing-empty__vision">
-        Over time, patterns will emerge. Days will connect to weeks. 
-        You'll see yourself more clearly.
+        Over time, <strong>patterns will emerge</strong>. Days will connect to weeks. 
+        You'll see yourself <strong>more clearly</strong>.
       </div>
       
       <!-- CTA -->

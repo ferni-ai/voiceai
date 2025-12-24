@@ -546,6 +546,19 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         logSessionRoutingSummary(sessionId);
         cleanupSessionStats(sessionId);
       })(),
+
+      // Semantic tool presence cleanup ("Better than Human" tool feedback)
+      (async () => {
+        const { cleanupSessionToolPresence } = await import('../../tools/execution/index.js');
+        cleanupSessionToolPresence(sessionId);
+      })(),
+
+      // Tool timing context cleanup (for natural LLM response framing)
+      (async () => {
+        const { clearToolTimings } =
+          await import('../../intelligence/context-builders/tool-timing-context.js');
+        clearToolTimings(sessionId);
+      })(),
     ]);
 
     // Log any failures from service group

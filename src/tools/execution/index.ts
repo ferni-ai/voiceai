@@ -113,3 +113,37 @@ export {
   createSource,
   type FetchWithPriorityOptions,
 } from './source-prioritizer.js';
+
+// ============================================================================
+// SEMANTIC TOOL PRESENCE ("Better than Human")
+// ============================================================================
+
+export {
+  // Types
+  type ToolStatus,
+  type EmotionalContext,
+  type RelationshipStage,
+  type ToolExecutionContext,
+  type PresenceFeedback,
+  type ToolTimingContext,
+  type ToolPresenceEvent,
+
+  // Core functions
+  selectPresenceFeedback,
+  generateToolTimingContext,
+  generateToolContextInjection,
+
+  // Event system
+  toolPresenceEvents,
+  emitToolPresence,
+
+  // Session management
+  startToolPresence,
+  stopToolPresence,
+  cleanupSessionToolPresence,
+
+  // Constants for customization
+  PRESENCE_PATTERNS,
+  TIME_MODIFIERS,
+  TOOL_SEMANTICS,
+} from './semantic-tool-presence.js';

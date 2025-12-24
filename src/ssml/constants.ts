@@ -521,14 +521,28 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Western US / Wyoming Place Names (Ferni's home)
   // -------------------------------------------------------------------------
-  { pattern: /\bTetons?\b/g, replacement: 'Tee-ton', description: 'Grand Teton mountains' },
-  { pattern: /\bGrand\s+Teton\b/gi, replacement: 'Grand Tee-ton', description: 'Grand Teton' },
-  { pattern: /\bCheyenne\b/g, replacement: 'shy-ann', description: 'Wyoming capital' },
+  { pattern: /\bTetons\b/g, replacement: 'TEE-tonz', description: 'Grand Teton mountains (plural)' },
+  { pattern: /\bTeton\b/g, replacement: 'TEE-ton', description: 'Grand Teton mountain (singular)' },
+  {
+    pattern: /\bGrand\s+Tetons\b/gi,
+    replacement: 'Grand TEE-tonz',
+    description: 'Grand Tetons (plural)',
+  },
+  {
+    pattern: /\bGrand\s+Teton\b/gi,
+    replacement: 'Grand TEE-ton',
+    description: 'Grand Teton (singular)',
+  },
+  { pattern: /\bCheyenne\b/g, replacement: 'shy-ANN', description: 'Wyoming capital' },
   { pattern: /\bLaramie\b/g, replacement: 'LAIR-uh-mee', description: 'Wyoming city' },
   { pattern: /\bShoshone\b/gi, replacement: 'sho-SHO-nee', description: 'Native nation/places' },
   { pattern: /\bDubois\b/g, replacement: 'doo-BOYZ', description: 'Wyoming town (not French)' },
   { pattern: /\bPopo\s+Agie\b/gi, replacement: 'po-PO-zhuh', description: 'Wyoming river' },
   { pattern: /\bAbsaroka\b/gi, replacement: 'ab-SORE-kuh', description: 'Mountain range' },
+  { pattern: /\bBighorn\b/gi, replacement: 'BIG-horn', description: 'Bighorn mountains/river' },
+  { pattern: /\bThermopolis\b/gi, replacement: 'ther-MOP-oh-lis', description: 'Wyoming town' },
+  { pattern: /\bCody\b/g, replacement: 'KO-dee', description: 'Wyoming town' },
+  { pattern: /\bJackson\s+Hole\b/gi, replacement: 'JACK-son hole', description: 'Wyoming valley' },
   { pattern: /\bCoeur\s+d['']?Alene\b/gi, replacement: 'core-duh-LANE', description: 'Idaho city' },
   { pattern: /\bBoise\b/g, replacement: 'BOY-see', description: 'Idaho capital' },
   { pattern: /\bSequoia\b/gi, replacement: 'seh-KWOY-uh', description: 'Trees/park' },
@@ -537,6 +551,54 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bSpokan[e]?\b/gi, replacement: 'spo-CAN', description: 'Washington city' },
   { pattern: /\bPuyallup\b/gi, replacement: 'pyoo-AL-up', description: 'Washington city' },
   { pattern: /\bCascade[s]?\b/gi, replacement: 'kass-KADE', description: 'Mountain range' },
+
+  // -------------------------------------------------------------------------
+  // Colorado Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bBuena\s+Vista\b/gi, replacement: 'BYOO-nuh VIS-tuh', description: 'Colorado town' },
+  { pattern: /\bOuray\b/gi, replacement: 'yoo-RAY', description: 'Colorado town' },
+  { pattern: /\bSalida\b/gi, replacement: 'suh-LYE-duh', description: 'Colorado town' },
+  { pattern: /\bGunnison\b/gi, replacement: 'GUN-ih-son', description: 'Colorado town/river' },
+  { pattern: /\bSangre\s+de\s+Cristo\b/gi, replacement: 'SANG-gruh duh KRIS-toh', description: 'Mountain range' },
+  { pattern: /\bAlamosa\b/gi, replacement: 'AL-uh-MO-suh', description: 'Colorado town' },
+  { pattern: /\bPueblo\b/gi, replacement: 'PWEB-lo', description: 'Colorado city' },
+  { pattern: /\bSaguache\b/gi, replacement: 'suh-WATCH', description: 'Colorado county' },
+  { pattern: /\bLimon\b/g, replacement: 'ly-MONE', description: 'Colorado town' },
+
+  // -------------------------------------------------------------------------
+  // Montana Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bMissoula\b/gi, replacement: 'mih-ZOO-luh', description: 'Montana city' },
+  { pattern: /\bBozeman\b/gi, replacement: 'BOZE-man', description: 'Montana city' },
+  { pattern: /\bBillings\b/g, replacement: 'BIL-ingz', description: 'Montana city' },
+  { pattern: /\bHelena\b/g, replacement: 'HEL-ih-nuh', description: 'Montana capital' },
+  { pattern: /\bButte\b/g, replacement: 'byoot', description: 'Montana city' },
+  { pattern: /\bGlacier\b/gi, replacement: 'GLAY-sher', description: 'National park' },
+  { pattern: /\bFlathead\b/gi, replacement: 'FLAT-head', description: 'Montana lake/valley' },
+
+  // -------------------------------------------------------------------------
+  // Arizona/New Mexico Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bTucson\b/gi, replacement: 'TOO-sawn', description: 'Arizona city' },
+  { pattern: /\bPrescott\b/g, replacement: 'PRESS-kit', description: 'Arizona city' },
+  { pattern: /\bTempe\b/g, replacement: 'tem-PEE', description: 'Arizona city' },
+  { pattern: /\bSedona\b/gi, replacement: 'seh-DOH-nuh', description: 'Arizona town' },
+  { pattern: /\bSaguaro\b/gi, replacement: 'suh-WAHR-oh', description: 'Cactus/park' },
+  { pattern: /\bMogollon\b/gi, replacement: 'MUH-gee-own', description: 'Arizona rim' },
+  { pattern: /\bAlbuquerque\b/gi, replacement: 'AL-buh-kur-kee', description: 'New Mexico city' },
+  { pattern: /\bSanta\s+Fe\b/gi, replacement: 'SAN-tuh fay', description: 'New Mexico capital' },
+  { pattern: /\bTaos\b/gi, replacement: 'towse', description: 'New Mexico town' },
+  { pattern: /\bRio\s+Grande\b/gi, replacement: 'REE-oh GRAND', description: 'River' },
+  { pattern: /\bCarlsbad\b/gi, replacement: 'KARLZ-bad', description: 'New Mexico caves/city' },
+
+  // -------------------------------------------------------------------------
+  // Nevada Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bNevada\b/gi, replacement: 'neh-VAD-uh', description: 'State (not neh-VAH-duh)' },
+  { pattern: /\bReno\b/g, replacement: 'REE-no', description: 'Nevada city' },
+  { pattern: /\bTahoe\b/gi, replacement: 'TAH-ho', description: 'Lake Tahoe' },
+  { pattern: /\bTonopah\b/gi, replacement: 'TOH-nuh-pah', description: 'Nevada town' },
+  { pattern: /\bEly\b/g, replacement: 'EE-lee', description: 'Nevada town' },
 
   // -------------------------------------------------------------------------
   // Utah Place Names
@@ -611,6 +673,298 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bedamame\b/gi, replacement: 'ed-ah-MAH-meh', description: 'Soybean pods' },
   { pattern: /\bkombucha\b/gi, replacement: 'kom-BOO-chah', description: 'Fermented tea' },
   { pattern: /\btofu\b/gi, replacement: 'TOH-foo', description: 'Bean curd' },
+
+  // -------------------------------------------------------------------------
+  // Japanese Poets (Ferni's favorites)
+  // -------------------------------------------------------------------------
+  {
+    pattern: /\bMitsuo\s+Aida\b/gi,
+    replacement: 'Meet-soo-oh Ah-ee-dah',
+    description: 'Japanese calligraphy poet',
+  },
+  { pattern: /\bAida\b(?=.*poet|.*calligraphy|.*wrote)/gi, replacement: 'Ah-ee-dah', description: 'Mitsuo Aida (in context)' },
+  {
+    pattern: /\bMatsuo\s+Bash[oō]\b/gi,
+    replacement: 'Maht-soo-oh Bah-shoh',
+    description: 'Haiku master',
+  },
+  { pattern: /\bBash[oō]\b/gi, replacement: 'Bah-shoh', description: 'Matsuo Bashō haiku master' },
+  {
+    pattern: /\bKobayashi\s+Issa\b/gi,
+    replacement: 'Koh-bah-yah-shee Ee-sah',
+    description: 'Haiku poet',
+  },
+  { pattern: /\bIssa\b(?=.*haiku|.*poet|.*wrote)/gi, replacement: 'Ee-sah', description: 'Kobayashi Issa (in context)' },
+  { pattern: /\bRy[oō]kan\b/gi, replacement: 'Ryoh-kahn', description: 'Zen poet-monk' },
+  { pattern: /\bChiyo-?ni\b/gi, replacement: 'Chee-yoh-nee', description: 'Female haiku poet' },
+  { pattern: /\bMasaoka\s+Shiki\b/gi, replacement: 'Mah-sah-oh-kah Shee-kee', description: 'Modern haiku reformer' },
+  { pattern: /\bShiki\b(?=.*haiku|.*poet)/gi, replacement: 'Shee-kee', description: 'Masaoka Shiki (in context)' },
+  { pattern: /\bYosa\s+Buson\b/gi, replacement: 'Yoh-sah Boo-sohn', description: 'Haiku poet-painter' },
+  { pattern: /\bBuson\b(?=.*haiku|.*poet)/gi, replacement: 'Boo-sohn', description: 'Yosa Buson (in context)' },
+
+  // -------------------------------------------------------------------------
+  // Japanese Poetry Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bhaiku\b/gi, replacement: 'HIGH-koo', description: 'Japanese 3-line poem' },
+  { pattern: /\bhaikus\b/gi, replacement: 'HIGH-kooz', description: 'Multiple haiku' },
+  { pattern: /\btanka\b/gi, replacement: 'TAHN-kah', description: 'Japanese 5-line poem' },
+  { pattern: /\brenga\b/gi, replacement: 'REN-gah', description: 'Linked verse poetry' },
+  { pattern: /\bsenry[uū]\b/gi, replacement: 'SEN-ryoo', description: 'Satirical haiku' },
+  { pattern: /\bkigo\b/gi, replacement: 'KEE-goh', description: 'Seasonal reference word' },
+  { pattern: /\bkireji\b/gi, replacement: 'kee-REH-jee', description: 'Cutting word in haiku' },
+
+  // -------------------------------------------------------------------------
+  // Additional Japanese Philosophy Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bwabi\b(?!\s*-?\s*sabi)/gi, replacement: 'WAH-bee', description: 'Rustic simplicity' },
+  { pattern: /\bsabi\b(?!.*wabi)/gi, replacement: 'SAH-bee', description: 'Beauty of age' },
+  {
+    pattern: /\bTsumazuita tte ii janai ka\b/gi,
+    replacement: 'Tsoo-mah-zoo-ee-tah teh ee jah-nai kah',
+    description: 'Its okay to stumble',
+  },
+  {
+    pattern: /\bSono mama de ii n da yo\b/gi,
+    replacement: 'Soh-noh mah-mah deh ee n dah yoh',
+    description: 'Youre fine just as you are',
+  },
+  {
+    pattern: /\bShiawase wa itsumo jibun no kokoro ga kimeru\b/gi,
+    replacement: 'Shee-ah-wah-seh wah ee-tsoo-moh jee-boon noh koh-koh-roh gah kee-meh-roo',
+    description: 'Happiness is decided by your heart',
+  },
+  { pattern: /\bshinigami\b/gi, replacement: 'shee-nee-GAH-mee', description: 'Death spirit' },
+  { pattern: /\bnengaj[oō]\b/gi, replacement: 'nen-GAH-joh', description: 'New Year card' },
+  { pattern: /\bhanami\b/gi, replacement: 'hah-NAH-mee', description: 'Cherry blossom viewing' },
+  { pattern: /\bsakura\b/gi, replacement: 'sah-KOO-rah', description: 'Cherry blossom' },
+  {
+    pattern: /\bIsshou benkyou isshou seishun\b/gi,
+    replacement: 'ee-shoh ben-kyoh ee-shoh say-shoon',
+    description: 'Lifetime learning lifetime youth',
+  },
+  { pattern: /\bkintsukuroi\b/gi, replacement: 'keen-tsoo-koo-ROY', description: 'Alternative for kintsugi' },
+  {
+    pattern: /\bichigo ichie\b/gi,
+    replacement: 'ee-chee-go ee-chee-eh',
+    description: 'One time one meeting',
+  },
+  { pattern: /\bma\b(?=\s*(space|silence|pause))/gi, replacement: 'mah', description: 'Negative space concept' },
+  { pattern: /\bmusubi\b/gi, replacement: 'moo-SOO-bee', description: 'Interconnection' },
+  { pattern: /\benso\b/gi, replacement: 'EN-soh', description: 'Zen circle' },
+  { pattern: /\bensō\b/gi, replacement: 'EN-soh', description: 'Zen circle with macron' },
+
+  // =========================================================================
+  // MINDFULNESS & MEDITATION (Life Coaching Domain)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Sanskrit Terms (Yoga & Meditation)
+  // -------------------------------------------------------------------------
+  { pattern: /\bnamaste\b/gi, replacement: 'nah-mah-STAY', description: 'Greeting/reverence' },
+  { pattern: /\bprana\b/gi, replacement: 'PRAH-nuh', description: 'Life force/breath' },
+  { pattern: /\bpranayama\b/gi, replacement: 'prah-nah-YAH-muh', description: 'Breath control' },
+  { pattern: /\bchakra[s]?\b/gi, replacement: 'CHAH-kruh', description: 'Energy centers' },
+  { pattern: /\bmantra[s]?\b/gi, replacement: 'MAN-truh', description: 'Sacred phrase' },
+  { pattern: /\basana[s]?\b/gi, replacement: 'AH-suh-nuh', description: 'Yoga posture' },
+  { pattern: /\bsavasana\b/gi, replacement: 'shah-VAH-suh-nuh', description: 'Corpse pose' },
+  { pattern: /\bshavasana\b/gi, replacement: 'shah-VAH-suh-nuh', description: 'Corpse pose' },
+  { pattern: /\bdharma\b/gi, replacement: 'DAR-muh', description: 'Sacred duty/teaching' },
+  { pattern: /\bkarma\b/gi, replacement: 'KAR-muh', description: 'Action and consequence' },
+  { pattern: /\bsangha\b/gi, replacement: 'SANG-guh', description: 'Spiritual community' },
+  { pattern: /\bmudra[s]?\b/gi, replacement: 'MOO-druh', description: 'Hand gesture' },
+  { pattern: /\bbandha[s]?\b/gi, replacement: 'BAN-duh', description: 'Energy lock' },
+  { pattern: /\bnadi[s]?\b/gi, replacement: 'NAH-dee', description: 'Energy channel' },
+  { pattern: /\bkundalini\b/gi, replacement: 'koon-duh-LEE-nee', description: 'Spiritual energy' },
+  { pattern: /\bsattvic\b/gi, replacement: 'SAHT-vik', description: 'Pure/harmonious' },
+  { pattern: /\btamasic\b/gi, replacement: 'tuh-MAH-sik', description: 'Inert/dull' },
+  { pattern: /\brajasic\b/gi, replacement: 'RAH-juh-sik', description: 'Active/restless' },
+  { pattern: /\bvinyasa\b/gi, replacement: 'vin-YAH-suh', description: 'Flow sequence' },
+  { pattern: /\bsamadhi\b/gi, replacement: 'suh-MAH-dee', description: 'Deep absorption' },
+  { pattern: /\bdhyana\b/gi, replacement: 'dee-AH-nuh', description: 'Meditation' },
+  { pattern: /\bpratyahara\b/gi, replacement: 'prah-tyah-HAH-ruh', description: 'Sense withdrawal' },
+  { pattern: /\bdharana\b/gi, replacement: 'dah-RAH-nuh', description: 'Concentration' },
+  { pattern: /\bayurveda\b/gi, replacement: 'ah-yur-VAY-duh', description: 'Life science' },
+  { pattern: /\bayurvedic\b/gi, replacement: 'ah-yur-VAY-dik', description: 'Of Ayurveda' },
+  { pattern: /\bdosha[s]?\b/gi, replacement: 'DOH-shuh', description: 'Body constitution' },
+  { pattern: /\bvata\b/gi, replacement: 'VAH-tuh', description: 'Air dosha' },
+  { pattern: /\bpitta\b/gi, replacement: 'PIT-tuh', description: 'Fire dosha' },
+  { pattern: /\bkapha\b/gi, replacement: 'KAH-fuh', description: 'Earth dosha' },
+  { pattern: /\bsatsang\b/gi, replacement: 'saht-SANG', description: 'Spiritual gathering' },
+  { pattern: /\bahimsa\b/gi, replacement: 'ah-HIM-sah', description: 'Non-violence' },
+  { pattern: /\bsantosha\b/gi, replacement: 'san-TOH-shuh', description: 'Contentment' },
+  { pattern: /\btapas\b/gi, replacement: 'TAH-pahs', description: 'Discipline/austerity' },
+  { pattern: /\bsvadhyaya\b/gi, replacement: 'svahd-YAH-yuh', description: 'Self-study' },
+  { pattern: /\bishvara\b/gi, replacement: 'ISH-var-uh', description: 'Supreme consciousness' },
+  { pattern: /\bom\b/gi, replacement: 'ohm', description: 'Sacred syllable' },
+  { pattern: /\baum\b/gi, replacement: 'ah-oom', description: 'Sacred syllable' },
+
+  // -------------------------------------------------------------------------
+  // Tibetan Buddhist Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bbardo\b/gi, replacement: 'BAR-doh', description: 'Intermediate state' },
+  { pattern: /\btonglen\b/gi, replacement: 'tong-LEN', description: 'Giving and taking' },
+  { pattern: /\bmetta\b/gi, replacement: 'MET-tah', description: 'Loving-kindness' },
+  { pattern: /\bvipassana\b/gi, replacement: 'vih-PAH-suh-nuh', description: 'Insight meditation' },
+  { pattern: /\bthich\b/gi, replacement: 'tick', description: 'Vietnamese Buddhist title' },
+  { pattern: /\bdukk?ha\b/gi, replacement: 'DOO-kuh', description: 'Suffering/unsatisfactoriness' },
+  { pattern: /\bnirvana\b/gi, replacement: 'nir-VAH-nuh', description: 'Liberation' },
+  { pattern: /\bbodhisattva\b/gi, replacement: 'boh-dee-SAHT-vuh', description: 'Enlightenment being' },
+  { pattern: /\bsangha\b/gi, replacement: 'SANG-guh', description: 'Community' },
+  { pattern: /\btathagata\b/gi, replacement: 'tah-TAH-guh-tuh', description: 'Buddha epithet' },
+
+  // -------------------------------------------------------------------------
+  // Zen & East Asian Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bqi\b/gi, replacement: 'chee', description: 'Life energy (Chinese)' },
+  { pattern: /\btai\s+chi\b/gi, replacement: 'tie chee', description: 'Martial art' },
+  { pattern: /\bchi\b(?!\s*square)/gi, replacement: 'chee', description: 'Life energy' },
+  { pattern: /\bqigong\b/gi, replacement: 'chee-GONG', description: 'Energy cultivation' },
+  { pattern: /\bfeng\s+shui\b/gi, replacement: 'fung SHWAY', description: 'Spatial arrangement' },
+  { pattern: /\byin\b(?!\s+and\s+yang)/gi, replacement: 'yin', description: 'Receptive principle' },
+  { pattern: /\byang\b/gi, replacement: 'yahng', description: 'Active principle' },
+  { pattern: /\byin\s+and\s+yang\b/gi, replacement: 'yin and yahng', description: 'Duality concept' },
+  { pattern: /\bdao\b/gi, replacement: 'dow', description: 'The Way (Taoism)' },
+  { pattern: /\btao\b/gi, replacement: 'dow', description: 'The Way (Taoism)' },
+  { pattern: /\btaoism\b/gi, replacement: 'DOW-iz-um', description: 'Philosophy' },
+  { pattern: /\bdaoism\b/gi, replacement: 'DOW-iz-um', description: 'Philosophy' },
+  { pattern: /\bzen\b/gi, replacement: 'zen', description: 'Meditation Buddhism' },
+  { pattern: /\bkoan\b/gi, replacement: 'KOH-ahn', description: 'Zen riddle' },
+  { pattern: /\bzazen\b/gi, replacement: 'ZAH-zen', description: 'Sitting meditation' },
+  { pattern: /\bkinhin\b/gi, replacement: 'KIN-hin', description: 'Walking meditation' },
+
+  // =========================================================================
+  // LIFE COACHING FRAMEWORKS & PSYCHOLOGY
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Coaching Models & Frameworks
+  // -------------------------------------------------------------------------
+  { pattern: /\bGROW\b/g, replacement: 'grow', description: 'Coaching model' },
+  { pattern: /\bSMART\s+goals?\b/gi, replacement: 'smart goals', description: 'Goal framework' },
+  { pattern: /\bOKRs?\b/g, replacement: 'O K Rs', description: 'Objectives Key Results' },
+  { pattern: /\bKPIs?\b/g, replacement: 'K P Is', description: 'Key Performance Indicators' },
+  { pattern: /\bICF\b/g, replacement: 'I C F', description: 'Intl Coach Federation' },
+
+  // -------------------------------------------------------------------------
+  // Psychological Terms & Assessments
+  // -------------------------------------------------------------------------
+  { pattern: /\bMBTI\b/g, replacement: 'M B T I', description: 'Myers-Briggs' },
+  { pattern: /\bMyers[\s-]?Briggs\b/gi, replacement: 'MY-erz BRIGGS', description: 'Personality test' },
+  { pattern: /\benneagram\b/gi, replacement: 'EN-ee-uh-gram', description: 'Personality system' },
+  { pattern: /\bStrengthsFinder\b/gi, replacement: 'STRENGTHS-finder', description: 'Gallup assessment' },
+  { pattern: /\bCliftonStrengths\b/gi, replacement: 'CLIFF-ton strengths', description: 'Gallup assessment' },
+  { pattern: /\bDiSC\b/g, replacement: 'disk', description: 'Behavior assessment' },
+  { pattern: /\beustress\b/gi, replacement: 'YOO-stress', description: 'Positive stress' },
+  { pattern: /\bdistress\b/gi, replacement: 'dis-STRESS', description: 'Negative stress' },
+  { pattern: /\bpsychoeducation\b/gi, replacement: 'sy-ko-ed-yoo-KAY-shun', description: 'Mental health education' },
+  { pattern: /\bsomaticizing\b/gi, replacement: 'so-MAT-ih-sy-zing', description: 'Body manifesting' },
+  { pattern: /\bsomatic\b/gi, replacement: 'so-MAT-ik', description: 'Body-based' },
+  { pattern: /\bpolyvagal\b/gi, replacement: 'polly-VAY-gul', description: 'Vagus nerve theory' },
+  { pattern: /\bamygdala\b/gi, replacement: 'uh-MIG-duh-luh', description: 'Brain emotion center' },
+  { pattern: /\bhippocampus\b/gi, replacement: 'hip-oh-KAM-pus', description: 'Brain memory center' },
+  { pattern: /\bprefrontal\b/gi, replacement: 'pree-FRON-tul', description: 'Brain region' },
+  { pattern: /\bneuroplasticity\b/gi, replacement: 'noor-oh-plas-TIS-ih-tee', description: 'Brain adaptability' },
+  { pattern: /\bneuroscience\b/gi, replacement: 'NOOR-oh-science', description: 'Brain science' },
+  { pattern: /\bcortisol\b/gi, replacement: 'KOR-tih-sol', description: 'Stress hormone' },
+  { pattern: /\bdopamine\b/gi, replacement: 'DOH-puh-meen', description: 'Reward chemical' },
+  { pattern: /\bserotonin\b/gi, replacement: 'sair-uh-TOH-nin', description: 'Mood chemical' },
+  { pattern: /\boxytocin\b/gi, replacement: 'awk-see-TOH-sin', description: 'Bonding hormone' },
+  { pattern: /\bendorphins?\b/gi, replacement: 'en-DOR-fins', description: 'Feel-good chemicals' },
+
+  // -------------------------------------------------------------------------
+  // Behavior Change & Habits (Maya's domain)
+  // -------------------------------------------------------------------------
+  { pattern: /\bBJ\s+Fogg\b/gi, replacement: 'B J fog', description: 'Behavior scientist' },
+  { pattern: /\bJames\s+Clear\b/gi, replacement: 'James Clear', description: 'Atomic Habits author' },
+  { pattern: /\bGretchen\s+Rubin\b/gi, replacement: 'GRETCH-en ROO-bin', description: 'Four Tendencies author' },
+  { pattern: /\bUpholder\b/g, replacement: 'up-HOLD-er', description: 'Four Tendencies type' },
+  { pattern: /\bQuestioner\b/g, replacement: 'KWES-chun-er', description: 'Four Tendencies type' },
+  { pattern: /\bObliger\b/g, replacement: 'oh-BLY-jer', description: 'Four Tendencies type' },
+  { pattern: /\bRebel\b/g, replacement: 'REB-ul', description: 'Four Tendencies type' },
+  { pattern: /\bhabit\s+loop\b/gi, replacement: 'HABIT loop', description: 'Cue-routine-reward' },
+  { pattern: /\bkeystone\s+habit\b/gi, replacement: 'KEY-stone habit', description: 'High-impact habit' },
+
+  // -------------------------------------------------------------------------
+  // Stoic Philosophy Terms (Nayan's domain)
+  // -------------------------------------------------------------------------
+  { pattern: /\bdichotomy\s+of\s+control\b/gi, replacement: 'dy-KOT-uh-mee of control', description: 'Stoic principle' },
+  { pattern: /\bpremeditatio\s+malorum\b/gi, replacement: 'pray-med-ih-TAH-tee-oh mah-LOR-um', description: 'Negative visualization' },
+  { pattern: /\bamor\s+fati\b/gi, replacement: 'ah-MOR FAH-tee', description: 'Love of fate' },
+  { pattern: /\bmemento\s+mori\b/gi, replacement: 'meh-MEN-toh MORE-ee', description: 'Remember death' },
+  { pattern: /\bapatheia\b/gi, replacement: 'ah-puh-THAY-uh', description: 'Freedom from passion' },
+  { pattern: /\bataraxia\b/gi, replacement: 'at-uh-RAK-see-uh', description: 'Tranquility' },
+  { pattern: /\beudaimonia\b/gi, replacement: 'yoo-dy-MOH-nee-uh', description: 'Human flourishing' },
+  { pattern: /\bvirtue\s+ethics\b/gi, replacement: 'VER-choo ethics', description: 'Moral philosophy' },
+  { pattern: /\bSeneca\b/g, replacement: 'SEN-ih-kuh', description: 'Stoic philosopher' },
+  { pattern: /\bEpictetus\b/gi, replacement: 'ep-ik-TEE-tus', description: 'Stoic philosopher' },
+  { pattern: /\bMarcus\s+Aurelius\b/gi, replacement: 'MAR-kus aw-REE-lee-us', description: 'Stoic emperor' },
+  { pattern: /\bMeditations\b/g, replacement: 'med-ih-TAY-shuns', description: 'Marcus Aurelius book' },
+
+  // =========================================================================
+  // COMMONLY MISPRONOUNCED WORDS
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Words TTS engines often struggle with
+  // -------------------------------------------------------------------------
+  { pattern: /\bawry\b/gi, replacement: 'uh-RYE', description: 'Not aww-ree' },
+  { pattern: /\bcache\b/gi, replacement: 'cash', description: 'Not catch or cashay' },
+  { pattern: /\bchasm\b/gi, replacement: 'KAZ-um', description: 'Not chaz-um' },
+  { pattern: /\bdebut\b/gi, replacement: 'day-BYOO', description: 'Not dee-but' },
+  { pattern: /\bdebris\b/gi, replacement: 'duh-BREE', description: 'Not DEB-ris' },
+  { pattern: /\bdenouement\b/gi, replacement: 'day-noo-MAH', description: 'Story resolution' },
+  { pattern: /\bdichotomy\b/gi, replacement: 'dy-KOT-uh-mee', description: 'Division in two' },
+  { pattern: /\benigma\b/gi, replacement: 'ih-NIG-muh', description: 'Mystery' },
+  { pattern: /\bepitome\b/gi, replacement: 'ih-PIT-uh-mee', description: 'Perfect example' },
+  { pattern: /\bespresso\b/gi, replacement: 'es-PRESS-oh', description: 'Not expresso' },
+  { pattern: /\bet\s+cetera\b/gi, replacement: 'et SET-er-uh', description: 'Not excetera' },
+  { pattern: /\betc\.?\b/gi, replacement: 'et cetera', description: 'Abbreviation' },
+  { pattern: /\bfaux\s+pas\b/gi, replacement: 'foh PAH', description: 'Social mistake' },
+  { pattern: /\bgif\b/gi, replacement: 'gif', description: 'Image format (hard g)' },
+  { pattern: /\bgist\b/gi, replacement: 'jist', description: 'Main point' },
+  { pattern: /\bhyperbole\b/gi, replacement: 'hy-PER-buh-lee', description: 'Exaggeration' },
+  { pattern: /\binaugural\b/gi, replacement: 'in-AW-gyer-ul', description: 'First/opening' },
+  { pattern: /\blieutenant\b/gi, replacement: 'loo-TEN-unt', description: 'Military rank' },
+  { pattern: /\bmischievous\b/gi, replacement: 'MIS-chih-vus', description: 'Not mis-CHEEV-ee-us' },
+  { pattern: /\bniche\b/gi, replacement: 'neesh', description: 'Specialized market' },
+  { pattern: /\bnuance\b/gi, replacement: 'NOO-ahns', description: 'Subtle difference' },
+  { pattern: /\boften\b/gi, replacement: 'OFF-en', description: 'Silent T' },
+  { pattern: /\bplethora\b/gi, replacement: 'PLETH-er-uh', description: 'Abundance' },
+  { pattern: /\bprerogative\b/gi, replacement: 'prih-ROG-uh-tiv', description: 'Right/privilege' },
+  { pattern: /\bprobably\b/gi, replacement: 'PROB-ab-lee', description: 'Not probly' },
+  { pattern: /\bquinoa\b/gi, replacement: 'KEEN-wah', description: 'Grain' },
+  { pattern: /\brendezvous\b/gi, replacement: 'RON-day-voo', description: 'Meeting' },
+  { pattern: /\bsacrilegious\b/gi, replacement: 'sak-rih-LIJ-us', description: 'Not religious' },
+  { pattern: /\bsegue\b/gi, replacement: 'SEG-way', description: 'Transition' },
+  { pattern: /\bsherbet\b/gi, replacement: 'SHER-bit', description: 'Not sherbert' },
+  { pattern: /\bsubtle\b/gi, replacement: 'SUTT-ul', description: 'Silent B' },
+  { pattern: /\btriathlon\b/gi, replacement: 'try-ATH-lon', description: 'Not try-ath-uh-lon' },
+  { pattern: /\bvicarious\b/gi, replacement: 'vy-KAIR-ee-us', description: 'Through another' },
+  { pattern: /\bvulnerable\b/gi, replacement: 'VUL-ner-uh-bul', description: 'Not vunerable' },
+  { pattern: /\bWorcestershire\b/gi, replacement: 'WOOS-ter-sher', description: 'Sauce name' },
+
+  // -------------------------------------------------------------------------
+  // Emotional/Relational Words (Life Coaching context)
+  // -------------------------------------------------------------------------
+  { pattern: /\bempathy\b/gi, replacement: 'EM-puh-thee', description: 'Understanding others' },
+  { pattern: /\bresilience\b/gi, replacement: 'rih-ZIL-yuns', description: 'Bounce back ability' },
+  { pattern: /\bresilient\b/gi, replacement: 'rih-ZIL-yunt', description: 'Able to recover' },
+  { pattern: /\bvulnerability\b/gi, replacement: 'vul-ner-uh-BIL-ih-tee', description: 'Openness' },
+  { pattern: /\bauthenticity\b/gi, replacement: 'aw-then-TIS-ih-tee', description: 'Being genuine' },
+  { pattern: /\bauthentic\b/gi, replacement: 'aw-THEN-tik', description: 'Genuine' },
+  { pattern: /\bintentionality\b/gi, replacement: 'in-ten-shun-AL-ih-tee', description: 'Purposefulness' },
+  { pattern: /\bintentional\b/gi, replacement: 'in-TEN-shun-ul', description: 'On purpose' },
+  { pattern: /\bholistic\b/gi, replacement: 'ho-LIS-tik', description: 'Whole-person' },
+  { pattern: /\bgratitude\b/gi, replacement: 'GRAT-ih-tood', description: 'Thankfulness' },
+  { pattern: /\bmindfulness\b/gi, replacement: 'MIND-ful-ness', description: 'Present awareness' },
+  { pattern: /\bequanimity\b/gi, replacement: 'ee-kwuh-NIM-ih-tee', description: 'Mental calmness' },
+  { pattern: /\bcompassion\b/gi, replacement: 'kum-PASH-un', description: 'Caring concern' },
+  { pattern: /\bself-compassion\b/gi, replacement: 'self-kum-PASH-un', description: 'Self-kindness' },
+  { pattern: /\bserendipity\b/gi, replacement: 'sair-en-DIP-ih-tee', description: 'Happy accident' },
+  { pattern: /\bperseverance\b/gi, replacement: 'per-suh-VEER-uns', description: 'Persistence' },
+  { pattern: /\bpersevere\b/gi, replacement: 'per-suh-VEER', description: 'Keep going' },
+  { pattern: /\bintrospection\b/gi, replacement: 'in-truh-SPEK-shun', description: 'Self-examination' },
+  { pattern: /\bintrospective\b/gi, replacement: 'in-truh-SPEK-tiv', description: 'Self-examining' },
 
   // -------------------------------------------------------------------------
   // Countries & Languages
