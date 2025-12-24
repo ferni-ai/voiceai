@@ -25,6 +25,7 @@ import {
   recordRoutingError,
 } from './metrics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
+import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
 // Better Than Human integration
 import {
   routeVoiceInput,
@@ -369,26 +370,76 @@ export async function routeTranscript(
 
 /**
  * Execute a matched tool for transcript routing
+ *
+ * IMPORTANT: This function bridges semantic tools to real domain implementations.
+ * When a semantic tool ID has a domain mapping, we execute the real domain tool
+ * rather than the semantic tool's mock execute function.
  */
 async function executeToolForTranscript(
   match: ToolMatch,
   context: TranscriptRoutingContext
 ): Promise<{ success: boolean; naturalResponse?: string; error?: string }> {
+  const toolId = match.toolId;
+
+  // ==========================================================================
+  // DOMAIN BRIDGE: Execute real domain tool if mapping exists
+  // ==========================================================================
+  if (hasDomainMapping(toolId)) {
+    log.info(
+      { semanticToolId: toolId, confidence: match.confidence },
+      '🔗 Using domain bridge for transcript tool execution'
+    );
+
+    // Build execution context for domain tool
+    const execContext = {
+      userId: context.userId,
+      sessionId: context.sessionId,
+      personaId: context.personaId,
+      conversationHistory: (context.conversationHistory || []).map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        text: h.content,
+        timestamp: new Date(),
+      })),
+      services: null, // Will be null for semantic router execution
+    };
+
+    // Execute via domain bridge
+    const result = await executeDomainTool(toolId, match.extractedArgs, execContext);
+
+    log.info(
+      {
+        semanticToolId: toolId,
+        success: result.success,
+        responsePreview: result.naturalResponse?.slice(0, 100),
+      },
+      '🔗 Domain bridge execution complete'
+    );
+
+    return {
+      success: result.success,
+      naturalResponse: result.naturalResponse ?? '',
+      error: result.error,
+    };
+  }
+
+  // ==========================================================================
+  // FALLBACK: Execute semantic tool directly (mock response)
+  // ==========================================================================
   const { getToolRegistry } = await import('../registry.js');
   const registry = getToolRegistry();
 
   // Look up the tool
-  const tool = registry.get(match.toolId);
+  const tool = registry.get(toolId);
   if (!tool) {
     return {
       success: false,
-      error: `Tool ${match.toolId} not found in registry`,
+      error: `Tool ${toolId} not found in registry`,
     };
   }
 
   log.info(
-    { toolId: match.toolId, confidence: match.confidence },
-    '⚡ Executing tool via semantic router'
+    { toolId, confidence: match.confidence },
+    '⚡ Executing tool via semantic router (no domain mapping)'
   );
 
   try {
@@ -413,7 +464,18 @@ async function executeToolForTranscript(
     // Handle both ToolExecutionResult and SemanticRoutingResult
     if (isToolExecutionResult(result)) {
       if (result.success) {
-        log.info({ toolId: match.toolId }, '✅ Tool executed successfully');
+        // Check if this is a delegation result (has delegateTo but no naturalResponse)
+        if (result.delegateTo && !result.naturalResponse) {
+          log.warn(
+            { toolId, delegateTo: result.delegateTo },
+            '⚠️ Tool returned delegateTo but no domain mapping exists'
+          );
+          return {
+            success: false,
+            error: `Tool ${toolId} wants to delegate to ${result.delegateTo} but no domain mapping exists`,
+          };
+        }
+        log.info({ toolId }, '✅ Tool executed successfully');
         return {
           success: true,
           naturalResponse: result.naturalResponse,
@@ -426,7 +488,7 @@ async function executeToolForTranscript(
     }
 
     // SemanticRoutingResult - treat as successful routing
-    log.info({ toolId: match.toolId, targetTool: result.tool }, '✅ Routing to target tool');
+    log.info({ toolId, targetTool: result.tool }, '✅ Routing to target tool');
     return {
       success: true,
       naturalResponse: `Routing to ${result.tool}`,
