@@ -218,15 +218,28 @@ class SpeculativeTTSEngine {
 
   /**
    * Pre-warm cache with common phrases for a voice
+   *
+   * PERFORMANCE OPTIMIZATION: Pre-generates common phrases with emotion variants.
+   * This ensures fast response for the most frequently used phrases across
+   * different emotional contexts.
    */
-  async warmupVoice(voiceId: string): Promise<void> {
-    log.debug({ voiceId }, 'Warming up TTS cache for voice');
+  async warmupVoice(voiceId: string, emotions?: string[]): Promise<void> {
+    log.debug({ voiceId }, 'Warming up TTS cache for voice with emotion variants');
 
-    const phrasesToWarm: string[] = [];
+    const emotionsToWarm = emotions || [...COMMON_EMOTIONS];
+    const phrasesToWarm: Array<{ text: string; emotion: string }> = [];
 
-    // Collect all common starters
+    // Collect all common starters with emotion variants
     for (const starters of Object.values(RESPONSE_STARTERS)) {
-      phrasesToWarm.push(...starters.slice(0, 3)); // Top 3 from each category
+      const topStarters = starters.slice(0, 3); // Top 3 from each category
+      for (const text of topStarters) {
+        // For each phrase, warm up the most important emotions
+        // (neutral is always warmed, plus 2 other context-appropriate emotions)
+        const relevantEmotions = emotionsToWarm.slice(0, 3);
+        for (const emotion of relevantEmotions) {
+          phrasesToWarm.push({ text, emotion });
+        }
+      }
     }
 
     // Generate in parallel batches
@@ -234,15 +247,18 @@ class SpeculativeTTSEngine {
     for (let i = 0; i < phrasesToWarm.length; i += batchSize) {
       const batch = phrasesToWarm.slice(i, i + batchSize);
       await Promise.all(
-        batch.map((text) =>
-          this.generateAndCache(text, voiceId, 'low').catch((e) =>
-            log.debug({ text, error: String(e) }, 'Warmup generation failed')
+        batch.map(({ text, emotion }) =>
+          this.generateAndCache(text, voiceId, 'low', emotion).catch((e) =>
+            log.debug({ text, emotion, error: String(e) }, 'Warmup generation failed')
           )
         )
       );
     }
 
-    log.info({ voiceId, phrases: phrasesToWarm.length }, 'TTS cache warmed up');
+    log.info(
+      { voiceId, phrases: phrasesToWarm.length, emotions: emotionsToWarm.length },
+      'TTS cache warmed up with emotion variants'
+    );
   }
 
   /**
