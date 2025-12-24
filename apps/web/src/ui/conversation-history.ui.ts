@@ -14,6 +14,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 
 // ============================================================================
 // TYPES
@@ -301,16 +302,9 @@ class ConversationHistoryUI {
   }
 
   private renderEmptyState(): string {
-    return `
-      <div class="history__empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 8v4l3 3"/>
-          <circle cx="12" cy="12" r="10"/>
-        </svg>
-        <p>No conversations yet</p>
-        <span>Your journey begins with a single conversation</span>
-      </div>
-    `;
+    // Use teaser preview system to show what conversation history WILL look like
+    // Shows realistic dummy data to create anticipation
+    return teaserPreview.conversationHighlights();
   }
 
   private formatDuration(minutes: number): string {

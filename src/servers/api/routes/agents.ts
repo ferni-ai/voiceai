@@ -242,7 +242,11 @@ export async function handleAgentRoutes(
         config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      // Short cache for config (private, changes via admin actions)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=30',
+      });
       res.end(
         JSON.stringify({
           disabledAgents: config.disabledAgents || [],
@@ -277,7 +281,12 @@ export async function handleAgentRoutes(
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      // Edge cache for 1 hour (single agent data is static)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        Vary: 'Accept-Encoding',
+      });
       res.end(
         JSON.stringify({
           id: agent.id,

@@ -96,6 +96,9 @@ export { getToolDefinitions as getLifePlanningToolDefinitions } from './life-pla
 // Entertainment domain - music, media
 export { getToolDefinitions as getEntertainmentToolDefinitions } from './entertainment/index.js';
 
+// Vibe domain - unified environment control (music, lights, temperature)
+export { getToolDefinitions as getVibeToolDefinitions } from './vibe/index.js';
+
 // Games domain - interactive music games
 export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js';
 
@@ -347,6 +350,7 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./research/index.js').then(async (m) => m.getToolDefinitions()),
     import('./life-planning/index.js').then(async (m) => m.getToolDefinitions()),
     import('./entertainment/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./vibe/index.js').then(async (m) => m.getToolDefinitions()),
     import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
     // Cameo domain - team member pop-ins

@@ -488,6 +488,7 @@
       "outreachSchedule": "アウトリーチスケジュール",
       "personalize": "パーソナライズ",
       "playGames": "ゲームをプレイ",
+      "setTheVibe": "雰囲気を設定",
       "predictionAccuracy": "私の予測",
       "progressAnalytics": "あなたの成長",
       "shareFerni": "友達を招待",
@@ -507,6 +508,7 @@
       "whatILearned": "学んだこと",
       "whatsGrowing": "成長中",
       "yourJourney": "あなたの旅",
+      "whatIllKnow": "私が知ること",
       "yourPlan": "あなたのプラン"
     },
     "keepChatting": "会話を続けて解除",
@@ -538,7 +540,7 @@
     "subgroups": {
       "yourBody": "健康とウェルネス",
       "yourCalendar": "カレンダーと仕事",
-      "yourSpace": "ホームとミュージック"
+      "yourVibe": "あなたの雰囲気"
     },
     "title": "次は何をしますか？",
     "unlockHint": "解除まであと{remaining}",

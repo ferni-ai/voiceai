@@ -31,6 +31,7 @@ export type ToolDomain =
   | 'life-planning' // Goals, milestones, life events, celebrations
   | 'wellness' // Health tracking, medications, wellness check-ins
   | 'entertainment' // Music, media, leisure activities
+  | 'vibe' // Unified environment control (music, lights, temperature)
   | 'information' // News, weather, sports, search
   | 'wisdom' // Quotes, principles, educational content
   | 'handoff' // Agent-to-agent handoff tools
@@ -118,6 +119,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'life-planning',
   'wellness',
   'entertainment',
+  'vibe',
   'information',
   'wisdom',
   'handoff',
@@ -226,6 +228,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   information: 'information',
   wisdom: 'information',
   entertainment: 'entertainment',
+  vibe: 'entertainment', // Unified environment control
   // Emotional/wisdom domains
   grief: 'lifestyle',
   meaning: 'lifestyle',

@@ -52,6 +52,15 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
 
+// Predictive cache warming for anticipated queries
+import {
+  setupMemoryFetcher,
+  warmCacheForSession,
+  detectTimeSignals,
+  type SessionSignals,
+  type PersonaId as PredictivePersonaId,
+} from '../../memory/predictive-cache-warming.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -410,6 +419,44 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           } catch (embeddingErr) {
             diag.warn('Embedding precomputation failed (non-fatal)', {
               error: String(embeddingErr),
+            });
+          }
+        })(),
+
+        // Phase 8: Predictive Cache Warming - pre-warm cache for anticipated queries
+        (async () => {
+          try {
+            // Configure memory fetch function for cache warming (using semantic RAG)
+            const { getRAGContext } = await import('../../memory/semantic-rag.js');
+            setupMemoryFetcher(async (_uid: string, query: string) => {
+              return getRAGContext(query, { topK: 5, minScore: 0.5 });
+            });
+
+            // Detect time signals
+            const { timeOfDay, dayOfWeek } = detectTimeSignals();
+
+            // Build session signals
+            const signals: SessionSignals = {
+              timeOfDay,
+              dayOfWeek,
+              currentPersona: sessionPersona.id as PredictivePersonaId,
+              isReturningUser: (services.userProfile?.totalConversations ?? 0) > 0,
+            };
+
+            // Warm cache in background
+            const warmingResult = await warmCacheForSession(userId, signals);
+
+            if (warmingResult.warmedCount > 0) {
+              diag.session('🔮 Predictive cache warming complete', {
+                userId,
+                warmedCount: warmingResult.warmedCount,
+                durationMs: warmingResult.durationMs,
+                queries: warmingResult.queries.slice(0, 3), // Log first 3 queries
+              });
+            }
+          } catch (cacheWarmErr) {
+            diag.warn('Predictive cache warming failed (non-fatal)', {
+              error: String(cacheWarmErr),
             });
           }
         })(),

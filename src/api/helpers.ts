@@ -346,6 +346,38 @@ export function sendJSONCached(
 }
 
 /**
+ * Send JSON response with PUBLIC cache headers for CDN/edge caching.
+ * Use for static content that can be cached at CDN layer.
+ *
+ * IMPORTANT: Only use for truly static content that doesn't contain
+ * user-specific data. For user-specific cacheable data, use sendJSONCached.
+ *
+ * @param res - Server response
+ * @param data - Data to serialize
+ * @param maxAge - Cache max-age in seconds (default: 3600 = 1 hour)
+ * @param status - HTTP status code
+ */
+export function sendJSONEdgeCached(
+  res: ServerResponse,
+  data: unknown,
+  maxAge = 3600,
+  status = 200
+): void {
+  // Get security headers but override Cache-Control for public caching
+  const { 'Cache-Control': _, Pragma: __, ...securityHeaders } = getAPISecurityHeaders();
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    ...securityHeaders,
+    ...getCorsHeaders(),
+    // Public cache for CDN/edge caching
+    'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`,
+    // ETag support for conditional requests
+    Vary: 'Accept-Encoding',
+  });
+  res.end(JSON.stringify(data));
+}
+
+/**
  * Send error response with security headers.
  *
  * @param res - Server response

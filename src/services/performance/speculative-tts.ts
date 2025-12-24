@@ -16,10 +16,26 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)
 import { LRUCache } from 'lru-cache';
+
+// ============================================================================
+// CARTESIA API CONFIGURATION
+// ============================================================================
+
+const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
+const CARTESIA_API_VERSION = '2024-06-10';
+const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+
+/**
+ * Get Cartesia API key from environment
+ */
+function getCartesiaApiKey(): string | undefined {
+  return process.env.CARTESIA_API_KEY;
+}
 
 const log = createLogger({ module: 'SpeculativeTTS' });
 
@@ -477,42 +493,67 @@ class SpeculativeTTSEngine {
   }
 
   /**
-   * Call actual TTS provider
+   * Call Cartesia TTS API to generate audio
+   *
+   * Uses the Cartesia REST API for synchronous TTS generation.
+   * This is optimized for speculative caching - we pre-generate common
+   * phrases and store them for instant retrieval.
    */
   private async callTTSProvider(text: string, voiceId: string): Promise<ArrayBuffer> {
-    // This would integrate with your actual TTS provider (ElevenLabs, Google TTS, etc.)
-    // For now, we'll simulate the API call
+    const apiKey = getCartesiaApiKey();
+
+    if (!apiKey) {
+      log.debug({ text: text.slice(0, 50), voiceId }, 'CARTESIA_API_KEY not set, using empty buffer');
+      return new ArrayBuffer(0);
+    }
 
     try {
-      // Try ElevenLabs first
-      const elevenLabsKey = process.env.ELEVEN_LABS_API_KEY;
-      if (elevenLabsKey) {
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'xi-api-key': elevenLabsKey,
-          },
-          body: JSON.stringify({
-            text,
-            model_id: 'eleven_turbo_v2',
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-            },
-          }),
-        });
+      // Resolve persona name to Cartesia voice ID if needed
+      // (voiceId might be a persona name like 'ferni' or a raw Cartesia ID)
+      const resolvedVoiceId = voiceId.includes('-')
+        ? voiceId // Already a Cartesia UUID
+        : getVoiceIdForPersona(voiceId);
 
-        if (response.ok) {
-          return await response.arrayBuffer();
-        }
+      const response = await fetch(CARTESIA_API_URL, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': apiKey,
+          'Cartesia-Version': CARTESIA_API_VERSION,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model_id: CARTESIA_MODEL,
+          transcript: text,
+          voice: {
+            mode: 'id',
+            id: resolvedVoiceId,
+          },
+          output_format: {
+            container: 'raw',
+            encoding: 'pcm_s16le',
+            sample_rate: 24000, // Standard for voice agents
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        log.warn(
+          { status: response.status, error: errorText, text: text.slice(0, 30) },
+          'Cartesia API error'
+        );
+        return new ArrayBuffer(0);
       }
 
-      // Fallback: Return empty audio buffer (would be replaced with actual TTS)
-      log.debug({ text: text.slice(0, 50), voiceId }, 'Using placeholder TTS');
-      return new ArrayBuffer(0);
+      const audioBuffer = await response.arrayBuffer();
+      log.debug(
+        { text: text.slice(0, 30), bytes: audioBuffer.byteLength, voiceId: resolvedVoiceId },
+        'Cartesia TTS generated'
+      );
+
+      return audioBuffer;
     } catch (error) {
-      log.debug({ error: String(error) }, 'TTS provider call failed');
+      log.warn({ error: String(error), text: text.slice(0, 30) }, 'Cartesia TTS call failed');
       return new ArrayBuffer(0);
     }
   }

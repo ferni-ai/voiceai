@@ -598,6 +598,13 @@ const CORE_CATEGORIES: BC[] = [BC.SAFETY, BC.CONTEXT];
 // Import optimized fast conditional loading
 import { determineActiveCategoriesFast as fastDetermineCategories } from './fast-conditional-loading.js';
 
+// Import builder-level prioritization (Phase 2 optimization)
+import {
+  prioritizeBuilders,
+  recordPrioritizationResult,
+  getPrioritizationConfig,
+} from './builder-prioritization.js';
+
 /**
  * Determine which builder categories should be active for this turn
  *
@@ -860,6 +867,28 @@ export async function buildConversationContext(
     buildersToRun = getRegisteredBuilders();
   }
 
+  // PHASE 2 OPTIMIZATION: Builder-level prioritization
+  // Further filter builders by intent/topic relevance scoring
+  // This reduces ~20-30 builders per turn to ~10-15 builders
+  const prioritizationConfig = getPrioritizationConfig();
+  if (!prioritizationConfig.disabled && buildersToRun.length > 0) {
+    const prioritizationResult = prioritizeBuilders(buildersToRun, input);
+    recordPrioritizationResult(prioritizationResult);
+    buildersToRun = prioritizationResult.selectedBuilders;
+
+    if (conditionalLoadingConfig.logActiveCategories) {
+      log.debug(
+        {
+          beforePrioritization: prioritizationResult.totalScored,
+          afterPrioritization: buildersToRun.length,
+          skipped: prioritizationResult.skippedBuilders.length,
+          avgRelevance: prioritizationResult.avgRelevanceScore.toFixed(2),
+        },
+        'Builder-level prioritization applied'
+      );
+    }
+  }
+
   const builderResults: Array<{
     name: string;
     durationMs: number;
@@ -990,6 +1019,14 @@ export {
 
 // Import for internal use
 import { ensureBuildersLoaded } from './core/loader.js';
+
+// Re-export builder prioritization functions for observability
+export {
+  getPrioritizationMetrics,
+  getPrioritizationConfig,
+  setPrioritizationConfig,
+  resetPrioritizationMetrics,
+} from './builder-prioritization.js';
 
 // ============================================================================
 // CONVERSATION HUMANIZING CONTEXT BUILDER

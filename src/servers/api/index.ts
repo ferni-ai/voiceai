@@ -39,6 +39,7 @@ import {
   handleWebhookRoutes,
   handleSpotifyRoomsRoutes,
   handleEcobeeRoutes,
+  handleVibeRoutes,
   handleEightSleepRoutes,
   handleOuraRoutes,
   handleAppleHealthRoutes,
@@ -288,6 +289,11 @@ const server = http.createServer(async (req, res) => {
   // Ecobee thermostat routes
   if (pathname.startsWith('/api/ecobee')) {
     if (await handleEcobeeRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Vibe routes (unified environment control)
+  if (pathname.startsWith('/api/vibe')) {
+    if (await handleVibeRoutes(req, res, pathname)) return;
   }
 
   // ============================================================================

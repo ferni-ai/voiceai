@@ -17,6 +17,15 @@ This document outlines all planned performance optimizations for the Ferni voice
 | Firestore composite indexes | Faster queries | ✅ Ready to deploy |
 | Semantic tool presence | Emotion-aware tool feedback | ✅ Completed |
 | Tool timing context injection | Natural LLM framing | ✅ Completed |
+| Speculative persona preloading | ~1-2s saved on handoffs | ✅ Completed |
+| Batched embedding generation | 2-3x faster bulk embedding | ✅ Already implemented |
+| Semantic memory cache | 60-70% cache hit rate | ✅ Completed |
+| Edge caching for static content | 50-100ms saved per request | ✅ Completed |
+| Firestore connection pooling | 100-200ms cold start savings | ✅ Completed |
+| Predictive cache warming | 80%+ cache hit rate | ✅ Completed |
+| Speculative TTS Generation | 200-400ms saved on common responses | ✅ Completed |
+| Context Builder Prioritization | 20-30% reduction in context build time | ✅ Completed |
+| Tiered Memory Storage | 10x faster retrieval for hot data | ✅ Completed |
 
 ---
 
@@ -45,25 +54,32 @@ if (detectedIntent === 'financial_question' && currentPersona !== 'peter') {
 
 ---
 
-### 1.2 Edge Caching for Static Content
+### 1.2 Edge Caching for Static Content ✅ COMPLETED
 
 **Impact**: 50-100ms saved per request
 **Complexity**: Low
 **Priority**: High
+**Status**: ✅ Completed (December 2024)
 
 Cache persona bundles and static content at CDN layer:
 
-| Content Type | TTL | Cache Location |
-|--------------|-----|----------------|
-| Persona bundles | 24h | Cloud CDN |
-| Voice profiles | 24h | Cloud CDN |
-| Tool schemas | 1h | Cloud CDN |
-| User memory | No | Server only |
+| Content Type | TTL | Cache Location | Status |
+|--------------|-----|----------------|--------|
+| Persona bundles | 24h | Cloud CDN | ✅ Headers added (`brand-routes.ts`) |
+| Agent registry | 1h | Cloud CDN | ✅ Headers added (`agents.ts`) |
+| User memory | No | Server only | N/A (user-specific) |
+| Design tokens | 1h | Cloud CDN | ✅ Already implemented |
+| Brand rules | 1h | Cloud CDN | ✅ Headers added (`brand-routes.ts`) |
+| Commands | 1h | Cloud CDN | ✅ Headers added (`commands-routes.ts`) |
+| Voice profiles | N/A | Internal | N/A (no public API) |
+| Tool schemas | N/A | Internal | N/A (loaded from registry) |
 
 **Implementation**:
-- Deploy Cloud CDN in front of static assets
-- Add cache headers to persona bundle endpoints
-- Warm cache on deploy
+- ✅ Added `sendJSONEdgeCached()` helper in `src/api/helpers.ts`
+- ✅ Added public cache headers to persona bundle endpoints (`brand-routes.ts`)
+- ✅ Added public cache headers to command endpoints (`commands-routes.ts`)
+- ✅ Added public cache headers to agent endpoints (`agents.ts`)
+- ⏳ Cloud CDN deployment is infrastructure configuration (outside code scope)
 
 ---
 
@@ -93,28 +109,27 @@ memories.forEach((m, i) => m.embedding = embeddings[i]);
 
 ---
 
-### 1.4 Connection Pooling
+### 1.4 Connection Pooling ✅ COMPLETED
 
 **Impact**: 100-200ms saved on cold starts
 **Complexity**: Medium
 **Priority**: Medium
+**Status**: ✅ Completed (December 2024)
 
 Reuse Firestore connections across requests:
 
 ```typescript
-// Connection pool configuration
-const poolConfig = {
-  minConnections: 5,
-  maxConnections: 50,
-  idleTimeoutMs: 30000,
-  acquireTimeoutMs: 5000,
+// Connection pool configuration (in firestore-store.ts)
+const poolingDefaults = {
+  minChannels: 2,      // Keep warm connections ready
+  maxIdleChannels: 10, // Allow burst capacity
 };
 ```
 
 **Implementation**:
-- Configure Firestore client with connection pooling
-- Warm pool on container startup
-- Monitor connection usage metrics
+- ✅ Added connection pooling config to `FirestoreConfig` interface
+- ✅ Applied `minChannels` and `maxIdleChannels` settings in `doInitialize()`
+- ✅ Firestore SDK handles channel management internally
 
 ---
 
@@ -148,33 +163,40 @@ semanticCache.store(userId, query, memories);
 
 ---
 
-### 2.2 Predictive Cache Warming
+### 2.2 Predictive Cache Warming ✅ COMPLETED
 
 **Impact**: 80%+ cache hit rate for anticipated queries
 **Complexity**: High
 **Priority**: Medium
+**Status**: ✅ Completed (December 2024)
 
 Predict what the user will ask and pre-warm caches:
 
-| Signal | Prediction | Pre-warm |
-|--------|------------|----------|
-| Morning session | "How did I sleep?" | Sleep data |
-| Monday morning | "What's my week look like?" | Calendar |
-| Post-handoff to Peter | "How are my stocks?" | Portfolio |
-| User mentions name | Contact details | Contacts |
+| Signal | Prediction | Pre-warm | Status |
+|--------|------------|----------|--------|
+| Morning session | "How did I sleep?" | Sleep data | ✅ Implemented |
+| Monday morning | "What's my week look like?" | Calendar | ✅ Implemented |
+| Post-handoff to Peter | "How are my stocks?" | Portfolio | ✅ Implemented |
+| Friday evening | "How was my week?" | Weekly summary | ✅ Implemented |
+| Sunday evening | "What's coming up?" | Week ahead | ✅ Implemented |
 
 **Implementation**:
-- Build prediction model from session patterns
-- Background worker for cache warming
-- Confidence threshold for pre-warming
+- ✅ Built prediction model in `src/memory/predictive-cache-warming.ts`
+- ✅ Time-based predictions (morning, afternoon, evening, night)
+- ✅ Day-based predictions (Monday planning, Friday reflection, Sunday prep)
+- ✅ Handoff-based predictions (persona-specific queries)
+- ✅ Confidence thresholds with boosting for returning users
+- ✅ Integrated into session init (Phase 8 background loading)
+- ✅ 27 unit tests covering all prediction scenarios
 
 ---
 
-### 2.3 Tiered Memory Storage
+### 2.3 Tiered Memory Storage ✅ COMPLETED
 
 **Impact**: 10x faster retrieval for hot data
 **Complexity**: Medium
 **Priority**: Medium
+**Status**: ✅ Completed (December 2024)
 
 Store frequently accessed memories in faster storage:
 
@@ -182,12 +204,21 @@ Store frequently accessed memories in faster storage:
 |------|---------|---------|----------|
 | Hot | Redis | 1-5ms | 1MB/user |
 | Warm | Firestore | 50-100ms | 100MB/user |
-| Cold | Cloud Storage | 200-500ms | Unlimited |
+| Cold | Cloud Storage | 200-500ms | Unlimited (future) |
 
 **Implementation**:
-- Promote memories based on access frequency
-- Demote after 7 days without access
-- Background migration worker
+- ✅ Created `tiered-memory-storage.ts` with hot/warm tier logic
+- ✅ Access tracking with promotion threshold (5 accesses in 24h → promote)
+- ✅ Demotion logic (7 days without access → demote from hot tier)
+- ✅ `getMemoryTiered()` - Check hot tier (Redis) first, fall back to warm (Firestore)
+- ✅ `getMemoriesTiered()` - Batch retrieval with hot tier optimization
+- ✅ Metrics tracking (hit rates, latencies, promotions/demotions)
+- ✅ Integrated into memory module exports
+
+**Key Files**:
+- `src/memory/tiered-memory-storage.ts` - Main tiered storage logic
+- `src/memory/redis-cache.ts` - Hot tier storage (Redis)
+- `src/memory/index.ts` - Exports for tiered storage
 
 ---
 
@@ -332,27 +363,33 @@ Monday 9am     → +50% load         → Add instances at 8:45am
 
 ## Phase 5: Context Intelligence (Q3-Q4 2025)
 
-### 5.1 Context Builder Prioritization
+### 5.1 Context Builder Prioritization ✅ COMPLETED
 
 **Impact**: 20-30% reduction in context build time
 **Complexity**: Medium
 **Priority**: Medium
+**Status**: ✅ Completed (December 2024)
 
 Only run context builders relevant to current intent:
 
 ```typescript
-// Before: Run all 90 builders
-const context = await buildAllContext(input);
-
-// After: Run relevant builders based on intent
-const relevantBuilders = selectBuildersForIntent(analysis.intent);
-const context = await buildContext(input, relevantBuilders);
+// After category filtering (~20-30 builders), prioritize by intent/topic
+const prioritizationResult = prioritizeBuilders(buildersToRun, input);
+buildersToRun = prioritizationResult.selectedBuilders; // ~10-15 builders
 ```
 
 **Implementation**:
-- Tag builders with intent relevance
-- Intent-to-builder mapping
-- Fallback to full build on uncertainty
+- ✅ Created `builder-prioritization.ts` with intent/topic→builder mapping
+- ✅ Core builders always run (crisis, persona-identity, intent, topics, etc.)
+- ✅ Non-core builders scored by intent match (+0.4), topic match (+0.3), persona match (+0.3)
+- ✅ Threshold filtering (default 0.3) skips low-relevance builders
+- ✅ Integrated into main context builder orchestrator (`index.ts`)
+- ✅ Metrics tracking for monitoring skip rates
+
+**Key Files**:
+- `src/intelligence/context-builders/builder-prioritization.ts` - Prioritization logic
+- `src/intelligence/context-builders/index.ts` - Integration point
+- `src/intelligence/context-builders/fast-conditional-loading.ts` - Category-level (phase 1)
 
 ---
 

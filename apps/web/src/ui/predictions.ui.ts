@@ -25,6 +25,7 @@ import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 
 const log = createLogger('PredictionsUI');
 
@@ -137,21 +138,12 @@ export class PredictionsUI {
   }
 
   /**
-   * Render empty state - encouraging
+   * Render empty state - shows teaser preview of what predictions WILL look like
    */
   private renderEmptyState(): string {
-    return `
-      <div class="predictions-empty">
-        <div class="predictions-empty__icon">
-          ${ICONS.clock}
-        </div>
-        <h3 class="predictions-empty__title">Test Your Intuition</h3>
-        <p class="predictions-empty__text">
-          Prediction games help you calibrate your self-awareness. 
-          Ask Ferni to start a prediction during your next conversation.
-        </p>
-      </div>
-    `;
+    // Use teaser preview system to show what predictions WILL look like
+    // This creates anticipation and shows the value of prediction games
+    return teaserPreview.predictions();
   }
 
   /**

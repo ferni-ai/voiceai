@@ -15,7 +15,7 @@ import {
   renderCommand,
 } from '../personas/bundles/commands-loader.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseRequestBody, sendError, sendJsonResponse } from './helpers.js';
+import { parseRequestBody, sendError, sendJsonResponse, sendJSONEdgeCached } from './helpers.js';
 
 const log = createLogger({ module: 'CommandsRoutes' });
 
@@ -67,6 +67,8 @@ export async function handleCommandsRoutes(
 /**
  * GET /api/commands/:personaId
  * Returns list of commands for a persona
+ *
+ * Edge cached for 1 hour (commands are static content)
  */
 async function handleListCommands(
   req: IncomingMessage,
@@ -89,11 +91,16 @@ async function handleListCommands(
     hasArguments: (cmd.arguments?.length ?? 0) > 0,
   }));
 
-  sendJsonResponse(res, 200, {
-    personaId,
-    commands: commandList,
-    count: commandList.length,
-  });
+  // Edge cache for 1 hour (commands are static per-persona)
+  sendJSONEdgeCached(
+    res,
+    {
+      personaId,
+      commands: commandList,
+      count: commandList.length,
+    },
+    3600
+  ); // 1 hour
 
   return true;
 }
@@ -101,6 +108,8 @@ async function handleListCommands(
 /**
  * GET /api/commands/:personaId/:commandId
  * Returns detailed info for a specific command
+ *
+ * Edge cached for 1 hour (command definitions are static)
  */
 async function handleGetCommand(
   req: IncomingMessage,
@@ -117,20 +126,25 @@ async function handleGetCommand(
     return true;
   }
 
-  sendJsonResponse(res, 200, {
-    command: {
-      id: command.id,
-      name: command.name,
-      description: command.description,
-      category: command.category,
-      icon: command.icon,
-      shortcut: command.shortcut,
-      requiresConfirmation: command.requiresConfirmation,
-      arguments: command.arguments,
-      // Include prompt for full view (used when executing)
-      prompt: command.prompt,
+  // Edge cache for 1 hour (command definitions are static)
+  sendJSONEdgeCached(
+    res,
+    {
+      command: {
+        id: command.id,
+        name: command.name,
+        description: command.description,
+        category: command.category,
+        icon: command.icon,
+        shortcut: command.shortcut,
+        requiresConfirmation: command.requiresConfirmation,
+        arguments: command.arguments,
+        // Include prompt for full view (used when executing)
+        prompt: command.prompt,
+      },
     },
-  });
+    3600
+  ); // 1 hour
 
   return true;
 }

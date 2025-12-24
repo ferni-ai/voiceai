@@ -434,10 +434,23 @@ export async function retrieveMemories(
   }
 
   // Sort by score, filter by minimum, limit results
-  return scored
+  const results = scored
     .filter((m) => m.score >= cfg.minScore)
     .sort((a, b) => b.score - a.score)
     .slice(0, cfg.maxResults);
+
+  // =========================================================================
+  // CACHE RESULTS - "Better than Human" optimization
+  // =========================================================================
+  // Store results in semantic cache for future similar queries
+  // Fire-and-forget to avoid blocking the response
+  if (results.length > 0 && queryEmbedding) {
+    storeInSemanticCache(userId, context.query, results, queryEmbedding).catch((error) => {
+      log.debug({ error: String(error) }, 'Failed to cache memory results (non-blocking)');
+    });
+  }
+
+  return results;
 }
 
 /**

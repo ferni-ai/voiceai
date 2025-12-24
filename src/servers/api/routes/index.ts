@@ -14,6 +14,7 @@ export { handlePushRoutes } from './push.js';
 export { handleWebhookRoutes } from './webhooks.js';
 export { handleSpotifyRoomsRoutes } from './spotify-rooms.js';
 export { handleEcobeeRoutes } from './ecobee.js';
+export { handleVibeRoutes } from './vibe.js';
 export { handleEightSleepRoutes } from './eight-sleep.js';
 export { handleOuraRoutes } from './oura.js';
 export { handleAppleHealthRoutes } from './apple-health.js';

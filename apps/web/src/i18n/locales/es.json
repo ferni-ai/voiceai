@@ -488,6 +488,7 @@
       "outreachSchedule": "Calendario de Alcance",
       "personalize": "Personalizar",
       "playGames": "Jugar",
+      "setTheVibe": "Crear el ambiente",
       "predictionAccuracy": "Mis Predicciones",
       "progressAnalytics": "Cómo Estás Creciendo",
       "shareFerni": "Invitar a un amigo",
@@ -507,6 +508,7 @@
       "whatILearned": "Lo Que He Aprendido",
       "whatsGrowing": "Lo Que Viene",
       "yourJourney": "Tu Viaje",
+      "whatIllKnow": "Lo Que Sabré",
       "yourPlan": "Tu Plan"
     },
     "keepChatting": "Sigue charlando para desbloquear",
@@ -538,7 +540,7 @@
     "subgroups": {
       "yourBody": "Salud y Bienestar",
       "yourCalendar": "Calendario y Trabajo",
-      "yourSpace": "Hogar y Música"
+      "yourVibe": "Tu Ambiente"
     },
     "title": "¿Qué sigue?",
     "unlockHint": "{remaining} para desbloquear",

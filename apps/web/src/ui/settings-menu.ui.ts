@@ -59,8 +59,7 @@ export interface SettingsMenuUICallbacks {
   onThemeToggle?: () => void;
   onNotificationSettingsClick?: () => void;
   onSpotifyClick?: () => void;
-  onSpotifyRoomsClick?: () => void;
-  onEcobeeClick?: () => void;
+  onVibeControllerClick?: () => void;
   onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
@@ -97,6 +96,9 @@ export interface SettingsMenuUICallbacks {
   onJournalClick?: () => void;
   onLinkedInClick?: () => void;
   onClose?: () => void;
+  // Warm menu callbacks
+  onTogetherSessionsClick?: () => void;
+  onAllConnectionsClick?: () => void;
 }
 
 // ============================================================================
@@ -233,6 +235,20 @@ const ICONS = {
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
 
+  // New icons for restructured menu
+  phone:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  concierge:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/></svg>',
+  insights:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M12 2v5"/><path d="M12 17v5"/><circle cx="12" cy="12" r="4"/><path d="m4.93 4.93 3.54 3.54"/><path d="m15.54 15.54 3.53 3.53"/><path d="m15.54 8.46 3.53-3.53"/><path d="m4.93 19.07 3.54-3.54"/></svg>',
+  plug:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V8Z"/></svg>',
+  settings:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+  gamepad:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',
+
 };
 
 // ============================================================================
@@ -266,13 +282,13 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
 type SectionVisibility = Record<string, RelationshipStage>;
 
 const SECTION_VISIBILITY: SectionVisibility = {
-  connect: 'first-meeting', // Always visible
-  preferences: 'first-meeting', // Always visible (was: personalize)
-  connections: 'first-meeting', // Always visible - integrations
-  practices: 'first-meeting', // Always visible - daily practices
-  youAndFerni: 'first-meeting', // Always visible (was: account)
-  grow: 'getting-started', // After 2+ conversations
-  remember: 'first-meeting', // Always visible - Your People, memories
+  // New warm structure
+  yourPractices: 'first-meeting', // Always visible - habit loop
+  understandingYou: 'getting-started', // After 2+ conversations - needs data
+  waysToConnect: 'first-meeting', // Always visible - engagement
+  yourPeople: 'first-meeting', // Always visible - relationships
+  connectedLife: 'first-meeting', // Always visible - integrations
+  settings: 'first-meeting', // Always visible - preferences & account
 };
 
 // ============================================================================
@@ -282,15 +298,14 @@ const SECTION_VISIBILITY: SectionVisibility = {
 const PINNED_STORAGE_KEY = 'ferni_menu_pinned';
 const EXPANDED_STORAGE_KEY = 'ferni_menu_expanded';
 
-// Default sections to expand (all of them for consistent view)
+// Default sections to expand (warm, focused structure)
 const DEFAULT_EXPANDED_SECTIONS = [
-  'connect',
-  'grow',
-  'remember',
-  'preferences',
-  'connections',
-  'practices',
-  'youAndFerni'
+  'yourPractices',
+  'understandingYou',
+  'waysToConnect',
+  'yourPeople',
+  'connectedLife',
+  'settings'
 ];
 
 function getPinnedItems(): Set<string> {
@@ -659,23 +674,22 @@ class SettingsMenuUI {
           ${pinnedItemsHtml}
 
           <!-- ============================================================
-               SECTION ORDER: Life Coaching Relationship Arc
-               1. Daily Practices - The habit loop (core engagement)
-               2. Grow - Progress & insights (the "why")
-               3. Connect - Different ways to engage
-               4. Remember - Your story & relationships
-               5. Connections - Data integrations (context)
-               6. Your Way - Preferences (set & forget)
-               7. You & Ferni - Account (administrative)
+               WARM MENU STRUCTURE - Human-Centered, Relationship-Focused
+               1. Your Practices - The habit loop (core engagement)
+               2. Understanding You - All insights in one place
+               3. Ways to Connect - Warm engagement activities  
+               4. Your People - Relationships & family
+               5. Your Connected Life - All integrations (one entry → panel)
+               6. Settings - Preferences & account combined
                ============================================================ -->
 
-          <!-- SECTION 1: Daily Practices - The core habit loop -->
+          <!-- SECTION 1: Your Practices - The habit loop -->
           ${
-            this.isSectionVisible('practices')
+            this.isSectionVisible('yourPractices')
               ? this.renderCollapsibleSection(
-                  'practices',
-                  t('menu.sections.practices'),
-                  expandedSections.has('practices'),
+                  'yourPractices',
+                  t('menu.sections.yourPractices'),
+                  expandedSections.has('yourPractices'),
                   `
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
@@ -685,57 +699,16 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 2: Grow - Progress & insights -->
+          <!-- SECTION 2: Understanding You - All insights consolidated -->
           ${
-            this.isSectionVisible('grow')
+            this.isSectionVisible('understandingYou')
               ? this.renderCollapsibleSection(
-                  'grow',
-                  t('menu.sections.grow'),
-                  expandedSections.has('grow'),
+                  'understandingYou',
+                  t('menu.sections.understandingYou'),
+                  expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
             ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
-            ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
-            ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
-            ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
-            ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
-            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItem('life-context', ICONS.layers, t('menu.items.lifeContext'))}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION 3: Connect - Ways to engage -->
-          ${
-            this.isSectionVisible('connect')
-              ? this.renderCollapsibleSection(
-                  'connect',
-                  t('menu.sections.connect'),
-                  expandedSections.has('connect'),
-                  `
-            ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
-            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
-            ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
-            ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
-            ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
-            ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
-            ${this.renderMenuItem('group-coaching', ICONS.users, t('menu.items.groupCoaching'))}
-            ${this.renderMenuItem('team', ICONS.team, t('menu.items.teamHuddles'))}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION 4: Remember - Your story & relationships -->
-          ${
-            this.isSectionVisible('remember')
-              ? this.renderCollapsibleSection(
-                  'remember',
-                  t('menu.sections.remember'),
-                  expandedSections.has('remember'),
-                  `
-            ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
@@ -743,85 +716,72 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 5: Connections - Data integrations -->
+          <!-- SECTION 3: Ways to Connect - Warm engagement activities -->
           ${
-            this.isSectionVisible('connections')
+            this.isSectionVisible('waysToConnect')
               ? this.renderCollapsibleSection(
-                  'connections',
-                  t('menu.sections.connections'),
-                  expandedSections.has('connections'),
+                  'waysToConnect',
+                  t('menu.sections.waysToConnect'),
+                  expandedSections.has('waysToConnect'),
                   `
-            <!-- Health & Wellness integrations -->
-            <div class="settings-menu__subgroup" data-subgroup="health">
-              <div class="settings-menu__subgroup-header">
-                <span class="settings-menu__subgroup-icon">${ICONS.heart}</span>
-                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourBody')}</span>
-              </div>
-              ${this.renderMenuItem('apple-health-settings', ICONS.heart, t('menu.items.appleHealth'))}
-              ${this.renderMenuItem('oura-settings', ICONS.ring, t('menu.items.oura'))}
-              ${this.renderMenuItem('eight-sleep-settings', ICONS.bed, t('menu.items.eightSleep'))}
-              ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
-            </div>
-
-            <!-- Calendar & Productivity integrations -->
-            <div class="settings-menu__subgroup" data-subgroup="productivity">
-              <div class="settings-menu__subgroup-header">
-                <span class="settings-menu__subgroup-icon">${ICONS.calendar}</span>
-                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourCalendar')}</span>
-              </div>
-              ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
-              ${this.renderMenuItem('linkedin-settings', ICONS.linkedin, t('menu.items.linkedin'))}
-            </div>
-
-            <!-- Home & Environment integrations -->
-            <div class="settings-menu__subgroup" data-subgroup="home">
-              <div class="settings-menu__subgroup-header">
-                <span class="settings-menu__subgroup-icon">${ICONS.rooms}</span>
-                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourSpace')}</span>
-              </div>
-              ${this.renderMenuItem('spotify-rooms', ICONS.rooms, t('menu.items.spotifyRooms'))}
-              ${this.renderMenuItem('ecobee-settings', ICONS.thermostat, t('menu.items.thermostat'))}
-            </div>
-
-            <button aria-label="${t('menu.items.linkSpotify')}" class="settings-menu__item" data-action="spotify" style="display: none;">
-              <span class="settings-menu__icon">${ICONS.music}</span>
-              <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
-            </button>
+            ${this.renderMenuItemWithBadge('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'), t('common.new'))}
+            ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
+            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
+            ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
+            ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
+            ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
+            ${this.renderMenuItem('together-sessions', ICONS.users, t('menu.items.togetherSessions'))}
           `
                 )
               : ''
           }
 
-          <!-- SECTION 6: Your Way - Preferences -->
+          <!-- SECTION 4: Your People - Relationships & family -->
           ${
-            this.isSectionVisible('preferences')
+            this.isSectionVisible('yourPeople')
               ? this.renderCollapsibleSection(
-                  'preferences',
-                  t('menu.sections.preferences'),
-                  expandedSections.has('preferences'),
+                  'yourPeople',
+                  t('menu.sections.yourPeople'),
+                  expandedSections.has('yourPeople'),
+                  `
+            ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
+            ${this.renderMenuItem('household', ICONS.users, t('menu.items.householdMembers'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION 5: Your Connected Life - One entry opens tabbed panel -->
+          ${
+            this.isSectionVisible('connectedLife')
+              ? this.renderCollapsibleSection(
+                  'connectedLife',
+                  t('menu.sections.connectedLife'),
+                  expandedSections.has('connectedLife'),
+                  `
+            ${this.renderMenuItem('all-connections', ICONS.link, t('menu.items.allConnections'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION 6: Settings - Preferences & account combined -->
+          ${
+            this.isSectionVisible('settings')
+              ? this.renderCollapsibleSection(
+                  'settings',
+                  t('menu.sections.settings'),
+                  expandedSections.has('settings'),
                   `
             ${this.renderMenuItem('personalize', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
-            ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
-            ${this.renderLanguageSelector()}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION: You & Ferni (was Account) -->
-          ${
-            this.isSectionVisible('youAndFerni')
-              ? this.renderCollapsibleSection(
-                  'youAndFerni',
-                  t('menu.sections.youAndFerni'),
-                  expandedSections.has('youAndFerni'),
-                  `
-            ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.billingPortal'))}
+            ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
+            ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
             ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('household', ICONS.users, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
+            ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
+            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )
@@ -991,6 +951,10 @@ class SettingsMenuUI {
 
     // Map of all menu items for quick lookup
     const menuItems: Record<string, { icon: string; label: string }> = {
+      // Warm menu items
+      'together-sessions': { icon: ICONS.users, label: t('menu.items.togetherSessions') },
+      'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
+      // Core items
       'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
@@ -1221,11 +1185,8 @@ class SettingsMenuUI {
       case 'spotify':
         this.callbacks.onSpotifyClick?.();
         break;
-      case 'spotify-rooms':
-        this.callbacks.onSpotifyRoomsClick?.();
-        break;
-      case 'ecobee-settings':
-        this.callbacks.onEcobeeClick?.();
+      case 'vibe-controller':
+        this.callbacks.onVibeControllerClick?.();
         break;
       case 'eight-sleep-settings':
         this.callbacks.onEightSleepClick?.();
@@ -1330,6 +1291,13 @@ class SettingsMenuUI {
       case 'whats-growing':
         // Open roadmap panel with overview (no specific feature)
         showRoadmapPanel();
+        break;
+      // Warm menu actions
+      case 'together-sessions':
+        this.callbacks.onTogetherSessionsClick?.();
+        break;
+      case 'all-connections':
+        this.callbacks.onAllConnectionsClick?.();
         break;
       // Quick Add actions
     }

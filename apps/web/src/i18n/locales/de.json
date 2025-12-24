@@ -488,6 +488,7 @@
       "outreachSchedule": "Kontaktplan",
       "personalize": "Personalisieren",
       "playGames": "Spiele spielen",
+      "setTheVibe": "Stimmung setzen",
       "predictionAccuracy": "Meine Vorhersagen",
       "progressAnalytics": "Wie Sie wachsen",
       "shareFerni": "Freund einladen",
@@ -507,6 +508,7 @@
       "whatILearned": "Was ich gelernt habe",
       "whatsGrowing": "Was Wächst",
       "yourJourney": "Ihre Reise",
+      "whatIllKnow": "Was ich wissen werde",
       "yourPlan": "Ihr Plan"
     },
     "keepChatting": "Weiter chatten zum Freischalten",
@@ -538,7 +540,7 @@
     "subgroups": {
       "yourBody": "Gesundheit & Wellness",
       "yourCalendar": "Kalender & Arbeit",
-      "yourSpace": "Zuhause & Musik"
+      "yourVibe": "Deine Atmosphäre"
     },
     "title": "Was kommt als Nächstes?",
     "unlockHint": "{remaining} zum Freischalten",

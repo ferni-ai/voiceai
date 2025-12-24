@@ -220,10 +220,8 @@ import { showWearableSettings } from './ui/wearable-settings.ui.js';
 import { showVideoSettings } from './ui/video-settings.ui.js';
 // LinkedIn Settings UI - Career milestone awareness
 import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
-// Spotify Rooms UI - Multi-room music control
-import { showSpotifyRooms } from './ui/spotify-rooms.ui.js';
-// Ecobee Settings UI - Smart thermostat control
-import { showEcobeeSettings } from './ui/ecobee-settings.ui.js';
+// Vibe Controller UI - Unified Music, Lights, Temperature control
+import { show as showVibeController } from './ui/vibe-controller.ui.js';
 // Eight Sleep Settings UI - Smart mattress control
 import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
 // Oura Ring Settings UI - Sleep and readiness tracking
@@ -254,6 +252,7 @@ import { initServiceHealthUI } from './ui/service-health.ui.js';
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
 import { futureInsightsUI } from './ui/future-insights.ui.js';
+import { teaserPreview } from './ui/teaser-preview.ui.js';
 import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
@@ -1622,7 +1621,12 @@ class VoiceAIApp {
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
-        onYourJourneyClick: () => journeyUI.open(),
+        onYourJourneyClick: () => {
+          // Open enhanced insights hub with all journey views
+          import('./ui/insights-hub.ui.js').then(({ showInsightsHub }) => {
+            showInsightsHub();
+          });
+        },
         onFutureInsightsClick: () => futureInsightsUI.open(),
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
@@ -1631,8 +1635,7 @@ class VoiceAIApp {
           initLinkedInSettings();
           showLinkedInSettings();
         },
-        onSpotifyRoomsClick: () => void showSpotifyRooms(),
-        onEcobeeClick: () => void showEcobeeSettings(),
+        onVibeControllerClick: () => void showVibeController(),
         onEightSleepClick: () => void showEightSleepSettings(),
         onOuraClick: () => void showOuraSettings(),
         onAppleHealthClick: () => void showAppleHealthSettings(),
@@ -1654,6 +1657,27 @@ class VoiceAIApp {
         onConnectionsClick: () => void showIntegrationsSettings(),
         onContactsClick: () => void openYourPeople(),
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
+        // Warm menu callbacks
+        onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
+        onAllConnectionsClick: () => {
+          // Open the Connected Life panel (consolidates all integrations)
+          import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
+            showConnectedLife({
+              onConnectAppleHealth: () => void showAppleHealthSettings(),
+              onConnectOura: () => void showOuraSettings(),
+              onConnectEightSleep: () => void showEightSleepSettings(),
+              onConnectWearables: () => void showWearableSettings(),
+              onConnectCalendar: () => void openCalendarSettings(),
+              onConnectLinkedIn: () => {
+                initLinkedInSettings();
+                showLinkedInSettings();
+              },
+              onConnectSpotify: () => void triggerSpotifyLinkToggle(),
+              onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
+              onOpenVibeController: () => void showVibeController(),
+            });
+          });
+        },
       });
 
       // Wire up Spotify state changes to menu

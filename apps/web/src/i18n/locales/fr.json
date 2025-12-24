@@ -488,6 +488,7 @@
       "outreachSchedule": "Calendrier de Contact",
       "personalize": "Personnaliser",
       "playGames": "Jouer",
+      "setTheVibe": "Créer l'ambiance",
       "predictionAccuracy": "Mes Prédictions",
       "progressAnalytics": "Votre Croissance",
       "shareFerni": "Inviter un ami",
@@ -507,6 +508,7 @@
       "whatILearned": "Ce que J'ai Appris",
       "whatsGrowing": "Ce Qui Pousse",
       "yourJourney": "Votre Parcours",
+      "whatIllKnow": "Ce Que Je Saurai",
       "yourPlan": "Votre Plan"
     },
     "keepChatting": "Continuez à discuter pour débloquer",
@@ -538,7 +540,7 @@
     "subgroups": {
       "yourBody": "Santé et Bien-être",
       "yourCalendar": "Calendrier et Travail",
-      "yourSpace": "Maison et Musique"
+      "yourVibe": "Ton Ambiance"
     },
     "title": "Et maintenant ?",
     "unlockHint": "{remaining} pour débloquer",

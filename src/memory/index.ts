@@ -199,6 +199,25 @@ export {
   type CacheLookupResult,
 } from './semantic-memory-cache.js';
 
+// Predictive Cache Warming (80%+ cache hit rate for anticipated queries)
+export {
+  configurePredictiveWarming,
+  configureMemoryRetrieval,
+  setupMemoryFetcher,
+  detectTimeSignals,
+  predictQueries,
+  warmCacheForSession,
+  warmCacheForHandoff,
+  type PersonaId as PredictivePersonaId,
+  type TimeOfDay,
+  type DayOfWeek,
+  type SessionSignals,
+  type PredictedQuery,
+  type WarmingResult,
+  type PredictiveCacheConfig,
+  type MemoryRetrievalFn,
+} from './predictive-cache-warming.js';
+
 // Memory Consolidation (long-term memory management)
 export {
   getMemoryConsolidator,
@@ -269,6 +288,26 @@ export {
   type RetrievalMetrics,
   type StorageMetrics,
 } from './memory-metrics.js';
+
+// Tiered Memory Storage (Phase 2.3 optimization - 10x faster hot data retrieval)
+export {
+  clearAccessRecords,
+  getFromHotTier,
+  getMemoriesTiered,
+  getMemoryTiered,
+  getTieredMemoryConfig,
+  getTieredMemoryStats,
+  getUserAccessRecords,
+  recordMemoryAccess,
+  removeFromHotTier,
+  resetTieredMemoryStats,
+  runDemotionCheck,
+  setTieredMemoryConfig,
+  storeInHotTier,
+  type MemoryAccessRecord,
+  type TieredMemoryConfig,
+  type TieredMemoryStats,
+} from './tiered-memory-storage.js';
 
 // ============================================================================
 // UNIFIED EMOTIONAL MEMORY (coordinates user emotions + bonding)

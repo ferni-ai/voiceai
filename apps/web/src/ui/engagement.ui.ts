@@ -30,6 +30,7 @@ import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 
 const log = createLogger('EngagementUI');
 
@@ -142,24 +143,12 @@ export class EngagementUI {
   }
 
   /**
-   * Render empty state - welcoming, not clinical
+   * Render empty state - shows teaser preview of what daily habits WILL look like
    */
   private renderEmptyState(): string {
-    return `
-      <div class="engagement-empty">
-        <div class="engagement-empty__icon">
-          ${ICONS.heart}
-        </div>
-        <h3 class="engagement-empty__title">Start Your Journey</h3>
-        <p class="engagement-empty__message">
-          Daily practices help you build consistency and self-awareness. 
-          Start a conversation with Ferni to set up your first ritual.
-        </p>
-        <button aria-label="Talk to Ferni" class="engagement-empty__cta" onclick="document.querySelector('.engagement-panel')?.classList.remove('engagement-panel--visible')">
-          Talk to Ferni
-        </button>
-      </div>
-    `;
+    // Use teaser preview system to show what daily habits WILL look like
+    // Creates anticipation by showing realistic dummy data
+    return teaserPreview.habits();
   }
 
   /**

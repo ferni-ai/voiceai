@@ -157,6 +157,78 @@ Access via:
 
 ---
 
+## ✅ IMPLEMENTED: Teaser Preview System
+
+### Overview
+Created a comprehensive **Teaser Preview System** (`apps/web/src/ui/teaser-preview.ui.ts`) that transforms empty states into forward-looking visualizations with realistic dummy data.
+
+### Philosophy
+> Instead of "No data yet" → **"This is what you'll see after 30 days"**
+
+Users see a populated preview of what their data WILL look like, creating anticipation instead of disappointment.
+
+### 10 Teaser Types Available
+
+| Type | Days Required | What It Shows |
+|------|---------------|---------------|
+| `wellbeing` | 7 | Score ring, metrics bars, trend chart |
+| `patterns` | 14 | Pattern cards with "I've noticed..." insights |
+| `trust_insights` | 7 | Growth moments, wins, boundaries stats |
+| `life_context` | 14 | Work/relationships/health domains |
+| `predictions` | 21 | Prediction cards with accuracy |
+| `team_insights` | 14 | Cross-team observations from Maya, Peter, etc. |
+| `memories` | 7 | Memory cards with dates and personas |
+| `your_people` | 14 | People cards with sentiment |
+| `growth_analytics` | 14 | Growth chart with % improvements |
+| `habits` | 7 | Habit cards with streak calendars |
+
+### Usage
+
+```typescript
+import { teaserPreview } from './ui/teaser-preview.ui.js';
+
+// Quick method
+const preview = teaserPreview.wellbeing();
+container.appendChild(preview);
+
+// Or with config
+import { getTeaserPreviewUI } from './ui/teaser-preview.ui.js';
+const ui = getTeaserPreviewUI();
+ui.showIn(container, { type: 'patterns', customMessage: 'Custom message' });
+```
+
+### Visual Treatment
+- **Preview badge** - "👁 Preview" badge at top
+- **Unlock hint** - "After X more days, this will be yours"
+- **Gradient fade** - Content fades at bottom (teaser effect)
+- **Stagger animation** - Cards animate in sequence
+- **Respects reduced motion**
+
+### Integration Points
+
+These dashboards should use teasers when empty:
+
+| Dashboard | Current Empty State | Teaser Type |
+|-----------|--------------------|--------------| 
+| Wellbeing | ✅ Already has forward-looking | `wellbeing` |
+| Life Context | Shows generic empty | `life_context` |
+| Trust Journey | Shows "Our story is just beginning" | `trust_insights` |
+| Predictions | Shows generic empty | `predictions` |
+| Team Insights | Shows generic empty | `team_insights` |
+| Memory Browser | Shows no results | `memories` |
+| Your People | Shows empty state | `your_people` |
+| Progress Analytics | Shows generic empty | `growth_analytics` |
+| Habits | Shows start state | `habits` |
+
+### Next Steps for Full Integration
+
+1. **Replace empty states** in each dashboard with teaser previews
+2. **Add to journey modal** - Show teasers for future relationship stages
+3. **Settings menu** - Use teasers for locked feature previews
+4. **Onboarding** - Show what users will unlock over time
+
+---
+
 ## Current State Analysis
 
 ### 1. Settings Menu (`settings-menu.ui.ts`)

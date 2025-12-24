@@ -24,6 +24,7 @@ import {
   renderCloseButton,
 } from './engagement-components.js';
 import { createLogger } from '../utils/logger.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('InsightsView');
@@ -379,21 +380,9 @@ export class InsightsView {
   }
 
   private renderEmptyState(): string {
-    return `
-      <div class="insights-empty">
-        <div class="insights-empty__icon">
-          ${INSIGHT_ICONS.pattern}
-        </div>
-        <h3 class="insights-empty__title">Getting to know you</h3>
-        <p class="insights-empty__message">
-          As we talk more, I'll notice patterns and insights about your journey.
-          The things no one else would catch.
-        </p>
-        <button class="insights-empty__cta" onclick="this.closest('.insights-view').classList.remove('insights-view--visible')">
-          Let's talk
-        </button>
-      </div>
-    `;
+    // Use teaser preview system to show what insights WILL look like
+    // This creates anticipation instead of disappointment
+    return teaserPreview.patterns();
   }
 
   // ============================================================================

@@ -114,6 +114,13 @@
     "almostThere": "Almost there!",
     "sections": {
       "pinned": "Quick Access",
+      "yourPractices": "Your Practices",
+      "understandingYou": "Understanding You",
+      "waysToConnect": "Ways to Connect",
+      "yourPeople": "Your People",
+      "connectedLife": "Your Connected Life",
+      "settings": "Settings",
+      "admin": "Admin",
       "connect": "Connect",
       "grow": "Grow",
       "remember": "Remember",
@@ -122,13 +129,12 @@
       "practices": "Daily Practices",
       "youAndFerni": "You & Ferni",
       "personalize": "Your Way",
-      "account": "You & Ferni",
-      "admin": "Admin"
+      "account": "You & Ferni"
     },
     "subgroups": {
       "yourBody": "Health & Wellness",
       "yourCalendar": "Calendar & Work",
-      "yourSpace": "Home & Music"
+      "yourVibe": "Your Vibe"
     },
     "items": {
       "yourJourney": "Your Journey",
@@ -147,6 +153,10 @@
       "videoSessions": "Face to Face",
       "groupCoaching": "Together Sessions",
       "teamHuddles": "Team Huddles",
+      "teamSessions": "Team Sessions",
+      "conferenceCalls": "Conference Calls",
+      "concierge": "Real-World Help",
+      "setTheVibe": "Set the Vibe",
       "playGames": "Play Games",
       "musicalYou": "Musical You",
       "creativeYou": "Creative You",
@@ -157,15 +167,18 @@
       "voiceAccent": "Voice & Accent",
       "guidedPractices": "Guided Practices",
       "createPractice": "Create Practice",
+      "practices": "Practices",
       "wearables": "Wearables",
       "linkedin": "LinkedIn",
       "calendar": "Calendar",
       "notifications": "Notifications & Check-ins",
       "toggleTheme": "Light / Dark",
+      "themeLanguage": "Theme & Language",
       "linkSpotify": "Link Spotify",
       "spotifyConnected": "Spotify Connected",
+      "vibeController": "Set the Vibe",
       "spotifyRooms": "Music Rooms",
-      "thermostat": "Thermostat",
+      "thermostat": "Comfort",
       "eightSleep": "Eight Sleep",
       "oura": "Oura Ring",
       "appleHealth": "Apple Health",
@@ -180,7 +193,11 @@
       "language": "Language",
       "whatsGrowing": "What's Growing",
       "billingPortal": "Your Support",
-      "outreachSchedule": "Upcoming Check-ins"
+      "outreachSchedule": "Upcoming Check-ins",
+      "allConnections": "All Connections",
+      "togetherSessions": "Together Sessions",
+      "themeLanguage": "Theme & Language",
+      "accountBilling": "Account & Billing"
     },
     "quickAdd": {
       "person": "Person",
