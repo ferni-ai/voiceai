@@ -10,7 +10,6 @@
 
 import http from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseJsonBody } from './helpers.js';
 
 const log = createLogger({ module: 'insights-routes' });
 
@@ -133,7 +132,7 @@ async function handleGetInsights(
     // Energy patterns
     if (energyHistory.length >= 3) {
       const recentEnergy = energyHistory.slice(0, 3);
-      const lowCount = recentEnergy.filter((e) => e.level === 'low' || e.level === 'very_low').length;
+      const lowCount = recentEnergy.filter((e) => e.energyLevel === 'low' || e.energyLevel === 'depleted').length;
       if (lowCount >= 2) {
         noticing.push({
           type: 'concern',
@@ -216,14 +215,14 @@ async function handleGetInsights(
 
     if (dreams.length > 0) {
       holding.dreams = dreams.slice(0, 2).map((d) => ({
-        dream: d.dream,
-        status: d.dormant ? 'dormant' : 'active',
+        dream: d.title || d.statement,
+        status: d.status === 'dormant' ? 'dormant' : 'active',
       }));
     }
 
     if (upcomingDates.length > 0) {
       holding.upcomingDates = upcomingDates.slice(0, 2).map((d) => ({
-        name: d.name,
+        name: d.date.name,
         daysUntil: d.daysUntil,
       }));
     }
@@ -231,12 +230,15 @@ async function handleGetInsights(
     // Growth message from streaks or rituals
     let growth: InsightsResponse['growth'] = undefined;
     if (store) {
-      const streaks = await store.getStreaks(userId);
+      const streaks = await store.getAllStreaks(userId);
       if (streaks && streaks.length > 0) {
-        const bestStreak = streaks.reduce((best, s) => (s.currentStreak > best.currentStreak ? s : best));
+        const bestStreak = streaks.reduce(
+          (best: (typeof streaks)[0], s: (typeof streaks)[0]) =>
+            s.currentStreak > best.currentStreak ? s : best
+        );
         if (bestStreak.currentStreak >= 3) {
           growth = {
-            message: `${bestStreak.currentStreak} days of ${bestStreak.ritualName}. You're building something real.`,
+            message: `${bestStreak.currentStreak} days of showing up. You're building something real.`,
             details: bestStreak.currentStreak >= 7 ? 'A full week! This is becoming part of you.' : undefined,
           };
         }
@@ -246,19 +248,20 @@ async function handleGetInsights(
     // Relationship milestone
     let relationship: InsightsResponse['relationship'] = undefined;
     if (store) {
-      const profile = await store.getUserProfile(userId);
+      const profile = await store.getProfile(userId);
       if (profile) {
-        const daysTogether = profile.firstEngagement
-          ? Math.floor((Date.now() - new Date(profile.firstEngagement).getTime()) / (1000 * 60 * 60 * 24))
-          : 0;
-        const conversations = profile.totalConversations || 0;
+        // Calculate days together from lastEngagementAt (approximate)
+        const daysTogether = profile.lastEngagementAt
+          ? Math.floor((Date.now() - new Date(profile.lastEngagementAt).getTime()) / (1000 * 60 * 60 * 24)) + profile.totalRitualDays
+          : profile.totalRitualDays;
+        const conversations = profile.stats.totalSkyChecks + profile.stats.totalPredictions;
 
         if (daysTogether >= 7 || conversations >= 10) {
           let milestone: string | undefined;
-          if (conversations === 100) {
-            milestone = "100 conversations! We've built something meaningful.";
-          } else if (daysTogether === 30) {
-            milestone = "A month together. Thank you for trusting me.";
+          if (conversations >= 100) {
+            milestone = "100+ check-ins! We've built something meaningful.";
+          } else if (daysTogether >= 30) {
+            milestone = "A month of growth. Thank you for trusting me.";
           } else if (conversations >= 50) {
             milestone = "50+ conversations. I see how far you've come.";
           } else if (daysTogether >= 7) {

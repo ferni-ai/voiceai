@@ -966,6 +966,219 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bintrospection\b/gi, replacement: 'in-truh-SPEK-shun', description: 'Self-examination' },
   { pattern: /\bintrospective\b/gi, replacement: 'in-truh-SPEK-tiv', description: 'Self-examining' },
 
+  // =========================================================================
+  // THOUGHT LEADERS & AUTHORS (Self-Help/Psychology Domain)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Psychology & Self-Help Authors
+  // -------------------------------------------------------------------------
+  {
+    pattern: /\bBren[eé]\s+Brown\b/gi,
+    replacement: 'breh-NAY Brown',
+    description: 'Vulnerability researcher',
+  },
+  {
+    pattern: /\bMihaly\s+Csikszentmihalyi\b/gi,
+    replacement: 'MEE-high CHEEK-sent-mee-HIGH-ee',
+    description: 'Flow psychologist',
+  },
+  { pattern: /\bCsikszentmihalyi\b/gi, replacement: 'CHEEK-sent-mee-HIGH-ee', description: 'Flow author' },
+  { pattern: /\bCarl\s+Jung\b/gi, replacement: 'Carl YOONG', description: 'Analytical psychology founder' },
+  { pattern: /\bJung(?:ian)?\b/gi, replacement: 'YOONG', description: 'Carl Jung/Jungian' },
+  { pattern: /\bViktor\s+Frankl\b/gi, replacement: 'VIK-tor FRANK-ul', description: 'Logotherapy founder' },
+  { pattern: /\bFrankl\b(?=.*meaning|.*logotherapy)/gi, replacement: 'FRANK-ul', description: 'Viktor Frankl' },
+  { pattern: /\bEckhart\s+Tolle\b/gi, replacement: 'EK-hart TOL-uh', description: 'The Power of Now author' },
+  { pattern: /\bTolle\b(?=.*now|.*present|.*ego)/gi, replacement: 'TOL-uh', description: 'Eckhart Tolle' },
+  { pattern: /\bThich\s+Nhat\s+Hanh\b/gi, replacement: 'TICK naht HAHN', description: 'Zen master' },
+  { pattern: /\bNhat\s+Hanh\b/gi, replacement: 'naht HAHN', description: 'Thich Nhat Hanh' },
+  { pattern: /\bPema\s+Ch[öo]dr[öo]n\b/gi, replacement: 'PEH-mah CHO-drun', description: 'Buddhist teacher' },
+  { pattern: /\bCh[öo]dr[öo]n\b/gi, replacement: 'CHO-drun', description: 'Pema Chödrön' },
+  {
+    pattern: /\bGretchen\s+Rubin\b/gi,
+    replacement: 'GRETCH-en ROO-bin',
+    description: 'Happiness/habits author',
+  },
+  {
+    pattern: /\bBJ\s+Fogg\b/gi,
+    replacement: 'B J Fogg',
+    description: 'Tiny Habits author',
+  },
+  { pattern: /\bJames\s+Clear\b/gi, replacement: 'James Clear', description: 'Atomic Habits author' },
+  {
+    pattern: /\bCharles\s+Duhigg\b/gi,
+    replacement: 'Charles doo-HIG',
+    description: 'Power of Habit author',
+  },
+  { pattern: /\bDuhigg\b/gi, replacement: 'doo-HIG', description: 'Charles Duhigg' },
+  { pattern: /\bAdam\s+Grant\b/gi, replacement: 'Adam Grant', description: 'Organizational psychologist' },
+  { pattern: /\bAngela\s+Duckworth\b/gi, replacement: 'Angela DUCK-worth', description: 'Grit author' },
+  { pattern: /\bCarol\s+Dweck\b/gi, replacement: 'Carol DWEK', description: 'Mindset author' },
+  { pattern: /\bDweck\b(?=.*mindset|.*growth)/gi, replacement: 'DWEK', description: 'Carol Dweck' },
+  {
+    pattern: /\bMartin\s+Seligman\b/gi,
+    replacement: 'Martin SEL-ig-man',
+    description: 'Positive psychology founder',
+  },
+  { pattern: /\bSeligman\b/gi, replacement: 'SEL-ig-man', description: 'Martin Seligman' },
+  { pattern: /\bDaniel\s+Kahneman\b/gi, replacement: 'Daniel KAH-nuh-mun', description: 'Thinking Fast Slow' },
+  { pattern: /\bKahneman\b/gi, replacement: 'KAH-nuh-mun', description: 'Daniel Kahneman' },
+  {
+    pattern: /\bNassim\s+(?:Nicholas\s+)?Taleb\b/gi,
+    replacement: 'nah-SEEM tah-LEB',
+    description: 'Black Swan author',
+  },
+  { pattern: /\bTaleb\b(?=.*black swan|.*antifragile)/gi, replacement: 'tah-LEB', description: 'Nassim Taleb' },
+  { pattern: /\bBryan\s+Stevenson\b/gi, replacement: 'Bryan STEE-vun-sun', description: 'Just Mercy author' },
+  { pattern: /\bSimon\s+Sinek\b/gi, replacement: 'Simon SIN-ek', description: 'Start With Why author' },
+  { pattern: /\bSinek\b/gi, replacement: 'SIN-ek', description: 'Simon Sinek' },
+  { pattern: /\bEsther\s+Perel\b/gi, replacement: 'ESS-ter peh-REL', description: 'Relationship therapist' },
+  { pattern: /\bPerel\b(?=.*relation|.*affair|.*couple)/gi, replacement: 'peh-REL', description: 'Esther Perel' },
+  { pattern: /\bGabor\s+Mat[eé]\b/gi, replacement: 'GAH-bor mah-TAY', description: 'Trauma expert' },
+  { pattern: /\bMat[eé]\b(?=.*trauma|.*addiction|.*body)/gi, replacement: 'mah-TAY', description: 'Gabor Maté' },
+  {
+    pattern: /\bBessel\s+van\s+der\s+Kolk\b/gi,
+    replacement: 'BESS-ul van der KOLK',
+    description: 'Body Keeps Score author',
+  },
+  { pattern: /\bvan\s+der\s+Kolk\b/gi, replacement: 'van der KOLK', description: 'Bessel van der Kolk' },
+
+  // -------------------------------------------------------------------------
+  // Philosophers & Historical Figures
+  // -------------------------------------------------------------------------
+  { pattern: /\bSeneca\b/gi, replacement: 'SEN-ih-kuh', description: 'Stoic philosopher' },
+  { pattern: /\bEpictetus\b/gi, replacement: 'ep-ik-TEE-tus', description: 'Stoic philosopher' },
+  { pattern: /\bMarcus\s+Aurelius\b/gi, replacement: 'Marcus aw-REE-lee-us', description: 'Roman emperor/Stoic' },
+  { pattern: /\bAurelius\b/gi, replacement: 'aw-REE-lee-us', description: 'Marcus Aurelius' },
+  { pattern: /\bNietzsche\b/gi, replacement: 'NEE-chuh', description: 'German philosopher' },
+  { pattern: /\bKierkegaard\b/gi, replacement: 'KEER-kuh-gard', description: 'Danish philosopher' },
+  { pattern: /\bSchopenhauer\b/gi, replacement: 'SHO-pen-how-er', description: 'German philosopher' },
+  { pattern: /\bHeidegger\b/gi, replacement: 'HIGH-deg-er', description: 'German philosopher' },
+  { pattern: /\bSartre\b/gi, replacement: 'SART-ruh', description: 'French existentialist' },
+  { pattern: /\bCamus\b/gi, replacement: 'kah-MOO', description: 'French philosopher' },
+  { pattern: /\bSimone\s+de\s+Beauvoir\b/gi, replacement: 'see-MOHN duh boh-VWAHR', description: 'French philosopher' },
+  { pattern: /\bBeauvoir\b/gi, replacement: 'boh-VWAHR', description: 'Simone de Beauvoir' },
+  { pattern: /\bDescartes\b/gi, replacement: 'day-CART', description: 'French philosopher' },
+  { pattern: /\bGoethe\b/gi, replacement: 'GER-tuh', description: 'German writer' },
+  { pattern: /\bLao\s*Tzu\b/gi, replacement: 'lao DZUH', description: 'Tao Te Ching author' },
+  { pattern: /\bConfucius\b/gi, replacement: 'kun-FYOO-shus', description: 'Chinese philosopher' },
+  { pattern: /\bRumi\b/gi, replacement: 'ROO-mee', description: 'Persian poet' },
+  { pattern: /\bKhalil\s+Gibran\b/gi, replacement: 'kah-LEEL jih-BRAHN', description: 'The Prophet author' },
+  { pattern: /\bGibran\b/gi, replacement: 'jih-BRAHN', description: 'Khalil Gibran' },
+  { pattern: /\bKrishnamurti\b/gi, replacement: 'krish-nuh-MUR-tee', description: 'Indian philosopher' },
+
+  // -------------------------------------------------------------------------
+  // Business/Leadership Thought Leaders
+  // -------------------------------------------------------------------------
+  { pattern: /\bPeter\s+Drucker\b/gi, replacement: 'Peter DRUH-ker', description: 'Management pioneer' },
+  { pattern: /\bDrucker\b/gi, replacement: 'DRUH-ker', description: 'Peter Drucker' },
+  { pattern: /\bSeth\s+Godin\b/gi, replacement: 'Seth GO-din', description: 'Marketing author' },
+  { pattern: /\bGodin\b(?=.*marketing|.*purple|.*tribe)/gi, replacement: 'GO-din', description: 'Seth Godin' },
+  { pattern: /\bMalcolm\s+Gladwell\b/gi, replacement: 'Malcolm GLAD-well', description: 'Outliers author' },
+  { pattern: /\bGladwell\b/gi, replacement: 'GLAD-well', description: 'Malcolm Gladwell' },
+  { pattern: /\bSheryl\s+Sandberg\b/gi, replacement: 'Sheryl SAND-berg', description: 'Lean In author' },
+  { pattern: /\bRay\s+Dalio\b/gi, replacement: 'Ray DAL-ee-oh', description: 'Principles author' },
+  { pattern: /\bDalio\b/gi, replacement: 'DAL-ee-oh', description: 'Ray Dalio' },
+
+  // =========================================================================
+  // NATIVE AMERICAN TERMS & PLACE NAMES (Western US)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Native Nations/Peoples
+  // -------------------------------------------------------------------------
+  { pattern: /\bNavajo\b/gi, replacement: 'NAV-uh-ho', description: 'Diné people' },
+  { pattern: /\bDin[eé]\b/gi, replacement: 'dih-NEH', description: 'Navajo self-name' },
+  { pattern: /\bHopi\b/gi, replacement: 'HO-pee', description: 'Arizona pueblo people' },
+  { pattern: /\bApache\b/gi, replacement: 'uh-PATCH-ee', description: 'Southwest peoples' },
+  { pattern: /\bUte\b/gi, replacement: 'YOOT', description: 'Colorado/Utah people' },
+  { pattern: /\bPaiute\b/gi, replacement: 'PIE-yoot', description: 'Great Basin people' },
+  { pattern: /\bArapaho\b/gi, replacement: 'uh-RAP-uh-ho', description: 'Plains people' },
+  { pattern: /\bCheyenne\b(?=.*tribe|.*nation|.*people)/gi, replacement: 'shy-ANN', description: 'Plains nation' },
+  { pattern: /\bCrow\b(?=.*tribe|.*nation|.*people)/gi, replacement: 'Crow', description: 'Montana people' },
+  { pattern: /\bBlackfeet\b/gi, replacement: 'BLACK-feet', description: 'Montana/Alberta people' },
+  { pattern: /\bNez\s+Perc[eé]\b/gi, replacement: 'NEZ perss', description: 'Idaho/Oregon people' },
+  { pattern: /\bYakama\b/gi, replacement: 'YAK-uh-muh', description: 'Washington people' },
+  { pattern: /\bSalish\b/gi, replacement: 'SAY-lish', description: 'Pacific Northwest peoples' },
+  { pattern: /\bLakota\b/gi, replacement: 'luh-KO-tuh', description: 'Sioux people' },
+  { pattern: /\bDakota\b(?=.*tribe|.*sioux|.*people)/gi, replacement: 'duh-KO-tuh', description: 'Sioux people' },
+  { pattern: /\bOjibwe\b/gi, replacement: 'oh-JIB-way', description: 'Great Lakes people' },
+  { pattern: /\bAnishinaabe\b/gi, replacement: 'ah-nish-ih-NAH-bay', description: 'Ojibwe self-name' },
+  { pattern: /\bCherokee\b/gi, replacement: 'CHAIR-oh-kee', description: 'Southeast/Oklahoma nation' },
+  { pattern: /\bZuni\b/gi, replacement: 'ZOO-nee', description: 'New Mexico pueblo' },
+  { pattern: /\bTaos\s+Pueblo\b/gi, replacement: 'TOUSE PWEB-lo', description: 'New Mexico pueblo' },
+
+  // -------------------------------------------------------------------------
+  // Native American Spiritual/Cultural Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bpowwow\b/gi, replacement: 'POW-wow', description: 'Gathering/ceremony' },
+  { pattern: /\bhogan\b/gi, replacement: 'HO-gahn', description: 'Navajo dwelling' },
+  { pattern: /\bkiva\b/gi, replacement: 'KEE-vuh', description: 'Pueblo ceremonial room' },
+  { pattern: /\bkachina\b/gi, replacement: 'kuh-CHEE-nuh', description: 'Hopi spirit being' },
+  { pattern: /\btipi\b/gi, replacement: 'TEE-pee', description: 'Plains dwelling' },
+  { pattern: /\bteepee\b/gi, replacement: 'TEE-pee', description: 'Plains dwelling' },
+  { pattern: /\bsweat\s+lodge\b/gi, replacement: 'swet loj', description: 'Purification ceremony' },
+  { pattern: /\bpetroglyph\b/gi, replacement: 'PET-ro-glif', description: 'Rock carving' },
+  { pattern: /\bpetroglyphs\b/gi, replacement: 'PET-ro-glifs', description: 'Rock carvings' },
+  { pattern: /\bpictograph\b/gi, replacement: 'PIK-tuh-graf', description: 'Rock painting' },
+
+  // -------------------------------------------------------------------------
+  // Native American Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bWasatch\b/gi, replacement: 'WAH-satch', description: 'Utah mountain range' },
+  { pattern: /\bUinta\b/gi, replacement: 'yoo-IN-tuh', description: 'Utah mountains/county' },
+  { pattern: /\bTooele\b/gi, replacement: 'too-WIL-uh', description: 'Utah county' },
+  { pattern: /\bOquirrh\b/gi, replacement: 'OH-ker', description: 'Utah mountains' },
+  { pattern: /\bTimpanogos\b/gi, replacement: 'tim-puh-NO-gus', description: 'Utah mountain' },
+  { pattern: /\bWenatchee\b/gi, replacement: 'wuh-NATCH-ee', description: 'Washington city' },
+  { pattern: /\bSnoqualmie\b/gi, replacement: 'sno-KWAL-mee', description: 'Washington falls/pass' },
+  { pattern: /\bPuyallup\b/gi, replacement: 'pyoo-AL-up', description: 'Washington city' },
+  { pattern: /\bSequim\b/gi, replacement: 'SKWIM', description: 'Washington city' },
+  { pattern: /\bCoeur\s+d'Alene\b/gi, replacement: 'kor duh-LAYN', description: 'Idaho city/tribe' },
+  { pattern: /\bKootenai\b/gi, replacement: 'KOOT-nee', description: 'Idaho/Montana region' },
+  { pattern: /\bMissouri\b/gi, replacement: 'mih-ZUR-ee', description: 'River/state' },
+  { pattern: /\bMississippi\b/gi, replacement: 'miss-ih-SIP-ee', description: 'River/state' },
+  { pattern: /\bChattanooga\b/gi, replacement: 'chat-uh-NOO-guh', description: 'Tennessee city' },
+  { pattern: /\bTallahassee\b/gi, replacement: 'tal-uh-HAS-ee', description: 'Florida capital' },
+  { pattern: /\bOkeechobee\b/gi, replacement: 'oh-kee-CHO-bee', description: 'Florida lake' },
+  { pattern: /\bChesapeake\b/gi, replacement: 'CHESS-uh-peek', description: 'Virginia bay' },
+  { pattern: /\bPotomac\b/gi, replacement: 'puh-TOH-muk', description: 'Eastern river' },
+  { pattern: /\bShenandoah\b/gi, replacement: 'shen-un-DO-uh', description: 'Virginia valley' },
+  { pattern: /\bAppalachian\b/gi, replacement: 'ap-uh-LATCH-un', description: 'Eastern mountains' },
+  { pattern: /\bAppalachia\b/gi, replacement: 'ap-uh-LATCH-uh', description: 'Eastern region' },
+
+  // =========================================================================
+  // PRODUCTIVITY & METHODOLOGY TERMS
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Productivity Methods
+  // -------------------------------------------------------------------------
+  { pattern: /\bPomodoro\b/gi, replacement: 'pom-uh-DOR-oh', description: 'Time management technique' },
+  { pattern: /\bGTD\b/g, replacement: 'G T D', description: 'Getting Things Done' },
+  { pattern: /\bZettelkasten\b/gi, replacement: 'TSET-ul-kah-sten', description: 'Note-taking system' },
+  { pattern: /\bAgile\b/g, replacement: 'AJ-ile', description: 'Software methodology' },
+  { pattern: /\bScrum\b/g, replacement: 'Skrum', description: 'Agile framework' },
+  { pattern: /\bKanban\b/gi, replacement: 'KAHN-bahn', description: 'Visual workflow' },
+  { pattern: /\bOKR\b/g, replacement: 'O K R', description: 'Objectives Key Results' },
+  { pattern: /\bOKRs\b/g, replacement: 'O K Rs', description: 'Objectives Key Results' },
+  { pattern: /\bKPI\b/g, replacement: 'K P I', description: 'Key Performance Indicator' },
+  { pattern: /\bKPIs\b/g, replacement: 'K P Is', description: 'Key Performance Indicators' },
+  { pattern: /\bEisenhower\s+matrix\b/gi, replacement: 'EYE-zen-how-er matrix', description: 'Priority grid' },
+  { pattern: /\bpareto\b/gi, replacement: 'puh-RAY-toh', description: '80/20 principle' },
+  { pattern: /\b80\/20\b/g, replacement: 'eighty twenty', description: 'Pareto principle' },
+
+  // -------------------------------------------------------------------------
+  // Design/Creative Methods
+  // -------------------------------------------------------------------------
+  { pattern: /\bwabi-sabi\s+design\b/gi, replacement: 'wah-bee sah-bee design', description: 'Imperfect aesthetics' },
+  { pattern: /\bhygge\b/gi, replacement: 'HOO-guh', description: 'Danish coziness' },
+  { pattern: /\blagom\b/gi, replacement: 'LAH-gom', description: 'Swedish just enough' },
+  { pattern: /\bfika\b/gi, replacement: 'FEE-kuh', description: 'Swedish coffee break' },
+  { pattern: /\bfengshui\b/gi, replacement: 'fung SHWAY', description: 'Chinese arrangement' },
+  { pattern: /\bfeng\s+shui\b/gi, replacement: 'fung SHWAY', description: 'Chinese arrangement' },
+  { pattern: /\bvastu\b/gi, replacement: 'VAH-stoo', description: 'Indian architecture' },
+
   // -------------------------------------------------------------------------
   // Countries & Languages
   // -------------------------------------------------------------------------

@@ -1963,8 +1963,8 @@ export function createSanitizerWithMusicFallback(
 
           // Execute the tool and speak the result via safeGenerateReply
           // This is the proper way to inject async tool results - not stream injection
-          // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
-          executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId)
+          // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+          executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
             .then(async (execResult) => {
               if (execResult?.success && execResult.result) {
                 const resultText =
@@ -2208,8 +2208,8 @@ export function createSanitizerWithMusicFallback(
         }
 
         // Execute the tool and speak the result via safeGenerateReply
-        // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
-        executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId)
+        // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+        executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
           .then(async (execResult) => {
             if (execResult?.success && execResult.result) {
               const resultText =
@@ -2391,8 +2391,8 @@ export function createSanitizerWithMusicFallback(
               '🎯 LAST-CHANCE SAVE: Detected JSON that earlier checks missed!'
             );
             // Execute the tool
-            // Pass sessionId/userId for observability tracking (Option C: semantic router primary)
-            executeJsonFunctionCall(lastChanceJson, sessionId, toolContext?.userId)
+            // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+            executeJsonFunctionCall(lastChanceJson, sessionId, toolContext?.userId, toolContext?.personaId)
               .then(async (result) => {
                 log.info(
                   { fn: lastChanceJson.fn, success: result?.success },

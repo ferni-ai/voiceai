@@ -523,10 +523,25 @@ const styles = `
     100% { background-position: 200% 0; }
   }
 
-  @keyframes wellbeing-float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    33% { transform: translateY(-8px) rotate(2deg); }
-    66% { transform: translateY(-4px) rotate(-1deg); }
+  /* Apple-style gentle breathing - organic, not bouncy */
+  @keyframes wellbeing-breathe {
+    0%, 100% { 
+      transform: scale(1); 
+      opacity: 1;
+    }
+    50% { 
+      transform: scale(1.02); 
+      opacity: 0.95;
+    }
+  }
+  
+  /* Heartbeat animation - alive and warm */
+  @keyframes wellbeing-heartbeat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.15); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.1); }
+    70% { transform: scale(1); }
   }
 
   @keyframes wellbeing-sparkle {
@@ -590,52 +605,52 @@ const styles = `
     animation-delay: 2s;
   }
   
+  /* Apple-style centered hero layout */
   .wellbeing-empty__hero {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: var(--space-4, 16px);
-    align-items: flex-start;
     margin-bottom: var(--space-6, 24px);
-    animation: wellbeing-fade-in-up 0.6s ease-out both;
+    animation: wellbeing-fade-in-up 0.6s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) both;
   }
   
   .wellbeing-empty__icon {
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-    color: var(--color-ferni);
-    filter: drop-shadow(0 0 12px rgba(74, 103, 65, 0.4));
-    animation: wellbeing-pulse-glow 3s ease-in-out infinite;
+    width: 56px;
+    height: 56px;
+    /* Ferni's warm sage green */
+    color: var(--color-ferni, #4a6741);
+    /* Soft glow for warmth */
+    filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.3));
+    /* Organic heartbeat - alive and gentle */
+    animation: wellbeing-heartbeat 2.5s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) infinite;
   }
 
   .wellbeing-empty__icon svg {
     width: 100%;
     height: 100%;
+    /* Fill the heart for warmth */
+    fill: currentColor;
+    stroke: none;
   }
   
   .wellbeing-empty__text {
-    flex: 1;
+    max-width: 320px;
   }
   
   .wellbeing-empty__title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 600;
     color: var(--color-text-primary);
-    margin: 0 0 var(--space-2, 8px) 0;
-    line-height: 1.3;
-    /* Subtle gradient text */
-    background: linear-gradient(
-      135deg,
-      var(--color-text-primary) 0%,
-      var(--color-ferni) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin: 0 0 var(--space-3, 12px) 0;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
   }
   
   .wellbeing-empty__subtitle {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--color-text-secondary);
     line-height: 1.6;
     margin: 0;
@@ -670,17 +685,21 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-4, 16px) var(--space-2, 8px);
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
     border-radius: var(--radius-xl, 16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.04),
-      0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: wellbeing-float 6s ease-in-out infinite;
-    /* Stagger the float animation */
-    animation-delay: calc(var(--dimension-index, 0) * 0.5s);
+      0 2px 8px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+    /* Apple-style subtle transitions */
+    transition: 
+      transform 0.4s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)),
+      box-shadow 0.4s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1));
+    /* Gentle breathing - organic, alive */
+    animation: wellbeing-breathe 4s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) infinite;
+    /* Stagger for natural feel - like a wave */
+    animation-delay: calc(var(--dimension-index, 0) * 0.3s);
   }
   
   .wellbeing-empty__dimension:nth-child(1) { --dimension-index: 0; }
@@ -691,31 +710,37 @@ const styles = `
   .wellbeing-empty__dimension:nth-child(6) { --dimension-index: 5; }
   
   .wellbeing-empty__dimension:hover {
-    transform: translateY(-4px) scale(1.05);
+    /* Apple-style lift - subtle, refined */
+    transform: translateY(-2px) scale(1.02);
     box-shadow: 
-      0 12px 32px rgba(0, 0, 0, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.08),
       0 0 0 1px rgba(255, 255, 255, 0.7) inset,
-      0 0 20px var(--_glow-color, rgba(74, 103, 65, 0.3));
+      0 0 24px var(--_glow-color, rgba(74, 103, 65, 0.15));
   }
   
   .wellbeing-empty__dimension-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     color: inherit;
-    filter: drop-shadow(0 0 10px currentColor);
-    transition: transform 0.3s ease, filter 0.3s ease;
+    /* Subtle glow, not overwhelming */
+    filter: drop-shadow(0 0 6px currentColor);
+    transition: 
+      transform 0.4s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)),
+      filter 0.4s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1));
   }
   
   .wellbeing-empty__dimension:hover .wellbeing-empty__dimension-icon {
-    transform: scale(1.2);
-    filter: drop-shadow(0 0 16px currentColor);
+    /* Refined hover - not bouncy */
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px currentColor);
   }
   
   .wellbeing-empty__dimension-icon svg {
     width: 100%;
     height: 100%;
     stroke: currentColor;
+    stroke-width: 2;
   }
   
   .wellbeing-empty__dimension-name {
@@ -1171,7 +1196,8 @@ const ICONS = {
   close: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   trendUp: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   trendDown: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
-  heart: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  // Filled heart for warmth and life
+  heart: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   // Achievement icons (Lucide - 2px stroke, rounded corners)
   smile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
   calm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="2.01"/></svg>`,
@@ -1610,14 +1636,13 @@ function renderEmptyState(): string {
 
   return `
     <div class="wellbeing-empty">
-      <!-- Hero: Icon + Title -->
+      <!-- Apple-style centered hero -->
       <div class="wellbeing-empty__hero">
         <div class="wellbeing-empty__icon">${ICONS.heart}</div>
         <div class="wellbeing-empty__text">
-          <h3 class="wellbeing-empty__title">A portrait of you will take shape here</h3>
+          <h3 class="wellbeing-empty__title">A portrait of you<br/>will take shape here</h3>
           <p class="wellbeing-empty__subtitle">
-            As we talk, I'll start noticing patterns—your rhythms, your energy, what lights you up. 
-            This becomes your personal wellbeing map.
+            As we talk, I'll notice patterns—your rhythms, your energy, what lights you up.
           </p>
         </div>
       </div>
@@ -1630,12 +1655,8 @@ function renderEmptyState(): string {
             .map(
               (dim) => `
             <div class="wellbeing-empty__dimension" style="
-              color: ${dim.hex}; 
-              --_glow-color: ${dim.hex}40;
-              --_bg-tint: ${dim.hex}18;
-              background: linear-gradient(145deg, rgba(255,255,255,0.95), ${dim.hex}20);
-              border: 2px solid ${dim.hex}50;
-              box-shadow: 0 4px 20px ${dim.hex}20, inset 0 1px 0 rgba(255,255,255,0.8);
+              --_glow-color: ${dim.hex}20;
+              border-color: ${dim.hex}30;
             ">
               <div class="wellbeing-empty__dimension-icon" style="color: ${dim.hex};">${dim.icon}</div>
               <div class="wellbeing-empty__dimension-name" style="color: ${dim.hex};">${dim.name}</div>
