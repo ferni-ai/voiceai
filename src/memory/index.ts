@@ -381,6 +381,44 @@ export {
   resetFirestoreMemoryPersistence,
 } from './firestore-memory-persistence.js';
 
+// Extended Firestore Persistence (sessions, tool logs, bonds, voice, intents, cache, metrics)
+export {
+  // Configuration
+  configureFirestoreExtended,
+  // Session state
+  saveSessionState,
+  getSessionState,
+  getRecentSessions,
+  type SessionState,
+  // Tool execution logs
+  logToolExecution,
+  getToolExecutions,
+  type ToolExecution,
+  // Persona bonds
+  savePersonaBond,
+  getPersonaBond,
+  getAllPersonaBonds,
+  type PersonaBond,
+  // Voice profile
+  saveVoiceProfile,
+  getVoiceProfile,
+  type VoiceProfile,
+  // User intents
+  logUserIntent,
+  getRecentIntents,
+  type UserIntent,
+  // Superhuman cache
+  setCachedInsight,
+  getCachedInsight,
+  type CachedInsight,
+  // Quality metrics
+  saveQualityMetrics,
+  getQualityMetrics,
+  type QualityMetrics,
+  // GDPR
+  deleteAllExtendedUserData,
+} from './firestore-extended-persistence.js';
+
 // Memory Orchestrator (unified entry point)
 export {
   MemoryOrchestratorImpl,
