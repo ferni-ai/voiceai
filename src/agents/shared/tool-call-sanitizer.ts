@@ -48,6 +48,75 @@ type AnyTransformStream = any;
 const log = createLogger({ module: 'tool-call-sanitizer' });
 
 // ============================================================================
+// GUIDANCE BLOCK STRIPPING
+// ============================================================================
+
+/**
+ * CRITICAL FIX: Strip [INTERNAL GUIDANCE] blocks and everything after them.
+ *
+ * The LLM sometimes echoes back guidance blocks that were meant to inform
+ * its response, not be spoken. This strips them from text before TTS.
+ *
+ * Pattern matches:
+ * - [INTERNAL GUIDANCE] ... [DO: ...]
+ * - [INTERNAL GUIDANCE - DO NOT SPEAK THIS] ...
+ * - Everything from the marker to end of string
+ *
+ * @example
+ * Input: "Hmm, that's interesting.\n[INTERNAL GUIDANCE]\nThe user said..."
+ * Output: "Hmm, that's interesting."
+ */
+function stripGuidanceBlocks(text: string): string {
+  // Pattern to match [INTERNAL ...] and everything after it
+  // This catches: [INTERNAL GUIDANCE], [INTERNAL GUIDANCE - DO NOT SPEAK THIS], etc.
+  const guidancePattern = /\n?\[INTERNAL[^\]]*\][\s\S]*$/i;
+
+  // Also catch [SITUATION:...], [DO:...], [TOOL RESULT:...], [DATA:...] blocks
+  const otherMarkers = /\n?\[(SITUATION|DO|TOOL RESULT|DATA):[^\]]*\][\s\S]*$/i;
+
+  let result = text.replace(guidancePattern, '');
+  result = result.replace(otherMarkers, '');
+
+  // Trim trailing whitespace/newlines left behind
+  result = result.trimEnd();
+
+  if (result !== text) {
+    log.info(
+      {
+        originalLength: text.length,
+        strippedLength: result.length,
+        preview: text.slice(0, 100),
+      },
+      '🛡️ GUIDANCE STRIPPED: Removed [INTERNAL GUIDANCE] block before TTS'
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Check if text might have a guidance block coming (for look-ahead buffering).
+ * Returns true if we see patterns that often precede guidance blocks.
+ */
+function mightHaveGuidanceComing(text: string): boolean {
+  // If text ends with newline(s), guidance might follow
+  if (/\n\s*$/.test(text)) {
+    return true;
+  }
+  // If we see incomplete marker patterns
+  if (/\[INTERNAL\s*$/.test(text) || /\[SITUATION\s*$/.test(text)) {
+    return true;
+  }
+  // If text ends mid-sentence with certain patterns that precede guidance
+  if (/\?\s*$/.test(text) || /\.\s*\n?$/.test(text)) {
+    // These could be followed by guidance, but usually aren't
+    // Only flag if we're at a suspiciously short length
+    return text.length < 200;
+  }
+  return false;
+}
+
+// ============================================================================
 // RETRY LOGIC FOR FAILED TOOL CALLS
 // ============================================================================
 
@@ -1214,11 +1283,12 @@ function getReplacementText(detection: LeakageDetection): string {
   const toolNameLower = detection.toolName?.toLowerCase() || '';
 
   // CRITICAL: Internal markers, instructions, and instruction leakage - ALWAYS suppress silently
-  // These are tool responses or generateReply prompts that should never be spoken
+  // These are tool responses, generateReply prompts, or guidance blocks that should never be spoken
   if (
     detection.pattern === 'internal_marker' ||
     detection.pattern === 'internal_instruction' ||
-    detection.pattern === 'instruction_leakage'
+    detection.pattern === 'instruction_leakage' ||
+    detection.pattern === 'behavioral_marker' // [INTERNAL GUIDANCE], [DO:...], etc.
   ) {
     return '';
   }
@@ -1534,7 +1604,9 @@ export function createSanitizerTransformStream(): AnyTransformStream {
 
       // Pass through if buffer is long enough and no pattern detected
       // Increased threshold to give more context for detection
-      if (buffer.length > 150 && !waitForMoreContext) {
+      // 🛡️ LOOK-AHEAD: Also wait if guidance block might be coming (buffer ends with newline, etc.)
+      const guidanceMightFollow = mightHaveGuidanceComing(buffer) && buffer.length < 400;
+      if (buffer.length > 150 && !waitForMoreContext && !guidanceMightFollow) {
         // 🔍 DIAGNOSTIC: Check for suspicious patterns before passing through (basic sanitizer)
         if (buffer.includes('{"fn"') || buffer.includes('"fn":') || buffer.includes('"args":')) {
           log.warn(
@@ -1542,7 +1614,12 @@ export function createSanitizerTransformStream(): AnyTransformStream {
             '🚨 POTENTIAL JSON LEAKAGE (basic sanitizer): Buffer contains fn/args patterns!'
           );
         }
-        controller.enqueue(buffer);
+
+        // 🛡️ CRITICAL FIX: Strip guidance blocks before sending to TTS
+        const cleanedBuffer = stripGuidanceBlocks(buffer);
+        if (cleanedBuffer) {
+          controller.enqueue(cleanedBuffer);
+        }
         buffer = '';
       }
     },
@@ -1557,7 +1634,11 @@ export function createSanitizerTransformStream(): AnyTransformStream {
             controller.enqueue(replacement);
           }
         } else {
-          controller.enqueue(buffer);
+          // 🛡️ CRITICAL FIX: Strip guidance blocks before sending to TTS
+          const cleanedBuffer = stripGuidanceBlocks(buffer);
+          if (cleanedBuffer) {
+            controller.enqueue(cleanedBuffer);
+          }
         }
       }
     },
@@ -1956,8 +2037,9 @@ export function createSanitizerWithMusicFallback(
           ];
           const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
           if (isSlowTool) {
-            const ack = getSlowToolAcknowledgment(jsonCall.fn);
-            log.info({ fn: jsonCall.fn, ack }, '⏳ Injecting acknowledgment for slow tool');
+            // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
+            const ack = getSlowToolAcknowledgment(jsonCall.fn, toolContext?.personaId, toolContext?.userId);
+            log.info({ fn: jsonCall.fn, ack, personaId: toolContext?.personaId }, '⏳ Injecting persona-aware acknowledgment for slow tool');
             controller.enqueue(`${ack} `);
           }
 
@@ -2202,8 +2284,9 @@ export function createSanitizerWithMusicFallback(
         ];
         const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
         if (isSlowTool) {
-          const ack = getSlowToolAcknowledgment(jsonCall.fn);
-          log.info({ fn: jsonCall.fn, ack }, '⏳ Injecting acknowledgment for slow tool');
+          // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
+          const ack = getSlowToolAcknowledgment(jsonCall.fn, toolContext?.personaId, toolContext?.userId);
+          log.info({ fn: jsonCall.fn, ack, personaId: toolContext?.personaId }, '⏳ Injecting persona-aware acknowledgment for slow tool');
           controller.enqueue(`${ack} `);
         }
 
@@ -2376,7 +2459,10 @@ export function createSanitizerWithMusicFallback(
         waitForMoreContext = false;
       }
 
-      if (buffer.length > 150 && !waitForMoreContext) {
+      // 🛡️ LOOK-AHEAD: Also wait if guidance block might be coming (buffer ends with newline, etc.)
+      // This prevents emitting speech before [INTERNAL GUIDANCE] block arrives
+      const guidanceMightFollow = mightHaveGuidanceComing(buffer) && buffer.length < 400;
+      if (buffer.length > 150 && !waitForMoreContext && !guidanceMightFollow) {
         // 🔍 DIAGNOSTIC: Last-chance check for JSON before passing to TTS
         if (buffer.includes('{"fn"') || buffer.includes('"fn":') || buffer.includes('"args":')) {
           log.warn(
@@ -2430,7 +2516,13 @@ export function createSanitizerWithMusicFallback(
             return;
           }
         }
-        controller.enqueue(buffer);
+
+        // 🛡️ CRITICAL FIX: Strip guidance blocks before sending to TTS
+        // This catches [INTERNAL GUIDANCE]... blocks that the LLM echoes back
+        const cleanedBuffer = stripGuidanceBlocks(buffer);
+        if (cleanedBuffer) {
+          controller.enqueue(cleanedBuffer);
+        }
         buffer = '';
       }
     },
@@ -2465,7 +2557,11 @@ export function createSanitizerWithMusicFallback(
             controller.enqueue(replacement);
           }
         } else {
-          controller.enqueue(buffer);
+          // 🛡️ CRITICAL FIX: Strip guidance blocks before sending to TTS
+          const cleanedBuffer = stripGuidanceBlocks(buffer);
+          if (cleanedBuffer) {
+            controller.enqueue(cleanedBuffer);
+          }
         }
       }
     },
