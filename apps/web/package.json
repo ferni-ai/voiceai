@@ -48,7 +48,7 @@
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",
     "@playwright/test": "^1.40.0",
-    "@types/node": "^20.10.0",
+    "@types/node": "^25.0.3",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "@vitest/coverage-v8": "^1.0.0",
