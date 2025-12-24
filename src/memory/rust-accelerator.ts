@@ -337,7 +337,4 @@ function findDuplicatesLshJs(
 // EXPORTS
 // ============================================================================
 
-export {
-  loadRustPerf,
-  getShingles,
-};
+export { loadRustPerf, getShingles };

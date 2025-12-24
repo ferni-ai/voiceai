@@ -30,6 +30,11 @@ import {
   type DuplicatePair,
   type LSHConfig,
 } from '../../memory/lsh-deduplication.js';
+import {
+  findDuplicatesLsh as findDuplicatesLshRust,
+  isRustAvailable,
+  getRustInfo,
+} from '../../memory/rust-accelerator.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -508,26 +513,46 @@ export class MemoryDeduplicationJob extends ScheduledJob<
  * Performance: O(n) average case instead of O(n²)
  * - 100 memories: 4,950 comparisons → ~100 hash lookups
  * - 1000 memories: 499,500 comparisons → ~1000 hash lookups
+ *
+ * Uses Rust accelerator when available for parallel signature computation.
  */
 function findDuplicatesWithLSH(
   memories: MemoryItem[],
   config: { threshold: number }
 ): Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> {
-  // Adapt MemoryItem to LSH input format
+  // Try Rust accelerator first (parallel, faster for large batches)
+  if (isRustAvailable() && memories.length >= 50) {
+    const texts = memories.map((m) => m.content);
+
+    const rustInfo = getRustInfo();
+    log.debug(
+      { memoryCount: memories.length, threads: rustInfo.threads },
+      '🦀 Using Rust accelerator for LSH deduplication'
+    );
+
+    const rustResults = findDuplicatesLshRust(texts, config.threshold, 100, 20);
+
+    // Map indices back to MemoryItem format
+    return rustResults.map((pair) => ({
+      first: memories[pair.firstIdx],
+      second: memories[pair.secondIdx],
+      similarity: pair.similarity,
+    }));
+  }
+
+  // JS fallback for smaller batches or when Rust unavailable
   const items = memories.map((m) => ({
     id: m.id,
     content: m.content,
     original: m,
   }));
 
-  // Use LSH for O(n) duplicate detection
   const lshResults = findDuplicatesLSH(items, {
     threshold: config.threshold,
-    numHashes: 100, // Good balance of accuracy vs speed
-    numBands: 20, // 20 bands of 5 rows each
+    numHashes: 100,
+    numBands: 20,
   });
 
-  // Map back to MemoryItem format
   return lshResults.map((pair) => ({
     first: (pair.first as { original: MemoryItem }).original,
     second: (pair.second as { original: MemoryItem }).original,
