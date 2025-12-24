@@ -356,10 +356,7 @@ export async function getSessionState(
   }
 }
 
-export async function getRecentSessions(
-  userId: string,
-  limit: number = 10
-): Promise<SessionState[]> {
+export async function getRecentSessions(userId: string, limit = 10): Promise<SessionState[]> {
   const firestore = await getDb();
   if (!firestore) return [];
 
@@ -619,10 +616,7 @@ export async function logUserIntent(intent: UserIntent): Promise<void> {
   }
 }
 
-export async function getRecentIntents(
-  userId: string,
-  limit: number = 50
-): Promise<UserIntent[]> {
+export async function getRecentIntents(userId: string, limit = 50): Promise<UserIntent[]> {
   const firestore = await getDb();
   if (!firestore) return [];
 

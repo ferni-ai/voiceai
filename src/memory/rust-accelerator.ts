@@ -21,23 +21,23 @@ const log = getLogger();
 // ============================================================================
 
 interface RustPerf {
-  getLibraryInfo(): { version: string; simdAvailable: boolean; parallelThreads: number };
-  cosineSimilarity(a: number[], b: number[]): number;
-  batchCosineSimilarity(query: number[], candidates: number[][]): number[];
-  textSimilarity(text1: string, text2: string, shingleSize?: number): number;
-  batchTextSimilarity(query: string, candidates: string[], shingleSize?: number): number[];
-  findDuplicatesLsh(
+  getLibraryInfo: () => { version: string; simdAvailable: boolean; parallelThreads: number };
+  cosineSimilarity: (a: number[], b: number[]) => number;
+  batchCosineSimilarity: (query: number[], candidates: number[][]) => number[];
+  textSimilarity: (text1: string, text2: string, shingleSize?: number) => number;
+  batchTextSimilarity: (query: string, candidates: string[], shingleSize?: number) => number[];
+  findDuplicatesLsh: (
     texts: string[],
     threshold: number,
     numHashes?: number,
     numBands?: number
-  ): Array<{ firstIdx: number; secondIdx: number; similarity: number }>;
-  computeMinhash(
+  ) => Array<{ firstIdx: number; secondIdx: number; similarity: number }>;
+  computeMinhash: (
     text: string,
     numHashes: number,
     shingleSize?: number
-  ): { id: string; signature: number[] };
-  estimateSimilarityFromMinhash(sig1: number[], sig2: number[]): number;
+  ) => { id: string; signature: number[] };
+  estimateSimilarityFromMinhash: (sig1: number[], sig2: number[]) => number;
 }
 
 let rustPerf: RustPerf | null = null;
@@ -274,7 +274,7 @@ function findDuplicatesLshJs(
   });
 
   // Build band buckets
-  const bandBuckets: Map<string, number[]>[] = [];
+  const bandBuckets: Array<Map<string, number[]>> = [];
   for (let i = 0; i < numBands; i++) {
     bandBuckets.push(new Map());
   }

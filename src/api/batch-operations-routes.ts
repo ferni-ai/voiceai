@@ -13,12 +13,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  handleCorsPreflightIfNeeded,
-  sendJSON,
-  sendError,
-  parseBody,
-} from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'BatchOperationsAPI' });
@@ -99,7 +94,10 @@ export async function handleBatchOperationsRoutes(
         log.error({ error: String(err), jobId }, 'Index memories job failed');
       });
 
-      log.info({ userId: auth.userId, targetUser: body.userId, jobId }, 'Started index memories job');
+      log.info(
+        { userId: auth.userId, targetUser: body.userId, jobId },
+        'Started index memories job'
+      );
       sendJSON(res, { jobId, status: 'pending' }, 202);
       return true;
     }
@@ -227,7 +225,11 @@ async function runIndexMemoriesJob(
     job.total = 1;
 
     // Index the user's memories
-    const result = await indexUserMemories(userId, profile as unknown as Parameters<typeof indexUserMemories>[1], { vectorStore: store });
+    const result = await indexUserMemories(
+      userId,
+      profile as unknown as Parameters<typeof indexUserMemories>[1],
+      { vectorStore: store }
+    );
 
     job.progress = job.total;
     job.status = 'completed';

@@ -125,11 +125,7 @@ export async function handleDesignTokensRoutes(
 /**
  * Send JSON with cache headers
  */
-function sendJSONCached(
-  res: ServerResponse,
-  data: unknown,
-  maxAgeSeconds: number
-): void {
+function sendJSONCached(res: ServerResponse, data: unknown, maxAgeSeconds: number): void {
   res.setHeader('Cache-Control', `public, max-age=${maxAgeSeconds}`);
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(data));

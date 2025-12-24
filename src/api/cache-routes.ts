@@ -12,12 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  handleCorsPreflightIfNeeded,
-  sendJSON,
-  sendError,
-  parseBody,
-} from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 import { getEmbeddingCache } from '../memory/embedding-cache.js';
 
@@ -140,7 +135,9 @@ async function getCacheStats(): Promise<Record<string, unknown>> {
   try {
     const specModule = await import('../memory/speculative-embeddings.js');
     if ('getSpeculativeStats' in specModule) {
-      stats.speculative = (specModule as { getSpeculativeStats: () => unknown }).getSpeculativeStats();
+      stats.speculative = (
+        specModule as { getSpeculativeStats: () => unknown }
+      ).getSpeculativeStats();
     } else {
       stats.speculative = { status: 'not_available' };
     }

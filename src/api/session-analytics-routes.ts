@@ -14,11 +14,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  handleCorsPreflightIfNeeded,
-  sendJSON,
-  sendError,
-} from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'SessionAnalyticsAPI' });
@@ -172,11 +168,8 @@ async function getSessionDetails(
   sessionId: string
 ): Promise<Record<string, unknown> | null> {
   try {
-    const {
-      getSessionState,
-      getToolExecutions,
-      getQualityMetrics,
-    } = await import('../memory/firestore-extended-persistence.js');
+    const { getSessionState, getToolExecutions, getQualityMetrics } =
+      await import('../memory/firestore-extended-persistence.js');
 
     const [session, tools, allQuality] = await Promise.all([
       getSessionState(userId, sessionId),
@@ -210,18 +203,15 @@ async function getQualityMetricsData(
   days: number
 ): Promise<Record<string, unknown>> {
   try {
-    const { getQualityMetrics, getRecentSessions } = await import(
-      '../memory/firestore-extended-persistence.js'
-    );
+    const { getQualityMetrics, getRecentSessions } =
+      await import('../memory/firestore-extended-persistence.js');
 
     if (userId) {
       // Get metrics for user's recent sessions
       const sessions = await getRecentSessions(userId, 50);
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
-      const recentSessions = sessions.filter(
-        (s) => new Date(s.startedAt).getTime() > cutoff
-      );
+      const recentSessions = sessions.filter((s) => new Date(s.startedAt).getTime() > cutoff);
 
       // Get all quality metrics for this user
       const allMetrics = await getQualityMetrics(userId, { limit: 100 });
@@ -242,14 +232,18 @@ async function getQualityMetricsData(
       // Calculate aggregates
       const avgAudioQuality =
         validMetrics.length > 0
-          ? validMetrics.reduce((sum, m) => sum + ((m.audioQuality as Record<string, number>)?.overall ?? 0), 0) /
-            validMetrics.length
+          ? validMetrics.reduce(
+              (sum, m) => sum + ((m.audioQuality as Record<string, number>)?.overall ?? 0),
+              0
+            ) / validMetrics.length
           : 0;
 
       const avgSatisfaction =
         validMetrics.length > 0
-          ? validMetrics.reduce((sum, m) => sum + ((m.userSatisfaction as Record<string, number>)?.rating ?? 0), 0) /
-            validMetrics.length
+          ? validMetrics.reduce(
+              (sum, m) => sum + ((m.userSatisfaction as Record<string, number>)?.rating ?? 0),
+              0
+            ) / validMetrics.length
           : 0;
 
       return {
@@ -285,14 +279,14 @@ async function getPersonaBondStats(userId: string): Promise<Record<string, unkno
     const totalDuration = bonds.reduce((sum, b) => sum + b.totalDurationMinutes, 0);
 
     // Find most-used persona
-    const mostUsed = bonds.length > 0
-      ? bonds.reduce((max, b) => (b.totalConversations > max.totalConversations ? b : max))
-      : null;
+    const mostUsed =
+      bonds.length > 0
+        ? bonds.reduce((max, b) => (b.totalConversations > max.totalConversations ? b : max))
+        : null;
 
     // Find highest trust
-    const highestTrust = bonds.length > 0
-      ? bonds.reduce((max, b) => (b.trustLevel > max.trustLevel ? b : max))
-      : null;
+    const highestTrust =
+      bonds.length > 0 ? bonds.reduce((max, b) => (b.trustLevel > max.trustLevel ? b : max)) : null;
 
     return {
       userId,
@@ -355,9 +349,10 @@ async function getIntentAnalytics(
       totalIntents: intents.length,
       successfulIntents: successful,
       correctedIntents: corrected,
-      successRate: intents.length > 0 ? ((successful / intents.length) * 100).toFixed(1) + '%' : '0%',
+      successRate:
+        intents.length > 0 ? `${((successful / intents.length) * 100).toFixed(1)}%` : '0%',
       correctionRate:
-        intents.length > 0 ? ((corrected / intents.length) * 100).toFixed(1) + '%' : '0%',
+        intents.length > 0 ? `${((corrected / intents.length) * 100).toFixed(1)}%` : '0%',
       topIntents,
       recentIntents: intents.slice(0, 20),
     };

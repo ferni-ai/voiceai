@@ -248,7 +248,7 @@ export function createSafeFireAndForget<TArgs extends unknown[]>(
   options: SafeFireAndForgetOptions
 ): (...args: TArgs) => void {
   return (...args: TArgs) => {
-    safeFireAndForget(() => fn(...args), options);
+    safeFireAndForget(async () => fn(...args), options);
   };
 }
 
@@ -281,7 +281,7 @@ export function getFireAndForgetMetrics(): {
     timeoutCount: metrics.timeoutCount,
     successRate:
       metrics.totalCalls > 0
-        ? ((metrics.successCount / metrics.totalCalls) * 100).toFixed(1) + '%'
+        ? `${((metrics.successCount / metrics.totalCalls) * 100).toFixed(1)}%`
         : 'N/A',
     byContext: Array.from(metrics.byContext.entries()).map(([context, data]) => ({
       context,

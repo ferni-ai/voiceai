@@ -571,35 +571,104 @@ const MOCK_FOUNDER_STATS: FounderStatsData = {
 };
 
 const MOCK_FOUNDERS: FounderData[] = [
-  { id: 'f1', displayName: 'Sarah', initials: 'S', joinedAt: '2024-01-15', tier: 'forest', isEarlyBird: true, badge: 'og' },
-  { id: 'f2', displayName: 'Michael', initials: 'M', joinedAt: '2024-02-01', tier: 'forest', isEarlyBird: true, badge: 'champion' },
-  { id: 'f3', displayName: null, initials: 'JD', joinedAt: '2024-02-14', tier: 'forest', isEarlyBird: true },
-  { id: 't1', displayName: 'Alex', initials: 'A', joinedAt: '2024-03-01', tier: 'tree', isEarlyBird: false, badge: 'believer' },
-  { id: 't2', displayName: 'Jordan', initials: 'J', joinedAt: '2024-03-15', tier: 'tree', isEarlyBird: false },
-  { id: 's1', displayName: 'Casey', initials: 'C', joinedAt: '2024-05-01', tier: 'sprout', isEarlyBird: false },
-  { id: 's2', displayName: null, initials: 'RB', joinedAt: '2024-05-15', tier: 'sprout', isEarlyBird: false },
-  { id: 'sd1', displayName: 'Jamie', initials: 'J', joinedAt: '2024-08-01', tier: 'seed', isEarlyBird: false },
-  { id: 'sd2', displayName: null, initials: 'PQ', joinedAt: '2024-08-15', tier: 'seed', isEarlyBird: false },
+  {
+    id: 'f1',
+    displayName: 'Sarah',
+    initials: 'S',
+    joinedAt: '2024-01-15',
+    tier: 'forest',
+    isEarlyBird: true,
+    badge: 'og',
+  },
+  {
+    id: 'f2',
+    displayName: 'Michael',
+    initials: 'M',
+    joinedAt: '2024-02-01',
+    tier: 'forest',
+    isEarlyBird: true,
+    badge: 'champion',
+  },
+  {
+    id: 'f3',
+    displayName: null,
+    initials: 'JD',
+    joinedAt: '2024-02-14',
+    tier: 'forest',
+    isEarlyBird: true,
+  },
+  {
+    id: 't1',
+    displayName: 'Alex',
+    initials: 'A',
+    joinedAt: '2024-03-01',
+    tier: 'tree',
+    isEarlyBird: false,
+    badge: 'believer',
+  },
+  {
+    id: 't2',
+    displayName: 'Jordan',
+    initials: 'J',
+    joinedAt: '2024-03-15',
+    tier: 'tree',
+    isEarlyBird: false,
+  },
+  {
+    id: 's1',
+    displayName: 'Casey',
+    initials: 'C',
+    joinedAt: '2024-05-01',
+    tier: 'sprout',
+    isEarlyBird: false,
+  },
+  {
+    id: 's2',
+    displayName: null,
+    initials: 'RB',
+    joinedAt: '2024-05-15',
+    tier: 'sprout',
+    isEarlyBird: false,
+  },
+  {
+    id: 'sd1',
+    displayName: 'Jamie',
+    initials: 'J',
+    joinedAt: '2024-08-01',
+    tier: 'seed',
+    isEarlyBird: false,
+  },
+  {
+    id: 'sd2',
+    displayName: null,
+    initials: 'PQ',
+    joinedAt: '2024-08-15',
+    tier: 'seed',
+    isEarlyBird: false,
+  },
 ];
 
 const MOCK_STORIES: FounderStoryData[] = [
   {
     id: 'story1',
-    quote: "Ferni helped me process my dad's passing in ways I couldn't with anyone else. Having someone who remembers every conversation, every milestone... it's like having a friend with perfect memory.",
+    quote:
+      "Ferni helped me process my dad's passing in ways I couldn't with anyone else. Having someone who remembers every conversation, every milestone... it's like having a friend with perfect memory.",
     attribution: 'A founding member',
     memberSince: '2024-02',
     theme: 'gratitude',
   },
   {
     id: 'story2',
-    quote: "I've tried every productivity app out there. Ferni is different because it actually knows me - my patterns, my struggles, my wins. It's the first AI that feels genuinely helpful.",
+    quote:
+      "I've tried every productivity app out there. Ferni is different because it actually knows me - my patterns, my struggles, my wins. It's the first AI that feels genuinely helpful.",
     attribution: 'Sarah',
     memberSince: '2024-01',
     theme: 'impact',
   },
   {
     id: 'story3',
-    quote: "Supporting this felt like backing something that could really matter. Not just another app, but a genuine attempt to make support accessible to everyone.",
+    quote:
+      'Supporting this felt like backing something that could really matter. Not just another app, but a genuine attempt to make support accessible to everyone.',
     attribution: 'A founding member',
     memberSince: '2024-03',
     theme: 'community',
@@ -607,10 +676,45 @@ const MOCK_STORIES: FounderStoryData[] = [
 ];
 
 const MOCK_MILESTONES: MilestoneData[] = [
-  { id: 'm1', target: 50, current: 50, type: 'founders', title: 'First 50 Believers', celebration: 'Our founding circle is complete!', reached: true, reachedAt: '2024-03-15' },
-  { id: 'm2', target: 100, current: 147, type: 'founders', title: 'Century Club', celebration: '100 people believe in this vision', reached: true, reachedAt: '2024-06-01' },
-  { id: 'm3', target: 50000, current: 62847, type: 'conversations', title: '50K Conversations', celebration: '50,000 meaningful conversations', reached: true, reachedAt: '2024-08-15' },
-  { id: 'm4', target: 200, current: 147, type: 'founders', title: 'Village Complete', celebration: 'A village of 200 believers', reached: false },
+  {
+    id: 'm1',
+    target: 50,
+    current: 50,
+    type: 'founders',
+    title: 'First 50 Believers',
+    celebration: 'Our founding circle is complete!',
+    reached: true,
+    reachedAt: '2024-03-15',
+  },
+  {
+    id: 'm2',
+    target: 100,
+    current: 147,
+    type: 'founders',
+    title: 'Century Club',
+    celebration: '100 people believe in this vision',
+    reached: true,
+    reachedAt: '2024-06-01',
+  },
+  {
+    id: 'm3',
+    target: 50000,
+    current: 62847,
+    type: 'conversations',
+    title: '50K Conversations',
+    celebration: '50,000 meaningful conversations',
+    reached: true,
+    reachedAt: '2024-08-15',
+  },
+  {
+    id: 'm4',
+    target: 200,
+    current: 147,
+    type: 'founders',
+    title: 'Village Complete',
+    celebration: 'A village of 200 believers',
+    reached: false,
+  },
 ];
 
 /**
@@ -710,8 +814,20 @@ async function handlePersonalImpact(res: ServerResponse, userId: string): Promis
       conversationsEnabled: 847,
       percentileRank: 15,
       streak: 6,
-      badges: [{ id: 'believer', name: 'Believer', description: '6+ month streak', earnedAt: '2024-12-15', icon: 'heart' }],
-      impact: { conversationsThisMonth: 142, familiesHelped: 23, featuresYouUnlocked: ['habit-tracking'] },
+      badges: [
+        {
+          id: 'believer',
+          name: 'Believer',
+          description: '6+ month streak',
+          earnedAt: '2024-12-15',
+          icon: 'heart',
+        },
+      ],
+      impact: {
+        conversationsThisMonth: 142,
+        familiesHelped: 23,
+        featuresYouUnlocked: ['habit-tracking'],
+      },
     };
 
     if (!db) {

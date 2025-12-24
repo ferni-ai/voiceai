@@ -226,7 +226,7 @@ export function publishPatternDetection(
   payload: PatternDetectionPayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'pattern_detection', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'pattern_detection', userId, sessionId, payload }),
     { context: 'publish-pattern-detection' }
   );
 }
@@ -240,7 +240,8 @@ export function publishPredictiveIntelligence(
   payload: PredictiveIntelligencePayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'predictive_intelligence', userId, sessionId, payload }),
+    async () =>
+      publishIntelligenceEvent({ type: 'predictive_intelligence', userId, sessionId, payload }),
     { context: 'publish-predictive-intelligence' }
   );
 }
@@ -254,7 +255,7 @@ export function publishKeyMoment(
   payload: KeyMomentPayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'key_moment', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'key_moment', userId, sessionId, payload }),
     { context: 'publish-key-moment' }
   );
 }
@@ -268,7 +269,7 @@ export function publishTrustRecording(
   payload: TrustRecordingPayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'trust_recording', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'trust_recording', userId, sessionId, payload }),
     { context: 'publish-trust-recording' }
   );
 }
@@ -282,7 +283,7 @@ export function publishResponseQuality(
   payload: ResponseQualityPayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'response_quality', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'response_quality', userId, sessionId, payload }),
     { context: 'publish-response-quality' }
   );
 }
@@ -296,7 +297,8 @@ export function publishOutreachExtraction(
   payload: OutreachExtractionPayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'outreach_extraction', userId, sessionId, payload }),
+    async () =>
+      publishIntelligenceEvent({ type: 'outreach_extraction', userId, sessionId, payload }),
     { context: 'publish-outreach-extraction' }
   );
 }
@@ -310,7 +312,7 @@ export function publishToolUsage(
   payload: ToolUsagePayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'tool_usage', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'tool_usage', userId, sessionId, payload }),
     { context: 'publish-tool-usage' }
   );
 }
@@ -324,7 +326,7 @@ export function publishProfileSave(
   payload: ProfileSavePayload
 ): void {
   safeFireAndForget(
-    () => publishIntelligenceEvent({ type: 'profile_save', userId, sessionId, payload }),
+    async () => publishIntelligenceEvent({ type: 'profile_save', userId, sessionId, payload }),
     { context: 'publish-profile-save' }
   );
 }
@@ -360,7 +362,7 @@ export async function publishIntelligenceEventsBatch(
       const topic = await getPubSubTopic();
       if (topic) {
         await Promise.all(
-          formattedEvents.map((event) => {
+          formattedEvents.map(async (event) => {
             const messageBuffer = Buffer.from(JSON.stringify(event));
             return (
               topic as { publishMessage: (msg: { data: Buffer }) => Promise<string> }

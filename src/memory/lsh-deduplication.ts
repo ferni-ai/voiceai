@@ -129,7 +129,7 @@ function estimateSimilarity(sig1: number[], sig2: number[]): number {
 export class LSHIndex<T extends { id: string; content: string }> {
   private config: LSHConfig;
   private signatures = new Map<string, MinHashSignature>();
-  private bands: Map<string, Set<string>>[] = [];
+  private bands: Array<Map<string, Set<string>>> = [];
   private rowsPerBand: number;
 
   constructor(config: Partial<LSHConfig> = {}) {
@@ -209,8 +209,8 @@ export class LSHIndex<T extends { id: string; content: string }> {
    * Find all duplicate pairs above the threshold
    * O(n) average case instead of O(n²)
    */
-  findDuplicates(): DuplicatePair<T>[] {
-    const duplicates: DuplicatePair<T>[] = [];
+  findDuplicates(): Array<DuplicatePair<T>> {
+    const duplicates: Array<DuplicatePair<T>> = [];
     const processed = new Set<string>();
 
     for (const [id, sig] of this.signatures.entries()) {
@@ -282,7 +282,7 @@ export class LSHIndex<T extends { id: string; content: string }> {
 export function findDuplicatesLSH<T extends { id: string; content: string }>(
   items: T[],
   config: Partial<LSHConfig> = {}
-): DuplicatePair<T>[] {
+): Array<DuplicatePair<T>> {
   const startTime = Date.now();
   const index = new LSHIndex<T>(config);
 

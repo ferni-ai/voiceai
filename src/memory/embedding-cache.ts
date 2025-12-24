@@ -606,7 +606,7 @@ export function precomputeUserMemoryEmbeddings(
 
   // Add memory contents (most recent first, assuming array is sorted)
   for (let i = 0; i < Math.min(userMemories.length, limit); i++) {
-    const content = userMemories[i].content;
+    const { content } = userMemories[i];
     if (content && content.length >= 10) {
       texts.push(content);
     }

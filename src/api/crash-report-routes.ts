@@ -134,8 +134,9 @@ const recentClientCrashes: Array<FrontendCrashReport & { crashId: string; receiv
 const MAX_STORED_CRASHES = 100;
 
 // Disconnect diagnostics storage
-const recentDisconnectDiagnostics: Array<DisconnectDiagnostic & { id: string; receivedAt: string }> =
-  [];
+const recentDisconnectDiagnostics: Array<
+  DisconnectDiagnostic & { id: string; receivedAt: string }
+> = [];
 const MAX_STORED_DIAGNOSTICS = 100;
 
 // ============================================================================
@@ -219,7 +220,10 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
 /**
  * Handle disconnect diagnostic submission from frontend
  */
-async function handleDisconnectDiagnostic(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleDisconnectDiagnostic(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
   if (req.method !== 'POST') {
     res.writeHead(405, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Method not allowed' }));
@@ -251,7 +255,9 @@ async function handleDisconnectDiagnostic(req: IncomingMessage, res: ServerRespo
     const hadActiveSession = diagnostic.sessionDurationMs > 5000 && diagnostic.turnCount > 0;
     const wasBackgrounded = diagnostic.wasBackgroundedRecently;
     const wasOffline = diagnostic.wasOfflineRecently;
-    const iceWasBad = diagnostic.iceConnectionState === 'failed' || diagnostic.iceConnectionState === 'disconnected';
+    const iceWasBad =
+      diagnostic.iceConnectionState === 'failed' ||
+      diagnostic.iceConnectionState === 'disconnected';
 
     // Log with appropriate severity
     const logData = {
@@ -286,15 +292,15 @@ async function handleDisconnectDiagnostic(req: IncomingMessage, res: ServerRespo
         `⚠️ [DISCONNECT-DIAGNOSTIC] Unexpected disconnect - reason: ${diagnostic.livekitReason || 'unknown'}`
       );
     } else {
-      log.info(
-        logData,
-        `📊 [DISCONNECT-DIAGNOSTIC] Graceful disconnect recorded`
-      );
+      log.info(logData, `📊 [DISCONNECT-DIAGNOSTIC] Graceful disconnect recorded`);
     }
 
     // Add analysis hints
     if (wasBackgrounded) {
-      log.info({ id }, '💡 Hint: User had app backgrounded recently - possible iOS/Android audio suspension');
+      log.info(
+        { id },
+        '💡 Hint: User had app backgrounded recently - possible iOS/Android audio suspension'
+      );
     }
     if (wasOffline) {
       log.info({ id }, '💡 Hint: User went offline recently - network connectivity issue');
@@ -303,9 +309,14 @@ async function handleDisconnectDiagnostic(req: IncomingMessage, res: ServerRespo
       log.info({ id }, '💡 Hint: ICE connection was in bad state - WebRTC connectivity issue');
     }
     if (diagnostic.rtcStats?.packetsLost && diagnostic.rtcStats.packetsReceived) {
-      const lossRate = diagnostic.rtcStats.packetsLost / (diagnostic.rtcStats.packetsLost + diagnostic.rtcStats.packetsReceived);
+      const lossRate =
+        diagnostic.rtcStats.packetsLost /
+        (diagnostic.rtcStats.packetsLost + diagnostic.rtcStats.packetsReceived);
       if (lossRate > 0.05) {
-        log.info({ id, lossRate: `${(lossRate * 100).toFixed(1)}%` }, '💡 Hint: High packet loss detected - poor network quality');
+        log.info(
+          { id, lossRate: `${(lossRate * 100).toFixed(1)}%` },
+          '💡 Hint: High packet loss detected - poor network quality'
+        );
       }
     }
 
@@ -322,11 +333,11 @@ async function handleDisconnectDiagnostic(req: IncomingMessage, res: ServerRespo
  * Get recent disconnect diagnostics (for admin/debugging)
  */
 async function handleGetDiagnostics(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const unexpectedCount = recentDisconnectDiagnostics.filter(d => !d.wasGraceful).length;
+  const unexpectedCount = recentDisconnectDiagnostics.filter((d) => !d.wasGraceful).length;
   const last24h = recentDisconnectDiagnostics.filter(
-    d => Date.now() - new Date(d.receivedAt).getTime() < 24 * 60 * 60 * 1000
+    (d) => Date.now() - new Date(d.receivedAt).getTime() < 24 * 60 * 60 * 1000
   );
-  const unexpectedLast24h = last24h.filter(d => !d.wasGraceful);
+  const unexpectedLast24h = last24h.filter((d) => !d.wasGraceful);
 
   // Analyze patterns
   const byReason: Record<string, number> = {};
@@ -353,7 +364,7 @@ async function handleGetDiagnostics(_req: IncomingMessage, res: ServerResponse):
       byIceState,
       byVisibility,
     },
-    recentDiagnostics: recentDisconnectDiagnostics.slice(0, 20).map(d => ({
+    recentDiagnostics: recentDisconnectDiagnostics.slice(0, 20).map((d) => ({
       id: d.id,
       receivedAt: d.receivedAt,
       reason: d.livekitReason,

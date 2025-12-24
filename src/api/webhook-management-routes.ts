@@ -15,12 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  handleCorsPreflightIfNeeded,
-  sendJSON,
-  sendError,
-  parseBody,
-} from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 import crypto from 'crypto';
 
@@ -250,7 +245,10 @@ export async function handleWebhookManagementRoutes(
 
       const result = await deliverWebhook(webhook, testPayload);
 
-      log.info({ userId: auth.userId, webhookId, success: result.success }, 'Webhook test executed');
+      log.info(
+        { userId: auth.userId, webhookId, success: result.success },
+        'Webhook test executed'
+      );
       sendJSON(res, result);
       return true;
     }
@@ -331,7 +329,10 @@ export function verifyWebhookSignature(
 
   // Compute expected signature
   const signatureInput = `${timestamp}.${payload}`;
-  const computedSignature = crypto.createHmac('sha256', secret).update(signatureInput).digest('hex');
+  const computedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(signatureInput)
+    .digest('hex');
 
   // Constant-time comparison
   return crypto.timingSafeEqual(Buffer.from(computedSignature), Buffer.from(expectedSignature));

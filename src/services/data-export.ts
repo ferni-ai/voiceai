@@ -709,12 +709,8 @@ class DataExportService {
 
   private async getTrustDataCount(userId: string): Promise<number> {
     try {
-      const {
-        loadTrustProfiles,
-        getActiveBoundaries,
-        getGrowthPatterns,
-        getSharedMoments,
-      } = await import('./trust-systems/index.js');
+      const { loadTrustProfiles, getActiveBoundaries, getGrowthPatterns, getSharedMoments } =
+        await import('./trust-systems/index.js');
       await loadTrustProfiles(userId);
       return (
         getActiveBoundaries(userId).length +
@@ -937,11 +933,7 @@ class DataExportService {
   /**
    * Recursively flatten an object for CSV output.
    */
-  private flattenObjectToCSV(
-    obj: Record<string, unknown>,
-    lines: string[],
-    prefix: string
-  ): void {
+  private flattenObjectToCSV(obj: Record<string, unknown>, lines: string[], prefix: string): void {
     for (const [key, value] of Object.entries(obj)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
 
