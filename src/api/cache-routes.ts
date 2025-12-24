@@ -66,7 +66,6 @@ export async function handleCacheRoutes(
       sendJSON(res, {
         ...stats,
         hitRate: stats.hits / Math.max(stats.hits + stats.misses, 1),
-        avgLookupTimeMs: stats.avgLookupTimeMs,
       });
       return true;
     }
@@ -119,7 +118,6 @@ async function getCacheStats(): Promise<Record<string, unknown>> {
       hits: embeddingStats.hits,
       misses: embeddingStats.misses,
       hitRate: embeddingStats.hits / Math.max(embeddingStats.hits + embeddingStats.misses, 1),
-      avgLookupTimeMs: embeddingStats.avgLookupTimeMs,
     };
   } catch {
     stats.embedding = { error: 'Not available' };
@@ -127,13 +125,12 @@ async function getCacheStats(): Promise<Record<string, unknown>> {
 
   // Redis cache (if available)
   try {
-    const { getRedisCache } = await import('../memory/redis-cache.js');
-    const redisCache = getRedisCache();
-    const redisStats = await redisCache.getStats?.();
-    if (redisStats) {
-      stats.redis = redisStats;
-    } else {
+    const redisModule = await import('../memory/redis-cache.js');
+    if ('getRedisCache' in redisModule) {
+      const redisCache = redisModule.getRedisCache();
       stats.redis = { status: 'available', detailedStatsNotAvailable: true };
+    } else {
+      stats.redis = { status: 'not_configured' };
     }
   } catch {
     stats.redis = { error: 'Not configured or not available' };
@@ -141,8 +138,12 @@ async function getCacheStats(): Promise<Record<string, unknown>> {
 
   // Speculative embeddings (if available)
   try {
-    const { getSpeculativeStats } = await import('../memory/speculative-embeddings.js');
-    stats.speculative = getSpeculativeStats();
+    const specModule = await import('../memory/speculative-embeddings.js');
+    if ('getSpeculativeStats' in specModule) {
+      stats.speculative = (specModule as { getSpeculativeStats: () => unknown }).getSpeculativeStats();
+    } else {
+      stats.speculative = { status: 'not_available' };
+    }
   } catch {
     stats.speculative = { error: 'Not available' };
   }
@@ -187,13 +188,12 @@ async function getCacheHealth(): Promise<Record<string, unknown>> {
 
   // Redis health
   try {
-    const { getRedisCache } = await import('../memory/redis-cache.js');
-    const redisCache = getRedisCache();
-    const isConnected = await redisCache.ping?.();
-
-    (health.caches as Record<string, unknown>).redis = {
-      status: isConnected ? 'healthy' : 'disconnected',
-    };
+    const redisModule = await import('../memory/redis-cache.js');
+    if ('getRedisCache' in redisModule) {
+      (health.caches as Record<string, unknown>).redis = { status: 'available' };
+    } else {
+      (health.caches as Record<string, unknown>).redis = { status: 'not_configured' };
+    }
   } catch {
     (health.caches as Record<string, unknown>).redis = { status: 'not_configured' };
   }
@@ -228,10 +228,11 @@ async function clearCache(
 
   if (cacheType === 'redis' || cacheType === 'all') {
     try {
-      const { getRedisCache } = await import('../memory/redis-cache.js');
-      const redisCache = getRedisCache();
-      await redisCache.clear?.();
-      cleared.push('redis');
+      const redisModule = await import('../memory/redis-cache.js');
+      if ('getRedisCache' in redisModule) {
+        // Redis clear is not directly exposed - log instead
+        cleared.push('redis (skipped - no clear method)');
+      }
     } catch (err) {
       errors.push(`redis: ${String(err)}`);
     }
@@ -239,9 +240,13 @@ async function clearCache(
 
   if (cacheType === 'speculative' || cacheType === 'all') {
     try {
-      const { resetSpeculativeEmbeddings } = await import('../memory/speculative-embeddings.js');
-      resetSpeculativeEmbeddings();
-      cleared.push('speculative');
+      const specModule = await import('../memory/speculative-embeddings.js');
+      if ('resetSpeculativeEmbeddings' in specModule) {
+        (specModule as { resetSpeculativeEmbeddings: () => void }).resetSpeculativeEmbeddings();
+        cleared.push('speculative');
+      } else {
+        cleared.push('speculative (skipped - no reset method)');
+      }
     } catch (err) {
       errors.push(`speculative: ${String(err)}`);
     }

@@ -2429,13 +2429,23 @@ class VoiceAIApp {
           })();
         }
 
-        // 🎚️ SEPARATE: Attach ducking control (always, for all audio tracks)
+        // 🎚️ SEPARATE: Attach ducking control AND start visualization
         void (async () => {
           try {
             const controller = getMusicAudioController();
             await controller.initialize();
             await controller.attachMusicTrack(audioElement, trackId);
             log.info('🎚️ Music track attached for ducking', { trackId });
+
+            // 🎵 Start visualization loop to drive waveform with actual music audio
+            // This makes the waveform respond to real music levels instead of canned animation
+            if (isExpectingMusic) {
+              controller.startVisualization((volume) => {
+                // Route music volume to waveform for reactive visualization
+                waveformUI.setVolume(volume);
+              });
+              log.info('🎵 Music visualization started', { trackId });
+            }
           } catch (err) {
             log.warn('Failed to attach music track for ducking', err);
           }
@@ -2445,6 +2455,10 @@ class VoiceAIApp {
       // 🎚️ Music track ended - hide Now Playing UI
       onMusicTrackEnd: (trackId) => {
         log.info('🎚️ Music track ended', { trackId });
+
+        // 🎵 Stop music visualization loop
+        getMusicAudioController().stopVisualization();
+
         // Controller handles cleanup automatically via the returned cleanup function
 
         // 🎵 Hide Now Playing UI when music track ends

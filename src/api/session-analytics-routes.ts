@@ -178,19 +178,22 @@ async function getSessionDetails(
       getQualityMetrics,
     } = await import('../memory/firestore-extended-persistence.js');
 
-    const [session, tools, quality] = await Promise.all([
+    const [session, tools, allQuality] = await Promise.all([
       getSessionState(userId, sessionId),
-      getToolExecutions(sessionId, 100),
-      getQualityMetrics(sessionId),
+      getToolExecutions(userId, { limit: 100 }),
+      getQualityMetrics(userId, { limit: 100 }),
     ]);
 
     if (!session) return null;
+
+    // Filter quality metrics for this specific session
+    const quality = allQuality.find((q) => q.sessionId === sessionId);
 
     return {
       session,
       toolExecutions: tools,
       toolCount: tools.length,
-      qualityMetrics: quality,
+      qualityMetrics: quality ?? null,
     };
   } catch (err) {
     log.error({ error: String(err), sessionId }, 'Error fetching session details');
@@ -211,14 +214,6 @@ async function getQualityMetricsData(
       '../memory/firestore-extended-persistence.js'
     );
 
-    if (sessionId) {
-      const metrics = await getQualityMetrics(sessionId);
-      return {
-        sessionId,
-        metrics,
-      };
-    }
-
     if (userId) {
       // Get metrics for user's recent sessions
       const sessions = await getRecentSessions(userId, 50);
@@ -228,20 +223,32 @@ async function getQualityMetricsData(
         (s) => new Date(s.startedAt).getTime() > cutoff
       );
 
-      const metricsPromises = recentSessions.map((s) => getQualityMetrics(s.sessionId));
-      const allMetrics = await Promise.all(metricsPromises);
-      const validMetrics = allMetrics.filter((m) => m !== null);
+      // Get all quality metrics for this user
+      const allMetrics = await getQualityMetrics(userId, { limit: 100 });
+
+      // If looking for specific session
+      if (sessionId) {
+        const sessionMetrics = allMetrics.filter((m) => m.sessionId === sessionId);
+        return {
+          sessionId,
+          metrics: sessionMetrics,
+        };
+      }
+
+      // Filter to recent sessions
+      const recentSessionIds = new Set(recentSessions.map((s) => s.sessionId));
+      const validMetrics = allMetrics.filter((m) => recentSessionIds.has(m.sessionId));
 
       // Calculate aggregates
       const avgAudioQuality =
         validMetrics.length > 0
-          ? validMetrics.reduce((sum, m) => sum + (m?.audioQuality?.overall ?? 0), 0) /
+          ? validMetrics.reduce((sum, m) => sum + ((m.audioQuality as Record<string, number>)?.overall ?? 0), 0) /
             validMetrics.length
           : 0;
 
       const avgSatisfaction =
         validMetrics.length > 0
-          ? validMetrics.reduce((sum, m) => sum + (m?.userSatisfaction?.rating ?? 0), 0) /
+          ? validMetrics.reduce((sum, m) => sum + ((m.userSatisfaction as Record<string, number>)?.rating ?? 0), 0) /
             validMetrics.length
           : 0;
 

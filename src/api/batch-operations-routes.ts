@@ -198,7 +198,7 @@ export async function handleBatchOperationsRoutes(
 async function runIndexMemoriesJob(
   jobId: string,
   userId: string,
-  categories?: string[]
+  _categories?: string[]
 ): Promise<void> {
   const job = batchJobs.get(jobId);
   if (!job) return;
@@ -206,35 +206,35 @@ async function runIndexMemoriesJob(
   job.status = 'running';
 
   try {
-    const { batchIndexUserMemories } = await import('../memory/user-memory-indexer.js');
+    const { indexUserMemories } = await import('../memory/user-memory-indexer.js');
     const { getFirestoreVectorStore } = await import('../memory/firestore-vector-store.js');
 
     const store = getFirestoreVectorStore();
 
-    // Get user profile data (simplified - in real implementation, load from Firestore)
-    const profile = {
-      keyMoments: [],
-      people: [],
-      openThreads: [],
-      followUps: [],
-      lifeEvents: [],
-      goals: [],
-      personaMemories: {},
-      sharedContent: [],
-      preferences: {},
-      entertainment: {},
-    };
+    // Get user profile data from Firestore
+    let profile: Record<string, unknown> = {};
+    try {
+      const { getDefaultStore } = await import('../memory/index.js');
+      const memoryStore = getDefaultStore();
+      const userProfile = await memoryStore.getProfile(userId);
+      if (userProfile) {
+        profile = userProfile as unknown as Record<string, unknown>;
+      }
+    } catch {
+      // Profile not found - use empty
+    }
 
-    job.total = Object.keys(profile).length;
+    job.total = 1;
 
-    const results = await batchIndexUserMemories(userId, profile, store);
+    // Index the user's memories
+    const result = await indexUserMemories(userId, profile as unknown as Parameters<typeof indexUserMemories>[1], { vectorStore: store });
 
     job.progress = job.total;
     job.status = 'completed';
     job.completedAt = new Date().toISOString();
-    job.results = results;
+    job.results = { indexed: result };
 
-    log.info({ jobId, userId, results }, 'Index memories job completed');
+    log.info({ jobId, userId }, 'Index memories job completed');
   } catch (err) {
     job.status = 'failed';
     job.error = String(err);

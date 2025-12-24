@@ -344,7 +344,7 @@ export async function getSessionState(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as SerializedSession;
+    const data = doc.data() as unknown as SerializedSession;
     return {
       ...data,
       startedAt: new Date(data.startedAt),
@@ -373,7 +373,7 @@ export async function getRecentSessions(
       .get();
 
     return snapshot.docs.map((doc) => {
-      const data = doc.data() as SerializedSession;
+      const data = doc.data() as unknown as SerializedSession;
       return {
         ...data,
         startedAt: new Date(data.startedAt),
@@ -434,7 +434,7 @@ export async function getToolExecutions(
     const snapshot = await query.get();
 
     return snapshot.docs.map((doc) => {
-      const data = doc.data() as SerializedToolExecution;
+      const data = doc.data() as unknown as SerializedToolExecution;
       return {
         ...data,
         executedAt: new Date(data.executedAt),
@@ -495,7 +495,7 @@ export async function getPersonaBond(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as SerializedPersonaBond;
+    const data = doc.data() as unknown as SerializedPersonaBond;
     return {
       ...data,
       firstConversation: new Date(data.firstConversation),
@@ -523,7 +523,7 @@ export async function getAllPersonaBonds(userId: string): Promise<PersonaBond[]>
       .get();
 
     return snapshot.docs.map((doc) => {
-      const data = doc.data() as SerializedPersonaBond;
+      const data = doc.data() as unknown as SerializedPersonaBond;
       return {
         ...data,
         firstConversation: new Date(data.firstConversation),
@@ -581,7 +581,7 @@ export async function getVoiceProfile(userId: string): Promise<VoiceProfile | nu
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as SerializedVoiceProfile;
+    const data = doc.data() as unknown as SerializedVoiceProfile;
     return {
       ...data,
       updatedAt: new Date(data.updatedAt),
@@ -636,7 +636,7 @@ export async function getRecentIntents(
       .get();
 
     return snapshot.docs.map((doc) => {
-      const data = doc.data() as SerializedUserIntent;
+      const data = doc.data() as unknown as SerializedUserIntent;
       return {
         ...data,
         timestamp: new Date(data.timestamp),
@@ -693,7 +693,7 @@ export async function getCachedInsight(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as SerializedCachedInsight;
+    const data = doc.data() as unknown as SerializedCachedInsight;
     const insight: CachedInsight = {
       ...data,
       computedAt: new Date(data.computedAt),
@@ -765,7 +765,7 @@ export async function getQualityMetrics(
     const snapshot = await query.get();
 
     return snapshot.docs.map((doc) => {
-      const data = doc.data() as SerializedQualityMetrics;
+      const data = doc.data() as unknown as SerializedQualityMetrics;
       return {
         ...data,
         recordedAt: new Date(data.recordedAt),

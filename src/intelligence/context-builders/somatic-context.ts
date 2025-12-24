@@ -247,15 +247,15 @@ function buildSomaticInjection(
   }
   lines.push('');
 
-  // Quick guidance
-  lines.push('QUICK GUIDANCE:');
+  // Quick guidance for the exercise
+  lines.push('[EXERCISE STEPS - GUIDE NATURALLY, DO NOT READ VERBATIM]');
   for (const step of exercise.steps.slice(0, 2)) {
     lines.push(`• ${step.voiceGuidance}`);
   }
   lines.push('');
 
-  // Important notes
-  lines.push('REMEMBER:');
+  // Coaching notes (internal)
+  lines.push('[YOUR APPROACH - DO NOT READ ALOUD]');
   lines.push('• Slow your own pace to model calm');
   lines.push('• Pause between instructions');
   lines.push('• Your calm voice helps co-regulate their nervous system');

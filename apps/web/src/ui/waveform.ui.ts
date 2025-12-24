@@ -529,22 +529,38 @@ function updateBars(): void {
       const shimmerWave = Math.sin(wavePhase * 2 + i * 0.4) * 0.5 + 0.5;
       targetHeight = MIN_BAR_HEIGHT + shimmerWave * MAX_BAR_HEIGHT * 0.4;
     } else if (isListeningToMusic) {
-      // MUSIC LISTENING: Natural, reflective, meditative
-      // Like gentle breathing or calm water ripples
+      // MUSIC LISTENING: Responsive to actual audio, but still gentle and meditative
+      // Blends real volume data with organic wave motion
 
-      // Very slow primary wave - the main breathing rhythm
-      const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
+      // Check if we have real audio volume from the music track
+      const hasRealMusicVolume = smoothedVolume > 0.01;
 
-      // Secondary subtle harmonic - adds natural variation without chaos
-      const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
+      if (hasRealMusicVolume) {
+        // 🎵 Real music volume - responsive but smooth visualization
+        // Less aggressive than speaking mode, more natural/flowing
 
-      // Combine for organic, non-mechanical movement
-      const combined = breathWave * 0.7 + harmonic * 0.3;
+        // Primary rhythm wave - gives bars different phases for visual interest
+        const rhythmWave = Math.sin(wavePhase * 1.5 + i * 0.35) * 0.3 + 0.7;
 
-      // Use shape curve for the base, modulated by the gentle waves
-      // Keep it subtle - max 40% of full height for a calm presence
-      const musicEnergy = shapeCurve * 0.4 * combined;
-      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * musicEnergy;
+        // Volume factor - gentler curve than speaking mode (0.5 power = softer response)
+        const volumeFactor = Math.pow(smoothedVolume, 0.5) * 0.8;
+
+        // Base height from volume * shape curve * rhythm
+        const baseHeight = shapeCurve * MAX_BAR_HEIGHT * volumeFactor * rhythmWave;
+
+        // Subtle bounce for musicality
+        const bounce = Math.sin(wavePhase * 2.5 + i * 0.4) * currentShape.bounce * 4;
+
+        targetHeight = MIN_BAR_HEIGHT + baseHeight + bounce;
+      } else {
+        // Fallback: gentle breathing animation when no volume data
+        // (keeps waveform alive during audio initialization)
+        const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
+        const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
+        const combined = breathWave * 0.7 + harmonic * 0.3;
+        const musicEnergy = shapeCurve * 0.4 * combined;
+        targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * musicEnergy;
+      }
     } else if (isSpeaking) {
       // Lower threshold - even small volume should be detected
       const hasRealVolume = smoothedVolume > 0.005;

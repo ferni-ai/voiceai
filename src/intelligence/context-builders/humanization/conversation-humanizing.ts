@@ -121,17 +121,17 @@ export function formatConversationHumanizingForPrompt(injections: ContextInjecti
   const hints = injections.filter((i) => i.priority === 'hint');
 
   if (high.length > 0) {
-    lines.push('=== IMPORTANT ===');
+    lines.push('[BEHAVIORAL CONTEXT - DO NOT READ ALOUD]');
     high.forEach((i) => lines.push(i.content));
   }
 
   if (standard.length > 0) {
-    lines.push('=== GUIDANCE ===');
+    lines.push('[CONVERSATION CONTEXT - DO NOT READ ALOUD]');
     standard.forEach((i) => lines.push(i.content));
   }
 
   if (hints.length > 0) {
-    lines.push('=== OPTIONAL ===');
+    lines.push('[OPTIONAL CONTEXT - DO NOT READ ALOUD]');
     hints.forEach((i) => lines.push(i.content));
   }
 

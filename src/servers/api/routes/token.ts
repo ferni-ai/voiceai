@@ -150,15 +150,21 @@ export async function handleTokenRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  // LiveKit URL endpoint
+  // LiveKit URL endpoint - rate limit: 100/min (simple read-only endpoint)
   if (pathname === '/token-url') {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+      return true;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ url: LIVEKIT_URL }));
     return true;
   }
 
-  // Demo status endpoint (hyphenated path for backwards compatibility)
+  // Demo status endpoint - rate limit: 60/min (prevent status polling abuse)
   if (pathname === '/demo-status') {
+    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+      return true;
+    }
     const ip = getClientIp(req);
     const status = getDemoStatus(ip);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -241,8 +247,11 @@ export async function handleTokenRoutes(
     return true;
   }
 
-  // Demo session claim endpoint
+  // Demo session claim endpoint - rate limit: 10/min (one-time operation)
   if (pathname === '/demo-claim' && req.method === 'POST') {
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+      return true;
+    }
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
@@ -301,8 +310,11 @@ export async function handleTokenRoutes(
     });
   }
 
-  // Demo session update endpoint (called by voice agent)
+  // Demo session update endpoint (called by voice agent) - rate limit: 30/min (frequent updates)
   if (pathname === '/demo-session-update' && req.method === 'POST') {
+    if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
+      return true;
+    }
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 

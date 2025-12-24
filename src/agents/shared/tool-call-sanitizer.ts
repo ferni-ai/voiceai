@@ -1101,6 +1101,22 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     /\[💭/i, // Thinking/callback
     /\[🎧/i, // Unsaid/listening
     /\[⚠️/i, // Warning/concern
+    // === Context injection header patterns (common leakage!) ===
+    /={2,}\s*GUIDANCE\s*={2,}/i, // === GUIDANCE ===
+    /={2,}\s*IMPORTANT\s*={2,}/i, // === IMPORTANT ===
+    /={2,}\s*OPTIONAL\s*={2,}/i, // === OPTIONAL ===
+    /={2,}\s*CONTEXT\s*={2,}/i, // === CONTEXT ===
+    /={2,}\s*REMEMBER\s*={2,}/i, // === REMEMBER ===
+    /={2,}\s*[\w\s]+\s*={2,}/i, // Any === HEADER === format
+    /QUICK GUIDANCE:/i, // QUICK GUIDANCE:
+    /\bGUIDANCE:/i, // GUIDANCE:
+    /\bREMEMBER:/i, // REMEMBER:
+    /\bAPPROACH:/i, // APPROACH:
+    // "guidance" as standalone word in instruction-like contexts
+    /\[GUIDANCE\]/i, // [GUIDANCE] header
+    /coaching guidance/i, // coaching guidance
+    /response guidance/i, // response guidance
+    /behavioral guidance/i, // behavioral guidance
     // === Catch-all patterns (last resort) ===
     /^\[[\w\s-]+\]:/i, // Any "[LABEL]:" at start
     /^\[[\w\s-]+\]\s/i, // Any "[LABEL] " at start

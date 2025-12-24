@@ -316,23 +316,21 @@ class CalendarViewUI {
     this.renderLoading();
 
     try {
-      // Check connection status for external calendars
+      // Check if Google Calendar is connected (for showing sync status in UI)
       const statusRes = await apiGet<{ linked?: boolean }>('/auth/google/status');
       this.isConnected = statusRes?.data?.linked === true;
 
-      // If connected to external calendar, load external events
-      if (this.isConnected && this.showExternalEvents) {
-        // Load today's data
-        const todayRes = await apiGet<{ overview?: DayOverview }>('/api/calendar/today');
-        if (todayRes?.data?.overview) {
-          this.todayData = todayRes.data.overview;
-        }
+      // ALWAYS load calendar data - Ferni Calendar is always available!
+      // The backend returns Ferni Calendar data (with Google overlay if connected)
+      const todayRes = await apiGet<{ overview?: DayOverview; connected?: boolean }>('/api/calendar/today');
+      if (todayRes?.data?.overview) {
+        this.todayData = todayRes.data.overview;
+      }
 
-        // Load week data
-        const weekRes = await apiGet<{ overview?: WeekOverview }>('/api/calendar/week');
-        if (weekRes?.data?.overview) {
-          this.weekData = weekRes.data.overview;
-        }
+      // Load week data from Ferni Calendar (+ Google overlay if connected)
+      const weekRes = await apiGet<{ overview?: WeekOverview; connected?: boolean }>('/api/calendar/week');
+      if (weekRes?.data?.overview) {
+        this.weekData = weekRes.data.overview;
       }
 
       // Always render the calendar (Ferni Calendar works without external connection)

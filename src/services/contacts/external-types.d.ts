@@ -89,3 +89,4 @@ declare module '@google-cloud/text-to-speech' {
     synthesizeSpeech(request: SynthesizeSpeechRequest): Promise<[SynthesizeSpeechResponse]>;
   }
 }
+

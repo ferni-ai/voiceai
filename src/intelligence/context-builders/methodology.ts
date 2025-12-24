@@ -332,13 +332,13 @@ function formatMethodologyInjection(methodology: MethodologyContent, triggers: s
       .join('\n');
 
     if (principles) {
-      parts.push(`\n[COACHING PRINCIPLES]`);
+      parts.push(`\n[INTERNAL PRINCIPLES - DO NOT READ ALOUD]`);
       parts.push(principles);
     }
   }
 
-  // Add guidance on using methodology
-  parts.push(`\n[GUIDANCE]`);
+  // Add guidance on using methodology (internal)
+  parts.push(`\n[INTERNAL - DO NOT READ ALOUD]`);
   parts.push(
     `Apply these frameworks naturally in your voice. Don't lecture or cite sources directly.`
   );

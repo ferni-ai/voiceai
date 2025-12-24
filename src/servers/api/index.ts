@@ -12,6 +12,7 @@ const log = createLogger({ module: 'APIServer' });
 
 // Shared utilities
 import { setCorsHeaders, handleCorsPreflightRequest } from '../shared/cors.js';
+import { setSecurityHeaders } from '../shared/security-headers.js';
 import {
   addRequestId,
   handleHealthEndpoint,
@@ -136,6 +137,9 @@ import { handleDebugRoutes } from '../../api/debug-routes.js';
 import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
 import { handleCacheRoutes } from '../../api/cache-routes.js';
 import { handleSessionAnalyticsRoutes } from '../../api/session-analytics-routes.js';
+import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.js';
+import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
+import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -178,6 +182,9 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
 const server = http.createServer(async (req, res) => {
   // Add request ID for tracing
   addRequestId(req, res);
+
+  // Set security headers (HSTS, CSP, X-Frame-Options, etc.)
+  setSecurityHeaders(res);
 
   // Handle CORS
   setCorsHeaders(req, res);
@@ -635,6 +642,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Design tokens routes (public - for dynamic theming)
+    if (pathname.startsWith('/api/design-tokens')) {
+      const handled = await handleDesignTokensRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Landing routes
     if (pathname.startsWith('/api/landing')) {
       if (pathname.startsWith('/api/landing/optimization')) {
@@ -866,6 +879,18 @@ const server = http.createServer(async (req, res) => {
     // Session analytics routes (admin - sessions, quality, persona bonds, intents)
     if (pathname.startsWith('/api/admin/analytics')) {
       const handled = await handleSessionAnalyticsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Batch operations routes (admin - bulk indexing, cleanup)
+    if (pathname.startsWith('/api/admin/batch')) {
+      const handled = await handleBatchOperationsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Webhook management routes (admin - create, update, test webhooks)
+    if (pathname.startsWith('/api/admin/webhooks')) {
+      const handled = await handleWebhookManagementRoutes(req, res, pathname);
       if (handled) return;
     }
 

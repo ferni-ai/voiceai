@@ -104,6 +104,11 @@ class MusicAudioController {
   // createMediaElementSource() can only be called ONCE per element!
   private connectedElements: WeakMap<HTMLAudioElement, MediaElementAudioSourceNode> = new WeakMap();
 
+  // 🎵 Visualization callback and animation loop
+  private visualizationCallback: ((volume: number) => void) | null = null;
+  private visualizationAnimationFrame: number | null = null;
+  private visualizationDataArray: Uint8Array | null = null;
+
   constructor() {
     log.debug('MusicAudioController created');
   }
@@ -483,6 +488,85 @@ class MusicAudioController {
     return data;
   }
 
+  /**
+   * 🎵 Start visualization loop that reads audio levels and calls the callback.
+   * This is separate from ducking - it drives the waveform visualization.
+   *
+   * @param callback - Function called each frame with volume (0-1)
+   * @returns Cleanup function to stop visualization
+   */
+  startVisualization(callback: (volume: number) => void): () => void {
+    // Stop any existing visualization
+    this.stopVisualization();
+
+    this.visualizationCallback = callback;
+
+    // Create data array for analyser
+    const analyser = this.getAnalyser();
+    if (analyser) {
+      this.visualizationDataArray = new Uint8Array(analyser.frequencyBinCount);
+    }
+
+    // Start the animation loop
+    this.runVisualizationLoop();
+
+    log.debug('🎵 Music visualization started');
+
+    return () => this.stopVisualization();
+  }
+
+  /**
+   * 🎵 Stop the visualization loop.
+   */
+  stopVisualization(): void {
+    if (this.visualizationAnimationFrame !== null) {
+      cancelAnimationFrame(this.visualizationAnimationFrame);
+      this.visualizationAnimationFrame = null;
+    }
+    this.visualizationCallback = null;
+    this.visualizationDataArray = null;
+    log.debug('🎵 Music visualization stopped');
+  }
+
+  /**
+   * 🎵 Internal: Run the visualization animation loop.
+   */
+  private runVisualizationLoop(): void {
+    const update = () => {
+      if (!this.visualizationCallback || !this.currentTrack) {
+        return;
+      }
+
+      const analyser = this.currentTrack.analyser;
+      if (!analyser || !this.visualizationDataArray) {
+        this.visualizationAnimationFrame = requestAnimationFrame(update);
+        return;
+      }
+
+      // Get frequency data
+      analyser.getByteFrequencyData(this.visualizationDataArray);
+
+      // Calculate average volume (0-1)
+      let sum = 0;
+      for (let i = 0; i < this.visualizationDataArray.length; i++) {
+        sum += this.visualizationDataArray[i]!;
+      }
+      const average = sum / this.visualizationDataArray.length / 255;
+
+      // Apply ducking factor to visualized volume
+      // When music is ducked, the visualization should also be quieter
+      const duckFactor = this.getCurrentGain();
+      const visualVolume = average * duckFactor;
+
+      // Call the callback
+      this.visualizationCallback(visualVolume);
+
+      this.visualizationAnimationFrame = requestAnimationFrame(update);
+    };
+
+    this.visualizationAnimationFrame = requestAnimationFrame(update);
+  }
+
   // ==========================================================================
   // STATE & CLEANUP
   // ==========================================================================
@@ -512,6 +596,9 @@ class MusicAudioController {
    * Clean up all resources.
    */
   cleanup(): void {
+    // Stop visualization first
+    this.stopVisualization();
+
     // Detach current track
     this.detachCurrentTrack();
 
