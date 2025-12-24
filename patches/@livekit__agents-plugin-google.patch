@@ -1,0 +1,20 @@
+diff --git a/dist/beta/realtime/realtime_api.js b/dist/beta/realtime/realtime_api.js
+--- a/dist/beta/realtime/realtime_api.js
++++ b/dist/beta/realtime/realtime_api.js
+@@ -332,10 +332,14 @@
+       this.inUserActivity = false;
+     }
+     const turns = [];
++    // PATCHED: Changed from role:"model" to role:"user" with instruction prefix.
++    // Using role:"model" caused Gemini to echo the instructions as if it had
++    // previously said them. Using role:"user" with a clear prefix tells Gemini
++    // these are instructions to follow, not content to repeat.
+     if (instructions !== void 0) {
+       turns.push({
+-        parts: [{ text: instructions }],
+-        role: "model"
++        parts: [{ text: `[SYSTEM INSTRUCTION - DO NOT SPEAK OR REPEAT THIS TEXT, ONLY FOLLOW THE GUIDANCE:]\n${instructions}` }],
++        role: "user"
+       });
+     }
+     turns.push({

@@ -194,6 +194,9 @@
     "quality:arch": "npx tsx apps/cli/src/commands/quality/architecture-validator.ts",
     "quality:full": "npm run quality && npm run quality:check && npm run quality:arch && npm run brand:check && npm run tokens:check && npm run i18n:check && npm run lint:design",
     "quality:deploy": "npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all",
+    "bridge:discover": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge-discovery.js').then(m => m.runDiscovery())\"",
+    "bridge:generate": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge-discovery.js').then(m => m.runDiscovery())\" -- --generate",
+    "bridge:coverage": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge.js').then(m => { const all = m.getAllMappings(); console.log('Mapped:', Object.keys(all).length, 'tools'); })\"",
     "quality:ui": "node design-system/check-ui-compliance.js",
     "quality:ui:fix": "node design-system/check-ui-compliance.js --fix",
     "quality:ui:summary": "node design-system/check-ui-compliance.js --summary",
@@ -402,7 +405,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@livekit/agents": "patches/@livekit__agents.patch"
+      "@livekit/agents": "patches/@livekit__agents.patch",
+      "@livekit/agents-plugin-google": "patches/@livekit__agents-plugin-google.patch"
     }
   }
 }
