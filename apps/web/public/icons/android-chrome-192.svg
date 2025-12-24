@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <!-- Ferni Three Stones Logo - 192x192 -->
+  <!-- Ferni Three Stones Logo - 192x192 (circular) -->
   <defs>
     <radialGradient id="stoneGrad192" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -17,7 +17,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="192" height="192" rx="36" fill="#F5F1E8"/>
+  <circle cx="96" cy="96" r="96" fill="#F5F1E8"/>
   
   <circle cx="96" cy="96" r="72.44160000000002" fill="none" stroke="#4a6741" stroke-width="0.5760000000000001" opacity="0.25"/>
   <!-- Outer Stone: Body -->

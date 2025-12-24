@@ -35,6 +35,7 @@ function generateThreeStonesSVG(size, options = {}) {
   const {
     background = '#F5F1E8',  // Paper cream
     rounded = true,
+    circular = true,  // NEW: Use circular background by default
     cornerRadius = size >= 32 ? Math.round(size * 0.1875) : Math.round(size * 0.15),
     showGlow = size >= 64,
     showGlowRing = size >= 64,
@@ -47,9 +48,15 @@ function generateThreeStonesSVG(size, options = {}) {
   const pupilRadius = stoneRadius * 0.133;  // Pupil
   const catchlightRadius = size >= 64 ? stoneRadius * 0.055 : stoneRadius * 0.04;
 
-  const bgShape = rounded
-    ? `<rect width="${size}" height="${size}" rx="${cornerRadius}" fill="${background}"/>`
-    : `<rect width="${size}" height="${size}" fill="${background}"/>`;
+  // NEW: Circular background for PWA/favicon icons
+  let bgShape;
+  if (circular && rounded) {
+    bgShape = `<circle cx="${center}" cy="${center}" r="${center}" fill="${background}"/>`;
+  } else if (rounded) {
+    bgShape = `<rect width="${size}" height="${size}" rx="${cornerRadius}" fill="${background}"/>`;
+  } else {
+    bgShape = `<rect width="${size}" height="${size}" fill="${background}"/>`;
+  }
 
   const glowFilter = showGlow ? `
     <filter id="glowFilter${size}" x="-50%" y="-50%" width="200%" height="200%">
@@ -64,7 +71,7 @@ function generateThreeStonesSVG(size, options = {}) {
   const catchlightOffset = stoneRadius * 0.16;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-  <!-- Ferni Three Stones Logo - ${size}x${size} -->
+  <!-- Ferni Three Stones Logo - ${size}x${size} (circular) -->
   <defs>
     <radialGradient id="stoneGrad${size}" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -101,11 +108,12 @@ function generateThreeStonesSVG(size, options = {}) {
 }
 
 /**
- * Generate maskable icon (safe zone design)
+ * Generate maskable icon (safe zone design - full bleed for OS masking)
  */
 function generateMaskableSVG(size) {
   return generateThreeStonesSVG(size, {
     rounded: false,
+    circular: false,  // Maskable needs square background for OS to apply its own mask
     showGlow: false,
     showGlowRing: false,
   });
@@ -179,11 +187,11 @@ function generateOGImageSVG() {
 }
 
 /**
- * Generate animated favicon SVG (breathing effect)
+ * Generate animated favicon SVG (breathing effect) - CIRCULAR
  */
 function generateAnimatedFaviconSVG() {
   return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Animated Favicon - Three Stones with Breathing -->
+  <!-- Ferni Animated Favicon - Three Stones with Breathing (Circular) -->
   <defs>
     <style>
       @keyframes breathe {
@@ -221,8 +229,8 @@ function generateAnimatedFaviconSVG() {
     </radialGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
+  <!-- Background - CIRCULAR -->
+  <circle cx="16" cy="16" r="16" fill="#F5F1E8"/>
 
   <!-- Glow ring -->
   <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.3"/>
@@ -273,9 +281,9 @@ const SVG_FILES = [
   { path: 'app-icon-android.svg', generator: () => generateThreeStonesSVG(512, { rounded: false }), dir: ICONS_DIR },
   { path: 'app-icon-android-background.svg', generator: () => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#F5F1E8"/></svg>`, dir: ICONS_DIR },
 
-  // iOS icons
-  { path: 'apple-touch-icon.svg', generator: () => generateThreeStonesSVG(180, { cornerRadius: 0 }), dir: ICONS_DIR },
-  { path: 'app-icon-ios-simple.svg', generator: () => generateThreeStonesSVG(1024, { cornerRadius: 0, showGlow: false }), dir: ICONS_DIR },
+  // iOS icons (square background - iOS applies its own mask)
+  { path: 'apple-touch-icon.svg', generator: () => generateThreeStonesSVG(180, { circular: false, cornerRadius: 0 }), dir: ICONS_DIR },
+  { path: 'app-icon-ios-simple.svg', generator: () => generateThreeStonesSVG(1024, { circular: false, cornerRadius: 0, showGlow: false }), dir: ICONS_DIR },
 
   // Maskable icons (for PWA)
   { path: 'maskable-icon.svg', generator: () => generateMaskableSVG(512), dir: ICONS_DIR },

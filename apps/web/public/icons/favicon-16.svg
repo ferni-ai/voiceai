@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <!-- Ferni Three Stones Logo - 16x16 -->
+  <!-- Ferni Three Stones Logo - 16x16 (circular) -->
   <defs>
     <radialGradient id="stoneGrad16" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -13,7 +13,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="16" height="16" rx="2" fill="#F5F1E8"/>
+  <circle cx="8" cy="8" r="8" fill="#F5F1E8"/>
   
   <!-- Outer Stone: Body -->
   <circle cx="8" cy="8" r="5.488" fill="url(#stoneGrad16)"/>

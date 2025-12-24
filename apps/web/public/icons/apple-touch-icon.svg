@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
-  <!-- Ferni Three Stones Logo - 180x180 -->
+  <!-- Ferni Three Stones Logo - 180x180 (circular) -->
   <defs>
     <radialGradient id="stoneGrad180" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
