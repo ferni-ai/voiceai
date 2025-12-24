@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-24T14:23:29.952Z
+ * Build: 2025-12-24T15:19:02.703Z
  */
 
 /* ========================================
@@ -35,12 +35,22 @@
   --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
+  --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
   --color-semantic-error: #e07575;
   --color-semantic-error-glow: rgba(224, 117, 117, 0.22);
+  --color-semantic-error-tint: rgba(224, 117, 117, 0.12);
   --color-semantic-warning: #e0b860;
   --color-semantic-warning-glow: rgba(224, 184, 96, 0.22);
+  --color-semantic-warning-tint: rgba(224, 184, 96, 0.12);
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
+  --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
+  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
+  --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
+  --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
+  --color-utility-backdrop: rgba(20, 16, 14, 0.7);
+  --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
+  --color-utility-scrim: rgba(20, 16, 14, 0.85);
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
   --color-natural-moonlight: #e8e4dc;
@@ -83,12 +93,22 @@
   --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
+  --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
   --color-semantic-error: #e07575;
   --color-semantic-error-glow: rgba(224, 117, 117, 0.22);
+  --color-semantic-error-tint: rgba(224, 117, 117, 0.12);
   --color-semantic-warning: #e0b860;
   --color-semantic-warning-glow: rgba(224, 184, 96, 0.22);
+  --color-semantic-warning-tint: rgba(224, 184, 96, 0.12);
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
+  --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
+  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
+  --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
+  --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
+  --color-utility-backdrop: rgba(20, 16, 14, 0.7);
+  --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
+  --color-utility-scrim: rgba(20, 16, 14, 0.85);
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
   --color-natural-moonlight: #e8e4dc;
@@ -127,12 +147,22 @@
   --color-accent-_text-note: Same as primary for light theme - good contrast on light backgrounds;
   --color-semantic-success: #3d7a52;
   --color-semantic-success-glow: rgba(61, 122, 82, 0.18);
+  --color-semantic-success-tint: rgba(61, 122, 82, 0.08);
   --color-semantic-error: #b5453a;
   --color-semantic-error-glow: rgba(181, 69, 58, 0.18);
+  --color-semantic-error-tint: rgba(181, 69, 58, 0.08);
   --color-semantic-warning: #a67c35;
   --color-semantic-warning-glow: rgba(166, 124, 53, 0.18);
+  --color-semantic-warning-tint: rgba(166, 124, 53, 0.08);
   --color-semantic-info: #3a6b9c;
   --color-semantic-info-glow: rgba(58, 107, 156, 0.18);
+  --color-semantic-info-tint: rgba(58, 107, 156, 0.08);
+  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
+  --color-utility-focus-ring: rgba(61, 90, 69, 0.3);
+  --color-utility-focus-ring-subtle: rgba(61, 90, 69, 0.1);
+  --color-utility-backdrop: rgba(44, 37, 32, 0.6);
+  --color-utility-backdrop-light: rgba(44, 37, 32, 0.4);
+  --color-utility-scrim: rgba(44, 37, 32, 0.8);
   --color-natural-wood: #a8896c;
   --color-natural-wood-light: #d4c4b0;
   --color-natural-bamboo: #7a8f5a;

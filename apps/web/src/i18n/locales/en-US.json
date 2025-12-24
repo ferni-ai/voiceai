@@ -8,6 +8,7 @@
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",
+    "offline": "You're offline",
     "retry": "Try again",
     "tryAgain": "Try Again",
     "cancel": "Cancel",

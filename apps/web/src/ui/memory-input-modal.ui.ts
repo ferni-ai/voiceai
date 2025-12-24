@@ -303,7 +303,7 @@ function ensureStylesExist(): void {
     .memory-field-textarea:focus {
       outline: none;
       border-color: var(--color-accent);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
     
     .memory-field-textarea {

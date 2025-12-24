@@ -414,7 +414,7 @@ function injectStyles(): void {
     .gift-seeds-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
+      background: var(--color-utility-backdrop);
       backdrop-filter: blur(var(--glass-blur-strong, 24px));
       -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
     }

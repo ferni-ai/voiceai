@@ -42,12 +42,24 @@
       "semantic": {
         "success": "#6bc48f",
         "successGlow": "rgba(107, 196, 143, 0.22)",
+        "successTint": "rgba(107, 196, 143, 0.12)",
         "error": "#e07575",
         "errorGlow": "rgba(224, 117, 117, 0.22)",
+        "errorTint": "rgba(224, 117, 117, 0.12)",
         "warning": "#e0b860",
         "warningGlow": "rgba(224, 184, 96, 0.22)",
+        "warningTint": "rgba(224, 184, 96, 0.12)",
         "info": "#7da6cf",
-        "infoGlow": "rgba(125, 166, 207, 0.22)"
+        "infoGlow": "rgba(125, 166, 207, 0.22)",
+        "infoTint": "rgba(125, 166, 207, 0.12)"
+      },
+      "utility": {
+        "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",
+        "focusRing": "rgba(212, 168, 74, 0.3)",
+        "focusRingSubtle": "rgba(212, 168, 74, 0.1)",
+        "backdrop": "rgba(20, 16, 14, 0.7)",
+        "backdropLight": "rgba(20, 16, 14, 0.5)",
+        "scrim": "rgba(20, 16, 14, 0.85)"
       },
       "natural": {
         "cedar": "#a08060",
@@ -100,12 +112,24 @@
       "semantic": {
         "success": "#3d7a52",
         "successGlow": "rgba(61, 122, 82, 0.18)",
+        "successTint": "rgba(61, 122, 82, 0.08)",
         "error": "#b5453a",
         "errorGlow": "rgba(181, 69, 58, 0.18)",
+        "errorTint": "rgba(181, 69, 58, 0.08)",
         "warning": "#a67c35",
         "warningGlow": "rgba(166, 124, 53, 0.18)",
+        "warningTint": "rgba(166, 124, 53, 0.08)",
         "info": "#3a6b9c",
-        "infoGlow": "rgba(58, 107, 156, 0.18)"
+        "infoGlow": "rgba(58, 107, 156, 0.18)",
+        "infoTint": "rgba(58, 107, 156, 0.08)"
+      },
+      "utility": {
+        "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",
+        "focusRing": "rgba(61, 90, 69, 0.3)",
+        "focusRingSubtle": "rgba(61, 90, 69, 0.1)",
+        "backdrop": "rgba(44, 37, 32, 0.6)",
+        "backdropLight": "rgba(44, 37, 32, 0.4)",
+        "scrim": "rgba(44, 37, 32, 0.8)"
       },
       "natural": {
         "wood": "#a8896c",

@@ -29,6 +29,7 @@ class BetterThanHumanEngine(
     val breathSync = BreathSyncEngine(scope)
     val anticipation = AnticipationEngine(scope)
     val haptics = EmotionalHapticsEngine(context)
+    val personality = PixarPersonalityEngine(scope)
 
     // MARK: - State
 
@@ -111,6 +112,13 @@ class BetterThanHumanEngine(
                 breathSync.updateFromAudioLevel(level)
             }
         }
+
+        // Personality reactions -> state updates
+        scope.launch {
+            personality.currentReaction.collect { reaction ->
+                _currentState.update { it.copy(lampReaction = reaction) }
+            }
+        }
     }
 
     // MARK: - Public API
@@ -166,6 +174,15 @@ class BetterThanHumanEngine(
     }
 
     /**
+     * Trigger a personality animation from emotion hint.
+     * Called when backend sends emotion updates.
+     */
+    fun triggerEmotionReaction(emotionHint: String) {
+        val reaction = EmotionReaction.fromHint(emotionHint)
+        personality.triggerForEmotion(reaction)
+    }
+
+    /**
      * Called when connection is established
      */
     fun onConnectionEstablished() {
@@ -212,7 +229,10 @@ data class BetterThanHumanState(
     val anticipatedEmotion: AnticipatedEmotion? = null,
 
     // Concern
-    val concernLevel: ConcernLevel = ConcernLevel.NONE
+    val concernLevel: ConcernLevel = ConcernLevel.NONE,
+
+    // Pixar personality (one-shot reactions)
+    val lampReaction: LampReaction = LampReaction()
 ) {
     /**
      * Whether any emotional state is currently active
@@ -221,13 +241,15 @@ data class BetterThanHumanState(
         get() = listeningGesture != ListeningGesture.NONE ||
                 microExpression != null ||
                 anticipatedEmotion != null ||
-                concernLevel != ConcernLevel.NONE
+                concernLevel != ConcernLevel.NONE ||
+                !lampReaction.isNeutral
 
     /**
      * Combined visual transform from all active states
      */
     val combinedTransform: CombinedTransform
         get() {
+            var translateX = 0f
             var translateY = 0f
             var rotate = 0f
             var scale = 1f
@@ -262,7 +284,16 @@ data class BetterThanHumanState(
                 ConcernLevel.NONE -> { /* no change */ }
             }
 
+            // Add lamp reaction transforms (one-shot animations)
+            if (!lampReaction.isNeutral) {
+                translateX += lampReaction.offsetX
+                translateY += lampReaction.offsetY
+                rotate += lampReaction.rotation
+                scale *= lampReaction.scale
+            }
+
             return CombinedTransform(
+                translateX = translateX,
                 translateY = translateY,
                 rotate = rotate,
                 scale = scale,
@@ -276,6 +307,9 @@ data class BetterThanHumanState(
  * Combined visual transform from all active emotional states.
  */
 data class CombinedTransform(
+    /** Horizontal translation in dp */
+    val translateX: Float = 0f,
+
     /** Vertical translation in dp */
     val translateY: Float = 0f,
 

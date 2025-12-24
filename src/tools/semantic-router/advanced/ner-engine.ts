@@ -130,22 +130,31 @@ export async function initializeNER(): Promise<void> {
     nlp = compromiseModule.default as CompromiseStatic;
 
     // Try to load plugins (optional enhancements)
+    // NOTE: These plugins may fail in production due to ESM/CJS issues
+    // with transitive dependencies like suffix-thumb. This is non-fatal.
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const datesModule = (await import('compromise-dates')) as any;
       nlpDates = datesModule.default;
-      nlp!.plugin(nlpDates);
-    } catch {
-      log.debug('compromise-dates not available, using basic date parsing');
+      if (nlpDates) {
+        nlp!.plugin(nlpDates);
+        log.debug('compromise-dates plugin loaded');
+      }
+    } catch (datesError) {
+      // Common error: suffix-thumb ESM issue in Docker - this is OK
+      log.debug({ error: String(datesError) }, 'compromise-dates not available, using basic date parsing');
     }
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numbersModule = (await import('compromise-numbers')) as any;
       nlpNumbers = numbersModule.default;
-      nlp!.plugin(nlpNumbers);
-    } catch {
-      log.debug('compromise-numbers not available, using basic number parsing');
+      if (nlpNumbers) {
+        nlp!.plugin(nlpNumbers);
+        log.debug('compromise-numbers plugin loaded');
+      }
+    } catch (numbersError) {
+      log.debug({ error: String(numbersError) }, 'compromise-numbers not available, using basic number parsing');
     }
 
     // Add custom patterns for voice/music domain

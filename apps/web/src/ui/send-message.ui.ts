@@ -289,7 +289,7 @@ function injectStyles(): void {
 
     .sm-input:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .sm-textarea {
@@ -310,7 +310,7 @@ function injectStyles(): void {
 
     .sm-textarea:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .sm-textarea::placeholder {

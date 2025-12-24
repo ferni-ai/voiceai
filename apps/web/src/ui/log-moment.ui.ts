@@ -416,7 +416,7 @@ function injectStyles(): void {
 
     .lm-input:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .lm-input::placeholder {
@@ -444,7 +444,7 @@ function injectStyles(): void {
 
     .lm-textarea:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .lm-textarea::placeholder {

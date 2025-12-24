@@ -45,6 +45,11 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embed(text: string): Promise<EmbeddingVector> {
+    // CRITICAL: Check for API key before making request to avoid spamming errors
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured - cannot generate embeddings');
+    }
+
     // Check cache
     if (this.useCache) {
       const cached = getCachedEmbedding(text, this.modelName);

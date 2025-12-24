@@ -53,35 +53,70 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
   },
   'peter-john': {
     defaultEmotion: 'enthusiastic',
-    emotionRange: ['enthusiastic', 'curious', 'excited', 'confident', 'playful', 'satisfied'],
-    defaultSpeed: 1.05,
+    emotionRange: [
+      'enthusiastic',
+      'curious',
+      'excited',
+      'confident',
+      'playful',
+      'satisfied',
+      'affectionate',
+      'sympathetic',
+    ],
+    defaultSpeed: 0.95, // Per manifest - not elderly/slow
     defaultVolume: 1.05,
-    laughterFrequency: 0.12,
-    nonverbals: ['[chuckle]', '[excited breath]'],
+    laughterFrequency: 0.15, // Laughs easily
+    nonverbals: ['[chuckle]', 'Oh!', 'Wait—', 'Ooh!', 'Ha!'],
   },
   'alex-chen': {
-    defaultEmotion: 'confident',
-    emotionRange: ['confident', 'amused', 'helpful', 'calm', 'determined'],
-    defaultSpeed: 1.0,
+    defaultEmotion: 'calm', // Per manifest - calm presence, not just confident
+    emotionRange: [
+      'calm',
+      'confident',
+      'amused',
+      'helpful',
+      'determined',
+      'affectionate',
+      'sympathetic',
+    ],
+    defaultSpeed: 0.95, // Per manifest
     defaultVolume: 1.0,
-    laughterFrequency: 0.08,
-    nonverbals: ['[dry chuckle]', '[brief pause]'],
+    laughterFrequency: 0.1, // Occasional warmth
+    nonverbals: ['[dry chuckle]', 'Okay.', 'Hey.', 'Breathe.', '<break time="200ms"/>'],
   },
   'maya-santos': {
     defaultEmotion: 'affectionate',
-    emotionRange: ['affectionate', 'proud', 'calm', 'grateful', 'sympathetic'],
-    defaultSpeed: 0.92,
-    defaultVolume: 0.95,
-    laughterFrequency: 0.1,
-    nonverbals: ['[soft laugh]', '<break time="300ms"/>'],
+    emotionRange: [
+      'affectionate',
+      'proud',
+      'calm',
+      'grateful',
+      'sympathetic',
+      'enthusiastic',
+      'curious',
+      'wistful',
+      'contemplative',
+    ],
+    defaultSpeed: 0.95,
+    defaultVolume: 1.0,
+    laughterFrequency: 0.18, // More frequent laughter - per manifest
+    nonverbals: ['[laughter]', 'Hey.', 'Oh!', 'Wait—', '<break time="300ms"/>'],
   },
   'jordan-taylor': {
     defaultEmotion: 'excited',
-    emotionRange: ['excited', 'happy', 'affectionate', 'sympathetic', 'curious'],
-    defaultSpeed: 1.08,
+    emotionRange: [
+      'excited',
+      'happy',
+      'affectionate',
+      'sympathetic',
+      'curious',
+      'hopeful',
+      'enthusiastic',
+    ],
+    defaultSpeed: 0.98, // Per manifest - energetic but not rushed
     defaultVolume: 1.05,
-    laughterFrequency: 0.18,
-    nonverbals: ['[excited gasp]', '[happy sigh]', '[laughter]'],
+    laughterFrequency: 0.2, // Very frequent - Jordan loves to laugh
+    nonverbals: ['[laughter]', 'Oh!', 'Wait—', 'Yes!', 'Wow!'],
   },
   'nayan-patel': {
     defaultEmotion: 'contemplative',

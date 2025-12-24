@@ -4,10 +4,19 @@
  * Handles the "Better Than Human" personality system integration for turns.
  * Extracted from turn-handler.ts for maintainability.
  *
+ * NOW ALL PERSONAS get the full "Better Than Human" treatment:
+ * - 8-dimensional context sensing
+ * - Real-time noticing (pauses, energy shifts, topic deflection)
+ * - Cross-session resonance learning
+ * - Dynamic expression composition
+ *
+ * Each persona has unique building blocks (passions, opinions, quirks, vulnerabilities)
+ * that make their expressions authentic to their character.
+ *
  * Responsibilities:
  * - Cross-turn personality state tracking
- * - Ferni personality processing
- * - Shared persona personality processing
+ * - Ferni personality processing (original system)
+ * - Shared "Better Than Human" personality for ALL other personas
  * - Personality injection building
  *
  * @module voice-agent/turn-personality
@@ -18,10 +27,18 @@ import {
   ferniPersonality,
   type PersonalityTurnResult,
 } from '../../personas/bundles/ferni/personality-integration.js';
+// Legacy shared personality (basic signal detection)
 import {
-  sharedPersonality,
+  sharedPersonality as legacySharedPersonality,
   type PersonaTurnResult,
 } from '../../personas/shared/persona-turn-personality.js';
+// NEW: Full "Better Than Human" shared personality for ALL personas
+import {
+  sharedPersonality as betterThanHumanPersonality,
+  type SharedPersonalityTurnResult,
+} from '../../personas/shared/shared-personality-integration.js';
+import { hasPersonaBuildingBlocks } from '../../personas/shared/persona-building-blocks.js';
+import { cleanupSharedPersonalitySession } from '../../personas/shared/shared-personality-integration.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
@@ -136,10 +153,12 @@ export function getTurnHistory(sessionId: string): TurnHistory[] {
 }
 
 /** Clean up session personality state */
-export function cleanupPersonalityState(sessionId: string): void {
+export function cleanupPersonalityState(sessionId: string, userId?: string): void {
   previousExpressions.delete(sessionId);
   turnHistories.delete(sessionId);
   ferniPersonality.cleanup(sessionId);
+  // Clean up shared "Better Than Human" personality state for all other personas
+  cleanupSharedPersonalitySession(sessionId, userId ?? undefined);
 }
 
 // ============================================================================
@@ -379,13 +398,26 @@ export async function processFerniPersonality(
 
 /**
  * Process shared persona personality (Maya, Jordan, Peter, Alex, Nayan)
+ *
+ * NOW uses the full "Better Than Human" system with:
+ * - 8-dimensional context sensing
+ * - Real-time noticing (pauses, energy shifts, topic deflection)
+ * - Cross-session resonance learning
+ * - Dynamic expression composition
+ * - Persona-specific building blocks (passions, opinions, quirks, vulnerabilities)
  */
 export async function processSharedPersonality(
   ctx: PersonalityContext
 ): Promise<PersonalityProcessingResult> {
   const logger = log();
 
-  if (!sharedPersonality.hasSupport(ctx.personaId)) {
+  // Check if persona has "Better Than Human" building blocks
+  if (hasPersonaBuildingBlocks(ctx.personaId)) {
+    return processBetterThanHumanPersonality(ctx);
+  }
+
+  // Fallback to legacy shared personality for personas without building blocks
+  if (!legacySharedPersonality.hasSupport(ctx.personaId)) {
     return {
       shouldInject: false,
       injectionContent: undefined,
@@ -411,7 +443,7 @@ export async function processSharedPersonality(
 
     const topics = ctx.analysisResult?.topics?.detected || [];
 
-    const sharedResult = await sharedPersonality.processTurn({
+    const sharedResult = await legacySharedPersonality.processTurn({
       personaId: ctx.personaId,
       sessionId: ctx.sessionId,
       userId: ctx.userId ?? undefined,
@@ -452,7 +484,7 @@ export async function processSharedPersonality(
       const content = sharedResult.humanization?.ssml || sharedResult.expression?.ssml || '';
       if (content) {
         injectionContent = `[PERSONALITY] ${content}`;
-        diag.info('🎭 Shared persona personality injection', {
+        diag.info('🎭 Legacy shared persona personality injection', {
           personaId: ctx.personaId,
           hasHumanization: !!sharedResult.humanization,
           humanizationType: sharedResult.humanization?.type,
@@ -467,7 +499,123 @@ export async function processSharedPersonality(
       personalityResult: sharedResult,
     };
   } catch (personalityError) {
-    logger.debug({ error: String(personalityError) }, 'Shared personality system (non-critical)');
+    logger.debug({ error: String(personalityError) }, 'Legacy shared personality system (non-critical)');
+    return {
+      shouldInject: false,
+      injectionContent: undefined,
+      personalityResult: null,
+    };
+  }
+}
+
+/**
+ * Process "Better Than Human" personality for any persona (Maya, Peter, Alex, Jordan, Nayan)
+ *
+ * Full superhuman personality system with:
+ * - 8-dimensional context sensing
+ * - Real-time noticing
+ * - Cross-session resonance learning
+ * - Dynamic expression composition
+ */
+async function processBetterThanHumanPersonality(
+  ctx: PersonalityContext
+): Promise<PersonalityProcessingResult> {
+  const logger = log();
+
+  try {
+    const relationshipStage = ctx.humanizingResult?.relationship?.stage || 'acquaintance';
+    const momentum = mapMoodToMomentum(
+      ctx.humanizingResult?.mood?.state,
+      ctx.emotionalResult.intensity
+    );
+
+    const topics = ctx.analysisResult?.topics?.detected || [];
+    const lastTopics = ctx.sessionStateManager?.getState().conversation.recentTopics;
+
+    const bthResult = await betterThanHumanPersonality.processTurn({
+      personaId: ctx.personaId,
+      sessionId: ctx.sessionId,
+      userId: ctx.userId ?? undefined,
+      turnCount: ctx.turnCount,
+      userTranscript: ctx.userText,
+
+      // Voice signals
+      pauseBeforeMs: ctx.userData.pauseBeforeMs || 0,
+      speechRateWPM: ctx.userData.speechRateWPM,
+      voiceEmotion: ctx.voiceEmotion,
+
+      // Analysis results
+      textEmotion: {
+        primary: ctx.emotionalResult.primary,
+        intensity: ctx.emotionalResult.intensity,
+        distressLevel: ctx.emotionalResult.distressLevel,
+      },
+
+      // Conversation state
+      conversationMomentum: momentum,
+      currentTopics: topics,
+      lastTopics,
+
+      // Relationship
+      relationshipStage,
+      totalConversations: ctx.userData.totalConversations || 1,
+      sharedVulnerabilities: ctx.userData.sharedVulnerabilities || 0,
+
+      // Previous turns for pattern detection
+      previousTurns: getTurnHistory(ctx.sessionId),
+
+      // Previous expression for resonance learning
+      previousExpression: getPreviousExpression(ctx.sessionId),
+    });
+
+    // Build injection content
+    let injectionContent: string | null = null;
+    if (bthResult.shouldInject && bthResult.injectionContent) {
+      injectionContent = bthResult.injectionContent;
+
+      // If we have a noticing result, format it nicely
+      if (bthResult.noticing) {
+        diag.info('🔍 Better Than Human NOTICING for shared persona', {
+          personaId: ctx.personaId,
+          noticingType: bthResult.noticing.type,
+          confidence: bthResult.noticing.confidence,
+        });
+      }
+
+      // If we have an expression result
+      if (bthResult.expression) {
+        diag.info('🎭 Better Than Human EXPRESSION for shared persona', {
+          personaId: ctx.personaId,
+          theme: bthResult.expression.theme,
+          intimacy: bthResult.expression.intimacyLevel,
+          timing: bthResult.expression.timing,
+        });
+
+        // Store expression for resonance learning
+        storePreviousExpression(ctx.sessionId, {
+          theme: bthResult.expression.theme,
+          content: bthResult.expression.content,
+        });
+      }
+    }
+
+    // Record this turn for pattern detection
+    recordTurnHistory(ctx.sessionId, {
+      userTranscript: ctx.userText,
+      speechRate: ctx.userData.speechRateWPM,
+      pauseBefore: ctx.userData.pauseBeforeMs,
+      voiceEmotion: ctx.voiceEmotion?.primary,
+      topics,
+    });
+
+    // Map the result to PersonalityProcessingResult
+    return {
+      shouldInject: bthResult.shouldInject,
+      injectionContent: injectionContent ?? undefined,
+      personalityResult: bthResult as unknown as PersonaTurnResult,
+    };
+  } catch (personalityError) {
+    logger.debug({ error: String(personalityError) }, 'Better Than Human shared personality (non-critical)');
     return {
       shouldInject: false,
       injectionContent: undefined,

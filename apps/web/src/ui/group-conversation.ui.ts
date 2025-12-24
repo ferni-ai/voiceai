@@ -901,7 +901,7 @@ const styles = `
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   padding: var(--space-4);
-  z-index: 100;
+  z-index: var(--z-sticky);
   opacity: 0;
   transform: translateX(20px);
   transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD},

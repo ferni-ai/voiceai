@@ -307,7 +307,7 @@ function injectStyles(): void {
 
     .id-date-action.delete:hover {
       color: var(--color-semantic-error, #c44);
-      background: rgba(204, 68, 68, 0.08);
+      background: var(--color-semantic-error-tint);
     }
 
     /* =========================================================================

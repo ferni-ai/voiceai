@@ -1000,5 +1000,199 @@
       "speakingStart": "all 200ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       "speakingEnd": "all 400ms ease-out"
     }
+  },
+
+  "breathSync": {
+    "_documentation": "BETTER THAN APPLE/GOOGLE: Breath-synchronized animations that feel alive, not mechanical",
+    "_philosophy": "Traditional UI animations are robotic. Ferni breathes with you.",
+    
+    "presets": {
+      "calm": {
+        "duration": 5000,
+        "inhaleRatio": 0.4,
+        "holdRatio": 0.2,
+        "exhaleRatio": 0.4,
+        "easing": "cubic-bezier(0.4, 0.0, 0.6, 1)",
+        "scaleRange": [1, 1.03],
+        "opacityRange": [0.9, 1]
+      },
+      "relaxed": {
+        "duration": 6000,
+        "inhaleRatio": 0.35,
+        "holdRatio": 0.3,
+        "exhaleRatio": 0.35,
+        "easing": "cubic-bezier(0.33, 0.0, 0.67, 1)",
+        "scaleRange": [1, 1.02],
+        "opacityRange": [0.92, 1]
+      },
+      "attentive": {
+        "duration": 4000,
+        "inhaleRatio": 0.45,
+        "holdRatio": 0.1,
+        "exhaleRatio": 0.45,
+        "easing": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+        "scaleRange": [1, 1.04],
+        "opacityRange": [0.88, 1]
+      },
+      "concerned": {
+        "duration": 3500,
+        "inhaleRatio": 0.5,
+        "holdRatio": 0.1,
+        "exhaleRatio": 0.4,
+        "easing": "cubic-bezier(0.5, 0.0, 0.3, 1)",
+        "scaleRange": [0.98, 1.02],
+        "opacityRange": [0.9, 1]
+      }
+    },
+    
+    "cssVariables": {
+      "--breath-duration": "5000ms",
+      "--breath-inhale": "40%",
+      "--breath-hold": "20%",
+      "--breath-exhale": "40%",
+      "--breath-scale-min": "1",
+      "--breath-scale-max": "1.03",
+      "--breath-easing": "cubic-bezier(0.4, 0.0, 0.6, 1)"
+    },
+    
+    "keyframeTemplate": {
+      "_note": "Use CSS calc() with these percentages for smooth breath animation",
+      "0%": "scale(var(--breath-scale-min)); opacity: 0.9",
+      "40%": "scale(var(--breath-scale-max)); opacity: 1",
+      "60%": "scale(var(--breath-scale-max)); opacity: 1",
+      "100%": "scale(var(--breath-scale-min)); opacity: 0.9"
+    }
+  },
+
+  "circadian": {
+    "_documentation": "BETTER THAN APPLE/GOOGLE: Time-aware design that adapts to human rhythms",
+    "_philosophy": "Dark mode is not enough. Ferni knows the difference between 10am focus and 2am presence.",
+    
+    "periods": {
+      "earlyMorning": {
+        "hours": [5, 7],
+        "name": "Dawn",
+        "warmth": 0.15,
+        "brightness": 0.95,
+        "animationSpeed": 0.9,
+        "presence": "gentle awakening"
+      },
+      "morning": {
+        "hours": [7, 11],
+        "name": "Morning",
+        "warmth": 0.1,
+        "brightness": 1.0,
+        "animationSpeed": 1.1,
+        "presence": "fresh and energetic"
+      },
+      "midday": {
+        "hours": [11, 14],
+        "name": "Midday",
+        "warmth": 0,
+        "brightness": 1.0,
+        "animationSpeed": 1.0,
+        "presence": "clear and focused"
+      },
+      "afternoon": {
+        "hours": [14, 18],
+        "name": "Afternoon",
+        "warmth": 0.05,
+        "brightness": 1.0,
+        "animationSpeed": 1.0,
+        "presence": "productive calm"
+      },
+      "evening": {
+        "hours": [18, 21],
+        "name": "Evening",
+        "warmth": 0.2,
+        "brightness": 0.95,
+        "animationSpeed": 0.9,
+        "presence": "winding down"
+      },
+      "night": {
+        "hours": [21, 24],
+        "name": "Night",
+        "warmth": 0.3,
+        "brightness": 0.85,
+        "animationSpeed": 0.8,
+        "presence": "intimate and calm"
+      },
+      "lateNight": {
+        "hours": [0, 3],
+        "name": "Late Night",
+        "warmth": 0.35,
+        "brightness": 0.8,
+        "animationSpeed": 0.7,
+        "presence": "fully present at 2am"
+      },
+      "deepNight": {
+        "hours": [3, 5],
+        "name": "Deep Night",
+        "warmth": 0.25,
+        "brightness": 0.75,
+        "animationSpeed": 0.6,
+        "presence": "quiet companion"
+      }
+    },
+    
+    "cssVariables": {
+      "--circadian-warmth": "0",
+      "--circadian-brightness": "1",
+      "--circadian-animation-speed": "1",
+      "--circadian-filter": "none"
+    },
+    
+    "warmthFilter": {
+      "_note": "CSS filter to apply warmth: sepia() + hue-rotate() + saturate()",
+      "formula": "sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1))"
+    }
+  },
+
+  "relationshipDepth": {
+    "_documentation": "BETTER THAN APPLE/GOOGLE: UI that grows with your relationship",
+    "_philosophy": "Every session is not the same. Your 100th conversation should feel different than your first.",
+    
+    "stages": {
+      "new": {
+        "conversations": [0, 5],
+        "uiRichness": 0.5,
+        "animationComplexity": "simple",
+        "personalization": "minimal",
+        "featureVisibility": ["core"],
+        "visualDescription": "Clean, focused, welcoming - don't overwhelm"
+      },
+      "gettingToKnow": {
+        "conversations": [5, 15],
+        "uiRichness": 0.65,
+        "animationComplexity": "moderate",
+        "personalization": "emerging",
+        "featureVisibility": ["core", "growth"],
+        "visualDescription": "Starting to show personality, unlocking features"
+      },
+      "buildingTrust": {
+        "conversations": [15, 30],
+        "uiRichness": 0.8,
+        "animationComplexity": "rich",
+        "personalization": "adapted",
+        "featureVisibility": ["core", "growth", "team"],
+        "visualDescription": "Full team available, rich interactions"
+      },
+      "established": {
+        "conversations": [30, 60],
+        "uiRichness": 0.9,
+        "animationComplexity": "expressive",
+        "personalization": "deep",
+        "featureVisibility": ["core", "growth", "team", "advanced"],
+        "visualDescription": "Inside jokes, callbacks, anticipation"
+      },
+      "deepPartnership": {
+        "conversations": [60, null],
+        "uiRichness": 1.0,
+        "animationComplexity": "full",
+        "personalization": "intuitive",
+        "featureVisibility": ["all"],
+        "visualDescription": "UI feels like it knows you - subtle, personal, present"
+      }
+    }
   }
 }

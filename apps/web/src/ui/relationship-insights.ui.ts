@@ -343,7 +343,7 @@ function injectStyles(): void {
     }
 
     .ri-stat.warning {
-      background: rgba(204, 68, 68, 0.08);
+      background: var(--color-semantic-error-tint);
     }
 
     .ri-stat.warning .ri-stat-value {

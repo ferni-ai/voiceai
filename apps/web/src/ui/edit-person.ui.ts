@@ -329,7 +329,7 @@ function injectStyles(): void {
 
     .ep-input:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .ep-input::placeholder {
@@ -353,7 +353,7 @@ function injectStyles(): void {
 
     .ep-textarea:focus {
       border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .ep-row {
@@ -455,7 +455,7 @@ function injectStyles(): void {
       gap: var(--space-2, 0.5rem);
       width: 100%;
       padding: var(--space-2-5, 0.625rem);
-      border: 1px solid rgba(204, 68, 68, 0.3);
+      border: 1px solid var(--color-semantic-error-glow);
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
       color: var(--color-semantic-error, #c44);
@@ -466,7 +466,7 @@ function injectStyles(): void {
     }
 
     .ep-danger-btn:hover {
-      background: rgba(204, 68, 68, 0.08);
+      background: var(--color-semantic-error-tint);
       border-color: var(--color-semantic-error, #c44);
     }
 
@@ -478,8 +478,8 @@ function injectStyles(): void {
     /* Delete confirmation */
     .ep-delete-confirm {
       padding: var(--space-4, 1rem);
-      background: rgba(204, 68, 68, 0.05);
-      border: 1px solid rgba(204, 68, 68, 0.2);
+      background: var(--color-semantic-error-tint);
+      border: 1px solid var(--color-semantic-error-glow);
       border-radius: var(--radius-lg, 1rem);
       margin-top: var(--space-3, 0.75rem);
     }

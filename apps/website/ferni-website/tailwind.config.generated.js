@@ -3,7 +3,7 @@
  * 
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run build:tailwind-config
- * Generated: 2025-12-24T14:23:30.523Z
+ * Generated: 2025-12-24T15:19:03.573Z
  * 
  * IMPORTANT: This file uses CSS variable references (not hardcoded hex values)
  * so colors automatically update when design-tokens.css is regenerated.

@@ -1441,7 +1441,7 @@ function getProfileStyles(): string {
     }
     
     .progress-step--current {
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring);
     }
     
     /* Content */

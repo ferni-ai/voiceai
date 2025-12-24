@@ -13,6 +13,7 @@ import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.room.Room
 import io.livekit.android.room.participant.Participant
+import io.livekit.android.room.track.RemoteAudioTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +44,15 @@ data class TokenResponse(
     val url: String,
     val room: String,
     val sessionId: String? = null
+)
+
+/**
+ * Humanization signal from the backend Better Than Human system.
+ * These signals enable superhuman emotional intelligence capabilities.
+ */
+data class HumanizationSignal(
+    val signalType: String,
+    val payload: Map<String, Any>
 )
 
 /**
@@ -94,6 +104,18 @@ class LiveKitSession(private val context: Context) {
     // Emotion events for avatar
     private val _emotionEvents = MutableSharedFlow<EmotionHint>()
     val emotionEvents = _emotionEvents.asSharedFlow()
+
+    // Humanization signals for Better Than Human capabilities
+    private val _humanizationSignals = MutableSharedFlow<HumanizationSignal>()
+    val humanizationSignals = _humanizationSignals.asSharedFlow()
+
+    // Audio level from remote agent (0-1 normalized)
+    private val _remoteAudioLevel = MutableStateFlow(0f)
+    val remoteAudioLevel: StateFlow<Float> = _remoteAudioLevel.asStateFlow()
+
+    // User speech state (detected from local audio)
+    private val _isUserSpeaking = MutableStateFlow(false)
+    val isUserSpeaking: StateFlow<Boolean> = _isUserSpeaking.asStateFlow()
 
     val currentPersona: Persona
         get() = Persona.get(_currentPersonaId.value)
@@ -287,10 +309,59 @@ class LiveKitSession(private val context: Context) {
                             }
                         }
                     }
+                    is RoomEvent.TrackSubscribed -> {
+                        // Start monitoring audio level from remote agent track
+                        val track = event.track
+                        if (track is RemoteAudioTrack) {
+                            startAudioLevelMonitoring(track)
+                        }
+                    }
+                    is RoomEvent.TrackUnsubscribed -> {
+                        // Stop monitoring when track is removed
+                        val track = event.track
+                        if (track is RemoteAudioTrack) {
+                            _remoteAudioLevel.value = 0f
+                        }
+                    }
+                    is RoomEvent.ActiveSpeakersChanged -> {
+                        // Update speaking states based on active speakers
+                        val localIsSpeaking = event.speakers.any { speaker ->
+                            speaker.identity?.value == room.localParticipant.identity?.value
+                        }
+                        val agentIsSpeaking = event.speakers.any { speaker ->
+                            speaker.identity?.value?.contains("agent") == true
+                        }
+
+                        // Update audio level based on agent speaking
+                        if (agentIsSpeaking) {
+                            // Get audio level from speaker info if available
+                            val agentSpeaker = event.speakers.find { it.identity?.value?.contains("agent") == true }
+                            agentSpeaker?.audioLevel?.let { level ->
+                                _remoteAudioLevel.value = level
+                            }
+                        } else {
+                            _remoteAudioLevel.value = 0f
+                        }
+
+                        // Track user speaking state for active listening
+                        _isUserSpeaking.value = localIsSpeaking && !agentIsSpeaking
+                    }
                     else -> { /* Ignore other events */ }
                 }
             }
         }
+    }
+
+    /**
+     * Start monitoring audio levels from a remote audio track.
+     * This provides more granular audio level updates than ActiveSpeakersChanged.
+     */
+    private fun startAudioLevelMonitoring(track: RemoteAudioTrack) {
+        // Note: LiveKit's RemoteAudioTrack provides audio level through
+        // the ActiveSpeakersChanged event. For more granular control,
+        // we could use AudioTrackHandler, but ActiveSpeakers is sufficient
+        // for avatar visualization.
+        Log.d(TAG, "Subscribed to remote audio track: ${track.sid}")
     }
 
     private fun handleTranscription(text: String, isAgent: Boolean) {
@@ -355,6 +426,39 @@ class LiveKitSession(private val context: Context) {
                     scope.launch {
                         _emotionEvents.emit(hint)
                     }
+                }
+
+                "humanization_signal" -> {
+                    // Better Than Human backend signals
+                    // Types: concern_detected, voice_state_detected, emotional_trajectory, micro_expression_trigger
+                    val signalType = json.optString("signal_type")
+                    val payloadJson = json.optJSONObject("payload")
+
+                    if (signalType.isNotEmpty()) {
+                        val payload = mutableMapOf<String, Any>()
+
+                        payloadJson?.keys()?.forEach { key ->
+                            payloadJson.opt(key)?.let { value ->
+                                payload[key] = value
+                            }
+                        }
+
+                        Log.d(TAG, "Humanization signal: $signalType -> $payload")
+
+                        scope.launch {
+                            _humanizationSignals.emit(HumanizationSignal(signalType, payload))
+                        }
+                    }
+                }
+
+                "agent_speaking" -> {
+                    // Agent started speaking - user is not speaking
+                    _isUserSpeaking.value = false
+                }
+
+                "user_speaking" -> {
+                    // User started speaking
+                    _isUserSpeaking.value = true
                 }
             }
         } catch (e: Exception) {

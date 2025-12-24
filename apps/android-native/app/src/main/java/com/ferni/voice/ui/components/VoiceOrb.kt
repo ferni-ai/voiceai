@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ferni.voice.betterthanuman.BetterThanHumanState
+import com.ferni.voice.betterthanuman.LampReaction
 import com.ferni.voice.models.Persona
 import com.ferni.voice.models.VoiceState
 import com.ferni.voice.ui.animations.BodyValues
@@ -57,7 +59,9 @@ fun VoiceOrb(
     persona: Persona,
     voiceState: VoiceState,
     modifier: Modifier = Modifier,
-    size: Dp = 200.dp
+    size: Dp = 200.dp,
+    betterThanHumanState: BetterThanHumanState = BetterThanHumanState(),
+    audioLevel: Float = 0f
 ) {
     // Continuous animation time (in seconds) - NEVER restarts
     var time by remember { mutableFloatStateOf(0f) }
@@ -65,15 +69,27 @@ fun VoiceOrb(
     // Smooth state transition intensity
     var activeIntensity by remember { mutableFloatStateOf(if (voiceState.isActive) 1f else 0f) }
 
-    // Lamp transforms for breathing
-    var lampScaleX by remember { mutableFloatStateOf(1f) }
-    var lampScaleY by remember { mutableFloatStateOf(1f) }
-    var lampOffsetY by remember { mutableFloatStateOf(0f) }
-    var lampRotation by remember { mutableFloatStateOf(0f) }
+    // Lamp transforms for breathing (base values before reactions)
+    var breathScaleX by remember { mutableFloatStateOf(1f) }
+    var breathScaleY by remember { mutableFloatStateOf(1f) }
+    var breathOffsetY by remember { mutableFloatStateOf(0f) }
+    var breathRotation by remember { mutableFloatStateOf(0f) }
 
-    // Soul effects
-    var warmthOpacity by remember { mutableFloatStateOf(0f) }
-    var sparkOpacity by remember { mutableFloatStateOf(0f) }
+    // Get combined transform from BetterThanHumanState
+    val combinedTransform = betterThanHumanState.combinedTransform
+
+    // Final lamp transforms = breathing + reaction + other emotional states
+    val lampScaleX = breathScaleX * combinedTransform.scale
+    val lampScaleY = breathScaleY * combinedTransform.scale
+    val lampOffsetX = combinedTransform.translateX
+    val lampOffsetY = breathOffsetY + combinedTransform.translateY
+    val lampRotation = breathRotation + combinedTransform.rotate
+
+    // Soul effects from emotional state
+    val warmthOpacity = combinedTransform.warmth
+    val sparkOpacity = if (betterThanHumanState.microExpression != null)
+        betterThanHumanState.microExpression!!.soulEffect.sparkOpacity else 0f
+    val shimmerBoost = combinedTransform.shimmer
 
     // 60fps continuous timer that NEVER restarts
     LaunchedEffect(Unit) {
@@ -81,8 +97,8 @@ fun VoiceOrb(
             delay(16) // ~60fps
             time += 0.016f
 
-            // Update breathing
-            val cycle = if (voiceState.isActive) PixarTiming.BREATH_CYCLE_ACTIVE else PixarTiming.BREATH_CYCLE_IDLE
+            // Use breath rate from BetterThanHumanState (synced with user) or default
+            val cycle = betterThanHumanState.breathRate
             val phase = sin(time * PI * 2 / cycle).toFloat()
 
             val scaleY = if (voiceState.isActive) BodyValues.Active.SCALE_Y else BodyValues.Idle.SCALE_Y
@@ -90,10 +106,10 @@ fun VoiceOrb(
             val translateY = if (voiceState.isActive) BodyValues.Active.TRANSLATE_Y else BodyValues.Idle.TRANSLATE_Y
             val rotation = if (voiceState.isActive) BodyValues.Active.ROTATION else BodyValues.Idle.ROTATION
 
-            lampScaleY = 1f + (scaleY - 1f) * phase
-            lampScaleX = 1f + (scaleX - 1f) * phase
-            lampOffsetY = translateY * phase
-            lampRotation = rotation * phase
+            breathScaleY = 1f + (scaleY - 1f) * phase
+            breathScaleX = 1f + (scaleX - 1f) * phase
+            breathOffsetY = translateY * phase
+            breathRotation = rotation * phase
         }
     }
 
@@ -109,8 +125,11 @@ fun VoiceOrb(
         activeIntensity = target
     }
 
-    // Multi-frequency simulated audio level
-    val simulatedAudioLevel = remember(time) {
+    // Use provided audio level, or fall back to simulated if none provided
+    val effectiveAudioLevel = if (audioLevel > 0f) {
+        audioLevel * activeIntensity
+    } else {
+        // Multi-frequency simulated audio level (fallback)
         val wave1 = sin(time * 2.5) * 0.3
         val wave2 = sin(time * 5.7) * 0.15
         val wave3 = sin(time * 11.3) * 0.08
@@ -139,6 +158,7 @@ fun VoiceOrb(
             persona = persona,
             time = time,
             activeIntensity = activeIntensity,
+            shimmerBoost = shimmerBoost,
             size = size,
             modifier = Modifier.size(size * 1.5f)
         )
@@ -157,6 +177,7 @@ fun VoiceOrb(
             persona = persona,
             scaleX = lampScaleX,
             scaleY = lampScaleY,
+            offsetX = lampOffsetX,
             offsetY = lampOffsetY,
             rotation = lampRotation,
             modifier = Modifier.size(size)
@@ -166,10 +187,11 @@ fun VoiceOrb(
         if (voiceState.isActive) {
             WaveRing(
                 persona = persona,
-                audioLevel = simulatedAudioLevel,
+                audioLevel = effectiveAudioLevel,
                 time = time,
                 scaleX = lampScaleX,
                 scaleY = lampScaleY,
+                offsetX = lampOffsetX,
                 offsetY = lampOffsetY,
                 modifier = Modifier.size(size * 1.16f)
             )
@@ -194,6 +216,7 @@ fun VoiceOrb(
                 .graphicsLayer {
                     this.scaleX = lampScaleX
                     this.scaleY = lampScaleY
+                    this.translationX = lampOffsetX.dp.toPx()
                     this.translationY = lampOffsetY.dp.toPx()
                     this.rotationZ = lampRotation
                 }
@@ -321,11 +344,14 @@ private fun SoulShimmer(
     persona: Persona,
     time: Float,
     activeIntensity: Float,
+    shimmerBoost: Float = 0f,
     size: Dp,
     modifier: Modifier = Modifier
 ) {
     val phase = sin(time * PI * 2 / PixarTiming.SHIMMER_CYCLE).toFloat()
-    val opacity = (0.4f + phase * 0.2f) * activeIntensity
+    // Apply shimmer boost from emotional state (-0.3 to +0.5 range)
+    val baseOpacity = (0.4f + phase * 0.2f) * activeIntensity
+    val opacity = (baseOpacity + shimmerBoost * 0.3f).coerceIn(0f, 1f)
 
     Canvas(modifier = modifier) {
         val center = Offset(this.size.width / 2, this.size.height / 2)
@@ -386,6 +412,7 @@ private fun AvatarBody(
     persona: Persona,
     scaleX: Float,
     scaleY: Float,
+    offsetX: Float,
     offsetY: Float,
     rotation: Float,
     modifier: Modifier = Modifier
@@ -395,6 +422,7 @@ private fun AvatarBody(
             .graphicsLayer {
                 this.scaleX = scaleX
                 this.scaleY = scaleY
+                this.translationX = offsetX.dp.toPx()
                 this.translationY = offsetY.dp.toPx()
                 this.rotationZ = rotation
             }
@@ -439,6 +467,7 @@ private fun WaveRing(
     time: Float,
     scaleX: Float,
     scaleY: Float,
+    offsetX: Float,
     offsetY: Float,
     modifier: Modifier = Modifier
 ) {
@@ -447,6 +476,7 @@ private fun WaveRing(
             .graphicsLayer {
                 this.scaleX = scaleX
                 this.scaleY = scaleY
+                this.translationX = offsetX.dp.toPx()
                 this.translationY = offsetY.dp.toPx()
             }
     ) {

@@ -736,28 +736,35 @@ export class FirestoreVectorStore implements VectorStoreContract {
 
       // Use Firestore's native findNearest for vector search
       if (collRef.findNearest) {
-        const { FieldValue } = await import('@google-cloud/firestore');
+        // IMPORTANT: VectorQuery from findNearest() does NOT support .where() chaining
+        // Filters must be applied BEFORE findNearest() using a pre-filtered collection query
+        // See: https://cloud.google.com/firestore/docs/vector-search
+        //
+        // WORKAROUND: Apply filters to base query first, then call findNearest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let baseQuery: any = collRef;
 
-        let searchQuery = collRef.findNearest({
-          vectorField: 'embedding',
-          queryVector: queryEmbedding,
-          limit: topK * 2, // Get more to allow for filtering
-          distanceMeasure: 'COSINE',
-        });
-
-        // Apply filters if provided
+        // Apply filters BEFORE findNearest (VectorQuery doesn't support .where())
         if (options?.filter?.source) {
           const sources = Array.isArray(options.filter.source)
             ? options.filter.source
             : [options.filter.source];
           if (sources.length === 1) {
-            searchQuery = searchQuery.where('metadata.source', '==', sources[0]);
+            baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
           }
         }
 
         if (options?.filter?.userId) {
-          searchQuery = searchQuery.where('metadata.userId', '==', options.filter.userId);
+          baseQuery = baseQuery.where('metadata.userId', '==', options.filter.userId);
         }
+
+        // Now apply findNearest to the filtered query
+        const searchQuery = baseQuery.findNearest({
+          vectorField: 'embedding',
+          queryVector: queryEmbedding,
+          limit: topK * 2, // Get more to allow for filtering
+          distanceMeasure: 'COSINE',
+        });
 
         const snapshot = await searchQuery.get();
 

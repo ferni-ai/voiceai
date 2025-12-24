@@ -381,7 +381,7 @@ function injectStyles(): void {
     .team-intro__backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
+      background: var(--color-utility-backdrop);
       backdrop-filter: blur(var(--glass-blur-modal));
       -webkit-backdrop-filter: blur(var(--glass-blur-modal));
     }

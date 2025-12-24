@@ -284,7 +284,7 @@ function injectStyles(): void {
     }
     
     .voice-enrollment-mic-circle--recording {
-      box-shadow: 0 0 0 8px rgba(74, 103, 65, 0.2);
+      box-shadow: 0 0 0 8px var(--color-utility-focus-ring-subtle);
     }
     
     .voice-enrollment-mic-circle svg {

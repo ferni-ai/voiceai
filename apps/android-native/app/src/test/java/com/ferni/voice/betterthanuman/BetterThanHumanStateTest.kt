@@ -84,6 +84,18 @@ class BetterThanHumanStateTest {
         assertFalse(state.hasActiveState)
     }
 
+    @Test
+    fun `state with non-neutral lamp reaction is active`() {
+        val state = BetterThanHumanState(lampReaction = LampReaction(offsetY = -5f))
+        assertTrue(state.hasActiveState)
+    }
+
+    @Test
+    fun `state with neutral lamp reaction is not active`() {
+        val state = BetterThanHumanState(lampReaction = LampReaction())
+        assertFalse(state.hasActiveState)
+    }
+
     // MARK: - Combined Transform Tests
 
     @Test
@@ -91,6 +103,7 @@ class BetterThanHumanStateTest {
         val state = BetterThanHumanState()
         val transform = state.combinedTransform
 
+        assertEquals(0f, transform.translateX, 0.001f)
         assertEquals(0f, transform.translateY, 0.001f)
         assertEquals(0f, transform.rotate, 0.001f)
         assertEquals(1f, transform.scale, 0.001f)
@@ -206,6 +219,7 @@ class CombinedTransformTest {
     @Test
     fun `default values create neutral transform`() {
         val transform = CombinedTransform()
+        assertEquals(0f, transform.translateX, 0.001f)
         assertEquals(0f, transform.translateY, 0.001f)
         assertEquals(0f, transform.rotate, 0.001f)
         assertEquals(1f, transform.scale, 0.001f)
@@ -216,12 +230,14 @@ class CombinedTransformTest {
     @Test
     fun `custom values are preserved`() {
         val transform = CombinedTransform(
+            translateX = 1.5f,
             translateY = 2.5f,
             rotate = 0.5f,
             scale = 0.996f,
             warmth = 0.4f,
             shimmer = 0.1f
         )
+        assertEquals(1.5f, transform.translateX, 0.001f)
         assertEquals(2.5f, transform.translateY, 0.001f)
         assertEquals(0.5f, transform.rotate, 0.001f)
         assertEquals(0.996f, transform.scale, 0.001f)
@@ -231,11 +247,87 @@ class CombinedTransformTest {
 
     @Test
     fun `equality works correctly`() {
-        val transform1 = CombinedTransform(2.5f, 0.5f, 0.996f, 0.4f, 0.1f)
-        val transform2 = CombinedTransform(2.5f, 0.5f, 0.996f, 0.4f, 0.1f)
-        val transform3 = CombinedTransform(2.5f, 0.5f, 0.996f, 0.4f, 0.2f)
+        val transform1 = CombinedTransform(0f, 2.5f, 0.5f, 0.996f, 0.4f, 0.1f)
+        val transform2 = CombinedTransform(0f, 2.5f, 0.5f, 0.996f, 0.4f, 0.1f)
+        val transform3 = CombinedTransform(0f, 2.5f, 0.5f, 0.996f, 0.4f, 0.2f)
 
         assertEquals(transform1, transform2)
         assertNotEquals(transform1, transform3)
+    }
+}
+
+/**
+ * Unit tests for lamp reaction affecting combined transform.
+ */
+class LampReactionTransformTest {
+
+    @Test
+    fun `lamp reaction adds translateX to combined transform`() {
+        val state = BetterThanHumanState(
+            lampReaction = LampReaction(offsetX = 3f)
+        )
+        val transform = state.combinedTransform
+
+        assertEquals(3f, transform.translateX, 0.001f)
+    }
+
+    @Test
+    fun `lamp reaction adds translateY to combined transform`() {
+        val state = BetterThanHumanState(
+            lampReaction = LampReaction(offsetY = -5f)
+        )
+        val transform = state.combinedTransform
+
+        assertEquals(-5f, transform.translateY, 0.001f)
+    }
+
+    @Test
+    fun `lamp reaction multiplies scale in combined transform`() {
+        val state = BetterThanHumanState(
+            lampReaction = LampReaction(scale = 1.08f)
+        )
+        val transform = state.combinedTransform
+
+        assertEquals(1.08f, transform.scale, 0.001f)
+    }
+
+    @Test
+    fun `lamp reaction adds rotation to combined transform`() {
+        val state = BetterThanHumanState(
+            lampReaction = LampReaction(rotation = 5f)
+        )
+        val transform = state.combinedTransform
+
+        assertEquals(5f, transform.rotate, 0.001f)
+    }
+
+    @Test
+    fun `lamp reaction combines with listening gesture`() {
+        val state = BetterThanHumanState(
+            listeningGesture = ListeningGesture.MICRO_NOD,
+            lampReaction = LampReaction(offsetY = -5f, rotation = 3f)
+        )
+        val transform = state.combinedTransform
+        val gestureTransform = ListeningGesture.MICRO_NOD.transform
+
+        // Transforms should add
+        val expectedY = gestureTransform.translateY + (-5f)
+        val expectedRotation = gestureTransform.rotate + 3f
+
+        assertEquals(expectedY, transform.translateY, 0.001f)
+        assertEquals(expectedRotation, transform.rotate, 0.001f)
+    }
+
+    @Test
+    fun `neutral lamp reaction does not affect transform`() {
+        val stateWithReaction = BetterThanHumanState(
+            listeningGesture = ListeningGesture.MICRO_NOD,
+            lampReaction = LampReaction() // neutral
+        )
+        val stateWithoutReaction = BetterThanHumanState(
+            listeningGesture = ListeningGesture.MICRO_NOD
+        )
+
+        assertEquals(stateWithReaction.combinedTransform, stateWithoutReaction.combinedTransform)
     }
 }

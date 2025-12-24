@@ -300,7 +300,7 @@ function injectStyles(): void {
     .contact-settings-input:focus {
       outline: none;
       border-color: var(--color-text-secondary);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .contact-settings-input::placeholder {

@@ -157,7 +157,10 @@ async function cacheFirst(request, cacheName) {
   
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // Only cache complete responses (status 200)
+    // Partial responses (206) cannot be cached - browsers reject them
+    // This happens with audio/video streams that use Range requests
+    if (response.ok && response.status === 200) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
@@ -176,7 +179,9 @@ async function cacheFirst(request, cacheName) {
 async function networkFirstWithCache(request, cacheName) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // Only cache complete responses (status 200)
+    // Partial responses (206) cannot be cached
+    if (response.ok && response.status === 200) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
