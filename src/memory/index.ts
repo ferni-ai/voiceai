@@ -181,6 +181,24 @@ export {
   type EmbeddingCacheConfig,
 } from './embedding-cache.js';
 
+// Semantic Memory Cache (performance - "Better than Human" optimization)
+export {
+  configureSemanticCache,
+  findSimilarCached,
+  storeInSemanticCache,
+  withSemanticCache,
+  clearUserSemanticCache,
+  clearAllSemanticCaches,
+  invalidateSemanticCache,
+  getSemanticCacheStats,
+  resetSemanticCacheStats,
+  getUserCacheInfo,
+  type CachedQuery,
+  type SemanticCacheConfig,
+  type CacheStats as SemanticCacheStats,
+  type CacheLookupResult,
+} from './semantic-memory-cache.js';
+
 // Memory Consolidation (long-term memory management)
 export {
   getMemoryConsolidator,

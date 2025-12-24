@@ -566,6 +566,15 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           await import('../shared/performance/speculative-preloading.js');
         clearSpeculativeState(sessionId);
       })(),
+
+      // Semantic memory cache cleanup ("Better than Human" memory query caching)
+      (async () => {
+        const { clearUserSemanticCache } = await import('../../memory/semantic-memory-cache.js');
+        // Clear semantic cache for this user (not session, since cache is per-user)
+        if (userId) {
+          clearUserSemanticCache(userId);
+        }
+      })(),
     ]);
 
     // Log any failures from service group
