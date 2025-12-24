@@ -21,6 +21,7 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { embed, cosineSimilarity } from './embeddings.js';
+import { findSimilarCached, storeInSemanticCache } from './semantic-memory-cache.js';
 import type { UserProfile, ConversationSummary, KeyMoment } from '../types/user-profile.js';
 
 const log = getLogger();
@@ -294,6 +295,9 @@ export function buildMemoryIndex(userId: string, profile: UserProfile): number {
 
 /**
  * Retrieve relevant memories for a query
+ *
+ * Uses semantic caching to avoid redundant queries. If a similar query
+ * was recently executed, returns cached results (~5ms vs ~200ms).
  */
 export async function retrieveMemories(
   userId: string,
@@ -301,6 +305,26 @@ export async function retrieveMemories(
   config: Partial<RetrievalConfig> = {}
 ): Promise<RetrievedMemory[]> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
+
+  // =========================================================================
+  // SEMANTIC CACHE CHECK - "Better than Human" optimization
+  // =========================================================================
+  // Check if we have a semantically similar cached query
+  // This saves ~150-200ms by avoiding redundant embedding generation and scoring
+  const cacheResult = await findSimilarCached<RetrievedMemory[]>(userId, context.query);
+  if (cacheResult.hit && cacheResult.result) {
+    log.debug(
+      {
+        userId,
+        query: context.query.slice(0, 30),
+        similarity: cacheResult.similarity?.toFixed(3),
+        savedMs: cacheResult.timeSavedMs,
+      },
+      '🎯 Semantic cache hit - returning cached memories'
+    );
+    return cacheResult.result;
+  }
+
   const memories = memoryIndex.get(userId);
 
   if (!memories || memories.length === 0) {
