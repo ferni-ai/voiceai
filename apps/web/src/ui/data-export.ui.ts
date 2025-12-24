@@ -261,7 +261,7 @@ class DataExportUI {
 
       .data-export__categories {
         padding: 0 var(--ma-silence, 34px);
-        max-height: 240px;
+        max-height: 320px;
         overflow-y: auto;
       }
 

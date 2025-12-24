@@ -2095,3 +2095,40 @@ export async function initializeMusicPlayer(
   const player = getMusicPlayer();
   await player.initialize(room, agentSession, sessionId);
 }
+
+/**
+ * Check if music playback is available for the current session.
+ * 
+ * This is useful for tools to check BEFORE attempting playback,
+ * so they can return a clear message to the LLM that music isn't available
+ * (rather than trying and failing with vague error messages).
+ * 
+ * @returns Object with availability status and reason
+ */
+export function isMusicAvailable(): { available: boolean; reason: string } {
+  // Check if singleton exists and is initialized
+  if (!musicPlayerInstance) {
+    return { 
+      available: false, 
+      reason: 'Music player not created - session may not support music playback' 
+    };
+  }
+  
+  if (!musicPlayerInstance.isInitialized()) {
+    return { 
+      available: false, 
+      reason: 'Music player not initialized for this session - audio system not ready' 
+    };
+  }
+  
+  // Check if LiveKit room is still connected
+  const state = musicPlayerInstance.getState();
+  if (!state.isInitialized) {
+    return { 
+      available: false, 
+      reason: 'Music player was disposed - session may have ended' 
+    };
+  }
+  
+  return { available: true, reason: 'Music playback available' };
+}

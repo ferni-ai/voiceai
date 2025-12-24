@@ -108,11 +108,14 @@ interface StoredResonanceProfile {
   };
 
   // Per-persona resonance (what works from each persona)
-  perPersonaResonance?: Record<string, {
-    resonantThemes: ThemeCategory[];
-    avoidThemes: ThemeCategory[];
-    lastInteraction: Date;
-  }>;
+  perPersonaResonance?: Record<
+    string,
+    {
+      resonantThemes: ThemeCategory[];
+      avoidThemes: ThemeCategory[];
+      lastInteraction: Date;
+    }
+  >;
 
   // Metadata
   totalExpressions: number;
@@ -597,4 +600,3 @@ export const sharedPersonalityResonanceStore = {
 };
 
 export default sharedPersonalityResonanceStore;
-

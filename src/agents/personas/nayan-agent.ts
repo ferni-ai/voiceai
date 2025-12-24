@@ -29,7 +29,7 @@ import {
 } from '../../tools/domains/memory/tools.js';
 
 // Wisdom tools - Nayan's specialty (from domains)
-import { createWisdomTools } from '../../tools/domains/information.js';
+import { createWisdomTools } from '../../tools/domains/wisdom/wisdom.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';

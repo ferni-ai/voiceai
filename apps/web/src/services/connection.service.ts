@@ -391,6 +391,23 @@ class ConnectionService {
       this.updateState('connected');
       this.startQualityMonitoring();
 
+      // 📊 Initialize disconnect diagnostics session
+      try {
+        const { startSession, trackPeerConnection } = await import('./disconnect-diagnostics.service.js');
+        const sessionId = tokenResponse.roomName || `session-${Date.now()}`;
+        startSession(sessionId, tokenResponse.roomName || 'unknown', tokenResponse.identity);
+        
+        // Track the RTCPeerConnection for WebRTC diagnostics
+        // LiveKit's Room internally uses RTCPeerConnection - try to access it
+        const pc = (this.room as any).engine?.pcManager?.publisher?.pc as RTCPeerConnection | undefined;
+        if (pc) {
+          trackPeerConnection(pc);
+          log.debug('📊 Tracking RTCPeerConnection for diagnostics');
+        }
+      } catch (err) {
+        log.debug({ error: String(err) }, 'Disconnect diagnostics not available');
+      }
+
       // Initialize Spotify Web Playback SDK now that user has interacted
       // This must happen after user interaction (browser autoplay policy)
       spotifyService.initialize().then((success) => {
@@ -843,15 +860,17 @@ class ConnectionService {
       this.room?.off('dataReceived', onDataReceived);
     });
 
-    // Disconnected
-    const onDisconnected = async () => {
+    // Disconnected - COMPREHENSIVE DIAGNOSTICS
+    const onDisconnected = async (reason?: unknown) => {
       const disconnectTime = Date.now();
       const wasGraceful = this.isDisconnecting; // Check if we initiated the disconnect
+      const disconnectReason = String(reason || 'unknown');
 
-      // 🚨 CRITICAL: Log ALL disconnects for debugging music crash issues
+      // 🚨 CRITICAL: Capture FULL disconnect diagnostics
       log.warn(
         {
           wasGraceful,
+          disconnectReason,
           roomName: this.room?.name,
           roomState: this.room?.state,
           isDisconnecting: this.isDisconnecting,
@@ -859,17 +878,27 @@ class ConnectionService {
         },
         wasGraceful
           ? '🔌 Graceful disconnect from LiveKit room'
-          : '🚨 UNEXPECTED DISCONNECT from LiveKit room - may be a crash!'
+          : `🚨 UNEXPECTED DISCONNECT from LiveKit room - reason: ${disconnectReason}`
       );
 
       this.updateState('disconnected');
 
+      // 📊 Capture comprehensive disconnect diagnostics
+      try {
+        const { captureDisconnectDiagnostic, endSession } = await import('./disconnect-diagnostics.service.js');
+        await captureDisconnectDiagnostic(disconnectReason, wasGraceful, this.room?.state);
+        endSession();
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to capture disconnect diagnostics');
+      }
+
       // Report unexpected disconnections to crash analytics with full context
       try {
         const { reportConnectionDrop } = await import('./crash-reporter.service.js');
-        reportConnectionDrop('LiveKit room disconnected', wasGraceful, {
+        reportConnectionDrop(`LiveKit disconnect: ${disconnectReason}`, wasGraceful, {
           roomName: this.room?.name,
           disconnectTime: new Date(disconnectTime).toISOString(),
+          disconnectReason,
           source: 'livekit_disconnected_event',
         });
       } catch (err) {

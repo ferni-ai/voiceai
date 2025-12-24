@@ -1907,12 +1907,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         void (async () => {
           try {
             // Import diagnostics module for rich context
-            const { logDisconnect, analyzeDisconnect } = await import('./shared/disconnect-diagnostics.js');
+            const { logDisconnect, analyzeDisconnect } =
+              await import('./shared/disconnect-diagnostics.js');
             const { recordConnectionDrop } = await import('./shared/crash-analytics.js');
-            
+
             // Get participant count if available
             const participantCount = ctx.room.remoteParticipants?.size ?? 0;
-            
+
             // Log with full diagnostic context
             logDisconnect({
               sessionId,
@@ -1925,7 +1926,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
               userId,
               personaId: persona?.id,
             });
-            
+
             // Also record in crash analytics
             const analysis = analyzeDisconnect({
               sessionId,
@@ -1939,7 +1940,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
             process.stderr.write(
               `[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`
             );
-            process.stderr.write(`[voice-agent-entry] Failed to capture disconnect diagnostics: ${e}\n`);
+            process.stderr.write(
+              `[voice-agent-entry] Failed to capture disconnect diagnostics: ${e}\n`
+            );
           }
         })();
 

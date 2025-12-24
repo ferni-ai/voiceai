@@ -3290,4 +3290,15 @@ export function hideRoadmapPanel(): void {
   getRoadmapPanelUI().hide();
 }
 
+/**
+ * Initialize roadmap panel event listeners
+ */
+export function initRoadmapPanelUI(): void {
+  // Listen for events to open roadmap panel (from founders journey, etc.)
+  document.addEventListener('ferni:open-roadmap', ((e: CustomEvent) => {
+    const featureId = e.detail?.featureId;
+    void showRoadmapPanel(featureId);
+  }) as EventListener);
+}
+
 export default RoadmapPanelUI;

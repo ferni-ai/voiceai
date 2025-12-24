@@ -21,7 +21,14 @@ import {
   isEcobeeConfigured,
   isApiConfigured,
 } from '../../../services/identity/ecobee-auth.js';
-import { getThermostatStatus, getSensorReadings } from '../../../services/identity/ecobee-api.js';
+import {
+  getThermostatStatus,
+  getSensorReadings,
+  setTemperature,
+  setClimateMode,
+  resumeSchedule,
+  setHvacMode,
+} from '../../../services/identity/ecobee-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ecobee-routes' });
@@ -63,10 +70,21 @@ export async function handleEcobeeRoutes(
   pathname: string,
   _parsedUrl: URL
 ): Promise<boolean> {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Set CORS headers - restrict to Ferni domains
+  const allowedOrigins = [
+    'https://app.ferni.ai',
+    'https://ferni.ai',
+    'https://ferni-prod.web.app',
+    'http://localhost:3004',
+    'http://localhost:3002',
+  ];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-ID');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -200,6 +218,124 @@ export async function handleEcobeeRoutes(
       sensors: sensorsResult.success ? sensorsResult.data : [],
       error: !statusResult.success ? statusResult.error : undefined,
     });
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/ecobee/temperature - Set temperature hold
+  // ============================================================================
+  if (pathname === '/api/ecobee/temperature' && req.method === 'POST') {
+    let body: { heat?: number; cool?: number; holdType?: string } = {};
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk as Buffer);
+      }
+      body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
+    } catch {
+      sendError(res, 400, 'Invalid JSON body');
+      return true;
+    }
+
+    if (body.heat === undefined && body.cool === undefined) {
+      sendError(res, 400, 'heat or cool temperature required');
+      return true;
+    }
+
+    const result = await setTemperature(userId, {
+      heatHoldTemp: body.heat,
+      coolHoldTemp: body.cool,
+      holdType: body.holdType as 'nextTransition' | 'indefinite' | undefined,
+    });
+
+    if (!result.success) {
+      sendError(res, 500, result.error || 'Failed to set temperature');
+      return true;
+    }
+
+    sendJson(res, 200, { success: true, message: result.data });
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/ecobee/climate - Set climate mode (home/away/sleep)
+  // ============================================================================
+  if (pathname === '/api/ecobee/climate' && req.method === 'POST') {
+    let body: { climate: string; holdType?: string } = { climate: '' };
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk as Buffer);
+      }
+      body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
+    } catch {
+      sendError(res, 400, 'Invalid JSON body');
+      return true;
+    }
+
+    if (!body.climate || !['home', 'away', 'sleep'].includes(body.climate)) {
+      sendError(res, 400, 'climate must be home, away, or sleep');
+      return true;
+    }
+
+    const result = await setClimateMode(userId, {
+      climate: body.climate as 'home' | 'away' | 'sleep',
+      holdType: body.holdType as 'nextTransition' | 'indefinite' | undefined,
+    });
+
+    if (!result.success) {
+      sendError(res, 500, result.error || 'Failed to set climate mode');
+      return true;
+    }
+
+    sendJson(res, 200, { success: true, message: result.data });
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/ecobee/resume - Resume regular schedule
+  // ============================================================================
+  if (pathname === '/api/ecobee/resume' && req.method === 'POST') {
+    const result = await resumeSchedule(userId);
+
+    if (!result.success) {
+      sendError(res, 500, result.error || 'Failed to resume schedule');
+      return true;
+    }
+
+    sendJson(res, 200, { success: true, message: result.data });
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/ecobee/hvac - Set HVAC mode (heat/cool/auto/off)
+  // ============================================================================
+  if (pathname === '/api/ecobee/hvac' && req.method === 'POST') {
+    let body: { mode: string } = { mode: '' };
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk as Buffer);
+      }
+      body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
+    } catch {
+      sendError(res, 400, 'Invalid JSON body');
+      return true;
+    }
+
+    if (!body.mode || !['heat', 'cool', 'auto', 'off'].includes(body.mode)) {
+      sendError(res, 400, 'mode must be heat, cool, auto, or off');
+      return true;
+    }
+
+    const result = await setHvacMode(userId, body.mode as 'heat' | 'cool' | 'auto' | 'off');
+
+    if (!result.success) {
+      sendError(res, 500, result.error || 'Failed to set HVAC mode');
+      return true;
+    }
+
+    sendJson(res, 200, { success: true, message: result.data });
     return true;
   }
 

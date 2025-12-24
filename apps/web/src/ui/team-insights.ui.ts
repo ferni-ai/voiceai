@@ -431,9 +431,74 @@ function createPanel(): HTMLElement {
         <div class="team-insights-list" style="display: none;"></div>
         
         <div class="team-insights-empty" style="display: none;">
-          <span class="empty-icon">${ICONS.sparkles}</span>
-          <p>No new insights right now.</p>
-          <p class="team-insights-subtext">The team is always watching out for you.</p>
+          <!-- Hero: Icon + Title -->
+          <div class="team-insights-empty__hero">
+            <div class="team-insights-empty__icon">${ICONS.users}</div>
+            <div class="team-insights-empty__text">
+              <h3 class="team-insights-empty__title">Your team is always watching</h3>
+              <p class="team-insights-empty__message">
+                Six brilliant minds working together behind the scenes. 
+                When they notice something—a pattern, an opportunity, a moment 
+                that matters—they'll surface it here.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Team Preview - The Six Minds -->
+          <div class="team-insights-empty__team">
+            <div class="team-insights-empty__label">Your Inner Circle</div>
+            <div class="team-insights-empty__personas">
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-ferni, #4a6741);">FE</div>
+                <span class="team-insights-empty__persona-name">Ferni</span>
+              </div>
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-peter, #3a6b73);">PJ</div>
+                <span class="team-insights-empty__persona-name">Peter</span>
+              </div>
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-maya, #a67a6a);">MS</div>
+                <span class="team-insights-empty__persona-name">Maya</span>
+              </div>
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-jordan, #c4856a);">JT</div>
+                <span class="team-insights-empty__persona-name">Jordan</span>
+              </div>
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-alex, #5a6b8a);">AC</div>
+                <span class="team-insights-empty__persona-name">Alex</span>
+              </div>
+              <div class="team-insights-empty__persona">
+                <div class="team-insights-empty__avatar" style="background: var(--persona-nayan, #8a7a6a);">NA</div>
+                <span class="team-insights-empty__persona-name">Nayan</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Capabilities Preview -->
+          <div class="team-insights-empty__capabilities">
+            <div class="team-insights-empty__capability">
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.peter.icon}</span>
+              Pattern spotting
+            </div>
+            <div class="team-insights-empty__capability">
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.maya.icon}</span>
+              Habit tracking
+            </div>
+            <div class="team-insights-empty__capability">
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.jordan.icon}</span>
+              Goal progress
+            </div>
+            <div class="team-insights-empty__capability">
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.nayan.icon}</span>
+              Wisdom moments
+            </div>
+          </div>
+          
+          <!-- Vision Statement -->
+          <div class="team-insights-empty__vision">
+            Insights will appear as the team notices things worth sharing.
+          </div>
         </div>
       </div>
       
@@ -486,7 +551,7 @@ function renderInsightsList(): void {
   }
 
   if (state.insights.length === 0) {
-    emptyEl.style.display = 'flex';
+    emptyEl.style.display = 'block';
     return;
   }
 
@@ -697,8 +762,8 @@ function injectStyles(): void {
     .team-insights-content {
       position: relative;
       width: 90%;
-      max-width: clamp(350px, 90vw, 500px);
-      max-height: 80vh;
+      max-width: 460px;
+      max-height: 85vh;
       background: var(--color-bg-elevated, #faf6f0);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
@@ -796,8 +861,7 @@ function injectStyles(): void {
     }
     
     .team-insights-loading,
-    .team-insights-error,
-    .team-insights-empty {
+    .team-insights-error {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -821,6 +885,147 @@ function injectStyles(): void {
       to { transform: rotate(360deg); }
     }
     
+    /* Empty State - Storytelling Design */
+    .team-insights-empty {
+      padding: 0;
+      color: var(--color-text-secondary);
+    }
+    
+    .team-insights-empty__hero {
+      display: flex;
+      gap: var(--space-md, 16px);
+      align-items: flex-start;
+      margin-bottom: var(--space-lg, 26px);
+    }
+    
+    .team-insights-empty__icon {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      color: var(--persona-primary, var(--color-ferni));
+    }
+    
+    .team-insights-empty__icon svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .team-insights-empty__text {
+      flex: 1;
+      min-width: 0; /* Prevent flex overflow */
+    }
+    
+    .team-insights-empty__title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 var(--space-xs, 4px) 0;
+      line-height: 1.3;
+    }
+    
+    .team-insights-empty__message {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    /* Team Preview - The Six Minds */
+    .team-insights-empty__team {
+      margin-bottom: var(--space-lg, 26px);
+      text-align: center;
+    }
+    
+    .team-insights-empty__label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-sm, 8px);
+    }
+    
+    .team-insights-empty__personas {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: var(--space-sm, 8px);
+    }
+    
+    .team-insights-empty__persona {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2xs, 4px);
+      opacity: 0.85;
+      transition: opacity var(--duration-fast, 100ms) ease;
+    }
+    
+    .team-insights-empty__persona:hover {
+      opacity: 1;
+    }
+    
+    .team-insights-empty__avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .team-insights-empty__persona-name {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+    
+    /* Capabilities Preview */
+    .team-insights-empty__capabilities {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-sm, 8px);
+      margin-bottom: var(--space-lg, 26px);
+    }
+    
+    .team-insights-empty__capability {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 6px);
+      padding: var(--space-sm, 8px) var(--space-md, 12px);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      background: var(--color-bg-subtle, rgba(112, 96, 90, 0.03));
+      border-radius: var(--radius-md, 8px);
+      white-space: nowrap;
+    }
+    
+    .team-insights-empty__capability-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+    
+    .team-insights-empty__capability-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Vision Statement */
+    .team-insights-empty__vision {
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      font-style: italic;
+      padding: var(--space-md, 16px) var(--space-sm, 8px);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    
+    /* Legacy fallback classes */
     .empty-icon {
       width: 48px;
       height: 48px;
@@ -918,6 +1123,27 @@ function injectStyles(): void {
       font-style: italic;
     }
     
+    /* Responsive - Small Screens */
+    @media (max-width: 400px) {
+      .team-insights-empty__capabilities {
+        grid-template-columns: 1fr;
+      }
+      
+      .team-insights-empty__personas {
+        gap: var(--space-xs, 4px);
+      }
+      
+      .team-insights-empty__avatar {
+        width: 38px;
+        height: 38px;
+        font-size: 11px;
+      }
+      
+      .team-insights-empty__persona-name {
+        font-size: 10px;
+      }
+    }
+    
     @media (prefers-reduced-motion: reduce) {
       .team-insights-panel,
       .team-insights-content,
@@ -931,6 +1157,19 @@ function injectStyles(): void {
       .team-insight-card.insight-new {
         animation: none;
       }
+    }
+    
+    /* Dark theme overrides */
+    [data-theme="midnight"] .team-insights-empty__title {
+      color: var(--color-text-primary);
+    }
+    
+    [data-theme="midnight"] .team-insights-empty__capability {
+      background: var(--color-bg-secondary);
+    }
+    
+    [data-theme="midnight"] .team-insights-empty__vision {
+      border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
     }
   `;
   document.head.appendChild(styleEl);

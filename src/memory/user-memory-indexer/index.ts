@@ -38,6 +38,14 @@ import {
 // Import human memory indexers
 import { indexHumanMemory } from './human-memory-indexers.js';
 
+// Import extended indexers
+import {
+  indexVoiceJournals,
+  indexCustomAgents,
+  indexContactNotes,
+  indexHabits,
+} from './extended-indexers.js';
+
 const log = getLogger().child({ module: 'UserMemoryIndexer' });
 
 // ============================================================================
@@ -50,6 +58,7 @@ export type { UserMemoryCategory, IndexingResult, AnyVectorStore } from './types
 // Re-export all individual indexers for granular use
 export * from './profile-indexers.js';
 export * from './human-memory-indexers.js';
+export * from './extended-indexers.js';
 
 // ============================================================================
 // MAIN INDEXING FUNCTION

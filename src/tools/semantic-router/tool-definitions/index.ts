@@ -41,12 +41,8 @@ export {
 export { memoryTools, rememberTool, recallTool, peopleMemoryTool } from './memory.semantic.js';
 
 // Wellness (grounding, mental health support)
-export {
-  wellnessTools,
-  groundingExerciseTool,
-  wellnessCheckinTool,
-  sleepHelpTool,
-} from './wellness.semantic.js';
+// NOTE: sleepHelpTool removed - consolidated into health domain (see HEALTH-HOME-WELLNESS-AUDIT.md)
+export { wellnessTools, groundingExerciseTool, wellnessCheckinTool } from './wellness.semantic.js';
 
 // Information (time, date, news, search)
 export {
@@ -373,7 +369,7 @@ export {
 export {
   traumaSupportTools,
   traumaAwareSupportTool,
-  groundingExerciseTool as traumaGroundingTool,
+  traumaGroundingTool, // Distinct from wellness/groundingExerciseTool
   windowOfToleranceTool,
   traumaEducationTool,
   traumaTimelineTool,

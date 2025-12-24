@@ -22,6 +22,7 @@ import { appState } from '../state/app.state.js';
 import { openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { openFoundersJourney } from './founders-journey.ui.js';
 import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.ui.js';
 import { toast } from './toast.ui.js';
 
@@ -62,6 +63,12 @@ const ICONS = {
   </svg>`,
   externalLink: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>
+  </svg>`,
+  compass: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+  </svg>`,
+  arrowRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
   </svg>`,
 };
 
@@ -206,6 +213,13 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
       </header>
 
       <div class="support-ferni-content">
+        <!-- Vision Journey Link -->
+        <button class="support-ferni-journey-btn" data-action="see-vision">
+          ${ICONS.compass}
+          <span>${t('support.seeVision')}</span>
+          ${ICONS.arrowRight}
+        </button>
+
         <!-- Cost Transparency Section -->
         ${renderCostTransparency()}
 
@@ -278,6 +292,13 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   // Billing portal link
   const billingLink = container.querySelector('[data-action="billing"]');
   billingLink?.addEventListener('click', () => void handleOpenBillingPortal());
+
+  // Vision journey button
+  const visionBtn = container.querySelector('[data-action="see-vision"]');
+  visionBtn?.addEventListener('click', () => {
+    closeSupportFerni();
+    void openFoundersJourney();
+  });
 
   return container;
 }
@@ -1119,6 +1140,47 @@ function injectStyles(): void {
       opacity: 0.6;
     }
 
+    /* Vision Journey Button */
+    .support-ferni-journey-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      width: 100%;
+      padding: var(--space-4, 16px);
+      margin-bottom: var(--space-6, 24px);
+      background: linear-gradient(135deg, var(--persona-tint), transparent);
+      border: 2px solid var(--persona-primary);
+      border-radius: var(--radius-xl, 16px);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--persona-primary);
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .support-ferni-journey-btn:hover {
+      background: var(--persona-tint);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.15);
+    }
+
+    .support-ferni-journey-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--persona-tint);
+    }
+
+    .support-ferni-journey-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .support-ferni-journey-btn svg:last-child {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
     /* Footer */
     .support-ferni-footer {
       text-align: center;
@@ -1192,9 +1254,26 @@ function injectStyles(): void {
 // EXPORTS
 // ============================================================================
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize Support Ferni UI event listeners
+ */
+export function initSupportFerniUI(): void {
+  // Listen for events to open support modal (from founders journey CTA)
+  document.addEventListener('ferni:open-support', () => {
+    void openSupportFerni();
+  });
+
+  log.debug('Support Ferni UI initialized');
+}
+
 export const supportFerniUI = {
   open: openSupportFerni,
   close: closeSupportFerni,
+  init: initSupportFerniUI,
 };
 
 export default supportFerniUI;

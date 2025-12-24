@@ -31,6 +31,14 @@ export interface IntegrationStatus {
   calendar: {
     connected: boolean;
   };
+  linkedin: {
+    connected: boolean;
+    profile?: {
+      firstName: string;
+      lastName: string;
+      headline?: string;
+    } | null;
+  };
   banking: {
     connected: boolean;
     institution?: string | null;
@@ -46,6 +54,7 @@ export interface IntegrationCapabilities {
   sleepAwareness: boolean;
   eventAnticipation: boolean;
   locationAwareness: boolean;
+  careerAwareness: boolean;
   financialPrediction: boolean;
   relationshipInsights: boolean;
 }
@@ -55,6 +64,8 @@ export interface IntegrationsUICallbacks {
   onDisconnectBiometrics?: () => void;
   onConnectCalendar?: () => void;
   onDisconnectCalendar?: () => void;
+  onConnectLinkedIn?: () => void;
+  onDisconnectLinkedIn?: () => void;
   onConnectBanking?: () => void;
   onDisconnectBanking?: () => void;
   onViewSocialGraph?: () => void;
@@ -80,6 +91,8 @@ const ICONS = {
   unlink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg>',
   chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>',
   sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
+  briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
 };
 
 // ============================================================================
@@ -150,6 +163,7 @@ class IntegrationsSettingsUI {
       this.status = {
         biometrics: { connected: false, platform: null },
         calendar: { connected: false },
+        linkedin: { connected: false, profile: null },
         banking: { connected: false },
         socialGraph: { enabled: true, peopleTracked: 0 },
       };
@@ -158,6 +172,7 @@ class IntegrationsSettingsUI {
         sleepAwareness: false,
         eventAnticipation: false,
         locationAwareness: false,
+        careerAwareness: false,
         financialPrediction: false,
         relationshipInsights: false,
       };
@@ -292,6 +307,47 @@ class IntegrationsSettingsUI {
             `}
           </section>
 
+          <!-- LinkedIn Section -->
+          <section class="integrations-settings__section">
+            <div class="integrations-settings__section-header">
+              <span class="integrations-settings__section-icon">${ICONS.linkedin}</span>
+              <div class="integrations-settings__section-info">
+                <h3>Career</h3>
+                <p>Remember work anniversaries, role changes, and career wins</p>
+              </div>
+              ${this.renderStatusBadge(this.status.linkedin.connected)}
+            </div>
+
+            ${this.status.linkedin.connected ? `
+              <div class="integrations-settings__connected-info">
+                <span class="integrations-settings__platform-name">${
+                  this.status.linkedin.profile 
+                    ? `${this.status.linkedin.profile.firstName} ${this.status.linkedin.profile.lastName}` 
+                    : 'LinkedIn Connected'
+                }</span>
+                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-linkedin">
+                  ${ICONS.unlink}
+                  <span>Disconnect</span>
+                </button>
+              </div>
+              ${this.status.linkedin.profile?.headline ? `
+                <p class="integrations-settings__profile-headline">${this.status.linkedin.profile.headline}</p>
+              ` : ''}
+              <div class="integrations-settings__capabilities-list">
+                ${this.renderCapability('Career milestone awareness', capabilities.careerAwareness)}
+              </div>
+            ` : `
+              <button aria-label="Connect LinkedIn" class="integrations-settings__connect-btn" data-action="connect-linkedin">
+                ${ICONS.link}
+                <span>Connect LinkedIn</span>
+              </button>
+              <p class="integrations-settings__privacy-note">
+                ${ICONS.shield}
+                We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
+              </p>
+            `}
+          </section>
+
           <!-- Banking Section -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">
@@ -388,6 +444,14 @@ class IntegrationsSettingsUI {
 
     this.panel.querySelector('[data-action="disconnect-calendar"]')?.addEventListener('click', () => {
       this.callbacks.onDisconnectCalendar?.();
+    });
+
+    this.panel.querySelector('[data-action="connect-linkedin"]')?.addEventListener('click', () => {
+      this.callbacks.onConnectLinkedIn?.();
+    });
+
+    this.panel.querySelector('[data-action="disconnect-linkedin"]')?.addEventListener('click', () => {
+      this.callbacks.onDisconnectLinkedIn?.();
     });
 
     this.panel.querySelector('[data-action="connect-banking"]')?.addEventListener('click', () => {
@@ -717,6 +781,15 @@ class IntegrationsSettingsUI {
         color: var(--color-text-primary, #2c2520);
       }
 
+      .integrations-settings__profile-headline {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        margin: 0 0 var(--space-3, 12px) 0;
+        padding: 0 var(--space-3, 12px);
+        line-height: 1.4;
+      }
+
       .integrations-settings__disconnect-btn {
         display: flex;
         align-items: center;
@@ -1018,6 +1091,10 @@ class IntegrationsSettingsUI {
 
       [data-theme="midnight"] .integrations-settings__platform-name {
         color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .integrations-settings__profile-headline {
+        color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn {

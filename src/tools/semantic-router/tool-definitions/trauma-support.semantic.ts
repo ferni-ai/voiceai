@@ -99,10 +99,12 @@ export const traumaAwareSupportTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
-// GROUNDING EXERCISE
+// TRAUMA-SPECIFIC GROUNDING
+// Different from wellness/groundingExerciseTool - this one targets trauma language
+// (flashbacks, dissociation, triggered) vs general anxiety/stress
 // ============================================================================
 
-export const groundingExerciseTool: SemanticToolDefinition = {
+export const traumaGroundingTool: SemanticToolDefinition = {
   id: 'trauma_grounding',
   name: 'Grounding Exercise',
   description: 'Guide through grounding exercises for dysregulation or flashbacks.',
@@ -551,7 +553,7 @@ export const professionalResourceFinderTool: SemanticToolDefinition = {
 
 export const traumaSupportTools: SemanticToolDefinition[] = [
   traumaAwareSupportTool,
-  groundingExerciseTool,
+  traumaGroundingTool, // Renamed from groundingExerciseTool to avoid collision
   windowOfToleranceTool,
   traumaEducationTool,
   traumaTimelineTool,

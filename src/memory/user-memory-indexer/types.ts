@@ -43,7 +43,12 @@ export type UserMemoryCategory =
   | 'temporal_pattern'
   | 'comfort_pattern'
   | 'stress_trigger'
-  | 'emotional_tell';
+  | 'emotional_tell'
+  // Extended domains (added for comprehensive coverage)
+  | 'voice_journal'
+  | 'custom_agent'
+  | 'contact_note'
+  | 'habit';
 
 /** Result of indexing operation */
 export interface IndexingResult {

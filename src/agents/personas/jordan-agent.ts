@@ -29,11 +29,9 @@ import {
 } from '../../tools/domains/memory/tools.js';
 
 // Life planning tools - Jordan's specialty (from domains)
-import {
-  createGoalManagementTools,
-  createEventPlanningTools,
-  createLifeFirstsTools,
-} from '../../tools/domains/life-planning.js';
+import { createGoalManagementTools } from '../../tools/domains/life-planning/goal-management.js';
+import { createEventPlanningTools } from '../../tools/domains/life-planning/event-planning.js';
+import { createLifeFirstsTools } from '../../tools/domains/life-planning/life-firsts-tracker.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';

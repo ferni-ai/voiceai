@@ -267,12 +267,9 @@ export function addMetricEmphasis(text: string, emotion: string): string {
   );
 
   // Milestone numbers - excited recognition
-  result = result.replace(
-    /\b(7|14|21|30|60|66|90|100|365)\s*(day|week|month)s?\b/gi,
-    (match) => {
-      return `<emotion value="proud"/><speed ratio="1.0"/>${match}<break time="150ms"/>`;
-    }
-  );
+  result = result.replace(/\b(7|14|21|30|60|66|90|100|365)\s*(day|week|month)s?\b/gi, (match) => {
+    return `<emotion value="proud"/><speed ratio="1.0"/>${match}<break time="150ms"/>`;
+  });
 
   // Percentage improvements - warm emphasis
   result = result.replace(

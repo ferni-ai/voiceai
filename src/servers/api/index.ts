@@ -270,7 +270,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Spotify Rooms routes (multi-room audio)
-  if (pathname.startsWith('/api/spotify-rooms')) {
+  if (pathname.startsWith('/api/spotify/rooms') || pathname.startsWith('/api/spotify/devices')) {
     if (await handleSpotifyRoomsRoutes(req, res, pathname, parsedUrl)) return;
   }
 
@@ -740,7 +740,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Crash report routes (frontend crash analytics)
-    if (pathname.startsWith('/api/crash-report')) {
+    // Also handles /api/disconnect-diagnostic for client-side disconnect diagnostics
+    if (pathname.startsWith('/api/crash-report') || pathname.startsWith('/api/disconnect-diagnostic')) {
       const handled = await handleCrashReportRoutes(req, res);
       if (handled) return;
     }

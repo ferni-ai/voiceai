@@ -453,6 +453,13 @@
     "title": "プランを管理"
   },
   "menu": {
+    "greeting": {
+      "morning": "おはようございます",
+      "afternoon": "こんにちは",
+      "evening": "こんばんは",
+      "night": "おやすみなさい",
+      "lateNight": "まだ起きてる？"
+    },
     "almostThere": "もう少し！",
     "comingSoon": "近日公開",
     "items": {
@@ -527,6 +534,11 @@
       "preferences": "Your Way",
       "remember": "思い出す",
       "youAndFerni": "You & Ferni"
+    },
+    "subgroups": {
+      "yourBody": "健康とウェルネス",
+      "yourCalendar": "カレンダーと仕事",
+      "yourSpace": "ホームとミュージック"
     },
     "title": "次は何をしますか？",
     "unlockHint": "解除まであと{remaining}",

@@ -91,7 +91,7 @@ import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
 import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
-import { showIntegrationsSettings } from './ui/integrations-settings.ui.js';
+import { showIntegrationsSettings, getIntegrationsSettingsUI } from './ui/integrations-settings.ui.js';
 import { openDigitalTwinUI } from './ui/digital-twin.ui.js';
 import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
@@ -230,7 +230,7 @@ import { showOuraSettings } from './ui/oura-settings.ui.js';
 // Apple Health Settings UI - iOS HealthKit sync
 import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
 // LinkedIn connection for career awareness (used as fallback)
-import { connectLinkedIn, handleLinkedInCallback } from './services/linkedin.service.js';
+import { connectLinkedIn, disconnectLinkedIn, handleLinkedInCallback } from './services/linkedin.service.js';
 // Group Coaching UI - Multi-participant sessions
 import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
@@ -284,6 +284,10 @@ import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
+// Support Ferni - Founders Fund experience
+import { initSupportFerniUI } from './ui/support-ferni.ui.js';
+// Roadmap Panel - What's Growing feature voting
+import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -430,6 +434,16 @@ class VoiceAIApp {
       initCrashReporter();
     } catch (e) {
       log.warn('Failed to initialize crash reporter:', e);
+    }
+
+    // Initialize disconnect diagnostics for detailed mic drop analysis
+    try {
+      const { initDisconnectDiagnostics, flushStoredDiagnostics } = await import('./services/disconnect-diagnostics.service.js');
+      initDisconnectDiagnostics();
+      // Flush any diagnostics stored from previous session
+      void flushStoredDiagnostics();
+    } catch (e) {
+      log.warn('Failed to initialize disconnect diagnostics:', e);
     }
 
     // Initialize offline service (service worker, sync queue)
@@ -1501,6 +1515,12 @@ class VoiceAIApp {
     // Philosophy: "Limits feel like natural breaks, not walls."
     this.safeInit('SubscriptionUI', () => initSubscriptionUI());
 
+    // 💚 Support Ferni / Founders Fund - Community-driven support
+    this.safeInit('SupportFerniUI', () => initSupportFerniUI());
+
+    // 🌱 Roadmap Panel - "What's Growing" feature voting
+    this.safeInit('RoadmapPanelUI', () => initRoadmapPanelUI());
+
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
 
@@ -1644,6 +1664,33 @@ class VoiceAIApp {
     // 🔔 Push Notifications
     this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
     this.safeInit('PushNotifications', () => void initPushNotifications());
+
+    // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
+    this.safeInit('IntegrationsSettingsUI', () => {
+      getIntegrationsSettingsUI().initialize();
+      getIntegrationsSettingsUI().setCallbacks({
+        onConnectLinkedIn: () => {
+          void connectLinkedIn();
+        },
+        onDisconnectLinkedIn: () => {
+          void disconnectLinkedIn();
+        },
+        onConnectCalendar: () => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          window.location.href = `/auth/google/calendar?userId=${userId}`;
+        },
+        onConnectBiometrics: (platform) => {
+          // TODO: Implement biometrics OAuth for each platform
+          log.info('Connect biometrics requested', { platform });
+          messageUI.show(`${platform} connection coming soon!`, 'info', 3000);
+        },
+        onConnectBanking: () => {
+          // TODO: Implement Plaid integration
+          log.info('Connect banking requested');
+          messageUI.show('Banking integration coming soon!', 'info', 3000);
+        },
+      });
+    });
 
     // 📬 Listen for push notification navigation events
     this.addTrackedListener(window, 'ferni:open-engagement', () => {

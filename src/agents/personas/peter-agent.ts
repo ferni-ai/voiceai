@@ -30,7 +30,7 @@ import {
 
 // Research tools - Peter's specialty (from domains)
 import { createResearchTools, createInsightsAnalysisTools } from '../../tools/domains/agent.js';
-import { createMarketDataTools } from '../../tools/domains/financial.js';
+import { createMarketDataTools } from '../../tools/domains/finance/market-data.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';

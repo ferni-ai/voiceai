@@ -315,8 +315,10 @@ export const sleepHelpTool: SemanticToolDefinition = {
 // EXPORTS
 // ============================================================================
 
+// NOTE: Sleep tools are handled by health.semantic.ts (analyzeSleepPattern, suggestSleepHygiene)
+// to avoid routing conflicts. Sleep is a physical health domain concern.
 export const wellnessTools: SemanticToolDefinition[] = [
   groundingExerciseTool,
   wellnessCheckinTool,
-  sleepHelpTool,
+  // sleepHelpTool removed - consolidated into health domain (see HEALTH-HOME-WELLNESS-AUDIT.md)
 ];

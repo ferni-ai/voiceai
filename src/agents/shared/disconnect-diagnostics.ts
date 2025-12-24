@@ -30,12 +30,15 @@ const log = createLogger({ module: 'DisconnectDiagnostics' });
 // DISCONNECT REASON MAPPING
 // ============================================================================
 
-export const DISCONNECT_REASONS: Record<number, {
-  name: string;
-  description: string;
-  severity: 'info' | 'warning' | 'error';
-  likelyCauses: string[];
-}> = {
+export const DISCONNECT_REASONS: Record<
+  number,
+  {
+    name: string;
+    description: string;
+    severity: 'info' | 'warning' | 'error';
+    likelyCauses: string[];
+  }
+> = {
   0: {
     name: 'UNKNOWN_REASON',
     description: 'Disconnect reason not specified',
@@ -142,14 +145,14 @@ export function getInstanceId(): string {
   // Use combination of hostname and process ID for uniqueness
   const hostname = os.hostname();
   const pid = process.pid;
-  
+
   // Also include container ID if running in Docker
   const containerId = process.env.HOSTNAME || '';
-  
+
   if (containerId && containerId !== hostname) {
     return `${containerId.substring(0, 12)}-${pid}`;
   }
-  
+
   return `${hostname.substring(0, 12)}-${pid}`;
 }
 
@@ -201,48 +204,47 @@ export interface DisconnectAnalysis {
  * Analyze a disconnect event and provide diagnostic information
  */
 export function analyzeDisconnect(context: DisconnectContext): DisconnectAnalysis {
-  const reasonCode = typeof context.reason === 'number' 
-    ? context.reason 
-    : parseInt(String(context.reason), 10) || 0;
-  
+  const reasonCode =
+    typeof context.reason === 'number' ? context.reason : parseInt(String(context.reason), 10) || 0;
+
   const reasonInfo = DISCONNECT_REASONS[reasonCode] || DISCONNECT_REASONS[0];
-  
+
   // Determine if graceful (user-initiated or expected)
   const gracefulCodes = [1, 8, 12]; // CLIENT_INITIATED, MIGRATION, USER_REJECTED
   const wasGraceful = gracefulCodes.includes(reasonCode);
-  
+
   // Determine if needs investigation
   const criticalCodes = [2, 6, 10]; // DUPLICATE_IDENTITY, STATE_MISMATCH, ROOM_CLOSED
-  const requiresInvestigation = criticalCodes.includes(reasonCode) || 
-    (context.durationMs < 60000 && !wasGraceful); // Disconnects within 1 min are suspicious
-  
+  const requiresInvestigation =
+    criticalCodes.includes(reasonCode) || (context.durationMs < 60000 && !wasGraceful); // Disconnects within 1 min are suspicious
+
   // Build recommendations
   const recommendations: string[] = [];
-  
+
   if (reasonCode === 10) {
     recommendations.push(
       'Check for multiple agent instances running simultaneously',
       'Verify only one deployment type is active (standalone VM OR MIG, not both)',
       'Run: gcloud compute instances list | grep voiceai',
-      'Check LiveKit dashboard for multiple agent registrations',
+      'Check LiveKit dashboard for multiple agent registrations'
     );
   }
-  
+
   if (reasonCode === 2) {
     recommendations.push(
       'Check for agent identity collisions',
       'Verify AGENT_NAME env var is unique per deployment',
-      'Check for zombie processes or containers',
+      'Check for zombie processes or containers'
     );
   }
-  
+
   if (context.durationMs < 30000 && !wasGraceful) {
     recommendations.push(
       'Session was very short - check for initialization issues',
-      'Check logs for errors in greeting/TTS/LLM setup',
+      'Check logs for errors in greeting/TTS/LLM setup'
     );
   }
-  
+
   return {
     reasonCode,
     reasonName: reasonInfo.name,
@@ -261,36 +263,36 @@ export function analyzeDisconnect(context: DisconnectContext): DisconnectAnalysi
  */
 export function logDisconnect(context: DisconnectContext): void {
   const analysis = analyzeDisconnect(context);
-  
+
   const logData = {
     // Session info
     sessionId: context.sessionId,
     roomName: context.roomName,
     userId: context.userId,
     personaId: context.personaId,
-    
+
     // Disconnect details
     reasonCode: analysis.reasonCode,
     reasonName: analysis.reasonName,
     description: analysis.description,
     wasGraceful: analysis.wasGraceful,
-    
+
     // Session metrics
     durationMs: context.durationMs,
     durationMinutes: (context.durationMs / 60000).toFixed(2),
     turnCount: context.turnCount,
     participantCount: context.participantCount,
     wasActive: context.wasActive,
-    
+
     // Instance info
     ...analysis.instanceMetadata,
-    
+
     // Investigation
     requiresInvestigation: analysis.requiresInvestigation,
     likelyCauses: analysis.likelyCauses,
     recommendations: analysis.recommendations,
   };
-  
+
   // Log at appropriate level
   if (analysis.severity === 'error' || analysis.requiresInvestigation) {
     log.error(logData, `🔌 DISCONNECT: ${analysis.reasonName} - ${analysis.description}`);
@@ -299,17 +301,17 @@ export function logDisconnect(context: DisconnectContext): void {
   } else {
     log.info(logData, `🔌 Disconnect: ${analysis.reasonName}`);
   }
-  
+
   // Also write to stderr for immediate visibility
   if (analysis.requiresInvestigation) {
     process.stderr.write(
       `\n⚠️  DISCONNECT REQUIRES INVESTIGATION\n` +
-      `   Reason: ${analysis.reasonName} (code ${analysis.reasonCode})\n` +
-      `   Session: ${context.sessionId}\n` +
-      `   Duration: ${(context.durationMs / 1000).toFixed(1)}s\n` +
-      `   Instance: ${analysis.instanceMetadata.instanceId}\n` +
-      `   Likely causes:\n${analysis.likelyCauses.map(c => `     - ${c}`).join('\n')}\n` +
-      `   Recommendations:\n${analysis.recommendations.map(r => `     - ${r}`).join('\n')}\n\n`
+        `   Reason: ${analysis.reasonName} (code ${analysis.reasonCode})\n` +
+        `   Session: ${context.sessionId}\n` +
+        `   Duration: ${(context.durationMs / 1000).toFixed(1)}s\n` +
+        `   Instance: ${analysis.instanceMetadata.instanceId}\n` +
+        `   Likely causes:\n${analysis.likelyCauses.map((c) => `     - ${c}`).join('\n')}\n` +
+        `   Recommendations:\n${analysis.recommendations.map((r) => `     - ${r}`).join('\n')}\n\n`
     );
   }
 }
@@ -322,39 +324,48 @@ export function logDisconnect(context: DisconnectContext): void {
  * Log job availability request (for detecting multi-instance conflicts)
  */
 export function logJobAvailability(jobId: string, roomName: string): void {
-  log.info({
-    event: 'job_availability',
-    jobId,
-    roomName,
-    ...getInstanceMetadata(),
-    timestamp: new Date().toISOString(),
-  }, `📋 Job availability request: ${jobId} (room: ${roomName})`);
+  log.info(
+    {
+      event: 'job_availability',
+      jobId,
+      roomName,
+      ...getInstanceMetadata(),
+      timestamp: new Date().toISOString(),
+    },
+    `📋 Job availability request: ${jobId} (room: ${roomName})`
+  );
 }
 
 /**
  * Log job assignment (for detecting multi-instance conflicts)
  */
 export function logJobAssignment(jobId: string, roomName: string): void {
-  log.info({
-    event: 'job_assignment',
-    jobId,
-    roomName,
-    ...getInstanceMetadata(),
-    timestamp: new Date().toISOString(),
-  }, `✅ Job assigned: ${jobId} (room: ${roomName})`);
+  log.info(
+    {
+      event: 'job_assignment',
+      jobId,
+      roomName,
+      ...getInstanceMetadata(),
+      timestamp: new Date().toISOString(),
+    },
+    `✅ Job assigned: ${jobId} (room: ${roomName})`
+  );
 }
 
 /**
  * Log job termination with full context
  */
 export function logJobTermination(jobId: string, reason?: string): void {
-  log.warn({
-    event: 'job_termination',
-    jobId,
-    reason: reason || 'unknown',
-    ...getInstanceMetadata(),
-    timestamp: new Date().toISOString(),
-  }, `🛑 Job terminated: ${jobId}${reason ? ` (reason: ${reason})` : ''}`);
+  log.warn(
+    {
+      event: 'job_termination',
+      jobId,
+      reason: reason || 'unknown',
+      ...getInstanceMetadata(),
+      timestamp: new Date().toISOString(),
+    },
+    `🛑 Job terminated: ${jobId}${reason ? ` (reason: ${reason})` : ''}`
+  );
 }
 
 export default {
@@ -367,4 +378,3 @@ export default {
   logJobAssignment,
   logJobTermination,
 };
-

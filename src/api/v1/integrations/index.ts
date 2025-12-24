@@ -40,9 +40,13 @@ router.get('/status', async (req, res) => {
       await import('../../../services/context-awareness/location-calendar.js');
     const { hasLinkedAccounts } = await import('../../../tools/domains/finance/plaid.js');
     const { getImportantPeople } = await import('../../../services/social-graph/index.js');
+    const { hasLinkedInConnected, getLinkedInProfile } =
+      await import('../../../services/linkedin/index.js');
 
     const biometricsConnected = hasBiometricsConnected(userId);
     const calendarConnected = hasCalendarConnected(userId);
+    const linkedInConnected = hasLinkedInConnected(userId);
+    const linkedInProfile = linkedInConnected ? getLinkedInProfile(userId) : null;
     const bankConnected = hasLinkedAccounts(userId);
     const socialPeople = getImportantPeople(userId);
 
@@ -55,6 +59,10 @@ router.get('/status', async (req, res) => {
         },
         calendar: {
           connected: calendarConnected,
+        },
+        linkedin: {
+          connected: linkedInConnected,
+          profile: linkedInProfile,
         },
         banking: {
           connected: bankConnected,
@@ -69,6 +77,7 @@ router.get('/status', async (req, res) => {
         sleepAwareness: biometricsConnected,
         eventAnticipation: calendarConnected,
         locationAwareness: calendarConnected,
+        careerAwareness: linkedInConnected,
         financialPrediction: bankConnected,
         relationshipInsights: socialPeople.length > 0,
       },

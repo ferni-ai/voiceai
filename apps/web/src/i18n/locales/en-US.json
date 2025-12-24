@@ -97,6 +97,13 @@
 
   "menu": {
     "title": "What's Next?",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "night": "Good night",
+      "lateNight": "Still up?"
+    },
     "yourStage": "Your stage",
     "nextStage": "Next: {stage}",
     "maxLevel": "Life Partners",
@@ -119,9 +126,9 @@
       "admin": "Admin"
     },
     "subgroups": {
-      "yourBody": "Your Body",
-      "yourCalendar": "Your Calendar",
-      "yourSpace": "Your Space"
+      "yourBody": "Health & Wellness",
+      "yourCalendar": "Calendar & Work",
+      "yourSpace": "Home & Music"
     },
     "items": {
       "yourJourney": "Your Journey",
@@ -853,6 +860,7 @@
     "eyebrow": "FOUNDERS FUND",
     "title": "Support Ferni",
     "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "seeVision": "See the Vision & Roadmap",
     "costTransparency": {
       "title": "What it costs to run Ferni",
       "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
@@ -873,6 +881,95 @@
     "yourSupport": "You're helping us build something everyone deserves",
     "manageBilling": "Update payment method",
     "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way."
+  },
+
+  "foundersJourney": {
+    "eyebrow": "THE HONEST TRUTH",
+    "title": "We're Just Getting Started",
+    "subtitle": "No hype. No inflated numbers. Just a small team trying to build something that helps people.",
+    "navigation": "Journey sections",
+    "tabs": {
+      "vision": "Why",
+      "now": "Where",
+      "future": "What's Next",
+      "impact": "Numbers",
+      "founders": "People"
+    },
+    "vision": {
+      "quote": "Good support is expensive. Good therapists have waitlists. Friends get tired. What if there was something in between?",
+      "principlesTitle": "What We Actually Believe",
+      "principles": {
+        "free": {
+          "title": "Free, Honestly",
+          "description": "AI costs money to run. Every conversation costs us about $0.05. Founders help cover that so others don't have to."
+        },
+        "community": {
+          "title": "Small, Not Scale",
+          "description": "We're not trying to be the next big thing. We just want to build something genuinely useful for the people who find us."
+        },
+        "human": {
+          "title": "Not a Replacement",
+          "description": "Ferni isn't therapy. It's not a substitute for real help. It's support for the 99% of moments that don't need a professional."
+        }
+      },
+      "promise": "Your contribution covers about 20 conversations for someone who can't chip in."
+    },
+    "now": {
+      "title": "Where We Actually Are",
+      "description": "Honest about the stage: early. Most features work. Some have rough edges. We're learning.",
+      "winsTitle": "What's Working",
+      "wins": {
+        "memory": "Memory works — Ferni remembers conversations across sessions",
+        "team": "Six coaches with different personalities (they're real, not gimmicks)",
+        "voice": "Voice conversations work, though latency varies by connection",
+        "music": "Spotify integration exists, still improving"
+      }
+    },
+    "future": {
+      "title": "What We're Working On",
+      "description": "No promises on dates. We ship when it's ready, not when marketing wants it.",
+      "featuresTitle": "In Progress",
+      "seeAll": "See the full list"
+    },
+    "impact": {
+      "title": "Real Numbers",
+      "description": "We show what we actually have. Empty is honest. Inflated is not.",
+      "stats": {
+        "founders": "People Supporting",
+        "conversations": "Conversations",
+        "features": "In Development"
+      },
+      "nextMilestone": "What We're Working Toward",
+      "yourImpact": "What Your Support Means",
+      "storiesTitle": "From Real People",
+      "noStories": "No stories yet. When real people share them, they'll appear here.",
+      "personal": {
+        "conversations": "Conversations Covered",
+        "families": "People Helped",
+        "streak": "Months Supporting",
+        "thanks": "Seriously, thank you."
+      },
+      "ctaText": "Ferni costs money to run. Your support keeps it free for people who need it."
+    },
+    "founders": {
+      "title": "The People Who Believe",
+      "description": "Real names of real people who chose to support this. (With their permission.)",
+      "empty": "Be the first.",
+      "tiers": {
+        "forest": "Sustaining",
+        "tree": "Supporting",
+        "sprout": "Helping",
+        "seed": "Believing"
+      },
+      "joinCta": "Every name here is a real person.",
+      "believers": "people so far"
+    },
+    "cta": {
+      "join": "Support Ferni"
+    },
+    "footer": {
+      "note": "If you can't support financially, that's completely fine. Use Ferni anyway. That's the whole point."
+    }
   },
 
   "roadmap": {

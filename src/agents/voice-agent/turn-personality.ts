@@ -499,7 +499,10 @@ export async function processSharedPersonality(
       personalityResult: sharedResult,
     };
   } catch (personalityError) {
-    logger.debug({ error: String(personalityError) }, 'Legacy shared personality system (non-critical)');
+    logger.debug(
+      { error: String(personalityError) },
+      'Legacy shared personality system (non-critical)'
+    );
     return {
       shouldInject: false,
       injectionContent: undefined,
@@ -615,7 +618,10 @@ async function processBetterThanHumanPersonality(
       personalityResult: bthResult as unknown as PersonaTurnResult,
     };
   } catch (personalityError) {
-    logger.debug({ error: String(personalityError) }, 'Better Than Human shared personality (non-critical)');
+    logger.debug(
+      { error: String(personalityError) },
+      'Better Than Human shared personality (non-critical)'
+    );
     return {
       shouldInject: false,
       injectionContent: undefined,

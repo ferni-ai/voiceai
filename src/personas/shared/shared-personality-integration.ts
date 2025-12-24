@@ -28,7 +28,10 @@ import {
   type PersonalityContext,
   type ComposedExpression,
 } from './better-than-human-personality.js';
-import { assemblePersonalityContext, type ContextAssemblerInput } from './personality-context-assembler.js';
+import {
+  assemblePersonalityContext,
+  type ContextAssemblerInput,
+} from './personality-context-assembler.js';
 import {
   detectNoticing,
   shouldThrottleNoticing,
@@ -45,8 +48,24 @@ import {
   detectEngagement,
 } from './personality-resonance-store.js';
 import { hasPersonaBuildingBlocks } from './persona-building-blocks.js';
+import {
+  sharedPersonalityTelemetry,
+  type SharedTelemetrySnapshot,
+} from './shared-personality-telemetry.js';
+import {
+  getVariant,
+  isFeatureEnabled,
+  incrementMetric,
+  createSessionMetricsTracker,
+  recordSessionEngagement,
+  type ExperimentVariant,
+  type EngagementMetrics,
+} from './personality-ab-testing.js';
 
 const log = createLogger({ module: 'shared-personality-integration' });
+
+// Default experiment ID
+const DEFAULT_EXPERIMENT_ID = 'personality_system_v1';
 
 // ============================================================================
 // TYPES
@@ -140,6 +159,11 @@ interface SessionState {
   turnsSinceLastExpression: number;
   lastExpressionTheme?: ThemeCategory;
   lastExpressionTurn?: number;
+  // A/B testing
+  abTestVariant?: ExperimentVariant;
+  abTestExperimentId?: string;
+  sessionMetrics?: EngagementMetrics;
+  sessionStartTime?: number;
 }
 
 const sessionStates = new Map<string, SessionState>();
@@ -150,10 +174,80 @@ function getSessionState(sessionId: string): SessionState {
     state = {
       initialized: false,
       turnsSinceLastExpression: 100, // Start high so first expression can happen
+      sessionStartTime: Date.now(),
     };
     sessionStates.set(sessionId, state);
   }
   return state;
+}
+
+// ============================================================================
+// TELEMETRY HELPER
+// ============================================================================
+
+/**
+ * Helper to record telemetry snapshot
+ */
+function recordTelemetrySnapshot(
+  sessionId: string,
+  personaId: string,
+  userId: string | undefined,
+  turnCount: number,
+  timing: { contextAssemblyMs: number; noticingDetectionMs: number; expressionCompositionMs: number; resonanceLookupMs: number },
+  totalMs: number,
+  context: PersonalityContext,
+  decisions: {
+    noticingType?: string;
+    noticingConfidence?: number;
+    noticingShouldAcknowledge?: boolean;
+    noticingThrottled?: boolean;
+    expressionTheme?: ThemeCategory;
+    expressionIntimacy?: number;
+    expressionTiming?: string;
+    expressionSource: 'building_blocks' | 'resonance_match' | 'none';
+    decisionReason: string;
+    abTestVariant?: string;
+    abTestId?: string;
+  },
+  output: { injected: boolean; acknowledgment?: string; contentPreview?: string; injectionPoint?: string }
+): void {
+  sharedPersonalityTelemetry.record(sessionId, {
+    sessionId,
+    personaId,
+    userId,
+    turnCount,
+    timing: {
+      ...timing,
+      totalMs,
+    },
+    context: {
+      timeOfDay: context.timeOfDay,
+      momentum: context.conversationMomentum,
+      emotionalState: context.currentEmotion,
+      emotionalIntensity: context.emotionalIntensity,
+      distressLevel: context.distressLevel,
+      relationshipStage: context.relationshipStage,
+      userSpeechPace: context.userSpeechPace,
+      voiceEnergyLevel: context.voiceEnergyLevel,
+      currentTopic: context.currentTopic,
+      topicShiftDetected: context.topicShiftDetected,
+    },
+    decisions: {
+      voiceEmotion: context.currentEmotion,
+      noticingType: decisions.noticingType as SharedTelemetrySnapshot['decisions']['noticingType'],
+      noticingConfidence: decisions.noticingConfidence,
+      noticingShouldAcknowledge: decisions.noticingShouldAcknowledge,
+      noticingThrottled: decisions.noticingThrottled,
+      expressionTheme: decisions.expressionTheme,
+      expressionIntimacy: decisions.expressionIntimacy,
+      expressionTiming: decisions.expressionTiming,
+      expressionSource: decisions.expressionSource,
+      decisionReason: decisions.decisionReason,
+      abTestVariant: decisions.abTestVariant,
+      abTestId: decisions.abTestId,
+    },
+    output,
+  });
 }
 
 // ============================================================================
@@ -168,6 +262,9 @@ export async function processSharedPersonalityTurn(
 ): Promise<SharedPersonalityTurnResult> {
   const { personaId, sessionId, userId, turnCount } = input;
 
+  // Start overall timing
+  const totalTimer = sharedPersonalityTelemetry.startTiming();
+
   // Check if this persona has building blocks
   if (!hasPersonaBuildingBlocks(personaId)) {
     log.debug({ personaId }, 'Persona has no building blocks, skipping personality');
@@ -175,6 +272,41 @@ export async function processSharedPersonalityTurn(
   }
 
   const state = getSessionState(sessionId);
+
+  // ========================================================================
+  // A/B TESTING - Determine variant and track metrics
+  // ========================================================================
+  if (!state.abTestVariant && userId) {
+    state.abTestVariant = getVariant(userId, DEFAULT_EXPERIMENT_ID, personaId);
+    state.abTestExperimentId = DEFAULT_EXPERIMENT_ID;
+    state.sessionMetrics = createSessionMetricsTracker();
+    log.debug(
+      { userId, personaId, variant: state.abTestVariant },
+      'Assigned A/B test variant'
+    );
+  }
+
+  // If in control group, return minimal result (personality features disabled)
+  if (state.abTestVariant === 'control') {
+    // Still track basic engagement metrics for control group
+    if (state.sessionMetrics) {
+      incrementMetric(state.sessionMetrics, 'turnCount');
+    }
+    return createEmptyResult(input);
+  }
+
+  // Track engagement for treatment group
+  if (state.sessionMetrics) {
+    incrementMetric(state.sessionMetrics, 'turnCount');
+  }
+
+  // Timing for each step
+  const timing = {
+    contextAssemblyMs: 0,
+    noticingDetectionMs: 0,
+    expressionCompositionMs: 0,
+    resonanceLookupMs: 0,
+  };
 
   // Initialize session if needed (prewarm resonance cache)
   if (!state.initialized && userId) {
@@ -196,6 +328,21 @@ export async function processSharedPersonalityTurn(
       },
       timestamp: new Date(),
     });
+
+    // Track A/B test engagement metrics
+    if (state.sessionMetrics) {
+      switch (engagement) {
+        case 'positive':
+          incrementMetric(state.sessionMetrics, 'positiveResponses');
+          incrementMetric(state.sessionMetrics, 'expressionsEngaged');
+          break;
+        case 'negative':
+          incrementMetric(state.sessionMetrics, 'negativeResponses');
+          break;
+        default:
+          incrementMetric(state.sessionMetrics, 'neutralResponses');
+      }
+    }
   }
 
   // Record topic mentions for future callbacks
@@ -205,7 +352,8 @@ export async function processSharedPersonalityTurn(
     }
   }
 
-  // Assemble 8-dimensional context
+  // Assemble 8-dimensional context (with timing)
+  const contextTimer = sharedPersonalityTelemetry.startTiming();
   const contextInput: ContextAssemblerInput = {
     personaId,
     sessionId,
@@ -216,7 +364,8 @@ export async function processSharedPersonalityTurn(
     speechRateWPM: input.speechRateWPM,
     pauseBeforeMs: input.pauseBeforeMs,
     textEmotion: input.textEmotion,
-    conversationMomentum: input.conversationMomentum as ContextAssemblerInput['conversationMomentum'],
+    conversationMomentum:
+      input.conversationMomentum as ContextAssemblerInput['conversationMomentum'],
     currentTopics: input.currentTopics,
     lastTopics: input.lastTopics,
     relationshipStage: input.relationshipStage,
@@ -226,8 +375,10 @@ export async function processSharedPersonalityTurn(
   };
 
   const context = assemblePersonalityContext(contextInput);
+  timing.contextAssemblyMs = contextTimer.elapsed();
 
-  // Priority 1: Check for real-time noticing (superhuman observation)
+  // Priority 1: Check for real-time noticing (superhuman observation) with timing
+  const noticingTimer = sharedPersonalityTelemetry.startTiming();
   const noticingInput: NoticingInput = {
     sessionId,
     personaId,
@@ -235,28 +386,43 @@ export async function processSharedPersonalityTurn(
     currentTranscript: input.userTranscript,
     pauseBeforeMs: input.pauseBeforeMs || 0,
     speechRateWPM: input.speechRateWPM,
-    voiceEmotion: input.voiceEmotion?.primary && input.voiceEmotion?.confidence !== undefined
-      ? {
-          primary: input.voiceEmotion.primary,
-          confidence: input.voiceEmotion.confidence,
-          arousal: input.voiceEmotion.arousal,
-          valence: input.voiceEmotion.valence,
-        }
-      : undefined,
-    textEmotion: input.textEmotion?.primary && input.textEmotion?.intensity !== undefined && input.textEmotion?.distressLevel !== undefined
-      ? {
-          primary: input.textEmotion.primary,
-          intensity: input.textEmotion.intensity,
-          distressLevel: input.textEmotion.distressLevel,
-        }
-      : undefined,
+    voiceEmotion:
+      input.voiceEmotion?.primary && input.voiceEmotion?.confidence !== undefined
+        ? {
+            primary: input.voiceEmotion.primary,
+            confidence: input.voiceEmotion.confidence,
+            arousal: input.voiceEmotion.arousal,
+            valence: input.voiceEmotion.valence,
+          }
+        : undefined,
+    textEmotion:
+      input.textEmotion?.primary &&
+      input.textEmotion?.intensity !== undefined &&
+      input.textEmotion?.distressLevel !== undefined
+        ? {
+            primary: input.textEmotion.primary,
+            intensity: input.textEmotion.intensity,
+            distressLevel: input.textEmotion.distressLevel,
+          }
+        : undefined,
     previousTurns: input.previousTurns,
     currentTopics: input.currentTopics,
   };
 
   const noticing = detectNoticing(noticingInput);
-  if (noticing && !shouldThrottleNoticing(sessionId, turnCount, noticing)) {
+  const isNoticingThrottled = noticing ? shouldThrottleNoticing(sessionId, turnCount, noticing) : false;
+  timing.noticingDetectionMs = noticingTimer.elapsed();
+
+  if (noticing && !isNoticingThrottled) {
     recordNoticing(sessionId, turnCount, noticing.type);
+
+    // Track A/B test metrics for noticing
+    if (state.sessionMetrics) {
+      incrementMetric(state.sessionMetrics, 'noticingsTriggered');
+      if (noticing.type === 'breakthrough_moment') {
+        incrementMetric(state.sessionMetrics, 'breakthroughMoments');
+      }
+    }
 
     log.debug(
       {
@@ -267,6 +433,17 @@ export async function processSharedPersonalityTurn(
       },
       '🔍 Noticing detected for shared personality'
     );
+
+    // Record telemetry for noticing result
+    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
+      noticingType: noticing.type,
+      noticingConfidence: noticing.confidence,
+      noticingShouldAcknowledge: noticing.shouldAcknowledge,
+      expressionSource: 'none',
+      decisionReason: `Noticing: ${noticing.type}`,
+      abTestVariant: state.abTestVariant,
+      abTestId: state.abTestExperimentId,
+    }, { injected: true, acknowledgment: noticing.acknowledgment, injectionPoint: noticing.timing === 'immediate' ? 'before_response' : 'mid_response' });
 
     return {
       shouldInject: true,
@@ -281,15 +458,32 @@ export async function processSharedPersonalityTurn(
   // Priority 2: Check if it's too soon for another expression
   state.turnsSinceLastExpression++;
   if (state.turnsSinceLastExpression < 3 && turnCount > 2) {
+    // Record telemetry for cooldown skip
+    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
+      expressionSource: 'none',
+      decisionReason: 'Expression cooldown active',
+      noticingThrottled: isNoticingThrottled,
+    }, { injected: false });
     return createEmptyResult(input, context);
   }
 
-  // Priority 3: Try to compose an expression
+  // Priority 3: Try to compose an expression (with timing)
+  const expressionTimer = sharedPersonalityTelemetry.startTiming();
   const expression = composeExpression(context);
+  timing.expressionCompositionMs = expressionTimer.elapsed();
+
   if (expression) {
     state.turnsSinceLastExpression = 0;
     state.lastExpressionTheme = expression.theme;
     state.lastExpressionTurn = turnCount;
+
+    // Track A/B test metrics for expression
+    if (state.sessionMetrics) {
+      incrementMetric(state.sessionMetrics, 'expressionsInjected');
+      if (expression.theme === 'vulnerability') {
+        incrementMetric(state.sessionMetrics, 'vulnerabilityMoments');
+      }
+    }
 
     log.debug(
       {
@@ -304,6 +498,22 @@ export async function processSharedPersonalityTurn(
 
     const injectionPoint = mapTimingToInjectionPoint(expression.timing);
 
+    // Record telemetry for expression result
+    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
+      expressionTheme: expression.theme,
+      expressionIntimacy: expression.intimacyLevel,
+      expressionTiming: expression.timing,
+      expressionSource: 'building_blocks',
+      decisionReason: expression.compositionReason,
+      noticingThrottled: isNoticingThrottled,
+      abTestVariant: state.abTestVariant,
+      abTestId: state.abTestExperimentId,
+    }, {
+      injected: true,
+      contentPreview: expression.content.slice(0, 100),
+      injectionPoint,
+    });
+
     return {
       shouldInject: true,
       injectionContent: `[PERSONALITY:${expression.theme.toUpperCase()}] ${expression.content}`,
@@ -313,6 +523,13 @@ export async function processSharedPersonalityTurn(
       personaId,
     };
   }
+
+  // Record telemetry for no expression
+  recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
+    expressionSource: 'none',
+    decisionReason: 'No expression conditions met',
+    noticingThrottled: isNoticingThrottled,
+  }, { injected: false });
 
   return createEmptyResult(input, context);
 }
@@ -367,9 +584,31 @@ export function hasSharedPersonalitySupport(personaId: string): boolean {
 }
 
 /**
- * Cleanup session state
+ * Cleanup session state and record A/B test metrics
  */
 export function cleanupSharedPersonalitySession(sessionId: string, userId?: string): void {
+  const state = sessionStates.get(sessionId);
+
+  // Record A/B test session engagement before cleanup
+  if (state?.sessionMetrics && state.abTestExperimentId && userId) {
+    // Calculate session duration
+    state.sessionMetrics.sessionDurationMs = state.sessionStartTime
+      ? Date.now() - state.sessionStartTime
+      : 0;
+
+    recordSessionEngagement(userId, state.abTestExperimentId, state.sessionMetrics);
+    log.debug(
+      {
+        sessionId,
+        userId,
+        variant: state.abTestVariant,
+        turnCount: state.sessionMetrics.turnCount,
+        noticingsTriggered: state.sessionMetrics.noticingsTriggered,
+      },
+      'Recorded A/B test session engagement'
+    );
+  }
+
   sessionStates.delete(sessionId);
   clearNoticingState(sessionId);
 
@@ -425,4 +664,3 @@ export const sharedPersonality = {
 };
 
 export default sharedPersonality;
-

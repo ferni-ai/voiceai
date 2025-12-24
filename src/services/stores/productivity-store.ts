@@ -795,6 +795,121 @@ class ProductivityStore {
     return this.collectUserData(userId);
   }
 
+  /**
+   * Clear all productivity data for a user (GDPR deletion)
+   */
+  async clearUserData(userId: string): Promise<void> {
+    // Clear from memory maps (filtering by userId)
+    for (const [id, task] of this.taskMemory.entries()) {
+      if ((task as TaskData & { userId?: string }).userId === userId) {
+        this.taskMemory.delete(id);
+      }
+    }
+    for (const [id, bill] of this.billMemory.entries()) {
+      if ((bill as BillData & { userId?: string }).userId === userId) {
+        this.billMemory.delete(id);
+      }
+    }
+    for (const [id, payment] of this.billPaymentMemory.entries()) {
+      if ((payment as BillPaymentData & { userId?: string }).userId === userId) {
+        this.billPaymentMemory.delete(id);
+      }
+    }
+    for (const [id, routine] of this.routineMemory.entries()) {
+      if ((routine as RoutineData & { userId?: string }).userId === userId) {
+        this.routineMemory.delete(id);
+      }
+    }
+    for (const [id, note] of this.noteMemory.entries()) {
+      if ((note as NoteData & { userId?: string }).userId === userId) {
+        this.noteMemory.delete(id);
+      }
+    }
+    for (const [id, journal] of this.journalMemory.entries()) {
+      if ((journal as JournalEntryData & { userId?: string }).userId === userId) {
+        this.journalMemory.delete(id);
+      }
+    }
+    for (const [id, habit] of this.habitMemory.entries()) {
+      if ((habit as HabitData & { userId?: string }).userId === userId) {
+        this.habitMemory.delete(id);
+      }
+    }
+    for (const [id, habitLog] of this.habitLogMemory.entries()) {
+      if ((habitLog as HabitLogData & { userId?: string }).userId === userId) {
+        this.habitLogMemory.delete(id);
+      }
+    }
+    for (const [id, list] of this.shoppingListMemory.entries()) {
+      if ((list as ShoppingListData & { userId?: string }).userId === userId) {
+        this.shoppingListMemory.delete(id);
+      }
+    }
+    for (const [id, med] of this.medicationMemory.entries()) {
+      if ((med as MedicationData & { userId?: string }).userId === userId) {
+        this.medicationMemory.delete(id);
+      }
+    }
+    for (const [id, dose] of this.doseLogMemory.entries()) {
+      if ((dose as DoseLogData & { userId?: string }).userId === userId) {
+        this.doseLogMemory.delete(id);
+      }
+    }
+    for (const [id, pkg] of this.packageMemory.entries()) {
+      if ((pkg as PackageData & { userId?: string }).userId === userId) {
+        this.packageMemory.delete(id);
+      }
+    }
+    for (const [id, trip] of this.tripMemory.entries()) {
+      if ((trip as TripData & { userId?: string }).userId === userId) {
+        this.tripMemory.delete(id);
+      }
+    }
+    for (const [id, eHabit] of this.enhancedHabitMemory.entries()) {
+      if ((eHabit as EnhancedHabitData & { userId?: string }).userId === userId) {
+        this.enhancedHabitMemory.delete(id);
+      }
+    }
+    for (const [id, stack] of this.habitStackMemory.entries()) {
+      if ((stack as HabitStackData & { userId?: string }).userId === userId) {
+        this.habitStackMemory.delete(id);
+      }
+    }
+    for (const [id, profile] of this.habitCoachProfileMemory.entries()) {
+      if ((profile as HabitCoachProfileData & { userId?: string }).userId === userId) {
+        this.habitCoachProfileMemory.delete(id);
+      }
+    }
+    for (const [id, reflection] of this.weeklyReflectionMemory.entries()) {
+      if ((reflection as WeeklyReflectionData & { userId?: string }).userId === userId) {
+        this.weeklyReflectionMemory.delete(id);
+      }
+    }
+    for (const [key] of this.userPreferencesMemory.entries()) {
+      if (key.startsWith(`${userId}:`)) {
+        this.userPreferencesMemory.delete(key);
+      }
+    }
+
+    // Clear from cache
+    this.cache.delete(userId);
+
+    // Clear from persistence
+    if (this.store) {
+      try {
+        const profile = await this.store.getProfile(userId);
+        if (profile) {
+          (profile as { productivityData?: ProductivityData }).productivityData = undefined;
+          await this.store.saveProfile(profile);
+        }
+      } catch (error) {
+        getLogger().warn({ error, userId }, 'Failed to clear productivity data from persistence');
+      }
+    }
+
+    getLogger().info({ userId }, '🗑️ Cleared all productivity data for user');
+  }
+
   // ============================================================================
   // PRIVATE HELPERS
   // ============================================================================

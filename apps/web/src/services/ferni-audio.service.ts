@@ -75,50 +75,60 @@ interface ActiveSound {
 // ============================================================================
 
 const SOUND_DEFINITIONS: Record<string, SoundDefinition> = {
-  // System
-  'system.startup': { file: 'ferni-system-startup.mp3', duration: 2000, volume: -6, preload: true, category: 'system' },
-  'system.connectionSuccess': { file: 'ferni-system-connection-success.mp3', duration: 1200, volume: -6, preload: true, category: 'system' },
-  'system.connectionLost': { file: 'ferni-system-connection-lost.mp3', duration: 1500, volume: -9, preload: true, category: 'system' },
-  'system.sessionEnd': { file: 'ferni-system-session-end.mp3', duration: 2000, volume: -6, preload: false, category: 'system' },
-  'system.thinking': { file: 'ferni-system-thinking.mp3', duration: 3000, volume: -18, preload: true, loop: true, category: 'system' },
+  // System - mapped to existing sounds
+  'system.startup': { file: 'connect.mp3', duration: 500, volume: -6, preload: true, category: 'system' },
+  'system.connectionSuccess': { file: 'connect.mp3', duration: 500, volume: -6, preload: true, category: 'system' },
+  'system.connectionLost': { file: 'disconnect.mp3', duration: 500, volume: -9, preload: true, category: 'system' },
+  'system.sessionEnd': { file: 'disconnect.mp3', duration: 500, volume: -6, preload: false, category: 'system' },
+  // Note: thinking sound not available - use ambient instead
+  'system.thinking': { file: 'ambient/forest-loop.mp3', duration: 3000, volume: -24, preload: false, loop: true, category: 'system' },
   
-  // Celebration
-  'celebration.small': { file: 'ferni-celebration-small.mp3', duration: 1800, volume: -3, preload: false, category: 'celebration' },
-  'celebration.big': { file: 'ferni-celebration-big.mp3', duration: 2500, volume: 0, preload: false, category: 'celebration' },
-  'celebration.milestone': { file: 'ferni-celebration-milestone.mp3', duration: 3000, volume: -3, preload: false, category: 'celebration' },
-  'celebration.streak': { file: 'ferni-celebration-streak.mp3', duration: 2000, volume: -6, preload: false, category: 'celebration' },
-  'celebration.teamUnlock': { file: 'ferni-celebration-team-unlock.mp3', duration: 2500, volume: -3, preload: false, category: 'celebration' },
+  // Celebration - use dramatic entrance for now (TODO: create proper celebration sounds)
+  'celebration.small': { file: 'dramatic-entrance.mp3', duration: 1000, volume: -6, preload: false, category: 'celebration' },
+  'celebration.big': { file: 'dramatic-entrance.mp3', duration: 1000, volume: -3, preload: false, category: 'celebration' },
+  'celebration.milestone': { file: 'dramatic-entrance.mp3', duration: 1000, volume: -3, preload: false, category: 'celebration' },
+  'celebration.streak': { file: 'dramatic-entrance.mp3', duration: 1000, volume: -6, preload: false, category: 'celebration' },
+  'celebration.teamUnlock': { file: 'dramatic-entrance.mp3', duration: 1000, volume: -3, preload: false, category: 'celebration' },
   
-  // Notification
-  'notification.gentle': { file: 'ferni-notification-gentle.mp3', duration: 800, volume: -9, preload: true, category: 'notification' },
-  'notification.thinkingOfYou': { file: 'ferni-notification-thinking-of-you.mp3', duration: 1000, volume: -9, preload: false, category: 'notification' },
+  // Notification - use connect sound
+  'notification.gentle': { file: 'connect.mp3', duration: 500, volume: -12, preload: true, category: 'notification' },
+  'notification.thinkingOfYou': { file: 'connect.mp3', duration: 500, volume: -12, preload: false, category: 'notification' },
   
-  // Error
-  'error.graceful': { file: 'ferni-error-graceful.mp3', duration: 600, volume: -9, preload: true, category: 'error' },
+  // Error - use disconnect sound
+  'error.graceful': { file: 'disconnect.mp3', duration: 500, volume: -12, preload: true, category: 'error' },
   
-  // UI
-  'ui.buttonPress': { file: 'ferni-ui-button-press.mp3', duration: 150, volume: -12, preload: true, category: 'ui' },
-  'ui.toggleOn': { file: 'ferni-ui-toggle-on.mp3', duration: 200, volume: -10, preload: true, category: 'ui' },
-  'ui.toggleOff': { file: 'ferni-ui-toggle-off.mp3', duration: 200, volume: -10, preload: true, category: 'ui' },
-  'ui.messageSent': { file: 'ferni-ui-message-sent.mp3', duration: 400, volume: -9, preload: false, category: 'ui' },
+  // UI - use connect sound at lower volume (TODO: create proper UI sounds)
+  'ui.buttonPress': { file: 'connect.mp3', duration: 500, volume: -18, preload: false, category: 'ui' },
+  'ui.toggleOn': { file: 'connect.mp3', duration: 500, volume: -15, preload: false, category: 'ui' },
+  'ui.toggleOff': { file: 'disconnect.mp3', duration: 500, volume: -15, preload: false, category: 'ui' },
+  'ui.messageSent': { file: 'connect.mp3', duration: 500, volume: -15, preload: false, category: 'ui' },
   
-  // Handoff
-  'handoff.toFerni': { file: 'ferni-handoff-to-ferni.mp3', duration: 1500, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toJack': { file: 'ferni-handoff-to-jack.mp3', duration: 1800, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toPeter': { file: 'ferni-handoff-to-peter.mp3', duration: 1200, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toAlex': { file: 'ferni-handoff-to-alex.mp3', duration: 1400, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toMaya': { file: 'ferni-handoff-to-maya.mp3', duration: 1300, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toJordan': { file: 'ferni-handoff-to-jordan.mp3', duration: 1500, volume: -6, preload: false, category: 'handoff' },
-  'handoff.toNayan': { file: 'ferni-handoff-to-nayan.mp3', duration: 2000, volume: -6, preload: false, category: 'handoff' },
+  // Handoff - use existing handoff sounds
+  'handoff.toFerni': { file: 'handoff-to-ferni.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toJack': { file: 'handoff-to-jack.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toPeter': { file: 'handoff-to-peter.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toAlex': { file: 'handoff-to-alex.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toMaya': { file: 'handoff-to-maya.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toJordan': { file: 'handoff-to-jordan.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
+  'handoff.toNayan': { file: 'handoff-to-nayan.mp3', duration: 800, volume: -6, preload: false, category: 'handoff' },
   
-  // Persona Entrance
-  'persona.ferni': { file: 'ferni-entrance-ferni.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
-  'persona.jack': { file: 'ferni-entrance-jack.mp3', duration: 1000, volume: -9, preload: false, category: 'persona' },
-  'persona.peter': { file: 'ferni-entrance-peter.mp3', duration: 600, volume: -9, preload: false, category: 'persona' },
-  'persona.alex': { file: 'ferni-entrance-alex.mp3', duration: 700, volume: -9, preload: false, category: 'persona' },
-  'persona.maya': { file: 'ferni-entrance-maya.mp3', duration: 600, volume: -9, preload: false, category: 'persona' },
-  'persona.jordan': { file: 'ferni-entrance-jordan.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
-  'persona.nayan': { file: 'ferni-entrance-nayan.mp3', duration: 1000, volume: -9, preload: false, category: 'persona' },
+  // Persona Entrance - use dramatic entrance or handoff sounds
+  'persona.ferni': { file: 'handoff-to-ferni.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.jack': { file: 'handoff-to-jack.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.peter': { file: 'handoff-to-peter.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.alex': { file: 'handoff-to-alex.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.maya': { file: 'handoff-to-maya.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.jordan': { file: 'handoff-to-jordan.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  'persona.nayan': { file: 'handoff-to-nayan.mp3', duration: 800, volume: -9, preload: false, category: 'persona' },
+  
+  // Cameo - existing sounds
+  'cameo.arrive': { file: 'cameo-arrive.mp3', duration: 1000, volume: -6, preload: false, category: 'persona' },
+  'cameo.return': { file: 'cameo-return.mp3', duration: 500, volume: -6, preload: false, category: 'persona' },
+  
+  // Ambient - existing loop sounds
+  'ambient.forest': { file: 'ambient/forest-loop.mp3', duration: 10000, volume: -18, preload: false, loop: true, category: 'ambient' },
+  'ambient.rain': { file: 'ambient/rain-loop.mp3', duration: 10000, volume: -18, preload: false, loop: true, category: 'ambient' },
+  'ambient.fireplace': { file: 'ambient/fireplace-loop.mp3', duration: 10000, volume: -18, preload: false, loop: true, category: 'ambient' },
 };
 
 // ============================================================================

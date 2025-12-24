@@ -211,7 +211,8 @@ function detectTopicShift(input: ContextAssemblerInput): boolean {
   // Check if any current topic overlaps with last topics
   const hasOverlap = input.currentTopics.some((ct) =>
     input.lastTopics!.some(
-      (lt) => ct.toLowerCase().includes(lt.toLowerCase()) || lt.toLowerCase().includes(ct.toLowerCase())
+      (lt) =>
+        ct.toLowerCase().includes(lt.toLowerCase()) || lt.toLowerCase().includes(ct.toLowerCase())
     )
   );
 
@@ -371,10 +372,7 @@ export function assemblePersonalityContext(input: ContextAssemblerInput): Person
 
     // Dimension 7: Behavioral
     userJustShared: detectUserSharingType(input.userTranscript),
-    wasPersonalSharing: isPersonalSharing(
-      input.userTranscript,
-      input.textEmotion?.distressLevel
-    ),
+    wasPersonalSharing: isPersonalSharing(input.userTranscript, input.textEmotion?.distressLevel),
     isHeavyTopic: isHeavyTopic(input.userTranscript, input.textEmotion?.distressLevel),
   };
 
@@ -462,4 +460,3 @@ export const sharedContextAssembler = {
 };
 
 export default sharedContextAssembler;
-

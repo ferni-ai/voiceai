@@ -101,7 +101,8 @@ export type ToolDomain =
   | 'midlife' // Midlife transition, aging, legacy
   | 'breakup-recovery' // Divorce recovery, rebuilding after breakup
   | 'scheduling' // Scheduled messages, calls, emails
-  | 'concierge'; // AI-powered outreach: hotel quotes, restaurant reservations, appointments
+  | 'concierge' // AI-powered outreach: hotel quotes, restaurant reservations, appointments
+  | 'travel'; // Travel planning, flights, hotels, trip suggestions
 
 /**
  * All available tool domains
@@ -188,6 +189,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'breakup-recovery',
   'scheduling',
   'concierge',
+  'travel',
 ] as const;
 
 // ============================================================================
@@ -292,6 +294,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'breakup-recovery': 'lifestyle', // Healing from relationship endings
   scheduling: 'communication', // Scheduled messages, calls, emails
   concierge: 'communication', // AI-powered outreach: hotels, restaurants, appointments
+  travel: 'lifestyle', // Travel planning, flights, hotels
 };
 
 // ============================================================================

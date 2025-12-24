@@ -51,6 +51,12 @@ export {
   indexComfortPatterns,
   indexStressTriggers,
   indexEmotionalTells,
+
+  // Extended indexers (voice journals, custom agents, contacts, habits)
+  indexVoiceJournals,
+  indexCustomAgents,
+  indexContactNotes,
+  indexHabits,
 } from './user-memory-indexer/index.js';
 
 // Re-export default for backward compatibility

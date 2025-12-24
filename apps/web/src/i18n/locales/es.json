@@ -453,6 +453,13 @@
     "title": "Gestiona Tu Plan"
   },
   "menu": {
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches",
+      "night": "Buenas noches",
+      "lateNight": "¿Aún despierto?"
+    },
     "almostThere": "¡Casi listo!",
     "comingSoon": "Próximamente",
     "items": {
@@ -527,6 +534,11 @@
       "preferences": "Your Way",
       "remember": "Recordar",
       "youAndFerni": "You & Ferni"
+    },
+    "subgroups": {
+      "yourBody": "Salud y Bienestar",
+      "yourCalendar": "Calendario y Trabajo",
+      "yourSpace": "Hogar y Música"
     },
     "title": "¿Qué sigue?",
     "unlockHint": "{remaining} para desbloquear",

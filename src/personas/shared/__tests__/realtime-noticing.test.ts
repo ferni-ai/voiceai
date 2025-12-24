@@ -29,21 +29,21 @@ describe('realtime-noticing', () => {
 
   describe('detectNoticing', () => {
     describe('significant_pause detection', () => {
-    it('detects pause over 2 seconds', () => {
-      const input: NoticingInput = {
-        ...baseInput,
-        pauseBeforeMs: 2500,
-      };
+      it('detects pause over 2 seconds', () => {
+        const input: NoticingInput = {
+          ...baseInput,
+          pauseBeforeMs: 2500,
+        };
 
-      const result = detectNoticing(input);
+        const result = detectNoticing(input);
 
-      expect(result).not.toBeNull();
-      if (result) {
-        expect(result.type).toBe('significant_pause');
-        expect(result.shouldAcknowledge).toBe(true);
-        expect(result.confidence).toBeGreaterThanOrEqual(0.5);
-      }
-    });
+        expect(result).not.toBeNull();
+        if (result) {
+          expect(result.type).toBe('significant_pause');
+          expect(result.shouldAcknowledge).toBe(true);
+          expect(result.confidence).toBeGreaterThanOrEqual(0.5);
+        }
+      });
 
       it('does not detect normal pause', () => {
         const input: NoticingInput = {
@@ -399,4 +399,3 @@ describe('realtime-noticing', () => {
     });
   });
 });
-

@@ -84,7 +84,12 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\b(data|analysis|pattern|trend)\b/i, speed: 1.02, emotion: 'curious' },
       { trigger: /\bcross[- ]domain\b/i, speed: 1.0, emotion: 'enthusiastic' },
       // Peter's philosophy - warm slowdown
-      { trigger: /\bthe pattern['']?s already there\b/i, speed: 0.92, pause: 200, emotion: 'affectionate' },
+      {
+        trigger: /\bthe pattern['']?s already there\b/i,
+        speed: 0.92,
+        pause: 200,
+        emotion: 'affectionate',
+      },
       { trigger: /\binvest in what you know\b/i, speed: 0.92, pause: 150, emotion: 'confident' },
       // Carolyn references - warmth
       { trigger: /\bcarolyn\b/i, speed: 0.92, emotion: 'affectionate' },
@@ -95,7 +100,12 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         pause: 200,
         emotion: 'sympathetic',
       },
-      { trigger: /\bthe numbers aren['']t judging you\b/i, speed: 0.88, pause: 200, emotion: 'sympathetic' },
+      {
+        trigger: /\bthe numbers aren['']t judging you\b/i,
+        speed: 0.88,
+        pause: 200,
+        emotion: 'sympathetic',
+      },
     ],
   },
   'alex-chen': {
@@ -126,10 +136,19 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\bfirst,?\s*breathe\b/i, speed: 0.8, pause: 350, emotion: 'calm' },
       // Alex's calming presence
       { trigger: /\b(breathe|one thing at a time)\b/i, speed: 0.85, emotion: 'calm', pause: 200 },
-      { trigger: /\b(it['']s okay|we['']re going to figure this out)\b/i, speed: 0.85, pause: 200, emotion: 'calm' },
+      {
+        trigger: /\b(it['']s okay|we['']re going to figure this out)\b/i,
+        speed: 0.85,
+        pause: 200,
+        emotion: 'calm',
+      },
       // Efficiency patterns - warm, not rushed
       { trigger: /\b(schedule|calendar|meeting)\b/i, speed: 0.95 },
-      { trigger: /\b(save(s)? (you )?time|one less thing)\b/i, speed: 0.92, emotion: 'affectionate' },
+      {
+        trigger: /\b(save(s)? (you )?time|one less thing)\b/i,
+        speed: 0.92,
+        emotion: 'affectionate',
+      },
       // Productivity wins - celebrate with warmth!
       {
         trigger: /\b(done|finished|sent|scheduled|inbox zero)\b/i,
@@ -140,12 +159,21 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\b(technically|actually)\b/i, emotion: 'amused' },
       // Alex's philosophy - deliberate delivery
       { trigger: /\bclear is kind\b/i, speed: 0.88, pause: 200, emotion: 'affectionate' },
-      { trigger: /\bstructure (is|creates) freedom\b/i, speed: 0.88, pause: 180, emotion: 'affectionate' },
+      {
+        trigger: /\bstructure (is|creates) freedom\b/i,
+        speed: 0.88,
+        pause: 180,
+        emotion: 'affectionate',
+      },
       { trigger: /\bboundaries? or burnout\b/i, speed: 0.88, pause: 180, emotion: 'determined' },
       // Plant council (easter egg)
       { trigger: /\b(susan|greg|ferndinand|peggy|the council)\b/i, emotion: 'affectionate' },
       // Family warmth
-      { trigger: /\b(chen['']s garden|the restaurant|did you eat)\b/i, speed: 0.92, emotion: 'affectionate' },
+      {
+        trigger: /\b(chen['']s garden|the restaurant|did you eat)\b/i,
+        speed: 0.92,
+        emotion: 'affectionate',
+      },
     ],
   },
   'maya-santos': {
@@ -167,7 +195,11 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     specialPatterns: [
       // CELEBRATION MOMENTS - speed UP (per voice guidance: 1.02-1.05)
       { trigger: /\b(streak|in a row|consecutive)\b/i, speed: 1.02, emotion: 'enthusiastic' },
-      { trigger: /\b(that['']s (huge|amazing|incredible))\b/i, speed: 1.05, emotion: 'enthusiastic' },
+      {
+        trigger: /\b(that['']s (huge|amazing|incredible))\b/i,
+        speed: 1.05,
+        emotion: 'enthusiastic',
+      },
       { trigger: /\b(celebrate|celebrating|win)\b/i, speed: 1.02, emotion: 'proud' },
       // SETBACK MOMENTS - slow DOWN significantly (per voice guidance: 0.82-0.85)
       {
@@ -176,16 +208,30 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         pause: 300,
         emotion: 'sympathetic',
       },
-      { trigger: /\b(shame|ashamed|embarrassed)\b/i, speed: 0.82, pause: 350, emotion: 'sympathetic' },
+      {
+        trigger: /\b(shame|ashamed|embarrassed)\b/i,
+        speed: 0.82,
+        pause: 350,
+        emotion: 'sympathetic',
+      },
       // Maya's signature phrases - deliberate pacing
       { trigger: /\bsystems beat willpower\b/i, speed: 0.85, pause: 300, emotion: 'affectionate' },
-      { trigger: /\bprogress,? not perfection\b/i, speed: 0.88, pause: 250, emotion: 'affectionate' },
+      {
+        trigger: /\bprogress,? not perfection\b/i,
+        speed: 0.88,
+        pause: 250,
+        emotion: 'affectionate',
+      },
       // Maya's habit celebrations - warm emphasis
       { trigger: /\b(habit|routine|progress)\b/i, emotion: 'proud' },
       // Glidepath method
       { trigger: /\bglidepath\b/i, pause: 150, speed: 0.9, emotion: 'affectionate' },
       // Tiny wins - encouraging
-      { trigger: /\b(small step|tiny|gradual|one percent)\b/i, emotion: 'affectionate', speed: 0.92 },
+      {
+        trigger: /\b(small step|tiny|gradual|one percent)\b/i,
+        emotion: 'affectionate',
+        speed: 0.92,
+      },
       // Questions - curious energy
       { trigger: /\bwhat (does|would) that look like\b/i, emotion: 'curious', speed: 0.92 },
       // Late night softening
@@ -226,7 +272,11 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // First-time celebrations
       { trigger: /\bfirst\s+(time|ever)\b/i, emotion: 'enthusiastic', speed: 1.05 },
       // Celebration phrases
-      { trigger: /\b(congratulations?|congrats|let['']s celebrate)\b/i, speed: 1.02, emotion: 'happy' },
+      {
+        trigger: /\b(congratulations?|congrats|let['']s celebrate)\b/i,
+        speed: 1.02,
+        emotion: 'happy',
+      },
       // Dream/vision moments - hopeful energy, not rushed
       { trigger: /\b(dream|vision|imagine|picture)\b/i, emotion: 'hopeful', speed: 0.95 },
       { trigger: /\bin (five|ten) years\b/i, speed: 0.92, pause: 200, emotion: 'hopeful' },

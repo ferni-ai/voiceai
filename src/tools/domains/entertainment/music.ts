@@ -12,7 +12,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDJDropPhrase } from '../../../audio/ambient-music.js';
-import { getMusicPlayer, type MusicTrack } from '../../../audio/index.js';
+import { getMusicPlayer, isMusicAvailable, type MusicTrack } from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
 import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
@@ -213,6 +213,18 @@ export async function playMusicUnified(query: string): Promise<string> {
     '🎵 Playing music (intent-based routing)'
   );
 
+  // 🚨 CRITICAL: Check if music is available FIRST
+  // This provides a clear error to the LLM so it knows music won't work this session
+  const musicAvailability = isMusicAvailable();
+  if (!musicAvailability.available) {
+    log.warn(
+      { query, reason: musicAvailability.reason },
+      '🎵 Music playback NOT available for this session'
+    );
+    // Return a clear message that tells the LLM music isn't working (not just one track)
+    return `I'd love to play "${query}" for you, but music isn't available in this session. The audio system didn't initialize properly - you might need to reconnect. In the meantime, let's keep chatting!`;
+  }
+
   // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
   if (intent === 'ambient') {
     log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
@@ -271,10 +283,14 @@ async function playAmbientMusic(query: string): Promise<string> {
   // Get the music player
   const musicPlayer = getMusicPlayer();
 
-  if (!musicPlayer.isInitialized()) {
-    log.warn('🎧 Music player not initialized for ambient mode');
-    // Fall back to single track mode
-    return playViaItunes(query);
+  // 🚨 IMPROVED: Better check with clear error message
+  const musicAvailability = isMusicAvailable();
+  if (!musicAvailability.available) {
+    log.warn(
+      { query, reason: musicAvailability.reason },
+      '🎧 Music player not available for ambient mode'
+    );
+    return `I'd love to set the mood with some ${query} music, but the audio system isn't ready this session. Let's keep chatting!`;
   }
 
   // Play the first track immediately
@@ -292,7 +308,8 @@ async function playAmbientMusic(query: string): Promise<string> {
 
   if (!success) {
     log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
-    return `Had trouble starting the music. Want to try again?`;
+    // 🚨 IMPROVED: Better error message - system issue, not track issue
+    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
   }
 
   // 🎧 DJ MODE: Queue just ONE backup track for smooth transition
@@ -816,12 +833,14 @@ export function createMusicTools() {
           return result;
         } catch (error) {
           log.error({ query, error }, '🎵 TOOL: playMusic ERROR');
-          const musicErrors = [
-            `"${query}" isn't cooperating. Let me try a different way.`,
-            `Hmm, can't get "${query}" going. Want me to try something similar?`,
-            `Music player's being weird. Give me a sec and I'll try again.`,
-          ];
-          return musicErrors[Math.floor(Math.random() * musicErrors.length)];
+          // 🚨 IMPROVED: Clear error that helps LLM understand the issue
+          // Check if music system is working at all
+          const musicAvailability = isMusicAvailable();
+          if (!musicAvailability.available) {
+            return `I tried to play "${query}" but the music system isn't working this session. The audio didn't initialize properly - reconnecting might help. For now, let's keep talking!`;
+          }
+          // Music system is working, just this track/request failed
+          return `I had trouble with "${query}". Maybe try a different song or artist?`;
         }
       },
     }),

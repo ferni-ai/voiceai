@@ -421,6 +421,8 @@ class LiveKitSession(private val context: Context) {
                         "curious" -> EmotionHint.CURIOUS
                         "empathetic" -> EmotionHint.EMPATHETIC
                         "encouraging" -> EmotionHint.ENCOURAGING
+                        "thinking" -> EmotionHint.THINKING
+                        "calm" -> EmotionHint.CALM
                         else -> EmotionHint.NEUTRAL
                     }
                     scope.launch {

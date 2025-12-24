@@ -249,8 +249,8 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
 
       // Enhanced logging with instance identification for multi-instance debugging
       const roomName = job.room?.name || 'unknown';
-      _log('Job availability request', { 
-        jobId: job.id, 
+      _log('Job availability request', {
+        jobId: job.id,
         roomName,
         instanceId: `${_config.agentName}-${process.pid}`,
         hostname: process.env.HOSTNAME || 'local',
@@ -259,7 +259,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       const acceptArgs = {
         name: _config.agentName,
         identity: `${_config.agentName}-${process.pid}`,
-        metadata: JSON.stringify({ 
+        metadata: JSON.stringify({
           singleProcess: true,
           hostname: process.env.HOSTNAME || 'local',
           pid: process.pid,
@@ -289,8 +289,8 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       const roomName = assignment.job?.room?.name || 'unknown';
 
       // Enhanced logging with instance identification
-      _log('Job assignment received', { 
-        jobId, 
+      _log('Job assignment received', {
+        jobId,
         roomName,
         instanceId: `${_config.agentName}-${process.pid}`,
         hostname: process.env.HOSTNAME || 'local',
@@ -324,18 +324,18 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
     case 'termination': {
       // Enhanced termination logging - this is critical for debugging conflicts
       const jobId = message.value.jobId;
-      _log('Job termination received', { 
+      _log('Job termination received', {
         jobId,
         instanceId: `${_config.agentName}-${process.pid}`,
         hostname: process.env.HOSTNAME || 'local',
         timestamp: new Date().toISOString(),
       });
-      
+
       // Write to stderr for immediate visibility
       process.stderr.write(
         `[livekit-connection] 🛑 JOB TERMINATED: ${jobId} ` +
-        `(instance: ${_config.agentName}-${process.pid}, ` +
-        `host: ${process.env.HOSTNAME || 'local'})\n`
+          `(instance: ${_config.agentName}-${process.pid}, ` +
+          `host: ${process.env.HOSTNAME || 'local'})\n`
       );
       break;
     }

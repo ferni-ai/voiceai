@@ -249,7 +249,7 @@ export async function requestPin(
       await firestore.collection(ECOBEE_PENDING_AUTH_COLLECTION).doc(userId).set(pending);
     }
 
-    log.info({ userId, pin: data.ecobeePin, expiresIn: data.expires_in }, 'Ecobee PIN generated');
+    log.info({ userId, expiresIn: data.expires_in }, 'Ecobee PIN generated');
 
     return {
       success: true,

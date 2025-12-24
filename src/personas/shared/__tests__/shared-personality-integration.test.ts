@@ -34,6 +34,30 @@ vi.mock('../personality-resonance-store.js', () => ({
   },
 }));
 
+// Mock A/B testing to always return treatment for tests
+vi.mock('../personality-ab-testing.js', () => ({
+  getVariant: vi.fn().mockReturnValue('treatment'),
+  isFeatureEnabled: vi.fn().mockReturnValue(true),
+  incrementMetric: vi.fn(),
+  createSessionMetricsTracker: vi.fn().mockReturnValue({
+    turnCount: 0,
+    sessionDurationMs: 0,
+    averageTurnLengthWords: 0,
+    positiveResponses: 0,
+    negativeResponses: 0,
+    neutralResponses: 0,
+    noticingsTriggered: 0,
+    noticingsAcknowledged: 0,
+    expressionsInjected: 0,
+    expressionsEngaged: 0,
+    topicChanges: 0,
+    deepTopicExplorations: 0,
+    vulnerabilityMoments: 0,
+    breakthroughMoments: 0,
+  }),
+  recordSessionEngagement: vi.fn(),
+}));
+
 describe('shared-personality-integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -268,7 +292,12 @@ describe('shared-personality-integration', () => {
       const result = await sharedPersonality.processTurn(input);
 
       // Valid injection points
-      const validPoints = ['before_response', 'mid_response', 'after_response', 'as_acknowledgment'];
+      const validPoints = [
+        'before_response',
+        'mid_response',
+        'after_response',
+        'as_acknowledgment',
+      ];
       expect(validPoints).toContain(result.injectionPoint);
     });
   });
@@ -321,4 +350,3 @@ describe('shared-personality-integration', () => {
     });
   });
 });
-

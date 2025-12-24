@@ -31,33 +31,46 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ferni.voice.models.Persona
 import com.ferni.voice.services.LiveKitSession
 import com.ferni.voice.ui.components.ControlBar
 import com.ferni.voice.ui.components.PersonaPickerSheet
 import com.ferni.voice.ui.components.VoiceOrb
 import com.ferni.voice.util.HapticFeedback
+import com.ferni.voice.viewmodels.VoiceViewModel
 import kotlinx.coroutines.launch
 
 /**
  * Main voice conversation screen.
+ *
+ * Uses VoiceViewModel to bridge LiveKitSession with BetterThanHumanEngine,
+ * enabling superhuman emotional intelligence capabilities in the avatar.
  */
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun VoiceScreen(
-    session: LiveKitSession,
-    onNavigateToSettings: () -> Unit = {}, // Reserved for future settings navigation
+    onNavigateToSettings: () -> Unit = {},
     onNavigateToTranscript: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    voiceViewModel: VoiceViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val voiceState by session.voiceState.collectAsState()
-    val currentPersonaId by session.currentPersonaId.collectAsState()
-    val isMuted by session.isMuted.collectAsState()
-    val connectionProgress by session.connectionProgress.collectAsState()
+    // Get session from ViewModel for backwards compatibility
+    val session = voiceViewModel.liveKitSession
+
+    // Core voice state
+    val voiceState by voiceViewModel.voiceState.collectAsState()
+    val currentPersonaId by voiceViewModel.currentPersonaId.collectAsState()
+    val isMuted by voiceViewModel.isMuted.collectAsState()
+    val connectionProgress by voiceViewModel.connectionProgress.collectAsState()
     val transcriptMessages by session.transcriptMessages.collectAsState()
+
+    // Better Than Human state for avatar emotional intelligence
+    val betterThanHumanState by voiceViewModel.betterThanHumanState.collectAsState()
+    val audioLevel by voiceViewModel.audioLevel.collectAsState()
 
     val persona = remember(currentPersonaId) { Persona.get(currentPersonaId) }
 
@@ -86,10 +99,12 @@ fun VoiceScreen(
         ) {
             Spacer(modifier = Modifier.weight(0.3f))
 
-            // Voice Orb (tap to show transcript when connected)
+            // Voice Orb with Better Than Human emotional intelligence
             VoiceOrb(
                 persona = persona,
                 voiceState = voiceState,
+                betterThanHumanState = betterThanHumanState,
+                audioLevel = audioLevel,
                 modifier = Modifier
                     .size(200.dp)
                     .clickable(
@@ -121,18 +136,18 @@ fun VoiceScreen(
                 persona = persona,
                 onMuteToggle = {
                     HapticFeedback.tap(context)
-                    session.toggleMute()
+                    voiceViewModel.toggleMute()
                 },
                 onConnectToggle = {
                     scope.launch {
                         if (voiceState.isActive) {
                             HapticFeedback.tap(context)
-                            session.disconnect()
+                            voiceViewModel.disconnect()
                         } else {
                             HapticFeedback.tap(context)
-                            session.connect()
+                            voiceViewModel.connect()
                             // Play success haptic when connected
-                            if (session.voiceState.value.isActive) {
+                            if (voiceViewModel.voiceState.value.isActive) {
                                 HapticFeedback.success(context)
                             }
                         }
@@ -156,10 +171,8 @@ fun VoiceScreen(
             PersonaPickerSheet(
                 currentPersonaId = currentPersonaId,
                 onPersonaSelected = { personaId ->
-                    scope.launch {
-                        HapticFeedback.tap(context)
-                        session.switchPersona(personaId)
-                    }
+                    HapticFeedback.tap(context)
+                    voiceViewModel.switchPersona(personaId)
                 },
                 onDismiss = { showPersonaPicker = false }
             )

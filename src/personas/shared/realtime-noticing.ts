@@ -70,6 +70,99 @@ export interface NoticingInput {
   currentTopics?: string[];
 }
 
+// ============================================================================
+// CONFIGURABLE THRESHOLDS (per-persona tuning)
+// ============================================================================
+
+export interface NoticingThresholds {
+  // Pause detection
+  shortPauseMs: number; // Soft "noticed something" (default: 1500ms)
+  longPauseMs: number; // Clear acknowledgment (default: 2500ms)
+  veryLongPauseMs: number; // Direct check-in (default: 5000ms)
+
+  // Energy detection
+  energyDropArousal: number; // Below this = energy drop (default: 0.3)
+  energyDropValence: number; // Below this + arousal drop = concern (default: 0)
+  energyRiseArousal: number; // Above this = energy rise (default: 0.7)
+  energyRiseValence: number; // Above this = positive energy (default: 0)
+
+  // Speech rate
+  speechSlowdownRatio: number; // Below this ratio = slowdown (default: 0.7)
+  speechSpeedupRatio: number; // Above this ratio = speedup (default: 1.3)
+  subtleSlowdownRatio: number; // Soft slowdown detection (default: 0.8)
+  subtleSpeedupRatio: number; // Soft speedup detection (default: 1.2)
+
+  // Voice confidence
+  minVoiceConfidence: number; // Minimum confidence for mismatch (default: 0.6)
+
+  // Repetition
+  repeatedThemeCount: number; // Mentions to trigger (default: 3)
+
+  // Throttling
+  minTurnsBetweenNoticing: number; // Turns between acknowledgments (default: 4)
+  maxNoticingsPerSession: number; // Max acknowledgments per session (default: 3)
+
+  // Sensitivity modifier (0.5 = less sensitive, 1.5 = more sensitive)
+  sensitivityMultiplier: number;
+}
+
+const DEFAULT_THRESHOLDS: NoticingThresholds = {
+  shortPauseMs: 1500,
+  longPauseMs: 2500,
+  veryLongPauseMs: 5000,
+  energyDropArousal: 0.3,
+  energyDropValence: 0,
+  energyRiseArousal: 0.7,
+  energyRiseValence: 0,
+  speechSlowdownRatio: 0.7,
+  speechSpeedupRatio: 1.3,
+  subtleSlowdownRatio: 0.8,
+  subtleSpeedupRatio: 1.2,
+  minVoiceConfidence: 0.6,
+  repeatedThemeCount: 3,
+  minTurnsBetweenNoticing: 4,
+  maxNoticingsPerSession: 3,
+  sensitivityMultiplier: 1.0,
+};
+
+// Per-persona threshold overrides
+const PERSONA_THRESHOLDS: Partial<Record<string, Partial<NoticingThresholds>>> = {
+  'maya-santos': {
+    // Maya is warm and nurturing - notices pauses sooner
+    shortPauseMs: 1200,
+    longPauseMs: 2000,
+    sensitivityMultiplier: 1.2,
+  },
+  'peter-john': {
+    // Peter is analytical - needs more data before noticing
+    shortPauseMs: 2000,
+    longPauseMs: 3000,
+    sensitivityMultiplier: 0.8,
+  },
+  'alex-chen': {
+    // Alex is direct - notices efficiency changes
+    speechSlowdownRatio: 0.75,
+    speechSpeedupRatio: 1.25,
+    sensitivityMultiplier: 0.9,
+  },
+  'jordan-taylor': {
+    // Jordan is celebratory - notices energy shifts easily
+    energyRiseArousal: 0.6,
+    sensitivityMultiplier: 1.1,
+  },
+  'nayan-patel': {
+    // Nayan is patient - allows more reflection time
+    shortPauseMs: 2000,
+    veryLongPauseMs: 7000,
+    sensitivityMultiplier: 0.9,
+  },
+};
+
+function getThresholds(personaId: string): NoticingThresholds {
+  const overrides = PERSONA_THRESHOLDS[personaId] ?? {};
+  return { ...DEFAULT_THRESHOLDS, ...overrides };
+}
+
 export interface NoticingResult {
   type: NoticingType;
   observation: string;
@@ -111,44 +204,37 @@ function getPersonaAcknowledgment(
     'maya-santos': {
       significant_pause:
         "You took a moment there. <break time='200ms'/>That's okay. Take the time you need.",
-      energy_drop:
-        "I noticed something shifted. <break time='200ms'/>I'm here with you.",
+      energy_drop: "I noticed something shifted. <break time='200ms'/>I'm here with you.",
       mismatch:
         "You said you're okay, but... <break time='200ms'/>I hear something else. What's really going on?",
       breakthrough_moment:
         "Wait—<break time='150ms'/>something just clicked for you. <break time='200ms'/>Let's honor that.",
-      protective_language:
-        "I hear the words, but... <break time='200ms'/>what's underneath them?",
+      protective_language: "I hear the words, but... <break time='200ms'/>what's underneath them?",
     },
     'peter-john': {
       significant_pause:
         "You paused there. <break time='200ms'/>The data says pauses often precede important thoughts.",
-      energy_drop:
-        "Something shifted in your voice. <break time='200ms'/>I noticed.",
+      energy_drop: "Something shifted in your voice. <break time='200ms'/>I noticed.",
       breakthrough_moment:
         "There it is—<break time='150ms'/>that realization. <break time='200ms'/>Those moments matter.",
       repeated_theme:
         "You've come back to this topic several times. <break time='200ms'/>There's something here worth exploring.",
     },
     'alex-chen': {
-      significant_pause:
-        "Take your time. <break time='200ms'/>Some thoughts need space.",
+      significant_pause: "Take your time. <break time='200ms'/>Some thoughts need space.",
       mismatch:
         "I'm hearing two messages. <break time='200ms'/>Let's get clear on what you really want to say.",
-      energy_drop:
-        "Your energy shifted. <break time='200ms'/>What's going on?",
+      energy_drop: "Your energy shifted. <break time='200ms'/>What's going on?",
       protective_language:
         "You said it's fine, but <break time='150ms'/>—let's be direct. What's really happening?",
     },
     'jordan-taylor': {
-      significant_pause:
-        "You paused—<break time='200ms'/>sometimes the big stuff needs a runway.",
+      significant_pause: "You paused—<break time='200ms'/>sometimes the big stuff needs a runway.",
       breakthrough_moment:
         "YES! <break time='150ms'/>I just watched something click for you! <break time='200ms'/>Let's celebrate this.",
       energy_rise:
         "I can HEAR the energy shift! <break time='200ms'/>Something good just happened.",
-      energy_drop:
-        "Hey—<break time='200ms'/>something shifted. <break time='150ms'/>I'm here.",
+      energy_drop: "Hey—<break time='200ms'/>something shifted. <break time='150ms'/>I'm here.",
     },
     'nayan-patel': {
       significant_pause:
@@ -219,22 +305,57 @@ export function detectNoticing(input: NoticingInput): NoticingResult | null {
 // ============================================================================
 
 function detectSignificantPause(input: NoticingInput): NoticingResult | null {
-  if (input.pauseBeforeMs < 2000) return null;
+  const thresholds = getThresholds(input.personaId);
+  const pauseMs = input.pauseBeforeMs;
 
-  const isVeryLong = input.pauseBeforeMs > 5000;
+  // Three tiers of pause detection for nuanced response
+  const isShortPause = pauseMs >= thresholds.shortPauseMs && pauseMs < thresholds.longPauseMs;
+  const isLongPause = pauseMs >= thresholds.longPauseMs && pauseMs < thresholds.veryLongPauseMs;
+  const isVeryLongPause = pauseMs >= thresholds.veryLongPauseMs;
+
+  if (!isShortPause && !isLongPause && !isVeryLongPause) {
+    return null;
+  }
+
+  // Tiered acknowledgments based on pause length
+  let acknowledgment: string;
+  let timing: 'immediate' | 'gentle_delay' | 'wait_for_opening';
+  let subtlety: 'whisper' | 'gentle' | 'direct';
+  let confidence: number;
+  let observation: string;
+
+  if (isVeryLongPause) {
+    acknowledgment = "You took a moment there. <break time='250ms'/>Is everything okay?";
+    timing = 'immediate';
+    subtlety = 'gentle';
+    confidence = Math.min(pauseMs / thresholds.veryLongPauseMs, 1);
+    observation = 'User paused for a significant time before speaking';
+  } else if (isLongPause) {
+    acknowledgment = "I noticed you paused. <break time='200ms'/>Take your time.";
+    timing = 'gentle_delay';
+    subtlety = 'gentle';
+    confidence = 0.5 + (pauseMs - thresholds.longPauseMs) / (thresholds.veryLongPauseMs - thresholds.longPauseMs) * 0.3;
+    observation = 'User took a moment before responding';
+  } else {
+    // Short pause - very subtle acknowledgment
+    acknowledgment = "Hmm. <break time='150ms'/>";
+    timing = 'wait_for_opening';
+    subtlety = 'whisper';
+    confidence = 0.3 + (pauseMs - thresholds.shortPauseMs) / (thresholds.longPauseMs - thresholds.shortPauseMs) * 0.2;
+    observation = 'User paused briefly before speaking';
+  }
+
+  // Apply sensitivity modifier
+  confidence = Math.min(confidence * thresholds.sensitivityMultiplier, 1);
 
   return {
     type: 'significant_pause',
-    observation: isVeryLong
-      ? 'User paused for a long time before speaking'
-      : 'User took a moment before responding',
-    acknowledgment: isVeryLong
-      ? "You took a moment there. <break time='200ms'/>Take your time."
-      : "I noticed you paused. <break time='150ms'/>That's okay.",
+    observation,
+    acknowledgment,
     shouldAcknowledge: true,
-    confidence: Math.min(input.pauseBeforeMs / 5000, 1),
-    timing: isVeryLong ? 'immediate' : 'gentle_delay',
-    subtlety: isVeryLong ? 'gentle' : 'whisper',
+    confidence,
+    timing,
+    subtlety,
     personaId: input.personaId,
   };
 }
@@ -244,34 +365,93 @@ function detectEnergyShift(input: NoticingInput): NoticingResult | null {
     return null;
   }
 
+  const thresholds = getThresholds(input.personaId);
   if (input.voiceEmotion.confidence < 0.5) return null;
 
   const currentArousal = input.voiceEmotion.arousal ?? 0.5;
   const currentValence = input.voiceEmotion.valence ?? 0;
 
-  // Energy drop
-  if (currentArousal < 0.3 && currentValence < 0) {
+  // Calculate previous turn's average energy for comparison
+  const previousEmotions = input.previousTurns
+    .slice(-3)
+    .filter((t) => t.voiceEmotion)
+    .map((t) => {
+      // Map common emotion strings to approximate arousal values
+      const emotionArousalMap: Record<string, number> = {
+        happy: 0.7,
+        excited: 0.9,
+        anxious: 0.7,
+        stressed: 0.6,
+        sad: 0.2,
+        calm: 0.3,
+        neutral: 0.5,
+        angry: 0.8,
+        fearful: 0.6,
+        content: 0.4,
+      };
+      return emotionArousalMap[t.voiceEmotion?.toLowerCase() ?? 'neutral'] ?? 0.5;
+    });
+
+  const avgPreviousArousal =
+    previousEmotions.length > 0
+      ? previousEmotions.reduce((a, b) => a + b, 0) / previousEmotions.length
+      : 0.5;
+
+  // Calculate shift magnitude
+  const arousalShift = currentArousal - avgPreviousArousal;
+
+  // Significant energy drop
+  if (currentArousal < thresholds.energyDropArousal && currentValence < thresholds.energyDropValence) {
+    const shiftMagnitude = Math.abs(arousalShift);
     return {
       type: 'energy_drop',
       observation: 'Voice energy dropped noticeably',
       acknowledgment: "Something shifted just now. <break time='200ms'/>I heard it.",
       shouldAcknowledge: true,
-      confidence: 0.7,
+      confidence: Math.min(0.5 + shiftMagnitude * thresholds.sensitivityMultiplier, 0.9),
       timing: 'gentle_delay',
       subtlety: 'gentle',
       personaId: input.personaId,
     };
   }
 
-  // Energy rise
-  if (currentArousal > 0.7 && currentValence > 0) {
+  // Gradual energy drop (more subtle)
+  if (currentArousal < 0.4 && arousalShift < -0.15 && currentValence <= 0) {
+    return {
+      type: 'energy_drop',
+      observation: 'Voice energy gradually decreased',
+      acknowledgment: "Your energy shifted a bit there. <break time='150ms'/>",
+      shouldAcknowledge: Math.random() < 0.4 * thresholds.sensitivityMultiplier,
+      confidence: 0.45,
+      timing: 'wait_for_opening',
+      subtlety: 'whisper',
+      personaId: input.personaId,
+    };
+  }
+
+  // Significant energy rise
+  if (currentArousal > thresholds.energyRiseArousal && currentValence > thresholds.energyRiseValence) {
     return {
       type: 'energy_rise',
       observation: 'Voice energy lifted',
       acknowledgment: "Something lifted there. <break time='150ms'/>I can hear it.",
       shouldAcknowledge: true,
-      confidence: 0.6,
+      confidence: Math.min(0.5 + Math.abs(arousalShift) * thresholds.sensitivityMultiplier, 0.8),
       timing: 'gentle_delay',
+      subtlety: 'whisper',
+      personaId: input.personaId,
+    };
+  }
+
+  // Gradual energy rise (more subtle)
+  if (currentArousal > 0.6 && arousalShift > 0.15 && currentValence >= 0) {
+    return {
+      type: 'energy_rise',
+      observation: 'Voice energy gradually increased',
+      acknowledgment: "I can hear something lifting. <break time='100ms'/>",
+      shouldAcknowledge: Math.random() < 0.5 * thresholds.sensitivityMultiplier,
+      confidence: 0.4,
+      timing: 'wait_for_opening',
       subtlety: 'whisper',
       personaId: input.personaId,
     };
@@ -282,7 +462,9 @@ function detectEnergyShift(input: NoticingInput): NoticingResult | null {
 
 function detectVoiceTextMismatch(input: NoticingInput): NoticingResult | null {
   if (!input.voiceEmotion || !input.textEmotion) return null;
-  if (input.voiceEmotion.confidence < 0.6) return null;
+
+  const thresholds = getThresholds(input.personaId);
+  if (input.voiceEmotion.confidence < thresholds.minVoiceConfidence) return null;
 
   const voicePrimary = input.voiceEmotion.primary.toLowerCase();
   const textPrimary = input.textEmotion.primary.toLowerCase();
@@ -297,7 +479,7 @@ function detectVoiceTextMismatch(input: NoticingInput): NoticingResult | null {
       acknowledgment:
         "You said you're okay, but... <break time='200ms'/>your voice tells a different story. <break time='150ms'/>What's really going on?",
       shouldAcknowledge: true,
-      confidence: input.voiceEmotion.confidence,
+      confidence: input.voiceEmotion.confidence * thresholds.sensitivityMultiplier,
       timing: 'gentle_delay',
       subtlety: 'gentle',
       personaId: input.personaId,
@@ -342,6 +524,7 @@ function detectTopicDeflection(input: NoticingInput): NoticingResult | null {
 function detectSpeechRateChange(input: NoticingInput): NoticingResult | null {
   if (!input.speechRateWPM || !input.previousTurns) return null;
 
+  const thresholds = getThresholds(input.personaId);
   const recentRates = input.previousTurns
     .slice(-3)
     .filter((t) => t.speechRate)
@@ -351,32 +534,61 @@ function detectSpeechRateChange(input: NoticingInput): NoticingResult | null {
 
   const avgRate = recentRates.reduce((a, b) => a + b, 0) / recentRates.length;
   const currentRate = input.speechRateWPM;
+  const rateRatio = currentRate / avgRate;
 
-  // Significant slowdown
-  if (currentRate < avgRate * 0.7) {
+  // Significant slowdown (strong detection)
+  if (rateRatio < thresholds.speechSlowdownRatio) {
     return {
       type: 'speech_rate_change',
       observation: 'Speaking noticeably slower',
       acknowledgment:
         "You're taking your time with this. <break time='150ms'/>That feels important.",
       shouldAcknowledge: true,
-      confidence: 0.65,
+      confidence: 0.65 * thresholds.sensitivityMultiplier,
       timing: 'gentle_delay',
       subtlety: 'whisper',
       personaId: input.personaId,
     };
   }
 
-  // Significant speedup
-  if (currentRate > avgRate * 1.3) {
+  // Subtle slowdown
+  if (rateRatio < thresholds.subtleSlowdownRatio && rateRatio >= thresholds.speechSlowdownRatio) {
+    return {
+      type: 'speech_rate_change',
+      observation: 'Speaking slightly slower',
+      acknowledgment: "Mm-hmm. <break time='100ms'/>",
+      shouldAcknowledge: Math.random() < 0.3 * thresholds.sensitivityMultiplier,
+      confidence: 0.35,
+      timing: 'wait_for_opening',
+      subtlety: 'whisper',
+      personaId: input.personaId,
+    };
+  }
+
+  // Significant speedup (strong detection)
+  if (rateRatio > thresholds.speechSpeedupRatio) {
     return {
       type: 'speech_rate_change',
       observation: 'Speaking noticeably faster',
       acknowledgment:
         "I can hear the energy in your voice. <break time='150ms'/>Lot going on there.",
       shouldAcknowledge: true,
-      confidence: 0.55,
+      confidence: 0.55 * thresholds.sensitivityMultiplier,
       timing: 'gentle_delay',
+      subtlety: 'whisper',
+      personaId: input.personaId,
+    };
+  }
+
+  // Subtle speedup
+  if (rateRatio > thresholds.subtleSpeedupRatio && rateRatio <= thresholds.speechSpeedupRatio) {
+    return {
+      type: 'speech_rate_change',
+      observation: 'Speaking slightly faster',
+      acknowledgment: "Mm. <break time='100ms'/>",
+      shouldAcknowledge: Math.random() < 0.25 * thresholds.sensitivityMultiplier,
+      confidence: 0.3,
+      timing: 'wait_for_opening',
       subtlety: 'whisper',
       personaId: input.personaId,
     };
@@ -389,6 +601,7 @@ function detectRepeatedTheme(input: NoticingInput): NoticingResult | null {
   if (!input.previousTurns || input.previousTurns.length < 4) return null;
   if (!input.currentTopics || input.currentTopics.length === 0) return null;
 
+  const thresholds = getThresholds(input.personaId);
   const topicCounts = new Map<string, number>();
 
   for (const turn of input.previousTurns) {
@@ -404,13 +617,13 @@ function detectRepeatedTheme(input: NoticingInput): NoticingResult | null {
   }
 
   for (const [topic, count] of topicCounts) {
-    if (count >= 3) {
+    if (count >= thresholds.repeatedThemeCount) {
       return {
         type: 'repeated_theme',
         observation: `Topic "${topic}" keeps coming up (${count} times)`,
         acknowledgment: `You keep coming back to ${topic}. <break time='200ms'/>There's something there, isn't there?`,
         shouldAcknowledge: true,
-        confidence: Math.min(count / 5, 0.9),
+        confidence: Math.min((count / 5) * thresholds.sensitivityMultiplier, 0.9),
         timing: 'wait_for_opening',
         subtlety: 'gentle',
         personaId: input.personaId,
@@ -540,8 +753,10 @@ const sessionStates = new Map<string, SessionNoticingState>();
 export function shouldThrottleNoticing(
   sessionId: string,
   turnCount: number,
-  result: NoticingResult
+  result: NoticingResult,
+  personaId?: string
 ): boolean {
+  const thresholds = getThresholds(personaId ?? result.personaId);
   let state = sessionStates.get(sessionId);
   if (!state) {
     state = {
@@ -552,13 +767,14 @@ export function shouldThrottleNoticing(
     sessionStates.set(sessionId, state);
   }
 
-  // Don't notice more than once every 4 turns
-  if (turnCount - state.lastNoticingTurn < 4) {
+  // Don't notice more than once every N turns (per persona setting)
+  if (turnCount - state.lastNoticingTurn < thresholds.minTurnsBetweenNoticing) {
     return true;
   }
 
-  // Don't over-acknowledge (max 3 per session)
-  if (state.acknowledgedCount >= 3 && result.type !== 'breakthrough_moment') {
+  // Don't over-acknowledge (max N per session, per persona setting)
+  // Breakthrough moments are always allowed
+  if (state.acknowledgedCount >= thresholds.maxNoticingsPerSession && result.type !== 'breakthrough_moment') {
     return true;
   }
 
@@ -608,4 +824,3 @@ export const sharedRealtimeNoticing = {
 };
 
 export default sharedRealtimeNoticing;
-

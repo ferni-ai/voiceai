@@ -81,7 +81,7 @@ import {
 } from '../../tools/domains/memory/tools.js';
 
 // Entertainment tools - music playback (from domains)
-import { createMusicTools } from '../../tools/domains/entertainment.js';
+import { createMusicTools } from '../../tools/domains/entertainment/music.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';

@@ -500,24 +500,141 @@ const styles = `
     to { transform: rotate(360deg); }
   }
   
-  /* Empty State */
+  /* Empty State - Storytelling Design */
   .wellbeing-empty {
-    text-align: center;
-    padding: var(--space-12, 48px) var(--space-4, 16px);
+    padding: var(--space-6, 24px) var(--space-4, 16px);
     color: var(--color-text-secondary);
   }
   
+  .wellbeing-empty__hero {
+    display: flex;
+    gap: var(--space-4, 16px);
+    align-items: flex-start;
+    margin-bottom: var(--space-6, 24px);
+  }
+  
   .wellbeing-empty__icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: var(--space-3, 12px);
-    opacity: 0.5;
-    color: var(--color-text-muted);
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    color: var(--color-ferni);
   }
 
   .wellbeing-empty__icon svg {
     width: 100%;
     height: 100%;
+  }
+  
+  .wellbeing-empty__text {
+    flex: 1;
+  }
+  
+  .wellbeing-empty__title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-2, 8px) 0;
+    line-height: 1.3;
+  }
+  
+  .wellbeing-empty__subtitle {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+  }
+  
+  /* Preview Section - What's Coming */
+  .wellbeing-empty__preview {
+    margin-bottom: var(--space-6, 24px);
+  }
+  
+  .wellbeing-empty__preview-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-3, 12px);
+  }
+  
+  .wellbeing-empty__dimensions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2, 8px);
+  }
+  
+  .wellbeing-empty__dimension {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px);
+    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
+    border-radius: var(--radius-lg, 12px);
+    opacity: 0.6;
+    transition: opacity var(--duration-fast, 100ms) ease;
+  }
+  
+  .wellbeing-empty__dimension:hover {
+    opacity: 0.8;
+  }
+  
+  .wellbeing-empty__dimension-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  
+  .wellbeing-empty__dimension-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .wellbeing-empty__dimension-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+  
+  /* Calendar Preview */
+  .wellbeing-empty__calendar-preview {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: var(--space-6, 24px);
+    padding: var(--space-3, 12px);
+    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
+    border-radius: var(--radius-lg, 12px);
+  }
+  
+  .wellbeing-empty__calendar-cell {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    opacity: 0.4;
+  }
+  
+  .wellbeing-empty__calendar-cell--highlight {
+    background: var(--color-ferni);
+    opacity: 0.25;
+  }
+  
+  /* Vision Statement */
+  .wellbeing-empty__vision {
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-4, 16px) var(--space-2, 8px);
+    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    margin-bottom: var(--space-4, 16px);
+  }
+  
+  /* CTA Section */
+  .wellbeing-empty__cta {
+    text-align: center;
   }
   
   /* Footer */
@@ -645,6 +762,31 @@ const styles = `
   [data-theme="midnight"] .wellbeing-empty {
     color: var(--color-text-secondary);
   }
+  
+  [data-theme="midnight"] .wellbeing-empty__title {
+    color: var(--color-text-primary);
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__dimension {
+    background: var(--color-background-secondary);
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__calendar-preview {
+    background: var(--color-background-secondary);
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__calendar-cell {
+    background: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__calendar-cell--highlight {
+    background: var(--color-ferni);
+    opacity: 0.3;
+  }
+  
+  [data-theme="midnight"] .wellbeing-empty__vision {
+    border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+  }
 
   [data-theme="midnight"] .wellbeing-modal__footer {
     border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
@@ -723,11 +865,18 @@ const ICONS = {
   close: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   trendUp: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   trendDown: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
-  heart: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  heart: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   // Achievement icons (Lucide - 2px stroke, rounded corners)
   smile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
   calm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="2.01"/></svg>`,
   star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  // Dimension preview icons (for empty state)
+  sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
+  users: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`,
+  compass: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
+  sunrise: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>`,
+  sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
 };
 
 // ============================================================================
@@ -1131,6 +1280,80 @@ function createModal(): void {
 // RENDERING
 // ============================================================================
 
+/**
+ * Renders a compelling empty state with storytelling about what State of Me will become.
+ * Shows preview dimensions and calendar to paint a picture of the future.
+ */
+function renderEmptyState(): string {
+  // Preview dimensions to show what they'll track
+  const previewDimensions = [
+    { name: 'Mood', icon: ICONS.smile, color: 'var(--color-ferni)' },
+    { name: 'Energy', icon: ICONS.sun, color: 'var(--color-jack)' },
+    { name: 'Connection', icon: ICONS.users, color: 'var(--color-peter)' },
+    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-alex)' },
+    { name: 'Purpose', icon: ICONS.compass, color: 'var(--color-nayan)' },
+    { name: 'Hope', icon: ICONS.sunrise, color: 'var(--color-maya)' },
+  ];
+
+  // Generate calendar preview cells (28 days = 4 weeks)
+  // Scatter some highlights to hint at future data
+  const calendarCells = Array.from({ length: 28 }, (_, i) => {
+    const isHighlight = [3, 7, 8, 12, 15, 18, 21, 24, 26].includes(i);
+    return `<div class="wellbeing-empty__calendar-cell${isHighlight ? ' wellbeing-empty__calendar-cell--highlight' : ''}"></div>`;
+  }).join('');
+
+  return `
+    <div class="wellbeing-empty">
+      <!-- Hero: Icon + Title -->
+      <div class="wellbeing-empty__hero">
+        <div class="wellbeing-empty__icon">${ICONS.heart}</div>
+        <div class="wellbeing-empty__text">
+          <h3 class="wellbeing-empty__title">A portrait of you will take shape here</h3>
+          <p class="wellbeing-empty__subtitle">
+            As we talk, I'll start noticing patterns—your rhythms, your energy, what lights you up. 
+            This becomes your personal wellbeing map.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Preview: What you'll track -->
+      <div class="wellbeing-empty__preview">
+        <div class="wellbeing-empty__preview-label">What we'll explore together</div>
+        <div class="wellbeing-empty__dimensions">
+          ${previewDimensions
+            .map(
+              (dim) => `
+            <div class="wellbeing-empty__dimension" style="color: ${dim.color}">
+              <div class="wellbeing-empty__dimension-icon">${dim.icon}</div>
+              <div class="wellbeing-empty__dimension-name">${dim.name}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+      
+      <!-- Calendar Preview -->
+      <div class="wellbeing-empty__calendar-preview">
+        ${calendarCells}
+      </div>
+      
+      <!-- Vision Statement -->
+      <div class="wellbeing-empty__vision">
+        Over time, patterns will emerge. Days will connect to weeks. 
+        You'll see yourself more clearly.
+      </div>
+      
+      <!-- CTA -->
+      <div class="wellbeing-empty__cta">
+        <button aria-label="Start a Conversation" class="wellbeing-btn" data-action="start-conversation">
+          Let's begin
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 async function loadData(): Promise<void> {
   isLoading = true;
   renderContent();
@@ -1156,15 +1379,7 @@ function renderContent(): void {
   }
 
   if (!data) {
-    content.innerHTML = `
-      <div class="wellbeing-empty">
-        <div class="wellbeing-empty__icon">${ICONS.heart}</div>
-        <p>Not enough data yet. Keep chatting with Ferni to build your wellbeing profile!</p>
-        <button aria-label="Start a Conversation" class="wellbeing-btn wellbeing-btn--secondary" data-action="start-conversation">
-          Start a Conversation
-        </button>
-      </div>
-    `;
+    content.innerHTML = renderEmptyState();
     // Wire up CTA button
     content.querySelector('[data-action="start-conversation"]')?.addEventListener('click', () => {
       hideWellbeingDashboard();

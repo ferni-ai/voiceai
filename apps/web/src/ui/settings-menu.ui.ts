@@ -279,6 +279,18 @@ const SECTION_VISIBILITY: SectionVisibility = {
 // ============================================================================
 
 const PINNED_STORAGE_KEY = 'ferni_menu_pinned';
+const EXPANDED_STORAGE_KEY = 'ferni_menu_expanded';
+
+// Default sections to expand (all of them for consistent view)
+const DEFAULT_EXPANDED_SECTIONS = [
+  'connect',
+  'grow',
+  'remember',
+  'preferences',
+  'connections',
+  'practices',
+  'youAndFerni'
+];
 
 function getPinnedItems(): Set<string> {
   try {
@@ -293,6 +305,20 @@ function savePinnedItems(items: Set<string>): void {
   localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify([...items]));
 }
 
+function getExpandedSections(): Set<string> {
+  try {
+    const stored = localStorage.getItem(EXPANDED_STORAGE_KEY);
+    // If user has saved preferences, use those; otherwise use defaults
+    return stored ? new Set(JSON.parse(stored)) : new Set(DEFAULT_EXPANDED_SECTIONS);
+  } catch {
+    return new Set(DEFAULT_EXPANDED_SECTIONS);
+  }
+}
+
+function saveExpandedSections(sections: Set<string>): void {
+  localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify([...sections]));
+}
+
 // ============================================================================
 // SETTINGS MENU UI CLASS
 // ============================================================================
@@ -305,7 +331,8 @@ class SettingsMenuUI {
   private isVisible = false;
   private spotifyLinked = false;
   private spotifyConfigured = false;
-  private expandedSections: Set<string> = new Set(['connect', 'preferences']);
+  // Load saved preferences or use defaults (all expanded)
+  private expandedSections: Set<string> = getExpandedSections();
   private pinnedItems: Set<string> = getPinnedItems();
   private languageExpanded = false;
 
@@ -460,6 +487,19 @@ class SettingsMenuUI {
   }
 
   /**
+   * Get time-aware greeting for the header
+   * Makes the menu feel personal and present
+   */
+  private getTimeGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 5) return t('menu.greeting.lateNight');
+    if (hour < 12) return t('menu.greeting.morning');
+    if (hour < 17) return t('menu.greeting.afternoon');
+    if (hour < 21) return t('menu.greeting.evening');
+    return t('menu.greeting.night');
+  }
+
+  /**
    * Check if a feature is locked based on relationship stage
    */
   private isFeatureLocked(action: string): boolean {
@@ -544,7 +584,7 @@ class SettingsMenuUI {
     if (isLocked) {
       const hint = this.getUnlockHint(action);
       return `
-        <button aria-label="Settings" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
+        <button aria-label="${label}" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
@@ -556,7 +596,7 @@ class SettingsMenuUI {
     }
 
     return `
-      <button aria-label="Settings" class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
+      <button aria-label="${label}" class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
       </button>
@@ -581,7 +621,10 @@ class SettingsMenuUI {
       <div class="settings-menu__backdrop"></div>
       <div class="settings-menu__card">
         <header class="settings-menu__header">
-          <h2>${t('menu.title')}</h2>
+          <div class="settings-menu__header-content">
+            <span class="settings-menu__header-eyebrow">${this.getTimeGreeting()}</span>
+            <h2>${t('menu.title')}</h2>
+          </div>
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
 
@@ -614,7 +657,54 @@ class SettingsMenuUI {
           <!-- PINNED ITEMS (Quick Access) -->
           ${pinnedItemsHtml}
 
-          <!-- SECTION: Connect - Ways to engage -->
+          <!-- ============================================================
+               SECTION ORDER: Life Coaching Relationship Arc
+               1. Daily Practices - The habit loop (core engagement)
+               2. Grow - Progress & insights (the "why")
+               3. Connect - Different ways to engage
+               4. Remember - Your story & relationships
+               5. Connections - Data integrations (context)
+               6. Your Way - Preferences (set & forget)
+               7. You & Ferni - Account (administrative)
+               ============================================================ -->
+
+          <!-- SECTION 1: Daily Practices - The core habit loop -->
+          ${
+            this.isSectionVisible('practices')
+              ? this.renderCollapsibleSection(
+                  'practices',
+                  t('menu.sections.practices'),
+                  expandedSections.has('practices'),
+                  `
+            ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
+            ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
+            ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION 2: Grow - Progress & insights -->
+          ${
+            this.isSectionVisible('grow')
+              ? this.renderCollapsibleSection(
+                  'grow',
+                  t('menu.sections.grow'),
+                  expandedSections.has('grow'),
+                  `
+            ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
+            ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
+            ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
+            ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
+            ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
+            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
+            ${this.renderMenuItem('life-context', ICONS.layers, t('menu.items.lifeContext'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION 3: Connect - Ways to engage -->
           ${
             this.isSectionVisible('connect')
               ? this.renderCollapsibleSection(
@@ -635,27 +725,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Grow - Progress & insights (unlocks at getting-started) -->
-          ${
-            this.isSectionVisible('grow')
-              ? this.renderCollapsibleSection(
-                  'grow',
-                  t('menu.sections.grow'),
-                  expandedSections.has('grow'),
-                  `
-            ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
-            ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
-            ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
-            ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
-            ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
-            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItem('life-context', ICONS.layers, t('menu.items.lifeContext'))}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION: Remember - Memories & relationships (unlocks at building-trust) -->
+          <!-- SECTION 4: Remember - Your story & relationships -->
           ${
             this.isSectionVisible('remember')
               ? this.renderCollapsibleSection(
@@ -671,7 +741,56 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION: Your Way - Personalization preferences -->
+          <!-- SECTION 5: Connections - Data integrations -->
+          ${
+            this.isSectionVisible('connections')
+              ? this.renderCollapsibleSection(
+                  'connections',
+                  t('menu.sections.connections'),
+                  expandedSections.has('connections'),
+                  `
+            <!-- Health & Wellness integrations -->
+            <div class="settings-menu__subgroup" data-subgroup="health">
+              <div class="settings-menu__subgroup-header">
+                <span class="settings-menu__subgroup-icon">${ICONS.heart}</span>
+                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourBody')}</span>
+              </div>
+              ${this.renderMenuItem('apple-health-settings', ICONS.heart, t('menu.items.appleHealth'))}
+              ${this.renderMenuItem('oura-settings', ICONS.ring, t('menu.items.oura'))}
+              ${this.renderMenuItem('eight-sleep-settings', ICONS.bed, t('menu.items.eightSleep'))}
+              ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
+            </div>
+
+            <!-- Calendar & Productivity integrations -->
+            <div class="settings-menu__subgroup" data-subgroup="productivity">
+              <div class="settings-menu__subgroup-header">
+                <span class="settings-menu__subgroup-icon">${ICONS.calendar}</span>
+                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourCalendar')}</span>
+              </div>
+              ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
+              ${this.renderMenuItem('linkedin-settings', ICONS.linkedin, t('menu.items.linkedin'))}
+            </div>
+
+            <!-- Home & Environment integrations -->
+            <div class="settings-menu__subgroup" data-subgroup="home">
+              <div class="settings-menu__subgroup-header">
+                <span class="settings-menu__subgroup-icon">${ICONS.rooms}</span>
+                <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourSpace')}</span>
+              </div>
+              ${this.renderMenuItem('spotify-rooms', ICONS.rooms, t('menu.items.spotifyRooms'))}
+              ${this.renderMenuItem('ecobee-settings', ICONS.thermostat, t('menu.items.thermostat'))}
+            </div>
+
+            <button aria-label="${t('menu.items.linkSpotify')}" class="settings-menu__item" data-action="spotify" style="display: none;">
+              <span class="settings-menu__icon">${ICONS.music}</span>
+              <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
+            </button>
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION 6: Your Way - Preferences -->
           ${
             this.isSectionVisible('preferences')
               ? this.renderCollapsibleSection(
@@ -683,62 +802,6 @@ class SettingsMenuUI {
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
             ${this.renderLanguageSelector()}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION: Connections - Organized by life domain -->
-          ${
-            this.isSectionVisible('connections')
-              ? this.renderCollapsibleSection(
-                  'connections',
-                  t('menu.sections.connections'),
-                  expandedSections.has('connections'),
-                  `
-            <!-- Your Body - Health & Rest -->
-            <div class="settings-menu__subgroup">
-              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourBody')}</span>
-              ${this.renderMenuItem('apple-health-settings', ICONS.heart, t('menu.items.appleHealth'))}
-              ${this.renderMenuItem('oura-settings', ICONS.ring, t('menu.items.oura'))}
-              ${this.renderMenuItem('eight-sleep-settings', ICONS.bed, t('menu.items.eightSleep'))}
-              ${this.renderMenuItem('wearable-settings', ICONS.watch, t('menu.items.wearables'))}
-            </div>
-
-            <!-- Your Calendar - Time & Work -->
-            <div class="settings-menu__subgroup">
-              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourCalendar')}</span>
-              ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
-              ${this.renderMenuItem('linkedin-settings', ICONS.linkedin, t('menu.items.linkedin'))}
-            </div>
-
-            <!-- Your Space - Home & Sound -->
-            <div class="settings-menu__subgroup">
-              <span class="settings-menu__subgroup-label">${t('menu.subgroups.yourSpace')}</span>
-              ${this.renderMenuItem('spotify-rooms', ICONS.rooms, t('menu.items.spotifyRooms'))}
-              ${this.renderMenuItem('ecobee-settings', ICONS.thermostat, t('menu.items.thermostat'))}
-            </div>
-
-            <button aria-label="Settings" class="settings-menu__item" data-action="spotify" style="display: none;">
-              <span class="settings-menu__icon">${ICONS.music}</span>
-              <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
-            </button>
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION: Daily Practices -->
-          ${
-            this.isSectionVisible('practices')
-              ? this.renderCollapsibleSection(
-                  'practices',
-                  t('menu.sections.practices'),
-                  expandedSections.has('practices'),
-                  `
-            ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
-            ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
           `
                 )
               : ''
@@ -907,7 +970,7 @@ class SettingsMenuUI {
   ): string {
     return `
       <section class="settings-menu__section ${isExpanded ? 'settings-menu__section--expanded' : ''}">
-        <button aria-label="Go forward" class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
+        <button aria-label="${isExpanded ? 'Collapse' : 'Expand'} ${title}" class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
           <h3>${title}</h3>
           <span class="settings-menu__section-chevron">${ICONS.chevronRight}</span>
         </button>
@@ -968,7 +1031,7 @@ class SettingsMenuUI {
       .map((action) => {
         const item = menuItems[action];
         return `
-          <button aria-label="Settings" class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
+          <button aria-label="${item.label}" class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
             <span class="settings-menu__icon">${item.icon}</span>
             <span class="settings-menu__label">${item.label}</span>
             <button class="settings-menu__unpin-btn" data-unpin="${action}" aria-label="${t('menu.unpinItem')}">
@@ -1029,7 +1092,7 @@ class SettingsMenuUI {
 
     if (isLocked) {
       return `
-        <button aria-label="Settings" class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
+        <button aria-label="${label}" class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
@@ -1041,7 +1104,7 @@ class SettingsMenuUI {
     }
 
     return `
-      <button aria-label="Settings" class="settings-menu__item" data-action="${action}">
+      <button aria-label="${label}" class="settings-menu__item" data-action="${action}">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
         <span class="settings-menu__badge">${badge}</span>
@@ -1060,7 +1123,7 @@ class SettingsMenuUI {
 
     return `
       <div class="settings-menu__language-selector">
-        <button aria-label="Go forward" class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
+        <button aria-label="${this.languageExpanded ? 'Collapse' : 'Expand'} ${t('menu.items.language')}" class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
@@ -1075,7 +1138,7 @@ class SettingsMenuUI {
           <div class="settings-menu__language-list-inner">
             ${SUPPORTED_LOCALES.map(
               (lang) => `
-              <button aria-label="Confirm"
+              <button aria-label="${lang.nativeName}${lang.code === currentLocale ? ' (current)' : ''}"
                 class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
                 data-action="set-language"
                 data-locale="${lang.code}"
@@ -1095,11 +1158,11 @@ class SettingsMenuUI {
   }
 
   /**
-   * Toggle a collapsible section
+   * Toggle a collapsible section and persist preference
    */
   private toggleSection(sectionId: string): void {
     if (!this.expandedSections) {
-      this.expandedSections = new Set(['connect', 'preferences']);
+      this.expandedSections = getExpandedSections();
     }
 
     if (this.expandedSections.has(sectionId)) {
@@ -1107,6 +1170,9 @@ class SettingsMenuUI {
     } else {
       this.expandedSections.add(sectionId);
     }
+
+    // Save user's preference
+    saveExpandedSections(this.expandedSections);
 
     // Re-render content to update UI
     this.renderContent();
@@ -1363,51 +1429,106 @@ class SettingsMenuUI {
         transform: translateX(0);
       }
 
+      /* ========================================================================
+         HEADER - Premium warm styling with persona awareness
+         ======================================================================== */
       .settings-menu__header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: var(--space-5, 20px) var(--space-6, 24px);
+        background: linear-gradient(180deg, 
+          var(--color-background-elevated, #fffdfb) 0%,
+          var(--color-background-primary, #f5f1e8) 100%
+        );
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
         flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Subtle persona glow in header */
+      .settings-menu__header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, 
+          transparent 0%,
+          var(--persona-primary, #4a6741) 50%,
+          transparent 100%
+        );
+        opacity: 0.6;
+      }
+
+      .settings-menu__header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .settings-menu__header-eyebrow {
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--persona-primary, #4a6741);
+        opacity: 0.85;
       }
 
       .settings-menu__header h2 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-xl, 1.25rem);
+        font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-primary, #2c2520);
         margin: 0;
+        letter-spacing: -0.01em;
       }
 
       .settings-menu__close {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
-        border: none;
+        background: var(--color-background-secondary, #f5f2ed);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-muted, #756a5e);
         cursor: pointer;
-        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        transition: 
+          background ${DURATION.FAST}ms ${EASING.STANDARD},
+          color ${DURATION.FAST}ms ${EASING.STANDARD},
+          transform ${DURATION.FAST}ms ${EASING.SPRING},
+          box-shadow ${DURATION.FAST}ms ${EASING.STANDARD};
+        box-shadow: 0 1px 3px rgba(44, 37, 32, 0.04);
       }
 
       .settings-menu__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-tertiary, #ebe6df);
         color: var(--color-text-primary, #2c2520);
-        transform: scale(1.05);
+        transform: scale(1.08);
+        box-shadow: 0 2px 8px rgba(44, 37, 32, 0.08);
       }
 
       .settings-menu__close:active {
-        transform: scale(0.95);
+        transform: scale(0.92);
+        box-shadow: none;
+      }
+
+      .settings-menu__close:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
       }
 
       .settings-menu__close svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
+        stroke-width: 2;
       }
 
       /* ========================================================================
@@ -1424,39 +1545,80 @@ class SettingsMenuUI {
         margin-bottom: var(--space-2, 8px);
       }
 
-      /* Collapsible Section Header */
+      /* ========================================================================
+         COLLAPSIBLE SECTIONS - Premium accordion styling
+         ======================================================================== */
       .settings-menu__section-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         width: 100%;
-        padding: var(--space-3, 12px) var(--space-2, 8px);
+        padding: var(--space-3, 12px) var(--space-3, 12px);
         background: transparent;
         border: none;
-        border-radius: var(--radius-md, 8px);
+        border-radius: var(--radius-lg, 12px);
         cursor: pointer;
-        transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+        transition: 
+          background ${DURATION.FAST}ms ${EASING.STANDARD},
+          transform ${DURATION.FAST}ms ${EASING.SPRING};
+        position: relative;
+      }
+
+      .settings-menu__section-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: var(--space-3, 12px);
+        right: var(--space-3, 12px);
+        height: 1px;
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        opacity: 0;
+        transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__section--expanded .settings-menu__section-header::after {
+        opacity: 1;
       }
 
       .settings-menu__section-header:hover {
-        background: var(--color-background-secondary, rgba(0, 0, 0, 0.03));
+        background: var(--color-background-secondary, rgba(0, 0, 0, 0.02));
+      }
+
+      .settings-menu__section-header:active {
+        transform: scale(0.995);
+      }
+
+      .settings-menu__section-header:focus-visible {
+        outline: none;
+        box-shadow: inset 0 0 0 2px var(--persona-primary, #4a6741);
       }
 
       .settings-menu__section-header h3 {
         font-family: var(--font-display);
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-semibold, 600);
+        font-size: 13px;
+        font-weight: 600;
         color: var(--color-text-primary);
-        text-transform: none;
-        letter-spacing: normal;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         margin: 0;
+        transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__section--expanded .settings-menu__section-header h3 {
+        color: var(--persona-primary, #4a6741);
       }
 
       .settings-menu__section-chevron {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         color: var(--color-text-muted);
-        transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.03));
+        border-radius: var(--radius-full, 9999px);
+        padding: 3px;
+        transition: 
+          transform ${DURATION.NORMAL}ms ${EASING.SPRING},
+          background ${DURATION.FAST}ms ${EASING.STANDARD},
+          color ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .settings-menu__section-chevron svg {
@@ -1466,13 +1628,19 @@ class SettingsMenuUI {
 
       .settings-menu__section--expanded .settings-menu__section-chevron {
         transform: rotate(90deg);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.12));
+        color: var(--persona-primary, #4a6741);
       }
 
-      /* Section Content - collapsible */
+      .settings-menu__section-header:hover .settings-menu__section-chevron {
+        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.05));
+      }
+
+      /* Section Content - collapsible with stagger */
       .settings-menu__section-content {
         display: grid;
         grid-template-rows: 0fr;
-        transition: grid-template-rows ${DURATION.NORMAL}ms ${EASING.STANDARD};
+        transition: grid-template-rows ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
         overflow: hidden;
       }
 
@@ -1484,44 +1652,184 @@ class SettingsMenuUI {
         overflow: hidden;
       }
 
-      /* Subgroups within sections - organize by life domain */
+      /* Staggered reveal animation for items inside sections */
+      .settings-menu__section-content .settings-menu__item {
+        opacity: 0;
+        transform: translateX(-8px);
+        transition: 
+          opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT},
+          transform ${DURATION.NORMAL}ms ${EASING.EXPO_OUT},
+          background ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      /* Stagger delays for first 8 items */
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(1) { transition-delay: 30ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(2) { transition-delay: 60ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(3) { transition-delay: 90ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(4) { transition-delay: 120ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(5) { transition-delay: 150ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(6) { transition-delay: 180ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(7) { transition-delay: 210ms; }
+      .settings-menu__section--expanded .settings-menu__section-content .settings-menu__item:nth-child(8) { transition-delay: 240ms; }
+
+      /* For subgroups, apply stagger to their children */
+      .settings-menu__subgroup .settings-menu__item {
+        transition-delay: inherit;
+      }
+
+      .settings-menu__section--expanded .settings-menu__subgroup:nth-child(1) .settings-menu__item { transition-delay: 30ms; }
+      .settings-menu__section--expanded .settings-menu__subgroup:nth-child(2) .settings-menu__item { transition-delay: 80ms; }
+      .settings-menu__section--expanded .settings-menu__subgroup:nth-child(3) .settings-menu__item { transition-delay: 130ms; }
+
+      /* ========================================================================
+         SUBGROUPS - Organized life domains within Connections section
+         Clean, minimal grouping without heavy visual weight
+         ======================================================================== */
       .settings-menu__subgroup {
         margin-bottom: var(--space-3, 12px);
+        padding: var(--space-2, 8px) 0;
       }
 
       .settings-menu__subgroup:last-child {
         margin-bottom: 0;
       }
 
+      /* Subgroup header with icon and label */
+      .settings-menu__subgroup-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        padding: var(--space-1, 4px) var(--space-3, 12px) var(--space-2, 8px);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .settings-menu__subgroup-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        color: var(--color-text-muted, #756a5e);
+        opacity: 0.5;
+      }
+
+      .settings-menu__subgroup-icon svg {
+        width: 14px;
+        height: 14px;
+      }
+
       .settings-menu__subgroup-label {
-        display: block;
-        padding: var(--space-2, 8px) var(--space-4, 16px) var(--space-1, 4px);
-        font-size: 0.7rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--color-text-muted, rgba(0, 0, 0, 0.45));
-        opacity: 0.8;
-      }
-
-      /* Quick Actions at bottom */
-      .settings-menu__quick-actions {
-        padding: var(--space-4, 16px) var(--space-4, 16px);
-        margin-top: var(--space-2, 8px);
-        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
-      }
-
-      /* Badge for NEW items */
-      .settings-menu__badge {
-        padding: 2px 8px;
-        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-        color: white;
-        font-size: 0.65rem;
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
+        color: var(--color-text-muted, #756a5e);
+        opacity: 0.7;
+      }
+
+      /* Subgroup items get slightly smaller styling */
+      .settings-menu__subgroup .settings-menu__item {
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        min-height: 44px;
+      }
+
+      .settings-menu__subgroup .settings-menu__icon {
+        width: 32px;
+        height: 32px;
+      }
+
+      .settings-menu__subgroup .settings-menu__icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Divider between subgroups */
+      .settings-menu__subgroup + .settings-menu__subgroup {
+        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+        padding-top: var(--space-3, 12px);
+        margin-top: var(--space-2, 8px);
+      }
+
+      /* ========================================================================
+         QUICK ACTIONS FOOTER - Warm, inviting bottom section
+         ======================================================================== */
+      .settings-menu__quick-actions {
+        padding: var(--space-5, 20px) var(--space-4, 16px);
+        margin-top: var(--space-3, 12px);
+        background: linear-gradient(180deg, 
+          transparent 0%,
+          var(--color-background-secondary, rgba(0, 0, 0, 0.015)) 100%
+        );
+        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      /* Quick action items are smaller, more subtle */
+      .settings-menu__quick-actions .settings-menu__item {
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        min-height: 40px;
+      }
+
+      .settings-menu__quick-actions .settings-menu__icon {
+        width: 28px;
+        height: 28px;
+        background: transparent;
+      }
+
+      .settings-menu__quick-actions .settings-menu__icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__icon {
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .settings-menu__quick-actions .settings-menu__label {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+      }
+
+      .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__label {
+        color: var(--color-text-primary);
+      }
+
+      /* Badge for NEW/UPDATED items - Premium pill styling */
+      .settings-menu__badge {
+        padding: 3px 10px;
+        background: linear-gradient(135deg, 
+          var(--persona-primary, #4a6741) 0%,
+          var(--persona-secondary, #3d5a35) 100%
+        );
+        color: white;
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
         border-radius: var(--radius-full, 9999px);
         margin-left: auto;
+        box-shadow: 0 2px 4px rgba(74, 103, 65, 0.25);
+        animation: badgePulse 2s ease-in-out infinite;
+      }
+
+      @keyframes badgePulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+      }
+
+      .settings-menu__item:hover .settings-menu__badge {
+        animation: none;
+        transform: scale(1.05);
       }
 
       .settings-menu__item {
@@ -1535,19 +1843,44 @@ class SettingsMenuUI {
         border: none;
         border-radius: var(--radius-lg, 12px);
         cursor: pointer;
-        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        transition: 
+          background ${DURATION.FAST}ms ${EASING.STANDARD},
+          transform ${DURATION.FAST}ms ${EASING.SPRING},
+          box-shadow ${DURATION.NORMAL}ms ${EASING.STANDARD};
         text-align: left;
         position: relative;
-        min-height: 44px; /* Consistent touch target */
+        min-height: 48px; /* Premium touch target */
+      }
+
+      /* Subtle hover glow for premium feel */
+      .settings-menu__item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.06)), transparent);
+        opacity: 0;
+        transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
+        pointer-events: none;
       }
 
       .settings-menu__item:hover {
         background: var(--color-background-secondary, #f5f2ed);
+        transform: translateX(2px);
+      }
+
+      .settings-menu__item:hover::before {
+        opacity: 1;
       }
 
       .settings-menu__item:active {
         background: var(--color-background-tertiary, #ebe6df);
-        transform: scale(0.98);
+        transform: scale(0.98) translateX(0);
+      }
+
+      .settings-menu__item:focus-visible {
+        outline: none;
+        box-shadow: inset 0 0 0 2px var(--persona-primary, #4a6741);
       }
 
       /* ========================================================================
@@ -1612,32 +1945,50 @@ class SettingsMenuUI {
         color: var(--color-destructive);
       }
 
+      /* Icon container - Premium Apple-style treatment */
       .settings-menu__icon {
-        width: 22px;
-        height: 22px;
-        color: var(--persona-primary, #4a6741);
+        width: 36px;
+        height: 36px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
+        background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-md, 8px);
+        color: var(--persona-primary, #4a6741);
+        transition: 
+          background ${DURATION.FAST}ms ${EASING.STANDARD},
+          color ${DURATION.FAST}ms ${EASING.STANDARD},
+          transform ${DURATION.NORMAL}ms ${EASING.SPRING};
       }
 
       .settings-menu__icon svg {
-        width: 100%;
-        height: 100%;
+        width: 18px;
+        height: 18px;
       }
 
       .settings-menu__item:hover .settings-menu__icon {
-        color: var(--persona-secondary, #3d5a35);
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        transform: scale(1.05);
+      }
+
+      .settings-menu__item:active .settings-menu__icon {
+        transform: scale(0.95);
       }
 
       .settings-menu__label {
         font-family: var(--font-body, Inter, sans-serif);
-        font-size: var(--text-sm, 0.875rem);
-        font-weight: var(--font-weight-medium, 500);
+        font-size: 14px;
+        font-weight: 500;
         color: var(--color-text-primary, #2c2520);
         flex: 1;
+        letter-spacing: -0.005em;
+        transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__item:hover .settings-menu__label {
+        color: var(--color-text-primary, #2c2520);
       }
 
       /* Active/Connected state for items like Spotify */
@@ -1915,97 +2266,179 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
-         RELATIONSHIP STAGE BANNER
+         RELATIONSHIP STAGE BANNER - Inspiring journey visualization
          ======================================================================== */
       .settings-menu__stage-banner {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: var(--space-4, 16px) var(--space-6, 24px);
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.08)), transparent);
+        gap: var(--space-4, 16px);
+        padding: var(--space-5, 20px) var(--space-6, 24px);
+        background: linear-gradient(135deg, 
+          var(--persona-tint, rgba(74, 103, 65, 0.1)) 0%,
+          transparent 60%
+        );
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Subtle decorative elements */
+      .settings-menu__stage-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.06)) 0%, transparent 70%);
+        pointer-events: none;
       }
 
       .settings-menu__stage-info {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 4px;
+        z-index: 1;
       }
 
       .settings-menu__stage-label {
         font-family: var(--font-body);
-        font-size: var(--text-xs);
+        font-size: 10px;
+        font-weight: 600;
         color: var(--color-text-muted);
         text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
+        letter-spacing: 0.1em;
       }
 
       .settings-menu__stage-name {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-base, 1rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-accent-text);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: 700;
+        color: var(--persona-primary, #4a6741);
+        letter-spacing: -0.01em;
       }
 
       .settings-menu__stage-progress {
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 4px;
-        min-width: min(100px, 100%);
+        gap: 6px;
+        min-width: 120px;
+        z-index: 1;
       }
 
       .settings-menu__stage-bar {
         width: 100%;
-        height: 6px;
+        height: 8px;
         background: var(--color-background-tertiary, #ebe6df);
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
       }
 
       .settings-menu__stage-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741));
+        background: linear-gradient(90deg, 
+          var(--persona-secondary, #3d5a35) 0%,
+          var(--persona-primary, #4a6741) 100%
+        );
         border-radius: var(--radius-full, 9999px);
-        transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
+        transition: width ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
+        position: relative;
+      }
+
+      /* Animated shimmer on progress bar */
+      .settings-menu__stage-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, 
+          transparent 0%,
+          rgba(255, 255, 255, 0.3) 50%,
+          transparent 100%
+        );
+        animation: progressShimmer 2s ease-in-out infinite;
+      }
+
+      @keyframes progressShimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(200%); }
       }
 
       .settings-menu__stage-next {
         font-family: var(--font-body);
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
       }
 
       .settings-menu__stage-max {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        font-weight: var(--font-weight-medium, 500);
-        color: var(--color-accent-text);
+        font-weight: 600;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .settings-menu__stage-max::before {
+        content: '✦';
+        font-size: 10px;
+        opacity: 0.7;
       }
 
       /* ========================================================================
-         DARK THEME
+         DARK THEME (CEDAR NIGHT) - WCAG AA Compliant Premium Styling
          ======================================================================== */
-      /* Dark Theme - WCAG AA Compliant */
+      
+      /* Trigger button */
       [data-theme="midnight"] .settings-trigger {
         background: var(--color-background-elevated, #70605a);
         border-color: var(--color-border-subtle, rgba(250, 246, 240, 0.1));
         color: var(--color-text-secondary, #f0ebe4);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme="midnight"] .settings-trigger:hover {
         background: var(--color-background-secondary, #60504a);
         color: var(--color-text-primary, #faf6f0);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
       }
 
+      /* Menu panel */
       [data-theme="midnight"] .settings-menu__backdrop {
         background: var(--backdrop-menu);
       }
 
       [data-theme="midnight"] .settings-menu__card {
-        background: var(--color-background-elevated);
-        /* No border - cleaner look */
-        box-shadow: var(--shadow-2xl);
+        background: var(--color-background-elevated, #70605a);
+        box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
+      }
+
+      /* Header */
+      [data-theme="midnight"] .settings-menu__header {
+        background: linear-gradient(180deg, 
+          var(--color-background-elevated, #70605a) 0%,
+          var(--color-background-primary, #60504a) 100%
+        );
+        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+      }
+
+      [data-theme="midnight"] .settings-menu__header::before {
+        background: linear-gradient(90deg, 
+          transparent 0%,
+          var(--color-accent-secondary, #7cb36b) 50%,
+          transparent 100%
+        );
+      }
+
+      [data-theme="midnight"] .settings-menu__header-eyebrow {
+        color: var(--color-accent-secondary, #7cb36b);
       }
 
       [data-theme="midnight"] .settings-menu__header h2 {
@@ -2014,6 +2447,7 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__close {
         background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -2022,78 +2456,182 @@ class SettingsMenuUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      [data-theme="midnight"] .settings-menu__section h3 {
-        color: var(--color-text-muted, #e8e2da);
+      /* Menu items */
+      [data-theme="midnight"] .settings-menu__item:hover {
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
       }
 
-      [data-theme="midnight"] .settings-menu__item:hover {
-        background: var(--color-background-secondary, #60504a);
+      [data-theme="midnight"] .settings-menu__item::before {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.08)), transparent);
+      }
+
+      [data-theme="midnight"] .settings-menu__icon {
+        background: var(--persona-tint, rgba(124, 179, 107, 0.12));
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__item:hover .settings-menu__icon {
+        background: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-background-primary, #50403a);
       }
 
       [data-theme="midnight"] .settings-menu__label {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      [data-theme="midnight"] .settings-menu__item--active {
-        background: var(--color-background-secondary, #60504a);
+      /* Section headers */
+      [data-theme="midnight"] .settings-menu__section-header:hover {
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.03));
       }
 
-      [data-theme="midnight"] .settings-menu__item--active .settings-menu__label::after {
+      [data-theme="midnight"] .settings-menu__section-header::after {
+        background: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+      }
+
+      [data-theme="midnight"] .settings-menu__section-header h3 {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-header h3 {
         color: var(--color-accent-secondary, #7cb36b);
       }
 
-      /* Dark Theme - Locked Items */
+      [data-theme="midnight"] .settings-menu__section-chevron {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.05));
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-chevron {
+        background: var(--persona-tint, rgba(124, 179, 107, 0.15));
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      /* Subgroups */
+      [data-theme="midnight"] .settings-menu__subgroup-icon {
+        color: var(--color-text-muted, #ddd6cc);
+      }
+
+      [data-theme="midnight"] .settings-menu__subgroup-label {
+        color: var(--color-text-muted, #ddd6cc);
+      }
+
+      [data-theme="midnight"] .settings-menu__subgroup + .settings-menu__subgroup {
+        border-top-color: rgba(255, 255, 255, 0.06);
+      }
+
+      /* Stage Banner */
+      [data-theme="midnight"] .settings-menu__stage-banner {
+        background: linear-gradient(135deg, 
+          var(--persona-tint, rgba(124, 179, 107, 0.12)) 0%,
+          transparent 60%
+        );
+        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-banner::before {
+        background: radial-gradient(circle, var(--persona-tint, rgba(124, 179, 107, 0.08)) 0%, transparent 70%);
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-label {
+        color: var(--color-text-muted, #ddd6cc);
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-name {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-bar {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.08));
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-fill {
+        background: linear-gradient(90deg, 
+          var(--persona-secondary, #5a8a4a) 0%,
+          var(--color-accent-secondary, #7cb36b) 100%
+        );
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-next {
+        color: var(--color-text-muted, #ddd6cc);
+      }
+
+      [data-theme="midnight"] .settings-menu__stage-max {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      /* Badges */
+      [data-theme="midnight"] .settings-menu__badge {
+        background: linear-gradient(135deg, 
+          var(--persona-primary, #5a8a4a) 0%,
+          var(--color-accent-secondary, #7cb36b) 100%
+        );
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Quick Actions */
+      [data-theme="midnight"] .settings-menu__quick-actions {
+        background: linear-gradient(180deg, 
+          transparent 0%,
+          var(--color-background-secondary, rgba(255, 255, 255, 0.02)) 100%
+        );
+        border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+      }
+
+      [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__icon {
+        background: transparent;
+      }
+
+      [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__icon {
+        background: var(--persona-tint, rgba(124, 179, 107, 0.12));
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__label {
+        color: var(--color-text-secondary, #e8e2da);
+      }
+
+      [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__label {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      /* Pinned items */
+      [data-theme="midnight"] .settings-menu__section--pinned {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.08)), transparent);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--pinned {
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.03));
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+      }
+
+      [data-theme="midnight"] .settings-menu__item--pinned:hover {
+        border-color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__unpin-btn {
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      /* Locked items */
       [data-theme="midnight"] .settings-menu__item--locked {
         opacity: 0.5;
       }
 
       [data-theme="midnight"] .settings-menu__unlock-hint,
       [data-theme="midnight"] .settings-menu__lock-icon {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted, #ddd6cc);
       }
 
-      /* Dark Theme - Stage Banner */
-      [data-theme="midnight"] .settings-menu__stage-banner {
-        background: linear-gradient(135deg, var(--persona-tint), transparent);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-label,
-      [data-theme="midnight"] .settings-menu__stage-next {
-        color: var(--color-text-muted, #e8e2da);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-name,
-      [data-theme="midnight"] .settings-menu__stage-max {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-bar {
-        background: var(--color-background-tertiary, #504540);
-      }
-
-      /* Dark Theme - Quick Add Section */
-      /* Dark Theme - Collapsible Sections */
-      [data-theme="midnight"] .settings-menu__section-header:hover {
+      /* Active items */
+      [data-theme="midnight"] .settings-menu__item--active {
         background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
       }
 
-      [data-theme="midnight"] .settings-menu__section-header h3 {
-        color: var(--color-text-primary, #faf6f0);
+      [data-theme="midnight"] .settings-menu__item--active .settings-menu__label::after {
+        color: var(--color-accent-secondary, #7cb36b);
       }
 
-      [data-theme="midnight"] .settings-menu__section-chevron {
-        color: var(--color-text-muted, #e8e2da);
-      }
-
-      [data-theme="midnight"] .settings-menu__quick-actions {
-        border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-      }
-
-      [data-theme="midnight"] .settings-menu__badge {
-        background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
-      }
-
-      /* Dark Theme - Language Selector */
+      /* Language Selector */
       [data-theme="midnight"] .settings-menu__language-current {
         color: var(--color-text-secondary, #e8e2da);
       }
@@ -2103,15 +2641,37 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__language-option:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
       }
 
       [data-theme="midnight"] .settings-menu__language-option--active {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
       }
 
       [data-theme="midnight"] .settings-menu__language-check {
         color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      /* Roadmap items */
+      [data-theme="midnight"] .settings-menu__item--roadmap {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.08)), transparent);
+        border-color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--roadmap:hover {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.12)), transparent);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--roadmap .settings-menu__icon {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__roadmap-hint {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__roadmap-badge {
+        background: linear-gradient(135deg, var(--persona-primary, #5a8a4a), var(--color-accent-secondary, #7cb36b));
       }
 
       /* ========================================================================

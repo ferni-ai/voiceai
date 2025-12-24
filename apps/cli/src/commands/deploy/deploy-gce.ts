@@ -219,6 +219,10 @@ function getSecrets(): Record<string, string> {
     'cartesia-api-key',
     'deepgram-api-key',
     'elevenlabs-api-key',
+    // Music/Spotify secrets (for music playback)
+    'spotify-client-id',
+    'spotify-client-secret',
+    'spotify-refresh-token',
     // Research/information secrets
     'finnhub-api-key',
     'alpha-vantage-key',

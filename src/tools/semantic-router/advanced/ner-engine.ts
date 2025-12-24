@@ -142,7 +142,10 @@ export async function initializeNER(): Promise<void> {
       }
     } catch (datesError) {
       // Common error: suffix-thumb ESM issue in Docker - this is OK
-      log.debug({ error: String(datesError) }, 'compromise-dates not available, using basic date parsing');
+      log.debug(
+        { error: String(datesError) },
+        'compromise-dates not available, using basic date parsing'
+      );
     }
 
     try {
@@ -154,7 +157,10 @@ export async function initializeNER(): Promise<void> {
         log.debug('compromise-numbers plugin loaded');
       }
     } catch (numbersError) {
-      log.debug({ error: String(numbersError) }, 'compromise-numbers not available, using basic number parsing');
+      log.debug(
+        { error: String(numbersError) },
+        'compromise-numbers not available, using basic number parsing'
+      );
     }
 
     // Add custom patterns for voice/music domain

@@ -519,35 +519,171 @@ const styles = `
     margin-top: var(--space-2, 8px);
   }
 
-  /* Empty State */
+  /* Empty State - Storytelling Design */
   .life-context-empty {
+    padding: var(--space-6, 24px) var(--space-4, 16px);
+  }
+  
+  .life-context-empty--centered {
     text-align: center;
-    padding: var(--space-12, 48px) var(--space-4, 16px);
+    padding: var(--space-8, 32px) var(--space-4, 16px);
+  }
+
+  .life-context-empty__hero {
+    display: flex;
+    gap: var(--space-4, 16px);
+    align-items: flex-start;
+    margin-bottom: var(--space-6, 24px);
   }
 
   .life-context-empty__icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    color: var(--color-ferni);
+  }
+  
+  .life-context-empty--centered .life-context-empty__icon {
     margin: 0 auto var(--space-3, 12px);
-    opacity: 0.5;
-    color: var(--color-text-muted);
   }
 
   .life-context-empty__icon svg {
     width: 100%;
     height: 100%;
   }
+  
+  .life-context-empty__text {
+    flex: 1;
+  }
 
   .life-context-empty__title {
-    font-size: 16px;
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 18px;
     font-weight: 600;
     color: var(--color-text-primary);
-    margin-bottom: var(--space-1, 4px);
+    margin: 0 0 var(--space-2, 8px) 0;
+    line-height: 1.3;
   }
 
   .life-context-empty__message {
     font-size: 14px;
     color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+  }
+  
+  /* Preview Section - What's Coming */
+  .life-context-empty__preview {
+    margin-bottom: var(--space-6, 24px);
+  }
+  
+  .life-context-empty__preview-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-3, 12px);
+  }
+  
+  .life-context-empty__domains {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2, 8px);
+  }
+  
+  .life-context-empty__domain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1, 4px);
+    padding: var(--space-3, 12px) var(--space-2, 8px);
+    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
+    border-radius: var(--radius-lg, 12px);
+    opacity: 0.6;
+    transition: opacity var(--duration-fast, 100ms) ease;
+  }
+  
+  .life-context-empty__domain:hover {
+    opacity: 0.8;
+  }
+  
+  .life-context-empty__domain-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .life-context-empty__domain-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .life-context-empty__domain-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+  
+  /* Connections Preview */
+  .life-context-empty__connections {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2, 8px);
+    padding: var(--space-4, 16px);
+    background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
+    border-radius: var(--radius-lg, 12px);
+    margin-bottom: var(--space-6, 24px);
+    opacity: 0.5;
+  }
+  
+  .life-context-empty__connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+  }
+  
+  .life-context-empty__connection-line {
+    width: 24px;
+    height: 2px;
+    background: var(--color-border-subtle);
+    border-radius: 1px;
+  }
+  
+  /* Vision Statement */
+  .life-context-empty__vision {
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-4, 16px) var(--space-2, 8px);
+    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    margin-bottom: var(--space-4, 16px);
+  }
+  
+  /* CTA Section */
+  .life-context-empty__cta {
+    text-align: center;
+  }
+  
+  .life-context-empty__cta-btn {
+    padding: var(--space-3, 12px) var(--space-5, 20px);
+    border-radius: var(--radius-full, 9999px);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--duration-fast, 100ms) ease;
+    border: none;
+    background: var(--color-ferni);
+    color: white;
+  }
+  
+  .life-context-empty__cta-btn:hover {
+    background: var(--color-ferni-dark);
+    transform: translateY(-1px);
   }
 
   /* Loading */
@@ -638,6 +774,22 @@ const styles = `
     border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
     border-top-color: var(--color-accent-secondary);
   }
+  
+  [data-theme="midnight"] .life-context-empty__title {
+    color: var(--color-text-primary);
+  }
+  
+  [data-theme="midnight"] .life-context-empty__domain {
+    background: var(--color-background-secondary);
+  }
+  
+  [data-theme="midnight"] .life-context-empty__connections {
+    background: var(--color-background-secondary);
+  }
+  
+  [data-theme="midnight"] .life-context-empty__vision {
+    border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+  }
 `;
 
 // ============================================================================
@@ -653,6 +805,7 @@ const ICONS: Record<string, string> = {
   repeat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
   close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
   layers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`,
+  globe: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
 };
 
 // ============================================================================
@@ -875,6 +1028,80 @@ function renderTriggers(triggers?: SynthesisTrigger[]): string {
   `;
 }
 
+/**
+ * Renders a compelling empty state with storytelling about what Your World will reveal.
+ * Shows preview domains and connection visualization to paint a picture of the future.
+ */
+function renderLifeContextEmptyState(): string {
+  // Preview domains to show what patterns they'll discover
+  const previewDomains = [
+    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-maya)' },
+    { name: 'Schedule', icon: ICONS.calendar, color: 'var(--color-alex)' },
+    { name: 'Finances', icon: ICONS.chart, color: 'var(--color-peter)' },
+    { name: 'Goals', icon: ICONS.target, color: 'var(--color-jordan)' },
+    { name: 'People', icon: ICONS.heart, color: 'var(--color-nayan)' },
+    { name: 'Habits', icon: ICONS.repeat, color: 'var(--color-maya)' },
+  ];
+
+  return `
+    <div class="life-context-empty">
+      <!-- Hero: Icon + Title -->
+      <div class="life-context-empty__hero">
+        <div class="life-context-empty__icon">${ICONS.globe}</div>
+        <div class="life-context-empty__text">
+          <h3 class="life-context-empty__title">I'll learn to see the connections</h3>
+          <p class="life-context-empty__message">
+            Your life doesn't happen in silos. Sleep affects work. Relationships shape goals. 
+            As we talk, I'll start noticing how different areas of your life influence each other.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Preview: Domains I'll track -->
+      <div class="life-context-empty__preview">
+        <div class="life-context-empty__preview-label">Areas I'll watch</div>
+        <div class="life-context-empty__domains">
+          ${previewDomains
+            .map(
+              (domain) => `
+            <div class="life-context-empty__domain">
+              <div class="life-context-empty__domain-icon" style="color: ${domain.color}">
+                ${domain.icon}
+              </div>
+              <div class="life-context-empty__domain-name">${domain.name}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+      
+      <!-- Connection visualization -->
+      <div class="life-context-empty__connections">
+        <div class="life-context-empty__connection-dot" style="background: var(--color-maya)"></div>
+        <div class="life-context-empty__connection-line"></div>
+        <div class="life-context-empty__connection-dot" style="background: var(--color-alex)"></div>
+        <div class="life-context-empty__connection-line"></div>
+        <div class="life-context-empty__connection-dot" style="background: var(--color-peter)"></div>
+        <div class="life-context-empty__connection-line"></div>
+        <div class="life-context-empty__connection-dot" style="background: var(--color-jordan)"></div>
+      </div>
+      
+      <!-- Vision Statement -->
+      <div class="life-context-empty__vision">
+        Patterns will emerge. When one part of life shifts, I'll notice how others respond.
+      </div>
+      
+      <!-- CTA -->
+      <div class="life-context-empty__cta">
+        <button class="life-context-empty__cta-btn" data-action="start-conversation">
+          Let's talk
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderContent(): string {
   if (currentState.isLoading) {
     return `
@@ -896,13 +1123,7 @@ function renderContent(): string {
   }
 
   if (!currentState.data) {
-    return `
-      <div class="life-context-empty">
-        <div class="life-context-empty__icon">${ICONS.layers}</div>
-        <div class="life-context-empty__title">${t('lifeContext.empty.title', 'Still getting to know you')}</div>
-        <div class="life-context-empty__message">${t('lifeContext.empty.message', "As we talk more, I'll start to notice patterns and share what I see across your life.")}</div>
-      </div>
-    `;
+    return renderLifeContextEmptyState();
   }
 
   const data = currentState.data;
@@ -994,6 +1215,15 @@ export function showLifeContextDashboard(data?: LifeContextSnapshot): void {
     modalElement.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         hideLifeContextDashboard();
+      }
+    });
+    
+    // Start conversation button (empty state CTA)
+    modalElement.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-action="start-conversation"]')) {
+        hideLifeContextDashboard();
+        window.dispatchEvent(new CustomEvent('ferni:request-connect'));
       }
     });
   } else {

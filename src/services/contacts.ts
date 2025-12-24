@@ -312,6 +312,35 @@ export function deleteContact(contactId: string): boolean {
 }
 
 /**
+ * Delete all contacts for a user (GDPR deletion)
+ */
+export async function deleteAllContacts(userId: string): Promise<void> {
+  const log = getLogger();
+  const userContacts = Array.from(contactsStore.values()).filter((c) => c.userId === userId);
+
+  // Delete from in-memory store
+  for (const contact of userContacts) {
+    contactsStore.delete(contact.id);
+  }
+
+  // Delete from Firestore
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      const batch = firestore.batch();
+      for (const contact of userContacts) {
+        batch.delete(firestore.collection(CONTACTS_COLLECTION).doc(contact.id));
+      }
+      await batch.commit();
+      log.info({ userId, count: userContacts.length }, 'All contacts deleted for user');
+    } catch (err) {
+      log.error({ error: String(err), userId }, 'Failed to delete contacts from Firestore');
+      throw err;
+    }
+  }
+}
+
+/**
  * Get a contact by ID
  */
 export function getContact(contactId: string): Contact | undefined {

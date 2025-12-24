@@ -128,7 +128,12 @@ const SHARED_CONNECTORS = {
     'Can I share something?',
     "I'm going to be honest here—",
   ],
-  lightness: ["Don't tell anyone, but", 'This is silly, but', "I can't help it—", 'Full confession:'],
+  lightness: [
+    "Don't tell anyone, but",
+    'This is silly, but',
+    "I can't help it—",
+    'Full confession:',
+  ],
 };
 
 // ============================================================================
@@ -141,11 +146,7 @@ const SHARED_SENSORY_FRAGMENTS = {
     'The quiet before the day starts.',
     'That first moment of waking.',
   ],
-  evening: [
-    'That golden hour light.',
-    'Day winding down.',
-    'The transition into evening.',
-  ],
+  evening: ['That golden hour light.', 'Day winding down.', 'The transition into evening.'],
   late_night: [
     'The world gets honest at this hour.',
     'Everyone else is asleep.',
@@ -231,8 +232,7 @@ export function composeTemporalExpression(
   // Late night presence - special mode for all personas
   if (ctx.timeOfDay === 'late_night') {
     const lateNightPhrase =
-      blocks.temporalPhrases?.late_night?.[0] ||
-      randomFrom(SHARED_SENSORY_FRAGMENTS.late_night);
+      blocks.temporalPhrases?.late_night?.[0] || randomFrom(SHARED_SENSORY_FRAGMENTS.late_night);
 
     return {
       content: `${lateNightPhrase} <break time="150ms"/>I'm glad you reached out.`,
@@ -712,7 +712,7 @@ function findNaturalConnection(
 
   // Default connections
   const defaultConnections = [
-    "That stuck with me since you mentioned it.",
+    'That stuck with me since you mentioned it.',
     "I've been thinking about that.",
     'That resonates.',
   ];
@@ -742,4 +742,3 @@ export const sharedBetterThanHumanPersonality = {
 };
 
 export default sharedBetterThanHumanPersonality;
-

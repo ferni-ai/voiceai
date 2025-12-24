@@ -371,42 +371,64 @@ export async function showPredictionTracker(): Promise<void> {
 
 /**
  * Show data export panel.
- * Fetches real data from API, falls back to demo data in development.
+ * Fetches categories from backend, sets up callbacks for export/delete.
  */
 export async function showDataExport(): Promise<void> {
-  // Try to fetch real data from API
-  try {
-    const response = await fetch('/api/export/categories');
-    if (response.ok) {
-      const data = await response.json();
-      getDataExportUI().show(data.categories || []);
-      return;
-    }
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  const { dataExportService } = await import('../services/data-export.service.js');
+  const { toast } = await import('../ui/toast.ui.js');
 
-  // Fall back to demo data if enabled
-  if (isDemoDataEnabled()) {
+  // Set up callbacks for export and delete
+  getDataExportUI().setCallbacks({
+    onExport: async (format, categories) => {
+      try {
+        toast.info('Preparing your data...');
+        await dataExportService.exportData(format, categories);
+        toast.success('Download started!');
+      } catch (err) {
+        log.error('Export failed:', err);
+        toast.error("Couldn't export. Try again?");
+      }
+    },
+    onDeleteData: async () => {
+      try {
+        toast.info('Deleting your data...');
+        await dataExportService.deleteAllData();
+        toast.success('All data deleted');
+        // Redirect to home after deletion
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } catch (err) {
+        log.error('Delete failed:', err);
+        toast.error("Couldn't delete. Try again?");
+      }
+    },
+    onClose: () => {
+      log.debug('Data export panel closed');
+    },
+  });
+
+  // Fetch categories from backend
+  const categories = await dataExportService.getExportableCategories();
+  getDataExportUI().show(categories);
+
+  // Fall back to demo data if needed
+  if (categories.length === 0 && isDemoDataEnabled()) {
     const demoData = [
       { category: 'Conversations', description: 'All conversation transcripts', itemCount: 45, exportable: true },
-      { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 23, exportable: true },
+      { category: 'Insights', description: 'What Ferni has learned about you', itemCount: 23, exportable: true },
       { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 156, exportable: true },
       { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 18, exportable: true },
       { category: 'Mood History', description: 'Emotional weather records', itemCount: 42, exportable: true },
+      { category: 'Profile', description: 'Your profile and preferences', itemCount: 1, exportable: true },
+      { category: 'Contacts', description: 'Your people and relationships', itemCount: 12, exportable: true },
+      { category: 'Trust Journey', description: 'Your growth, boundaries, and shared moments', itemCount: 28, exportable: true },
+      { category: 'Wellbeing', description: 'Wellness snapshots and trends', itemCount: 35, exportable: true },
+      { category: 'Habits', description: "Maya's habit coaching data", itemCount: 8, exportable: true },
+      { category: 'Productivity', description: 'Tasks, notes, and journal entries', itemCount: 67, exportable: true },
     ];
     getDataExportUI().show(demoData);
-    return;
   }
-
-  // Show empty/placeholder state
-  getDataExportUI().show([
-    { category: 'Conversations', description: 'All conversation transcripts', itemCount: 0, exportable: true },
-    { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 0, exportable: true },
-    { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 0, exportable: true },
-    { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 0, exportable: true },
-    { category: 'Mood History', description: 'Emotional weather records', itemCount: 0, exportable: true },
-  ]);
 }
 
 // ============================================================================

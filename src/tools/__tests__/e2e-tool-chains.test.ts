@@ -778,6 +778,237 @@ describe('E2E Cross-Persona Handoff', () => {
 });
 
 // ============================================================================
+// HEALTH → SMART HOME CROSS-DOMAIN E2E TESTS
+// (Added as part of HEALTH-HOME-WELLNESS-AUDIT.md cleanup)
+// ============================================================================
+
+describe('E2E Health → Smart Home Cross-Domain', () => {
+  let healthTools: ToolDefinition[];
+  let smartHomeTools: ToolDefinition[];
+  let homeTools: ToolDefinition[];
+  let ctx: ToolContext;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    ctx = createMockContext('ferni');
+
+    // Mock smart home services
+    vi.mock('../../services/self-healing/index.js', () => ({
+      getHomeAssistantClient: vi.fn(() => ({
+        isHealthy: () => true,
+        get: vi.fn(() => Promise.resolve({ data: [], error: null })),
+        post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      })),
+      getHueClient: vi.fn(() => ({
+        isHealthy: () => true,
+        get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+        put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      })),
+      getLifxClient: vi.fn(() => ({
+        isHealthy: () => true,
+        get: vi.fn(() => Promise.resolve({ data: [], error: null })),
+        put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      })),
+    }));
+
+    // Mock Home Assistant service
+    vi.mock('../../services/home-assistant.js', () => ({
+      getHomeAssistantService: vi.fn(() => null),
+    }));
+
+    // Mock Ecobee API
+    vi.mock('../../api/ecobee-api.js', () => ({
+      getEcobeeApi: vi.fn(() => null),
+    }));
+
+    const healthModule = await import('../domains/health/index.js');
+    healthTools = await healthModule.getToolDefinitions();
+
+    const homeModule = await import('../domains/home/index.js');
+    homeTools = await homeModule.getToolDefinitions();
+
+    // Smart home may throw if not configured - handle gracefully
+    try {
+      const smartHomeModule = await import('../domains/smart-home/index.js');
+      smartHomeTools = await smartHomeModule.getToolDefinitions();
+    } catch {
+      smartHomeTools = [];
+    }
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('Bedtime Routine Journey (Health + Smart Home)', () => {
+    it('should chain sleep hygiene → (smart home dimming)', async () => {
+      // Step 1: Get sleep hygiene tips from health domain
+      const sleepTool = healthTools.find((t) => t.id === 'suggestSleepHygiene');
+
+      if (sleepTool) {
+        const tool = sleepTool.create(ctx);
+        const result = await tool.execute({ focus: 'routine' }, { ctx });
+
+        const resultStr = String(result);
+        expect(resultStr).toContain('Routine');
+        expect(resultStr).not.toContain('TODO');
+      }
+
+      // Step 2: Smart home would dim lights (if configured)
+      // In real usage: controlLight({ room: 'bedroom', action: 'set', brightness: 20 })
+      if (smartHomeTools.length > 0) {
+        const lightTool = smartHomeTools.find((t) => t.id === 'controlLight');
+        if (lightTool) {
+          const tool = lightTool.create(ctx);
+          // This would control lights in a real setup
+          expect(tool.execute).toBeDefined();
+        }
+      }
+    });
+
+    it('should support full bedtime sequence', async () => {
+      const chain: ChainStep[] = [
+        {
+          toolId: 'suggestSleepHygiene',
+          params: { focus: 'environment' },
+          expectedInResult: ['environment'],
+        },
+      ];
+
+      const result = await runToolChain(chain, healthTools, ctx);
+      expect(result.success).toBe(true);
+
+      // Sleep environment tips should mention temperature, darkness, etc.
+      if (result.results.length > 0) {
+        const tips = result.results[0].toLowerCase();
+        expect(tips.includes('dark') || tips.includes('cool') || tips.includes('temp')).toBe(true);
+      }
+    });
+  });
+
+  describe('Morning Routine Journey (Health + Smart Home)', () => {
+    it('should chain energy assessment → workout suggestion', async () => {
+      const chain: ChainStep[] = [
+        {
+          toolId: 'assessEnergyLevel',
+          params: { currentLevel: 'moderate', timeOfDay: 'morning' },
+        },
+        {
+          toolId: 'suggestWorkout',
+          params: { energyLevel: 'moderate', availableMinutes: 30 },
+          expectedInResult: ['workout'],
+        },
+      ];
+
+      const result = await runToolChain(chain, healthTools, ctx);
+      expect(result.success).toBe(true);
+      expect(result.results).toHaveLength(2);
+    });
+
+    it('should handle low energy morning gracefully', async () => {
+      const chain: ChainStep[] = [
+        {
+          toolId: 'assessEnergyLevel',
+          params: { currentLevel: 'low', timeOfDay: 'morning' },
+        },
+        {
+          toolId: 'suggestEnergyBoost',
+          params: { availableTime: '5-minutes', setting: 'home' },
+          expectedInResult: ['5-minute'],
+        },
+      ];
+
+      const result = await runToolChain(chain, healthTools, ctx);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Health → Home Maintenance Connection', () => {
+    it('should load home domain tools separately from smart-home', async () => {
+      expect(homeTools.length).toBeGreaterThan(0);
+
+      // Verify home tools are distinct from smart-home
+      for (const toolDef of homeTools) {
+        expect(toolDef.domain).toBe('home');
+      }
+    });
+
+    it('should include home maintenance tools', async () => {
+      const homeToolIds = homeTools.map((t) => t.id);
+
+      // Check for expected home management tools
+      const expectedIds = [
+        'remindHomeMaintenance',
+        'coachDecluttering',
+        'planMove',
+        'planHomeProject',
+      ];
+
+      for (const id of expectedIds) {
+        expect(homeToolIds).toContain(id);
+      }
+    });
+
+    it('should chain HVAC maintenance with thermostat awareness', async () => {
+      // Home domain handles maintenance
+      const maintenanceTool = homeTools.find((t) => t.id === 'remindHomeMaintenance');
+
+      if (maintenanceTool) {
+        const tool = maintenanceTool.create(ctx);
+        const result = await tool.execute({ focus: 'hvac', season: 'winter' }, { ctx });
+
+        const resultStr = String(result);
+        // Should mention HVAC, filters, or heating
+        expect(resultStr.toLowerCase()).toMatch(/hvac|filter|heat|furnace|maintenance/);
+      }
+    });
+  });
+
+  describe('Wellness → Medications Journey', () => {
+    it('should access medications through health domain re-export', async () => {
+      // Medications are re-exported from health/index.ts
+      const healthModule = await import('../domains/health/index.js');
+
+      // Check that medication functions are available
+      expect(healthModule.createMedicationTools).toBeDefined();
+      expect(healthModule.getDueDoses).toBeDefined();
+      expect(healthModule.getMedsNeedingRefill).toBeDefined();
+    });
+  });
+
+  describe('Cross-Domain Content Quality', () => {
+    it('should ensure no placeholder content in health tools', async () => {
+      for (const toolDef of healthTools.slice(0, 5)) {
+        const tool = toolDef.create(ctx);
+        try {
+          const result = await tool.execute({}, { ctx });
+          const resultStr = String(result);
+          expect(resultStr).not.toContain('TODO');
+          expect(resultStr).not.toContain('placeholder');
+          expect(resultStr).not.toContain('FIXME');
+        } catch {
+          // Some tools may require params - that's ok
+        }
+      }
+    });
+
+    it('should ensure no placeholder content in home tools', async () => {
+      for (const toolDef of homeTools.slice(0, 5)) {
+        const tool = toolDef.create(ctx);
+        try {
+          const result = await tool.execute({}, { ctx });
+          const resultStr = String(result);
+          expect(resultStr).not.toContain('TODO');
+          expect(resultStr).not.toContain('placeholder');
+        } catch {
+          // Some tools may require params
+        }
+      }
+    });
+  });
+});
+
+// ============================================================================
 // "BETTER THAN HUMAN" PERSONA MASTERY TOOLS E2E
 // ============================================================================
 

@@ -5,23 +5,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.ferni.voice.services.LiveKitSession
 import com.ferni.voice.ui.screens.OnboardingScreen
 import com.ferni.voice.ui.screens.TranscriptScreen
 import com.ferni.voice.ui.screens.VoiceScreen
 import com.ferni.voice.ui.theme.FerniVoiceTheme
+import com.ferni.voice.viewmodels.VoiceViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -33,14 +29,9 @@ private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var session: LiveKitSession
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Initialize LiveKit session
-        session = LiveKitSession(applicationContext)
 
         // Check if onboarding is completed
         val onboardingCompleted = runBlocking {
@@ -52,7 +43,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             FerniVoiceTheme {
                 FerniVoiceApp(
-                    session = session,
                     startWithOnboarding = !onboardingCompleted,
                     onOnboardingComplete = {
                         lifecycleScope.launch {
@@ -65,23 +55,24 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        session.disconnect()
-    }
 }
 
 /**
  * Main app composable with navigation.
+ *
+ * VoiceViewModel is shared across VoiceScreen and TranscriptScreen
+ * to maintain consistent state and enable Better Than Human capabilities.
  */
 @Composable
 fun FerniVoiceApp(
-    session: LiveKitSession,
     startWithOnboarding: Boolean,
     onOnboardingComplete: () -> Unit
 ) {
     val navController = rememberNavController()
+
+    // Shared VoiceViewModel for voice and transcript screens
+    // This ensures BetterThanHumanEngine state is consistent across navigation
+    val voiceViewModel: VoiceViewModel = viewModel()
 
     val startDestination = if (startWithOnboarding) "onboarding" else "voice"
 
@@ -102,7 +93,7 @@ fun FerniVoiceApp(
 
         composable("voice") {
             VoiceScreen(
-                session = session,
+                voiceViewModel = voiceViewModel,
                 onNavigateToSettings = {
                     // TODO: Navigate to settings
                 },
@@ -114,7 +105,7 @@ fun FerniVoiceApp(
 
         composable("transcript") {
             TranscriptScreen(
-                session = session,
+                session = voiceViewModel.liveKitSession,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

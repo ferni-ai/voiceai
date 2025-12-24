@@ -1213,4 +1213,19 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   healthTools
 );
 
+// Re-export medication tools from wellness domain
+// These logically belong with health but live in wellness for backward compatibility
+// See HEALTH-HOME-WELLNESS-AUDIT.md for full context
+export {
+  createMedicationTools,
+  addMedication,
+  logDose,
+  updateMedication,
+  discontinueMedication,
+  getDueDoses,
+  getUpcomingDoses,
+  getMedsNeedingRefill,
+  getUserMedications,
+} from '../wellness/medications.js';
+
 export default getToolDefinitions;

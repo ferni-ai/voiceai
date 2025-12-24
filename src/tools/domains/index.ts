@@ -310,12 +310,15 @@ export { getToolDefinitions as getBooksToolDefinitions } from './books/index.js'
 export * from './agent.js';
 export * from './banking.js';
 export * from './conversation/index.js';
-export * from './financial.js';
-export * from './human-connection.js';
 export * from './personas.js';
 
-// NOTE: communication.js, information.js, entertainment.js, life-planning.js
-// are being replaced by the registry-based domains above
+// NOTE: financial.js, human-connection.js, entertainment.js, information.js, life-planning.js
+// have been removed - use the registry-based domains instead:
+// - finance/index.js instead of financial.js
+// - connection/index.js instead of human-connection.js
+// - entertainment/index.js instead of entertainment.js
+// - information/index.js instead of information.js
+// - life-planning/index.js instead of life-planning.js
 
 // ============================================================================
 // HELPER: Get all domain tool definitions

@@ -67,6 +67,11 @@ sealed class VoiceEvent {
 
 /**
  * Emotion hints for avatar expressions.
+ *
+ * These values come from the backend and are used by:
+ * - LiveKitSession: parses emotion_event data messages
+ * - VoiceViewModel: maps hints to personality animations + micro-expressions
+ * - BetterThanHumanEngine: displays emotional state in avatar
  */
 enum class EmotionHint {
     HAPPY,
@@ -74,5 +79,7 @@ enum class EmotionHint {
     CURIOUS,
     EMPATHETIC,
     ENCOURAGING,
-    NEUTRAL
+    NEUTRAL,
+    THINKING,  // Contemplative, processing state
+    CALM       // Peaceful, relaxed state
 }

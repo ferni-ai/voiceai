@@ -13,6 +13,7 @@ export {
   CallMusicPlayer,
   getMusicPlayer,
   initializeMusicPlayer,
+  isMusicAvailable,
   resetMusicPlayer,
   type MusicPlayerEvents,
   type MusicPlayerState,

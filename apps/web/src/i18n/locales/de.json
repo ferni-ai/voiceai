@@ -453,6 +453,13 @@
     "title": "Verwalten Sie Ihren Plan"
   },
   "menu": {
+    "greeting": {
+      "morning": "Guten Morgen",
+      "afternoon": "Guten Tag",
+      "evening": "Guten Abend",
+      "night": "Gute Nacht",
+      "lateNight": "Noch wach?"
+    },
     "almostThere": "Fast geschafft!",
     "comingSoon": "Demnächst",
     "items": {
@@ -527,6 +534,11 @@
       "preferences": "Your Way",
       "remember": "Erinnern",
       "youAndFerni": "You & Ferni"
+    },
+    "subgroups": {
+      "yourBody": "Gesundheit & Wellness",
+      "yourCalendar": "Kalender & Arbeit",
+      "yourSpace": "Zuhause & Musik"
     },
     "title": "Was kommt als Nächstes?",
     "unlockHint": "{remaining} zum Freischalten",
