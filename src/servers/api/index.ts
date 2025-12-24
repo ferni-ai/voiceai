@@ -134,6 +134,8 @@ import { handleConversationCostRoutes } from '../../api/conversation-cost-routes
 import { handleJournalRoutes } from '../../api/journal-routes.js';
 import { handleDebugRoutes } from '../../api/debug-routes.js';
 import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
+import { handleCacheRoutes } from '../../api/cache-routes.js';
+import { handleSessionAnalyticsRoutes } from '../../api/session-analytics-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -758,6 +760,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Cache management routes (admin only, before general debug routes)
+    if (pathname.startsWith('/api/debug/cache')) {
+      const handled = await handleCacheRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Debug routes (dev mode only)
     if (pathname.startsWith('/api/debug')) {
       const handled = await handleDebugRoutes(req, res, pathname);
@@ -852,6 +860,12 @@ const server = http.createServer(async (req, res) => {
     // Builder metrics routes
     if (pathname.startsWith('/api/admin/builder-metrics')) {
       const handled = await handleBuilderMetricsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Session analytics routes (admin - sessions, quality, persona bonds, intents)
+    if (pathname.startsWith('/api/admin/analytics')) {
+      const handled = await handleSessionAnalyticsRoutes(req, res, pathname);
       if (handled) return;
     }
 

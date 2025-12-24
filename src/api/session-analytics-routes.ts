@@ -4,11 +4,12 @@
  * Admin endpoints for session analytics and quality metrics.
  *
  * Endpoints:
- * - GET /api/analytics/sessions - Get recent sessions
- * - GET /api/analytics/sessions/:sessionId - Get specific session details
- * - GET /api/analytics/quality - Get quality metrics
- * - GET /api/analytics/persona-bonds - Get persona bond statistics
- * - GET /api/analytics/intents - Get intent detection analytics
+ * - GET /api/admin/analytics/sessions - Get recent sessions
+ * - GET /api/admin/analytics/sessions/:sessionId - Get specific session details
+ * - GET /api/admin/analytics/quality - Get quality metrics
+ * - GET /api/admin/analytics/persona-bonds - Get persona bond statistics
+ * - GET /api/admin/analytics/intents - Get intent detection analytics
+ * - GET /api/admin/analytics/summary - Get analytics overview
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -30,8 +31,8 @@ export async function handleSessionAnalyticsRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Only handle /api/analytics/* routes
-  if (!pathname.startsWith('/api/analytics')) {
+  // Only handle /api/admin/analytics/* routes (admin session analytics)
+  if (!pathname.startsWith('/api/admin/analytics')) {
     return false;
   }
 
@@ -45,8 +46,8 @@ export async function handleSessionAnalyticsRoutes(
   if (!auth) return true;
 
   try {
-    // GET /api/analytics/sessions - Get recent sessions
-    if (pathname === '/api/analytics/sessions' && req.method === 'GET') {
+    // GET /api/admin/analytics/sessions - Get recent sessions
+    if (pathname === '/api/admin/analytics/sessions' && req.method === 'GET') {
       const url = new URL(req.url ?? '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId');
       const limit = parseInt(url.searchParams.get('limit') ?? '50', 10);
@@ -57,7 +58,7 @@ export async function handleSessionAnalyticsRoutes(
       return true;
     }
 
-    // GET /api/analytics/sessions/:sessionId - Get specific session
+    // GET /api/admin/analytics/sessions/:sessionId - Get specific session
     const sessionMatch = pathname.match(/^\/api\/analytics\/sessions\/([^/]+)$/);
     if (sessionMatch && req.method === 'GET') {
       const sessionId = sessionMatch[1];
@@ -79,8 +80,8 @@ export async function handleSessionAnalyticsRoutes(
       return true;
     }
 
-    // GET /api/analytics/quality - Get quality metrics
-    if (pathname === '/api/analytics/quality' && req.method === 'GET') {
+    // GET /api/admin/analytics/quality - Get quality metrics
+    if (pathname === '/api/admin/analytics/quality' && req.method === 'GET') {
       const url = new URL(req.url ?? '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId');
       const sessionId = url.searchParams.get('sessionId');
@@ -91,8 +92,8 @@ export async function handleSessionAnalyticsRoutes(
       return true;
     }
 
-    // GET /api/analytics/persona-bonds - Get persona bond statistics
-    if (pathname === '/api/analytics/persona-bonds' && req.method === 'GET') {
+    // GET /api/admin/analytics/persona-bonds - Get persona bond statistics
+    if (pathname === '/api/admin/analytics/persona-bonds' && req.method === 'GET') {
       const url = new URL(req.url ?? '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId');
 
@@ -106,8 +107,8 @@ export async function handleSessionAnalyticsRoutes(
       return true;
     }
 
-    // GET /api/analytics/intents - Get intent detection analytics
-    if (pathname === '/api/analytics/intents' && req.method === 'GET') {
+    // GET /api/admin/analytics/intents - Get intent detection analytics
+    if (pathname === '/api/admin/analytics/intents' && req.method === 'GET') {
       const url = new URL(req.url ?? '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId');
       const limit = parseInt(url.searchParams.get('limit') ?? '100', 10);
@@ -117,8 +118,8 @@ export async function handleSessionAnalyticsRoutes(
       return true;
     }
 
-    // GET /api/analytics/summary - Get overall analytics summary
-    if (pathname === '/api/analytics/summary' && req.method === 'GET') {
+    // GET /api/admin/analytics/summary - Get overall analytics summary
+    if (pathname === '/api/admin/analytics/summary' && req.method === 'GET') {
       const summary = await getAnalyticsSummary();
       sendJSON(res, summary);
       return true;
@@ -366,11 +367,11 @@ async function getAnalyticsSummary(): Promise<Record<string, unknown>> {
     timestamp: new Date().toISOString(),
     message: 'Analytics summary',
     availableEndpoints: [
-      'GET /api/analytics/sessions?userId=xxx&limit=50',
-      'GET /api/analytics/sessions/:sessionId?userId=xxx',
-      'GET /api/analytics/quality?userId=xxx&days=7',
-      'GET /api/analytics/persona-bonds?userId=xxx',
-      'GET /api/analytics/intents?userId=xxx&limit=100',
+      'GET /api/admin/analytics/sessions?userId=xxx&limit=50',
+      'GET /api/admin/analytics/sessions/:sessionId?userId=xxx',
+      'GET /api/admin/analytics/quality?userId=xxx&days=7',
+      'GET /api/admin/analytics/persona-bonds?userId=xxx',
+      'GET /api/admin/analytics/intents?userId=xxx&limit=100',
     ],
     note: 'All endpoints require admin authentication',
   };
