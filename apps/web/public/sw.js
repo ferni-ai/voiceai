@@ -13,7 +13,7 @@
  * - HTML: Network-first
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `ferni-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ferni-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `ferni-api-${CACHE_VERSION}`;
