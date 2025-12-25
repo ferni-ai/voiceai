@@ -29,7 +29,7 @@ const appointments = new Map<string, ScheduledAppointment>();
 /**
  * Create a new appointment request and track it for follow-up
  */
-export function createAppointmentRequest(params: {
+export async function createAppointmentRequest(params: {
   userId: string;
   type: AppointmentType;
   businessName: string;
@@ -40,7 +40,7 @@ export function createAppointmentRequest(params: {
   specialRequests?: string;
   linkedMilestoneId?: string;
   linkedEventName?: string;
-}): ScheduledAppointment {
+}): Promise<ScheduledAppointment> {
   const id = `apt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
   const appointment: ScheduledAppointment = {

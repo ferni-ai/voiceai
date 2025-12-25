@@ -141,7 +141,7 @@ export function createAppointmentTools() {
 
             if (result.success) {
               // Create appointment record
-              createAppointmentRequest({
+              await createAppointmentRequest({
                 userId,
                 type: 'restaurant',
                 businessName: match.name,
@@ -171,7 +171,7 @@ export function createAppointmentTools() {
         }
 
         // Fall back to phone call
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: 'restaurant',
           businessName: restaurantName,
@@ -266,7 +266,7 @@ export function createAppointmentTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: appointmentType,
           businessName,
@@ -506,7 +506,7 @@ export function createAppointmentTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: 'service',
           businessName,
