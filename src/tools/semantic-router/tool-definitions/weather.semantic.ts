@@ -27,6 +27,7 @@ export const currentWeatherTool: SemanticToolDefinition = {
 
   triggers: {
     phrases: [
+      // Direct questions
       "what's the weather",
       "what's the weather like",
       'how is the weather',
@@ -38,13 +39,33 @@ export const currentWeatherTool: SemanticToolDefinition = {
       'is it cold',
       'is it hot',
       'is it sunny',
+      // Polite requests (Gemini problem phrases)
+      'can you check the weather',
+      'could you check the weather',
+      'can you tell me the weather',
+      'could you tell me the weather',
+      'would you check the weather',
+      // Conversational
+      "i'd like to know the weather",
+      'i want to know the weather',
+      "what's the weather looking like",
     ],
     patterns: [
+      // Direct questions
       /^(?:what(?:'s| is)|how(?:'s| is))\s+the\s+weather/i,
       /^weather\s+(?:in|for|at)\s+(.+)/i,
       /^is\s+it\s+(?:raining|snowing|cold|hot|warm|sunny|cloudy)/i,
       /^do\s+i\s+need\s+(?:an?\s+)?(?:umbrella|jacket|coat)/i,
       /^(?:should|do)\s+i\s+(?:bring|take|wear)\s+(?:an?\s+)?(?:umbrella|jacket|coat)/i,
+      // Polite requests (CRITICAL - Gemini problem patterns)
+      /^can\s+you\s+(?:check|tell\s+me|get)\s+(?:the\s+)?weather/i,
+      /^could\s+you\s+(?:check|tell\s+me|get)\s+(?:the\s+)?weather/i,
+      /^would\s+you\s+(?:check|tell\s+me|get)\s+(?:the\s+)?weather/i,
+      /^will\s+you\s+(?:check|tell\s+me|get)\s+(?:the\s+)?weather/i,
+      // Conversational
+      /^i(?:'d|\s+would)\s+like\s+to\s+know\s+(?:the\s+)?weather/i,
+      /^i\s+want\s+to\s+know\s+(?:the\s+)?weather/i,
+      /^(?:what|how)(?:'s| is)\s+the\s+weather\s+looking/i,
     ],
     keywords: [
       { word: 'weather', weight: 1.0 },
@@ -66,6 +87,7 @@ export const currentWeatherTool: SemanticToolDefinition = {
   },
 
   examples: [
+    // Direct questions
     "What's the weather?",
     "What's the weather like today?",
     "What's the weather in New York?",
@@ -78,6 +100,14 @@ export const currentWeatherTool: SemanticToolDefinition = {
     "What's it like outside?",
     'Is it sunny?',
     'How hot is it?',
+    // Polite requests (Gemini problem phrases)
+    'Can you check the weather?',
+    'Could you tell me the weather?',
+    'Would you check if it will rain?',
+    // Conversational
+    "I'd like to know the weather",
+    'I want to know if I need an umbrella',
+    "What's the weather looking like for later?",
   ],
 
   counterExamples: [

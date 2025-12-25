@@ -23,6 +23,11 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { runCombinedMatching, normalizeText } from './matcher.js';
 import { extractToolArguments } from './argument-extractor.js';
+import {
+  getGeminiConfidenceBoost,
+  isGeminiProblemPhrase,
+  isUsingGemini,
+} from './integration/config.js';
 import type {
   SemanticRouterConfig,
   SemanticRouterResult,
@@ -39,6 +44,162 @@ import type {
 import { isSemanticRoutingResult } from './types.js';
 
 const log = createLogger({ module: 'semantic-router' });
+
+// ============================================================================
+// ROUTING METRICS (P1 FIX: Add observability)
+// ============================================================================
+
+/**
+ * Routing metrics for observability.
+ * These metrics help debug routing failures and tune confidence thresholds.
+ */
+interface RoutingMetricsData {
+  totalRoutes: number;
+  byAction: Record<string, number>;
+  byTool: Record<string, number>;
+  latencyHistogram: number[];
+  confidenceHistogram: number[];
+  autoExecuteCount: number;
+  conversationCount: number;
+  lastRoutingTime: number;
+}
+
+const routingMetrics: RoutingMetricsData = {
+  totalRoutes: 0,
+  byAction: {},
+  byTool: {},
+  latencyHistogram: [],
+  confidenceHistogram: [],
+  autoExecuteCount: 0,
+  conversationCount: 0,
+  lastRoutingTime: 0,
+};
+
+/**
+ * Record a routing decision for metrics.
+ */
+function recordRoutingMetrics(
+  action: string,
+  toolId: string | null,
+  confidence: number,
+  latencyMs: number
+): void {
+  routingMetrics.totalRoutes++;
+  routingMetrics.lastRoutingTime = Date.now();
+
+  // Record by action type
+  routingMetrics.byAction[action] = (routingMetrics.byAction[action] || 0) + 1;
+
+  // Record by tool (if applicable)
+  if (toolId) {
+    routingMetrics.byTool[toolId] = (routingMetrics.byTool[toolId] || 0) + 1;
+  }
+
+  // Record latency (keep last 100)
+  routingMetrics.latencyHistogram.push(latencyMs);
+  if (routingMetrics.latencyHistogram.length > 100) {
+    routingMetrics.latencyHistogram.shift();
+  }
+
+  // Record confidence (keep last 100)
+  if (confidence > 0) {
+    routingMetrics.confidenceHistogram.push(confidence);
+    if (routingMetrics.confidenceHistogram.length > 100) {
+      routingMetrics.confidenceHistogram.shift();
+    }
+  }
+
+  // Track auto-execute vs conversation ratio
+  if (action === 'execute') {
+    routingMetrics.autoExecuteCount++;
+  } else if (action === 'conversation') {
+    routingMetrics.conversationCount++;
+  }
+
+  // Log periodic summary (every 100 routes)
+  if (routingMetrics.totalRoutes % 100 === 0) {
+    const avgLatency =
+      routingMetrics.latencyHistogram.reduce((a, b) => a + b, 0) /
+      routingMetrics.latencyHistogram.length;
+    const avgConfidence =
+      routingMetrics.confidenceHistogram.length > 0
+        ? routingMetrics.confidenceHistogram.reduce((a, b) => a + b, 0) /
+          routingMetrics.confidenceHistogram.length
+        : 0;
+
+    log.info(
+      {
+        totalRoutes: routingMetrics.totalRoutes,
+        avgLatencyMs: avgLatency.toFixed(1),
+        avgConfidence: avgConfidence.toFixed(3),
+        autoExecuteRate:
+          (
+            (routingMetrics.autoExecuteCount /
+              (routingMetrics.autoExecuteCount + routingMetrics.conversationCount)) *
+            100
+          ).toFixed(1) + '%',
+        topTools: Object.entries(routingMetrics.byTool)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([t, c]) => `${t}:${c}`),
+      },
+      '📊 Semantic routing metrics summary'
+    );
+  }
+}
+
+/**
+ * Get current routing metrics (for monitoring/debugging).
+ */
+export function getSemanticRoutingMetrics(): {
+  totalRoutes: number;
+  avgLatencyMs: number;
+  avgConfidence: number;
+  autoExecuteRate: number;
+  byAction: Record<string, number>;
+  topTools: Array<[string, number]>;
+} {
+  const avgLatency =
+    routingMetrics.latencyHistogram.length > 0
+      ? routingMetrics.latencyHistogram.reduce((a, b) => a + b, 0) /
+        routingMetrics.latencyHistogram.length
+      : 0;
+  const avgConfidence =
+    routingMetrics.confidenceHistogram.length > 0
+      ? routingMetrics.confidenceHistogram.reduce((a, b) => a + b, 0) /
+        routingMetrics.confidenceHistogram.length
+      : 0;
+  const autoExecuteRate =
+    routingMetrics.autoExecuteCount + routingMetrics.conversationCount > 0
+      ? routingMetrics.autoExecuteCount /
+        (routingMetrics.autoExecuteCount + routingMetrics.conversationCount)
+      : 0;
+
+  return {
+    totalRoutes: routingMetrics.totalRoutes,
+    avgLatencyMs: avgLatency,
+    avgConfidence,
+    autoExecuteRate,
+    byAction: { ...routingMetrics.byAction },
+    topTools: Object.entries(routingMetrics.byTool)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10) as Array<[string, number]>,
+  };
+}
+
+/**
+ * Reset routing metrics (for testing).
+ */
+export function resetSemanticRoutingMetrics(): void {
+  routingMetrics.totalRoutes = 0;
+  routingMetrics.byAction = {};
+  routingMetrics.byTool = {};
+  routingMetrics.latencyHistogram = [];
+  routingMetrics.confidenceHistogram = [];
+  routingMetrics.autoExecuteCount = 0;
+  routingMetrics.conversationCount = 0;
+  routingMetrics.lastRoutingTime = 0;
+}
 
 // ============================================================================
 // ROUTER CLASS
@@ -68,7 +229,7 @@ export class SemanticRouter {
       },
       maxMatches: 5,
       enabledLayers: ['pattern', 'keyword', 'embedding', 'context'],
-      embeddingModel: 'openai',
+      embeddingModel: 'google',
       cacheEmbeddings: true,
       debug: false,
     };
@@ -146,6 +307,31 @@ export class SemanticRouter {
       queryEmbedding,
     });
 
+    // GEMINI RELIABILITY BOOST: Boost confidence for known Gemini problem phrases
+    // When using Gemini, these phrases often cause it to "chat about" calling tools
+    // instead of actually calling them. By boosting semantic router confidence,
+    // we bypass Gemini for these patterns.
+    if (isUsingGemini() && matchResult.matches.length > 0) {
+      const confidenceBoost = getGeminiConfidenceBoost(inputText);
+      if (confidenceBoost > 1.0) {
+        for (const match of matchResult.matches) {
+          const boostedConfidence = Math.min(1.0, match.confidence * confidenceBoost);
+          if (boostedConfidence !== match.confidence) {
+            log.debug(
+              {
+                toolId: match.toolId,
+                originalConfidence: match.confidence.toFixed(3),
+                boostedConfidence: boostedConfidence.toFixed(3),
+                input: inputText.slice(0, 50),
+              },
+              '🚀 Gemini problem phrase - boosting confidence'
+            );
+            match.confidence = boostedConfidence;
+          }
+        }
+      }
+    }
+
     // Extract arguments for top matches
     for (const match of matchResult.matches) {
       const toolDef = this.registry.get(match.toolId);
@@ -202,6 +388,16 @@ export class SemanticRouter {
         'Routing result'
       );
     }
+
+    // P1 FIX: Record metrics for observability
+    recordRoutingMetrics(
+      action.type,
+      action.type === 'execute' || action.type === 'confirm' || action.type === 'hint'
+        ? matchResult.matches[0]?.toolId ?? null
+        : null,
+      matchResult.matches[0]?.confidence ?? 0,
+      metadata.totalTimeMs
+    );
 
     return result;
   }

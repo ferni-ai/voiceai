@@ -53,3 +53,37 @@ export {
   type TranscriptRoutingContext,
   type TranscriptRoutingResult,
 } from './transcript-integration.js';
+
+// 🧠 Intelligent Router Integration (6-strategy cascade)
+export {
+  initializeIntelligentRouter,
+  startIntelligentRouting,
+  recordIntelligentOutcome,
+  isIntelligentRouterInitialized,
+  getOrchestrator,
+  getIntelligentRoutingStats,
+  resetIntelligentRouter,
+  type IntelligentRouterConfig,
+} from './intelligent-router-integration.js';
+
+// 📚 Active Learning Integration (Better Than Human)
+export {
+  initializeActiveLearning,
+  getPreRoutingEnhancements,
+  startTurnTracking,
+  recordSemanticRoutingResult,
+  recordLLMToolExecution,
+  recordAssistantResponse,
+  completeTurnTracking,
+  handleUserCorrection,
+  predictNextTools,
+  endLearningSession,
+  cleanupOldSessions,
+  getLearningStats,
+  // Re-exports from learning-loop
+  enhanceWithLearning,
+  recordOutcome,
+  type LearningContext,
+  type LearningOutcome,
+  type EnhancedRouting,
+} from './active-learning-integration.js';

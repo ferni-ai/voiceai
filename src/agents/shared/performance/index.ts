@@ -133,6 +133,28 @@ export {
 // Speculative TTS - Pre-generate likely response audio
 export { getSpeculativeTTSMetrics, speculateTTS } from './speculative-tts.js';
 
+// Streaming TTS Transform - Aggressive chunking for low latency first-audio
+export {
+  createStreamingTTSTransform,
+  getStreamingTTSMetrics,
+  resetStreamingTTSMetrics,
+  isStreamingTTSEnabled,
+  getOptimizedStreamingConfig,
+  type StreamingTTSConfig,
+  type StreamingTTSMetrics,
+} from './streaming-tts-transform.js';
+
+// Cache-Aware TTS - Check speculative cache before calling Cartesia
+export {
+  createCacheAwareTTSNode,
+  processTTSWithCache,
+  createCacheAwareTransform,
+  getCacheAwareTTSMetrics,
+  resetCacheAwareTTSMetrics,
+  type CacheAwareTTSConfig,
+  type CacheAwareTTSMetrics,
+} from './cache-aware-tts.js';
+
 // Adaptive Timing - "Better than Human" dynamic latency management
 export {
   LATENCY_TARGETS,

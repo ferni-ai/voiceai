@@ -196,12 +196,28 @@ async function startIdentitySession(
     // WORLD AWARENESS: Pre-warm world context cache
     // "Better Than Human" - Ferni already knows what's happening
     // Weather, news, sports, holidays - all pre-fetched
+    // TikTok-style: Uses IP-detected location for personalization
     // ===============================================
     try {
       const { initWorldAwareness } =
         await import('../../services/world-awareness/session-integration.js');
+
+      // Extract IP-detected location from metadata (TikTok-style personalization)
+      const ipLocation =
+        metadata.city || metadata.regionCode || metadata.countryCode
+          ? {
+              city: metadata.city as string | undefined,
+              regionCode: metadata.regionCode as string | undefined,
+              countryCode: metadata.countryCode as string | undefined,
+            }
+          : undefined;
+
+      if (ipLocation?.city) {
+        diag.session('📍 IP location detected', { city: ipLocation.city, region: ipLocation.regionCode });
+      }
+
       // Fire and forget - don't block on this
-      void initWorldAwareness(identityResult.identityContext.userId, null);
+      void initWorldAwareness(identityResult.identityContext.userId, null, ipLocation);
       diag.session('🌍 World awareness initialized');
     } catch (worldErr) {
       diag.debug('World awareness init failed (non-fatal)', { error: String(worldErr) });

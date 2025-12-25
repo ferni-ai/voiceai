@@ -195,8 +195,12 @@ export function extractCloudGeoHeaders(req: IncomingMessage): {
 }
 
 // =============================================================================
-// IP GEOLOCATION (FREE API)
+// IP GEOLOCATION (FREE API WITH CACHING)
 // =============================================================================
+
+// Simple in-memory cache for IP lookups (avoids rate limiting)
+const ipGeoCache = new Map<string, { data: { countryCode?: string; regionCode?: string; city?: string } | null; timestamp: number }>();
+const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get client IP from request headers.
@@ -218,7 +222,7 @@ export function getClientIP(req: IncomingMessage): string {
 
 /**
  * Lookup country from IP using free ip-api.com service.
- * Note: Rate limited to 45 requests/minute on free tier.
+ * Includes caching to avoid rate limiting (45 req/min on free tier).
  *
  * @param ip - IP address to lookup
  * @param timeout - Timeout in milliseconds (default: 2000)
@@ -239,8 +243,15 @@ export async function lookupIPCountry(
     ip.startsWith('::ffff:10.') ||
     ip.startsWith('::ffff:192.168.')
   ) {
-    log.debug({ ip }, 'Skipping IP lookup for local/private IP');
+    log.info({ ip }, '🌍 Geo: skipping IP lookup (local/private IP)');
     return null;
+  }
+
+  // Check cache first (avoids rate limiting)
+  const cached = ipGeoCache.get(ip);
+  if (cached && Date.now() - cached.timestamp < IP_CACHE_TTL) {
+    log.debug({ ip: ip.substring(0, 6) + '...' }, '🌍 Geo: using cached IP lookup');
+    return cached.data;
   }
 
   try {
@@ -249,39 +260,53 @@ export async function lookupIPCountry(
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     // Using ip-api.com (free, no API key needed, 45 req/min limit)
-    // Fields: countryCode, region, city
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode,region,city`, {
+    // Fields: countryCode, region, city, status, message
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,countryCode,region,city`, {
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      log.debug({ ip, status: response.status }, 'IP lookup returned non-OK status');
+      log.info({ ip: ip.substring(0, 6) + '...', status: response.status }, '🌍 Geo: IP lookup HTTP error');
+      ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
       return null;
     }
 
     const data = (await response.json()) as {
+      status?: string;
+      message?: string;
       countryCode?: string;
       region?: string;
       city?: string;
     };
 
+    // Check for API-level errors (rate limiting, invalid IP, etc.)
+    if (data.status === 'fail') {
+      log.info({ ip: ip.substring(0, 6) + '...', message: data.message }, '🌍 Geo: IP lookup API error');
+      ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
+      return null;
+    }
+
     if (data.countryCode) {
-      return {
+      const result = {
         countryCode: data.countryCode,
         regionCode: data.region,
         city: data.city,
       };
+      ipGeoCache.set(ip, { data: result, timestamp: Date.now() }); // Cache success
+      return result;
     }
 
+    ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache empty result
     return null;
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
-      log.debug({ ip }, 'IP lookup timed out');
+      log.info({ ip: ip.substring(0, 6) + '...' }, '🌍 Geo: IP lookup timed out');
     } else {
-      log.debug({ ip, error: String(err) }, 'IP lookup failed');
+      log.info({ ip: ip.substring(0, 6) + '...', error: String(err) }, '🌍 Geo: IP lookup failed');
     }
+    ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
     return null;
   }
 }
@@ -307,6 +332,27 @@ export async function detectGeoFromRequest(
   options: GeoDetectionOptions = {}
 ): Promise<GeoDetectionResult> {
   const { enableIpLookup = false, ipLookupTimeout = 2000 } = options;
+
+  // DEV OVERRIDE: Allow setting a default location for local development
+  // Set DEV_GEO_LOCATION="San Francisco, CA, US" in .env
+  const devGeoOverride = process.env.DEV_GEO_LOCATION;
+  if (devGeoOverride && process.env.NODE_ENV !== 'production') {
+    const parts = devGeoOverride.split(',').map((s) => s.trim());
+    const city = parts[0];
+    const regionCode = parts[1];
+    const countryCode = parts[2] || 'US';
+    log.info({ city, regionCode, countryCode }, '🌍 Geo: using DEV_GEO_LOCATION override');
+    return {
+      countryCode,
+      regionCode,
+      city,
+      languages: ['en-US'],
+      primaryLanguage: 'en-US',
+      accent: COUNTRY_TO_ACCENT[countryCode] || 'american',
+      confidence: 'high',
+      source: 'default', // Mark as default but with data
+    };
+  }
 
   // 1. Parse Accept-Language header (highest priority for language)
   const acceptLanguage = req.headers['accept-language'] as string | undefined;
@@ -371,18 +417,21 @@ export async function detectGeoFromRequest(
   // 5. IP geolocation lookup (if enabled)
   if (enableIpLookup) {
     const ip = getClientIP(req);
+    log.info({ ip: ip.substring(0, 10) + '...' }, '🌍 Geo: attempting IP lookup');
     const ipGeo = await lookupIPCountry(ip, ipLookupTimeout);
 
     if (ipGeo?.countryCode) {
       const accent = COUNTRY_TO_ACCENT[ipGeo.countryCode] || 'american';
 
-      log.debug(
+      log.info(
         {
           ip: `${ip.substring(0, 6)}...`, // Partial IP for privacy
           countryCode: ipGeo.countryCode,
+          city: ipGeo.city,
+          regionCode: ipGeo.regionCode,
           accent,
         },
-        '🌍 Accent detected from IP geolocation'
+        '🌍 Geo: detected from IP geolocation'
       );
 
       return {
@@ -395,11 +444,13 @@ export async function detectGeoFromRequest(
         confidence: 'medium',
         source: 'ip-geo',
       };
+    } else {
+      log.info({ ip: ip.substring(0, 10) + '...' }, '🌍 Geo: IP lookup returned no data');
     }
   }
 
   // 6. Default fallback
-  log.debug('🌍 Using default American accent (no geo data available)');
+  log.info('🌍 Geo: using default (no city/region available)');
 
   return {
     languages,

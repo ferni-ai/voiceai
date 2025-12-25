@@ -95,6 +95,15 @@ import {
 // Phase 5: Cross-Session Intelligence
 import { CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
 
+// Phase 6: Voice Pattern Learning (cross-session preference learning)
+import {
+  getVoicePatternEngine,
+  resetVoicePatternEngine,
+} from './voice-pattern-learning.js';
+
+// Phase 7: Rapport Scoring (conversational health tracking)
+import { resetRapportScorer } from '../rapport/index.js';
+
 // Types
 import type { HumanizationConfig, HumanizationContext, HumanizedResponseResult } from './types.js';
 
@@ -116,6 +125,57 @@ export * from './session-dynamics.js';
 export * from './types.js';
 export * from './vocal-fatigue.js';
 export * from './voice-print.js';
+
+// Rapport scoring - conversational health tracking
+export {
+  getActiveRapportScorerCount,
+  getAvailableStrategies,
+  getRapportScorer,
+  getStrategyContextInjection,
+  getStrategyTtsAdjustments,
+  RAPPORT_CONFIG,
+  RapportScorer,
+  rapportScorer,
+  resetRapportScorer,
+  selectRepairStrategy,
+  type EngagementObservation,
+  type EmotionalAlignmentObservation,
+  type FlowContinuityObservation,
+  type InterruptionObservation,
+  type RapportLevel,
+  type RapportScore,
+  type RapportScorerState,
+  type RapportSignal,
+  type RepairState,
+  type RepairStrategy,
+  type RepairStrategyType,
+  type TrustSignalObservation,
+  type TurnBalanceObservation,
+  type TurnObservation,
+} from '../rapport/index.js';
+
+// Voice pattern learning - cross-session preference learning
+export {
+  getActiveVoicePatternEngineCount,
+  getCurrentTimeOfDay,
+  getRecommendedAgentWpm,
+  getRecommendedTurnGap,
+  getVoicePatternEngine,
+  getVoicePatterns,
+  initializeVoicePatterns,
+  loadVoicePatterns,
+  persistVoicePatterns,
+  recordVoiceObservation,
+  resetVoicePatternEngine,
+  saveVoicePatterns,
+  voicePatternLearning,
+  VOICE_PATTERN_CONFIG,
+  type TimeOfDay,
+  type TimeOfDayPattern,
+  type VoiceObservation,
+  type VoicePatternData,
+  type VoicePatternEngine,
+} from './voice-pattern-learning.js';
 
 // Prosody bridge - connects voice agent audio to humanization
 export {
@@ -799,6 +859,10 @@ export function resetHumanization(sessionId: string, userId?: string): void {
   resetEmotionalLeadingEngine(sessionId);
   resetBreathingSyncEngine(sessionId);
   // Phase 5 - don't reset cross-session by default
+  // Phase 6 - Voice pattern learning (session-scoped engine)
+  resetVoicePatternEngine(sessionId);
+  // Phase 7 - Rapport scoring (conversational health)
+  resetRapportScorer(sessionId);
 }
 
 /**

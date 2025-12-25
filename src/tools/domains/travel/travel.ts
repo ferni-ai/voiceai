@@ -21,6 +21,7 @@ import { sanitizePlainText } from '../../validation.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncTravelToCalendar } from '../../../services/calendar/calendar-bridge.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -728,6 +729,17 @@ export function createTravelTools() {
 
         savedTrips.set(trip.id, trip);
 
+        // Sync trip dates to calendar
+        try {
+          await syncTravelToCalendar(userId, trip.id, destination, start, end, {
+            tripName: trip.name,
+            notes,
+            budget,
+          });
+        } catch (calendarError) {
+          getLogger().warn({ error: calendarError, tripId: trip.id }, 'Failed to sync trip to calendar');
+        }
+
         const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
         const startStr = start.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -740,20 +752,20 @@ export function createTravelTools() {
           day: 'numeric',
         });
 
-        let response = `🗺️ **Trip Saved: ${trip.name}**\n\n`;
-        response += `📍 ${destination}\n`;
-        response += `📅 ${startStr} - ${endStr}\n`;
-        response += `🌙 ${nights} night${nights > 1 ? 's' : ''}\n`;
+        let response = `**Trip Saved: ${trip.name}**\n\n`;
+        response += `${destination}\n`;
+        response += `${startStr} - ${endStr}\n`;
+        response += `${nights} night${nights > 1 ? 's' : ''}\n`;
 
         if (budget) {
-          response += `💰 Budget: $${budget.toLocaleString()}\n`;
+          response += `Budget: $${budget.toLocaleString()}\n`;
         }
 
         if (notes) {
-          response += `📝 ${notes}\n`;
+          response += `${notes}\n`;
         }
 
-        response += `\nWant me to search for flights or hotels?`;
+        response += `\nAdded to your calendar. Want me to search for flights or hotels?`;
 
         return response;
       },
@@ -774,7 +786,7 @@ export function createTravelTools() {
           return `No trips planned yet. Say "plan a trip to [destination]" to get started!`;
         }
 
-        let response = `🗺️ **Your Trips**\n\n`;
+        let response = `**Your Trips**\n\n`;
 
         const now = new Date();
         const upcoming = userTrips.filter((t) => t.startDate > now);

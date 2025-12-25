@@ -1,9 +1,21 @@
 /**
  * Music Tool Definitions for Semantic Router
  *
- * Example of how to define tools for semantic routing.
- * Each tool includes triggers, examples, and argument extraction.
+ * Semantic routing definitions for music-related tools.
+ * These tools route to real domain implementations via the domain-bridge.ts.
  *
+ * EXECUTION FLOW:
+ * 1. User says "play some jazz"
+ * 2. Semantic router matches `spotify_play` with high confidence
+ * 3. turn-processor-integration.ts calls executeMatchedTool()
+ * 4. domain-bridge.ts maps `spotify_play` → `playMusic` domain tool
+ * 5. Real music playback happens via entertainment/music.ts
+ *
+ * The `execute` functions here are FALLBACKS only - they return mock responses
+ * if the domain bridge fails or the domain tool isn't loaded. In normal
+ * operation, the domain bridge handles execution.
+ *
+ * @see domain-bridge.ts for semantic → domain tool mappings
  * @module tools/semantic-router/tool-definitions/music
  */
 
@@ -27,17 +39,49 @@ export const playMusicTool: SemanticToolDefinition = {
 
   triggers: {
     phrases: [
+      // Direct commands
       'play music',
       'play some music',
       'play spotify',
       'start playing',
       'put on some music',
       'put on music',
+      // Polite requests (Gemini problem phrases)
+      'can you play music',
+      'can you play some music',
+      'could you play music',
+      'would you play music',
+      'will you play music',
+      // Conversational requests
+      "i'd like to hear some music",
+      'i want to hear some music',
+      'i would like some music',
+      "let's hear some music",
+      'how about some music',
+      // Casual slang
+      'throw on some music',
+      'spin some music',
+      'queue up some music',
     ],
     patterns: [
+      // Direct commands
       /^play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
       /^put\s+on\s+(?:some\s+)?(.+)/i,
+      // Polite requests (CRITICAL - these are Gemini problem patterns)
+      /^can\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+      /^could\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+      /^would\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+      /^will\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+      // Desire expressions
       /^i(?:'d|\s+would)\s+like\s+(?:to\s+)?(?:hear|listen\s+to)\s+(.+)/i,
+      /^i\s+want\s+(?:to\s+)?(?:hear|listen\s+to)\s+(.+)/i,
+      /^i(?:'d|\s+would)\s+love\s+(?:to\s+)?(?:hear|listen\s+to)\s+(.+)/i,
+      // Suggestions
+      /^(?:let's|let\s+us)\s+(?:hear|listen\s+to|play)\s+(.+)/i,
+      /^how\s+about\s+(?:some\s+)?(.+?)(?:\s+music)?$/i,
+      // Casual slang
+      /^(?:throw|spin|queue)\s+(?:on|up)\s+(?:some\s+)?(.+)/i,
+      /^(?:start|begin)\s+(?:playing|some)\s+(.+)/i,
     ],
     keywords: [
       { word: 'play', weight: 1.0 },
@@ -48,16 +92,35 @@ export const playMusicTool: SemanticToolDefinition = {
       { word: 'playlist', weight: 0.7 },
       { word: 'artist', weight: 0.6 },
       { word: 'listen', weight: 0.5 },
+      { word: 'hear', weight: 0.5 },
+      // Genres (boost confidence when detected)
       { word: 'jazz', weight: 0.8 },
       { word: 'rock', weight: 0.7 },
       { word: 'classical', weight: 0.7 },
+      { word: 'pop', weight: 0.7 },
+      { word: 'hip hop', weight: 0.7 },
+      { word: 'electronic', weight: 0.7 },
+      { word: 'country', weight: 0.7 },
+      { word: 'indie', weight: 0.7 },
+      { word: 'metal', weight: 0.7 },
+      { word: 'folk', weight: 0.7 },
+      { word: 'ambient', weight: 0.7 },
+      { word: 'lofi', weight: 0.7 },
+      // Moods
       { word: 'chill', weight: 0.6 },
       { word: 'focus', weight: 0.5 },
+      { word: 'relax', weight: 0.6 },
+      { word: 'relaxing', weight: 0.6 },
+      { word: 'upbeat', weight: 0.6 },
+      { word: 'energetic', weight: 0.6 },
+      { word: 'calm', weight: 0.6 },
+      { word: 'mellow', weight: 0.6 },
     ],
-    antiKeywords: ['stop', 'pause', 'next', 'skip'],
+    antiKeywords: ['stop', 'pause', 'next', 'skip', 'volume', 'louder', 'quieter'],
   },
 
   examples: [
+    // Direct commands
     'play some jazz',
     'play chill music for focus',
     'play Bohemian Rhapsody by Queen',
@@ -65,9 +128,24 @@ export const playMusicTool: SemanticToolDefinition = {
     'play something relaxing',
     'play my discover weekly',
     'play music for working',
-    'I want to hear some rock',
     'play some background music',
-    'can you play some upbeat music',
+    // Polite requests (CRITICAL - Gemini problem patterns)
+    'can you play some jazz',
+    'could you play some music',
+    'would you play something relaxing',
+    'will you play some upbeat music',
+    // Desire expressions
+    'I want to hear some rock',
+    "I'd like to hear some jazz",
+    'I would love to listen to some classical',
+    // Suggestions
+    'how about some jazz',
+    "let's hear some rock",
+    'how about putting on some music',
+    // Casual slang
+    'throw on some jazz',
+    'spin some vinyl vibes',
+    'queue up some chill music',
   ],
 
   counterExamples: [

@@ -18,6 +18,7 @@ import {
   buildCommitmentCalendarContext,
   type CommitmentFeasibility,
 } from './commitment-calendar-integration.js';
+import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -285,7 +286,9 @@ export async function saveCommitment(
     }
 
     // Better Than Human: Create calendar blocks for the commitment
-    if (options?.createCalendarBlocks && feasibility?.suggestedSlots?.length) {
+    // Auto-create blocks when there's a target date (better than human by default)
+    const shouldCreateBlocks = options?.createCalendarBlocks ?? !!commitment.targetDate;
+    if (shouldCreateBlocks && feasibility?.suggestedSlots?.length) {
       try {
         const blocks = await createCalendarBlocksForCommitment(
           commitment.userId,
@@ -312,11 +315,30 @@ export async function saveCommitment(
               commitmentId: id,
               blocksCreated: blocks.eventIds.length,
             },
-            '📅 Calendar blocks created for commitment'
+            'Calendar blocks created for commitment'
           );
         }
       } catch (error) {
         log.warn({ error: String(error) }, 'Failed to create calendar blocks (non-blocking)');
+      }
+    }
+
+    // Sync commitment target date to calendar as reminder event
+    if (commitment.targetDate) {
+      try {
+        await syncCommitmentToCalendar(
+          commitment.userId,
+          id,
+          fullCommitment.summary,
+          new Date(commitment.targetDate),
+          {
+            description: fullCommitment.statement,
+            type: fullCommitment.type,
+            emotionalWeight: fullCommitment.emotionalWeight,
+          }
+        );
+      } catch (calendarError) {
+        log.warn({ error: String(calendarError) }, 'Failed to sync commitment to calendar');
       }
     }
 
@@ -327,7 +349,7 @@ export async function saveCommitment(
 
     log.info(
       { userId: commitment.userId, commitmentId: id, type: fullCommitment.type },
-      '📝 Commitment saved'
+      'Commitment saved'
     );
 
     return { commitment: fullCommitment, feasibility };

@@ -30,6 +30,57 @@ import type { HandoffContext, HandoffRecord } from './types.js';
 // SESSION STATE TYPE
 // ============================================================================
 
+// ============================================================================
+// TOOL EXECUTION CONTEXT (P0 FIX: Preserve tool context on handoff)
+// ============================================================================
+
+/**
+ * Recent tool execution record for handoff context transfer.
+ *
+ * PROBLEM: When user says "Transfer me to Maya", tool execution context is lost:
+ * - Previous tool results not passed
+ * - Semantic routing history not transferred
+ * - User has to re-explain context
+ *
+ * SOLUTION: Store recent tool executions and routing history, transfer on handoff.
+ */
+export interface ToolExecutionRecord {
+  /** Tool ID that was executed */
+  toolId: string;
+  /** Tool arguments */
+  args: Record<string, unknown>;
+  /** Tool result summary (truncated for context) */
+  resultSummary: string;
+  /** Whether execution was successful */
+  success: boolean;
+  /** Timestamp of execution */
+  timestamp: number;
+  /** Semantic routing confidence (if from router) */
+  routingConfidence?: number;
+}
+
+/**
+ * Tool execution context that persists across handoffs.
+ */
+export interface ToolExecutionContext {
+  /** Recent tool executions (last 10) */
+  recentTools: ToolExecutionRecord[];
+  /** Semantic routing history (last 5 queries with matches) */
+  routingHistory: Array<{
+    query: string;
+    matches: Array<{ toolId: string; confidence: number }>;
+    timestamp: number;
+  }>;
+  /** Active tool sessions (e.g., music playing, timer running) */
+  activeToolSessions: Map<string, {
+    toolId: string;
+    state: Record<string, unknown>;
+    startedAt: number;
+  }>;
+  /** User's frequent tools (for personalization) */
+  frequentTools: string[];
+}
+
 export interface HandoffSessionState {
   /** Session identifier */
   readonly sessionId: string;
@@ -66,6 +117,13 @@ export interface HandoffSessionState {
 
   /** Session event emitter */
   events: EventEmitter;
+
+  /**
+   * Tool execution context (P0 FIX: Preserved across handoffs)
+   * This allows the new persona to understand what tools were used
+   * and continue from where the previous persona left off.
+   */
+  toolExecutionContext: ToolExecutionContext;
 }
 
 // ============================================================================
@@ -237,6 +295,13 @@ function createSessionState(sessionId: string): HandoffSessionState {
     perPersonaLastTopic: new Map<string, string>(),
     cachedAgentContext: null,
     events,
+    // P0 FIX: Initialize tool execution context
+    toolExecutionContext: {
+      recentTools: [],
+      routingHistory: [],
+      activeToolSessions: new Map(),
+      frequentTools: [],
+    },
   };
 }
 
@@ -604,4 +669,184 @@ export function getSessionAnalytics(state: HandoffSessionState): {
     avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
   };
 }
+
+// ============================================================================
+// TOOL EXECUTION CONTEXT MANAGEMENT (P0 FIX)
+// ============================================================================
+
+const MAX_RECENT_TOOLS = 10;
+const MAX_ROUTING_HISTORY = 5;
+const RESULT_SUMMARY_MAX_LENGTH = 200;
+
+/**
+ * Record a tool execution in the session context.
+ *
+ * Call this after each tool execution to maintain context for handoffs.
+ *
+ * @example
+ * ```typescript
+ * recordToolExecution(state, {
+ *   toolId: 'playMusic',
+ *   args: { query: 'jazz' },
+ *   resultSummary: 'Playing jazz playlist',
+ *   success: true,
+ *   routingConfidence: 0.92,
+ * });
+ * ```
+ */
+export function recordToolExecution(
+  state: HandoffSessionState,
+  execution: Omit<ToolExecutionRecord, 'timestamp'>
+): void {
+  const record: ToolExecutionRecord = {
+    ...execution,
+    // Truncate result summary to prevent context bloat
+    resultSummary: execution.resultSummary.slice(0, RESULT_SUMMARY_MAX_LENGTH),
+    timestamp: Date.now(),
+  };
+
+  // Add to recent tools (FIFO)
+  state.toolExecutionContext.recentTools.push(record);
+  if (state.toolExecutionContext.recentTools.length > MAX_RECENT_TOOLS) {
+    state.toolExecutionContext.recentTools.shift();
+  }
+
+  // Update frequent tools if successful
+  if (execution.success) {
+    const toolIndex = state.toolExecutionContext.frequentTools.indexOf(execution.toolId);
+    if (toolIndex === -1) {
+      // Add new tool to frequent list
+      state.toolExecutionContext.frequentTools.unshift(execution.toolId);
+      if (state.toolExecutionContext.frequentTools.length > 10) {
+        state.toolExecutionContext.frequentTools.pop();
+      }
+    } else {
+      // Move to front if already in list
+      state.toolExecutionContext.frequentTools.splice(toolIndex, 1);
+      state.toolExecutionContext.frequentTools.unshift(execution.toolId);
+    }
+  }
+
+  getLogger().debug(
+    {
+      sessionId: state.sessionId,
+      toolId: execution.toolId,
+      success: execution.success,
+      recentToolsCount: state.toolExecutionContext.recentTools.length,
+    },
+    'Tool execution recorded for handoff context'
+  );
+}
+
+/**
+ * Record a routing decision for handoff context.
+ */
+export function recordRoutingDecision(
+  state: HandoffSessionState,
+  query: string,
+  matches: Array<{ toolId: string; confidence: number }>
+): void {
+  state.toolExecutionContext.routingHistory.push({
+    query: query.slice(0, 100), // Truncate long queries
+    matches: matches.slice(0, 3), // Keep top 3 matches
+    timestamp: Date.now(),
+  });
+
+  // Keep only recent history
+  if (state.toolExecutionContext.routingHistory.length > MAX_ROUTING_HISTORY) {
+    state.toolExecutionContext.routingHistory.shift();
+  }
+}
+
+/**
+ * Register an active tool session (e.g., music playing, timer running).
+ */
+export function registerActiveToolSession(
+  state: HandoffSessionState,
+  sessionKey: string,
+  toolId: string,
+  sessionState: Record<string, unknown>
+): void {
+  state.toolExecutionContext.activeToolSessions.set(sessionKey, {
+    toolId,
+    state: sessionState,
+    startedAt: Date.now(),
+  });
+
+  getLogger().debug(
+    { sessionId: state.sessionId, sessionKey, toolId },
+    'Active tool session registered'
+  );
+}
+
+/**
+ * Remove an active tool session.
+ */
+export function removeActiveToolSession(state: HandoffSessionState, sessionKey: string): void {
+  state.toolExecutionContext.activeToolSessions.delete(sessionKey);
+}
+
+/**
+ * Get tool execution context for handoff.
+ *
+ * Returns a summary of recent tool activity that the new persona can use
+ * to understand context and continue seamlessly.
+ */
+export function getToolContextForHandoff(state: HandoffSessionState): {
+  recentTools: ToolExecutionRecord[];
+  activeToolSessions: Array<{ key: string; toolId: string; state: Record<string, unknown> }>;
+  frequentTools: string[];
+  lastRoutingQuery: string | null;
+  summary: string;
+} {
+  const ctx = state.toolExecutionContext;
+  const recentTools = ctx.recentTools.slice(-5); // Last 5 tools
+  const activeSessions = Array.from(ctx.activeToolSessions.entries()).map(([key, session]) => ({
+    key,
+    toolId: session.toolId,
+    state: session.state,
+  }));
+
+  // Generate human-readable summary for LLM context
+  const summaryParts: string[] = [];
+
+  if (recentTools.length > 0) {
+    const toolList = recentTools.map((t) => t.toolId).join(', ');
+    summaryParts.push(`Recent tools used: ${toolList}`);
+  }
+
+  if (activeSessions.length > 0) {
+    const activeList = activeSessions.map((s) => s.toolId).join(', ');
+    summaryParts.push(`Currently active: ${activeList}`);
+  }
+
+  if (ctx.routingHistory.length > 0) {
+    const lastQuery = ctx.routingHistory[ctx.routingHistory.length - 1].query;
+    summaryParts.push(`Last request: "${lastQuery}"`);
+  }
+
+  return {
+    recentTools,
+    activeToolSessions: activeSessions,
+    frequentTools: ctx.frequentTools.slice(0, 5),
+    lastRoutingQuery: ctx.routingHistory.length > 0
+      ? ctx.routingHistory[ctx.routingHistory.length - 1].query
+      : null,
+    summary: summaryParts.length > 0 ? summaryParts.join('. ') : 'No recent tool activity.',
+  };
+}
+
+/**
+ * Clear tool execution context (for testing or session reset).
+ */
+export function clearToolExecutionContext(state: HandoffSessionState): void {
+  state.toolExecutionContext = {
+    recentTools: [],
+    routingHistory: [],
+    activeToolSessions: new Map(),
+    frequentTools: [],
+  };
+}
+
+
 

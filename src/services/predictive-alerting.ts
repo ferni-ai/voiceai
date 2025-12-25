@@ -389,6 +389,11 @@ export function startPredictiveAlerting(userConfig?: Partial<PredictiveConfig>):
   registerMetric('error_rate', 0.05, 'upper'); // Alert when error rate will hit 5%
   registerMetric('latency_p99', 2000, 'upper'); // Alert when P99 will hit 2000ms
 
+  // Call quality metrics (registered for predictive alerting integration)
+  registerMetric('connection_success_rate', 95, 'lower'); // Alert when drops below 95%
+  registerMetric('disconnect_rate', 5, 'upper'); // Alert when rises above 5%
+  registerMetric('first_response_time', 3000, 'upper'); // Alert when response time exceeds 3s
+
   // Start prediction loop
   predictionInterval = setInterval(() => {
     runPredictions().catch((e) => log.error({ error: String(e) }, 'Prediction loop failed'));

@@ -13,7 +13,13 @@ import type { CustomAgent, CustomAgentMemory } from '../../services/custom-agent
 // STATE
 // ============================================================================
 
-const state: VoiceJournalState = {
+// Extended state with filter
+interface ExtendedState extends VoiceJournalState {
+  filterDate: string | null;
+  searchQuery: string;
+}
+
+const state: ExtendedState = {
   modal: null,
   currentAgent: null,
   entries: [],
@@ -28,6 +34,8 @@ const state: VoiceJournalState = {
   currentTab: 'record',
   currentPrompt: null,
   calendarMonth: new Date(),
+  filterDate: null,
+  searchQuery: '',
 };
 
 // ============================================================================
@@ -159,6 +167,59 @@ export function setAnalyser(analyser: AnalyserNode | null): void {
 }
 
 // ============================================================================
+// FILTER STATE
+// ============================================================================
+
+export function getFilterDate(): string | null {
+  return state.filterDate;
+}
+
+export function setFilterDate(date: string | null): void {
+  state.filterDate = date;
+}
+
+export function getSearchQuery(): string {
+  return state.searchQuery;
+}
+
+export function setSearchQuery(query: string): void {
+  state.searchQuery = query;
+}
+
+/**
+ * Get filtered entries based on current filter state
+ */
+export function getFilteredEntries(): CustomAgentMemory[] {
+  let filtered = [...state.entries];
+
+  // Filter by date
+  if (state.filterDate) {
+    const [year, month, day] = state.filterDate.split('-').map(Number);
+    filtered = filtered.filter((entry) => {
+      const date = new Date(entry.createdAt);
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() + 1 === month &&
+        date.getDate() === day
+      );
+    });
+  }
+
+  // Filter by search query
+  if (state.searchQuery) {
+    const query = state.searchQuery.toLowerCase();
+    filtered = filtered.filter(
+      (entry) =>
+        entry.content.toLowerCase().includes(query) ||
+        entry.mood?.toLowerCase().includes(query) ||
+        entry.themes?.some((t) => t.toLowerCase().includes(query))
+    );
+  }
+
+  return filtered;
+}
+
+// ============================================================================
 // STATE RESET
 // ============================================================================
 
@@ -170,5 +231,7 @@ export function resetState(): void {
   state.recordingStartTime = null;
   state.recordingDuration = 0;
   state.audioChunks = [];
+  state.filterDate = null;
+  state.searchQuery = '';
 }
 

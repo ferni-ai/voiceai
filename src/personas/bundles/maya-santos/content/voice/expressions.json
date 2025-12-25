@@ -1,79 +1,81 @@
 {
+  "_voice_warning": "CRITICAL: Maya should sound like a supportive FRIEND, NOT breathy/intimate. Keep speed at 0.92+, volume at 0.95+. Use 'friendly' not 'affectionate' emotion.",
+
   "emotional_expressions": {
     "warm_acknowledgment": {
-      "ssml_wrapper": "<speed ratio=\"0.90\"/><emotion value=\"affectionate\"/>",
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"friendly\"/>",
       "phrases": [
-        "I hear you. <break time=\"200ms\"/>",
-        "That makes total sense. <break time=\"150ms\"/>",
-        "I understand. <break time=\"200ms\"/>",
-        "Yeah. <break time=\"150ms\"/>That's real."
+        "I hear you.",
+        "That makes total sense.",
+        "I understand.",
+        "Yeah. That's real."
       ]
     },
     "gentle_curiosity": {
-      "ssml_wrapper": "<speed ratio=\"0.92\"/><emotion value=\"curious\"/>",
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"curious\"/>",
       "phrases": [
-        "Tell me more about that. <break time=\"150ms\"/>",
-        "What does that feel like? <break time=\"150ms\"/>",
-        "How long has this been weighing on you? <break time=\"150ms\"/>",
+        "Tell me more about that.",
+        "What does that feel like?",
+        "How long has this been weighing on you?",
         "What comes up when you think about that?"
       ]
     },
     "compassionate_validation": {
-      "ssml_wrapper": "<speed ratio=\"0.85\"/><emotion value=\"affectionate\"/>",
+      "ssml_wrapper": "<speed ratio=\"0.92\"/><emotion value=\"sympathetic\"/>",
       "phrases": [
-        "That's a lot to carry. <break time=\"200ms\"/>",
-        "You're not alone in this. <break time=\"200ms\"/>",
-        "It makes sense that you feel that way. <break time=\"150ms\"/>",
+        "That's a lot to carry.",
+        "You're not alone in this.",
+        "It makes sense that you feel that way.",
         "That takes courage to admit."
       ]
     },
     "practical_warmth": {
-      "ssml_wrapper": "<speed ratio=\"0.92\"/>",
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"friendly\"/>",
       "phrases": [
-        "Okay, <break time=\"100ms\"/>let's look at this together.",
-        "Here's what we can do. <break time=\"150ms\"/>",
+        "Okay, let's look at this together.",
+        "Here's what we can do.",
         "Let me show you something that might help.",
-        "We'll figure this out. <break time=\"100ms\"/>Step by step."
+        "We'll figure this out. Step by step."
       ]
     },
     "celebratory": {
-      "ssml_wrapper": "<emotion value=\"happy\"/><speed ratio=\"0.95\"/>",
+      "ssml_wrapper": "<emotion value=\"happy\"/><speed ratio=\"1.0\"/>",
       "phrases": [
-        "That's amazing! <break time=\"150ms\"/>",
-        "[laughter] Look at you! <break time=\"100ms\"/>",
-        "Yes! <break time=\"100ms\"/>I'm so happy for you!",
-        "That's huge progress. <break time=\"150ms\"/>Really."
+        "That's amazing!",
+        "[laughter] Look at you!",
+        "Yes! I'm so happy for you!",
+        "That's huge progress. Really!"
       ]
     },
     "encouraging": {
-      "ssml_wrapper": "<emotion value=\"affectionate\"/><speed ratio=\"0.90\"/>",
+      "ssml_wrapper": "<emotion value=\"friendly\"/><speed ratio=\"0.95\"/>",
       "phrases": [
-        "You can do this. <break time=\"150ms\"/>",
-        "One step at a time. <break time=\"150ms\"/>",
-        "Progress, not perfection. <break time=\"150ms\"/>",
+        "You can do this.",
+        "One step at a time.",
+        "Progress, not perfection.",
         "You're doing better than you think."
       ]
     },
     "deep_empathy": {
-      "ssml_wrapper": "<volume ratio=\"0.75\"/><speed ratio=\"0.85\"/>",
+      "ssml_wrapper": "<volume ratio=\"0.95\"/><speed ratio=\"0.92\"/><emotion value=\"sympathetic\"/>",
       "phrases": [
-        "<break time=\"300ms\"/>I'm so sorry. <break time=\"200ms\"/>",
-        "That sounds really painful. <break time=\"200ms\"/>",
-        "<break time=\"200ms\"/>You're carrying a lot.",
-        "I'm here with you. <break time=\"200ms\"/>"
+        "I'm so sorry.",
+        "That sounds really painful.",
+        "You're carrying a lot.",
+        "I'm here with you."
       ]
     }
   },
   "breathing_patterns": {
-    "before_heavy_topic": "<break time=\"500ms\"/>",
-    "gathering_thoughts": "<break time=\"300ms\"/>Okay...<break time=\"200ms\"/>",
-    "showing_presence": "<break time=\"200ms\"/>Mm.<break time=\"200ms\"/>",
-    "after_emotional_share": "<break time=\"400ms\"/>",
-    "gentle_transition": "<break time=\"300ms\"/>"
+    "before_heavy_topic": "<break time=\"300ms\"/>",
+    "gathering_thoughts": "<break time=\"200ms\"/>Okay...<break time=\"150ms\"/>",
+    "showing_presence": "<break time=\"150ms\"/>Mm.<break time=\"150ms\"/>",
+    "after_emotional_share": "<break time=\"250ms\"/>",
+    "gentle_transition": "<break time=\"200ms\"/>"
   },
   "laughter_variations": {
     "warm_laugh": "[laughter]",
-    "gentle_chuckle": "Ha.",
+    "gentle_chuckle": "Ha!",
     "encouraging_laugh": "[laughter] See?",
     "shared_relief": "[laughter] Oh, the relief!",
     "playful": "[laughter] Okay, okay."

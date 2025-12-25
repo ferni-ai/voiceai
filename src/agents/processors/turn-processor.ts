@@ -58,6 +58,14 @@ import {
   type TurnRouterResult,
 } from '../../tools/semantic-router/integration/index.js';
 
+// 🧠 INTELLIGENT ROUTING: Advanced 6-strategy cascade (A/B tested)
+import {
+  startIntelligentRouting,
+  isIntelligentRouterInitialized,
+  recordIntelligentOutcome,
+} from '../../tools/semantic-router/integration/index.js';
+import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
+
 // Injection builders (cleaner separation of concerns)
 import {
   buildAdvancedHumanizationInjections,
@@ -72,6 +80,11 @@ import {
   buildScientificCoachingInjections,
   buildSessionDynamicsInjection,
   buildTrustSystemsInjections,
+  // "Better Than Human" injection builders
+  buildUserHealthInjection,
+  buildVisualMemoryInjections,
+  buildAmbientModeInjections,
+  buildHumanTransferInjections,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
 } from './injection-builders.js';
@@ -283,9 +296,21 @@ async function buildContextInjections(
   injections.push(...safetyInjections);
 
   // ============================================================================
-  // PARALLELIZED CONTEXT BUILDERS (saves ~200-400ms per turn)
-  // These builders are independent and can run concurrently
+  // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED - Dec 2024)
   // ============================================================================
+  // Builders are split into tiers to minimize time-to-first-audio:
+  //
+  // TIER 1 (CRITICAL): Always run, block LLM start (~100ms)
+  //   - Behavioral context (essential for response quality)
+  //   - Human transfer (safety - when to escalate)
+  //
+  // TIER 2 (IMPORTANT): Run with timeout, drop gracefully (~80ms cap)
+  //   - Scientific coaching, Life coaching, Trust systems, Boundary check
+  //
+  // TIER 3 (OPTIONAL): Run with aggressive timeout, drop if slow (~60ms cap)
+  //   - Health awareness, User health, Visual memory, Ambient mode
+  // ============================================================================
+
   const builderInput = {
     userText,
     services,
@@ -297,30 +322,104 @@ async function buildContextInjections(
     sessionId: services.sessionId, // For SessionDynamicsEngine
   };
 
-  const [
-    behavioralResult,
-    scientificResult,
-    coachingInjections,
-    trustSystemsResult,
-    boundaryInjections,
-    healthInjections,
-  ] = await Promise.all([
-    // NEW: Behavioral context system (replaces buildConversationContext)
+  // Timeout helper - returns result or fallback after timeout
+  const withTimeout = async <T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    fallback: T,
+    name: string
+  ): Promise<T> => {
+    try {
+      const result = await Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs)
+        ),
+      ]);
+      return result;
+    } catch (error) {
+      diag.debug(`⏱️ Context builder timeout: ${name}`, { timeoutMs });
+      return fallback;
+    }
+  };
+
+  // ============================================================================
+  // TIER 1: CRITICAL BUILDERS (no timeout - these are essential)
+  // ============================================================================
+  const [behavioralResult, humanTransferInjection] = await Promise.all([
+    // Behavioral context system - essential for response quality
     buildIntegratedContext(contextInput),
-    // Scientific coaching
-    buildScientificCoachingInjections(builderInput),
-    // Life coaching
-    buildLifeCoachingInjections(builderInput),
-    // Trust systems (returns injections + summary for post-response monitoring)
-    buildTrustSystemsInjections(builderInput),
-    // Boundary check
-    buildBoundaryCheckInjections({
-      userId: services.userId || 'unknown',
-      currentTopic,
-    }),
-    // Health awareness
-    buildHealthAwarenessInjections(),
+    // Human transfer awareness - safety critical
+    buildHumanTransferInjections(userText),
   ]);
+
+  // ============================================================================
+  // TIER 2: IMPORTANT BUILDERS (80ms timeout - graceful degradation)
+  // ============================================================================
+  const IMPORTANT_TIMEOUT_MS = 80;
+
+  const [scientificResult, coachingInjections, trustSystemsResult, boundaryInjections] =
+    await Promise.all([
+      withTimeout(
+        buildScientificCoachingInjections(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        { injections: [], endpointingRecommendation: undefined },
+        'scientific-coaching'
+      ),
+      withTimeout(
+        buildLifeCoachingInjections(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        [],
+        'life-coaching'
+      ),
+      withTimeout(
+        buildTrustSystemsInjections(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        { injections: [], summary: {} as TrustContextSummary },
+        'trust-systems'
+      ),
+      withTimeout(
+        buildBoundaryCheckInjections({
+          userId: services.userId || 'unknown',
+          currentTopic,
+        }),
+        IMPORTANT_TIMEOUT_MS,
+        [],
+        'boundary-check'
+      ),
+    ]);
+
+  // ============================================================================
+  // TIER 3: OPTIONAL BUILDERS (60ms timeout - these are nice-to-have)
+  // ============================================================================
+  const OPTIONAL_TIMEOUT_MS = 60;
+
+  const [healthInjections, userHealthInjection, visualMemoryInjection, ambientModeInjection] =
+    await Promise.all([
+      // System health - not user-facing
+      withTimeout(buildHealthAwarenessInjections(), OPTIONAL_TIMEOUT_MS, [], 'health-awareness'),
+      // User health (Apple HealthKit) - nice to have
+      withTimeout(
+        buildUserHealthInjection(services.userId || 'unknown'),
+        OPTIONAL_TIMEOUT_MS,
+        null,
+        'user-health'
+      ),
+      // Visual memory - Firestore call, can skip
+      withTimeout(
+        buildVisualMemoryInjections(services.userId || 'unknown'),
+        OPTIONAL_TIMEOUT_MS,
+        null,
+        'visual-memory'
+      ),
+      // Ambient mode - location context, can skip
+      withTimeout(
+        buildAmbientModeInjections(services.userId || 'unknown'),
+        OPTIONAL_TIMEOUT_MS,
+        null,
+        'ambient-mode'
+      ),
+    ]);
 
   // Extract trust injections and summary
   const trustInjections = trustSystemsResult.injections;
@@ -380,6 +479,30 @@ async function buildContextInjections(
   injections.push(...trustInjections);
   injections.push(...boundaryInjections);
   injections.push(...healthInjections);
+
+  // ========================================================================
+  // "BETTER THAN HUMAN" INJECTIONS
+  // These 4 capabilities make Ferni genuinely better than a human friend
+  // ========================================================================
+  if (userHealthInjection) {
+    injections.push(userHealthInjection);
+    diag.debug('💪 User health injection added (Apple HealthKit)');
+  }
+  if (visualMemoryInjection) {
+    injections.push(visualMemoryInjection);
+    diag.debug('📸 Visual memory injection added');
+  }
+  if (ambientModeInjection) {
+    injections.push(ambientModeInjection);
+    diag.debug('🌙 Ambient mode injection added');
+  }
+  if (humanTransferInjection) {
+    injections.push(humanTransferInjection);
+    diag.info('🆘 Human transfer awareness added', {
+      category: humanTransferInjection.category,
+      priority: humanTransferInjection.priority,
+    });
+  }
 
   // 2c-1. SESSION DYNAMICS - Phase-aware conversation guidance
   // Provides natural conversation arc: opening → warming → engaged → deepening → winding
@@ -1086,13 +1209,22 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     const toolExecData = userData?.conversationState?.getToolExecutionData?.();
     const recentTools = toolExecData?.recentlyUsedTools || [];
 
-    semanticRoutingPromise = startSemanticRouting(userText, {
-      userId: services.userId || 'unknown',
+    const userId = services.userId || 'unknown';
+    const routingContext = {
+      userId,
       sessionId: services.sessionId,
       personaId: ctx.persona.id,
       conversationHistory,
       recentTools,
-    });
+    };
+
+    // 🧠 Use intelligent routing if A/B test assigns user to treatment group
+    if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(userId)) {
+      diag.debug('🧠 Using intelligent routing (A/B test)', { userId, mode: 'intelligent' });
+      semanticRoutingPromise = startIntelligentRouting(userText, routingContext);
+    } else {
+      semanticRoutingPromise = startSemanticRouting(userText, routingContext);
+    }
   }
 
   // Start independent async operations in parallel

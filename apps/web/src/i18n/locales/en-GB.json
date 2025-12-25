@@ -470,6 +470,7 @@
       "groupCoaching": "Together Sessions",
       "guidedPractices": "Guided Practices",
       "householdMembers": "Family & Household",
+      "insights": "Understanding You",
       "journaling": "Journaling",
       "language": "Language",
       "lifeContext": "Your World",
@@ -929,6 +930,38 @@
     "settingsSaved": "Settings saved!",
     "somethingWentWrong": "Something went wrong. Try again?",
     "updated": "Updated!"
+  },
+  "memoryBrowser": {
+    "eyebrow": "Your Journey",
+    "title": "What I Remember",
+    "subtitle": "Browse our conversations and what I've learnt about you",
+    "tabs": {
+      "conversations": "Conversations",
+      "remembered": "Remembered",
+      "topics": "Topics"
+    },
+    "stats": {
+      "conversations": "Conversations",
+      "timeTogether": "Time Together",
+      "thingsRemembered": "Things Remembered",
+      "since": "Since"
+    },
+    "empty": {
+      "conversations": "Our story begins here. Let's talk and I'll remember every moment.",
+      "remembered": "I haven't learnt much about you yet. The more we talk, the more I'll remember!",
+      "topics": "No topics explored yet. Let's start a conversation!",
+      "noResults": "No conversations match your search"
+    },
+    "loading": "Loading your memories...",
+    "error": {
+      "title": "Couldn't load your memories",
+      "message": "Something went wrong. Please try again.",
+      "retry": "Try again"
+    },
+    "footer": "Our journey started {date}",
+    "turnCount": "{count} turns",
+    "voiceVerified": "Voice verified",
+    "learnedFrom": "Learnt from our conversations"
   },
   "trustJourney": {
     "empty": {

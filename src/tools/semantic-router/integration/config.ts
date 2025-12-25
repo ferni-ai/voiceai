@@ -166,7 +166,7 @@ function loadConfigFromEnv(): SemanticRouterConfig {
       maxEmbeddings:
         parseInt(env.SEMANTIC_ROUTER_MAX_EMBEDDINGS || '', 10) || DEFAULT_THRESHOLDS.maxEmbeddings,
     },
-    embeddingModel: (env.SEMANTIC_ROUTER_EMBEDDING_MODEL || 'openai') as
+    embeddingModel: (env.SEMANTIC_ROUTER_EMBEDDING_MODEL || 'google') as
       | 'openai'
       | 'google'
       | 'local',
@@ -435,13 +435,21 @@ export const CONSERVATIVE_PRESET: Partial<SemanticRouterConfig> = {
  * Apply a preset
  */
 export function applyPreset(
-  preset: 'production' | 'development' | 'aggressive' | 'conservative'
+  preset:
+    | 'production'
+    | 'development'
+    | 'aggressive'
+    | 'conservative'
+    | 'gemini-optimized'
+    | 'gemini-rock-solid'
 ): void {
   const presets = {
     production: PRODUCTION_PRESET,
     development: DEVELOPMENT_PRESET,
     aggressive: AGGRESSIVE_PRESET,
     conservative: CONSERVATIVE_PRESET,
+    'gemini-optimized': GEMINI_OPTIMIZED_PRESET,
+    'gemini-rock-solid': GEMINI_ROCK_SOLID_PRESET,
   };
 
   updateConfig(presets[preset]);
@@ -477,6 +485,281 @@ export const GEMINI_OPTIMIZED_PRESET: Partial<SemanticRouterConfig> = {
   },
 };
 
+/**
+ * GEMINI ROCK-SOLID PRESET - Maximum semantic routing, minimal LLM fallback.
+ *
+ * This preset aggressively routes tool calls through the semantic router,
+ * minimizing opportunities for Gemini to "chat about" calling tools instead
+ * of actually calling them.
+ *
+ * Use this when Gemini reliability is critical and you have good tool coverage.
+ */
+export const GEMINI_ROCK_SOLID_PRESET: Partial<SemanticRouterConfig> = {
+  flags: {
+    ...DEFAULT_FLAGS,
+    autoExecuteEnabled: true,
+    hintsEnabled: true, // Still hint to LLM for edge cases
+    learningEnabled: true, // Learn from corrections
+    personalizationEnabled: true, // Per-user optimization
+    chainPredictionEnabled: true, // Predict tool chains
+    metricsEnabled: true, // Track for optimization
+    debugEnabled: false,
+  },
+  thresholds: {
+    autoExecute: 0.72, // Aggressive: execute at 72% confidence
+    confirm: 0.60, // Confirm with user at 60%
+    hint: 0.40, // Hint to LLM at 40%
+    minimum: 0.25, // Consider matches at 25%
+    maxLatencyMs: 100,
+    maxEmbeddings: 25, // More embeddings = better matching
+  },
+};
+
+// ============================================================================
+// GEMINI PROBLEM PHRASE DETECTION
+// ============================================================================
+
+/**
+ * Phrases that Gemini consistently fails on - these should force semantic routing
+ * even at lower confidence levels.
+ *
+ * These patterns are polite requests, hedged requests, or conversational phrasings
+ * that make Gemini "chat" instead of calling tools.
+ */
+export const GEMINI_PROBLEM_PATTERNS: RegExp[] = [
+  // Polite requests - Gemini often responds with "Sure, I'd be happy to..."
+  /^can you (play|get|check|find|show|tell|search|look)/i,
+  /^could you (play|get|check|find|show|tell|search|look)/i,
+  /^would you (play|get|check|find|show|tell|search|look)/i,
+  /^will you (play|get|check|find|show|tell|search|look)/i,
+
+  // Hedged/tentative requests - Gemini asks clarifying questions
+  /^(maybe|perhaps) (play|get|check|find)/i,
+  /^(i think|i guess) i('d| would) like/i,
+  /^if you (could|can|don't mind)/i,
+
+  // Conversational phrasings - Gemini chats instead of acting
+  /^i('d| would) (like|love) (to hear|some|to listen)/i,
+  /^i('d| would) (like|love) you to/i,
+  /^i (want|need) (to hear|some|you to)/i,
+  /^how about (some|playing|we)/i,
+  /^let's (hear|listen to|play|check)/i,
+
+  // Question form - Gemini answers instead of acting
+  /^(what|what's) the (weather|time|news)/i,
+  /^do you (know|have) (the time|what time)/i,
+  /^is it (going to rain|cold|hot|sunny)/i,
+
+  // Handoff confusion - Gemini explains instead of executing
+  /^(can|could) i (talk to|speak with|get)/i,
+  /^(transfer|switch) me to/i,
+  /^i('d| would) like to (talk to|speak with)/i,
+];
+
+/**
+ * Check if input matches a known Gemini problem phrase.
+ * When true, semantic routing should be more aggressive (lower threshold).
+ */
+export function isGeminiProblemPhrase(input: string): boolean {
+  const trimmed = input.trim();
+  return GEMINI_PROBLEM_PATTERNS.some((p) => p.test(trimmed));
+}
+
+/**
+ * Get confidence boost for Gemini problem phrases.
+ * Returns a multiplier to boost semantic router confidence when input
+ * matches patterns that Gemini historically fails on.
+ */
+export function getGeminiConfidenceBoost(input: string): number {
+  if (isGeminiProblemPhrase(input)) {
+    log.debug({ input: input.slice(0, 50) }, '🎯 Gemini problem phrase detected - boosting confidence');
+    return 1.15; // 15% confidence boost
+  }
+  return 1.0;
+}
+
+// ============================================================================
+// P1 FIX: CONFIDENCE CALIBRATION LOGGING
+// ============================================================================
+
+/**
+ * Confidence calibration entry for debugging routing decisions.
+ */
+export interface ConfidenceCalibrationEntry {
+  timestamp: number;
+  input: string;
+  toolId: string;
+  rawConfidence: number;
+  geminiBoost: number;
+  performanceAdjustment: number;
+  finalConfidence: number;
+  action: 'execute' | 'confirm' | 'hint' | 'conversation';
+  thresholds: {
+    autoExecute: number;
+    confirm: number;
+    hint: number;
+  };
+}
+
+/** Rolling window of calibration entries for analysis */
+const calibrationLog: ConfidenceCalibrationEntry[] = [];
+const MAX_CALIBRATION_LOG = 200;
+
+/**
+ * Log a confidence calibration decision.
+ *
+ * This helps debug why certain inputs route to certain tools at certain
+ * confidence levels, making threshold tuning data-driven.
+ *
+ * @param entry The calibration entry to log
+ */
+export function logConfidenceCalibration(entry: ConfidenceCalibrationEntry): void {
+  calibrationLog.push(entry);
+
+  // Trim if too long
+  while (calibrationLog.length > MAX_CALIBRATION_LOG) {
+    calibrationLog.shift();
+  }
+
+  // Detailed logging for debugging
+  const adjustmentDesc: string[] = [];
+  if (entry.geminiBoost !== 1.0) {
+    adjustmentDesc.push(`Gemini boost: ${((entry.geminiBoost - 1) * 100).toFixed(0)}%`);
+  }
+  if (entry.performanceAdjustment !== 1.0) {
+    adjustmentDesc.push(
+      `Performance: ${entry.performanceAdjustment > 1 ? '+' : ''}${((entry.performanceAdjustment - 1) * 100).toFixed(0)}%`
+    );
+  }
+
+  // Log at different levels based on how close to threshold
+  const marginToExecute = entry.thresholds.autoExecute - entry.finalConfidence;
+  const marginToConfirm = entry.thresholds.confirm - entry.finalConfidence;
+
+  if (entry.action === 'execute') {
+    log.info(
+      {
+        toolId: entry.toolId,
+        input: entry.input.slice(0, 40),
+        rawConfidence: entry.rawConfidence.toFixed(3),
+        finalConfidence: entry.finalConfidence.toFixed(3),
+        adjustments: adjustmentDesc.length > 0 ? adjustmentDesc.join(', ') : 'none',
+        margin: `+${(-marginToExecute * 100).toFixed(1)}%`,
+      },
+      '🚀 CALIBRATION: Auto-execute (above threshold)'
+    );
+  } else if (marginToExecute < 0.1 && marginToExecute > 0) {
+    // Close to auto-execute threshold - important for tuning
+    log.info(
+      {
+        toolId: entry.toolId,
+        input: entry.input.slice(0, 40),
+        rawConfidence: entry.rawConfidence.toFixed(3),
+        finalConfidence: entry.finalConfidence.toFixed(3),
+        adjustments: adjustmentDesc.length > 0 ? adjustmentDesc.join(', ') : 'none',
+        gapToExecute: `${(marginToExecute * 100).toFixed(1)}%`,
+      },
+      '⚠️ CALIBRATION: Near-miss for auto-execute (consider threshold adjustment)'
+    );
+  } else if (entry.action === 'confirm') {
+    log.debug(
+      {
+        toolId: entry.toolId,
+        finalConfidence: entry.finalConfidence.toFixed(3),
+        action: 'confirm',
+      },
+      '📋 CALIBRATION: Confirm action'
+    );
+  } else if (entry.action === 'hint') {
+    log.debug(
+      {
+        toolId: entry.toolId,
+        finalConfidence: entry.finalConfidence.toFixed(3),
+        action: 'hint',
+      },
+      '💡 CALIBRATION: Hint action'
+    );
+  }
+}
+
+/**
+ * Get calibration statistics for threshold tuning.
+ */
+export function getCalibrationStats(): {
+  totalEntries: number;
+  actionDistribution: Record<string, number>;
+  avgConfidenceByAction: Record<string, number>;
+  nearMissCount: number;
+  recentNearMisses: Array<{ input: string; gap: number; toolId: string }>;
+  suggestedThresholdAdjustments: {
+    autoExecute?: { current: number; suggested: number; reason: string };
+    confirm?: { current: number; suggested: number; reason: string };
+  };
+} {
+  const actionCounts: Record<string, number> = {};
+  const actionConfidenceSums: Record<string, number> = {};
+  const nearMisses: Array<{ input: string; gap: number; toolId: string }> = [];
+
+  const thresholds = getThresholds();
+
+  for (const entry of calibrationLog) {
+    actionCounts[entry.action] = (actionCounts[entry.action] || 0) + 1;
+    actionConfidenceSums[entry.action] =
+      (actionConfidenceSums[entry.action] || 0) + entry.finalConfidence;
+
+    // Track near-misses (within 10% of auto-execute)
+    const gap = thresholds.autoExecute - entry.finalConfidence;
+    if (gap > 0 && gap < 0.1) {
+      nearMisses.push({
+        input: entry.input.slice(0, 30),
+        gap,
+        toolId: entry.toolId,
+      });
+    }
+  }
+
+  // Calculate average confidence by action
+  const avgConfidenceByAction: Record<string, number> = {};
+  for (const action of Object.keys(actionCounts)) {
+    avgConfidenceByAction[action] = actionConfidenceSums[action] / actionCounts[action];
+  }
+
+  // Generate threshold adjustment suggestions
+  const suggestedThresholdAdjustments: {
+    autoExecute?: { current: number; suggested: number; reason: string };
+    confirm?: { current: number; suggested: number; reason: string };
+  } = {};
+
+  // If we have many near-misses with high confidence, suggest lowering threshold
+  if (nearMisses.length > calibrationLog.length * 0.15) {
+    const avgNearMissConfidence =
+      nearMisses.reduce((sum, nm) => sum + (thresholds.autoExecute - nm.gap), 0) / nearMisses.length;
+    if (avgNearMissConfidence > 0.75) {
+      suggestedThresholdAdjustments.autoExecute = {
+        current: thresholds.autoExecute,
+        suggested: Math.max(0.70, avgNearMissConfidence - 0.05),
+        reason: `${nearMisses.length} near-misses (${((nearMisses.length / calibrationLog.length) * 100).toFixed(0)}%) with avg confidence ${avgNearMissConfidence.toFixed(2)}`,
+      };
+    }
+  }
+
+  return {
+    totalEntries: calibrationLog.length,
+    actionDistribution: actionCounts,
+    avgConfidenceByAction,
+    nearMissCount: nearMisses.length,
+    recentNearMisses: nearMisses.slice(-10),
+    suggestedThresholdAdjustments,
+  };
+}
+
+/**
+ * Clear calibration log (for testing).
+ */
+export function resetCalibrationLog(): void {
+  calibrationLog.length = 0;
+}
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -484,8 +767,22 @@ export const GEMINI_OPTIMIZED_PRESET: Partial<SemanticRouterConfig> = {
 /**
  * Check if using Gemini (not OpenAI Realtime)
  */
-function isUsingGemini(): boolean {
+export function isUsingGemini(): boolean {
   return process.env.USE_OPENAI_REALTIME !== 'true';
+}
+
+/**
+ * Check if using OpenAI Realtime
+ */
+export function isUsingOpenAI(): boolean {
+  return process.env.USE_OPENAI_REALTIME === 'true';
+}
+
+/**
+ * Get the LLM provider name for logging
+ */
+export function getLLMProviderName(): 'gemini' | 'openai' {
+  return isUsingGemini() ? 'gemini' : 'openai';
 }
 
 /**
@@ -494,26 +791,62 @@ function isUsingGemini(): boolean {
 export function initializeConfig(): void {
   currentConfig = loadConfigFromEnv();
 
-  // Auto-apply environment preset
-  if (process.env.NODE_ENV === 'production') {
-    // For Gemini users, use optimized preset (aggressive auto-execute)
+  // Check for explicit preset override via env
+  const presetOverride = process.env.SEMANTIC_ROUTER_PRESET as
+    | 'gemini-rock-solid'
+    | 'gemini-optimized'
+    | 'production'
+    | 'development'
+    | undefined;
+
+  if (presetOverride) {
+    // Explicit preset requested
+    switch (presetOverride) {
+      case 'gemini-rock-solid':
+        updateConfig(GEMINI_ROCK_SOLID_PRESET);
+        log.info('🚀 Using GEMINI_ROCK_SOLID preset (maximum semantic routing)');
+        break;
+      case 'gemini-optimized':
+        updateConfig(GEMINI_OPTIMIZED_PRESET);
+        log.info('🎯 Using GEMINI_OPTIMIZED preset (aggressive semantic routing)');
+        break;
+      case 'production':
+        updateConfig(PRODUCTION_PRESET);
+        log.info('Using PRODUCTION preset');
+        break;
+      case 'development':
+        updateConfig(DEVELOPMENT_PRESET);
+        log.info('Using DEVELOPMENT preset');
+        break;
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    // Auto-select based on LLM provider
     if (isUsingGemini()) {
-      updateConfig(GEMINI_OPTIMIZED_PRESET);
-      log.info('🎯 Using GEMINI_OPTIMIZED preset (aggressive semantic routing)');
+      // Default to ROCK-SOLID for Gemini in production (maximum reliability)
+      updateConfig(GEMINI_ROCK_SOLID_PRESET);
+      log.info('🚀 Using GEMINI_ROCK_SOLID preset (Gemini detected, maximum semantic routing)');
     } else {
+      // OpenAI has native function calling - use production preset
       updateConfig(PRODUCTION_PRESET);
       log.info('Using PRODUCTION preset (OpenAI native function calling)');
     }
   } else if (process.env.NODE_ENV === 'development') {
-    updateConfig(DEVELOPMENT_PRESET);
+    // In development, still use rock-solid for Gemini to test reliability
+    if (isUsingGemini()) {
+      updateConfig(GEMINI_ROCK_SOLID_PRESET);
+      log.info('🚀 Using GEMINI_ROCK_SOLID preset (dev mode with Gemini)');
+    } else {
+      updateConfig(DEVELOPMENT_PRESET);
+      log.info('Using DEVELOPMENT preset');
+    }
   }
 
   log.info(
     {
-      flags: currentConfig.flags,
-      thresholds: currentConfig.thresholds,
-      embeddingModel: currentConfig.embeddingModel,
-      usingGemini: isUsingGemini(),
+      llmProvider: getLLMProviderName(),
+      autoExecuteThreshold: currentConfig.thresholds.autoExecute,
+      confirmThreshold: currentConfig.thresholds.confirm,
+      presetOverride: presetOverride || 'auto',
     },
     'Semantic router configuration initialized'
   );

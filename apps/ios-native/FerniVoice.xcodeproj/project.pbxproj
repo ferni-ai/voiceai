@@ -7,20 +7,28 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3A5FB98442E72F8D2295C6AB /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 3B631CB053C6EB9371773D9B /* FerniShared */; };
+		07A0DCA13A93E6271232535C /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */; };
+		35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76626BFFF99251B574EA46E0 /* HealthKitService.swift */; };
+		38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7222CEC31033F22CD392C9 /* SplashView.swift */; };
+		3A5FB98442E72F8D2295C6AB /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7F58E1F2D8611AEA3CBDE1CF /* LiveKit */; };
+		4F06D21EDF5371215633C7EE /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A8DFE9A0454A9EE06FF5E8AE /* FirebaseCore */; };
 		505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */; };
+		57DE7CF2E6546CEE347C0A4D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 96C325A386230CA06BECAE25 /* FirebaseAuth */; };
 		6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */; };
-		6D5395233E5005AE6DB2C840 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7F58E1F2D8611AEA3CBDE1CF /* LiveKit */; };
+		6D5395233E5005AE6DB2C840 /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 3B631CB053C6EB9371773D9B /* FerniShared */; };
 		81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */; };
 		933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */; };
 		A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */; };
+		A41ACBCEB7816D5E8CBE7053 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF709012D71F089D59346C57 /* AuthService.swift */; };
 		B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7209647670485E81A61C468 /* PersonaPickerSheet.swift */; };
-		C0NNECT1NGV1EW1NBUILD0001 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */; };
+		B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
+		DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCC596556B7D8A8EC66681E8 /* Typography.swift */; };
+		DCFABF9EE4A54F5003FD8FEF /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5A14EDF0CFC3A724B79B9969 /* GoogleService-Info.plist */; };
+		DD5957C8DA4311524E6511B8 /* AmbientModeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D686533AA45C1925F88A5B /* AmbientModeService.swift */; };
 		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
-		TYP0GRAPHY1NBUILD00000001 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = TYP0GRAPHYREF000000000001 /* Typography.swift */; };
-		SPLASHV1EW1NBUILD00000001 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPLASHV1EWREF0000000000001 /* SplashView.swift */; };
 		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
+		ED8512C6774680019D03F987 /* AccountSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */; };
 		F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03DE09C41C69126019ADA01 /* SettingsView.swift */; };
 		FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */; };
 /* End PBXBuildFile section */
@@ -39,22 +47,44 @@
 		057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceiOSTests.swift; sourceTree = "<group>"; };
 		102C31505053144B48576C2E /* FerniVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniVoice.entitlements; sourceTree = "<group>"; };
 		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
+		1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
-		TYP0GRAPHYREF000000000001 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectingView.swift; sourceTree = "<group>"; };
 		32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		34902D96383D6F73CADDE82E /* shared */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shared; path = ../shared; sourceTree = SOURCE_ROOT; };
 		34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectingView.swift; sourceTree = "<group>"; };
 		48F30B3032FFDDD816F08C2F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		52D686533AA45C1925F88A5B /* AmbientModeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbientModeService.swift; sourceTree = "<group>"; };
+		5A14EDF0CFC3A724B79B9969 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		5F50555303ADF2940EFA244D /* FerniVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FerniVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		76626BFFF99251B574EA46E0 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		8D7222CEC31033F22CD392C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		9DE0DC542CA35F9D7A6EB679 /* client-sdk-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "client-sdk-swift"; path = "../../vendor/client-sdk-swift"; sourceTree = SOURCE_ROOT; };
 		A7209647670485E81A61C468 /* PersonaPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaPickerSheet.swift; sourceTree = "<group>"; };
 		A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniVoiceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCC596556B7D8A8EC66681E8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
+		DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSection.swift; sourceTree = "<group>"; };
 		E03DE09C41C69126019ADA01 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSLiveKitSession.swift; sourceTree = "<group>"; };
-		SPLASHV1EWREF0000000000001 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		FF709012D71F089D59346C57 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DAF91C6A1AB64AE1FA932C13 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A5FB98442E72F8D2295C6AB /* LiveKit in Frameworks */,
+				6D5395233E5005AE6DB2C840 /* FerniShared in Frameworks */,
+				57DE7CF2E6546CEE347C0A4D /* FirebaseAuth in Frameworks */,
+				4F06D21EDF5371215633C7EE /* FirebaseCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0345ED12B44D3F986EBEDFF6 /* FerniVoice */ = {
@@ -62,6 +92,7 @@
 			children = (
 				32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */,
 				102C31505053144B48576C2E /* FerniVoice.entitlements */,
+				5A14EDF0CFC3A724B79B9969 /* GoogleService-Info.plist */,
 				73427B6F3CBC0A271A7D438C /* Info.plist */,
 				34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */,
 				7EF3D26D13B368B036DE0B6B /* Preview Content */,
@@ -80,11 +111,12 @@
 		12BF02DB87713224F5C8F13A /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				C0NNECT1NGV1EWREF0000001 /* ConnectingView.swift */,
+				DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */,
+				3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */,
 				2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */,
 				A7209647670485E81A61C468 /* PersonaPickerSheet.swift */,
 				E03DE09C41C69126019ADA01 /* SettingsView.swift */,
-				SPLASHV1EWREF0000000000001 /* SplashView.swift */,
+				8D7222CEC31033F22CD392C9 /* SplashView.swift */,
 				1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */,
 				C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */,
 			);
@@ -100,10 +132,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		25A7B5C3E64DE76E84F2F428 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				9DE0DC542CA35F9D7A6EB679 /* client-sdk-swift */,
+				34902D96383D6F73CADDE82E /* shared */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
 		7BF7A55AF4BC8A78A83193E9 = {
 			isa = PBXGroup;
 			children = (
 				0345ED12B44D3F986EBEDFF6 /* FerniVoice */,
+				25A7B5C3E64DE76E84F2F428 /* Packages */,
 				E400D3ECA6052491E4A5A7FD /* Sources */,
 				0E16B889D66C34F6ABCDED75 /* Tests */,
 				14EF427128B5FF708EA0BF6D /* Products */,
@@ -122,7 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */,
-				TYP0GRAPHYREF000000000001 /* Typography.swift */,
+				BCC596556B7D8A8EC66681E8 /* Typography.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -138,7 +180,11 @@
 		E2073A04B2D5B2F9A8E60367 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				52D686533AA45C1925F88A5B /* AmbientModeService.swift */,
+				FF709012D71F089D59346C57 /* AuthService.swift */,
+				76626BFFF99251B574EA46E0 /* HealthKitService.swift */,
 				FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */,
+				1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -170,8 +216,10 @@
 			);
 			name = FerniVoice;
 			packageProductDependencies = (
-				3B631CB053C6EB9371773D9B /* FerniShared */,
 				7F58E1F2D8611AEA3CBDE1CF /* LiveKit */,
+				3B631CB053C6EB9371773D9B /* FerniShared */,
+				96C325A386230CA06BECAE25 /* FirebaseAuth */,
+				A8DFE9A0454A9EE06FF5E8AE /* FirebaseCore */,
 			);
 			productName = FerniVoice;
 			productReference = 5F50555303ADF2940EFA244D /* FerniVoice.app */;
@@ -225,6 +273,7 @@
 			mainGroup = 7BF7A55AF4BC8A78A83193E9;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */,
 				7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */,
 			);
@@ -238,24 +287,13 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		DAF91C6A1AB64AE1FA932C13 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				3A5FB98442E72F8D2295C6AB /* FerniShared in Frameworks */,
-				6D5395233E5005AE6DB2C840 /* LiveKit in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXResourcesBuildPhase section */
 		AB77E93CE10C039A4655A879 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */,
+				DCFABF9EE4A54F5003FD8FEF /* GoogleService-Info.plist in Resources */,
 				6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */,
 				933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */,
 			);
@@ -276,15 +314,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C0NNECT1NGV1EW1NBUILD0001 /* ConnectingView.swift in Sources */,
+				ED8512C6774680019D03F987 /* AccountSection.swift in Sources */,
+				DD5957C8DA4311524E6511B8 /* AmbientModeService.swift in Sources */,
+				A41ACBCEB7816D5E8CBE7053 /* AuthService.swift in Sources */,
+				B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */,
 				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
+				35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */,
 				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
+				07A0DCA13A93E6271232535C /* KeychainManager.swift in Sources */,
 				A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */,
 				B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */,
 				F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */,
-				SPLASHV1EW1NBUILD00000001 /* SplashView.swift in Sources */,
+				38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */,
 				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
-				TYP0GRAPHY1NBUILD00000001 /* Typography.swift in Sources */,
+				DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */,
 				FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -309,7 +352,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FerniVoice.app/FerniVoice";
@@ -452,7 +495,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FerniVoice.app/FerniVoice";
@@ -473,7 +516,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -494,7 +537,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ferni.voice.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -544,16 +587,35 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		3B631CB053C6EB9371773D9B /* FerniShared */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */;
 			productName = FerniShared;
 		};
 		7F58E1F2D8611AEA3CBDE1CF /* LiveKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */;
 			productName = LiveKit;
+		};
+		96C325A386230CA06BECAE25 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		A8DFE9A0454A9EE06FF5E8AE /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

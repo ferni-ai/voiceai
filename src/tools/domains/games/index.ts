@@ -54,11 +54,15 @@ Available games:
 - "desert-island-discs" - User picks 5 songs they'd bring to a desert island
 - "this-or-that" - Play two songs, user picks their favorite
 - "mood-dj-challenge" - User describes a mood, you pick the perfect song
+- "finish-the-lyric" - Complete famous song lyrics, test music knowledge
+- "decade-challenge" - Guess the decade from the sound (60s, 70s, 80s, 90s, 2000s)
 
 Use when user says things like:
 - "Let's play a game"
 - "Play name that tune"
 - "Let's do desert island discs"
+- "Finish the lyric"
+- "Guess the decade"
 - "Can we play a music game?"`,
       domain: 'games',
       tags: ['games', 'music', 'interactive', 'fun'],
@@ -73,6 +77,8 @@ Use when user says things like:
                 'desert-island-discs',
                 'this-or-that',
                 'mood-dj-challenge',
+                'finish-the-lyric',
+                'decade-challenge',
               ])
               .describe('Which game to play'),
             rounds: z.number().optional().describe('Number of rounds (default varies by game)'),
@@ -353,23 +359,29 @@ Use proactively during lulls or when user seems like they want to do something f
     {
       id: 'startTextGame',
       name: 'Start Text Game',
-      description: `Start a text-based game like tic-tac-toe with the user!
+      description: `Start a text-based game with the user!
 
 Available text games:
 - "tic-tac-toe" - Classic 3x3 grid game. User says positions like "center", "top left", or numbers 1-9.
+- "20-questions" - User thinks of something, you have 20 yes/no questions to guess it.
+- "word-association" - Quick word chains, say the first word that comes to mind.
+- "would-you-rather" - Fun dilemmas, pick between two hypothetical scenarios.
+- "story-builder" - Create a story together, one sentence at a time.
 
 Use when user says things like:
 - "Let's play tic tac toe"
-- "Play tic-tac-toe with me"
-- "Can we play a game?" (then offer tic-tac-toe as an option)
+- "Play 20 questions with me"
+- "Word association game"
+- "Would you rather"
+- "Let's build a story together"
 - "I want to play something"`,
       domain: 'games',
-      tags: ['games', 'text-games', 'tic-tac-toe', 'interactive', 'fun'],
+      tags: ['games', 'text-games', 'tic-tac-toe', '20-questions', 'word-association', 'would-you-rather', 'story-builder', 'interactive', 'fun'],
       create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('startTextGame'),
           parameters: z.object({
-            gameType: z.enum(['tic-tac-toe']).describe('Which text game to play'),
+            gameType: z.enum(['tic-tac-toe', '20-questions', 'word-association', 'would-you-rather', 'story-builder']).describe('Which text game to play'),
             userGoesFirst: z
               .boolean()
               .optional()

@@ -20,6 +20,7 @@ import { sanitizePlainText, parseAmount, isValidAmount } from '../../validation.
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncMilestoneToCalendar } from '../../../services/calendar/calendar-bridge.js';
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
@@ -665,7 +666,23 @@ export async function createMilestone(
     getLogger().warn({ error, milestoneId: id }, 'Failed to persist milestone to store');
   }
 
-  getLogger().info({ milestoneId: id, category, name }, '🎯 Life milestone created');
+  // Sync to calendar if target date is set
+  if (targetDate) {
+    try {
+      await syncMilestoneToCalendar(userId, id, sanitizedName, targetDate, {
+        description: template.description,
+        category,
+        culturalType,
+      });
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: calendarError, milestoneId: id },
+        'Failed to sync milestone to calendar'
+      );
+    }
+  }
+
+  getLogger().info({ milestoneId: id, category, name }, 'Life milestone created');
 
   return milestone;
 }

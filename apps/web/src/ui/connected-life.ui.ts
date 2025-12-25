@@ -10,6 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('ConnectedLife');
 
@@ -69,11 +70,32 @@ const ICONS = {
 // CONNECTED LIFE UI CLASS
 // ============================================================================
 
+interface IntegrationStatuses {
+  appleHealth: ConnectionStatus;
+  oura: ConnectionStatus;
+  eightSleep: ConnectionStatus;
+  wearables: ConnectionStatus;
+  googleCalendar: ConnectionStatus;
+  linkedin: ConnectionStatus;
+  spotify: ConnectionStatus;
+  ecobee: ConnectionStatus;
+}
+
 class ConnectedLifeUI {
   private container: HTMLElement | null = null;
   private callbacks: ConnectedLifeCallbacks = {};
   private activeCategory: IntegrationCategory = 'health';
   private isVisible = false;
+  private integrationStatuses: IntegrationStatuses = {
+    appleHealth: 'disconnected',
+    oura: 'disconnected',
+    eightSleep: 'disconnected',
+    wearables: 'disconnected',
+    googleCalendar: 'disconnected',
+    linkedin: 'disconnected',
+    spotify: 'disconnected',
+    ecobee: 'disconnected',
+  };
 
   constructor() {
     this.cleanupOrphanedElements();
@@ -83,11 +105,15 @@ class ConnectedLifeUI {
   // PUBLIC API
   // ==========================================================================
 
-  show(callbacks?: ConnectedLifeCallbacks): void {
+  async show(callbacks?: ConnectedLifeCallbacks): Promise<void> {
     if (this.isVisible) return;
     
     this.callbacks = callbacks || {};
     this.cleanupOrphanedElements();
+    
+    // Fetch current integration statuses before showing
+    await this.fetchIntegrationStatuses();
+    
     this.createModal();
     this.isVisible = true;
     
@@ -111,6 +137,75 @@ class ConnectedLifeUI {
   // ==========================================================================
   // PRIVATE METHODS
   // ==========================================================================
+
+  private async fetchIntegrationStatuses(): Promise<void> {
+    try {
+      // Fetch integration statuses from API
+      const response = await apiGet<{
+        integrations?: {
+          biometrics?: { connected: boolean; platform?: string };
+          calendar?: { connected: boolean };
+          linkedin?: { connected: boolean };
+          spotify?: { connected: boolean };
+        };
+      }>('/api/v1/integrations/status');
+
+      if (response.ok && response.data?.integrations) {
+        const { integrations } = response.data;
+        
+        // Map API response to our statuses
+        if (integrations.biometrics?.connected) {
+          // Determine which biometric platform is connected
+          const platform = integrations.biometrics.platform?.toLowerCase() || '';
+          if (platform.includes('apple')) {
+            this.integrationStatuses.appleHealth = 'connected';
+          } else if (platform.includes('oura')) {
+            this.integrationStatuses.oura = 'connected';
+          } else if (platform.includes('eight') || platform.includes('sleep')) {
+            this.integrationStatuses.eightSleep = 'connected';
+          } else {
+            this.integrationStatuses.wearables = 'connected';
+          }
+        }
+        
+        if (integrations.calendar?.connected) {
+          this.integrationStatuses.googleCalendar = 'connected';
+        }
+        
+        if (integrations.linkedin?.connected) {
+          this.integrationStatuses.linkedin = 'connected';
+        }
+        
+        if (integrations.spotify?.connected) {
+          this.integrationStatuses.spotify = 'connected';
+        }
+      }
+      
+      // Also check Spotify status separately (it has its own endpoint)
+      try {
+        const spotifyResponse = await apiGet<{ linked: boolean }>('/spotify/status');
+        if (spotifyResponse.ok && spotifyResponse.data?.linked) {
+          this.integrationStatuses.spotify = 'connected';
+        }
+      } catch {
+        // Spotify status check is optional
+      }
+      
+      // Check calendar status separately
+      try {
+        const calendarResponse = await apiGet<{ providers?: Array<{ connected: boolean }> }>('/api/calendar/providers');
+        if (calendarResponse.ok && calendarResponse.data?.providers?.some(p => p.connected)) {
+          this.integrationStatuses.googleCalendar = 'connected';
+        }
+      } catch {
+        // Calendar status check is optional
+      }
+      
+    } catch (error) {
+      log.debug('Failed to fetch integration statuses, using defaults', error);
+      // Keep default disconnected statuses
+    }
+  }
 
   private createModal(): void {
     const modal = document.createElement('div');
@@ -180,28 +275,28 @@ class ConnectedLifeUI {
           id: 'apple-health',
           name: t('menu.items.appleHealth'),
           icon: ICONS.appleHealth,
-          status: 'disconnected',
+          status: this.integrationStatuses.appleHealth,
           description: 'Sleep, activity, and heart rate data',
         },
         {
           id: 'oura',
           name: t('menu.items.oura'),
           icon: ICONS.oura,
-          status: 'disconnected',
+          status: this.integrationStatuses.oura,
           description: 'Sleep quality and readiness scores',
         },
         {
           id: 'eight-sleep',
           name: t('menu.items.eightSleep'),
           icon: ICONS.eightSleep,
-          status: 'disconnected',
+          status: this.integrationStatuses.eightSleep,
           description: 'Sleep tracking and temperature',
         },
         {
           id: 'wearables',
           name: t('menu.items.wearables'),
           icon: ICONS.watch,
-          status: 'disconnected',
+          status: this.integrationStatuses.wearables,
           description: 'Fitbit, Garmin, Whoop, and more',
         },
       ],
@@ -210,14 +305,14 @@ class ConnectedLifeUI {
           id: 'google-calendar',
           name: t('menu.items.calendar'),
           icon: ICONS.google,
-          status: 'disconnected',
+          status: this.integrationStatuses.googleCalendar,
           description: 'Events, meetings, and availability',
         },
         {
           id: 'linkedin',
           name: t('menu.items.linkedin'),
           icon: ICONS.linkedin,
-          status: 'disconnected',
+          status: this.integrationStatuses.linkedin,
           description: 'Professional context and network',
         },
       ],
@@ -226,14 +321,14 @@ class ConnectedLifeUI {
           id: 'spotify',
           name: 'Spotify',
           icon: ICONS.spotify,
-          status: 'disconnected',
+          status: this.integrationStatuses.spotify,
           description: 'Music, mood playlists, listening history',
         },
         {
           id: 'ecobee',
           name: t('menu.items.thermostat'),
           icon: ICONS.ecobee,
-          status: 'disconnected',
+          status: this.integrationStatuses.ecobee,
           description: 'Home temperature and comfort',
         },
         {
@@ -666,8 +761,8 @@ if (typeof document !== 'undefined') {
 
 const connectedLifeUI = new ConnectedLifeUI();
 
-export function showConnectedLife(callbacks?: ConnectedLifeCallbacks): void {
-  connectedLifeUI.show(callbacks);
+export async function showConnectedLife(callbacks?: ConnectedLifeCallbacks): Promise<void> {
+  await connectedLifeUI.show(callbacks);
 }
 
 export function hideConnectedLife(): void {

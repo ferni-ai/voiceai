@@ -23,39 +23,43 @@ const log = createLogger({ module: 'AdaptiveTiming' });
 /**
  * Target latencies for "Better than Human" performance
  * Research shows human turn-taking gaps are 200-500ms
+ *
+ * UPDATED Dec 2024: Lowered thresholds for more conversational feel
  */
 export const LATENCY_TARGETS = {
   /** Ideal response time - feels instant */
-  INSTANT: 500,
+  INSTANT: 400, // Was 500 - aim higher
 
   /** Good response time - feels natural */
-  NATURAL: 1000,
+  NATURAL: 800, // Was 1000 - tighter target
 
   /** Acceptable response time - user notices but tolerates */
-  ACCEPTABLE: 2000,
+  ACCEPTABLE: 1500, // Was 2000 - lower tolerance
 
   /** Slow response time - needs filler */
-  NEEDS_FILLER: 2500,
+  NEEDS_FILLER: 1800, // Was 2500 - inject filler earlier
 
   /** Hard limit before giving up on rich context */
-  HARD_LIMIT: 8000,
+  HARD_LIMIT: 6000, // Was 8000 - fail faster
 } as const;
 
 /**
  * Filler injection strategy
+ *
+ * UPDATED Dec 2024: More aggressive filler for conversational feel
  */
 export const FILLER_STRATEGY = {
   /** Never inject filler below this latency */
-  MIN_LATENCY_FOR_FILLER: 1500,
+  MIN_LATENCY_FOR_FILLER: 1000, // Was 1500 - consider filler earlier
 
   /** Always inject filler above this latency */
-  GUARANTEED_FILLER_LATENCY: 3000,
+  GUARANTEED_FILLER_LATENCY: 2000, // Was 3000 - always filler if this slow
 
   /** Buffer time to add to average latency for filler timing */
-  FILLER_BUFFER_MS: 500,
+  FILLER_BUFFER_MS: 400, // Was 500 - tighter buffer
 
   /** Minimum time between fillers */
-  FILLER_COOLDOWN_MS: 10000,
+  FILLER_COOLDOWN_MS: 8000, // Was 10000 - allow slightly more frequent
 } as const;
 
 // ============================================================================

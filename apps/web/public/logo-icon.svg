@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Ferni Three Stones Logo - 64x64 (circular) -->
+  <!-- Ferni Three Stones Logo - 64x64 -->
   <defs>
     <radialGradient id="stoneGrad64" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
@@ -17,7 +17,7 @@
   </defs>
 
   <!-- Background -->
-  <circle cx="32" cy="32" r="32" fill="#F5F1E8"/>
+  <rect width="64" height="64" rx="12" fill="#F5F1E8"/>
   
   <circle cx="32" cy="32" r="24.147200000000005" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.25"/>
   <!-- Outer Stone: Body -->
@@ -27,10 +27,10 @@
   <circle cx="32" cy="32" r="9.00032" fill="white"/>
 
   <!-- Iris -->
-  <circle cx="32" cy="32" r="5.839232000000001" fill="#5a8060"/>
+  <circle cx="32" cy="32" r="5.992896000000001" fill="#5a8060"/>
 
   <!-- Inner Stone: Pupil -->
-  <circle cx="32" cy="32" r="2.9196160000000004" fill="#2c2520"/>
+  <circle cx="32" cy="32" r="2.9854720000000006" fill="#2c2520"/>
 
   <!-- Catchlight (life spark) -->
   <circle cx="28.48768" cy="28.48768" r="1.2073600000000002" fill="url(#catchlightGrad64)"/>

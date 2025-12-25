@@ -752,6 +752,38 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
         return;
       }
 
+      // Gemini health check - Monitor LLM reliability and leakage rates
+      // Use this to monitor Gemini function calling health and decide if
+      // you need to switch to OpenAI Realtime
+      if (url === '/health/gemini') {
+        try {
+          const { getGeminiHealthMetrics } = await import('./function-call-telemetry.js');
+          const metrics = getGeminiHealthMetrics();
+
+          // Return 200 for healthy/degraded, 503 for unhealthy
+          const statusCode = metrics.status === 'unhealthy' ? 503 : 200;
+
+          res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              ...metrics,
+              service: serviceName,
+              endpoint: '/health/gemini',
+              timestamp: new Date().toISOString(),
+            })
+          );
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              error: 'Could not get Gemini health metrics',
+              message: String(err),
+            })
+          );
+        }
+        return;
+      }
+
       // Cognitive API endpoints
       if (url.startsWith('/api/cognitive')) {
         await handleCognitiveAPI(url, res);

@@ -219,8 +219,75 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedBatch(texts: string[]): Promise<EmbeddingVector[]> {
-    // Google doesn't have native batch - parallelize individual calls
-    const results = await Promise.all(texts.map((text) => this.embed(text)));
+    // Check cache for all
+    const results: EmbeddingVector[] = new Array(texts.length);
+    const uncachedIndices: number[] = [];
+    const uncachedTexts: string[] = [];
+
+    if (this.useCache) {
+      for (let i = 0; i < texts.length; i++) {
+        const cached = getCachedEmbedding(texts[i], this.modelName);
+        if (cached) {
+          results[i] = cached;
+        } else {
+          uncachedIndices.push(i);
+          uncachedTexts.push(texts[i]);
+        }
+      }
+    } else {
+      for (let i = 0; i < texts.length; i++) {
+        uncachedIndices.push(i);
+        uncachedTexts.push(texts[i]);
+      }
+    }
+
+    // Fetch uncached embeddings using Google's batchEmbedContents API
+    if (uncachedTexts.length > 0) {
+      // Google batch API supports up to 100 requests per call
+      const BATCH_SIZE = 100;
+
+      for (let i = 0; i < uncachedTexts.length; i += BATCH_SIZE) {
+        const batch = uncachedTexts.slice(i, i + BATCH_SIZE);
+        const batchIndices = uncachedIndices.slice(i, i + BATCH_SIZE);
+
+        // Build batch request
+        const requests = batch.map((text) => ({
+          model: `models/${this.modelName}`,
+          content: { parts: [{ text }] },
+        }));
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:batchEmbedContents?key=${this.apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requests }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Google batch embedding failed: ${error}`);
+        }
+
+        const data = (await response.json()) as {
+          embeddings: Array<{ values: number[] }>;
+        };
+
+        // Map back to original indices
+        for (let j = 0; j < data.embeddings.length; j++) {
+          const globalIndex = batchIndices[j];
+          const embedding = data.embeddings[j].values;
+          results[globalIndex] = embedding;
+
+          // Cache
+          if (this.useCache) {
+            cacheEmbedding(texts[globalIndex], this.modelName, embedding);
+          }
+        }
+      }
+    }
+
     return results;
   }
 }

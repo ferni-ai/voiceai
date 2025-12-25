@@ -846,7 +846,7 @@ class NativeLiveKitSession: ObservableObject {
     }
 
     // MARK: - Transcription Handling
-    
+
     func handleTranscription(_ text: String, isAgent: Bool, isFinal: Bool) {
         guard isFinal && !text.isEmpty else { return }
 
@@ -865,6 +865,48 @@ class NativeLiveKitSession: ObservableObject {
         // - connect/disconnect
         // - handoffs
         // - errors
+
+        // Check for Claude Code commands (user speech only)
+        if !isAgent {
+            routeToClaudeCodeIfNeeded(text)
+        }
+    }
+
+    // MARK: - Claude Code Integration
+
+    /// Check if user speech should be routed to Claude Code
+    private func routeToClaudeCodeIfNeeded(_ text: String) {
+        let claudeIntegration = ClaudeCodeIntegration.shared
+
+        // Check if this is a Claude Code command
+        guard claudeIntegration.isClaudeCodeCommand(text) else {
+            return
+        }
+
+        sessionLog.info("Detected Claude Code command: \(text.prefix(50))...")
+
+        // Extract the actual coding request
+        let codingRequest = claudeIntegration.extractCodingRequest(text)
+
+        // Route to Terminal with Claude
+        // This opens Claude in Terminal/iTerm and sends the command
+        let terminalBridge = TerminalBridge.shared
+        let response = terminalBridge.processVoiceCommand(codingRequest)
+
+        sessionLog.info("Claude Code response: \(response)")
+
+        // Add feedback to transcriptions so user sees what happened
+        addTranscription(speaker: "System", text: response, isAgent: true)
+
+        // Post notification for UI feedback
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ClaudeCodeCommand"),
+            object: nil,
+            userInfo: [
+                "command": codingRequest,
+                "response": response
+            ]
+        )
     }
     
     private func addTranscription(speaker: String, text: String, isAgent: Bool) {

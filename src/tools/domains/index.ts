@@ -261,6 +261,16 @@ export { getToolDefinitions as getSchedulingToolDefinitions } from './scheduling
 export { getToolDefinitions as getConciergeToolDefinitions } from './concierge/index.js';
 
 // ============================================================================
+// "BETTER THAN HUMAN" CORE DOMAINS
+// ============================================================================
+
+// Visual Memory domain - photo recall, image analysis, visual context
+export { getToolDefinitions as getVisualMemoryToolDefinitions } from './visual-memory/index.js';
+
+// Ambient Mode domain - context awareness, proactive nudges, continuous presence
+export { getToolDefinitions as getAmbientModeToolDefinitions } from './ambient-mode/index.js';
+
+// ============================================================================
 // PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS
 // ============================================================================
 
@@ -432,6 +442,9 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./scheduling/index.js').then(async (m) => m.getToolDefinitions()),
     // Concierge domain - AI-powered outreach for hotels, restaurants, appointments
     import('./concierge/index.js').then(async (m) => m.getToolDefinitions()),
+    // "Better Than Human" Core domains
+    import('./visual-memory/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -909,6 +922,19 @@ export const DOMAIN_METADATA = {
     description:
       'AI-powered outreach: hotel quotes, restaurant reservations, healthcare appointments, service provider quotes',
     icon: '🛎️',
+    status: 'active',
+  },
+  // "Better Than Human" Core Domains
+  'visual-memory': {
+    name: 'Visual Memory',
+    description: 'Photo recall, image analysis, and visual context - Ferni remembers every photo you share',
+    icon: '📸',
+    status: 'active',
+  },
+  'ambient-mode': {
+    name: 'Ambient Mode',
+    description: 'Continuous presence, location awareness, and proactive nudges - Ferni knows when to check in',
+    icon: '🌙',
     status: 'active',
   },
 } as const;

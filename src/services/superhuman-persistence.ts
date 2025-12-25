@@ -151,9 +151,10 @@ export async function loadSuperhumanData(
 
     // Load memories into proactive memory engine
     const memoryEngine = getProactiveMemoryEngine(sessionId);
-    if (data.memories.length > 0) {
+    const memories = data.memories ?? [];
+    if (memories.length > 0) {
       // Convert to engine format (they're the same structure, but engine has additional runtime fields)
-      const memoriesForEngine = data.memories.map((m) => ({
+      const memoriesForEngine = memories.map((m) => ({
         ...m,
         surfaced: false,
         surfaceCount: 0,
@@ -161,7 +162,7 @@ export async function loadSuperhumanData(
       }));
       memoryEngine.importMemories(memoriesForEngine);
       logger.info(
-        { userId, memoryCount: data.memories.length },
+        { userId, memoryCount: memories.length },
         '🧠 Loaded memories from previous sessions'
       );
     }
@@ -187,11 +188,12 @@ export async function loadSuperhumanData(
       logger.info({ userId }, '🧠 Loaded learning patterns from previous sessions');
     }
 
+    const patterns = data.patterns ?? [];
     logger.info(
       {
         userId,
-        memoriesLoaded: data.memories.length,
-        patternsLoaded: data.patterns.length,
+        memoriesLoaded: memories.length,
+        patternsLoaded: patterns.length,
         hasLearning: !!data.learning,
       },
       '✅ Superhuman data loaded successfully'

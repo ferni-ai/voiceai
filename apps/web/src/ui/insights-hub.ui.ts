@@ -5,11 +5,20 @@
  * Combines: Analytics, Predictions, Wellbeing, Team Insights, Life Context, What I've Learned
  *
  * Design: Centered floating modal with tabs
+ * 
+ * FULLY WIRED UP - Each tab loads real data from backend APIs:
+ * - Journey: /api/insights/:userId
+ * - Progress: /api/analytics/user
+ * - Predictions: /api/insights/predictions
+ * - Wellbeing: /api/wellbeing/dashboard
+ * - Team: /api/team-insights
+ * - World: /api/engagement/profile + context
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { apiGet, getUserId } from '../utils/api.js';
 
 const log = createLogger('InsightsHub');
 
@@ -21,6 +30,120 @@ type InsightTab = 'journey' | 'analytics' | 'predictions' | 'wellbeing' | 'team'
 
 interface InsightsHubCallbacks {
   onClose?: () => void;
+}
+
+// Journey API response
+interface JourneyData {
+  presence?: {
+    weather: string;
+    energy: 'high' | 'medium' | 'low';
+    note?: string;
+  };
+  noticing?: Array<{
+    type: 'pattern' | 'growth' | 'concern' | 'celebration' | 'memory';
+    insight: string;
+    evidence?: string;
+  }>;
+  chapter?: {
+    title: string;
+    type: string;
+    duration?: string;
+  };
+  holding?: {
+    commitments?: Array<{ text: string; daysAgo: number }>;
+    dreams?: Array<{ dream: string; status: string }>;
+    upcomingDates?: Array<{ name: string; daysUntil: number }>;
+  };
+  growth?: {
+    message: string;
+    details?: string;
+  };
+  relationship?: {
+    daysTogether: number;
+    conversations: number;
+    milestone?: string;
+  };
+}
+
+// Analytics API response
+interface AnalyticsData {
+  totalDays: number;
+  totalRituals: number;
+  currentLongestStreak: number;
+  averageMood: number;
+  predictionAccuracy: number | null;
+  moodTrends: Array<{ date: string; mood: string; energy: string }>;
+  bestDay: string | null;
+  mostConsistentRitual: string | null;
+  improvementAreas: string[];
+}
+
+// Predictions API response
+interface PredictionsData {
+  insights: Array<{
+    id: string;
+    type: string;
+    title: string;
+    message: string;
+    suggestion?: string;
+    priority: string;
+    confidence?: number;
+  }>;
+  count: number;
+}
+
+// Wellbeing API response
+interface WellbeingData {
+  currentState: {
+    mood: number;
+    energy: number;
+    anxiety: number;
+    connection: number;
+    purpose: number;
+    sleep: number;
+    lastUpdated: string;
+  };
+  trends: {
+    direction: 'improving' | 'stable' | 'declining';
+    changedDimensions: string[];
+  };
+  insights: Array<{
+    type: string;
+    message: string;
+    dimension?: string;
+  }>;
+  streaks: {
+    currentDays: number;
+    bestDays: number;
+  };
+}
+
+// Team Insights API response
+interface TeamInsightsData {
+  insights: Array<{
+    id: string;
+    source: string;
+    category: string;
+    summary: string;
+    content: string;
+    priority: string;
+    isNew?: boolean;
+  }>;
+  teamStatus: {
+    financialHealth?: { budgetOnTrack: boolean; savingsProgress: number };
+    habitHealth?: { activeHabits: number; totalStreakDays: number };
+    goalHealth?: { activeGoals: number; nearingCompletion: number };
+  };
+}
+
+// Tab data cache
+interface TabDataCache {
+  journey?: JourneyData;
+  analytics?: AnalyticsData;
+  predictions?: PredictionsData;
+  wellbeing?: WellbeingData;
+  team?: TeamInsightsData;
+  context?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -46,6 +169,8 @@ class InsightsHubUI {
   private callbacks: InsightsHubCallbacks = {};
   private activeTab: InsightTab = 'journey';
   private isVisible = false;
+  private dataCache: TabDataCache = {};
+  private loadingTabs: Set<InsightTab> = new Set();
 
   constructor() {
     this.cleanupOrphanedElements();
@@ -60,8 +185,12 @@ class InsightsHubUI {
     
     this.callbacks = callbacks || {};
     this.cleanupOrphanedElements();
+    this.dataCache = {}; // Clear cache on new open
     this.createModal();
     this.isVisible = true;
+    
+    // Load initial tab data
+    void this.loadTabData(this.activeTab);
     
     log.debug('Insights Hub opened');
   }
@@ -82,7 +211,7 @@ class InsightsHubUI {
 
   setTab(tab: InsightTab): void {
     this.activeTab = tab;
-    this.renderTabContent();
+    void this.loadTabData(tab);
   }
 
   // ==========================================================================
@@ -108,7 +237,7 @@ class InsightsHubUI {
         </nav>
         
         <main class="insights-hub-content" id="insights-hub-content">
-          ${this.renderTabContent()}
+          ${this.renderLoadingState(this.activeTab)}
         </main>
       </div>
     `;
@@ -152,10 +281,117 @@ class InsightsHubUI {
       .join('');
   }
 
-  private renderTabContent(): string {
-    // This returns placeholder content - in the full implementation,
-    // each tab would load its respective component
-    const contentMap: Record<InsightTab, { title: string; description: string }> = {
+  // ==========================================================================
+  // DATA LOADING
+  // ==========================================================================
+
+  private async loadTabData(tab: InsightTab): Promise<void> {
+    // Update UI to show loading
+    this.updateContent(this.renderLoadingState(tab));
+    
+    // Check cache first
+    if (this.dataCache[tab]) {
+      this.updateContent(this.renderTabData(tab));
+      return;
+    }
+
+    // Mark as loading
+    this.loadingTabs.add(tab);
+
+    try {
+      switch (tab) {
+        case 'journey':
+          await this.loadJourneyData();
+          break;
+        case 'analytics':
+          await this.loadAnalyticsData();
+          break;
+        case 'predictions':
+          await this.loadPredictionsData();
+          break;
+        case 'wellbeing':
+          await this.loadWellbeingData();
+          break;
+        case 'team':
+          await this.loadTeamData();
+          break;
+        case 'context':
+          await this.loadContextData();
+          break;
+      }
+    } catch (err) {
+      log.warn({ tab, error: err }, 'Failed to load tab data');
+    }
+
+    this.loadingTabs.delete(tab);
+    
+    // Only update if still on same tab
+    if (this.activeTab === tab) {
+      this.updateContent(this.renderTabData(tab));
+    }
+  }
+
+  private async loadJourneyData(): Promise<void> {
+    // The insights API uses userId in the path
+    const userId = getUserId();
+    if (!userId) {
+      log.debug('No user ID, skipping journey data load');
+      return;
+    }
+    const result = await apiGet<JourneyData>(`/api/insights/${encodeURIComponent(userId)}`);
+    if (result.ok && result.data) {
+      this.dataCache.journey = result.data;
+    }
+  }
+
+  private async loadAnalyticsData(): Promise<void> {
+    const result = await apiGet<AnalyticsData>('/api/analytics/user');
+    if (result.ok && result.data) {
+      this.dataCache.analytics = result.data;
+    }
+  }
+
+  private async loadPredictionsData(): Promise<void> {
+    const result = await apiGet<PredictionsData>('/api/insights/predictions');
+    if (result.ok && result.data) {
+      this.dataCache.predictions = result.data;
+    }
+  }
+
+  private async loadWellbeingData(): Promise<void> {
+    const result = await apiGet<WellbeingData>('/api/wellbeing/dashboard');
+    if (result.ok && result.data) {
+      this.dataCache.wellbeing = result.data;
+    }
+  }
+
+  private async loadTeamData(): Promise<void> {
+    const result = await apiGet<TeamInsightsData>('/api/team-insights');
+    if (result.ok && result.data) {
+      this.dataCache.team = result.data;
+    }
+  }
+
+  private async loadContextData(): Promise<void> {
+    const result = await apiGet<Record<string, unknown>>('/api/engagement/profile');
+    if (result.ok && result.data) {
+      this.dataCache.context = result.data;
+    }
+  }
+
+  // ==========================================================================
+  // CONTENT RENDERING
+  // ==========================================================================
+
+  private updateContent(html: string): void {
+    const contentEl = this.container?.querySelector('.insights-hub-content');
+    if (contentEl) {
+      contentEl.innerHTML = html;
+    }
+  }
+
+  private renderLoadingState(tab: InsightTab): string {
+    const descriptions: Record<InsightTab, { title: string; description: string }> = {
       journey: {
         title: t('menu.items.yourJourney'),
         description: 'Your growth story with Ferni. Milestones, breakthroughs, and how far you\'ve come.',
@@ -182,10 +418,9 @@ class InsightsHubUI {
       },
     };
 
-    const content = contentMap[this.activeTab];
-    
+    const content = descriptions[tab];
     return `
-      <div class="insights-hub-panel" data-panel="${this.activeTab}">
+      <div class="insights-hub-panel" data-panel="${tab}">
         <div class="insights-hub-panel-header">
           <h3>${content.title}</h3>
           <p>${content.description}</p>
@@ -198,6 +433,527 @@ class InsightsHubUI {
         </div>
       </div>
     `;
+  }
+
+  private renderTabData(tab: InsightTab): string {
+    switch (tab) {
+      case 'journey':
+        return this.renderJourneyContent();
+      case 'analytics':
+        return this.renderAnalyticsContent();
+      case 'predictions':
+        return this.renderPredictionsContent();
+      case 'wellbeing':
+        return this.renderWellbeingContent();
+      case 'team':
+        return this.renderTeamContent();
+      case 'context':
+        return this.renderContextContent();
+      default:
+        return this.renderEmptyState('No data available');
+    }
+  }
+
+  private renderJourneyContent(): string {
+    const data = this.dataCache.journey;
+    if (!data) return this.renderEmptyState('Start a conversation to see your journey');
+
+    const sections: string[] = [];
+
+    // Relationship milestone
+    if (data.relationship) {
+      sections.push(`
+        <div class="insights-card insights-card--highlight">
+          <div class="insights-card__icon">${ICONS.journey}</div>
+          <div class="insights-card__content">
+            <span class="insights-card__label">Journey Together</span>
+            <p class="insights-card__value">${data.relationship.milestone || `${data.relationship.daysTogether} days, ${data.relationship.conversations} conversations`}</p>
+          </div>
+        </div>
+      `);
+    }
+
+    // Current presence
+    if (data.presence) {
+      const weatherEmoji = this.getWeatherIcon(data.presence.weather);
+      sections.push(`
+        <div class="insights-card">
+          <div class="insights-card__icon">${weatherEmoji}</div>
+          <div class="insights-card__content">
+            <span class="insights-card__label">How you're feeling</span>
+            <p class="insights-card__value">${this.formatWeather(data.presence.weather)} • ${data.presence.energy} energy</p>
+            ${data.presence.note ? `<p class="insights-card__note">"${this.escapeHtml(data.presence.note)}"</p>` : ''}
+          </div>
+        </div>
+      `);
+    }
+
+    // What I'm noticing
+    if (data.noticing && data.noticing.length > 0) {
+      const noticingItems = data.noticing.slice(0, 3).map(n => `
+        <div class="insights-notice insights-notice--${n.type}">
+          <span class="insights-notice__icon">${this.getNoticeIcon(n.type)}</span>
+          <div class="insights-notice__content">
+            <p>${this.escapeHtml(n.insight)}</p>
+            ${n.evidence ? `<span class="insights-notice__evidence">${this.escapeHtml(n.evidence)}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+      
+      sections.push(`
+        <div class="insights-section">
+          <h4 class="insights-section__title">What I'm Noticing</h4>
+          ${noticingItems}
+        </div>
+      `);
+    }
+
+    // Current chapter
+    if (data.chapter) {
+      sections.push(`
+        <div class="insights-card insights-card--chapter">
+          <span class="insights-card__badge">${data.chapter.type}</span>
+          <h4 class="insights-card__title">${this.escapeHtml(data.chapter.title)}</h4>
+          ${data.chapter.duration ? `<span class="insights-card__duration">${data.chapter.duration}</span>` : ''}
+        </div>
+      `);
+    }
+
+    // What I'm holding
+    if (data.holding) {
+      const holdingItems: string[] = [];
+      
+      if (data.holding.commitments?.length) {
+        data.holding.commitments.slice(0, 2).forEach(c => {
+          holdingItems.push(`<li class="insights-holding__item">${this.escapeHtml(c.text)} <span class="insights-holding__time">${this.formatDaysAgo(c.daysAgo)}</span></li>`);
+        });
+      }
+      
+      if (data.holding.dreams?.length) {
+        data.holding.dreams.slice(0, 2).forEach(d => {
+          holdingItems.push(`<li class="insights-holding__item insights-holding__item--dream">${this.escapeHtml(d.dream)}</li>`);
+        });
+      }
+      
+      if (data.holding.upcomingDates?.length) {
+        data.holding.upcomingDates.slice(0, 2).forEach(u => {
+          holdingItems.push(`<li class="insights-holding__item insights-holding__item--date">${this.escapeHtml(u.name)} <span class="insights-holding__time">${this.formatDaysUntil(u.daysUntil)}</span></li>`);
+        });
+      }
+
+      if (holdingItems.length > 0) {
+        sections.push(`
+          <div class="insights-section">
+            <h4 class="insights-section__title">What I'm Holding For You</h4>
+            <ul class="insights-holding">${holdingItems.join('')}</ul>
+          </div>
+        `);
+      }
+    }
+
+    // Growth
+    if (data.growth) {
+      sections.push(`
+        <div class="insights-card insights-card--growth">
+          <div class="insights-card__icon">${ICONS.analytics}</div>
+          <div class="insights-card__content">
+            <p class="insights-card__value">${this.escapeHtml(data.growth.message)}</p>
+            ${data.growth.details ? `<span class="insights-card__details">${this.escapeHtml(data.growth.details)}</span>` : ''}
+          </div>
+        </div>
+      `);
+    }
+
+    if (sections.length === 0) {
+      return this.renderEmptyState('Keep talking with me. I\'ll share what I notice as we get to know each other.');
+    }
+
+    return `
+      <div class="insights-hub-panel" data-panel="journey">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.yourJourney')}</h3>
+          <p>Your growth story with Ferni</p>
+        </div>
+        <div class="insights-hub-panel-body insights-hub-panel-body--journey">
+          ${sections.join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderAnalyticsContent(): string {
+    const data = this.dataCache.analytics;
+    if (!data) return this.renderEmptyState('Check in more to see your progress');
+
+    const moodScore = data.averageMood ? Math.round(data.averageMood * 20) : 0; // Convert 0-5 to percentage
+
+    return `
+      <div class="insights-hub-panel" data-panel="analytics">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.progressAnalytics')}</h3>
+          <p>Your patterns and progress over time</p>
+        </div>
+        <div class="insights-hub-panel-body">
+          <div class="insights-stats-grid">
+            <div class="insights-stat">
+              <span class="insights-stat__value">${data.totalDays}</span>
+              <span class="insights-stat__label">Days Together</span>
+            </div>
+            <div class="insights-stat">
+              <span class="insights-stat__value">${data.currentLongestStreak}</span>
+              <span class="insights-stat__label">Day Streak</span>
+            </div>
+            <div class="insights-stat">
+              <span class="insights-stat__value">${data.totalRituals}</span>
+              <span class="insights-stat__label">Rituals Complete</span>
+            </div>
+            <div class="insights-stat">
+              <span class="insights-stat__value">${moodScore}%</span>
+              <span class="insights-stat__label">Avg Mood</span>
+            </div>
+          </div>
+
+          ${data.predictionAccuracy !== null ? `
+            <div class="insights-card">
+              <div class="insights-card__content">
+                <span class="insights-card__label">Prediction Accuracy</span>
+                <p class="insights-card__value">${data.predictionAccuracy}%</p>
+                <span class="insights-card__details">How well I'm learning you</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${data.bestDay ? `
+            <div class="insights-card">
+              <div class="insights-card__content">
+                <span class="insights-card__label">Your Best Day</span>
+                <p class="insights-card__value">${data.bestDay}</p>
+                <span class="insights-card__details">Most consistent check-ins</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${data.mostConsistentRitual ? `
+            <div class="insights-card">
+              <div class="insights-card__content">
+                <span class="insights-card__label">Most Consistent</span>
+                <p class="insights-card__value">${this.escapeHtml(data.mostConsistentRitual)}</p>
+              </div>
+            </div>
+          ` : ''}
+
+          ${data.improvementAreas.length > 0 ? `
+            <div class="insights-section">
+              <h4 class="insights-section__title">Areas to Explore</h4>
+              <ul class="insights-list">
+                ${data.improvementAreas.map(area => `<li>${this.escapeHtml(area)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderPredictionsContent(): string {
+    const data = this.dataCache.predictions;
+    if (!data || !data.insights?.length) {
+      return this.renderEmptyState('As I get to know you better, I\'ll share predictions here');
+    }
+
+    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    const sortedInsights = [...data.insights].sort((a, b) => 
+      (priorityOrder[a.priority as keyof typeof priorityOrder] ?? 3) - 
+      (priorityOrder[b.priority as keyof typeof priorityOrder] ?? 3)
+    );
+
+    const insightCards = sortedInsights.slice(0, 5).map(insight => `
+      <div class="insights-prediction insights-prediction--${insight.priority}">
+        <div class="insights-prediction__header">
+          <span class="insights-prediction__type">${this.formatInsightType(insight.type)}</span>
+          ${insight.confidence ? `<span class="insights-prediction__confidence">${Math.round(insight.confidence * 100)}% confident</span>` : ''}
+        </div>
+        <h4 class="insights-prediction__title">${this.escapeHtml(insight.title)}</h4>
+        <p class="insights-prediction__message">${this.escapeHtml(insight.message)}</p>
+        ${insight.suggestion ? `<p class="insights-prediction__suggestion">${this.escapeHtml(insight.suggestion)}</p>` : ''}
+      </div>
+    `).join('');
+
+    return `
+      <div class="insights-hub-panel" data-panel="predictions">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.predictionAccuracy')}</h3>
+          <p>What I think might help you</p>
+        </div>
+        <div class="insights-hub-panel-body">
+          <div class="insights-predictions-list">
+            ${insightCards}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderWellbeingContent(): string {
+    const data = this.dataCache.wellbeing;
+    if (!data) return this.renderEmptyState('Check in to start tracking your wellbeing');
+
+    const dimensions = [
+      { key: 'mood', label: 'Mood', value: data.currentState.mood },
+      { key: 'energy', label: 'Energy', value: data.currentState.energy },
+      { key: 'connection', label: 'Connection', value: data.currentState.connection },
+      { key: 'purpose', label: 'Purpose', value: data.currentState.purpose },
+      { key: 'sleep', label: 'Sleep', value: data.currentState.sleep },
+    ];
+
+    const dimensionCards = dimensions.map(d => {
+      const percentage = Math.round(d.value * 100);
+      return `
+        <div class="insights-dimension">
+          <div class="insights-dimension__header">
+            <span class="insights-dimension__label">${d.label}</span>
+            <span class="insights-dimension__value">${percentage}%</span>
+          </div>
+          <div class="insights-dimension__bar">
+            <div class="insights-dimension__fill" style="width: ${percentage}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const trendIcon = data.trends.direction === 'improving' ? '↗' : 
+                       data.trends.direction === 'declining' ? '↘' : '→';
+    const trendClass = data.trends.direction;
+
+    return `
+      <div class="insights-hub-panel" data-panel="wellbeing">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.wellbeingDashboard')}</h3>
+          <p>How you've been feeling lately</p>
+        </div>
+        <div class="insights-hub-panel-body">
+          <div class="insights-card insights-card--trend insights-card--trend-${trendClass}">
+            <span class="insights-trend__icon">${trendIcon}</span>
+            <span class="insights-trend__label">Overall trend: ${data.trends.direction}</span>
+          </div>
+
+          <div class="insights-dimensions">
+            ${dimensionCards}
+          </div>
+
+          ${data.streaks.currentDays > 0 ? `
+            <div class="insights-card">
+              <div class="insights-card__content">
+                <span class="insights-card__label">Check-in Streak</span>
+                <p class="insights-card__value">${data.streaks.currentDays} days</p>
+                <span class="insights-card__details">Best: ${data.streaks.bestDays} days</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${data.insights.length > 0 ? `
+            <div class="insights-section">
+              <h4 class="insights-section__title">What I Notice</h4>
+              ${data.insights.slice(0, 3).map(i => `
+                <div class="insights-notice insights-notice--${i.type}">
+                  <p>${this.escapeHtml(i.message)}</p>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderTeamContent(): string {
+    const data = this.dataCache.team;
+    if (!data || !data.insights?.length) {
+      return this.renderEmptyState('The team is still getting to know you. Check back soon!');
+    }
+
+    const personaColors: Record<string, string> = {
+      peter: 'var(--persona-peter, #3a6b73)',
+      maya: 'var(--persona-maya, #a67a6a)',
+      jordan: 'var(--persona-jordan, #c4856a)',
+      nayan: 'var(--persona-nayan, #8a7a6a)',
+      alex: 'var(--persona-alex, #5a6b8a)',
+      ferni: 'var(--persona-ferni, #4a6741)',
+    };
+
+    const insightCards = data.insights.slice(0, 6).map(insight => `
+      <div class="insights-team-insight" style="--persona-color: ${personaColors[insight.source] || 'var(--color-accent)'}">
+        <div class="insights-team-insight__header">
+          <span class="insights-team-insight__source">${this.capitalizeFirst(insight.source)}</span>
+          ${insight.isNew ? '<span class="insights-team-insight__badge">New</span>' : ''}
+        </div>
+        <p class="insights-team-insight__content">${this.escapeHtml(insight.content)}</p>
+      </div>
+    `).join('');
+
+    // Team status summary
+    const statusItems: string[] = [];
+    if (data.teamStatus.habitHealth) {
+      statusItems.push(`${data.teamStatus.habitHealth.activeHabits} active habits`);
+    }
+    if (data.teamStatus.goalHealth) {
+      statusItems.push(`${data.teamStatus.goalHealth.activeGoals} goals in progress`);
+    }
+
+    return `
+      <div class="insights-hub-panel" data-panel="team">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.teamInsights')}</h3>
+          <p>What the whole team notices about you</p>
+        </div>
+        <div class="insights-hub-panel-body">
+          ${statusItems.length > 0 ? `
+            <div class="insights-team-status">
+              ${statusItems.map(s => `<span class="insights-team-status__item">${s}</span>`).join('')}
+            </div>
+          ` : ''}
+          <div class="insights-team-grid">
+            ${insightCards}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderContextContent(): string {
+    const data = this.dataCache.context;
+    if (!data) return this.renderEmptyState('Share more about your life and I\'ll build a picture here');
+
+    // Context is a general profile, render what we have
+    const sections: string[] = [];
+
+    if (typeof data === 'object') {
+      const profile = data as Record<string, unknown>;
+      
+      if (profile.totalRitualDays) {
+        sections.push(`
+          <div class="insights-card">
+            <div class="insights-card__content">
+              <span class="insights-card__label">Days of Practice</span>
+              <p class="insights-card__value">${profile.totalRitualDays}</p>
+            </div>
+          </div>
+        `);
+      }
+
+      if (profile.stats && typeof profile.stats === 'object') {
+        const stats = profile.stats as Record<string, number>;
+        if (stats.totalSkyChecks) {
+          sections.push(`
+            <div class="insights-card">
+              <div class="insights-card__content">
+                <span class="insights-card__label">Sky Checks</span>
+                <p class="insights-card__value">${stats.totalSkyChecks}</p>
+              </div>
+            </div>
+          `);
+        }
+      }
+    }
+
+    if (sections.length === 0) {
+      return this.renderEmptyState('Your world context will build as we talk more');
+    }
+
+    return `
+      <div class="insights-hub-panel" data-panel="context">
+        <div class="insights-hub-panel-header">
+          <h3>${t('menu.items.lifeContext')}</h3>
+          <p>The full picture of your life</p>
+        </div>
+        <div class="insights-hub-panel-body">
+          ${sections.join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderEmptyState(message: string): string {
+    return `
+      <div class="insights-hub-panel">
+        <div class="insights-hub-empty">
+          <div class="insights-hub-empty__icon">${ICONS.journey}</div>
+          <p class="insights-hub-empty__message">${this.escapeHtml(message)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // ==========================================================================
+  // HELPERS
+  // ==========================================================================
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  private capitalizeFirst(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  private formatDaysAgo(days: number): string {
+    if (days === 0) return 'today';
+    if (days === 1) return 'yesterday';
+    return `${days} days ago`;
+  }
+
+  private formatDaysUntil(days: number): string {
+    if (days === 0) return 'today';
+    if (days === 1) return 'tomorrow';
+    return `in ${days} days`;
+  }
+
+  private getWeatherIcon(weather: string): string {
+    const icons: Record<string, string> = {
+      sunny: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+      cloudy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>',
+      rainy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="16" y1="13" x2="16" y2="21"/><line x1="8" y1="13" x2="8" y2="21"/><line x1="12" y1="15" x2="12" y2="23"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
+      stormy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>',
+    };
+    return icons[weather] || icons.cloudy;
+  }
+
+  private formatWeather(weather: string): string {
+    const labels: Record<string, string> = {
+      sunny: 'Sunny skies',
+      'partly-cloudy': 'Partly cloudy',
+      cloudy: 'Cloudy',
+      rainy: 'Rainy',
+      stormy: 'Stormy',
+      foggy: 'Foggy',
+      rainbow: 'Rainbow',
+    };
+    return labels[weather] || weather;
+  }
+
+  private getNoticeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      pattern: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+      growth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/></svg>',
+      concern: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+      celebration: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+      memory: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+    };
+    return icons[type] || icons.pattern;
+  }
+
+  private formatInsightType(type: string): string {
+    const labels: Record<string, string> = {
+      energy_pattern: 'Energy',
+      mood_prediction: 'Mood',
+      habit_suggestion: 'Habits',
+      relationship_insight: 'Relationships',
+      goal_progress: 'Goals',
+      stress_alert: 'Stress',
+    };
+    return labels[type] || this.capitalizeFirst(type.replace(/_/g, ' '));
   }
 
   private bindEvents(): void {
@@ -241,11 +997,8 @@ class InsightsHubUI {
       el.setAttribute('aria-selected', String(isActive));
     });
 
-    // Update content
-    const contentEl = this.container?.querySelector('.insights-hub-content');
-    if (contentEl) {
-      contentEl.innerHTML = this.renderTabContent();
-    }
+    // Load data for the new tab
+    void this.loadTabData(tab);
   }
 
   private cleanupOrphanedElements(): void {
@@ -441,6 +1194,473 @@ const styles = `
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.insights-hub-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12, 48px) var(--space-6, 24px);
+  text-align: center;
+}
+
+.insights-hub-empty__icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-4, 16px);
+  color: var(--color-text-dimmed, #b5a99d);
+}
+
+.insights-hub-empty__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.insights-hub-empty__message {
+  font-size: 0.95rem;
+  color: var(--color-text-muted, #9a8f85);
+  line-height: 1.5;
+  max-width: 280px;
+  margin: 0;
+}
+
+/* Stats grid */
+.insights-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-5, 20px);
+}
+
+.insights-stat {
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  text-align: center;
+}
+
+.insights-stat__value {
+  display: block;
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2C2520);
+}
+
+.insights-stat__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9a8f85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Insight cards */
+.insights-card {
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  margin-bottom: var(--space-3, 12px);
+  display: flex;
+  gap: var(--space-3, 12px);
+}
+
+.insights-card--highlight {
+  background: linear-gradient(135deg, var(--color-accent, #3D5A45) 0%, var(--color-accent-secondary, #4a6741) 100%);
+  color: white;
+}
+
+.insights-card--highlight .insights-card__label,
+.insights-card--highlight .insights-card__value {
+  color: white;
+}
+
+.insights-card--chapter {
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.insights-card--growth {
+  background: var(--color-semantic-success-glow, rgba(74, 103, 65, 0.1));
+  border: 1px solid var(--color-semantic-success, #4a6741);
+}
+
+.insights-card--trend {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.insights-card--trend-improving {
+  background: var(--color-semantic-success-glow, rgba(74, 103, 65, 0.1));
+}
+
+.insights-card--trend-declining {
+  background: var(--color-semantic-warning-glow, rgba(180, 110, 60, 0.1));
+}
+
+.insights-trend__icon {
+  font-size: 1.5rem;
+}
+
+.insights-trend__label {
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #2C2520);
+}
+
+.insights-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-accent, #3D5A45);
+}
+
+.insights-card__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.insights-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.insights-card__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #9a8f85);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.insights-card__value {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2C2520);
+  margin: 0;
+}
+
+.insights-card__note,
+.insights-card__details {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #9a8f85);
+  margin-top: var(--space-1, 4px);
+}
+
+.insights-card__badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent, #3D5A45);
+  background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.insights-card__title {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2C2520);
+  margin: var(--space-1, 4px) 0;
+}
+
+.insights-card__duration {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #9a8f85);
+}
+
+/* Sections */
+.insights-section {
+  margin-bottom: var(--space-5, 20px);
+}
+
+.insights-section__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #9a8f85);
+  margin: 0 0 var(--space-3, 12px);
+}
+
+/* Notices */
+.insights-notice {
+  display: flex;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-2, 8px);
+  border-left: 3px solid var(--color-accent, #3D5A45);
+}
+
+.insights-notice--concern {
+  border-left-color: var(--color-semantic-warning, #b46e3c);
+}
+
+.insights-notice--celebration {
+  border-left-color: var(--color-semantic-success, #4a6741);
+  background: var(--color-semantic-success-glow, rgba(74, 103, 65, 0.08));
+}
+
+.insights-notice__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-accent, #3D5A45);
+}
+
+.insights-notice__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.insights-notice__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.insights-notice__content p {
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #2C2520);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.insights-notice__evidence {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9a8f85);
+  margin-top: var(--space-1, 4px);
+  font-style: italic;
+}
+
+/* Holding list */
+.insights-holding {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insights-holding__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-3, 12px);
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-2, 8px);
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #2C2520);
+}
+
+.insights-holding__item--dream {
+  border-left: 3px solid var(--color-semantic-warning, #b46e3c);
+}
+
+.insights-holding__item--date {
+  border-left: 3px solid var(--color-accent, #3D5A45);
+}
+
+.insights-holding__time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9a8f85);
+  flex-shrink: 0;
+  margin-left: var(--space-2, 8px);
+}
+
+/* Dimensions (wellbeing) */
+.insights-dimensions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-5, 20px);
+}
+
+.insights-dimension {
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-3, 12px);
+}
+
+.insights-dimension__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.insights-dimension__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #2C2520);
+}
+
+.insights-dimension__value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-accent, #3D5A45);
+}
+
+.insights-dimension__bar {
+  height: 6px;
+  background: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+}
+
+.insights-dimension__fill {
+  height: 100%;
+  background: var(--color-accent, #3D5A45);
+  border-radius: var(--radius-full, 9999px);
+  transition: width ${DURATION.SLOW}ms ${EASING.SPRING};
+}
+
+/* Predictions */
+.insights-predictions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.insights-prediction {
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  border-left: 4px solid var(--color-accent, #3D5A45);
+}
+
+.insights-prediction--high,
+.insights-prediction--urgent {
+  border-left-color: var(--color-semantic-warning, #b46e3c);
+  background: var(--color-semantic-warning-glow, rgba(180, 110, 60, 0.08));
+}
+
+.insights-prediction__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.insights-prediction__type {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent, #3D5A45);
+}
+
+.insights-prediction__confidence {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #9a8f85);
+}
+
+.insights-prediction__title {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2C2520);
+  margin: 0 0 var(--space-2, 8px);
+}
+
+.insights-prediction__message {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #5c544a);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.insights-prediction__suggestion {
+  font-size: 0.85rem;
+  color: var(--color-accent, #3D5A45);
+  font-style: italic;
+  margin: var(--space-2, 8px) 0 0;
+}
+
+/* Team insights */
+.insights-team-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.insights-team-status__item {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #9a8f85);
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  padding: var(--space-1, 4px) var(--space-3, 12px);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.insights-team-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.insights-team-insight {
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  border-left: 4px solid var(--persona-color, var(--color-accent));
+}
+
+.insights-team-insight__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.insights-team-insight__source {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--persona-color, var(--color-accent));
+}
+
+.insights-team-insight__badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: var(--color-accent, #3D5A45);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.insights-team-insight__content {
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #2C2520);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Generic list */
+.insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insights-list li {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-2, 8px);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #5c544a);
 }
 
 /* Mobile adjustments */

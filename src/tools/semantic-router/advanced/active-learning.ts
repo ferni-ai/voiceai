@@ -19,6 +19,8 @@ import { TrainingExample, logRoutingDecision } from './datasets.js';
 import { getCalibrator, CalibratedResult } from './uncertainty.js';
 import { getPersonalizationEngine } from './personalization.js';
 import { getLearnedRetriever } from './learned-retriever.js';
+// Online learning loop for SOTA embedding retraining
+import { getOnlineLearningEngine } from '../learning/online-learning-loop.js';
 
 const log = createLogger({ module: 'semantic-router:active-learning' });
 
@@ -141,6 +143,21 @@ export class ActiveLearningEngine {
       });
     }
 
+    // 🧠 SOTA: Feed into online learning loop for embedding retraining
+    // This is the key integration - corrections now update semantic embeddings!
+    void getOnlineLearningEngine().addCorrection({
+      query: event.query,
+      predictedToolId: event.predictedTool,
+      actualToolId: event.actualTool,
+      confidence: event.correctionSource === 'explicit' ? 0.95 : 0.75,
+      timestamp: event.timestamp.getTime(),
+      source: event.correctionSource,
+      metadata: {
+        userId: event.userId,
+        informationGain,
+      },
+    });
+
     // Log for dataset building
     logRoutingDecision({
       query: event.query,
@@ -194,6 +211,21 @@ export class ActiveLearningEngine {
       actualTool: toolId,
       rawScore: confidence,
     });
+
+    // 🧠 SOTA: Feed implicit confirmations into online learning loop
+    // Successful routings are positive examples that strengthen tool embeddings
+    if (confidence > 0.8) {
+      // Only use high-confidence successes as training signal
+      void getOnlineLearningEngine().addCorrection({
+        query,
+        predictedToolId: toolId,
+        actualToolId: toolId, // Same tool = positive confirmation
+        confidence: 0.6, // Lower weight for implicit vs explicit corrections
+        timestamp: Date.now(),
+        source: 'implicit',
+        metadata: { userId },
+      });
+    }
 
     // Track accuracy
     this.updateAccuracyWindow(true);

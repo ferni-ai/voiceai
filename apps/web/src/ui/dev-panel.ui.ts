@@ -150,6 +150,14 @@ const getEnvConfig = () => {
 
 const ENV_CONFIG = getEnvConfig();
 
+// Clean up any previously stored admin keys (security improvement)
+// Dev panel now requires URL param each time, no persistent access
+try {
+  localStorage.removeItem('ferni_admin_key');
+} catch {
+  // Ignore localStorage errors
+}
+
 const checkAdminAccess = (): boolean => {
   // Auto-enable if VITE_DEV_PANEL_AUTO=true is set in .env
   // Useful for admin/staging deployments where you always want dev tools
@@ -157,22 +165,15 @@ const checkAdminAccess = (): boolean => {
     return true;
   }
 
-  // Check URL parameter with key
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Check URL parameter with key (must be present in URL - no longer stored)
   const urlKey = urlParams.get('dev');
   if (urlKey && urlKey === ENV_CONFIG.adminKey) {
-    // Store it so they don't need to pass it every time
-    localStorage.setItem('ferni_admin_key', urlKey);
     return true;
   }
 
-  // Check stored admin key
-  const storedKey = localStorage.getItem('ferni_admin_key');
-  if (storedKey === ENV_CONFIG.adminKey) {
-    return true;
-  }
-
-  // Legacy check for simple dev mode flag (still works in dev environment)
+  // Legacy check for simple dev mode flag (only works in dev environment)
   if (isDevEnvironment()) {
     return localStorage.getItem('ferni_dev_mode') === 'true' || urlParams.has('dev');
   }

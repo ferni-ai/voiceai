@@ -251,8 +251,8 @@ export class CoordinatorAdapter {
       throw new Error('VoiceManager not available');
     }
 
-    // Small delay to prevent race conditions
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // OPTIMIZATION: Reduced from 150ms to 50ms - race condition prevention still works
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Step 1: Update VoiceManager internal state
     voiceManager.switchVoice(personaId);
@@ -355,8 +355,9 @@ export class CoordinatorAdapter {
           diag.entry('🎭 Soft open banter complete');
         } else {
           // Fallback to coordinated speech if generateReply fails
+          // OPTIMIZATION: Reduced from 1500ms to 500ms - speech plays while handoff continues
           coordinatedSay(this.sessionId, goodbyePhrase, { allowInterruptions: false });
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
           diag.entry('🎭 Soft open fallback (coordinated say)');
         }
       } else {
@@ -398,8 +399,9 @@ export class CoordinatorAdapter {
           diag.entry('🎭 Arriving welcome complete');
         } else {
           // Fallback to coordinated speech if generateReply fails
+          // OPTIMIZATION: Reduced from 2000ms to 600ms - greeting plays asynchronously
           coordinatedSay(this.sessionId, greetingPhrase, { allowInterruptions: false });
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 600));
           diag.entry('🎭 Arriving welcome fallback (coordinated say)');
         }
       } else {

@@ -88,6 +88,8 @@ export interface TurnHandlerContext {
     sharedVulnerabilities?: number;
     relationshipStage?: string;
     lastEmotionAnalysis?: { primary: string; intensity: number; distressLevel?: number };
+    /** Current emotion for cache-aware TTS lookup (set during turn processing) */
+    currentEmotion?: string;
     // macOS context from menubar app (sent via data channel)
     macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
   };
@@ -545,6 +547,10 @@ You are their lifeline right now. Be fully present.`,
           intensity: result.emotional.intensity,
           distressLevel: result.emotional.distressLevel,
         });
+
+        // Propagate emotion to userData for cache-aware TTS lookup
+        // This enables emotion-keyed TTS caching in tts-wrapper.ts
+        (userData as Record<string, unknown>).currentEmotion = result.emotional.primary;
       }
 
       if (result.analysis?.currentTopic) {

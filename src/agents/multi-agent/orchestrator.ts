@@ -195,8 +195,8 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // Small delay to ensure agent session is fully ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // OPTIMIZATION: Removed 100ms delay - session is ready by the time this is called
+      // The delay was causing noticeable lag before Ferni speaks
 
       // Import the warm greeting generator (already has per-persona, time-aware, randomized greetings)
       const { generateWarmGreeting } = await import('../shared/warm-greeting.js');

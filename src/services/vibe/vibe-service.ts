@@ -199,7 +199,8 @@ export const VIBE_PRESETS: Record<string, VibePreset> = {
     name: 'Gaming',
     description: 'Game on. Dynamic lighting, comfortable temp.',
     music: { genre: 'electronic', energy: 'medium', volume: 40 },
-    lights: { brightness: 30, colorTemp: 4500, color: '#7c3aed' },
+    // Fixed: Using brand-compliant teal (#3a6b73 - Peter's color) instead of purple (#7c3aed)
+    lights: { brightness: 30, colorTemp: 4500, color: '#3a6b73' },
     temperature: { target: 68, mode: 'home' },
   },
   dinner: {

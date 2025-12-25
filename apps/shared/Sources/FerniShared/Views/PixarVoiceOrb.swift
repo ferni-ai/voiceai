@@ -34,6 +34,15 @@ public struct PixarVoiceOrb: View {
     /// Whether to show expressive eyes
     public var showEyes: Bool = true
 
+    /// Use new Pixar Lamp style (single oval eye + initials)
+    /// When true, shows simplified lamp eye with initials below
+    /// When false, uses legacy two-eye system
+    public var useLampStyle: Bool = true
+
+    /// Current symbolic expression (heart, sparkle, etc.)
+    /// When set, replaces the eye with the symbolic icon
+    public var symbolicExpression: SymbolicExpression = .none
+
     // MARK: - Accessibility
     /// Respect user's reduce motion preference
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -77,7 +86,9 @@ public struct PixarVoiceOrb: View {
         emotionHint: EmotionHint? = nil,
         betterThanHumanState: BetterThanHumanState? = nil,
         personalityEngine: PixarPersonalityEngine? = nil,
-        showEyes: Bool = true
+        showEyes: Bool = true,
+        useLampStyle: Bool = true,
+        symbolicExpression: SymbolicExpression = .none
     ) {
         self.persona = persona
         self.isActive = isActive
@@ -86,6 +97,8 @@ public struct PixarVoiceOrb: View {
         self.betterThanHumanState = betterThanHumanState
         self.personalityEngine = personalityEngine
         self.showEyes = showEyes
+        self.useLampStyle = useLampStyle
+        self.symbolicExpression = symbolicExpression
     }
 
     public var body: some View {
@@ -112,14 +125,21 @@ public struct PixarVoiceOrb: View {
             // Layer 6: Memory spark (on top)
             memorySpark
 
-            // Layer 7: Pixar Eyes (optional)
-            if showEyes {
-                pixarEyes
-            }
-
-            // Layer 8: Persona initials (when no eyes)
-            if !showEyes {
-                personaInitials
+            // Layer 7 & 8: Eye + Initials (Pixar Lamp Style)
+            if useLampStyle {
+                // New style: Single lamp eye + initials together
+                if showEyes {
+                    lampEye
+                }
+                // Always show initials in lamp style (below the eye)
+                personaInitialsLampStyle
+            } else {
+                // Legacy style: Two expressive eyes OR initials
+                if showEyes {
+                    pixarEyes
+                } else {
+                    personaInitials
+                }
             }
         }
         .frame(width: size * 2.2, height: size * 2.2)
@@ -302,7 +322,48 @@ public struct PixarVoiceOrb: View {
             .rotationEffect(.degrees(Double(lampRotation + reactionRotation)))
     }
 
-    // MARK: - Pixar Eyes
+    // MARK: - Persona Initials (Lamp Style - with eye above)
+
+    private var personaInitialsLampStyle: some View {
+        Text(persona.initials)
+            .font(.system(size: size * 0.32, weight: .semibold, design: .rounded))
+            .foregroundColor(.white.opacity(0.9))
+            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+            // Positioned slightly lower to make room for the eye
+            .offset(y: size * 0.12)
+            // Apply Lamp transforms for that Pixar bounce!
+            .scaleEffect(x: lampScaleX * reactionScale, y: lampScaleY * reactionScale)
+            .offset(x: reactionOffset.x, y: lampOffsetY + reactionOffset.y)
+            .rotationEffect(.degrees(Double(lampRotation + reactionRotation)))
+    }
+
+    // MARK: - Lamp Eye (Pixar Lamp Style)
+
+    @ViewBuilder
+    private var lampEye: some View {
+        // Combined transforms for the eye
+        let fidgetOffset = personalityEngine?.fidgetOffset ?? .zero
+
+        // Use the new simplified Pixar Lamp-style eye with symbolic expression support
+        AnimatedLampEye(
+            orbSize: size,
+            personaColor: persona.primaryColor,
+            isExpressing: isActive || emotionHint != nil,
+            symbolicExpression: symbolicExpression
+        )
+        // Apply Lamp transforms to the eye
+        .scaleEffect(
+            x: lampScaleX * reactionScale * listeningScale,
+            y: lampScaleY * reactionScale * listeningScale
+        )
+        .offset(
+            x: reactionOffset.x + listeningOffset.x + fidgetOffset.x,
+            y: lampOffsetY + reactionOffset.y + listeningOffset.y + anticipationLean + fidgetOffset.y
+        )
+        .rotationEffect(.degrees(Double(lampRotation + reactionRotation + listeningRotation)))
+    }
+
+    // MARK: - Legacy Pixar Eyes (for backward compatibility)
 
     @ViewBuilder
     private var pixarEyes: some View {
@@ -385,7 +446,13 @@ public struct PixarVoiceOrb: View {
 
         let phase = sin(time * .pi * 2 / cycle)
 
-        let intensity = isActive ? SquashStretch.active : SquashStretch.idle
+        // Use lamp-style values for more dramatic Pixar animation
+        let intensity: SquashStretch.Values
+        if useLampStyle {
+            intensity = isActive ? SquashStretch.lampActive : SquashStretch.lampIdle
+        } else {
+            intensity = isActive ? SquashStretch.active : SquashStretch.idle
+        }
 
         // Smooth breathing updates (no withAnimation needed - continuous)
         lampScaleY = 1.0 + (intensity.scaleY - 1.0) * CGFloat(phase)
@@ -528,25 +595,36 @@ public struct PixarVoiceOrb: View {
     private func triggerBounce() {
         let duration = PixarTiming.bounceDuration
 
+        // Use more dramatic values for lamp style
+        let anticipationSquash: CGFloat = useLampStyle ? 0.85 : 0.92
+        let launchStretch: CGFloat = useLampStyle ? 1.15 : 1.08
+        let launchHeight: CGFloat = useLampStyle ? -18 : -12
+        let landingSquash: CGFloat = useLampStyle ? 0.90 : 0.96
+        let landingOffset: CGFloat = useLampStyle ? 4 : 2
+
+        // Phase 1: Anticipation (squash down before launch)
         withAnimation(.easeIn(duration: duration * 0.15)) {
-            reactionScale = 0.92
-            reactionOffset.y = 2
+            reactionScale = anticipationSquash
+            reactionOffset.y = landingOffset
         }
 
+        // Phase 2: Launch (stretch up)
         DispatchQueue.main.asyncAfter(deadline: .now() + duration * 0.15) {
             withAnimation(SpringPreset.bouncy) {
-                reactionScale = 1.08
-                reactionOffset.y = -12
+                reactionScale = launchStretch
+                reactionOffset.y = launchHeight
             }
         }
 
+        // Phase 3: Landing squash
         DispatchQueue.main.asyncAfter(deadline: .now() + duration * 0.5) {
             withAnimation(SpringPreset.snappy) {
-                reactionScale = 0.96
-                reactionOffset.y = 2
+                reactionScale = landingSquash
+                reactionOffset.y = landingOffset
             }
         }
 
+        // Phase 4: Settle back to normal
         DispatchQueue.main.asyncAfter(deadline: .now() + duration * 0.7) {
             withAnimation(SpringPreset.gentle) {
                 reactionScale = 1.0
@@ -718,19 +796,25 @@ public struct StablePixarVoiceOrb: View, Equatable {
     public let size: CGFloat
     public let emotionHint: EmotionHint?
     public var betterThanHumanState: BetterThanHumanState?
+    public var useLampStyle: Bool
+    public var symbolicExpression: SymbolicExpression
 
     public init(
         personaId: String,
         isActive: Bool,
         size: CGFloat,
         emotionHint: EmotionHint? = nil,
-        betterThanHumanState: BetterThanHumanState? = nil
+        betterThanHumanState: BetterThanHumanState? = nil,
+        useLampStyle: Bool = true,
+        symbolicExpression: SymbolicExpression = .none
     ) {
         self.personaId = personaId
         self.isActive = isActive
         self.size = size
         self.emotionHint = emotionHint
         self.betterThanHumanState = betterThanHumanState
+        self.useLampStyle = useLampStyle
+        self.symbolicExpression = symbolicExpression
     }
 
     public var body: some View {
@@ -739,7 +823,9 @@ public struct StablePixarVoiceOrb: View, Equatable {
             isActive: isActive,
             size: size,
             emotionHint: emotionHint,
-            betterThanHumanState: betterThanHumanState
+            betterThanHumanState: betterThanHumanState,
+            useLampStyle: useLampStyle,
+            symbolicExpression: symbolicExpression
         )
     }
 
@@ -747,7 +833,9 @@ public struct StablePixarVoiceOrb: View, Equatable {
         lhs.personaId == rhs.personaId &&
         lhs.isActive == rhs.isActive &&
         lhs.size == rhs.size &&
-        lhs.emotionHint == rhs.emotionHint
+        lhs.emotionHint == rhs.emotionHint &&
+        lhs.useLampStyle == rhs.useLampStyle &&
+        lhs.symbolicExpression == rhs.symbolicExpression
         // Note: BetterThanHumanState changes frequently, so we don't compare it
         // The orb handles state changes via onChange internally
     }

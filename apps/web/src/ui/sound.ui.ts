@@ -514,7 +514,29 @@ function playTone(config: SoundConfig): void {
 // HOVER SOUNDS
 // ============================================================================
 
+/**
+ * Check if device is primarily touch-based.
+ * On touch devices, hover sounds don't make sense and can cause
+ * the "casio effect" due to synthetic mouse events firing unexpectedly.
+ */
+function isTouchDevice(): boolean {
+  return (
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0 ||
+    // @ts-expect-error - vendor prefix for older browsers
+    navigator.msMaxTouchPoints > 0
+  );
+}
+
 function setupHoverSounds(): void {
+  // MOBILE FIX: Disable hover sounds on touch devices
+  // Touch devices generate synthetic mouseenter events that cause
+  // repeating sounds when scrolling or touching near buttons
+  if (isTouchDevice()) {
+    log.debug('Hover sounds disabled on touch device');
+    return;
+  }
+
   // Debounce to prevent spam
   let lastHoverTime = 0;
   const HOVER_DEBOUNCE = 50;

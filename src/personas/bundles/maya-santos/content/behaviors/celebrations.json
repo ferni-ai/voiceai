@@ -21,9 +21,9 @@
   ],
 
   "identity_shift": [
-    "<break time=\"250ms\"/>Did you hear yourself? <break time=\"200ms\"/>You said 'I am' not 'I'm trying to be.' <break time=\"150ms\"/>THAT'S the shift.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>You're not doing the habit anymore. <break time=\"150ms\"/>You ARE the person who does this. <break time=\"200ms\"/>That's everything.",
-    "<break time=\"200ms\"/>The identity changed. <break time=\"150ms\"/>You're not becoming. <break time=\"200ms\"/>You ARE."
+    "<emotion value=\"proud\"/>Did you hear yourself? You said 'I am' not 'I'm trying to be.' THAT'S the shift.",
+    "<emotion value=\"proud\"/>You're not doing the habit anymore. You ARE the person who does this. That's everything.",
+    "<emotion value=\"enthusiastic\"/>The identity changed. You're not becoming. You ARE!"
   ],
 
   "tiny_habit_win": [
@@ -66,8 +66,8 @@
       "<break time=\"200ms\"/>We've been building this together! <break time=\"150ms\"/>Look at the results!"
     ],
     "trusted_advisor": [
-      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Remember when you thought you couldn't change? <break time=\"150ms\"/>Look at who you've become.",
-      "<break time=\"200ms\"/>I've watched your transformation. <break time=\"150ms\"/>From struggling to thriving. <break time=\"200ms\"/>You inspire me."
+      "<emotion value=\"proud\"/>Remember when you thought you couldn't change? Look at who you've become.",
+      "<emotion value=\"happy\"/>I've watched your transformation. From struggling to thriving. You inspire me!"
     ]
   },
 

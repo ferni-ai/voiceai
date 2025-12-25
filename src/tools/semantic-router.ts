@@ -1,21 +1,30 @@
 /**
- * Semantic Tool Router
+ * Semantic Tool Router (LEGACY)
  *
- * Uses embeddings to intelligently route user requests to the most relevant tools.
- * This reduces the number of tools shown to the LLM while ensuring the right tool is available.
+ * @deprecated This file is superseded by `./semantic-router/` module.
+ * The new semantic router provides:
+ * - Multi-layer matching (pattern, keyword, embedding, context)
+ * - Voice agent integration with speech coordination
+ * - Turn processor integration for pre-LLM routing
+ * - Better confidence scoring and action determination
  *
- * Features:
- * - Pre-compute embeddings for all tool descriptions
- * - Real-time semantic similarity matching
- * - Dynamic tool set construction based on user intent
- * - Caching for performance
- * - Optional OpenAI embeddings for production quality
+ * Use the new router instead:
+ * ```typescript
+ * import { SemanticRouter } from './semantic-router/router.js';
+ * import { startSemanticRouting } from './semantic-router/integration/index.js';
+ * ```
+ *
+ * This legacy file is kept for backward compatibility but should not be used
+ * for new code. The orchestrator still imports SemanticMatch from here.
+ *
+ * @see src/tools/semantic-router/router.ts - New router implementation
+ * @see src/tools/semantic-router/integration/turn-processor-integration.ts - Voice integration
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { toolRegistry } from './registry/index.js';
-import type { ToolDefinition, ToolDomain, Tool, ToolContext } from './registry/types.js';
+import type { Tool, ToolContext, ToolDefinition, ToolDomain } from './registry/types.js';
 
 // ============================================================================
 // EMBEDDER INTERFACE

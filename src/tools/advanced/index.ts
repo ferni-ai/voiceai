@@ -32,13 +32,14 @@ export {
   type VariantConfig,
 } from '../ab-testing.js';
 
-// Semantic Routing
+// Semantic Routing - Use new modular router via compat layer
 export {
-  SemanticToolRouter,
   semanticRouter,
-  type RouterConfig,
   type SemanticMatch,
-} from '../semantic-router.js';
+} from '../semantic-router/compat.js';
+
+// Re-export newer router types
+export { SemanticRouter, type RouterConfig, type ToolMatch } from '../semantic-router/index.js';
 
 // Deprecation Management
 export {

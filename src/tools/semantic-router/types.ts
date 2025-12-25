@@ -313,7 +313,16 @@ export interface ToolMatch {
 
   /** Reason for match (for debugging) */
   matchReason: string;
+
+  /** Optional metadata (prosody signals, etc.) */
+  metadata?: Record<string, unknown>;
 }
+
+/**
+ * Extended tool match with semantic routing metadata.
+ * Used by prosody routing and other advanced systems.
+ */
+export type SemanticToolMatch = ToolMatch;
 
 /**
  * Matching layers used in routing
@@ -509,21 +518,24 @@ export interface SemanticRouterConfig {
  */
 export const DEFAULT_ROUTER_CONFIG: SemanticRouterConfig = {
   thresholds: {
-    autoExecute: 0.92,
-    confirm: 0.8,
-    hint: 0.6,
-    minimum: 0.4,
+    // Lowered from 0.92 to 0.80 for more aggressive auto-execution
+    // Pattern matches (1.0) and regex (0.95) now reliably auto-execute
+    autoExecute: 0.80,
+    confirm: 0.70,
+    hint: 0.55,
+    minimum: 0.35,
   },
   layerWeights: {
-    pattern: 1.0, // Exact patterns are highly trusted
-    keyword: 0.7, // Keywords are good signals
-    embedding: 0.85, // Embeddings are very reliable
-    context: 0.6, // Context is helpful but not definitive
-    history: 0.4, // History is a weak signal
+    // Boosted pattern weight so exact matches dominate scoring
+    pattern: 1.2, // Exact patterns are HIGHLY trusted - boost to ensure auto-execute
+    keyword: 0.75, // Keywords are good signals
+    embedding: 0.90, // Embeddings are very reliable
+    context: 0.5, // Context is helpful but not definitive
+    history: 0.3, // History is a weak signal
   },
   maxMatches: 5,
   enabledLayers: ['pattern', 'keyword', 'embedding', 'context'],
-  embeddingModel: 'openai',
+  embeddingModel: 'google',
   cacheEmbeddings: true,
   debug: false,
 };

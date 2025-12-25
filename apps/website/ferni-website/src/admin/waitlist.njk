@@ -1,0 +1,631 @@
+---
+layout: false
+title: Waitlist Admin
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waitlist Admin | Ferni</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/images/favicon.png" type="image/png">
+
+  <style>
+    :root {
+      --color-bg: #faf8f5;
+      --color-bg-card: #ffffff;
+      --color-text: #2c2520;
+      --color-text-secondary: #5c544a;
+      --color-text-muted: #756a5e;
+      --color-border: rgba(44, 37, 32, 0.1);
+      --color-accent: #3D5A45;
+      --color-accent-hover: #4a6b52;
+      --color-success: #3d7a52;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .admin-header h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn--primary {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .btn--primary:hover {
+      background: var(--color-accent-hover);
+    }
+
+    .btn--secondary {
+      background: white;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+
+    .btn--secondary:hover {
+      background: var(--color-bg);
+    }
+
+    .login-container {
+      max-width: 400px;
+      margin: 4rem auto;
+      padding: 2rem;
+      background: var(--color-bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .login-container h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-container p {
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .login-form input {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      font-family: inherit;
+    }
+
+    .login-form input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.1);
+    }
+
+    .login-error {
+      color: #b5453a;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .login-error.show {
+      display: block;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--color-bg-card);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .table-container {
+      background: var(--color-bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .table-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .source-filter {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: white;
+      font-family: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 0.875rem 1.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      background: var(--color-bg);
+    }
+
+    td {
+      font-size: 0.875rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--color-bg);
+    }
+
+    .email-cell {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.8125rem;
+    }
+
+    .source-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 4px;
+      background: rgba(61, 90, 69, 0.1);
+      color: var(--color-accent);
+    }
+
+    .source-badge.landing {
+      background: rgba(61, 90, 69, 0.15);
+      color: #2d4535;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .pagination-info {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .pagination-buttons button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .pagination-buttons button:hover:not(:disabled) {
+      background: var(--color-bg);
+    }
+
+    .pagination-buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--color-text-muted);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+
+    <div class="login-container" id="loginContainer">
+      <h2>Waitlist Admin</h2>
+      <p>Enter admin credentials to continue</p>
+      <form class="login-form" id="loginForm">
+        <input type="password" id="adminPassword" placeholder="Admin password" autocomplete="current-password" required>
+        <p class="login-error" id="loginError">Invalid password</p>
+        <button type="submit" class="btn btn--primary" style="width: 100%;">Sign In</button>
+      </form>
+    </div>
+
+    <div id="dashboard" hidden>
+
+      <header class="admin-header">
+        <h1>Waitlist Dashboard</h1>
+        <div class="admin-actions">
+          <button class="btn btn--secondary" id="refreshBtn">Refresh</button>
+          <button class="btn btn--primary" id="exportBtn">Export CSV</button>
+        </div>
+      </header>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalSignups">-</div>
+          <div class="stat-label">Total Signups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="last7Days">-</div>
+          <div class="stat-label">Last 7 Days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="landingSignups">-</div>
+          <div class="stat-label">From Landing</div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-header">
+          <h2>Recent Signups</h2>
+          <select class="source-filter" id="sourceFilter">
+            <option value="">All Sources</option>
+            <option value="landing">Landing Page</option>
+            <option value="marketplace">Marketplace</option>
+            <option value="developer">Developer</option>
+            <option value="feature">Feature</option>
+          </select>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Source</th>
+              <th>Signed Up</th>
+              <th>Referrer</th>
+            </tr>
+          </thead>
+          <tbody id="signupsBody">
+            <tr id="loadingRow">
+              <td colspan="4" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <span class="pagination-info" id="paginationInfo">Showing 0 of 0</span>
+          <div class="pagination-buttons">
+            <button id="prevBtn" disabled>Previous</button>
+            <button id="nextBtn">Next</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      var API_BASE = '/api/waitlist/admin';
+      var LIMIT = 50;
+      var offset = 0;
+      var currentSource = '';
+      var authToken = '';
+
+      var loginContainer = document.getElementById('loginContainer');
+      var loginForm = document.getElementById('loginForm');
+      var loginError = document.getElementById('loginError');
+      var passwordInput = document.getElementById('adminPassword');
+      var dashboard = document.getElementById('dashboard');
+      var signupsBody = document.getElementById('signupsBody');
+      var loadingRow = document.getElementById('loadingRow');
+      var paginationInfo = document.getElementById('paginationInfo');
+      var prevBtn = document.getElementById('prevBtn');
+      var nextBtn = document.getElementById('nextBtn');
+      var sourceFilter = document.getElementById('sourceFilter');
+      var refreshBtn = document.getElementById('refreshBtn');
+      var exportBtn = document.getElementById('exportBtn');
+
+      var storedAuth = sessionStorage.getItem('waitlist_admin_auth');
+      if (storedAuth) {
+        authToken = storedAuth;
+        showDashboard();
+      }
+
+      loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        loginError.classList.remove('show');
+
+        var password = passwordInput.value;
+        authToken = 'Bearer ' + btoa(password);
+
+        fetch(API_BASE + '/stats', {
+          headers: { 'Authorization': authToken }
+        })
+        .then(function(res) {
+          if (res.ok) {
+            sessionStorage.setItem('waitlist_admin_auth', authToken);
+            showDashboard();
+          } else {
+            loginError.classList.add('show');
+            passwordInput.focus();
+          }
+        })
+        .catch(function() {
+          loginError.textContent = 'Connection error';
+          loginError.classList.add('show');
+        });
+      });
+
+      function showDashboard() {
+        loginContainer.hidden = true;
+        dashboard.hidden = false;
+        fetchStats();
+        fetchSignups();
+      }
+
+      function fetchStats() {
+        fetch(API_BASE + '/stats', {
+          headers: { 'Authorization': authToken }
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed');
+          return res.json();
+        })
+        .then(function(data) {
+          document.getElementById('totalSignups').textContent = data.total.toLocaleString();
+          document.getElementById('last7Days').textContent = data.last7Days.toLocaleString();
+          var landingCount = (data.bySource && data.bySource.landing) || 0;
+          document.getElementById('landingSignups').textContent = landingCount.toLocaleString();
+        })
+        .catch(function(err) {
+          console.error('Stats error:', err);
+        });
+      }
+
+      function clearTable() {
+        while (signupsBody.firstChild) {
+          signupsBody.removeChild(signupsBody.firstChild);
+        }
+      }
+
+      function showLoading() {
+        clearTable();
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.setAttribute('colspan', '4');
+        td.className = 'loading';
+        td.textContent = 'Loading...';
+        tr.appendChild(td);
+        signupsBody.appendChild(tr);
+      }
+
+      function showEmpty(message) {
+        clearTable();
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.setAttribute('colspan', '4');
+        td.className = 'loading';
+        td.textContent = message || 'No signups found';
+        tr.appendChild(td);
+        signupsBody.appendChild(tr);
+      }
+
+      function createRow(entry) {
+        var tr = document.createElement('tr');
+
+        var tdEmail = document.createElement('td');
+        tdEmail.className = 'email-cell';
+        tdEmail.textContent = entry.email;
+        tr.appendChild(tdEmail);
+
+        var tdSource = document.createElement('td');
+        var badge = document.createElement('span');
+        badge.className = 'source-badge ' + (entry.source || '');
+        badge.textContent = entry.source || 'unknown';
+        tdSource.appendChild(badge);
+        tr.appendChild(tdSource);
+
+        var tdDate = document.createElement('td');
+        tdDate.textContent = formatDate(entry.timestamp);
+        tr.appendChild(tdDate);
+
+        var tdReferrer = document.createElement('td');
+        tdReferrer.textContent = entry.referrer ? shortenUrl(entry.referrer) : '-';
+        tr.appendChild(tdReferrer);
+
+        return tr;
+      }
+
+      function fetchSignups() {
+        showLoading();
+
+        var url = API_BASE + '?limit=' + LIMIT + '&offset=' + offset;
+        if (currentSource) url += '&source=' + currentSource;
+
+        fetch(url, {
+          headers: { 'Authorization': authToken }
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed');
+          return res.json();
+        })
+        .then(function(data) {
+          clearTable();
+
+          if (data.entries.length === 0) {
+            showEmpty('No signups found');
+          } else {
+            data.entries.forEach(function(entry) {
+              signupsBody.appendChild(createRow(entry));
+            });
+          }
+
+          var start = offset + 1;
+          var end = Math.min(offset + data.entries.length, data.total);
+          paginationInfo.textContent = 'Showing ' + start + '-' + end + ' of ' + data.total;
+
+          prevBtn.disabled = offset === 0;
+          nextBtn.disabled = !data.hasMore;
+        })
+        .catch(function(err) {
+          console.error('Fetch error:', err);
+          showEmpty('Error loading data');
+        });
+      }
+
+      prevBtn.addEventListener('click', function() {
+        offset = Math.max(0, offset - LIMIT);
+        fetchSignups();
+      });
+
+      nextBtn.addEventListener('click', function() {
+        offset += LIMIT;
+        fetchSignups();
+      });
+
+      sourceFilter.addEventListener('change', function() {
+        currentSource = sourceFilter.value;
+        offset = 0;
+        fetchSignups();
+      });
+
+      refreshBtn.addEventListener('click', function() {
+        fetchStats();
+        fetchSignups();
+      });
+
+      exportBtn.addEventListener('click', function() {
+        fetch(API_BASE + '/export', {
+          headers: { 'Authorization': authToken }
+        })
+        .then(function(res) { return res.blob(); })
+        .then(function(blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'waitlist-' + new Date().toISOString().split('T')[0] + '.csv';
+          a.click();
+          URL.revokeObjectURL(url);
+        })
+        .catch(function(err) {
+          console.error('Export error:', err);
+          alert('Failed to export');
+        });
+      });
+
+      function formatDate(isoString) {
+        if (!isoString) return '-';
+        var date = new Date(isoString);
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+
+      function shortenUrl(url) {
+        try {
+          var u = new URL(url);
+          return u.hostname + (u.pathname !== '/' ? u.pathname.slice(0, 30) : '');
+        } catch (e) {
+          return url.slice(0, 40);
+        }
+      }
+
+    })();
+  </script>
+</body>
+</html>

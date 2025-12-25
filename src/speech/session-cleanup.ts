@@ -29,6 +29,7 @@
  * - Realtime preemptive processor
  * - Cartesia context
  * - Session voice manager
+ * - Environment tracker (ambient reactivity)
  * - Conversation momentum tracker
  * - Mid-response tangent state
  * - Self-awareness feedback loop
@@ -111,6 +112,9 @@ import { resetSuperhmanVoiceSession } from './adaptive-ssml/superhuman-voice.js'
 // Active presence (quality over quantity presence markers)
 import { resetActivePresenceSession } from './adaptive-ssml/active-presence.js';
 
+// Stress auto-adaptation (gradual stress-based voice modulation)
+import { resetStressAdaptationEngine } from './adaptive-ssml/stress-adaptation.js';
+
 // Speech orchestrator (unified coordination layer)
 import { resetOrchestrator } from './orchestrator/index.js';
 
@@ -122,6 +126,9 @@ import { resetInterruptState } from './graceful-interrupt/index.js';
 
 // TTS Bulkhead (session isolation for voice synthesis)
 import { cleanupTTSSession } from './tts-bulkhead.js';
+
+// Ambient reactivity (environment event tracking)
+import { resetEnvironmentTracker } from './ambient-reactivity/index.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -247,6 +254,7 @@ export function cleanupSpeechSession(
 
   safeCleanup('ambientAwareness', () => resetAmbientAwareness(sessionId));
   safeCleanup('realtimePreemptive', () => resetRealtimePreemptiveProcessor(sessionId));
+  safeCleanup('environmentTracker', () => resetEnvironmentTracker(sessionId));
 
   // ============================================================================
   // VOICE MANAGER (Session-Scoped)
@@ -293,6 +301,12 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('activePresence', () => resetActivePresenceSession(sessionId));
+
+  // ============================================================================
+  // STRESS AUTO-ADAPTATION (Gradual stress-based voice modulation)
+  // ============================================================================
+
+  safeCleanup('stressAdaptation', () => resetStressAdaptationEngine(sessionId));
 
   // ============================================================================
   // SPEECH ORCHESTRATOR (Unified coordination layer)

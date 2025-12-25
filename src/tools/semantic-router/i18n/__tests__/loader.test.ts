@@ -117,6 +117,13 @@ describe('detectLanguage', () => {
     it('should handle numbers and punctuation only', () => {
       expect(detectLanguage('123!@#')).toBe('en');
     });
+
+    it('should not detect German from "ist" inside "Christmas"', () => {
+      // Regression test: "ist" is German for "is", but shouldn't match inside "Christmas"
+      expect(detectLanguage('play Christmas music')).toBe('en');
+      expect(detectLanguage('Hey, could you play some Christmas music?')).toBe('en');
+      expect(detectLanguage('Christmas is my favorite holiday')).toBe('en');
+    });
   });
 });
 

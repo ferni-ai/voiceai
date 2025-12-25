@@ -766,6 +766,270 @@ export function getJournalStyles(): string {
     }
     
     /* ========================================================================
+       ENTRY DELETE BUTTON
+       ======================================================================== */
+    
+    .entry-header {
+      position: relative;
+    }
+    
+    .entry-delete {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: var(--space-xs, 4px);
+      border-radius: var(--radius-sm, 4px);
+      opacity: 0;
+      transition: all ${DURATION.FAST}ms;
+    }
+    
+    .journal-entry:hover .entry-delete,
+    .journal-entry:focus-within .entry-delete {
+      opacity: 1;
+    }
+    
+    .entry-delete:hover,
+    .entry-delete:focus-visible {
+      background: var(--color-semantic-error-subtle, rgba(220, 38, 38, 0.1));
+      color: var(--color-semantic-error, #dc2626);
+    }
+    
+    /* ========================================================================
+       CALENDAR FILTER
+       ======================================================================== */
+    
+    .calendar-day--has-entry {
+      cursor: pointer;
+    }
+    
+    .calendar-day--has-entry:hover,
+    .calendar-day--has-entry:focus-visible {
+      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.3));
+      transform: scale(1.1);
+    }
+    
+    .calendar-day--selected {
+      background: var(--color-accent, #4a6741) !important;
+      color: white !important;
+    }
+    
+    .calendar-day--selected .calendar-dot {
+      background: white;
+    }
+    
+    .calendar-filter-active {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm, 8px);
+      margin-top: var(--space-sm, 8px);
+      padding: var(--space-sm, 8px) var(--space-md, 12px);
+      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
+      border-radius: var(--radius-md, 8px);
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .calendar-clear-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2xs, 4px);
+      background: none;
+      border: none;
+      color: var(--color-accent, #4a6741);
+      cursor: pointer;
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: var(--space-xs, 4px) var(--space-sm, 8px);
+      border-radius: var(--radius-sm, 4px);
+      transition: background ${DURATION.FAST}ms;
+    }
+    
+    .calendar-clear-filter:hover,
+    .calendar-clear-filter:focus-visible {
+      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.2));
+    }
+    
+    .entries-clear-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm, 8px);
+      padding: var(--space-sm, 10px) var(--space-md, 16px);
+      background: var(--color-accent, #4a6741);
+      border: none;
+      border-radius: var(--radius-full, 999px);
+      color: white;
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: var(--space-md, 16px);
+      transition: filter ${DURATION.FAST}ms;
+    }
+    
+    .entries-clear-filter:hover,
+    .entries-clear-filter:focus-visible {
+      filter: brightness(1.1);
+    }
+    
+    /* ========================================================================
+       SEARCH BOX
+       ======================================================================== */
+    
+    .journal-search {
+      position: relative;
+      margin-bottom: var(--space-md, 16px);
+    }
+    
+    .journal-search-input {
+      width: 100%;
+      padding: var(--space-sm, 10px) var(--space-md, 16px);
+      padding-left: var(--space-2xl, 40px);
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-full, 999px);
+      color: var(--color-text-primary);
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: 0.9rem;
+      transition: border-color ${DURATION.FAST}ms;
+    }
+    
+    .journal-search-input:focus {
+      outline: none;
+      border-color: var(--color-accent, #4a6741);
+    }
+    
+    .journal-search-input::placeholder {
+      color: var(--color-text-muted);
+    }
+    
+    .journal-search-icon {
+      position: absolute;
+      left: var(--space-md, 14px);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      pointer-events: none;
+    }
+    
+    /* ========================================================================
+       SEARCH HIGHLIGHTS & FILTER INDICATORS
+       ======================================================================== */
+    
+    .search-highlight {
+      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.3));
+      color: var(--color-text-primary);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+    
+    .entries-filter-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-sm, 8px) var(--space-md, 12px);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md, 8px);
+      margin-bottom: var(--space-md, 16px);
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .entries-filter-clear-btn {
+      background: none;
+      border: none;
+      color: var(--color-accent, #4a6741);
+      cursor: pointer;
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: var(--space-xs, 4px) var(--space-sm, 8px);
+      border-radius: var(--radius-sm, 4px);
+      transition: background ${DURATION.FAST}ms;
+    }
+    
+    .entries-filter-clear-btn:hover,
+    .entries-filter-clear-btn:focus-visible {
+      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
+    }
+    
+    /* ========================================================================
+       MOOD ANALYTICS CHART
+       ======================================================================== */
+    
+    .mood-analytics {
+      margin-top: var(--space-lg, 24px);
+      padding: var(--space-md, 16px);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg, 12px);
+    }
+    
+    .mood-analytics-title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 var(--space-md, 16px);
+    }
+    
+    .mood-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 100px;
+      padding-top: var(--space-sm, 8px);
+    }
+    
+    .mood-bar {
+      flex: 1;
+      min-width: 24px;
+      background: var(--color-accent, #4a6741);
+      border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+      position: relative;
+      transition: height ${DURATION.NORMAL}ms ${EASING.STANDARD};
+    }
+    
+    .mood-bar::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    
+    .mood-legend {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-md, 16px);
+      margin-top: var(--space-lg, 28px);
+      flex-wrap: wrap;
+    }
+    
+    .mood-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 4px);
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .mood-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    /* ========================================================================
        RESPONSIVE
        ======================================================================== */
     

@@ -314,6 +314,349 @@ public struct SimpleAnimatedEyes: View {
     }
 }
 
+// MARK: - Lamp Eye (Pixar Lamp Style)
+
+/// Single oval eye inspired by Pixar's Luxo Jr. lamp
+/// - More stylized and cartoony than realistic eyes
+/// - Appears/emphasizes during expressions
+/// - Works with initials showing through
+public struct LampEye: View {
+    let orbSize: CGFloat
+    let personaColor: Color
+
+    /// How visible the eye is (0 = hidden, 1 = fully visible)
+    var visibility: CGFloat = 0.8
+
+    /// Expression intensity affects opacity and size
+    var expressionIntensity: CGFloat = 0
+
+    /// Vertical squash (< 1 = squashed, > 1 = stretched)
+    var squash: CGFloat = 1.0
+
+    /// Look direction for subtle movement
+    var lookDirection: CGPoint = .zero
+
+    public init(
+        orbSize: CGFloat,
+        personaColor: Color,
+        visibility: CGFloat = 0.8,
+        expressionIntensity: CGFloat = 0,
+        squash: CGFloat = 1.0,
+        lookDirection: CGPoint = .zero
+    ) {
+        self.orbSize = orbSize
+        self.personaColor = personaColor
+        self.visibility = visibility
+        self.expressionIntensity = expressionIntensity
+        self.squash = squash
+        self.lookDirection = lookDirection
+    }
+
+    // MARK: - Computed Properties
+
+    private var eyeWidth: CGFloat {
+        orbSize * 0.35  // Wider, more prominent eye
+    }
+
+    private var eyeHeight: CGFloat {
+        orbSize * 0.22 * squash  // Responds to squash/stretch
+    }
+
+    private var pupilSize: CGFloat {
+        min(eyeWidth, eyeHeight) * 0.25
+    }
+
+    /// Opacity increases with expression intensity
+    private var effectiveOpacity: CGFloat {
+        let base = visibility * 0.6
+        let expressionBoost = expressionIntensity * 0.4
+        return min(base + expressionBoost, 1.0)
+    }
+
+    public var body: some View {
+        ZStack {
+            // Eye glow (soft halo)
+            Ellipse()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.4),
+                            Color.white.opacity(0.1),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: eyeWidth * 0.8
+                    )
+                )
+                .frame(width: eyeWidth * 1.6, height: eyeHeight * 1.6)
+                .blur(radius: 4)
+
+            // Main eye oval (opaque, stylized)
+            Ellipse()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.95),
+                            Color.white.opacity(0.85)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: eyeWidth, height: eyeHeight)
+                .shadow(color: Color.white.opacity(0.3), radius: 3, y: -1)
+
+            // Inner shadow (gives depth)
+            Ellipse()
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.15),
+                            Color.clear,
+                            Color.black.opacity(0.05)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 2
+                )
+                .frame(width: eyeWidth - 2, height: eyeHeight - 2)
+
+            // Pupil (simple dot, follows look direction)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(hex: 0x1a1a2e),
+                            Color(hex: 0x2a2a3e)
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: pupilSize
+                    )
+                )
+                .frame(width: pupilSize, height: pupilSize)
+                .offset(
+                    x: lookDirection.x * eyeWidth * 0.2,
+                    y: lookDirection.y * eyeHeight * 0.15
+                )
+
+            // Highlight (the spark of life)
+            Circle()
+                .fill(Color.white.opacity(0.95))
+                .frame(width: pupilSize * 0.35, height: pupilSize * 0.35)
+                .offset(
+                    x: -pupilSize * 0.2 + lookDirection.x * eyeWidth * 0.1,
+                    y: -pupilSize * 0.2 + lookDirection.y * eyeHeight * 0.08
+                )
+        }
+        .offset(y: -orbSize * 0.08)  // Position slightly above center
+        .opacity(effectiveOpacity)
+    }
+}
+
+// MARK: - Symbolic Expressions
+
+/// Types of symbolic expressions that can overlay the avatar
+public enum SymbolicExpression: String, CaseIterable {
+    case none
+    case heart          // ❤️ Love/warmth
+    case sparkle        // ✨ Excitement/joy
+    case thinking       // 💭 Processing
+    case listening      // 👂 Active listening
+    case happy          // 😊 Happy (curved line like smile)
+    case curious        // 🤔 Question mark
+
+    /// SF Symbol name for this expression
+    var symbolName: String? {
+        switch self {
+        case .none: return nil
+        case .heart: return "heart.fill"
+        case .sparkle: return "sparkles"
+        case .thinking: return "thought.bubble.fill"
+        case .listening: return "ear.fill"
+        case .happy: return "face.smiling"
+        case .curious: return "questionmark"
+        }
+    }
+
+    /// Color for this expression
+    var color: Color {
+        switch self {
+        case .none: return .clear
+        case .heart: return Color(red: 1.0, green: 0.4, blue: 0.5)  // Warm pink
+        case .sparkle: return Color(red: 1.0, green: 0.85, blue: 0.3)  // Gold
+        case .thinking: return .white.opacity(0.8)
+        case .listening: return .white.opacity(0.8)
+        case .happy: return Color(red: 1.0, green: 0.85, blue: 0.3)  // Warm gold
+        case .curious: return .white.opacity(0.9)
+        }
+    }
+}
+
+// MARK: - Symbolic Expression View
+
+/// Renders a symbolic expression with animation
+public struct SymbolicExpressionView: View {
+    let expression: SymbolicExpression
+    let size: CGFloat
+    let isVisible: Bool
+
+    @State private var scale: CGFloat = 0.5
+    @State private var opacity: CGFloat = 0
+    @State private var rotation: Double = -10
+
+    public init(expression: SymbolicExpression, size: CGFloat, isVisible: Bool) {
+        self.expression = expression
+        self.size = size
+        self.isVisible = isVisible
+    }
+
+    public var body: some View {
+        Group {
+            if let symbolName = expression.symbolName {
+                Image(systemName: symbolName)
+                    .font(.system(size: size * 0.35, weight: .medium))
+                    .foregroundColor(expression.color)
+                    .shadow(color: expression.color.opacity(0.5), radius: 4)
+            }
+        }
+        .scaleEffect(scale)
+        .opacity(opacity)
+        .rotationEffect(.degrees(rotation))
+        .onChange(of: isVisible) { visible in
+            if visible {
+                // Animate in with bounce
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                    scale = 1.0
+                    opacity = 1.0
+                    rotation = 0
+                }
+            } else {
+                // Animate out
+                withAnimation(.easeOut(duration: 0.2)) {
+                    scale = 0.5
+                    opacity = 0
+                    rotation = 10
+                }
+            }
+        }
+        .onAppear {
+            if isVisible {
+                scale = 1.0
+                opacity = 1.0
+                rotation = 0
+            }
+        }
+    }
+}
+
+// MARK: - Animated Lamp Eye
+
+/// Self-animating version of LampEye with natural movements
+public struct AnimatedLampEye: View {
+    let orbSize: CGFloat
+    let personaColor: Color
+    let isExpressing: Bool
+
+    /// Optional symbolic expression to show instead of the eye
+    var symbolicExpression: SymbolicExpression = .none
+
+    @State private var lookDirection: CGPoint = .zero
+    @State private var squash: CGFloat = 1.0
+    @State private var expressionIntensity: CGFloat = 0
+
+    public init(
+        orbSize: CGFloat,
+        personaColor: Color,
+        isExpressing: Bool = false,
+        symbolicExpression: SymbolicExpression = .none
+    ) {
+        self.orbSize = orbSize
+        self.personaColor = personaColor
+        self.isExpressing = isExpressing
+        self.symbolicExpression = symbolicExpression
+    }
+
+    public var body: some View {
+        ZStack {
+            // Show eye when no symbolic expression
+            if symbolicExpression == .none {
+                LampEye(
+                    orbSize: orbSize,
+                    personaColor: personaColor,
+                    visibility: 0.85,
+                    expressionIntensity: expressionIntensity,
+                    squash: squash,
+                    lookDirection: lookDirection
+                )
+            }
+
+            // Show symbolic expression when active
+            SymbolicExpressionView(
+                expression: symbolicExpression,
+                size: orbSize,
+                isVisible: symbolicExpression != .none
+            )
+        }
+        .onAppear {
+            startIdleAnimations()
+        }
+        .onChange(of: isExpressing) { newValue in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                expressionIntensity = newValue ? 1.0 : 0.0
+            }
+        }
+    }
+
+    private func startIdleAnimations() {
+        // Subtle look around
+        scheduleLook()
+        // Occasional squash (like breathing)
+        scheduleBreath()
+    }
+
+    private func scheduleLook() {
+        let delay = Double.random(in: 2.5...5.0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
+                lookDirection = CGPoint(
+                    x: CGFloat.random(in: -0.4...0.4),
+                    y: CGFloat.random(in: -0.2...0.2)
+                )
+            }
+
+            // Return to center
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    lookDirection = .zero
+                }
+            }
+
+            scheduleLook()
+        }
+    }
+
+    private func scheduleBreath() {
+        let delay = Double.random(in: 3.0...5.0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            // Subtle squash (like a content sigh)
+            withAnimation(.easeInOut(duration: 0.3)) {
+                squash = 0.92
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                    squash = 1.0
+                }
+            }
+
+            scheduleBreath()
+        }
+    }
+}
+
 // MARK: - Preview
 
 #if DEBUG

@@ -616,7 +616,17 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
 
   scoreMap.forEach((scores, toolId) => {
     const { weightedScore, totalWeight } = calculateWeightedScore(scores, config);
-    const confidence = totalWeight > 0 ? weightedScore / totalWeight : 0;
+    let confidence = totalWeight > 0 ? weightedScore / totalWeight : 0;
+    
+    // CRITICAL: Perfect pattern match (1.0) should override combined confidence
+    // Pattern match = deterministic intent (e.g., "check the weather" → weather_current)
+    // Don't let other lower-scoring layers dilute a perfect match
+    if (scores.pattern >= 1.0) {
+      confidence = 1.0;
+    } else if (scores.pattern >= 0.95) {
+      // Regex pattern match (0.95) should also be very high confidence
+      confidence = Math.max(confidence, 0.95);
+    }
 
     if (confidence >= config.thresholds.minimum) {
       matches.push({

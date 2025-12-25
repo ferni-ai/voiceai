@@ -9,12 +9,22 @@ import type { TrustJourneyData, TrustJourneyState } from './types.js';
 
 const log = createLogger('TrustJourneyData');
 
-const CACHE_KEY = 'ferni_trust_journey_cache';
+const CACHE_KEY_PREFIX = 'ferni_trust_journey_cache';
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CachedData {
   data: TrustJourneyData;
   timestamp: number;
+}
+
+/**
+ * Get the user-scoped cache key
+ * @returns Cache key unique to the current user
+ */
+function getCacheKey(): string {
+  const userId = getUserId();
+  // Include userId in key to prevent cross-user data leakage
+  return userId ? `${CACHE_KEY_PREFIX}_${userId}` : CACHE_KEY_PREFIX;
 }
 
 /**
@@ -35,7 +45,8 @@ export function getUserId(): string | null {
  */
 export function loadFromCache(): TrustJourneyData | null {
   try {
-    const cached = localStorage.getItem(CACHE_KEY);
+    const cacheKey = getCacheKey();
+    const cached = localStorage.getItem(cacheKey);
     if (!cached) return null;
 
     const parsed: CachedData = JSON.parse(cached);
@@ -59,11 +70,12 @@ export function loadFromCache(): TrustJourneyData | null {
  */
 export function saveToCache(data: TrustJourneyData): void {
   try {
+    const cacheKey = getCacheKey();
     const cached: CachedData = {
       data,
       timestamp: Date.now(),
     };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+    localStorage.setItem(cacheKey, JSON.stringify(cached));
     log.debug('Saved to cache');
   } catch {
     log.warn('Failed to save to cache');
@@ -74,7 +86,8 @@ export function saveToCache(data: TrustJourneyData): void {
  * Clear the cache
  */
 export function clearCache(): void {
-  localStorage.removeItem(CACHE_KEY);
+  const cacheKey = getCacheKey();
+  localStorage.removeItem(cacheKey);
 }
 
 /**

@@ -135,6 +135,9 @@ COPY --from=backend-builder /app/dist ./dist/
 # Copy persona bundles
 COPY src/personas/bundles ./src/personas/bundles/
 
+# Copy marketplace agents registry (for /api/marketplace/registry endpoint)
+COPY apps/marketplace-agents/registry.json ./apps/marketplace-agents/registry.json
+
 # Create frontend directory and copy built frontend
 RUN mkdir -p apps/web/dist
 COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist/

@@ -291,3 +291,164 @@ export {
   type RoutingExplanation,
   type BetterThanHumanAnalysis,
 } from './better-than-human.js';
+
+// ============================================================================
+// INTELLIGENT ROUTING SYSTEM (State-of-the-Art)
+// ============================================================================
+
+/**
+ * Advanced intelligent routing strategies that go beyond semantic matching:
+ *
+ * 1. Intent Classifier - Fast NLU-style classification (<5ms)
+ * 2. LLM Fallback - For uncertain cases (~500ms)
+ * 3. ReAct Reasoning - Explainable decisions (~800ms)
+ * 4. Goal Planner - Multi-step execution (~1-2s)
+ * 5. Bandit Optimizer - RL-based learning
+ * 6. Orchestrator - Combines all strategies
+ *
+ * @example
+ * ```typescript
+ * import { getIntelligentOrchestrator, intelligentRoute } from './advanced';
+ *
+ * // Quick route using all strategies
+ * const decision = await intelligentRoute('play some jazz music');
+ *
+ * // Or use the orchestrator directly
+ * const orchestrator = getIntelligentOrchestrator();
+ * await orchestrator.initialize({ tools, llmProvider });
+ * const decision = await orchestrator.route(input, context);
+ * ```
+ */
+export {
+  // Intent Classifier
+  IntentClassifier,
+  getIntentClassifier,
+  initializeIntentClassifier,
+  type IntentClassifierConfig,
+  type Intent,
+  type Slot,
+  type SlotType,
+  type ClassificationResult,
+  // LLM Fallback
+  LLMFallbackRouter,
+  getLLMFallbackRouter,
+  initializeLLMFallback,
+  createGeminiProvider,
+  createOpenAIProvider,
+  type LLMFallbackConfig,
+  type LLMSelectionResult,
+  type ToolCandidate,
+  type LLMProvider,
+  // ReAct Reasoning
+  ReActReasoningEngine,
+  getReActEngine,
+  initializeReActEngine,
+  explainReasoning,
+  suggestsMultiStep,
+  type ReActConfig,
+  type ReasoningStep,
+  type ReActResult,
+  type ReActLLMProvider,
+  type ReActToolDescription,
+  // Goal Planner
+  GoalPlanner,
+  getGoalPlanner,
+  initializeGoalPlanner,
+  describePlan,
+  shouldAutoExecute,
+  type GoalPlannerConfig,
+  type PlanStep,
+  type ExecutionPlan,
+  type PlanExecutionState,
+  type GoalPlannerLLMProvider,
+  type ToolExecutor,
+  type GoalPlannerToolDefinition,
+  // Bandit Optimizer
+  BanditOptimizer,
+  getBanditOptimizer,
+  initializeBanditOptimizer,
+  calculateImplicitReward,
+  calculateExplicitReward,
+  type BanditConfig,
+  type ToolArm,
+  type BanditSelectionResult,
+  type RewardSignal,
+  type BanditRoutingContext,
+  // Intelligent Orchestrator
+  IntelligentRouterOrchestrator,
+  getIntelligentOrchestrator,
+  initializeIntelligentOrchestrator,
+  intelligentRoute,
+  type OrchestratorConfig,
+  type RoutingDecision,
+  type RoutingStrategy,
+  type OrchestratorToolDefinition,
+  type OrchestratorRoutingContext,
+} from './intelligent/index.js';
+
+// ============================================================================
+// AUDIO PROSODY EXTRACTION (SOTA: Real Audio Analysis)
+// ============================================================================
+
+/**
+ * Real audio prosody analysis for voice-aware routing.
+ * Extracts acoustic features from audio streams:
+ * - Pitch/F0 tracking
+ * - Energy/volume analysis
+ * - Speech rate detection
+ * - Jitter/shimmer (voice quality)
+ * - Harmonic-to-noise ratio
+ *
+ * @example
+ * ```typescript
+ * import { getAudioProsodyExtractor } from './advanced';
+ *
+ * const extractor = getAudioProsodyExtractor();
+ * const features = extractor.processAudioChunk(audioSamples);
+ * const signals = extractor.featuresToProsodySignals(features);
+ * ```
+ */
+export {
+  AudioProsodyExtractor,
+  getAudioProsodyExtractor,
+  type AcousticFeatures,
+  type ProsodyExtractorConfig,
+  type ProsodyWindow,
+} from './audio-prosody-extractor.js';
+
+// ============================================================================
+// PROSODY ROUTING INTEGRATION (SOTA: Voice → Routing)
+// ============================================================================
+
+/**
+ * Integrates real audio prosody analysis with semantic routing decisions.
+ * This is the bridge between raw audio and tool selection:
+ *
+ * - Real-time tool boosting based on voice signals
+ * - Crisis/distress detection for safety routing
+ * - Personalized baseline learning
+ * - Prosody-aware confidence adjustment
+ *
+ * @example
+ * ```typescript
+ * import { getProsodyRoutingEngine } from './advanced';
+ *
+ * const engine = getProsodyRoutingEngine();
+ *
+ * // Process audio and get prosody signals
+ * const signals = engine.processAudio(userId, sessionId, audioSamples);
+ *
+ * // Adjust routing based on prosody
+ * const adjusted = engine.adjustRouting(userId, sessionId, matches);
+ * // adjusted.boostedTools - tools boosted due to voice signals
+ * // adjusted.emergencyDetected - crisis detection
+ * ```
+ */
+export {
+  ProsodyRoutingEngine,
+  getProsodyRoutingEngine,
+  initializeProsodyRouting,
+  shutdownProsodyRouting,
+  type ProsodyRoutingConfig,
+  type ProsodyRoutingAdjustment,
+} from './prosody-routing-integration.js';

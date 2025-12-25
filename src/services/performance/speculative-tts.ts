@@ -203,6 +203,9 @@ class SpeculativeTTSEngine {
     speculativeHits: 0,
     avgGenerationMs: 0,
     savedLatencyMs: 0,
+    // Emotion-aware caching metrics
+    emotionCacheHits: new Map<string, number>(),
+    emotionCacheMisses: new Map<string, number>(),
   };
   private generationTimes: number[] = [];
 
@@ -263,6 +266,9 @@ class SpeculativeTTSEngine {
 
   /**
    * Start speculative generation based on context
+   *
+   * Emotion-aware speculation: Predictions now include the emotional context,
+   * ensuring pre-generated audio matches the expected tone.
    */
   async speculate(
     sessionId: string,
@@ -277,16 +283,18 @@ class SpeculativeTTSEngine {
     const candidates = this.predictCandidates(context);
     this.currentSpeculations.set(sessionId, candidates);
 
-    // Generate top candidates
+    // Generate top candidates with their emotion context
     const topCandidates = candidates
       .filter((c) => c.confidence >= this.config.minConfidence)
       .slice(0, this.config.maxSpeculative);
 
     for (const candidate of topCandidates) {
-      const key = this.getCacheKey(candidate.text, voiceId);
+      // Use candidate-specific emotion if available, else context emotion
+      const emotion = candidate.emotion || context.emotion;
+      const key = this.getCacheKey(candidate.text, voiceId, emotion);
 
       if (!this.audioCache.has(key) && !this.speculativeQueue.has(key)) {
-        const promise = this.generateAndCache(candidate.text, voiceId, 'normal');
+        const promise = this.generateAndCache(candidate.text, voiceId, 'normal', emotion);
         this.speculativeQueue.set(key, promise);
 
         // Clean up queue after completion
@@ -295,13 +303,16 @@ class SpeculativeTTSEngine {
     }
 
     log.debug(
-      { sessionId, candidates: topCandidates.length },
-      'Started speculative TTS generation'
+      { sessionId, candidates: topCandidates.length, emotion: context.emotion },
+      'Started speculative TTS generation with emotion context'
     );
   }
 
   /**
-   * Predict likely response candidates
+   * Predict likely response candidates with emotion context
+   *
+   * Each candidate now includes the appropriate emotion for TTS generation,
+   * ensuring cache keys are emotion-aware.
    */
   private predictCandidates(context: {
     emotion?: string;
@@ -311,18 +322,19 @@ class SpeculativeTTSEngine {
   }): SpeculativeCandidate[] {
     const candidates: SpeculativeCandidate[] = [];
 
-    // Add empathetic starters for elevated distress
+    // Add empathetic starters for elevated distress (use 'concerned' emotion)
     if (context.distressLevel && context.distressLevel >= 4) {
       for (const text of RESPONSE_STARTERS.empathetic) {
         candidates.push({
           text,
           confidence: 0.9,
           triggers: ['distress'],
+          emotion: 'concerned',
         });
       }
     }
 
-    // Add emotion-appropriate starters
+    // Add emotion-appropriate starters with matching emotion for TTS
     if (context.emotion) {
       const emotionLower = context.emotion.toLowerCase();
 
@@ -332,6 +344,7 @@ class SpeculativeTTSEngine {
             text,
             confidence: 0.8,
             triggers: ['emotion:' + context.emotion],
+            emotion: 'concerned', // Empathetic responses need concerned tone
           });
         }
       }
@@ -342,40 +355,54 @@ class SpeculativeTTSEngine {
             text,
             confidence: 0.8,
             triggers: ['emotion:' + context.emotion],
+            emotion: 'warm', // Celebration responses need warm tone
           });
         }
       }
     }
 
-    // Add intent-appropriate starters
+    // Add intent-appropriate starters with suitable emotion
     if (context.intent) {
       const intentStarters = INTENT_CONTINUATIONS[context.intent];
       if (intentStarters) {
+        // Map intent to appropriate emotion
+        const intentEmotionMap: Record<string, string> = {
+          seeking_advice: 'supportive',
+          venting: 'concerned',
+          celebrating: 'warm',
+          confused: 'supportive',
+          greeting: 'warm',
+        };
+        const emotion = intentEmotionMap[context.intent] || 'neutral';
+
         for (const text of intentStarters) {
           candidates.push({
             text,
             confidence: 0.75,
             triggers: ['intent:' + context.intent],
+            emotion,
           });
         }
       }
     }
 
-    // Always add some acknowledging fillers (high probability)
+    // Always add some acknowledging fillers (neutral tone, high probability)
     for (const text of RESPONSE_STARTERS.acknowledging) {
       candidates.push({
         text,
         confidence: 0.6,
         triggers: ['general'],
+        emotion: 'neutral',
       });
     }
 
-    // Deduplicate and sort by confidence
+    // Deduplicate by text+emotion combination and sort by confidence
     const seen = new Set<string>();
     return candidates
       .filter((c) => {
-        if (seen.has(c.text)) return false;
-        seen.add(c.text);
+        const key = `${c.text}:${c.emotion || 'neutral'}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       })
       .sort((a, b) => b.confidence - a.confidence);
@@ -383,18 +410,35 @@ class SpeculativeTTSEngine {
 
   /**
    * Get TTS audio, using cache/speculation if available
+   *
+   * Emotion-aware caching: Looks up audio by text + emotion combination.
+   * This ensures the returned audio matches the desired emotional tone.
    */
-  async getTTS(text: string, voiceId: string): Promise<TTSResult> {
+  async getTTS(text: string, voiceId: string, emotion?: string): Promise<TTSResult> {
     this.metrics.totalRequests++;
-    const key = this.getCacheKey(text, voiceId);
+    const emotionKey = (emotion || DEFAULT_EMOTION).toLowerCase();
+    const key = this.getCacheKey(text, voiceId, emotion);
 
-    // Check cache first
+    // Check cache first (emotion-aware lookup)
     const cached = this.audioCache.get(key);
     if (cached) {
       this.metrics.cacheHits++;
       this.metrics.savedLatencyMs += cached.generationTimeMs;
+      // Track emotion-specific cache hit
+      this.metrics.emotionCacheHits.set(
+        emotionKey,
+        (this.metrics.emotionCacheHits.get(emotionKey) || 0) + 1
+      );
       return { ...cached, cached: true, generationTimeMs: 0 };
     }
+
+    // Track emotion-specific cache miss (but only if we don't find speculative)
+    const trackMiss = () => {
+      this.metrics.emotionCacheMisses.set(
+        emotionKey,
+        (this.metrics.emotionCacheMisses.get(emotionKey) || 0) + 1
+      );
+    };
 
     // Check if speculative generation is in progress
     const speculativePromise = this.speculativeQueue.get(key);
@@ -405,66 +449,130 @@ class SpeculativeTTSEngine {
       return { ...result, cached: true, generationTimeMs: 0 };
     }
 
-    // Check for partial match in cache (prefix matching)
-    const partialMatch = this.findPartialMatch(text, voiceId);
+    // Check for partial match in cache (prefix matching, emotion-aware)
+    const partialMatch = this.findPartialMatch(text, voiceId, emotion);
     if (partialMatch) {
       // Return partial match while generating full
-      this.generateAndCache(text, voiceId, 'high').catch((err) => {
+      this.generateAndCache(text, voiceId, 'high', emotion).catch((err) => {
         log.debug(
-          { error: String(err), text: text.slice(0, 50) },
+          { error: String(err), text: text.slice(0, 50), emotion },
           'Background TTS generation failed'
         );
       });
       return partialMatch;
     }
 
-    // Generate fresh
-    return this.generateAndCache(text, voiceId, 'high');
+    // No cache or speculative hit - track as miss and generate fresh
+    trackMiss();
+    return this.generateAndCache(text, voiceId, 'high', emotion);
   }
 
   /**
    * Stream TTS generation - returns audio chunks as they're ready
+   *
+   * Emotion-aware: Maintains emotional consistency across all streamed chunks.
+   *
+   * LATENCY OPTIMIZATION: Uses aggressive first-chunk behavior to minimize
+   * time-to-first-audio. First chunk is sent after just 8-12 chars or any
+   * punctuation, while subsequent chunks use normal sentence boundaries.
    */
   async *streamTTS(
     textStream: AsyncIterable<string>,
-    voiceId: string
+    voiceId: string,
+    emotion?: string
   ): AsyncGenerator<ArrayBuffer> {
     let buffer = '';
-    const minChunkSize = 30; // Characters
+    let isFirstChunk = true;
+
+    // Aggressive first-chunk settings (minimize TTFA)
+    const FIRST_CHUNK_MIN_SIZE = 8; // "I hear you" = 10 chars - send fast!
+    const SUBSEQUENT_CHUNK_MIN_SIZE = 25; // Slightly smaller than before
+    const MAX_FIRST_CHUNK_WAIT = 40; // Don't wait more than 40 chars for first chunk
 
     for await (const chunk of textStream) {
       buffer += chunk;
 
-      // Check if we have enough for a sentence or pause
-      const sentenceEnd = buffer.match(/[.!?]\s|,\s{2,}|\.{3,}|\n/);
+      if (isFirstChunk) {
+        // AGGRESSIVE FIRST CHUNK: Send as soon as we have minimal content
+        // Check for ANY punctuation or minimum length
+        const earlyBreak = buffer.match(/[.!?,;:]\s*(.*)$/s);
 
-      if (sentenceEnd && buffer.length >= minChunkSize) {
-        const endIndex = sentenceEnd.index! + sentenceEnd[0].length;
-        const sentence = buffer.slice(0, endIndex).trim();
-        buffer = buffer.slice(endIndex);
+        if (earlyBreak && buffer.length >= FIRST_CHUNK_MIN_SIZE) {
+          // Found punctuation - send everything up to and including it
+          const breakPoint = buffer.length - (earlyBreak[1]?.length || 0);
+          const firstChunkText = buffer.slice(0, breakPoint).trim();
+          buffer = earlyBreak[1] || '';
 
-        if (sentence.length > 0) {
-          const result = await this.getTTS(sentence, voiceId);
-          yield result.audio;
+          if (firstChunkText.length > 0) {
+            const result = await this.getTTS(firstChunkText, voiceId, emotion);
+            yield result.audio;
+            isFirstChunk = false;
+            log.debug(
+              { chars: firstChunkText.length, text: firstChunkText.slice(0, 30) },
+              '🚀 First TTS chunk sent (punctuation)'
+            );
+          }
+        } else if (buffer.length >= MAX_FIRST_CHUNK_WAIT) {
+          // No punctuation but we've waited long enough - send what we have
+          // Try to break at word boundary
+          const lastSpace = buffer.lastIndexOf(' ');
+          const breakPoint = lastSpace > FIRST_CHUNK_MIN_SIZE ? lastSpace : buffer.length;
+          const firstChunkText = buffer.slice(0, breakPoint).trim();
+          buffer = buffer.slice(breakPoint).trim();
+
+          if (firstChunkText.length > 0) {
+            const result = await this.getTTS(firstChunkText, voiceId, emotion);
+            yield result.audio;
+            isFirstChunk = false;
+            log.debug(
+              { chars: firstChunkText.length, text: firstChunkText.slice(0, 30) },
+              '🚀 First TTS chunk sent (max wait)'
+            );
+          }
+        }
+        // Otherwise keep buffering for first chunk
+      } else {
+        // SUBSEQUENT CHUNKS: Use sentence/phrase boundaries for natural flow
+        const sentenceEnd = buffer.match(/[.!?]\s|,\s{2,}|\.{3,}|\n/);
+
+        if (sentenceEnd && buffer.length >= SUBSEQUENT_CHUNK_MIN_SIZE) {
+          const endIndex = sentenceEnd.index! + sentenceEnd[0].length;
+          const sentence = buffer.slice(0, endIndex).trim();
+          buffer = buffer.slice(endIndex);
+
+          if (sentence.length > 0) {
+            const result = await this.getTTS(sentence, voiceId, emotion);
+            yield result.audio;
+          }
         }
       }
     }
 
     // Flush remaining buffer
     if (buffer.trim().length > 0) {
-      const result = await this.getTTS(buffer.trim(), voiceId);
+      const result = await this.getTTS(buffer.trim(), voiceId, emotion);
       yield result.audio;
+
+      if (isFirstChunk) {
+        log.debug(
+          { chars: buffer.trim().length },
+          '🚀 First TTS chunk sent (final flush)'
+        );
+      }
     }
   }
 
   /**
    * Branch prediction - generate multiple possible continuations
+   *
+   * Emotion-aware: Each branch maintains the emotional context for consistent tone.
    */
   async branchPredict(
     sessionId: string,
     voiceId: string,
     llmPrefix: string,
-    possibleContinuations: string[]
+    possibleContinuations: string[],
+    emotion?: string
   ): Promise<void> {
     if (!this.config.enableBranching) return;
 
@@ -472,18 +580,18 @@ class SpeculativeTTSEngine {
 
     for (const continuation of branches) {
       const fullText = llmPrefix + continuation;
-      const key = this.getCacheKey(fullText, voiceId);
+      const key = this.getCacheKey(fullText, voiceId, emotion);
 
       if (!this.audioCache.has(key) && !this.speculativeQueue.has(key)) {
-        const promise = this.generateAndCache(fullText, voiceId, 'normal');
+        const promise = this.generateAndCache(fullText, voiceId, 'normal', emotion);
         this.speculativeQueue.set(key, promise);
         promise.finally(() => this.speculativeQueue.delete(key));
       }
     }
 
     log.debug(
-      { sessionId, branches: branches.length, prefix: llmPrefix.slice(0, 30) },
-      'Branch prediction started'
+      { sessionId, branches: branches.length, prefix: llmPrefix.slice(0, 30), emotion },
+      'Branch prediction started with emotion context'
     );
   }
 
@@ -595,15 +703,23 @@ class SpeculativeTTSEngine {
   }
 
   /**
-   * Find partial match in cache
+   * Find partial match in cache (emotion-aware)
+   *
+   * Only matches if both the text prefix AND emotion match,
+   * ensuring tonal consistency in partial matches.
    */
-  private findPartialMatch(text: string, voiceId: string): TTSResult | null {
-    // Check if any cached text is a prefix of the requested text
-    const prefix = text.slice(0, 50); // First 50 chars
+  private findPartialMatch(text: string, voiceId: string, emotion?: string): TTSResult | null {
+    const emotionKey = (emotion || DEFAULT_EMOTION).toLowerCase();
+    const cachePrefix = `${voiceId}:${emotionKey}:`;
 
+    // Check if any cached text is a prefix of the requested text
     for (const [key, value] of this.audioCache.entries()) {
-      if (key.startsWith(`${voiceId}:`) && text.startsWith(key.slice(voiceId.length + 1))) {
-        return value;
+      if (key.startsWith(cachePrefix)) {
+        // Extract the text portion (after voiceId:emotion:)
+        const cachedText = key.slice(cachePrefix.length);
+        if (text.toLowerCase().trim().startsWith(cachedText)) {
+          return value;
+        }
       }
     }
 
@@ -644,19 +760,55 @@ class SpeculativeTTSEngine {
   }
 
   /**
-   * Get metrics
+   * Get metrics including emotion-aware cache statistics
    */
-  getMetrics(): typeof this.metrics {
-    return { ...this.metrics };
+  getMetrics(): {
+    totalRequests: number;
+    cacheHits: number;
+    speculativeHits: number;
+    avgGenerationMs: number;
+    savedLatencyMs: number;
+    emotionCacheStats: Record<string, { hits: number; misses: number; hitRate: number }>;
+  } {
+    // Convert emotion stats to a clean object format
+    const emotionCacheStats: Record<string, { hits: number; misses: number; hitRate: number }> = {};
+
+    // Gather all emotions from both hits and misses
+    const allEmotions = new Set([
+      ...this.metrics.emotionCacheHits.keys(),
+      ...this.metrics.emotionCacheMisses.keys(),
+    ]);
+
+    for (const emotion of allEmotions) {
+      const hits = this.metrics.emotionCacheHits.get(emotion) || 0;
+      const misses = this.metrics.emotionCacheMisses.get(emotion) || 0;
+      const total = hits + misses;
+      emotionCacheStats[emotion] = {
+        hits,
+        misses,
+        hitRate: total > 0 ? hits / total : 0,
+      };
+    }
+
+    return {
+      totalRequests: this.metrics.totalRequests,
+      cacheHits: this.metrics.cacheHits,
+      speculativeHits: this.metrics.speculativeHits,
+      avgGenerationMs: this.metrics.avgGenerationMs,
+      savedLatencyMs: this.metrics.savedLatencyMs,
+      emotionCacheStats,
+    };
   }
 
   /**
-   * Clear all caches
+   * Clear all caches and reset emotion-aware statistics
    */
   clearCache(): void {
     this.audioCache.clear();
     this.speculativeQueue.clear();
     this.currentSpeculations.clear();
+    this.metrics.emotionCacheHits.clear();
+    this.metrics.emotionCacheMisses.clear();
   }
 }
 
@@ -678,10 +830,10 @@ export function getSpeculativeTTS(config?: SpeculativeTTSConfig): SpeculativeTTS
 // ============================================================================
 
 /**
- * Warm up TTS cache for a voice
+ * Warm up TTS cache for a voice with emotion variants
  */
-export async function warmupTTSVoice(voiceId: string): Promise<void> {
-  await getSpeculativeTTS().warmupVoice(voiceId);
+export async function warmupTTSVoice(voiceId: string, emotions?: string[]): Promise<void> {
+  await getSpeculativeTTS().warmupVoice(voiceId, emotions);
 }
 
 /**
@@ -701,32 +853,38 @@ export async function speculateTTS(
 }
 
 /**
- * Get TTS audio with speculation support
+ * Get TTS audio with speculation support (emotion-aware)
  */
-export async function getTTSWithSpeculation(text: string, voiceId: string): Promise<TTSResult> {
-  return getSpeculativeTTS().getTTS(text, voiceId);
+export async function getTTSWithSpeculation(
+  text: string,
+  voiceId: string,
+  emotion?: string
+): Promise<TTSResult> {
+  return getSpeculativeTTS().getTTS(text, voiceId, emotion);
 }
 
 /**
- * Stream TTS generation
+ * Stream TTS generation (emotion-aware)
  */
 export function streamTTSWithSpeculation(
   textStream: AsyncIterable<string>,
-  voiceId: string
+  voiceId: string,
+  emotion?: string
 ): AsyncGenerator<ArrayBuffer> {
-  return getSpeculativeTTS().streamTTS(textStream, voiceId);
+  return getSpeculativeTTS().streamTTS(textStream, voiceId, emotion);
 }
 
 /**
- * Branch prediction for TTS
+ * Branch prediction for TTS (emotion-aware)
  */
 export async function branchPredictTTS(
   sessionId: string,
   voiceId: string,
   prefix: string,
-  continuations: string[]
+  continuations: string[],
+  emotion?: string
 ): Promise<void> {
-  await getSpeculativeTTS().branchPredict(sessionId, voiceId, prefix, continuations);
+  await getSpeculativeTTS().branchPredict(sessionId, voiceId, prefix, continuations, emotion);
 }
 
 /**

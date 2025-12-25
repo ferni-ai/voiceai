@@ -19,6 +19,13 @@
 import { createLogger } from '../../utils/logger.js';
 import { soundUI } from '../sound.ui.js';
 import { getCustomAgent, listMemories } from '../../services/custom-agent.service.js';
+import { 
+  startJournalSync, 
+  stopJournalSync, 
+  subscribeToJournalSync,
+  type JournalSyncEvent 
+} from '../../services/journal-sync.service.js';
+import { getUserId } from '../../utils/api.js';
 import type { JournalTab } from './types.js';
 
 // State management
@@ -27,25 +34,30 @@ import {
   setModal,
   getCurrentTab,
   setCurrentTab,
+  getCurrentAgent,
   setCurrentAgent,
   setEntries,
   setCurrentPrompt,
   setCalendarMonth,
+  setSearchQuery,
   resetState,
 } from './state.js';
 
 // Sub-modules
 import { renderMoodOptions } from './mood-icons.js';
-import { fetchPrompt, renderPromptSection, shufflePrompt } from './prompts.js';
+import { fetchPrompt, renderPromptSection, shufflePrompt, prefetchPrompts } from './prompts.js';
 import { toggleRecording, stopRecording, stopVisualization } from './recording.js';
 import { renderStats } from './render-stats.js';
-import { renderCalendar, navigatePrevMonth, navigateNextMonth } from './calendar.js';
-import { renderEntries } from './entries.js';
+import { renderCalendar, navigatePrevMonth, navigateNextMonth, filterEntriesByDate } from './calendar.js';
+import { renderEntries, deleteEntry } from './entries.js';
 import { renderInsights } from './insights.js';
 import { exportJournal, shareJournal } from './export.js';
 import { getJournalStyles } from './styles.js';
 
 const log = createLogger('VoiceJournalUI');
+
+// Real-time sync unsubscribe function
+let syncUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
 // MODAL INITIALIZATION
@@ -160,6 +172,19 @@ function ensureModalExists(): HTMLElement {
 
         <!-- History Tab -->
         <section class="journal-tab-content" data-content="history">
+          <!-- Search Box -->
+          <div class="journal-search">
+            <svg class="journal-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" 
+                   id="journal-search-input" 
+                   class="journal-search-input" 
+                   placeholder="Search entries..." 
+                   aria-label="Search journal entries">
+          </div>
+
           <!-- Stats Bar -->
           <div class="journal-stats" id="journal-stats">
             <!-- Rendered dynamically -->
@@ -192,6 +217,20 @@ function ensureModalExists(): HTMLElement {
   // Add event listeners
   modal.addEventListener('click', handleModalClick);
   modal.addEventListener('keydown', handleModalKeydown);
+  
+  // Add search input listener
+  const searchInput = modal.querySelector('#journal-search-input') as HTMLInputElement;
+  if (searchInput) {
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    searchInput.addEventListener('input', () => {
+      // Debounce search
+      if (searchTimeout) clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        setSearchQuery(searchInput.value);
+        renderEntries();
+      }, 300);
+    });
+  }
 
   // Add styles
   if (!document.getElementById('voice-journal-styles')) {
@@ -294,6 +333,40 @@ function handleModalClick(e: Event): void {
     return;
   }
 
+  // Delete entry
+  const deleteBtn = target.closest('[data-action="delete-entry"]') as HTMLElement;
+  if (deleteBtn) {
+    const entryId = deleteBtn.dataset.entryId;
+    if (entryId) {
+      void deleteEntry(entryId);
+    }
+    return;
+  }
+
+  // Calendar date click (filter entries)
+  const calendarDay = target.closest('.calendar-day[data-date]') as HTMLElement;
+  if (calendarDay && calendarDay.classList.contains('calendar-day--has-entry')) {
+    const dateStr = calendarDay.dataset.date;
+    if (dateStr) {
+      filterEntriesByDate(dateStr);
+      switchTab('history');
+    }
+    return;
+  }
+
+  // Clear all filters (date + search)
+  if (target.closest('[data-action="clear-filter"]')) {
+    filterEntriesByDate(null);
+    setSearchQuery('');
+    // Also clear the search input
+    const searchInput = modal?.querySelector('#journal-search-input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    renderEntries();
+    return;
+  }
+
   // Mood selection
   const moodBtn = target.closest('.mood-option') as HTMLElement;
   if (moodBtn) {
@@ -358,6 +431,9 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     // Load initial prompt
     const prompt = await fetchPrompt();
     setCurrentPrompt(prompt);
+    
+    // Pre-fetch prompts for offline use (background)
+    void prefetchPrompts();
 
     // Reset calendar to current month
     setCalendarMonth(new Date());
@@ -368,6 +444,17 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     renderCalendar();
     renderEntries();
     renderInsights();
+
+    // Start real-time sync
+    const userId = getUserId();
+    if (userId) {
+      startJournalSync(userId, agent.id);
+      
+      // Subscribe to sync events
+      syncUnsubscribe = subscribeToJournalSync((event: JournalSyncEvent) => {
+        handleSyncEvent(event);
+      });
+    }
 
     // Show modal
     modal.classList.add('open');
@@ -382,6 +469,37 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
 }
 
 /**
+ * Handle real-time sync events from other devices
+ */
+async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
+  const currentAgent = getCurrentAgent();
+  if (!currentAgent || event.agentId !== currentAgent.id) return;
+  
+  log.debug('Received sync event:', event.type);
+  
+  if (event.type === 'entry_added' || event.type === 'entry_deleted' || event.type === 'entry_updated') {
+    // Reload entries from server
+    const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];
+    setEntries(entries);
+    
+    // Re-render all sections
+    renderStats();
+    renderCalendar();
+    renderEntries();
+    renderInsights();
+    
+    // Show toast notification
+    const { toast } = await import('../toast.ui.js');
+    if (event.type === 'entry_added') {
+      toast.info('New entry synced');
+    } else if (event.type === 'entry_deleted') {
+      toast.info('Entry removed');
+    }
+  }
+}
+
+
+/**
  * Close the voice journal
  */
 export function closeVoiceJournal(): void {
@@ -390,6 +508,13 @@ export function closeVoiceJournal(): void {
 
   stopRecording();
   stopVisualization();
+  
+  // Stop real-time sync
+  if (syncUnsubscribe) {
+    syncUnsubscribe();
+    syncUnsubscribe = null;
+  }
+  stopJournalSync();
 
   modal.classList.remove('open');
   document.body.style.overflow = '';

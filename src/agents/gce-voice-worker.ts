@@ -140,7 +140,7 @@ import {
   stopPendingJobsCleanup,
 } from './gce/index.js';
 
-import { markLivekitDisconnected } from './shared/worker-readiness.js';
+import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-readiness.js';
 
 // Initialize crash analytics early for comprehensive crash detection
 import { initCrashAnalytics, getCrashSummary } from './shared/crash-analytics.js';
@@ -176,6 +176,10 @@ async function main(): Promise<void> {
   // Phase 4: Connect to LiveKit
   log('Phase 4: Connecting to LiveKit');
   await connectToLiveKit();
+
+  // Signal that prewarm is complete and worker is ready
+  signalPrewarmComplete();
+  log('✅ Startup complete - worker ready for jobs');
 
   // Diagnostic summary with crash analytics
   setInterval(() => {

@@ -1,14 +1,151 @@
 /**
  * Insights Tab
  *
- * AI-generated insights from journal entries.
+ * AI-generated insights from journal entries with mood trend visualization.
  *
  * @module voice-journal/insights
  */
 
 import { getModal, getEntries } from './state.js';
 import { calculateStats } from './stats.js';
-import { getMoodIcon, getMoodLabel, getMoodScore } from './mood-icons.js';
+import { getMoodIcon, getMoodLabel, getMoodScore, MOODS } from './mood-icons.js';
+import type { CustomAgentMemory } from '../../services/custom-agent.service.js';
+
+// ============================================================================
+// MOOD TREND CALCULATION
+// ============================================================================
+
+interface MoodTrendData {
+  labels: string[];
+  scores: number[];
+  moods: string[];
+}
+
+/**
+ * Calculate mood trend over the last 14 days
+ */
+function calculateMoodTrend(entries: CustomAgentMemory[]): MoodTrendData {
+  const now = new Date();
+  const days = 14;
+  const labels: string[] = [];
+  const scores: number[] = [];
+  const moods: string[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    const dateKey = date.toDateString();
+    
+    // Find entries for this day
+    const dayEntries = entries.filter((e) => {
+      const entryDate = new Date(e.createdAt);
+      return entryDate.toDateString() === dateKey;
+    });
+
+    // Calculate average mood for the day
+    let avgScore = 0;
+    let avgMood = '';
+    if (dayEntries.length > 0) {
+      const totalScore = dayEntries.reduce((sum, e) => sum + getMoodScore(e.mood || 'neutral'), 0);
+      avgScore = totalScore / dayEntries.length;
+      // Get most common mood
+      const moodCounts = new Map<string, number>();
+      dayEntries.forEach((e) => {
+        const mood = e.mood || 'neutral';
+        moodCounts.set(mood, (moodCounts.get(mood) || 0) + 1);
+      });
+      avgMood = Array.from(moodCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    }
+
+    const dayLabel = date.toLocaleDateString(undefined, { weekday: 'short' });
+    labels.push(i === 0 ? 'Today' : dayLabel);
+    scores.push(avgScore);
+    moods.push(avgMood);
+  }
+
+  return { labels, scores, moods };
+}
+
+/**
+ * Render mood trend chart
+ */
+function renderMoodTrendChart(entries: CustomAgentMemory[]): string {
+  const trend = calculateMoodTrend(entries);
+  const maxScore = 10;
+  
+  // Filter out days with no entries for bar display
+  const hasData = trend.scores.some((s) => s > 0);
+  if (!hasData) {
+    return '';
+  }
+
+  const bars = trend.scores.map((score, i) => {
+    if (score === 0) {
+      return `<div class="mood-bar mood-bar--empty" data-label="${trend.labels[i]}" style="height: 4px;"></div>`;
+    }
+    const height = Math.max(10, (score / maxScore) * 100);
+    const mood = trend.moods[i];
+    const color = getMoodColor(mood);
+    return `
+      <div class="mood-bar" 
+           data-label="${trend.labels[i]}" 
+           style="height: ${height}%; background: ${color};"
+           title="${trend.labels[i]}: ${getMoodLabel(mood)} (${score.toFixed(1)}/10)">
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="mood-analytics">
+      <h4 class="mood-analytics-title">Mood Trend (Last 14 Days)</h4>
+      <div class="mood-chart">
+        ${bars}
+      </div>
+      <div class="mood-legend">
+        ${renderMoodLegend()}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Get color for mood
+ */
+function getMoodColor(mood: string): string {
+  const colorMap: Record<string, string> = {
+    happy: 'var(--color-semantic-success, #4a6741)',
+    excited: 'var(--color-semantic-success, #4a6741)',
+    grateful: 'var(--color-semantic-success, #4a6741)',
+    calm: 'var(--color-accent, #4a6741)',
+    hopeful: 'var(--color-accent, #4a6741)',
+    neutral: 'var(--color-text-muted, #888)',
+    reflective: 'var(--color-text-muted, #888)',
+    tired: 'var(--color-semantic-warning, #c4856a)',
+    anxious: 'var(--color-semantic-error, #dc2626)',
+    sad: 'var(--color-semantic-error, #dc2626)',
+    angry: 'var(--color-semantic-error, #dc2626)',
+    overwhelmed: 'var(--color-semantic-error, #dc2626)',
+  };
+  return colorMap[mood] || 'var(--color-accent, #4a6741)';
+}
+
+/**
+ * Render mood legend
+ */
+function renderMoodLegend(): string {
+  const categories = [
+    { label: 'Positive', color: 'var(--color-semantic-success, #4a6741)' },
+    { label: 'Neutral', color: 'var(--color-text-muted, #888)' },
+    { label: 'Challenging', color: 'var(--color-semantic-error, #dc2626)' },
+  ];
+  
+  return categories.map((cat) => `
+    <div class="mood-legend-item">
+      <span class="mood-legend-dot" style="background: ${cat.color}"></span>
+      <span>${cat.label}</span>
+    </div>
+  `).join('');
+}
 
 // ============================================================================
 // INSIGHTS RENDERING
@@ -112,6 +249,9 @@ export function renderInsights(): void {
     });
   }
 
+  // Render mood trend chart
+  const moodTrendChart = renderMoodTrendChart(entries);
+
   container.innerHTML = `
     <div class="insights-header">
       <h3 class="insights-title">Your Journey So Far</h3>
@@ -132,6 +272,7 @@ export function renderInsights(): void {
         )
         .join('')}
     </div>
+    ${moodTrendChart}
   `;
 }
 

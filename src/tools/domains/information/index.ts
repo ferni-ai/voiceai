@@ -33,7 +33,6 @@ import { getSportScores, getTeamScore } from './sports.js';
 
 // Import legacy tool creators for simple wrapping
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
-import { createWeatherTools } from './weather.js';
 import { createTrafficTools } from './traffic.js';
 
 // Import Apple WeatherKit tools
@@ -138,27 +137,120 @@ function getNewsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// WEATHER TOOLS (Consolidated: 2 → 1 tool)
+// WEATHER TOOLS (Context-aware: uses IP-detected location as default)
 // ============================================================================
 
+import { getCurrentWeather, getWeatherForecast } from './weather.js';
+
 function getWeatherToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createWeatherTools();
+  const log = getLogger();
 
   return [
-    wrapLegacyTool(
-      'getWeather',
-      'Get Weather',
-      'Get current weather for a city or location. Returns temperature, humidity, wind, and conditions. Use when user asks about the weather anywhere.',
-      legacyTools.getWeather,
-      ['weather', 'temperature', 'conditions']
-    ),
-    wrapLegacyTool(
-      'getWeatherForecast',
-      'Get Weather Forecast',
-      'Get weather forecast for upcoming days. Use when user asks about weekend weather or future conditions.',
-      legacyTools.getWeatherForecast,
-      ['weather', 'forecast', 'weekend']
-    ),
+    {
+      id: 'getWeather',
+      name: 'Get Weather',
+      description:
+        'Get current weather for a city or location. Returns temperature, humidity, wind, and conditions. If user just says "weather" without a location, uses their detected location from IP.',
+      domain: 'information',
+      tags: ['information', 'weather', 'temperature', 'conditions'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: getToolDescription('getWeather'),
+          parameters: z.object({
+            location: z
+              .string()
+              .optional()
+              .describe(
+                'City name (e.g., "Philadelphia", "Denver"). Optional - if not provided, uses user\'s detected location.'
+              ),
+          }),
+          execute: async ({ location }) => {
+            const startTime = Date.now();
+
+            // Use detected location if not provided (TikTok-style personalization)
+            let effectiveLocation = location;
+            if (!effectiveLocation && ctx.userLocation?.city) {
+              effectiveLocation = ctx.userLocation.regionCode
+                ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
+                : ctx.userLocation.city;
+              log.info(
+                { detectedCity: effectiveLocation },
+                '📍 Using IP-detected location for weather'
+              );
+            }
+
+            if (!effectiveLocation) {
+              return "I don't know your location. Which city would you like weather for?";
+            }
+
+            log.info({ location: effectiveLocation }, '🌤️ Weather tool called');
+
+            try {
+              const result = await getCurrentWeather(effectiveLocation);
+              log.info(
+                { location: effectiveLocation, elapsed: Date.now() - startTime },
+                '🌤️ Weather result returned'
+              );
+              return result;
+            } catch (error) {
+              log.error({ location: effectiveLocation, error: String(error) }, '🌤️ Weather error');
+              return `I couldn't get weather for ${effectiveLocation}. Try a different city name?`;
+            }
+          },
+        }),
+    },
+    {
+      id: 'getWeatherForecast',
+      name: 'Get Weather Forecast',
+      description:
+        'Get weather forecast for upcoming days. If user just asks about "weekend weather" without a location, uses their detected location.',
+      domain: 'information',
+      tags: ['information', 'weather', 'forecast', 'weekend'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: getToolDescription('getWeatherForecast'),
+          parameters: z.object({
+            location: z
+              .string()
+              .optional()
+              .describe('City name. Optional - uses detected location if not provided.'),
+            days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
+          }),
+          execute: async ({ location, days = 5 }) => {
+            const startTime = Date.now();
+
+            // Use detected location if not provided
+            let effectiveLocation = location;
+            if (!effectiveLocation && ctx.userLocation?.city) {
+              effectiveLocation = ctx.userLocation.regionCode
+                ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
+                : ctx.userLocation.city;
+              log.info(
+                { detectedCity: effectiveLocation },
+                '📍 Using IP-detected location for forecast'
+              );
+            }
+
+            if (!effectiveLocation) {
+              return "I don't know your location. Which city would you like the forecast for?";
+            }
+
+            log.info({ location: effectiveLocation, days }, '📅 Weather forecast called');
+
+            try {
+              const result = await getWeatherForecast(effectiveLocation, Math.min(days, 7));
+              log.info(
+                { location: effectiveLocation, days, elapsed: Date.now() - startTime },
+                '📅 Forecast returned'
+              );
+              return result;
+            } catch (error) {
+              log.error({ location: effectiveLocation, error: String(error) }, '📅 Forecast error');
+              return `I couldn't get the forecast for ${effectiveLocation}. Try a different city?`;
+            }
+          },
+        }),
+    },
   ];
 }
 

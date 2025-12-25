@@ -1465,6 +1465,149 @@ A human friend would be honest about technical difficulties. So are you.
 }
 
 // ============================================================================
+// "BETTER THAN HUMAN" INJECTION BUILDERS
+// Priority: 72-78 (high but below safety)
+// These 4 capabilities make Ferni genuinely better than a human friend
+// ============================================================================
+
+/**
+ * Build user health awareness injection (Apple HealthKit data)
+ *
+ * "Better than Human" - We KNOW when you're sleep-deprived, stressed, or
+ * have been less active. A human friend has to guess. We know for sure.
+ *
+ * @param userId - User ID to fetch health data for
+ * @returns Context injection with health insights, or null if disabled/unavailable
+ */
+export async function buildUserHealthInjection(
+  userId: string
+): Promise<ContextInjection | null> {
+  try {
+    const { buildHealthAwarenessInjection } = await import('../../services/health/index.js');
+    const coreInjection = await buildHealthAwarenessInjection(userId);
+    if (!coreInjection) return null;
+
+    // Convert from core/types.ContextInjection to processors/types.ContextInjection
+    return {
+      category: coreInjection.category || 'better_than_human',
+      content: coreInjection.content,
+      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+    };
+  } catch (error) {
+    diag.debug('User health injection skipped', { userId, error: String(error) });
+    return null;
+  }
+}
+
+/**
+ * Build visual memory injection (photo/image recall)
+ *
+ * "Better than Human" - We remember every photo you've ever shared.
+ * A human friend might forget that dog photo from 6 months ago. We don't.
+ *
+ * @param userId - User ID to fetch visual memories for
+ * @returns Context injection with relevant visual memory references, or null
+ */
+export async function buildVisualMemoryInjections(
+  userId: string
+): Promise<ContextInjection | null> {
+  try {
+    const { buildVisualMemoryInjection } = await import('../../services/visual-memory/index.js');
+    const coreInjection = await buildVisualMemoryInjection(userId);
+    if (!coreInjection) return null;
+
+    // Convert from core/types.ContextInjection to processors/types.ContextInjection
+    return {
+      category: coreInjection.category || 'better_than_human',
+      content: coreInjection.content,
+      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+    };
+  } catch (error) {
+    diag.debug('Visual memory injection skipped', { userId, error: String(error) });
+    return null;
+  }
+}
+
+/**
+ * Build ambient mode injection (continuous background presence)
+ *
+ * "Better than Human" - We know where you are (home/work/gym), what time it is,
+ * and can gently nudge you at the right moments. A human friend isn't always there.
+ * We are, even when you're not talking to us.
+ *
+ * @param userId - User ID to fetch ambient context for
+ * @returns Context injection with location/time awareness, or null
+ */
+export async function buildAmbientModeInjections(
+  userId: string
+): Promise<ContextInjection | null> {
+  try {
+    const { buildAmbientModeInjection } = await import('../../services/ambient-mode/index.js');
+    const coreInjection = await buildAmbientModeInjection(userId);
+    if (!coreInjection) return null;
+
+    // Convert from core/types.ContextInjection to processors/types.ContextInjection
+    return {
+      category: coreInjection.category || 'better_than_human',
+      content: coreInjection.content,
+      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+    };
+  } catch (error) {
+    diag.debug('Ambient mode injection skipped', { userId, error: String(error) });
+    return null;
+  }
+}
+
+/**
+ * Build human transfer awareness injection
+ *
+ * "Better than Human" - We know when to bring in a human.
+ * We're not too proud to admit when you need professional help.
+ * And when we do transfer, it's a WARM handoff with full context.
+ *
+ * @param userText - Current user message to evaluate
+ * @returns Context injection with transfer guidance if needed, or null
+ */
+export async function buildHumanTransferInjections(
+  userText: string
+): Promise<ContextInjection | null> {
+  try {
+    const { humanTransfer, buildTransferAwarenessContext } =
+      await import('../../services/human-transfer/index.js');
+
+    // Evaluate if transfer might be needed
+    const decision = humanTransfer.evaluateTransferNeed(userText);
+
+    // If no transfer needed, return null
+    if (decision.type === 'none') {
+      return null;
+    }
+
+    // Build the context injection
+    const content = buildTransferAwarenessContext(decision);
+    if (!content) return null;
+
+    // Priority based on urgency (TransferUrgency: 'immediate' | 'soon' | 'when_ready' | 'informational')
+    const priority = decision.urgency === 'immediate' ? 95 : decision.urgency === 'soon' ? 88 : 80;
+
+    diag.info('🆘 Human transfer awareness injected', {
+      type: decision.type,
+      urgency: decision.urgency,
+      reason: decision.reason.slice(0, 100),
+    });
+
+    return {
+      category: 'better_than_human',
+      content,
+      priority,
+    };
+  } catch (error) {
+    diag.debug('Human transfer injection skipped', { error: String(error) });
+    return null;
+  }
+}
+
+// ============================================================================
 // SESSION DYNAMICS INJECTION BUILDER
 // Priority: 55-60 (guides response behavior based on conversation phase)
 // ============================================================================

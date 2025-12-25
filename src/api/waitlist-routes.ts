@@ -2,11 +2,17 @@
  * Waitlist Routes API Handler
  *
  * Handles email signups for:
+ * - Landing page invite-only waitlist
  * - Marketplace portal notifications
  * - Developer portal early access
  * - Feature interest/voting
  *
  * Stores emails in Firestore for future outreach.
+ *
+ * Admin endpoints for viewing/exporting waitlist:
+ * - GET /api/waitlist/admin - List signups (paginated)
+ * - GET /api/waitlist/admin/stats - Signup statistics
+ * - GET /api/waitlist/admin/export - CSV download
  *
  * @module WaitlistRoutes
  */
@@ -17,7 +23,7 @@ import admin from 'firebase-admin';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
@@ -47,16 +53,16 @@ function ensureFirebaseInitialized(): void {
 
 interface WaitlistSignup {
   email: string;
-  source: 'marketplace' | 'developer' | 'feature';
+  source: 'landing' | 'marketplace' | 'developer' | 'feature';
   featureId?: string;
   timestamp: Date;
   userAgent?: string;
   referrer?: string;
 }
 
-type WaitlistSource = 'marketplace' | 'developer' | 'feature';
+type WaitlistSource = 'landing' | 'marketplace' | 'developer' | 'feature';
 
-const VALID_SOURCES: WaitlistSource[] = ['marketplace', 'developer', 'feature'];
+const VALID_SOURCES: WaitlistSource[] = ['landing', 'marketplace', 'developer', 'feature'];
 
 // ============================================================================
 // HELPERS
@@ -149,6 +155,31 @@ export async function handleWaitlistRoutes(
     if (pathname.startsWith('/api/waitlist/votes/') && req.method === 'GET') {
       const featureId = pathname.split('/').pop();
       return await handleGetVotes(res, featureId || '');
+    }
+
+    // ========================================================================
+    // ADMIN ROUTES (require authentication)
+    // ========================================================================
+
+    // GET /api/waitlist/admin/export - CSV download
+    if (pathname === '/api/waitlist/admin/export' && req.method === 'GET') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true;
+      return await handleAdminExport(res);
+    }
+
+    // GET /api/waitlist/admin/stats - Signup statistics
+    if (pathname === '/api/waitlist/admin/stats' && req.method === 'GET') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true;
+      return await handleAdminStats(res);
+    }
+
+    // GET /api/waitlist/admin - List signups (paginated)
+    if (pathname === '/api/waitlist/admin' && req.method === 'GET') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true;
+      return await handleAdminList(req, res);
     }
 
     // Route not found
@@ -321,6 +352,168 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
   } catch (error) {
     log.error('Failed to get vote count', { error, featureId });
     sendJson(res, 500, { error: 'Failed to get votes' });
+    return true;
+  }
+}
+
+// ============================================================================
+// ADMIN HANDLERS
+// ============================================================================
+
+/**
+ * List all waitlist signups (paginated)
+ */
+async function handleAdminList(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  try {
+    ensureFirebaseInitialized();
+    const db = getFirestore();
+
+    const url = new URL(req.url || '/', `http://${req.headers.host}`);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 250);
+    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    const source = url.searchParams.get('source');
+
+    let query = db.collection('waitlist').orderBy('timestamp', 'desc');
+
+    // Filter by source if provided
+    if (source && VALID_SOURCES.includes(source as WaitlistSource)) {
+      query = query.where('source', '==', source);
+    }
+
+    const snapshot = await query.limit(limit).offset(offset).get();
+
+    const entries = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email,
+        source: data.source,
+        timestamp: data.timestamp?.toDate?.().toISOString() || data.timestamp,
+        referrer: data.referrer,
+      };
+    });
+
+    // Get total count
+    const countQuery = source
+      ? db.collection('waitlist').where('source', '==', source)
+      : db.collection('waitlist');
+    const countSnapshot = await countQuery.count().get();
+    const total = countSnapshot.data().count;
+
+    log.info('Admin fetched waitlist', { count: entries.length, total, source });
+
+    sendJson(res, 200, {
+      entries,
+      total,
+      limit,
+      offset,
+      hasMore: offset + entries.length < total,
+    });
+    return true;
+  } catch (error) {
+    log.error('Failed to fetch waitlist', { error });
+    sendJson(res, 500, { error: 'Failed to fetch waitlist' });
+    return true;
+  }
+}
+
+/**
+ * Get waitlist signup statistics
+ */
+async function handleAdminStats(res: ServerResponse): Promise<boolean> {
+  try {
+    ensureFirebaseInitialized();
+    const db = getFirestore();
+
+    // Get total count
+    const countSnapshot = await db.collection('waitlist').count().get();
+    const total = countSnapshot.data().count;
+
+    // Get signups by day (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentSnapshot = await db
+      .collection('waitlist')
+      .where('timestamp', '>=', sevenDaysAgo)
+      .get();
+
+    const byDay: Record<string, number> = {};
+    const bySource: Record<string, number> = {};
+
+    recentSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const date = data.timestamp?.toDate?.();
+      if (date) {
+        const key = date.toISOString().split('T')[0];
+        byDay[key] = (byDay[key] || 0) + 1;
+      }
+      const source = data.source || 'unknown';
+      bySource[source] = (bySource[source] || 0) + 1;
+    });
+
+    // Get source breakdown for all time
+    const allSnapshot = await db.collection('waitlist').get();
+    const allBySource: Record<string, number> = {};
+    allSnapshot.docs.forEach((doc) => {
+      const source = doc.data().source || 'unknown';
+      allBySource[source] = (allBySource[source] || 0) + 1;
+    });
+
+    log.info('Admin fetched waitlist stats', { total, last7Days: recentSnapshot.size });
+
+    sendJson(res, 200, {
+      total,
+      last7Days: recentSnapshot.size,
+      byDay,
+      bySource: allBySource,
+    });
+    return true;
+  } catch (error) {
+    log.error('Failed to fetch waitlist stats', { error });
+    sendJson(res, 500, { error: 'Failed to fetch stats' });
+    return true;
+  }
+}
+
+/**
+ * Export waitlist as CSV
+ */
+async function handleAdminExport(res: ServerResponse): Promise<boolean> {
+  try {
+    ensureFirebaseInitialized();
+    const db = getFirestore();
+
+    const snapshot = await db.collection('waitlist').orderBy('timestamp', 'desc').get();
+
+    // Build CSV
+    const headers = ['email', 'source', 'timestamp', 'referrer'];
+    const rows = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return [
+        data.email || '',
+        data.source || '',
+        data.timestamp?.toDate?.().toISOString() || '',
+        data.referrer || '',
+      ]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const filename = `waitlist-${new Date().toISOString().split('T')[0]}.csv`;
+
+    log.info('Admin exported waitlist', { count: snapshot.size });
+
+    res.writeHead(200, {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    res.end(csv);
+    return true;
+  } catch (error) {
+    log.error('Failed to export waitlist', { error });
+    sendJson(res, 500, { error: 'Failed to export' });
     return true;
   }
 }

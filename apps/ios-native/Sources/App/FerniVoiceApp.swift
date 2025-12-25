@@ -1,5 +1,6 @@
 import SwiftUI
 import FerniShared
+import FirebaseCore
 
 #if os(iOS)
 import UIKit
@@ -14,7 +15,13 @@ struct FerniVoiceApp: App {
     @StateObject private var session = IOSLiveKitSession()
     @StateObject private var appState = AppState()
     @StateObject private var relationshipService = RelationshipArcService.shared
+    @StateObject private var authService = AuthService.shared
     @State private var showSplash = true
+
+    init() {
+        // Initialize Firebase for Sign In with Apple
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +30,7 @@ struct FerniVoiceApp: App {
                     .environmentObject(session)
                     .environmentObject(appState)
                     .environmentObject(relationshipService)
+                    .environmentObject(authService)
                     .preferredColorScheme(.dark)
 
                 // Animated splash screen overlay - uses MagicalSplash with relationship awareness

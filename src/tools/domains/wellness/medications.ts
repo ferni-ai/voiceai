@@ -23,6 +23,7 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncMedicationToCalendar } from '../../../services/calendar/calendar-bridge.js';
 // Bridge functions for persistence
 function medDataToMed(data: MedicationData, userId: string): Medication {
   return {
@@ -317,7 +318,7 @@ function formatTime(time24: string): string {
 // CORE FUNCTIONS
 // ============================================================================
 
-export function addMedication(params: {
+export async function addMedication(params: {
   userId: string;
   name: string;
   dosage: string;
@@ -327,7 +328,7 @@ export function addMedication(params: {
   purpose?: string;
   pillsRemaining?: number;
   refillAt?: number;
-}): Medication {
+}): Promise<Medication> {
   const schedule = params.customTimes
     ? { times: params.customTimes, labels: params.customTimes.map(() => 'custom' as DoseTime) }
     : getScheduledTimesForFrequency(params.frequency);
@@ -353,7 +354,40 @@ export function addMedication(params: {
   medsCache.set(medication.id, medication);
   persistMed(params.userId, medication);
 
-  getLogger().info({ medId: medication.id, name: medication.name }, '💊 Medication added');
+  getLogger().info({ medId: medication.id, name: medication.name }, 'Medication added');
+
+  // Sync each scheduled time to calendar for today
+  // This creates calendar events for medication reminders
+  const today = new Date();
+  for (const time of medication.scheduledTimes) {
+    const [hours, minutes] = time.split(':').map(Number);
+    const scheduledFor = new Date(today);
+    scheduledFor.setHours(hours, minutes, 0, 0);
+
+    // If time has passed today, schedule for tomorrow
+    if (scheduledFor <= today) {
+      scheduledFor.setDate(scheduledFor.getDate() + 1);
+    }
+
+    try {
+      await syncMedicationToCalendar(
+        params.userId,
+        `${medication.id}_${time}`,
+        medication.name,
+        medication.dosage,
+        scheduledFor,
+        {
+          instructions: medication.instructions,
+          isRecurring: medication.frequency !== 'as_needed',
+        }
+      );
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: String(calendarError), medId: medication.id },
+        'Failed to sync medication to calendar'
+      );
+    }
+  }
 
   return medication;
 }
@@ -470,7 +504,7 @@ export function createMedicationTools() {
         const userId = userData?.userId || 'default';
 
         await ensureUserMedsLoaded(userId);
-        const med = addMedication({
+        const med = await addMedication({
           userId,
           name,
           dosage,
@@ -480,7 +514,7 @@ export function createMedicationTools() {
           pillsRemaining: pillCount,
         });
 
-        let response = `💊 Added: **${med.name}** (${med.dosage})\n`;
+        let response = `Added: **${med.name}** (${med.dosage})\n`;
         response += `Schedule: ${med.frequency.replace(/_/g, ' ')}\n`;
 
         if (med.scheduledTimes.length > 0) {
@@ -488,14 +522,14 @@ export function createMedicationTools() {
         }
 
         if (instructions) {
-          response += `📝 ${instructions}\n`;
+          response += `Note: ${instructions}\n`;
         }
 
         if (pillCount) {
-          response += `💊 ${pillCount} pills - I'll remind you to refill\n`;
+          response += `${pillCount} pills - I'll remind you to refill\n`;
         }
 
-        response += `\nI'll remind you when it's time to take your ${name}.`;
+        response += `\nI'll remind you when it's time to take your ${name}. Added to your calendar too.`;
 
         return response;
       },

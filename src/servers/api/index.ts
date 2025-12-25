@@ -43,6 +43,11 @@ import {
   handleEightSleepRoutes,
   handleOuraRoutes,
   handleAppleHealthRoutes,
+  handleAppleNotification,
+  handleIntelligentRoutingRoutes,
+  // "Better Than Human" routes
+  handleVisualMemoryRoutes,
+  handleAmbientModeRoutes,
 } from './routes/index.js';
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
@@ -276,6 +281,12 @@ const server = http.createServer(async (req, res) => {
     if (await handleAppleHealthRoutes(req, res, pathname, parsedUrl)) return;
   }
 
+  // Apple Sign In notifications (server-to-server)
+  if (pathname === '/api/apple/notifications') {
+    await handleAppleNotification(req, res);
+    return;
+  }
+
   // Webhooks routes (IFTTT, Zapier, Home Assistant, Siri Shortcuts)
   if (pathname.startsWith('/api/webhooks')) {
     if (await handleWebhookRoutes(req, res, pathname, parsedUrl)) return;
@@ -294,6 +305,26 @@ const server = http.createServer(async (req, res) => {
   // Vibe routes (unified environment control)
   if (pathname.startsWith('/api/vibe')) {
     if (await handleVibeRoutes(req, res, pathname)) return;
+  }
+
+  // 🧠 Intelligent routing dashboard & control routes
+  if (pathname.startsWith('/api/intelligent-routing')) {
+    if (await handleIntelligentRoutingRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // ============================================================================
+  // "BETTER THAN HUMAN" ROUTES
+  // Visual Memory, Ambient Mode - superhuman awareness & recall
+  // ============================================================================
+
+  // 📸 Visual Memory routes (photo/image recall)
+  if (pathname.startsWith('/api/visual-memory')) {
+    if (await handleVisualMemoryRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // 🌙 Ambient Mode routes (continuous background presence)
+  if (pathname.startsWith('/api/ambient-mode')) {
+    if (await handleAmbientModeRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // ============================================================================

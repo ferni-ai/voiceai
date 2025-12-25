@@ -5,6 +5,8 @@
  * - JSON function call sanitization (Gemini workaround)
  * - Interrupt-aware SSML softening
  * - FinOps cost tracking
+ * - Streaming TTS optimization (aggressive chunking for low latency)
+ * - Cache-aware TTS (checks speculative cache before calling Cartesia)
  *
  * This is designed to work with any agent via explicit parameter passing,
  * avoiding inheritance issues with stream types.
@@ -23,6 +25,12 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
 import { finops } from '../../services/observability/finops.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import {
+  createStreamingTTSTransform,
+  isStreamingTTSEnabled,
+  getOptimizedStreamingConfig,
+} from './performance/streaming-tts-transform.js';
+import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -39,6 +47,8 @@ export interface TtsSessionContext {
   personaId?: string;
   wasInterrupted?: boolean;
   interruptType?: 'hard' | 'soft';
+  /** Current emotional context (for cache-aware TTS) */
+  emotion?: string;
 }
 
 /**
@@ -53,6 +63,12 @@ export interface TtsWrapperOptions {
   onInterruptRecoveryApplied?: () => void;
   /** Voice session for speaking tool results via safeGenerateReply */
   session?: voice.AgentSession;
+  /** Enable streaming TTS optimization (default: true if env allows) */
+  enableStreamingOptimization?: boolean;
+  /** Is this the first turn? (enables more aggressive optimization) */
+  isFirstTurn?: boolean;
+  /** Enable cache-aware TTS that checks speculative cache before Cartesia (default: true) */
+  enableCacheAwareTTS?: boolean;
 }
 
 // =============================================================================
@@ -99,9 +115,14 @@ export async function wrappedTtsNode(
   modelSettings: voice.ModelSettings,
   options: TtsWrapperOptions = {}
 ): Promise<NodeReadableStream<AudioFrame> | null> {
-  const { tools, sessionContext, onInterruptRecoveryApplied } = options;
-
-  log.info('ttsNode wrapper called - filtering JSON function calls');
+  const {
+    tools,
+    sessionContext,
+    onInterruptRecoveryApplied,
+    enableStreamingOptimization = isStreamingTTSEnabled(),
+    isFirstTurn = false,
+    enableCacheAwareTTS = process.env.CACHE_AWARE_TTS_ENABLED !== 'false',
+  } = options;
 
   // Extract session context
   const userId = sessionContext?.userId;
@@ -109,11 +130,25 @@ export async function wrappedTtsNode(
   const personaId = sessionContext?.personaId || 'ferni';
   const wasInterrupted = sessionContext?.wasInterrupted;
   const interruptType = sessionContext?.interruptType;
+  const emotion = sessionContext?.emotion;
 
   // 1. Filter JSON function calls (Gemini workaround)
-  // Pass session + sessionId so tool results can be spoken via coordinated speech
-  const sanitizerWithFallback = createSanitizerWithMusicFallback(tools, options.session, sessionId);
-  const filteredText = text.pipeThrough(sanitizerWithFallback);
+  // SKIP when semantic routing is the primary tool calling method.
+  // The semantic router handles tool execution BEFORE the LLM, so we don't need
+  // to intercept JSON from the text stream anymore.
+  const skipJsonWorkaround = process.env.DISABLE_JSON_WORKAROUND === 'true' ||
+    process.env.SEMANTIC_ROUTING_PRIMARY === 'true';
+  
+  let filteredText: NodeReadableStream<string>;
+  if (skipJsonWorkaround) {
+    log.info('🎯 JSON workaround DISABLED - semantic routing is primary tool calling method');
+    filteredText = text;
+  } else {
+    // Legacy path: intercept JSON function calls from LLM text output
+    log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
+    const sanitizerWithFallback = createSanitizerWithMusicFallback(tools, options.session, sessionId);
+    filteredText = text.pipeThrough(sanitizerWithFallback);
+  }
 
   // 2. Apply interrupt-aware transform for softer recovery
   // Note: Cast needed because Web Streams and Node Streams have slightly different types
@@ -165,14 +200,55 @@ export async function wrappedTtsNode(
     },
   });
 
-  // 4. Chain all transforms
+  // 4. Chain all transforms (sanitizer → interrupt-aware → cost tracking)
   const trackedText = interruptAwareText.pipeThrough(costTrackingStream);
 
-  log.debug('Sanitizer, interrupt-awareness, and cost tracking attached to text stream');
+  // 5. Apply streaming TTS optimization for lower latency
+  // This chunks the text more aggressively for faster first-audio
+  let optimizedText: NodeReadableStream<string>;
+  if (enableStreamingOptimization) {
+    const streamingConfig = getOptimizedStreamingConfig({
+      isFirstTurn,
+      sessionId,
+      personaId,
+    });
 
-  // 5. Pass to default TTS implementation
+    const streamingTransform = createStreamingTTSTransform(streamingConfig);
+    optimizedText = trackedText.pipeThrough(
+      streamingTransform as unknown as NodeTransformStream<string, string>
+    );
+
+    log.debug(
+      { isFirstTurn, sessionId },
+      '🚀 Streaming TTS optimization enabled - aggressive chunking active'
+    );
+  } else {
+    optimizedText = trackedText;
+  }
+
+  log.debug('Sanitizer, interrupt-awareness, cost tracking, and streaming optimization attached');
+
+  // 6. Pass to TTS implementation (cache-aware or default)
+  if (enableCacheAwareTTS) {
+    // Use cache-aware TTS that checks speculative cache before Cartesia
+    const cacheAwareTTS = createCacheAwareTTSNode({
+      voiceId: personaId,
+      emotion,
+      sessionId,
+      enableCache: true,
+    });
+
+    log.debug(
+      { personaId, emotion, sessionId },
+      '🎯 Cache-aware TTS enabled - will check speculative cache'
+    );
+
+    return cacheAwareTTS(agent, optimizedText, modelSettings);
+  }
+
+  // Fallback to default TTS implementation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (voice.Agent.default as any).ttsNode(agent, trackedText, modelSettings);
+  return (voice.Agent.default as any).ttsNode(agent, optimizedText, modelSettings);
 }
 
 // =============================================================================
@@ -200,6 +276,7 @@ export function extractTtsSessionContext(
     personaId: (userData?.personaId as string | undefined) || defaultPersonaId,
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
+    emotion: userData?.currentEmotion as string | undefined,
   };
 }
 

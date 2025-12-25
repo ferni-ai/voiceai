@@ -26,6 +26,8 @@ This document outlines all planned performance optimizations for the Ferni voice
 | Speculative TTS Generation | 200-400ms saved on common responses | ✅ Completed |
 | Context Builder Prioritization | 20-30% reduction in context build time | ✅ Completed |
 | Tiered Memory Storage | 10x faster retrieval for hot data | ✅ Completed |
+| Voice Emotion-Aware Audio Caching | 50-100ms saved per utterance | ✅ Completed |
+| Streaming LLM Responses | 500-1000ms perceived latency reduction | ✅ Completed |
 
 ---
 
@@ -224,32 +226,42 @@ Store frequently accessed memories in faster storage:
 
 ## Phase 3: Voice Pipeline Optimization (Q2 2025)
 
-### 3.1 Streaming LLM Responses
+### 3.1 Streaming LLM Responses ✅ COMPLETED
 
 **Impact**: 500-1000ms perceived latency reduction
 **Complexity**: High
 **Priority**: High
+**Status**: ✅ Completed (December 2024)
 
 Stream LLM tokens directly to TTS without waiting for full response:
 
 ```
-Current:
+Before:
 User → LLM (2s) → TTS (500ms) → Audio
                               ↑
                          First audio at 2.5s
 
-Streaming:
+After (with streaming optimization):
 User → LLM [token1] → TTS → Audio [word1]
           [token2] → TTS → Audio [word2]
           ...
                               ↑
-                         First audio at 300ms
+                         First audio at ~300ms
 ```
 
 **Implementation**:
-- Use OpenAI/Gemini streaming mode
-- Buffer tokens until sentence boundary
-- Stream to Cartesia as sentences complete
+- ✅ Created `streaming-tts-transform.ts` with aggressive chunking for fast first-audio
+- ✅ First chunk: 15 chars min, 20ms delay (vs ~100 chars, ~100ms default)
+- ✅ Sentence boundary detection for natural speech pauses
+- ✅ Integrated into `tts-wrapper.ts` pipeline
+- ✅ Metrics tracking (first chunk latency, total chunks, avg latency)
+- ✅ Configurable via `STREAMING_TTS_ENABLED` env var
+- ✅ More aggressive settings for first turn (`isFirstTurn` option)
+
+**Key Files**:
+- `src/agents/shared/performance/streaming-tts-transform.ts` - Main streaming transform
+- `src/agents/shared/tts-wrapper.ts` - Integration point
+- `src/agents/shared/performance/index.ts` - Exports
 
 ---
 
@@ -274,16 +286,18 @@ Pre-generate audio for predicted responses:
 
 ---
 
-### 3.3 Voice Emotion-Aware Audio Caching
+### 3.3 Voice Emotion-Aware Audio Caching ✅ COMPLETED
 
 **Impact**: 50-100ms saved per utterance
 **Complexity**: Low
 **Priority**: Low
+**Status**: ✅ Completed (December 2024)
 
-Cache TTS output keyed by text + emotion:
+Cache TTS output keyed by text + emotion + persona:
 
 ```typescript
-const cacheKey = `${text}:${emotion}:${personaId}`;
+// Key format: `${voiceId}:${emotion}:${normalized_text}`
+const cacheKey = getCacheKey(text, voiceId, emotion);
 const cached = audioCache.get(cacheKey);
 if (cached) {
   return cached; // Skip TTS call
@@ -291,9 +305,16 @@ if (cached) {
 ```
 
 **Implementation**:
-- LRU cache with 100MB limit per persona
-- Hash-based key generation
-- Warm cache on session start
+- ✅ Extended cache key to include emotion context
+- ✅ Emotion-aware speculative predictions with appropriate tones
+- ✅ Per-emotion cache hit/miss metrics for monitoring
+- ✅ Warm cache on session start with common emotion variants
+- ✅ LRU cache with 200 entries, 1 hour TTL
+
+**Key Files**:
+- `src/services/performance/speculative-tts.ts` - Main implementation
+
+**Common Emotions Pre-warmed**: neutral, warm, concerned, supportive, curious
 
 ---
 

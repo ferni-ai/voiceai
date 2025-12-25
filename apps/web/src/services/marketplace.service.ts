@@ -216,11 +216,14 @@ type MarketplaceSource = 'proxy' | 'local' | 'github';
 
 /**
  * Get the appropriate marketplace source based on environment.
- * Development uses local files, production uses the proxy.
+ * Development uses local files (from public/voiceai-agents/), production uses the proxy.
  */
 function getMarketplaceSource(): MarketplaceSource {
-  // Always use proxy - local voiceai-agents files have been removed
-  // to consolidate the codebase. The proxy backend handles all marketplace requests.
+  // Development: use local files from public folder (no UI server dependency)
+  // Production: use proxy to backend API
+  if (import.meta.env?.DEV) {
+    return 'local';
+  }
   return 'proxy';
 }
 

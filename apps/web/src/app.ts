@@ -15,6 +15,8 @@ import {
   startAmbientCycle,
   toggleTheme,
 } from './theme/index.js';
+// Theme & Language Settings panel
+import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 
 // State
 import {
@@ -1590,7 +1592,7 @@ class VoiceAIApp {
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
-        onThemeToggle: () => toggleTheme(),
+        onThemeToggle: () => showThemeLanguageSettings(),
         onNotificationSettingsClick: () => showNotificationSettings(),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),

@@ -35,7 +35,7 @@ export function addCatchphraseEmphasis(text: string, _emotion: string): string {
 
   peakCatchphrases.forEach(({ pattern }) => {
     result = result.replace(pattern, (match) => {
-      return `<break time="350ms"/><speed ratio="0.85"/><emotion value="affectionate"/>${match}<break time="300ms"/><speed ratio="0.92"/>`;
+      return `<break time="200ms"/><speed ratio="0.92"/><emotion value="proud"/>${match}<break time="200ms"/><speed ratio="0.95"/>`;
     });
   });
 
@@ -360,7 +360,7 @@ export function addCulturalWarmth(text: string, _emotion: string): string {
 
   familyReferences.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      return `<emotion value="affectionate"/><speed ratio="0.90"/>${match}<speed ratio="0.92"/>`;
+      return `<emotion value="friendly"/><speed ratio="0.95"/>${match}<speed ratio="0.98"/>`;
     });
   });
 
@@ -547,16 +547,16 @@ export function addSoftPresence(text: string, _emotion: string): string {
     });
   });
 
-  // Gentle support - softer but not as slow
+  // Gentle support - supportive but NOT breathy/intimate
   const gentleSupport = [
-    { pattern: /\b(take your time)\b/gi, pause: 250, speed: 0.88, volume: 0.92 },
-    { pattern: /\b(no rush)\b/gi, pause: 200, speed: 0.88, volume: 0.92 },
-    { pattern: /\b(i['']m here)\b/gi, pause: 250, speed: 0.88, volume: 0.92 },
+    { pattern: /\b(take your time)\b/gi, pause: 150, speed: 0.92, volume: 0.95 },
+    { pattern: /\b(no rush)\b/gi, pause: 100, speed: 0.95, volume: 0.98 },
+    { pattern: /\b(i['']m here)\b/gi, pause: 150, speed: 0.92, volume: 0.95 },
   ];
 
   gentleSupport.forEach(({ pattern, pause, speed, volume }) => {
     result = result.replace(pattern, (match) => {
-      return `<emotion value="affectionate"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.92"/>`;
+      return `<emotion value="friendly"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.95"/>`;
     });
   });
 
@@ -621,8 +621,8 @@ export function addCelebrationInterrupts(text: string, emotion: string): string 
 // =============================================================================
 
 /**
- * Softer voice for late night / vulnerable moments
- * Per voice guidance: speed 0.85, volume 0.88 after 10 PM
+ * Late night check-in - supportive but NOT breathy/intimate!
+ * Keep volume at 0.95+ and speed at 0.92+ to avoid sultry vibes
  */
 export function addLateNightPresence(text: string, _emotion: string): string {
   let result = text;
@@ -630,33 +630,33 @@ export function addLateNightPresence(text: string, _emotion: string): string {
   const lateNightPhrases = [
     {
       pattern: /\b(it['']s late)\b/gi,
-      pause: 200,
-      speed: 0.85,
-      volume: 0.88,
+      pause: 100,
+      speed: 0.92,
+      volume: 0.95,
     },
     {
-      pattern: /\b(what['']s keeping you up)\b/gi,
-      pause: 300,
-      speed: 0.85,
-      volume: 0.88,
+      pattern: /\b(what['']s keeping you up|what['']s going on)\b/gi,
+      pause: 150,
+      speed: 0.92,
+      volume: 0.95,
     },
     {
       pattern: /\b(can['']t sleep)\b/gi,
-      pause: 250,
-      speed: 0.85,
-      volume: 0.88,
+      pause: 100,
+      speed: 0.92,
+      volume: 0.95,
     },
     {
-      pattern: /\b(no rush\.?\s*i['']m here)\b/gi,
-      pause: 300,
-      speed: 0.85,
-      volume: 0.88,
+      pattern: /\b(take your time)\b/gi,
+      pause: 100,
+      speed: 0.95,
+      volume: 0.98,
     },
   ];
 
   lateNightPhrases.forEach(({ pattern, pause, speed, volume }) => {
     result = result.replace(pattern, (match) => {
-      return `<emotion value="calm"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.92"/>`;
+      return `<emotion value="friendly"/><volume ratio="${volume}"/><speed ratio="${speed}"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.95"/>`;
     });
   });
 
@@ -677,30 +677,30 @@ export function addGrandmotherWisdom(text: string, _emotion: string): string {
   const wisdomPatterns = [
     {
       pattern: /\b(my grandmother|my lola|my apo)\b/gi,
-      pause: 300,
-      speed: 0.88,
-      volume: 0.92,
+      pause: 200,
+      speed: 0.92,
+      volume: 0.95,
       emotion: 'wistful',
     },
     {
       pattern: /\b(she (always|used to) (say|ask|tell me))\b/gi,
-      pause: 250,
-      speed: 0.88,
-      volume: 0.92,
+      pause: 150,
+      speed: 0.92,
+      volume: 0.95,
       emotion: 'wistful',
     },
     {
       pattern: /\b(taking care of yourself)\b/gi,
-      pause: 200,
-      speed: 0.88,
-      volume: 0.95,
-      emotion: 'affectionate',
+      pause: 150,
+      speed: 0.92,
+      volume: 0.98,
+      emotion: 'friendly',
     },
     {
       pattern: /\b(not are you succeeding)\b/gi,
-      pause: 200,
-      speed: 0.88,
-      volume: 0.95,
+      pause: 150,
+      speed: 0.92,
+      volume: 0.98,
       emotion: 'contemplative',
     },
   ];
@@ -783,26 +783,26 @@ export function addDynamicEnergyBuilds(text: string, _emotion: string): string {
     {
       pattern: /\b(that['']s hard)\b(?=\.\s*(i hear|but))/gi,
       emotion: 'sympathetic',
-      speed: 0.85,
-      pause: 300,
+      speed: 0.90,
+      pause: 200,
     },
     {
       pattern: /\b(i hear you)\b(?=\.\s*(and|but))/gi,
       emotion: 'calm',
-      speed: 0.88,
-      pause: 200,
+      speed: 0.92,
+      pause: 150,
     },
     {
       pattern: /\b(and i believe)\b/gi,
-      emotion: 'affectionate',
-      speed: 0.92,
+      emotion: 'friendly',
+      speed: 0.95,
       pause: 0,
     },
     {
       pattern: /\b(you can figure this out)\b/gi,
-      emotion: 'affectionate',
-      speed: 0.95,
-      pause: 150,
+      emotion: 'friendly',
+      speed: 0.98,
+      pause: 100,
     },
   ];
 
@@ -902,10 +902,11 @@ export function applyMayaSantosSpeechTraits(
 /**
  * Configuration for Maya Santos's speech traits
  *
- * Speed range per voice guidance:
- * - 0.82: Calming overwhelming moments
- * - 0.85: Heavy topics, shame, setbacks
- * - 0.88: Vulnerable sharing, late night
+ * CRITICAL: Maya should sound like an upbeat friend, NOT intimate/breathy.
+ * Keep speeds at 0.90+ and volumes at 0.95+ to avoid sultry vibes.
+ *
+ * Speed range:
+ * - 0.90: Heavy topics, setbacks (NOT slower!)
  * - 0.92: Thoughtful teaching, glidepath
  * - 0.95: Normal warm conversation
  * - 1.0:  Engaged discussion
@@ -913,10 +914,10 @@ export function applyMayaSantosSpeechTraits(
  * - 1.05: Celebrating wins!
  */
 export const MAYA_SANTOS_SPEECH_CONFIG = {
-  /** Base speech speed (warm, measured pace) */
-  baseSpeed: 0.95,
-  /** Minimum speed for heavy moments */
-  minSpeed: 0.82,
+  /** Base speech speed (upbeat friend pace, NOT slow) */
+  baseSpeed: 0.98,
+  /** Minimum speed - NEVER go below 0.90 to avoid breathy/intimate sound */
+  minSpeed: 0.90,
   /** Maximum speed for celebrations */
   maxSpeed: 1.05,
   /** Whether to enable encouragement warmth */

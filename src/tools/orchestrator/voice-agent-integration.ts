@@ -71,6 +71,15 @@ export interface GetToolsForAgentOptions {
    * When frontend dev panel sends dev_mode_sync, this propagates bypass to handoff tools.
    */
   services?: { devMode?: { enabled: boolean; bypassUnlocks: boolean } };
+  /**
+   * User's detected location from IP (TikTok-style personalization)
+   * Used for weather defaults, local content hints
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
 }
 
 export interface GetToolsResult {
@@ -162,6 +171,8 @@ export async function getToolsForAgent(options: GetToolsForAgentOptions): Promis
       context: options.context,
       forceInclude: options.forceInclude,
       forceExclude: [...(options.forceExclude || []), ...(options.persona.tools?.forbidden || [])],
+      // IP-detected location for weather, local content (TikTok-style)
+      userLocation: options.userLocation,
     });
 
     // Add handoff tools (handled separately due to unlock logic)

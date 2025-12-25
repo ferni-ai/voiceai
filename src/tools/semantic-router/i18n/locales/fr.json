@@ -262,5 +262,403 @@
       { "word": "nayan", "weight": 0.9 }
     ],
     "antiKeywords": []
+  },
+
+  "spotify_pause": {
+    "phrases": ["pause", "mets en pause", "arrête la musique", "stop"],
+    "patterns": ["^(?:mets\\s+en\\s+)?pause(?:\\s+la\\s+musique)?", "^(?:arrête|stop)\\s+(?:la\\s+)?musique"],
+    "keywords": [{ "word": "pause", "weight": 1.0 }, { "word": "arrête", "weight": 0.9 }],
+    "antiKeywords": ["joue", "mets", "reprends"]
+  },
+
+  "spotify_skip": {
+    "phrases": ["chanson suivante", "passe", "saute cette chanson", "suivant"],
+    "patterns": ["^(?:chanson\\s+)?suivante?", "^(?:passe|saute)\\s+(?:cette\\s+)?(?:chanson)?"],
+    "keywords": [{ "word": "suivant", "weight": 1.0 }, { "word": "passe", "weight": 0.9 }, { "word": "saute", "weight": 0.9 }],
+    "antiKeywords": ["précédent", "retour"]
+  },
+
+  "set_timer": {
+    "phrases": ["mets un minuteur", "minuteur de", "démarre un minuteur"],
+    "patterns": ["^(?:mets|démarre)\\s+(?:un\\s+)?minuteur\\s+(?:de\\s+)?(.+)"],
+    "keywords": [{ "word": "minuteur", "weight": 1.0 }, { "word": "minutes", "weight": 0.7 }],
+    "antiKeywords": ["alarme", "rappel"]
+  },
+
+  "set_reminder": {
+    "phrases": ["rappelle-moi de", "mets un rappel", "rappel pour", "n'oublie pas de me rappeler"],
+    "patterns": ["^rappelle-moi\\s+(?:de\\s+)?(.+)", "^(?:mets|crée)\\s+(?:un\\s+)?rappel\\s+(?:pour\\s+)?(.+)"],
+    "keywords": [{ "word": "rappelle", "weight": 1.0 }, { "word": "rappel", "weight": 1.0 }],
+    "antiKeywords": ["minuteur", "alarme"]
+  },
+
+  "set_alarm": {
+    "phrases": ["mets une alarme", "réveille-moi", "alarme pour"],
+    "patterns": ["^(?:mets|programme)\\s+(?:une\\s+)?alarme\\s+(?:pour\\s+)?(.+)", "^réveille-moi\\s+(?:à\\s+)?(.+)"],
+    "keywords": [{ "word": "alarme", "weight": 1.0 }, { "word": "réveille", "weight": 0.9 }],
+    "antiKeywords": ["minuteur", "rappel"]
+  },
+
+  "burnout_assess": {
+    "phrases": [
+      "je suis épuisé",
+      "je suis en burnout",
+      "je crois que j'ai un burnout",
+      "je n'en peux plus",
+      "je suis à bout"
+    ],
+    "patterns": [
+      "^je\\s+(?:suis|me\\s+sens)\\s+(?:très\\s+)?(?:épuisé|en\\s+burnout|à\\s+bout)",
+      "^je\\s+(?:crois|pense)\\s+(?:que\\s+)?(?:j'ai|je\\s+suis\\s+en)\\s+burnout"
+    ],
+    "keywords": [
+      { "word": "burnout", "weight": 1.0 },
+      { "word": "épuisé", "weight": 1.0 },
+      { "word": "bout", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "career_coaching": {
+    "phrases": [
+      "j'ai besoin de conseils carrière",
+      "aide avec ma carrière",
+      "changer de carrière",
+      "devrais-je quitter mon travail",
+      "je pense à changer de travail"
+    ],
+    "patterns": [
+      "^(?:j'ai\\s+besoin|aide-moi)\\s+(?:de\\s+)?(?:conseils?\\s+)?(?:pour\\s+)?(?:ma\\s+)?carrière",
+      "^(?:devrais-je|je\\s+pense\\s+à)\\s+(?:quitter|changer)\\s+(?:mon\\s+)?(?:travail|emploi)"
+    ],
+    "keywords": [
+      { "word": "carrière", "weight": 1.0 },
+      { "word": "travail", "weight": 0.8 },
+      { "word": "emploi", "weight": 0.8 },
+      { "word": "quitter", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "decision_help": {
+    "phrases": [
+      "aide-moi à décider",
+      "je n'arrive pas à décider",
+      "devrais-je",
+      "aide-moi à prendre une décision",
+      "je suis indécis"
+    ],
+    "patterns": [
+      "^(?:aide-moi\\s+à|je\\s+n'arrive\\s+pas\\s+à)\\s+décider",
+      "^devrais-je\\s+(.+)",
+      "^je\\s+suis\\s+(?:très\\s+)?indécis"
+    ],
+    "keywords": [
+      { "word": "décider", "weight": 1.0 },
+      { "word": "décision", "weight": 1.0 },
+      { "word": "choix", "weight": 0.8 },
+      { "word": "indécis", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "dream_clarify": {
+    "phrases": [
+      "quel est mon rêve",
+      "aide-moi à trouver mon rêve",
+      "je ne sais pas ce que je veux",
+      "clarifier mes objectifs"
+    ],
+    "patterns": [
+      "^(?:quel\\s+est|aide-moi\\s+à\\s+trouver)\\s+mon\\s+rêve",
+      "^je\\s+ne\\s+sais\\s+pas\\s+ce\\s+que\\s+je\\s+veux"
+    ],
+    "keywords": [
+      { "word": "rêve", "weight": 1.0 },
+      { "word": "objectif", "weight": 0.8 },
+      { "word": "vision", "weight": 0.7 }
+    ],
+    "antiKeywords": ["dormir", "cauchemar"]
+  },
+
+  "grief_support": {
+    "phrases": [
+      "j'ai perdu quelqu'un",
+      "quelqu'un est mort",
+      "je suis en deuil",
+      "mon proche est décédé",
+      "il me manque tellement"
+    ],
+    "patterns": [
+      "^j'ai\\s+(?:juste\\s+)?perdu\\s+(?:quelqu'un|un\\s+proche)",
+      "^je\\s+suis\\s+(?:en\\s+)?deuil",
+      "^(?:mon|ma)\\s+(?:mère|père|parent|ami)\\s+(?:est\\s+)?(?:mort|décédé)"
+    ],
+    "keywords": [
+      { "word": "deuil", "weight": 1.0 },
+      { "word": "perte", "weight": 0.9 },
+      { "word": "mort", "weight": 1.0 },
+      { "word": "décédé", "weight": 0.9 },
+      { "word": "manque", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "anger_support": {
+    "phrases": [
+      "je suis très en colère",
+      "je suis furieux",
+      "je ne peux pas contrôler ma colère",
+      "aide-moi avec ma colère"
+    ],
+    "patterns": [
+      "^je\\s+suis\\s+(?:très\\s+)?(?:en\\s+colère|furieux|énervé)",
+      "^je\\s+ne\\s+peux\\s+pas\\s+contrôler\\s+ma\\s+colère"
+    ],
+    "keywords": [
+      { "word": "colère", "weight": 1.0 },
+      { "word": "furieux", "weight": 0.9 },
+      { "word": "énervé", "weight": 0.8 },
+      { "word": "rage", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "gratitude_practice": {
+    "phrases": [
+      "pratique de gratitude",
+      "pour quoi suis-je reconnaissant",
+      "aide-moi à être reconnaissant",
+      "compter mes bénédictions"
+    ],
+    "patterns": [
+      "^(?:faisons|aide-moi\\s+avec)\\s+(?:une\\s+)?(?:pratique\\s+de\\s+)?gratitude",
+      "^(?:pour\\s+quoi|de\\s+quoi)\\s+(?:suis-je|devrais-je\\s+être)\\s+reconnaissant"
+    ],
+    "keywords": [
+      { "word": "gratitude", "weight": 1.0 },
+      { "word": "reconnaissant", "weight": 1.0 },
+      { "word": "bénédictions", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "self_compassion": {
+    "phrases": [
+      "je suis trop dur avec moi-même",
+      "je me déteste",
+      "je ne suis pas assez bien",
+      "je me sens comme un échec"
+    ],
+    "patterns": [
+      "^je\\s+suis\\s+(?:trop\\s+)?dur\\s+avec\\s+moi-même",
+      "^je\\s+(?:me\\s+déteste|ne\\s+m'aime\\s+pas)",
+      "^je\\s+ne\\s+suis\\s+pas\\s+(?:assez\\s+)?bien"
+    ],
+    "keywords": [
+      { "word": "dur", "weight": 0.6 },
+      { "word": "moi-même", "weight": 0.7 },
+      { "word": "échec", "weight": 0.8 },
+      { "word": "compassion", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "loneliness_support": {
+    "phrases": [
+      "je me sens très seul",
+      "je me sens isolé",
+      "je n'ai pas d'amis",
+      "personne ne me comprend"
+    ],
+    "patterns": [
+      "^je\\s+(?:suis|me\\s+sens)\\s+(?:très\\s+)?(?:seul|isolé)",
+      "^je\\s+n'ai\\s+(?:pas\\s+)?(?:d')?(?:amis|personne)"
+    ],
+    "keywords": [
+      { "word": "seul", "weight": 1.0 },
+      { "word": "isolé", "weight": 0.9 },
+      { "word": "amis", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "sleep_help": {
+    "phrases": [
+      "je n'arrive pas à dormir",
+      "aide-moi à dormir",
+      "insomnie",
+      "problèmes de sommeil"
+    ],
+    "patterns": [
+      "^je\\s+n'arrive\\s+pas\\s+à\\s+(?:m'endormir|dormir)",
+      "^(?:aide-moi|j'ai\\s+besoin\\s+d'aide)\\s+(?:pour|à)\\s+dormir"
+    ],
+    "keywords": [
+      { "word": "dormir", "weight": 1.0 },
+      { "word": "sommeil", "weight": 1.0 },
+      { "word": "insomnie", "weight": 1.0 },
+      { "word": "éveillé", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "motivation_boost": {
+    "phrases": [
+      "j'ai besoin de motivation",
+      "je ne suis pas motivé",
+      "aide-moi à commencer",
+      "je procrastine"
+    ],
+    "patterns": [
+      "^j'ai\\s+(?:besoin|envie)\\s+(?:de\\s+)?motivation",
+      "^je\\s+(?:ne\\s+suis\\s+pas\\s+motivé|procrastine)"
+    ],
+    "keywords": [
+      { "word": "motivation", "weight": 1.0 },
+      { "word": "motivé", "weight": 1.0 },
+      { "word": "procrastine", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "boundary_coaching": {
+    "phrases": [
+      "je n'arrive pas à dire non",
+      "aide-moi à poser des limites",
+      "les gens profitent de moi"
+    ],
+    "patterns": [
+      "^je\\s+n'arrive\\s+pas\\s+à\\s+dire\\s+non",
+      "^(?:aide-moi\\s+à|j'ai\\s+besoin\\s+de)\\s+poser\\s+des\\s+limites"
+    ],
+    "keywords": [
+      { "word": "limites", "weight": 1.0 },
+      { "word": "non", "weight": 0.5 }
+    ],
+    "antiKeywords": []
+  },
+
+  "imposter_syndrome": {
+    "phrases": [
+      "je me sens comme un imposteur",
+      "syndrome de l'imposteur",
+      "je ne mérite pas ça",
+      "ils vont découvrir que je ne suis pas assez bien"
+    ],
+    "patterns": [
+      "^je\\s+(?:me\\s+sens|suis)\\s+(?:comme\\s+)?(?:un\\s+)?imposteur",
+      "^je\\s+ne\\s+mérite\\s+pas"
+    ],
+    "keywords": [
+      { "word": "imposteur", "weight": 1.0 },
+      { "word": "mérite", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "relationship_advice": {
+    "phrases": [
+      "conseils relation",
+      "aide avec ma relation",
+      "problèmes avec mon partenaire",
+      "on se dispute tout le temps"
+    ],
+    "patterns": [
+      "^(?:j'ai\\s+besoin|aide-moi)\\s+(?:de\\s+)?(?:conseils?\\s+)?(?:pour\\s+)?(?:ma\\s+)?relation",
+      "^(?:problèmes?|difficultés?)\\s+avec\\s+mon\\s+(?:partenaire|conjoint|mari|femme)"
+    ],
+    "keywords": [
+      { "word": "relation", "weight": 1.0 },
+      { "word": "partenaire", "weight": 0.9 },
+      { "word": "conjoint", "weight": 0.9 },
+      { "word": "couple", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "smart_home_lights": {
+    "phrases": ["allume les lumières", "éteins les lumières", "tamise les lumières", "lumières allumées", "lumières éteintes"],
+    "patterns": ["^(?:allume|éteins)\\s+(?:les\\s+)?lumières?", "^lumières?\\s+(?:allumées?|éteintes?)"],
+    "keywords": [{ "word": "lumières", "weight": 1.0 }, { "word": "lumière", "weight": 1.0 }],
+    "antiKeywords": []
+  },
+
+  "smart_home_thermostat": {
+    "phrases": ["règle la température", "monte le chauffage", "baisse la clim", "fais plus chaud", "fais plus froid"],
+    "patterns": [
+      "^(?:règle|change)\\s+(?:la\\s+)?température",
+      "^(?:monte|baisse)\\s+(?:le\\s+)?(?:chauffage|clim|climatisation)"
+    ],
+    "keywords": [
+      { "word": "température", "weight": 1.0 },
+      { "word": "thermostat", "weight": 1.0 },
+      { "word": "chauffage", "weight": 0.8 },
+      { "word": "clim", "weight": 0.8 }
+    ],
+    "antiKeywords": ["météo"]
+  },
+
+  "define_word": {
+    "phrases": ["définis", "que signifie", "définition de", "ça veut dire quoi"],
+    "patterns": ["^définis\\s+(.+)", "^(?:que|qu'est-ce\\s+que)\\s+(?:signifie|veut\\s+dire)\\s+(.+)", "^(?:quelle\\s+est\\s+la\\s+)?définition\\s+de\\s+(.+)"],
+    "keywords": [{ "word": "définis", "weight": 1.0 }, { "word": "définition", "weight": 1.0 }, { "word": "signifie", "weight": 0.9 }],
+    "antiKeywords": []
+  },
+
+  "translate": {
+    "phrases": ["traduis", "comment dit-on", "c'est quoi en", "dis en espagnol", "traduis en français"],
+    "patterns": ["^traduis\\s+(.+)", "^comment\\s+(?:dit-on|on\\s+dit)\\s+(.+)", "^(?:c'est\\s+quoi|dis)\\s+en\\s+(\\w+)"],
+    "keywords": [{ "word": "traduis", "weight": 1.0 }, { "word": "espagnol", "weight": 0.8 }, { "word": "anglais", "weight": 0.8 }],
+    "antiKeywords": []
+  },
+
+  "calculate": {
+    "phrases": ["calcule", "combien fait", "quel est le résultat de", "problème de maths"],
+    "patterns": ["^calcule\\s+(.+)", "^combien\\s+(?:fait|font)\\s+(.+)", "^quel\\s+(?:est\\s+le\\s+)?résultat\\s+de\\s+(.+)"],
+    "keywords": [{ "word": "calcule", "weight": 1.0 }, { "word": "maths", "weight": 0.9 }, { "word": "plus", "weight": 0.7 }],
+    "antiKeywords": []
+  },
+
+  "news_update": {
+    "phrases": ["quelles sont les nouvelles", "actualités", "dernières nouvelles", "que se passe-t-il dans le monde"],
+    "patterns": ["^(?:quelles\\s+sont|donne-moi)\\s+(?:les\\s+)?(?:dernières\\s+)?(?:nouvelles|actualités)", "^(?:nouvelles|actualités)\\s+(?:du\\s+jour|aujourd'hui)"],
+    "keywords": [{ "word": "nouvelles", "weight": 1.0 }, { "word": "actualités", "weight": 1.0 }],
+    "antiKeywords": []
+  },
+
+  "get_directions": {
+    "phrases": ["direction vers", "comment aller à", "itinéraire vers", "route vers"],
+    "patterns": ["^(?:donne-moi\\s+)?(?:les\\s+)?directions?\\s+(?:vers|pour)\\s+(.+)", "^comment\\s+(?:aller|se\\s+rendre)\\s+à\\s+(.+)"],
+    "keywords": [{ "word": "direction", "weight": 1.0 }, { "word": "itinéraire", "weight": 1.0 }, { "word": "route", "weight": 0.9 }],
+    "antiKeywords": []
+  },
+
+  "book_search": {
+    "phrases": ["trouve-moi un livre", "recommandation de livre", "suggère un livre", "que devrais-je lire"],
+    "patterns": ["^(?:trouve|recommande|suggère)\\s+(?:-moi\\s+)?(?:un\\s+)?livre", "^que\\s+(?:devrais-je|puis-je)\\s+lire"],
+    "keywords": [{ "word": "livre", "weight": 1.0 }, { "word": "lire", "weight": 0.8 }, { "word": "lecture", "weight": 0.8 }],
+    "antiKeywords": []
+  },
+
+  "podcast_find": {
+    "phrases": ["trouve un podcast", "recommandation de podcast", "suggère un podcast", "quel podcast écouter"],
+    "patterns": ["^(?:trouve|recommande|suggère)\\s+(?:-moi\\s+)?(?:un\\s+)?podcast", "^quel\\s+podcast\\s+(?:devrais-je|puis-je)\\s+écouter"],
+    "keywords": [{ "word": "podcast", "weight": 1.0 }, { "word": "écouter", "weight": 0.7 }],
+    "antiKeywords": []
+  },
+
+  "movie_recommend": {
+    "phrases": ["recommande un film", "quel film regarder", "suggestion de film", "trouve-moi un film"],
+    "patterns": ["^(?:recommande|suggère|trouve)\\s+(?:-moi\\s+)?(?:un\\s+)?film", "^quel\\s+film\\s+(?:devrais-je|puis-je)\\s+regarder"],
+    "keywords": [{ "word": "film", "weight": 1.0 }, { "word": "regarder", "weight": 0.7 }],
+    "antiKeywords": []
+  },
+
+  "restaurant_find": {
+    "phrases": ["trouve un restaurant", "où manger", "recommandation de restaurant", "un endroit pour dîner"],
+    "patterns": ["^(?:trouve|recommande)\\s+(?:-moi\\s+)?(?:un\\s+)?restaurant", "^où\\s+(?:devrais-je|puis-je)\\s+(?:manger|dîner)"],
+    "keywords": [{ "word": "restaurant", "weight": 1.0 }, { "word": "manger", "weight": 0.8 }, { "word": "dîner", "weight": 0.7 }],
+    "antiKeywords": []
   }
 }

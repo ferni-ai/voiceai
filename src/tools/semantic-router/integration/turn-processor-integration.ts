@@ -32,6 +32,7 @@ import {
 } from './metrics.js';
 import { recordRoutingEvent, recordRoutingOutcome } from '../analytics/routing-analytics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
+import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
 
 const log = createLogger({ module: 'semantic-router-integration' });
 
@@ -380,28 +381,78 @@ export async function startSemanticRouting(
 
 /**
  * Execute a matched tool
+ *
+ * IMPORTANT: This function bridges semantic tools to real domain implementations.
+ * When a semantic tool ID has a domain mapping, we execute the real domain tool
+ * rather than the semantic tool's mock execute function.
  */
 async function executeMatchedTool(
   match: ToolMatch,
   context: RoutingContext
 ): Promise<{ success: boolean; naturalResponse: string; error?: string }> {
+  const toolId = match.toolId;
+
+  // ==========================================================================
+  // DOMAIN BRIDGE: Execute real domain tool if mapping exists
+  // ==========================================================================
+  if (hasDomainMapping(toolId)) {
+    log.info(
+      { semanticToolId: toolId, confidence: match.confidence },
+      '🔗 Using domain bridge for semantic tool execution'
+    );
+
+    // Build execution context for domain tool
+    const execContext = {
+      userId: context.userId,
+      sessionId: context.sessionId,
+      personaId: context.personaId,
+      conversationHistory: context.conversationHistory.map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        text: h.content,
+        timestamp: new Date(),
+      })),
+      services: null, // Will be null for semantic router execution
+    };
+
+    // Execute via domain bridge
+    const result = await executeDomainTool(toolId, match.extractedArgs, execContext);
+
+    log.info(
+      {
+        semanticToolId: toolId,
+        success: result.success,
+        responsePreview: result.naturalResponse?.slice(0, 100),
+      },
+      '🔗 Domain bridge execution complete'
+    );
+
+    return {
+      success: result.success,
+      naturalResponse: result.naturalResponse ?? '',
+      error: result.error,
+    };
+  }
+
+  // ==========================================================================
+  // FALLBACK: Execute semantic tool directly (mock response)
+  // ==========================================================================
   const { getToolRegistry } = await import('../registry.js');
   const registry = getToolRegistry();
 
-  // Look up the tool in the registry
-  const tool = registry.get(match.toolId);
+  // Look up the tool in the semantic registry
+  const tool = registry.get(toolId);
   if (!tool) {
-    log.warn({ toolId: match.toolId }, 'Tool not found in registry');
+    log.warn({ toolId }, 'Tool not found in semantic registry');
     return {
       success: false,
       naturalResponse: '',
-      error: `Tool ${match.toolId} not found in registry`,
+      error: `Tool ${toolId} not found in registry`,
     };
   }
 
   log.info(
-    { toolId: match.toolId, confidence: match.confidence },
-    'Executing tool via semantic router'
+    { toolId, confidence: match.confidence },
+    '⚠️ Executing semantic tool directly (no domain bridge)'
   );
 
   try {
@@ -427,7 +478,7 @@ async function executeMatchedTool(
     if (isToolExecutionResult(result)) {
       if (result.success) {
         log.info(
-          { toolId: match.toolId, naturalResponse: result.naturalResponse },
+          { toolId, naturalResponse: result.naturalResponse },
           'Tool executed successfully'
         );
         return {
@@ -435,7 +486,7 @@ async function executeMatchedTool(
           naturalResponse: result.naturalResponse ?? '',
         };
       } else {
-        log.warn({ toolId: match.toolId, error: result.error }, 'Tool execution returned failure');
+        log.warn({ toolId, error: result.error }, 'Tool execution returned failure');
         return {
           success: false,
           naturalResponse: result.naturalResponse ?? '',
@@ -445,13 +496,13 @@ async function executeMatchedTool(
     }
 
     // SemanticRoutingResult - treat as successful routing
-    log.info({ toolId: match.toolId, targetTool: result.tool }, 'Routing to target tool');
+    log.info({ toolId, targetTool: result.tool }, 'Routing to target tool');
     return {
       success: true,
       naturalResponse: `Routing to ${result.tool}`,
     };
   } catch (error) {
-    log.error({ toolId: match.toolId, error: String(error) }, 'Tool execution threw error');
+    log.error({ toolId, error: String(error) }, 'Tool execution threw error');
     return {
       success: false,
       naturalResponse: '',

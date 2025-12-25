@@ -255,5 +255,246 @@
       { "word": "nayan", "weight": 0.9 }
     ],
     "antiKeywords": []
+  },
+
+  "spotify_pause": {
+    "phrases": ["pausa", "pausa la música", "para la música", "deja de reproducir"],
+    "patterns": ["^(?:pausa|para|detén)\\s+(?:la\\s+)?(?:música|canción)"],
+    "keywords": [{ "word": "pausa", "weight": 1.0 }, { "word": "para", "weight": 0.9 }],
+    "antiKeywords": ["pon", "reproduce", "continúa"]
+  },
+
+  "spotify_skip": {
+    "phrases": ["siguiente canción", "salta", "pasa esta", "siguiente"],
+    "patterns": ["^(?:siguiente|salta|pasa)\\s+(?:esta\\s+)?(?:canción)?"],
+    "keywords": [{ "word": "siguiente", "weight": 1.0 }, { "word": "salta", "weight": 1.0 }],
+    "antiKeywords": ["anterior", "atrás"]
+  },
+
+  "set_timer": {
+    "phrases": ["pon un temporizador", "temporizador de", "cronómetro de"],
+    "patterns": ["^(?:pon|configura)\\s+(?:un\\s+)?temporizador\\s+(?:de\\s+)?(.+)"],
+    "keywords": [{ "word": "temporizador", "weight": 1.0 }, { "word": "minutos", "weight": 0.7 }],
+    "antiKeywords": ["alarma", "recordatorio"]
+  },
+
+  "set_reminder": {
+    "phrases": ["recuérdame que", "pon un recordatorio", "no me dejes olvidar"],
+    "patterns": ["^recuérdame\\s+(?:que\\s+)?(.+)", "^(?:pon|crea)\\s+(?:un\\s+)?recordatorio\\s+(?:para\\s+)?(.+)"],
+    "keywords": [{ "word": "recuérdame", "weight": 1.0 }, { "word": "recordatorio", "weight": 1.0 }],
+    "antiKeywords": ["temporizador", "alarma"]
+  },
+
+  "burnout_assess": {
+    "phrases": [
+      "estoy quemado",
+      "estoy agotado",
+      "creo que tengo burnout",
+      "no puedo más",
+      "estoy exhausto"
+    ],
+    "patterns": [
+      "^estoy\\s+(?:muy\\s+)?(?:quemado|agotado|exhausto|destrozado)",
+      "^(?:creo|pienso)\\s+(?:que\\s+)?(?:tengo|estoy\\s+con)\\s+burnout"
+    ],
+    "keywords": [
+      { "word": "burnout", "weight": 1.0 },
+      { "word": "quemado", "weight": 1.0 },
+      { "word": "agotado", "weight": 0.9 },
+      { "word": "exhausto", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "career_coaching": {
+    "phrases": [
+      "necesito consejos de carrera",
+      "ayuda con mi carrera",
+      "cambio de carrera",
+      "debería dejar mi trabajo",
+      "pensando en un nuevo trabajo"
+    ],
+    "patterns": [
+      "^(?:necesito|ayúdame\\s+con)\\s+(?:mi\\s+)?carrera",
+      "^(?:debería|estoy\\s+pensando\\s+en)\\s+(?:dejar|cambiar)\\s+(?:mi\\s+)?(?:trabajo|carrera)"
+    ],
+    "keywords": [
+      { "word": "carrera", "weight": 1.0 },
+      { "word": "trabajo", "weight": 0.8 },
+      { "word": "dejar", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "decision_help": {
+    "phrases": [
+      "ayúdame a decidir",
+      "no puedo decidir",
+      "debería",
+      "ayúdame a tomar una decisión",
+      "estoy indeciso"
+    ],
+    "patterns": [
+      "^(?:ayúdame\\s+a|no\\s+puedo)\\s+decidir",
+      "^debería\\s+(.+)",
+      "^estoy\\s+(?:muy\\s+)?(?:indeciso|dudando)"
+    ],
+    "keywords": [
+      { "word": "decidir", "weight": 1.0 },
+      { "word": "decisión", "weight": 1.0 },
+      { "word": "indeciso", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "grief_support": {
+    "phrases": [
+      "perdí a alguien",
+      "alguien murió",
+      "estoy de luto",
+      "mi ser querido falleció",
+      "lo extraño mucho"
+    ],
+    "patterns": [
+      "^(?:acabo\\s+de\\s+)?perder\\s+(?:a\\s+)?(?:alguien|un\\s+ser\\s+querido)",
+      "^estoy\\s+(?:de\\s+)?(?:luto|duelo)",
+      "^(?:mi\\s+)?(?:mamá|papá|abuelo|abuela|amigo)\\s+(?:acaba\\s+de\\s+)?(?:morir|fallecer)"
+    ],
+    "keywords": [
+      { "word": "luto", "weight": 1.0 },
+      { "word": "pérdida", "weight": 0.9 },
+      { "word": "murió", "weight": 1.0 },
+      { "word": "falleció", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "anger_support": {
+    "phrases": [
+      "estoy muy enojado",
+      "estoy furioso",
+      "no puedo controlar mi ira",
+      "ayúdame con mi enojo"
+    ],
+    "patterns": [
+      "^estoy\\s+(?:muy\\s+)?(?:enojado|furioso|molesto)",
+      "^no\\s+puedo\\s+controlar\\s+mi\\s+(?:ira|enojo)"
+    ],
+    "keywords": [
+      { "word": "enojado", "weight": 1.0 },
+      { "word": "furioso", "weight": 0.9 },
+      { "word": "ira", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "gratitude_practice": {
+    "phrases": [
+      "práctica de gratitud",
+      "por qué estoy agradecido",
+      "ayúdame a ser agradecido",
+      "contar mis bendiciones"
+    ],
+    "patterns": [
+      "^(?:hagamos|ayúdame\\s+con)\\s+(?:una\\s+)?(?:práctica\\s+de\\s+)?gratitud",
+      "^(?:por\\s+qué|de\\s+qué)\\s+(?:estoy|debo\\s+estar)\\s+agradecido"
+    ],
+    "keywords": [
+      { "word": "gratitud", "weight": 1.0 },
+      { "word": "agradecido", "weight": 1.0 },
+      { "word": "bendiciones", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "self_compassion": {
+    "phrases": [
+      "soy muy duro conmigo mismo",
+      "me odio",
+      "no soy suficiente",
+      "me siento un fracaso"
+    ],
+    "patterns": [
+      "^soy\\s+(?:muy\\s+)?duro\\s+conmigo\\s+mismo",
+      "^me\\s+(?:odio|detesto)",
+      "^no\\s+soy\\s+(?:lo\\s+)?suficiente"
+    ],
+    "keywords": [
+      { "word": "duro", "weight": 0.6 },
+      { "word": "fracaso", "weight": 0.8 },
+      { "word": "compasión", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "loneliness_support": {
+    "phrases": [
+      "estoy muy solo",
+      "me siento solo",
+      "no tengo amigos",
+      "nadie me entiende",
+      "me siento aislado"
+    ],
+    "patterns": [
+      "^(?:estoy|me\\s+siento)\\s+(?:muy\\s+)?(?:solo|aislado)",
+      "^no\\s+tengo\\s+(?:amigos|a\\s+nadie)"
+    ],
+    "keywords": [
+      { "word": "solo", "weight": 1.0 },
+      { "word": "aislado", "weight": 0.9 },
+      { "word": "amigos", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "sleep_help": {
+    "phrases": [
+      "no puedo dormir",
+      "ayúdame a dormir",
+      "insomnio",
+      "problemas para dormir"
+    ],
+    "patterns": [
+      "^no\\s+puedo\\s+(?:quedarme\\s+)?dormido",
+      "^(?:ayúdame|necesito\\s+ayuda)\\s+(?:para|a)\\s+dormir"
+    ],
+    "keywords": [
+      { "word": "dormir", "weight": 1.0 },
+      { "word": "insomnio", "weight": 1.0 },
+      { "word": "despierto", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "motivation_boost": {
+    "phrases": [
+      "necesito motivación",
+      "no estoy motivado",
+      "ayúdame a empezar",
+      "estoy procrastinando"
+    ],
+    "patterns": [
+      "^(?:necesito|quiero|no\\s+tengo)\\s+(?:más\\s+)?motivación",
+      "^(?:no\\s+)?estoy\\s+(?:muy\\s+)?(?:motivado|procrastinando)"
+    ],
+    "keywords": [
+      { "word": "motivación", "weight": 1.0 },
+      { "word": "procrastinando", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "news_update": {
+    "phrases": ["qué hay de nuevo", "noticias de hoy", "últimas noticias", "qué está pasando"],
+    "patterns": ["^(?:qué|cuáles\\s+son)\\s+(?:las\\s+)?(?:últimas\\s+)?noticias", "^(?:noticias|titulares)\\s+(?:de\\s+)?hoy"],
+    "keywords": [{ "word": "noticias", "weight": 1.0 }, { "word": "titulares", "weight": 0.9 }],
+    "antiKeywords": []
+  },
+
+  "set_alarm": {
+    "phrases": ["pon una alarma", "despiértame", "alarma para"],
+    "patterns": ["^(?:pon|configura)\\s+(?:una\\s+)?alarma\\s+(?:para\\s+)?(.+)", "^despiértame\\s+(?:a\\s+)?(.+)"],
+    "keywords": [{ "word": "alarma", "weight": 1.0 }, { "word": "despiértame", "weight": 0.9 }],
+    "antiKeywords": ["temporizador", "recordatorio"]
   }
 }

@@ -356,3 +356,132 @@ export function logToolCallComplete(sessionId: string, toolCalled: string | null
     log.debug({ sessionId }, '📝 No tool call triggered (conversational response)');
   }
 }
+
+// ============================================================================
+// AGGREGATE METRICS (FOR GEMINI HEALTH ENDPOINT)
+// ============================================================================
+
+export interface GeminiHealthMetrics {
+  /** Whether Gemini is the active LLM */
+  isGemini: boolean;
+  /** Overall status */
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  /** Active session count */
+  activeSessions: number;
+  /** Aggregate metrics across all sessions */
+  aggregate: {
+    totalToolCalls: number;
+    jsonCalls: number;
+    nativeCalls: number;
+    leakageCount: number;
+    retryCount: number;
+    leakageRate: number;
+    retrySuccessRate: number;
+  };
+  /** Recent leakages (last 5) */
+  recentLeakages: Array<{
+    sessionId: string;
+    timestamp: number;
+    pattern: string;
+    suggestedTool: string | null;
+  }>;
+  /** Health thresholds */
+  thresholds: {
+    healthyLeakageRate: number;
+    degradedLeakageRate: number;
+  };
+  /** Recommendation */
+  recommendation: string | null;
+}
+
+/**
+ * Get aggregate Gemini health metrics across all active sessions.
+ * Used by the /health/gemini endpoint for monitoring.
+ */
+export function getGeminiHealthMetrics(): GeminiHealthMetrics {
+  const isGemini = process.env.USE_OPENAI_REALTIME !== 'true';
+
+  // Aggregate metrics across all sessions
+  let totalToolCalls = 0;
+  let jsonCalls = 0;
+  let nativeCalls = 0;
+  let leakageCount = 0;
+  let retryCount = 0;
+  const recentLeakages: GeminiHealthMetrics['recentLeakages'] = [];
+
+  for (const session of sessions.values()) {
+    jsonCalls += session.jsonCallCount;
+    nativeCalls += session.nativeCallCount;
+    leakageCount += session.leakageCount;
+    retryCount += session.retryCount;
+
+    // Collect leakage events
+    for (const event of session.events) {
+      if (event.type === 'leakage_detected') {
+        recentLeakages.push({
+          sessionId: session.sessionId,
+          timestamp: event.timestamp,
+          pattern: (event.metadata?.['pattern'] as string) || 'unknown',
+          suggestedTool: event.fn || null,
+        });
+      }
+    }
+  }
+
+  totalToolCalls = jsonCalls + nativeCalls;
+
+  // Calculate rates
+  const denominator = totalToolCalls + leakageCount;
+  const leakageRate = denominator > 0 ? leakageCount / denominator : 0;
+
+  // Retry success rate: if retries > 0, check how many leakages we had after
+  // (This is approximate - would need more tracking for exact success rate)
+  const retrySuccessRate = retryCount > 0 ? Math.max(0, 1 - (leakageCount / (retryCount + 1))) : 1;
+
+  // Sort and limit recent leakages
+  recentLeakages.sort((a, b) => b.timestamp - a.timestamp);
+  const last5Leakages = recentLeakages.slice(0, 5);
+
+  // Thresholds
+  const HEALTHY_LEAKAGE = 0.05; // <5% is healthy
+  const DEGRADED_LEAKAGE = 0.15; // 5-15% is degraded, >15% is unhealthy
+
+  // Determine status
+  let status: 'healthy' | 'degraded' | 'unhealthy';
+  let recommendation: string | null = null;
+
+  if (!isGemini) {
+    status = 'healthy'; // OpenAI doesn't have leakage issues
+    recommendation = null;
+  } else if (leakageRate < HEALTHY_LEAKAGE) {
+    status = 'healthy';
+    recommendation = null;
+  } else if (leakageRate < DEGRADED_LEAKAGE) {
+    status = 'degraded';
+    recommendation = 'Leakage rate elevated. Consider lowering semantic router auto-execute threshold.';
+  } else {
+    status = 'unhealthy';
+    recommendation = 'High leakage rate. Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) or investigate Gemini prompt issues.';
+  }
+
+  return {
+    isGemini,
+    status,
+    activeSessions: sessions.size,
+    aggregate: {
+      totalToolCalls,
+      jsonCalls,
+      nativeCalls,
+      leakageCount,
+      retryCount,
+      leakageRate: Math.round(leakageRate * 100) / 100,
+      retrySuccessRate: Math.round(retrySuccessRate * 100) / 100,
+    },
+    recentLeakages: last5Leakages,
+    thresholds: {
+      healthyLeakageRate: HEALTHY_LEAKAGE,
+      degradedLeakageRate: DEGRADED_LEAKAGE,
+    },
+    recommendation,
+  };
+}

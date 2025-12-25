@@ -1,16 +1,127 @@
 /**
  * Journal Prompts
  *
- * Prompt fetching and rendering for journaling.
+ * Prompt fetching and rendering for journaling with offline caching.
  *
  * @module voice-journal/prompts
  */
 
 import { createLogger } from '../../utils/logger.js';
 import type { JournalPrompt } from './types.js';
-import { getModal, getCurrentPrompt, setCurrentPrompt } from './state.js';
+import { getModal, getCurrentPrompt, setCurrentPrompt, getCurrentAgent } from './state.js';
 
 const log = createLogger('VoiceJournalPrompts');
+
+// ============================================================================
+// PROMPT CACHE FOR OFFLINE USE
+// ============================================================================
+
+const CACHE_KEY = 'ferni_journal_prompts_cache';
+const CACHE_SIZE = 10; // Pre-fetch 10 prompts
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface PromptCache {
+  prompts: JournalPrompt[];
+  timestamp: number;
+  agentId?: string;
+}
+
+/**
+ * Load cached prompts from localStorage
+ */
+function loadCachedPrompts(): PromptCache | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    
+    const data = JSON.parse(cached) as PromptCache;
+    
+    // Check if cache is expired
+    if (Date.now() - data.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    log.debug('Failed to load prompt cache:', err);
+    return null;
+  }
+}
+
+/**
+ * Save prompts to cache
+ */
+function saveCachedPrompts(prompts: JournalPrompt[], agentId?: string): void {
+  try {
+    const cache: PromptCache = {
+      prompts,
+      timestamp: Date.now(),
+      agentId,
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    log.debug(`Cached ${prompts.length} prompts for offline use`);
+  } catch (err) {
+    log.debug('Failed to save prompt cache:', err);
+  }
+}
+
+/**
+ * Get a prompt from cache (different from current prompt)
+ */
+function getPromptFromCache(excludeId?: string): JournalPrompt | null {
+  const cache = loadCachedPrompts();
+  if (!cache || cache.prompts.length === 0) return null;
+  
+  // Filter out current prompt if provided
+  const available = excludeId 
+    ? cache.prompts.filter(p => p.id !== excludeId)
+    : cache.prompts;
+    
+  if (available.length === 0) return null;
+  
+  // Get a random prompt from cache
+  const index = Math.floor(Math.random() * available.length);
+  return available[index];
+}
+
+/**
+ * Pre-fetch multiple prompts for offline use
+ * Call this when opening the journal to ensure prompts are available offline
+ */
+export async function prefetchPrompts(): Promise<void> {
+  const currentAgent = getCurrentAgent();
+  const agentId = currentAgent?.id;
+  
+  // Check if we already have fresh cache
+  const existingCache = loadCachedPrompts();
+  if (existingCache && existingCache.prompts.length >= CACHE_SIZE / 2) {
+    log.debug('Prompt cache still valid, skipping prefetch');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/journal/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        count: CACHE_SIZE,
+        timeOfDay: getTimeOfDay(),
+        agentId,
+      }),
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.prompts && Array.isArray(data.prompts)) {
+        saveCachedPrompts(data.prompts as JournalPrompt[], agentId);
+        log.info(`Pre-fetched ${data.prompts.length} prompts for offline use`);
+      }
+    }
+  } catch (err) {
+    log.debug('Failed to prefetch prompts (offline?):', err);
+  }
+}
 
 // ============================================================================
 // FALLBACK PROMPTS
@@ -120,20 +231,39 @@ export async function fetchPrompt(selectedMood?: string): Promise<JournalPrompt>
     if (response.ok) {
       const data = await response.json();
       if (data.prompt) {
+        // Also trigger background prefetch for next time
+        void prefetchPrompts();
         return data.prompt as JournalPrompt;
       }
     }
   } catch (error) {
-    log.debug('Backend prompt fetch failed, using local prompts:', error);
+    log.debug('Backend prompt fetch failed, trying cache:', error);
   }
 
-  // Fallback to local prompts
+  // Try cached prompts (for offline use)
+  const cachedPrompt = getPromptFromCache();
+  if (cachedPrompt) {
+    log.debug('Using cached prompt (offline mode)');
+    return cachedPrompt;
+  }
+
+  // Final fallback to local prompts
   const timeBasedPrompts = getTimeBasedPrompts();
   return timeBasedPrompts[Math.floor(Math.random() * timeBasedPrompts.length)];
 }
 
 export function shufflePrompt(): void {
   const currentPrompt = getCurrentPrompt();
+  
+  // First try cached prompts
+  const cachedPrompt = getPromptFromCache(currentPrompt?.id);
+  if (cachedPrompt) {
+    setCurrentPrompt(cachedPrompt);
+    renderPromptSection();
+    return;
+  }
+  
+  // Fall back to local prompts
   const prompts = getTimeBasedPrompts();
   const filtered = prompts.filter((p) => p.id !== currentPrompt?.id);
   const newPrompt = filtered[Math.floor(Math.random() * filtered.length)];

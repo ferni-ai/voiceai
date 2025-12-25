@@ -8,6 +8,9 @@ patchedDependencies:
   '@livekit/agents':
     hash: 71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1
     path: patches/@livekit__agents.patch
+  '@livekit/agents-plugin-google':
+    hash: 2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab
+    path: patches/@livekit__agents-plugin-google.patch
 
 importers:
 
@@ -29,23 +32,23 @@ importers:
         specifier: 0.24.1
         version: 0.24.1
       '@livekit/agents':
-        specifier: ^1.0.27
-        version: 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+        specifier: ^1.0.31
+        version: 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/agents-plugin-cartesia':
-        specifier: ^1.0.27
-        version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
+        specifier: ^1.0.31
+        version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
       '@livekit/agents-plugin-deepgram':
-        specifier: 1.0.27
-        version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
+        specifier: 1.0.31
+        version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
       '@livekit/agents-plugin-google':
-        specifier: ^1.0.27
-        version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
+        specifier: ^1.0.31
+        version: 1.0.31(patch_hash=2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
       '@livekit/agents-plugin-openai':
-        specifier: ^1.0.30
-        version: 1.0.30(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+        specifier: ^1.0.31
+        version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/agents-plugin-silero':
-        specifier: ^1.0.27
-        version: 1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
+        specifier: ^1.0.31
+        version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
       '@livekit/noise-cancellation-node':
         specifier: ^0.1.9
         version: 0.1.9
@@ -88,6 +91,9 @@ importers:
       ioredis:
         specifier: ^5.8.2
         version: 5.8.2
+      jose:
+        specifier: 6.1.3
+        version: 6.1.3
       livekit-client:
         specifier: ^2.16.0
         version: 2.16.1(@types/dom-mediacapture-record@1.0.22)
@@ -1842,40 +1848,40 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@livekit/agents-plugin-cartesia@1.0.27':
-    resolution: {integrity: sha512-6QjEjPXJveUd3taI70RZswhmWh7aKsjgJz/vIRvYZC5teq3o29qpakOAxYsWoVEm8vHvStRAXZPJKR8R7XIwmg==}
+  '@livekit/agents-plugin-cartesia@1.0.31':
+    resolution: {integrity: sha512-IvCuE22G9ePq/nH1LHxtBGiZjw6w+cHAy+I9/3yYjLKwpC5kr55NLG/SPQg1luEueBUSo1/CgGuPqUcvXzqQwg==}
     peerDependencies:
-      '@livekit/agents': 1.0.27
-      '@livekit/rtc-node': ^0.13.12
-
-  '@livekit/agents-plugin-deepgram@1.0.27':
-    resolution: {integrity: sha512-6tDoFgwunlYmiZ5ZQaBGhoOpsN9mmVGh1Gu3O9ASHh7+WkmMrSxJf7eq1l5oqNn2qBUMdXmmS2cD0LP4gs3CKA==}
-    peerDependencies:
-      '@livekit/agents': 1.0.27
-      '@livekit/rtc-node': ^0.13.12
-
-  '@livekit/agents-plugin-google@1.0.27':
-    resolution: {integrity: sha512-8AGJKUKu85+EiaSiBmReei6TS+QAfXB/AzQ3ssgel4NY9vTKUFI8q7IGr0Jd7lo44DgSG2vG6hKYbT9hsEKbjg==}
-    peerDependencies:
-      '@livekit/agents': 1.0.27
-      '@livekit/rtc-node': ^0.13.12
-
-  '@livekit/agents-plugin-openai@1.0.30':
-    resolution: {integrity: sha512-jeYJGiO2uaP14jDCLRlyTZl371iVg3j380OFK6WdJGPitxX5MGXBLqRUNLYVTZXB7llX9J/IAmk85+28D0sfOg==}
-    peerDependencies:
-      '@livekit/agents': 1.0.30
+      '@livekit/agents': 1.0.31
       '@livekit/rtc-node': ^0.13.22
 
-  '@livekit/agents-plugin-silero@1.0.27':
-    resolution: {integrity: sha512-6C03MwiBa9OH1hKir7Dkn2LE1do2QOH28vKFVx5T1wlZ/9EFy+HZpoO9xOqUMRG6bgfzeBojncwAoEepZL0OJw==}
+  '@livekit/agents-plugin-deepgram@1.0.31':
+    resolution: {integrity: sha512-C8/wRwi5WK5hEUPSFsKGxkxUbx7Zsmc74Ggs8GfUODNtkn7F5gLOMDwIfL4TD/ethTRPNGmFe9P0lxxipbrqow==}
     peerDependencies:
-      '@livekit/agents': 1.0.27
-      '@livekit/rtc-node': ^0.13.12
+      '@livekit/agents': 1.0.31
+      '@livekit/rtc-node': ^0.13.22
 
-  '@livekit/agents@1.0.27':
-    resolution: {integrity: sha512-xIplCn1bgCYeuCWn9DGLZx6BDuXMPighIlD4+wpA++aggCe9+38LWfaDVxXGvkV6dHsJN3GoEkmS69CYP12ZAg==}
+  '@livekit/agents-plugin-google@1.0.31':
+    resolution: {integrity: sha512-BKnpWGCJiF5WM/oLt3Gc1i2Vy+MXtie6vQ2R7MrpLV/kltnddURHN6pNO/PcumSiHD3SATjB3f3lEghRc3Vwjg==}
     peerDependencies:
-      '@livekit/rtc-node': ^0.13.12
+      '@livekit/agents': 1.0.31
+      '@livekit/rtc-node': ^0.13.22
+
+  '@livekit/agents-plugin-openai@1.0.31':
+    resolution: {integrity: sha512-bVWjuKSsbeaZ6CWjYSz1fnVrmI0ZavYPphzM5O/poqN8ipXcv1xS1P7jJhhqLKHX717Nqdz7FL38vt3sq7CZlQ==}
+    peerDependencies:
+      '@livekit/agents': 1.0.31
+      '@livekit/rtc-node': ^0.13.22
+
+  '@livekit/agents-plugin-silero@1.0.31':
+    resolution: {integrity: sha512-cXpCBTOc8whMb6RuqHpWgvfkcdJ/7v8XyJ6jtvVbQ2fl6te5SK22mZwv6d1hobKve3Ev7nJxERf6PLLFqZ0pqA==}
+    peerDependencies:
+      '@livekit/agents': 1.0.31
+      '@livekit/rtc-node': ^0.13.22
+
+  '@livekit/agents@1.0.31':
+    resolution: {integrity: sha512-da4mbbrUpWyyBh7/P2vhK2uXlsjAsu+Rt9f7p8evVllbd75CfRG8tSG8/c0bytTsF4JL5DvVeIBoRW6u16Vyxw==}
+    peerDependencies:
+      '@livekit/rtc-node': ^0.13.22
       zod: ^3.25.76 || ^4.1.8
 
   '@livekit/mutex@1.1.1':
@@ -7888,28 +7894,28 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@livekit/agents-plugin-cartesia@1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
+  '@livekit/agents-plugin-cartesia@1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
     dependencies:
-      '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+      '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/rtc-node': 0.13.22
-      ws: 8.17.1
+      ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-deepgram@1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
+  '@livekit/agents-plugin-deepgram@1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
     dependencies:
-      '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+      '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/rtc-node': 0.13.22
-      ws: 8.17.1
+      ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
+  '@livekit/agents-plugin-google@1.0.31(patch_hash=2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
     dependencies:
       '@google/genai': 1.34.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
-      '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+      '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.22
       '@types/json-schema': 7.0.15
@@ -7920,9 +7926,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@livekit/agents-plugin-openai@1.0.30(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
+  '@livekit/agents-plugin-openai@1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
     dependencies:
-      '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+      '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.22
       openai: 6.10.0(ws@8.18.3)(zod@4.1.13)
@@ -7932,17 +7938,17 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@livekit/agents-plugin-silero@1.0.27(@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
+  '@livekit/agents-plugin-silero@1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)':
     dependencies:
-      '@livekit/agents': 1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
+      '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
       '@livekit/rtc-node': 0.13.22
       onnxruntime-node: 1.21.0
-      ws: 8.17.1
+      ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@1.0.27(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
+  '@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)':
     dependencies:
       '@ffmpeg-installer/ffmpeg': 1.1.0
       '@livekit/mutex': 1.1.1

@@ -16,6 +16,9 @@ let package = Package(
 
         // Shared code between macOS and iOS apps
         .package(path: "../shared"),
+
+        // Firebase Auth for Sign In with Apple
+        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "11.0.0"),
     ],
     targets: [
         .target(
@@ -23,6 +26,7 @@ let package = Package(
             dependencies: [
                 .product(name: "LiveKit", package: "client-sdk-swift"),
                 .product(name: "FerniShared", package: "shared"),
+                .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
             ],
             path: "Sources"
         ),

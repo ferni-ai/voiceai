@@ -268,7 +268,7 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
   wellbeing: 'wellbeing-dashboard',
   predictions: 'prediction-accuracy',
   'group-coaching': 'group-coaching',
-  'video-settings': 'video-sessions',
+  'video-call-settings': 'video-sessions',
 
   // Established stage (20+ convos, 14+ days)
   cognitive: 'deep-insights',
@@ -730,7 +730,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
             ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
-            ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
+            ${this.renderMenuItem('video-call-settings', ICONS.video, t('menu.items.videoSessions'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
             ${this.renderMenuItem('together-sessions', ICONS.users, t('menu.items.togetherSessions'))}
           `
@@ -747,7 +747,7 @@ class SettingsMenuUI {
                   expandedSections.has('yourPeople'),
                   `
             ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
-            ${this.renderMenuItem('household', ICONS.home, t('menu.items.householdMembers'))}
+            ${this.renderMenuItem('household-members', ICONS.home, t('menu.items.householdMembers'))}
           `
                 )
               : ''
@@ -767,26 +767,27 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 6: Settings - Preferences & account combined -->
-          ${
-            this.isSectionVisible('settings')
+          <!-- SECTION 6: Settings - Preferences & account combined (UPDATED 2024-12-24 v2) -->
+          ${(() => {
+            console.log('[SettingsMenu] Rendering Settings section with personalize + voice-enrollment');
+            return this.isSectionVisible('settings')
               ? this.renderCollapsibleSection(
                   'settings',
                   t('menu.sections.settings'),
                   expandedSections.has('settings'),
                   `
-            ${this.renderMenuItem('personalize', ICONS.palette, t('menu.items.personalize'))}
+            ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
-            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
+            ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )
-              : ''
-          }
+              : '';
+          })()}
 
           <!-- SECTION: Admin (only visible for admins) -->
           ${this.renderAdminSection(expandedSections)}
@@ -966,7 +967,7 @@ class SettingsMenuUI {
       'team-insights': { icon: ICONS.lightbulb, label: t('menu.items.teamInsights') },
       history: { icon: ICONS.history, label: t('menu.items.conversationHistory') },
       contacts: { icon: ICONS.users, label: t('menu.items.contacts') },
-      'video-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
+      'video-call-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
       team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
@@ -1214,6 +1215,7 @@ class SettingsMenuUI {
         this.callbacks.onCalendarSettingsClick?.();
         break;
       case 'voice-enrollment':
+      case 'voice-id-settings':
         this.callbacks.onVoiceEnrollmentClick?.();
         break;
       case 'subscription':
@@ -1223,6 +1225,7 @@ class SettingsMenuUI {
         this.callbacks.onBillingPortalClick?.();
         break;
       case 'household':
+      case 'household-members':
         this.callbacks.onHouseholdClick?.();
         break;
       case 'conversation-memory':
@@ -1238,6 +1241,7 @@ class SettingsMenuUI {
         this.callbacks.onTeamInsightsClick?.();
         break;
       case 'personalize':
+      case 'personal-settings':
         this.callbacks.onPersonalizeClick?.();
         break;
       case 'your-journey':
@@ -1261,6 +1265,7 @@ class SettingsMenuUI {
       case 'linkedin-settings':
         this.callbacks.onLinkedInClick?.();
         break;
+      case 'video-call-settings':
       case 'video-settings':
         this.callbacks.onVideoSettingsClick?.();
         break;

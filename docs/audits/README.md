@@ -60,6 +60,14 @@ System and code quality audits for the Ferni AI project.
 | [SDLC-AUDIT.md](./SDLC-AUDIT.md) | Dev lifecycle | Dec 2024 |
 | [TEST-AUDIT-PRODUCTION-READINESS.md](./TEST-AUDIT-PRODUCTION-READINESS.md) | Test coverage | Dec 2024 |
 
+### Domain & System Audits
+| Audit | Focus | Last Updated |
+|-------|-------|--------------|
+| [HEALTH-HOME-WELLNESS-AUDIT.md](./HEALTH-HOME-WELLNESS-AUDIT.md) | Health/home domain structure ✅ | Dec 2024 |
+| [PERSONAS-AUDIT-REPORT.md](./PERSONAS-AUDIT-REPORT.md) | Persona system cleanup | Dec 2024 |
+| [TOOLS-CODEBASE-AUDIT.md](./TOOLS-CODEBASE-AUDIT.md) | Tool exports & structure | Dec 2024 |
+| [IOS-BETTER-THAN-HUMAN-AUDIT.md](./IOS-BETTER-THAN-HUMAN-AUDIT.md) | iOS BTH implementation | Dec 2024 |
+
 ---
 
 ## Completed Audits (Archived)
@@ -91,4 +99,4 @@ pnpm debt:markdown  # Generate markdown report
 
 ---
 
-_Last updated: December 23, 2024_
+_Last updated: December 24, 2024_

@@ -15,7 +15,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { sendEmail, sendSMS } from '../communication-service.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
 
 const log = createLogger({ module: 'voice-message-delivery' });
@@ -50,11 +49,10 @@ export interface VoiceMessageResult {
 }
 
 export interface TTSConfig {
-  provider: 'elevenlabs' | 'google' | 'azure';
+  provider: 'cartesia' | 'google';
   voiceId: string;
-  stability?: number;
-  similarityBoost?: number;
-  style?: number;
+  speed?: number;
+  emotion?: string;
 }
 
 // ============================================================================
@@ -62,46 +60,54 @@ export interface TTSConfig {
 // ============================================================================
 
 /**
- * Default TTS configuration
+ * Default TTS configuration - uses Cartesia (Ferni's TTS provider)
  */
 const DEFAULT_TTS_CONFIG: TTSConfig = {
-  provider: 'elevenlabs',
-  voiceId: 'pNInz6obpgDQGcFmaJgB', // "Adam" - warm male voice
-  stability: 0.5,
-  similarityBoost: 0.75,
+  provider: 'cartesia',
+  voiceId: process.env.FERNI_VOICE_ID || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+  speed: 0.95,
+  emotion: 'warm',
 };
 
 /**
- * Generate speech audio from text using ElevenLabs
+ * Generate speech audio from text using Cartesia (Ferni's TTS provider)
  */
-async function generateSpeechElevenLabs(text: string, config: TTSConfig): Promise<Buffer> {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
+async function generateSpeechCartesia(text: string, config: TTSConfig): Promise<Buffer> {
+  const apiKey = process.env.CARTESIA_API_KEY;
   if (!apiKey) {
-    throw new Error('ElevenLabs API key not configured');
+    throw new Error('Cartesia API key not configured');
   }
 
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
+  const response = await fetch('https://api.cartesia.ai/tts/bytes', {
     method: 'POST',
     headers: {
-      'xi-api-key': apiKey,
+      'X-API-Key': apiKey,
+      'Cartesia-Version': '2024-06-10',
       'Content-Type': 'application/json',
-      Accept: 'audio/mpeg',
     },
     body: JSON.stringify({
-      text,
-      model_id: 'eleven_monolingual_v1',
-      voice_settings: {
-        stability: config.stability || 0.5,
-        similarity_boost: config.similarityBoost || 0.75,
-        style: config.style || 0,
-        use_speaker_boost: true,
+      model_id: 'sonic-english',
+      transcript: text,
+      voice: {
+        mode: 'id',
+        id: config.voiceId,
       },
+      output_format: {
+        container: 'mp3',
+        encoding: 'mp3',
+        sample_rate: 44100,
+      },
+      language: 'en',
+      ...(config.speed !== undefined && config.speed !== 1.0
+        ? { voice_experimental_controls: { speed: config.speed } }
+        : {}),
+      ...(config.emotion ? { voice_experimental_controls: { emotion: [config.emotion] } } : {}),
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`ElevenLabs TTS error: ${response.status} - ${error}`);
+    throw new Error(`Cartesia TTS error: ${response.status} - ${error}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -156,8 +162,8 @@ export async function synthesizeSpeech(
   let audio: Buffer;
 
   try {
-    if (fullConfig.provider === 'elevenlabs' && process.env.ELEVENLABS_API_KEY) {
-      audio = await generateSpeechElevenLabs(text, fullConfig);
+    if (fullConfig.provider === 'cartesia' && process.env.CARTESIA_API_KEY) {
+      audio = await generateSpeechCartesia(text, fullConfig);
     } else {
       // Fall back to Google
       audio = await generateSpeechGoogle(text, fullConfig);
@@ -294,14 +300,83 @@ async function deliverViaEmail(
       ],
     };
 
-    const [response] = await sgMail.default.send(msg);
+    const result = await sgMail.default.send(msg);
+    const response = result?.[0] as { headers?: Record<string, unknown> } | undefined;
+    const messageId =
+      response?.headers && typeof response.headers === 'object'
+        ? String(response.headers['x-message-id'] ?? '')
+        : undefined;
 
     log.info({ to: email }, 'Voice message sent via email');
-    return { success: true, messageId: response.headers['x-message-id'] };
+    return { success: true, messageId };
   } catch (error) {
     log.error({ error: String(error) }, 'Email delivery failed');
     return { success: false, error: String(error) };
   }
+}
+
+// ============================================================================
+// DELIVERY ROUTING
+// ============================================================================
+
+interface ContactInfo {
+  phone?: string;
+  email?: string;
+}
+
+interface DeliveryResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+/**
+ * Route delivery to the appropriate channel
+ */
+async function routeDelivery(
+  contact: ContactInfo,
+  audioUrl: string,
+  message: string,
+  deliveryMethod: VoiceMessageRequest['deliveryMethod'],
+  subject?: string
+): Promise<VoiceMessageResult> {
+  switch (deliveryMethod) {
+    case 'mms':
+      if (!contact.phone) {
+        return { success: false, deliveryStatus: 'failed', error: 'Contact has no phone number' };
+      }
+      return formatDeliveryResult(await deliverViaMMS(contact.phone, audioUrl, message), audioUrl);
+
+    case 'email':
+      if (!contact.email) {
+        return { success: false, deliveryStatus: 'failed', error: 'Contact has no email' };
+      }
+      return formatDeliveryResult(
+        await deliverViaEmail(contact.email, audioUrl, message, subject || 'Voice message'),
+        audioUrl
+      );
+
+    case 'voicemail_drop':
+      return {
+        success: false,
+        deliveryStatus: 'failed',
+        error: 'Voicemail drop not yet implemented',
+      };
+
+    default:
+      return {
+        success: false,
+        deliveryStatus: 'failed',
+        error: `Unknown delivery method: ${deliveryMethod}`,
+      };
+  }
+}
+
+function formatDeliveryResult(result: DeliveryResult, audioUrl: string): VoiceMessageResult {
+  if (result.success) {
+    return { success: true, messageId: result.messageId, audioUrl, deliveryStatus: 'sent' };
+  }
+  return { success: false, audioUrl, deliveryStatus: 'failed', error: result.error };
 }
 
 // ============================================================================
@@ -316,75 +391,19 @@ async function deliverViaEmail(
  */
 export async function sendVoiceMessage(request: VoiceMessageRequest): Promise<VoiceMessageResult> {
   const { userId, contactId, message, deliveryMethod, subject } = request;
-
   log.info({ userId, contactId, deliveryMethod }, 'Generating voice message');
 
   try {
-    // Get contact info
     const contact = await getContact(userId, contactId);
     if (!contact) {
-      return {
-        success: false,
-        deliveryStatus: 'failed',
-        error: 'Contact not found',
-      };
+      return { success: false, deliveryStatus: 'failed', error: 'Contact not found' };
     }
 
-    // Synthesize speech
     const { audio, mimeType } = await synthesizeSpeech(message);
-
-    // Upload to cloud storage
     const audioUrl = await uploadAudioToStorage(userId, audio, mimeType);
-
-    // Deliver based on method
-    let result: { success: boolean; messageId?: string; error?: string };
-
-    switch (deliveryMethod) {
-      case 'mms':
-        if (!contact.phone) {
-          return {
-            success: false,
-            deliveryStatus: 'failed',
-            error: 'Contact has no phone number',
-          };
-        }
-        result = await deliverViaMMS(contact.phone, audioUrl, message);
-        break;
-
-      case 'email':
-        if (!contact.email) {
-          return {
-            success: false,
-            deliveryStatus: 'failed',
-            error: 'Contact has no email',
-          };
-        }
-        result = await deliverViaEmail(
-          contact.email,
-          audioUrl,
-          message,
-          subject || `Voice message from a friend`
-        );
-        break;
-
-      case 'voicemail_drop':
-        // Voicemail drop would require additional integration (e.g., Slybroadcast)
-        return {
-          success: false,
-          deliveryStatus: 'failed',
-          error: 'Voicemail drop not yet implemented',
-        };
-
-      default:
-        return {
-          success: false,
-          deliveryStatus: 'failed',
-          error: `Unknown delivery method: ${deliveryMethod}`,
-        };
-    }
+    const result = await routeDelivery(contact, audioUrl, message, deliveryMethod, subject);
 
     if (result.success) {
-      // Record the interaction
       await recordInteraction(userId, {
         contactId,
         userId,
@@ -393,28 +412,12 @@ export async function sendVoiceMessage(request: VoiceMessageRequest): Promise<Vo
         direction: 'outbound',
         summary: `Sent voice message: ${message.substring(0, 100)}...`,
       });
-
-      return {
-        success: true,
-        messageId: result.messageId,
-        audioUrl,
-        deliveryStatus: 'sent',
-      };
     }
 
-    return {
-      success: false,
-      audioUrl, // Still return URL even if delivery failed
-      deliveryStatus: 'failed',
-      error: result.error,
-    };
+    return result;
   } catch (error) {
     log.error({ error: String(error), userId, contactId }, 'Voice message failed');
-    return {
-      success: false,
-      deliveryStatus: 'failed',
-      error: String(error),
-    };
+    return { success: false, deliveryStatus: 'failed', error: String(error) };
   }
 }
 
@@ -436,43 +439,63 @@ export async function previewVoiceMessage(
 }
 
 /**
- * Get available voice options
+ * Get available voice options (Ferni's Cartesia voices)
  */
 export function getAvailableVoices(): Array<{
   id: string;
   name: string;
   provider: string;
   description: string;
-  gender: 'male' | 'female' | 'neutral';
+  personaId?: string;
 }> {
   return [
     {
-      id: 'pNInz6obpgDQGcFmaJgB',
-      name: 'Adam',
-      provider: 'elevenlabs',
-      description: 'Warm, friendly male voice',
-      gender: 'male',
+      id: process.env.FERNI_VOICE_ID || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+      name: 'Ferni',
+      provider: 'cartesia',
+      description: 'Warm, friendly life coach voice',
+      personaId: 'ferni',
     },
     {
-      id: '21m00Tcm4TlvDq8ikWAM',
-      name: 'Rachel',
-      provider: 'elevenlabs',
-      description: 'Warm, expressive female voice',
-      gender: 'female',
+      id: process.env.MAYA_SANTOS_VOICE_ID || '11175483-5332-496c-8c01-ca527ce04e4a',
+      name: 'Maya',
+      provider: 'cartesia',
+      description: 'Encouraging habit coach voice',
+      personaId: 'maya',
+    },
+    {
+      id: process.env.PETER_JOHN_VOICE_ID || '3f04e815-3260-4f50-8fd9-af9c657be4c2',
+      name: 'Peter',
+      provider: 'cartesia',
+      description: 'Curious research analyst voice',
+      personaId: 'peter',
+    },
+    {
+      id: process.env.ALEX_CHEN_VOICE_ID || '81c164d9-7baa-419d-9f9a-6b18100a01ee',
+      name: 'Alex',
+      provider: 'cartesia',
+      description: 'Professional communications voice',
+      personaId: 'alex',
+    },
+    {
+      id: process.env.JORDAN_TAYLOR_VOICE_ID || 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
+      name: 'Jordan',
+      provider: 'cartesia',
+      description: 'Excited event planner voice',
+      personaId: 'jordan',
+    },
+    {
+      id: process.env.NAYAN_PATEL_VOICE_ID || '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+      name: 'Nayan',
+      provider: 'cartesia',
+      description: 'Calm wisdom voice',
+      personaId: 'nayan',
     },
     {
       id: 'en-US-Neural2-D',
       name: 'US Male (Neural)',
       provider: 'google',
-      description: 'Natural male voice',
-      gender: 'male',
-    },
-    {
-      id: 'en-US-Neural2-F',
-      name: 'US Female (Neural)',
-      provider: 'google',
-      description: 'Natural female voice',
-      gender: 'female',
+      description: 'Google Cloud TTS fallback',
     },
   ];
 }

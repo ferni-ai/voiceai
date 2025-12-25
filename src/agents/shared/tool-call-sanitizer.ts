@@ -48,6 +48,78 @@ type AnyTransformStream = any;
 const log = createLogger({ module: 'tool-call-sanitizer' });
 
 // ============================================================================
+// TOOL DEDUPLICATION CACHE
+// Prevents duplicate tool execution when semantic router already handled the tool
+// ============================================================================
+
+/**
+ * Cache of recently executed tools per session.
+ * Key: sessionId, Value: Map<toolId, timestamp>
+ * 
+ * When semantic router executes a tool with bypassLLM=true, it should call
+ * `markToolExecutedBySemanticRouter()` to prevent the JSON workaround from
+ * executing the same tool again.
+ */
+const recentlyExecutedTools = new Map<string, Map<string, number>>();
+
+/** Time window (ms) to consider a tool as "recently executed" */
+const DEDUP_WINDOW_MS = 5000; // 5 seconds
+
+/**
+ * Mark a tool as executed by the semantic router.
+ * Call this after semantic router auto-executes a tool.
+ */
+export function markToolExecutedBySemanticRouter(sessionId: string, toolId: string): void {
+  if (!sessionId) return;
+  
+  let sessionTools = recentlyExecutedTools.get(sessionId);
+  if (!sessionTools) {
+    sessionTools = new Map();
+    recentlyExecutedTools.set(sessionId, sessionTools);
+  }
+  sessionTools.set(toolId.toLowerCase(), Date.now());
+  
+  log.debug(
+    { sessionId, toolId },
+    '🎯 Tool marked as executed by semantic router (dedup cache)'
+  );
+}
+
+/**
+ * Check if a tool was recently executed by the semantic router.
+ * Returns true if we should SKIP execution (dedup).
+ */
+function wasRecentlyExecutedBySemanticRouter(sessionId: string | undefined, toolId: string): boolean {
+  if (!sessionId) return false;
+  
+  const sessionTools = recentlyExecutedTools.get(sessionId);
+  if (!sessionTools) return false;
+  
+  const executedAt = sessionTools.get(toolId.toLowerCase());
+  if (!executedAt) return false;
+  
+  const elapsed = Date.now() - executedAt;
+  if (elapsed < DEDUP_WINDOW_MS) {
+    log.info(
+      { sessionId, toolId, elapsedMs: elapsed, windowMs: DEDUP_WINDOW_MS },
+      '🚫 DEDUP: Skipping JSON workaround execution - semantic router already handled this tool'
+    );
+    return true;
+  }
+  
+  // Clean up expired entry
+  sessionTools.delete(toolId.toLowerCase());
+  return false;
+}
+
+/**
+ * Clean up session from dedup cache (call on session end)
+ */
+export function clearToolDeduplicationForSession(sessionId: string): void {
+  recentlyExecutedTools.delete(sessionId);
+}
+
+// ============================================================================
 // GUIDANCE BLOCK STRIPPING
 // ============================================================================
 
@@ -635,6 +707,243 @@ const TOOL_NAME_PATTERNS = [
   'Check on my request',
   'status of my reservation',
   'Status of my reservation',
+
+  // ============================================================================
+  // UNTESTED DOMAIN PATTERNS (Added Dec 2024 for E2E reliability)
+  // These domains were identified in the E2E Tool Calling Audit as lacking patterns
+  // ============================================================================
+
+  // Ambient Mode tools
+  'startAmbientMode',
+  'start ambient mode',
+  'ambient mode',
+  'enable ambient',
+  'Enable ambient',
+  'background listening',
+  'Background listening',
+  'always listening',
+  'Always listening',
+
+  // Anger/Emotion regulation tools
+  'processAnger',
+  'process anger',
+  'anger management',
+  'Anger management',
+  'I am angry',
+  'I am frustrated',
+  'feeling angry',
+  'Feeling angry',
+  'calm down',
+  'Calm down',
+
+  // Anxiety tools
+  'manageAnxiety',
+  'manage anxiety',
+  'anxiety relief',
+  'Anxiety relief',
+  'feeling anxious',
+  'Feeling anxious',
+  'panic attack',
+  'Panic attack',
+  'anxious thoughts',
+  'Anxious thoughts',
+
+  // Boundaries tools
+  'setBoundary',
+  'set boundary',
+  'setting boundaries',
+  'Setting boundaries',
+  'boundary check',
+  'Boundary check',
+  'healthy boundaries',
+  'Healthy boundaries',
+
+  // Breathwork tools
+  'startBreathwork',
+  'start breathwork',
+  'breathing exercise',
+  'Breathing exercise',
+  'box breathing',
+  'Box breathing',
+  'deep breathing',
+  'Deep breathing',
+  'breath work',
+  'Breath work',
+
+  // Burnout tools
+  'assessBurnout',
+  'assess burnout',
+  'burnout check',
+  'Burnout check',
+  'feeling burned out',
+  'Feeling burned out',
+  'exhausted',
+  'Exhausted',
+  'overwhelmed',
+  'Overwhelmed',
+
+  // Coaching/Support tools
+  'getCoaching',
+  'get coaching',
+  'coaching session',
+  'Coaching session',
+  'life coaching',
+  'Life coaching',
+  'support session',
+  'Support session',
+
+  // Dating tools
+  'datingAdvice',
+  'dating advice',
+  'relationship advice',
+  'Relationship advice',
+  'dating tips',
+  'Dating tips',
+  'dating help',
+  'Dating help',
+
+  // Gratitude tools
+  'logGratitude',
+  'log gratitude',
+  'gratitude journal',
+  'Gratitude journal',
+  'grateful for',
+  'Grateful for',
+  'thankful for',
+  'Thankful for',
+  'gratitude practice',
+  'Gratitude practice',
+
+  // Grounding tools
+  'groundingExercise',
+  'grounding exercise',
+  '5 4 3 2 1',
+  'grounding technique',
+  'Grounding technique',
+  'feel grounded',
+  'Feel grounded',
+  'anchor myself',
+  'Anchor myself',
+
+  // Human Transfer tools
+  'transferToHuman',
+  'transfer to human',
+  'speak to a human',
+  'Speak to a human',
+  'talk to a person',
+  'Talk to a person',
+  'human support',
+  'Human support',
+  'real person',
+  'Real person',
+
+  // Intimacy tools
+  'intimacyTips',
+  'intimacy tips',
+  'intimacy advice',
+  'Intimacy advice',
+  'relationship intimacy',
+  'Relationship intimacy',
+
+  // Life Planning tools
+  'createLifePlan',
+  'create life plan',
+  'life planning',
+  'Life planning',
+  'life goals',
+  'Life goals',
+  'future planning',
+  'Future planning',
+  'five year plan',
+  'Five year plan',
+
+  // Mindfulness tools
+  'startMindfulness',
+  'start mindfulness',
+  'mindfulness exercise',
+  'Mindfulness exercise',
+  'be present',
+  'Be present',
+  'mindful moment',
+  'Mindful moment',
+  'meditation',
+  'Meditation',
+
+  // Purpose/Meaning tools
+  'explorePurpose',
+  'explore purpose',
+  'find my purpose',
+  'Find my purpose',
+  'life purpose',
+  'Life purpose',
+  'meaning of life',
+  'Meaning of life',
+  'what is my purpose',
+  'What is my purpose',
+
+  // Sleep tools
+  'improveSleep',
+  'improve sleep',
+  'sleep better',
+  'Sleep better',
+  'sleep hygiene',
+  'Sleep hygiene',
+  'insomnia',
+  'Insomnia',
+  'cant sleep',
+  'Can not sleep',
+  'trouble sleeping',
+  'Trouble sleeping',
+
+  // Stress tools
+  'manageStress',
+  'manage stress',
+  'stress relief',
+  'Stress relief',
+  'feeling stressed',
+  'Feeling stressed',
+  'under pressure',
+  'Under pressure',
+  'stressed out',
+  'Stressed out',
+
+  // Trust tools
+  'buildTrust',
+  'build trust',
+  'trust issues',
+  'Trust issues',
+  'trusting others',
+  'Trusting others',
+
+  // Visual Memory tools
+  'saveVisualMemory',
+  'save visual memory',
+  'remember this image',
+  'Remember this image',
+  'visual note',
+  'Visual note',
+  'picture memory',
+  'Picture memory',
+
+  // Voice Log tools
+  'createVoiceLog',
+  'create voice log',
+  'voice diary',
+  'Voice diary',
+  'audio journal',
+  'Audio journal',
+  'record my thoughts',
+  'Record my thoughts',
+
+  // World Awareness tools
+  'getWorldContext',
+  'get world context',
+  'world news',
+  'World news',
+  'current events',
+  'Current events',
+  'whats happening',
+  'What is happening',
 ];
 
 /**
@@ -867,6 +1176,8 @@ interface ToolExecutionResult {
   error?: string;
   /** If true, result should be spoken directly via session.say() (no LLM summarization) */
   speakDirectly?: boolean;
+  /** If true, execution was skipped because semantic router already handled this tool */
+  skippedDueToDedupe?: boolean;
 }
 
 /**
@@ -886,6 +1197,24 @@ async function executeJsonFunctionCall(
   personaId?: string
 ): Promise<ToolExecutionResult | null> {
   try {
+    // 🚫 DEDUPLICATION CHECK: Skip if semantic router already executed this tool
+    // This prevents the race condition where:
+    // 1. Semantic router executes tool (bypassLLM=true)
+    // 2. LLM (running in parallel) also outputs JSON for the same tool
+    // 3. JSON workaround would execute the tool AGAIN
+    if (wasRecentlyExecutedBySemanticRouter(sessionId, call.fn)) {
+      log.info(
+        { fn: call.fn, sessionId },
+        '🚫 JSON WORKAROUND SKIPPED: Tool already executed by semantic router'
+      );
+      return {
+        success: true,
+        fn: call.fn,
+        result: '[Tool already executed by semantic router]',
+        skippedDueToDedupe: true,
+      };
+    }
+
     // Record JSON workaround execution for observability
     if (sessionId) {
       void (async () => {
@@ -1230,6 +1559,23 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
         pattern: 'instruction_leakage',
       };
     }
+  }
+
+  // 0d. CRITICAL: Check for malformed "fn:" prefix format
+  // Gemini sometimes outputs "fn:speak everything ok" instead of JSON {"fn":"speak",...}
+  // This is a different malformed format that leaks to TTS
+  const fnPrefixMatch = trimmed.match(/^fn:\s*(\w+)\s*(.*)/i);
+  if (fnPrefixMatch) {
+    log.warn(
+      { text: trimmed, toolName: fnPrefixMatch[1], rest: fnPrefixMatch[2] },
+      '🚨 MALFORMED fn: PREFIX DETECTED - Gemini used wrong function call format'
+    );
+    return {
+      detected: true,
+      toolName: fnPrefixMatch[1],
+      value: fnPrefixMatch[2],
+      pattern: 'fn_prefix_malformed',
+    };
   }
 
   // 1. Announcement patterns: "I'll call the playMusic function"
@@ -1797,6 +2143,12 @@ export function createSanitizerWithMusicFallback(
   let toolExecutionInProgress = false;
   let activeToolId: string | null = null;
 
+  // 🎯 POST-LLM SEMANTIC ROUTING FALLBACK (Dec 2024)
+  // Track whether we intercepted any JSON tool calls during this stream.
+  // If not, run semantic routing on the final text as a safety net.
+  let jsonToolExecuted = false;
+  let accumulatedTextForSemanticFallback = '';
+
   // 🔒 RACE CONDITION FIX: Speech coordination mutex
   // Prevents dual speaking (session.say() vs safeGenerateReply())
   // NOTE: This is a LOCAL mutex for the sanitizer. The global coordination
@@ -2046,6 +2398,7 @@ export function createSanitizerWithMusicFallback(
           // Execute the tool and speak the result via safeGenerateReply
           // This is the proper way to inject async tool results - not stream injection
           // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+          jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
           executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
             .then(async (execResult) => {
               if (execResult?.success && execResult.result) {
@@ -2292,6 +2645,7 @@ export function createSanitizerWithMusicFallback(
 
         // Execute the tool and speak the result via safeGenerateReply
         // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+        jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
         executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
           .then(async (execResult) => {
             if (execResult?.success && execResult.result) {
@@ -2478,6 +2832,7 @@ export function createSanitizerWithMusicFallback(
             );
             // Execute the tool
             // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
+            jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
             executeJsonFunctionCall(lastChanceJson, sessionId, toolContext?.userId, toolContext?.personaId)
               .then(async (result) => {
                 log.info(
@@ -2521,6 +2876,8 @@ export function createSanitizerWithMusicFallback(
         // This catches [INTERNAL GUIDANCE]... blocks that the LLM echoes back
         const cleanedBuffer = stripGuidanceBlocks(buffer);
         if (cleanedBuffer) {
+          // 🎯 Accumulate text for post-LLM semantic routing fallback
+          accumulatedTextForSemanticFallback += cleanedBuffer + ' ';
           controller.enqueue(cleanedBuffer);
         }
         buffer = '';
@@ -2535,6 +2892,18 @@ export function createSanitizerWithMusicFallback(
       // Clean up state integration
       if (stateIntegration && sessionId) {
         stateIntegration.cleanupSanitizerIntegration(sessionId);
+      }
+
+      // 🔧 FIX: Handle partial JSON in accumulator (user interrupted mid-JSON)
+      // If jsonAccumulator has partial JSON, suppress it - don't speak raw JSON!
+      if (jsonAccumulatorActive && jsonAccumulator) {
+        log.warn(
+          { accumulated: jsonAccumulator.slice(0, 100), length: jsonAccumulator.length },
+          '🔧 PARTIAL JSON SUPPRESSED: User interrupted mid-JSON output'
+        );
+        // Don't emit partial JSON - it would be spoken as "fn colon speak args colon..."
+        jsonAccumulator = '';
+        jsonAccumulatorActive = false;
       }
 
       if (buffer && !suppressMode) {
@@ -2560,9 +2929,109 @@ export function createSanitizerWithMusicFallback(
           // 🛡️ CRITICAL FIX: Strip guidance blocks before sending to TTS
           const cleanedBuffer = stripGuidanceBlocks(buffer);
           if (cleanedBuffer) {
+            // 🎯 Accumulate final text for semantic fallback
+            accumulatedTextForSemanticFallback += cleanedBuffer;
             controller.enqueue(cleanedBuffer);
           }
         }
+      }
+
+      // 🎯 POST-LLM SEMANTIC ROUTING FALLBACK (Dec 2024)
+      // If no JSON tool was executed during this stream, run semantic routing
+      // on the accumulated text as a safety net for when Gemini forgets JSON format.
+      if (!jsonToolExecuted && accumulatedTextForSemanticFallback.trim().length > 10) {
+        const textToRoute = accumulatedTextForSemanticFallback.trim();
+        log.info(
+          { textLength: textToRoute.length, preview: textToRoute.slice(0, 100) },
+          '🎯 POST-LLM SEMANTIC FALLBACK: No JSON executed, checking accumulated text'
+        );
+
+        // Run semantic routing asynchronously (don't block the stream close)
+        void (async () => {
+          try {
+            const { routeUserInput } = await import('../../tools/semantic-router/router.js');
+            const routingResult = await routeUserInput(textToRoute, {
+              sessionId,
+              personaId: toolContext?.personaId,
+              userId: toolContext?.userId,
+            });
+
+            // Only execute for VERY high-confidence matches (0.95+ for post-LLM fallback)
+            // Raised from 0.85 because it was misfiring on conversational text
+            // TODO: Fix semantic router confidence scoring before lowering this
+            const topMatch = routingResult.matches?.[0];
+            if (
+              routingResult.action?.type === 'execute' &&
+              topMatch &&
+              topMatch.confidence >= 0.95
+            ) {
+              log.info(
+                {
+                  toolId: topMatch.toolId,
+                  confidence: topMatch.confidence,
+                  text: textToRoute.slice(0, 50),
+                },
+                '🎯 POST-LLM SEMANTIC FALLBACK: High-confidence tool match! Executing...'
+              );
+
+              // Execute via domain bridge
+              const { hasDomainMapping, executeDomainTool } = await import(
+                '../../tools/semantic-router/domain-bridge.js'
+              );
+
+              if (hasDomainMapping(topMatch.toolId)) {
+                const execResult = await executeDomainTool(topMatch.toolId, routingResult.extractedArgs || {}, {
+                  userId: toolContext?.userId,
+                  sessionId,
+                  personaId: toolContext?.personaId,
+                });
+
+                if (execResult.success) {
+                  log.info(
+                    { toolId: topMatch.toolId, result: String(execResult.result).slice(0, 100) },
+                    '✅ POST-LLM SEMANTIC FALLBACK: Tool executed successfully'
+                  );
+
+                  // Speak the result if we have a session
+                  if (session?.generateReply && execResult.result) {
+                    const resultText = typeof execResult.result === 'string' 
+                      ? execResult.result 
+                      : JSON.stringify(execResult.result);
+                    
+                    session.generateReply({
+                      instructions: `I just executed ${topMatch.toolId} for the user. Briefly acknowledge: "${resultText.slice(0, 200)}"`,
+                      allowInterruptions: true,
+                    });
+                  }
+                } else {
+                  log.warn(
+                    { toolId: topMatch.toolId, error: execResult.error },
+                    '⚠️ POST-LLM SEMANTIC FALLBACK: Tool execution failed'
+                  );
+                }
+              } else {
+                log.debug(
+                  { toolId: topMatch.toolId },
+                  '🎯 POST-LLM SEMANTIC FALLBACK: No domain mapping for tool'
+                );
+              }
+            } else {
+              log.debug(
+                {
+                  action: routingResult.action?.type,
+                  confidence: topMatch?.confidence,
+                  threshold: 0.85,
+                },
+                '🎯 POST-LLM SEMANTIC FALLBACK: No high-confidence tool match'
+              );
+            }
+          } catch (err) {
+            log.debug(
+              { error: String(err) },
+              '🎯 POST-LLM SEMANTIC FALLBACK: Error during routing (non-critical)'
+            );
+          }
+        })();
       }
     },
   });

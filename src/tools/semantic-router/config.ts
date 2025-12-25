@@ -29,10 +29,12 @@ export function getDefaultConfig(): SemanticRouterConfig {
   return {
     ...DEFAULT_ROUTER_CONFIG,
     thresholds: {
-      autoExecute: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_AUTO_EXECUTE || '0.92'),
-      confirm: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_CONFIRM || '0.80'),
-      hint: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_HINT || '0.60'),
-      minimum: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_MINIMUM || '0.40'),
+      // Lowered from 0.92 to 0.80 - pattern matches should auto-execute more often
+      // Pattern layer score is 1.0 for exact matches, 0.95 for regex
+      autoExecute: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_AUTO_EXECUTE || '0.80'),
+      confirm: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_CONFIRM || '0.70'),
+      hint: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_HINT || '0.55'),
+      minimum: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_MINIMUM || '0.35'),
     },
     embeddingModel:
       (process.env.SEMANTIC_ROUTING_EMBEDDING_MODEL as 'local' | 'openai' | 'voyage' | 'cohere') ||

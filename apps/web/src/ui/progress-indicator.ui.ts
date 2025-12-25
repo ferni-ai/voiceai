@@ -740,6 +740,30 @@ function injectStyles(): void {
       background: var(--color-background-tertiary, #504540);
     }
     
+    /* Fix persona-primary text colors for dark theme readability */
+    /* Use !important to override base styles with persona-primary fallbacks */
+    [data-theme="midnight"] .progress-eyebrow,
+    [data-theme="midnight"] .progress-next-label {
+      color: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-ring-icon,
+    [data-theme="midnight"] .progress-ring-icon-large {
+      color: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-ring-fill {
+      stroke: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-percent,
+    [data-theme="midnight"] .progress-expand-icon,
+    [data-theme="midnight"] .metric-icon,
+    [data-theme="midnight"] .metric-label,
+    [data-theme="midnight"] .progress-ring-label {
+      color: var(--color-text-muted);
+    }
+    
     /* ========================================================================
        REDUCED MOTION
        ======================================================================== */
@@ -785,6 +809,16 @@ function injectStyles(): void {
       
       .progress-stage-name {
         font-size: 14px;
+      }
+    }
+    
+    /* ========================================================================
+       SMALL PHONES - Hide progress indicator on very small screens
+       Users can still access stage info via the settings menu
+       ======================================================================== */
+    @media (max-width: 390px) {
+      .progress-indicator {
+        display: none;
       }
     }
   `;

@@ -72,6 +72,16 @@ export interface PrimingResult {
 export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[] {
   const turns: PrimingTurn[] = [];
 
+  // 🎯 SEMANTIC ROUTING PRIMARY: Skip JSON priming entirely
+  // When semantic routing handles tools, we don't want to teach the LLM
+  // the JSON format (it would output JSON as speech instead of natural language)
+  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
+    log.info(
+      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping JSON priming (semantic router handles tools)'
+    );
+    return turns;
+  }
+
   if (!config.enabled) {
     log.debug('Conversation priming disabled');
     return turns;
@@ -103,41 +113,89 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
 
   // 2. CRITICAL TOOL PRIMING - Prime for handoffs and music
   if (config.primeCriticalTools) {
-    // Music priming (critical - most common tool)
+    // Music priming - DIRECT COMMAND (most common pattern)
     turns.push({
       role: 'user',
-      content: '[system: capability check - music]',
+      content: '[user: play some jazz]',
       isVisible: false,
-      description: 'Music capability check (hidden)',
+      description: 'Music direct command (hidden)',
     });
 
     turns.push({
       role: 'assistant',
-      content: '{"fn":"playMusic","args":{"query":"background music"}}',
+      content: '{"fn":"playMusic","args":{"query":"jazz"}}',
       isVisible: false,
-      description: 'Music JSON example (teaches playMusic format)',
+      description: 'Music JSON example (direct command)',
     });
 
-    log.debug('🎯 PRIMING: Added music tool priming turn');
+    // CRITICAL: Music priming - POLITE REQUEST (Gemini problem pattern!)
+    // Gemini often says "Sure! I'd be happy to play..." instead of calling the tool
+    turns.push({
+      role: 'user',
+      content: '[user: can you play some relaxing music]',
+      isVisible: false,
+      description: 'Music polite request - Gemini problem pattern (hidden)',
+    });
+
+    turns.push({
+      role: 'assistant',
+      content: '{"fn":"playMusic","args":{"query":"relaxing music"}}',
+      isVisible: false,
+      description: 'Music JSON example (polite request → still JSON!)',
+    });
+
+    log.debug('🎯 PRIMING: Added music tool priming turns (including polite pattern)');
+
+    // Weather priming - POLITE REQUEST (another Gemini problem pattern)
+    turns.push({
+      role: 'user',
+      content: "[user: could you check the weather]",
+      isVisible: false,
+      description: 'Weather polite request - Gemini problem pattern (hidden)',
+    });
+
+    turns.push({
+      role: 'assistant',
+      content: '{"fn":"getWeather","args":{}}',
+      isVisible: false,
+      description: 'Weather JSON example (polite request → still JSON!)',
+    });
+
+    log.debug('🎯 PRIMING: Added weather tool priming turn (polite pattern)');
 
     // Handoff priming based on persona
     if (config.personaId === 'ferni') {
-      // Ferni needs to know how to hand off to specialists
+      // Handoff priming - DIRECT
       turns.push({
         role: 'user',
-        content: '[system: capability check - handoff]',
+        content: '[user: talk to maya about my habits]',
         isVisible: false,
-        description: 'Handoff capability check (hidden)',
+        description: 'Handoff direct command (hidden)',
       });
 
       turns.push({
         role: 'assistant',
-        content: '{"fn":"handoffToMaya","args":{"reason":"habits and routines"}}',
+        content: '{"fn":"handoffToMaya","args":{"reason":"habits"}}',
         isVisible: false,
-        description: 'Handoff JSON example (teaches handoff format)',
+        description: 'Handoff JSON example (direct)',
       });
 
-      log.debug('🎯 PRIMING: Added handoff priming turn for Ferni');
+      // CRITICAL: Handoff priming - POLITE REQUEST (Gemini problem pattern!)
+      turns.push({
+        role: 'user',
+        content: "[user: can I speak with Peter about my investments]",
+        isVisible: false,
+        description: 'Handoff polite request - Gemini problem pattern (hidden)',
+      });
+
+      turns.push({
+        role: 'assistant',
+        content: '{"fn":"handoffToPeter","args":{"reason":"investments"}}',
+        isVisible: false,
+        description: 'Handoff JSON example (polite → still JSON!)',
+      });
+
+      log.debug('🎯 PRIMING: Added handoff priming turns for Ferni (including polite pattern)');
     }
   }
 
@@ -295,61 +353,122 @@ export function detectsToolCallLeakage(response: string): {
  * Generate a retry prompt when tool call leakage is detected.
  *
  * This prompt explicitly tells Gemini to output JSON for the expected tool.
+ * Uses progressively more forceful language on subsequent attempts.
  */
 export function generateRetryPrompt(
   originalMessage: string,
   suggestedTool: string | null,
   attempt: number
 ): string {
+  // 🎯 SEMANTIC ROUTING PRIMARY: Skip retry prompts
+  // When semantic routing handles tools, we don't want to teach the LLM JSON format
+  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
+    log.debug('🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping retry prompt');
+    return '';
+  }
+
   log.info(
     { suggestedTool, attempt, originalMessage: originalMessage.slice(0, 50) },
     '🔄 RETRY: Generating retry prompt for failed tool call'
   );
 
-  // Build retry context based on what we know
-  let retryPrompt = `[SYSTEM: The previous response was incorrect. You MUST output JSON, not text.`;
+  // Progressive forcefulness based on attempt number
+  const severity = attempt === 1 ? 'CRITICAL' : attempt === 2 ? 'URGENT' : 'FINAL';
+
+  // Build the most forceful retry prompt possible
+  let retryPrompt: string;
 
   if (suggestedTool) {
-    // We know which tool was expected
-    retryPrompt += `\n\nOUTPUT THIS EXACTLY: {"fn":"${suggestedTool}","args":{`;
+    // We know which tool was expected - be VERY explicit
+    const toolJson = buildToolJson(suggestedTool, originalMessage);
 
-    // Add appropriate args based on tool
-    switch (suggestedTool) {
-      case 'playMusic':
-        retryPrompt += `"query":"music"}}`;
-        break;
-      case 'getWeather':
-        retryPrompt += `"location":"current"}}`;
-        break;
-      case 'getNews':
-        retryPrompt += `}}`;
-        break;
-      case 'handoffToMaya':
-        retryPrompt += `"reason":"habits and routines"}}`;
-        break;
-      case 'handoffToAlex':
-        retryPrompt += `"reason":"calendar and communication"}}`;
-        break;
-      case 'handoffToPeter':
-        retryPrompt += `"reason":"research and analysis"}}`;
-        break;
-      case 'handoffToJordan':
-        retryPrompt += `"reason":"planning and celebration"}}`;
-        break;
-      case 'handoffToNayan':
-        retryPrompt += `"reason":"wisdom and perspective"}}`;
-        break;
-      default:
-        retryPrompt += `}}`;
-    }
+    retryPrompt = `[${severity} ERROR: YOUR PREVIOUS RESPONSE WAS WRONG.
+
+You said speech text instead of calling the tool. This is incorrect.
+
+CORRECT RESPONSE (output ONLY this, nothing else):
+${toolJson}
+
+DO NOT SAY ANYTHING.
+DO NOT EXPLAIN.
+DO NOT APOLOGIZE.
+OUTPUT ONLY THE JSON ABOVE.]`;
   } else {
-    // Generic retry
-    retryPrompt += `\n\nUser request: "${originalMessage}"\n\nOUTPUT JSON ONLY.]`;
+    // Generic retry - still very forceful
+    retryPrompt = `[${severity} ERROR: YOU MUST OUTPUT JSON, NOT SPEECH.
+
+The user asked: "${originalMessage}"
+
+This request requires a tool call. Output JSON like:
+{"fn":"toolName","args":{...}}
+
+DO NOT SPEAK. OUTPUT JSON ONLY.]`;
   }
 
-  log.debug({ retryPrompt: retryPrompt.slice(0, 100) }, '🔄 RETRY: Generated retry prompt');
+  log.debug(
+    { retryPrompt: retryPrompt.slice(0, 150), attempt },
+    '🔄 RETRY: Generated forceful retry prompt'
+  );
 
   return retryPrompt;
+}
+
+/**
+ * Build the exact JSON that should be output for a given tool
+ */
+function buildToolJson(suggestedTool: string, originalMessage: string): string {
+  // Extract relevant content from original message for args
+  const lower = originalMessage.toLowerCase();
+
+  switch (suggestedTool) {
+    case 'playMusic': {
+      // Try to extract query from original message
+      const query = extractMusicQuery(originalMessage) || 'music';
+      return `{"fn":"playMusic","args":{"query":"${query}"}}`;
+    }
+    case 'getWeather':
+      return '{"fn":"getWeather","args":{}}';
+    case 'getNews':
+      return '{"fn":"getNews","args":{}}';
+    case 'handoffToMaya':
+      return '{"fn":"handoffToMaya","args":{"reason":"habits and routines"}}';
+    case 'handoffToAlex':
+      return '{"fn":"handoffToAlex","args":{"reason":"calendar and communication"}}';
+    case 'handoffToPeter':
+      return '{"fn":"handoffToPeter","args":{"reason":"research and analysis"}}';
+    case 'handoffToJordan':
+      return '{"fn":"handoffToJordan","args":{"reason":"planning and celebration"}}';
+    case 'handoffToNayan':
+      return '{"fn":"handoffToNayan","args":{"reason":"wisdom and perspective"}}';
+    default:
+      return `{"fn":"${suggestedTool}","args":{}}`;
+  }
+}
+
+/**
+ * Extract music query from user's original message
+ */
+function extractMusicQuery(message: string): string | null {
+  // Common patterns
+  const patterns = [
+    /play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+    /put\s+on\s+(?:some\s+)?(.+)/i,
+    /(?:can|could|would)\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
+    /i(?:'d|\s+would)\s+like\s+(?:to\s+)?(?:hear|listen\s+to)\s+(.+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      // Clean up the query
+      return match[1]
+        .replace(/\s+please\s*$/i, '')
+        .replace(/\s+for\s+me\s*$/i, '')
+        .trim();
+    }
+  }
+
+  return null;
 }
 
 // ============================================================================

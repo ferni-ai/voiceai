@@ -23,10 +23,57 @@ import { toast } from './toast.ui.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
+// USER PREFERENCES
+// ============================================================================
+
+interface UserPreferences {
+  temperatureUnit: 'fahrenheit' | 'celsius';
+}
+
+function getUserPreferences(): UserPreferences {
+  try {
+    const stored = localStorage.getItem('ferni_preferences');
+    if (stored) {
+      const prefs = JSON.parse(stored) as Partial<UserPreferences>;
+      return {
+        temperatureUnit: prefs.temperatureUnit ?? 'fahrenheit',
+      };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return { temperatureUnit: 'fahrenheit' };
+}
+
+function celsiusToFahrenheit(c: number): number {
+  return Math.round((c * 9) / 5 + 32);
+}
+
+function fahrenheitToCelsius(f: number): number {
+  return Math.round(((f - 32) * 5) / 9);
+}
+
+function formatTemperature(fahrenheit: number): string {
+  const prefs = getUserPreferences();
+  if (prefs.temperatureUnit === 'celsius') {
+    return `${fahrenheitToCelsius(fahrenheit)}°C`;
+  }
+  return `${fahrenheit}°F`;
+}
+
+function formatTargetTemperature(fahrenheit: number): string {
+  const prefs = getUserPreferences();
+  if (prefs.temperatureUnit === 'celsius') {
+    return `${fahrenheitToCelsius(fahrenheit)}°`;
+  }
+  return `${fahrenheit}°`;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
-interface VibePreset {
+interface VibePresetUI {
   id: string;
   name: string;
   icon: string;
@@ -74,155 +121,210 @@ interface VibeControllerCallbacks {
   onVibeChanged?: (preset: string) => void;
 }
 
+// Loading state tracking
+interface LoadingState {
+  fetchingState: boolean;
+  activatingPreset: string | null;
+  adjustingVolume: boolean;
+  adjustingBrightness: boolean;
+  adjustingColorTemp: boolean;
+  adjustingTemperature: boolean;
+  connectingLights: boolean;
+  connectingThermostat: boolean;
+}
+
+let loadingState: LoadingState = {
+  fetchingState: false,
+  activatingPreset: null,
+  adjustingVolume: false,
+  adjustingBrightness: false,
+  adjustingColorTemp: false,
+  adjustingTemperature: false,
+  connectingLights: false,
+  connectingThermostat: false,
+};
+
 // ============================================================================
-// PRESET VIBES
+// PRESET VIBES - Single source of truth with UI-specific icons
 // ============================================================================
 
-// Primary vibes (shown in main row)
-const PRIMARY_VIBES: VibePreset[] = [
-  {
-    id: 'focus',
-    name: 'Focus',
-    icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
-    description: 'Deep work mode. Calm music, bright lights, cool temp.',
-    music: { genre: 'ambient', energy: 'low' },
-    lights: { brightness: 80, colorTemp: 5000 },
-    temperature: { target: 68, mode: 'home' },
-  },
-  {
-    id: 'relax',
-    name: 'Relax',
-    icon: 'M17 8h1a4 4 0 1 1 0 8h-1M3 8h1a4 4 0 0 1 0 8H3zm14 0v8M3 8v8m4-4h10',
-    description: 'Wind down. Soft jazz, warm dim lights, cozy temp.',
-    music: { genre: 'jazz', energy: 'low' },
-    lights: { brightness: 40, colorTemp: 2700 },
-    temperature: { target: 72, mode: 'home' },
-  },
-  {
-    id: 'energize',
-    name: 'Energize',
-    icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
-    description: 'Get moving. Upbeat music, bright cool lights.',
-    music: { genre: 'pop', energy: 'high' },
-    lights: { brightness: 100, colorTemp: 6500 },
-    temperature: { target: 66, mode: 'home' },
-  },
-  {
-    id: 'sleep',
-    name: 'Sleep',
-    icon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z',
-    description: 'Time for rest. Quiet, dark, comfortable.',
-    music: { genre: 'sleep', energy: 'low' },
-    lights: { brightness: 5, colorTemp: 2200 },
-    temperature: { target: 67, mode: 'sleep' },
-  },
-  {
-    id: 'social',
-    name: 'Gather',
-    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-    description: 'Having people over. Good music, warm inviting lights.',
-    music: { genre: 'indie', energy: 'medium' },
-    lights: { brightness: 70, colorTemp: 3000, color: '#c4a265' },
-    temperature: { target: 70, mode: 'home' },
-  },
+// Preset icons (SVG paths for Lucide-style icons)
+const PRESET_ICONS: Record<string, string> = {
+  focus: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  relax: 'M17 8h1a4 4 0 1 1 0 8h-1M3 8h1a4 4 0 0 1 0 8H3zm14 0v8M3 8v8m4-4h10',
+  energize: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+  sleep: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z',
+  social: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  morning: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z',
+  romantic: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z',
+  workout: 'M6.5 6.5h11M6.5 17.5h11M3 12h2M19 12h2M5.5 8.5v7M18.5 8.5v7',
+  movie: 'M7 2v11m0 5.93V22M2 9h5M2 15h5M17 2v4m0 14v4M22 4h-5M22 20h-5M12 6v12m-3 0h6',
+  cooking: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7',
+  reading: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20M8 7h6M8 11h8',
+  creative: 'M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2',
+  meditation: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2',
+  gaming: 'M6 11h4M8 9v4M15 12h.01M18 10h.01M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z',
+  dinner: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7',
+};
+
+// Primary preset IDs (shown in main row)
+const PRIMARY_PRESET_IDS = ['focus', 'relax', 'energize', 'sleep', 'social'];
+
+// Activity preset IDs (shown in "More Vibes" section)
+const ACTIVITY_PRESET_IDS = [
+  'morning',
+  'romantic',
+  'workout',
+  'movie',
+  'cooking',
+  'reading',
+  'creative',
+  'meditation',
+  'gaming',
+  'dinner',
 ];
 
-// Activity vibes (shown in "More Vibes" expandable section)
-const ACTIVITY_VIBES: VibePreset[] = [
-  {
-    id: 'morning',
-    name: 'Morning',
-    icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z',
-    description: 'Start the day gently. Bright lights, comfortable temp.',
-    music: { genre: 'acoustic', energy: 'medium' },
-    lights: { brightness: 90, colorTemp: 4500 },
-    temperature: { target: 70, mode: 'home' },
-  },
-  {
-    id: 'romantic',
-    name: 'Romantic',
-    icon: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z',
-    description: 'Date night. Soft music, dim warm lights.',
-    music: { genre: 'soul', energy: 'low' },
-    lights: { brightness: 25, colorTemp: 2400 },
-    temperature: { target: 72, mode: 'home' },
-  },
-  {
-    id: 'workout',
-    name: 'Workout',
-    icon: 'M6.5 6.5h11M6.5 17.5h11M3 12h2M19 12h2M5.5 8.5v7M18.5 8.5v7',
-    description: 'Exercise time. High energy music, bright lights, cool.',
-    music: { genre: 'electronic', energy: 'high' },
-    lights: { brightness: 100, colorTemp: 6000 },
-    temperature: { target: 64, mode: 'home' },
-  },
-  {
-    id: 'movie',
-    name: 'Movie Night',
-    icon: 'M7 2v11m0 5.93V22M2 9h5M2 15h5M17 2v4m0 14v4M22 4h-5M22 20h-5M12 6v12m-3 0h6',
-    description: 'Cinema at home. Dim lights, immersive sound.',
-    music: { genre: 'cinematic', energy: 'low' },
-    lights: { brightness: 10, colorTemp: 2400 },
-    temperature: { target: 71, mode: 'home' },
-  },
-  {
-    id: 'cooking',
-    name: 'Cooking',
-    icon: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7',
-    description: 'Kitchen time. Upbeat tunes, bright task lighting.',
-    music: { genre: 'world', energy: 'medium' },
-    lights: { brightness: 100, colorTemp: 4000 },
-    temperature: { target: 68, mode: 'home' },
-  },
-  {
-    id: 'reading',
-    name: 'Reading',
-    icon: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20M8 7h6M8 11h8',
-    description: 'Book time. Soft background, warm reading light.',
-    music: { genre: 'classical', energy: 'low' },
-    lights: { brightness: 60, colorTemp: 3000 },
-    temperature: { target: 71, mode: 'home' },
-  },
-  {
-    id: 'creative',
-    name: 'Creative',
-    icon: 'M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2',
-    description: 'Art and projects. Inspiring music, natural light feel.',
-    music: { genre: 'lo-fi', energy: 'medium' },
-    lights: { brightness: 85, colorTemp: 5500 },
-    temperature: { target: 69, mode: 'home' },
-  },
-  {
-    id: 'meditation',
-    name: 'Meditation',
-    icon: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2',
-    description: 'Inner peace. Nature sounds, soft ambient glow.',
-    music: { genre: 'nature', energy: 'low' },
-    lights: { brightness: 20, colorTemp: 2700 },
-    temperature: { target: 72, mode: 'home' },
-  },
-  {
-    id: 'gaming',
-    name: 'Gaming',
-    icon: 'M6 11h4M8 9v4M15 12h.01M18 10h.01M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z',
-    description: 'Game on. Dynamic lighting, comfortable temp.',
-    music: { genre: 'electronic', energy: 'medium' },
-    lights: { brightness: 30, colorTemp: 4500, color: '#7c3aed' },
-    temperature: { target: 68, mode: 'home' },
-  },
-  {
-    id: 'dinner',
-    name: 'Dinner',
-    icon: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7',
-    description: 'Mealtime ambiance. Warm glow, pleasant background.',
-    music: { genre: 'jazz', energy: 'low' },
-    lights: { brightness: 50, colorTemp: 2800 },
-    temperature: { target: 71, mode: 'home' },
-  },
-];
+// Build presets with UI data (icons, i18n-ready names)
+function buildUIPresets(): { primary: VibePresetUI[]; activity: VibePresetUI[] } {
+  // Preset data with translations
+  const presetData: Record<string, { name: string; description: string; lights?: { brightness: number; colorTemp: number; color?: string }; temperature?: { target: number; mode: 'home' | 'away' | 'sleep' }; music?: { genre: string; energy: 'low' | 'medium' | 'high' } }> = {
+    focus: {
+      name: t('vibe.presets.focus.name', 'Focus'),
+      description: t('vibe.presets.focus.description', 'Deep work mode. Calm music, bright lights, cool temp.'),
+      music: { genre: 'ambient', energy: 'low' },
+      lights: { brightness: 80, colorTemp: 5000 },
+      temperature: { target: 68, mode: 'home' },
+    },
+    relax: {
+      name: t('vibe.presets.relax.name', 'Relax'),
+      description: t('vibe.presets.relax.description', 'Wind down. Soft jazz, warm dim lights, cozy temp.'),
+      music: { genre: 'jazz', energy: 'low' },
+      lights: { brightness: 40, colorTemp: 2700 },
+      temperature: { target: 72, mode: 'home' },
+    },
+    energize: {
+      name: t('vibe.presets.energize.name', 'Energize'),
+      description: t('vibe.presets.energize.description', 'Get moving. Upbeat music, bright cool lights.'),
+      music: { genre: 'pop', energy: 'high' },
+      lights: { brightness: 100, colorTemp: 6500 },
+      temperature: { target: 66, mode: 'home' },
+    },
+    sleep: {
+      name: t('vibe.presets.sleep.name', 'Sleep'),
+      description: t('vibe.presets.sleep.description', 'Time for rest. Quiet, dark, comfortable.'),
+      music: { genre: 'sleep', energy: 'low' },
+      lights: { brightness: 5, colorTemp: 2200 },
+      temperature: { target: 67, mode: 'sleep' },
+    },
+    social: {
+      name: t('vibe.presets.social.name', 'Gather'),
+      description: t('vibe.presets.social.description', 'Having people over. Good music, warm inviting lights.'),
+      music: { genre: 'indie', energy: 'medium' },
+      lights: { brightness: 70, colorTemp: 3000, color: '#c4a265' },
+      temperature: { target: 70, mode: 'home' },
+    },
+    morning: {
+      name: t('vibe.presets.morning.name', 'Morning'),
+      description: t('vibe.presets.morning.description', 'Start the day gently. Bright lights, comfortable temp.'),
+      music: { genre: 'acoustic', energy: 'medium' },
+      lights: { brightness: 90, colorTemp: 4500 },
+      temperature: { target: 70, mode: 'home' },
+    },
+    romantic: {
+      name: t('vibe.presets.romantic.name', 'Romantic'),
+      description: t('vibe.presets.romantic.description', 'Date night. Soft music, dim warm lights.'),
+      music: { genre: 'soul', energy: 'low' },
+      lights: { brightness: 25, colorTemp: 2400 },
+      temperature: { target: 72, mode: 'home' },
+    },
+    workout: {
+      name: t('vibe.presets.workout.name', 'Workout'),
+      description: t('vibe.presets.workout.description', 'Exercise time. High energy music, bright lights, cool.'),
+      music: { genre: 'electronic', energy: 'high' },
+      lights: { brightness: 100, colorTemp: 6000 },
+      temperature: { target: 64, mode: 'home' },
+    },
+    movie: {
+      name: t('vibe.presets.movie.name', 'Movie Night'),
+      description: t('vibe.presets.movie.description', 'Cinema at home. Dim lights, immersive sound.'),
+      music: { genre: 'cinematic', energy: 'low' },
+      lights: { brightness: 10, colorTemp: 2400 },
+      temperature: { target: 71, mode: 'home' },
+    },
+    cooking: {
+      name: t('vibe.presets.cooking.name', 'Cooking'),
+      description: t('vibe.presets.cooking.description', 'Kitchen time. Upbeat tunes, bright task lighting.'),
+      music: { genre: 'world', energy: 'medium' },
+      lights: { brightness: 100, colorTemp: 4000 },
+      temperature: { target: 68, mode: 'home' },
+    },
+    reading: {
+      name: t('vibe.presets.reading.name', 'Reading'),
+      description: t('vibe.presets.reading.description', 'Book time. Soft background, warm reading light.'),
+      music: { genre: 'classical', energy: 'low' },
+      lights: { brightness: 60, colorTemp: 3000 },
+      temperature: { target: 71, mode: 'home' },
+    },
+    creative: {
+      name: t('vibe.presets.creative.name', 'Creative'),
+      description: t('vibe.presets.creative.description', 'Art and projects. Inspiring music, natural light feel.'),
+      music: { genre: 'lo-fi', energy: 'medium' },
+      lights: { brightness: 85, colorTemp: 5500 },
+      temperature: { target: 69, mode: 'home' },
+    },
+    meditation: {
+      name: t('vibe.presets.meditation.name', 'Meditation'),
+      description: t('vibe.presets.meditation.description', 'Inner peace. Nature sounds, soft ambient glow.'),
+      music: { genre: 'nature', energy: 'low' },
+      lights: { brightness: 20, colorTemp: 2700 },
+      temperature: { target: 72, mode: 'home' },
+    },
+    gaming: {
+      name: t('vibe.presets.gaming.name', 'Gaming'),
+      description: t('vibe.presets.gaming.description', 'Game on. Dynamic lighting, comfortable temp.'),
+      music: { genre: 'electronic', energy: 'medium' },
+      // Fixed: Using brand-compliant teal instead of purple (#7c3aed)
+      lights: { brightness: 30, colorTemp: 4500, color: '#3a6b73' },
+      temperature: { target: 68, mode: 'home' },
+    },
+    dinner: {
+      name: t('vibe.presets.dinner.name', 'Dinner'),
+      description: t('vibe.presets.dinner.description', 'Mealtime ambiance. Warm glow, pleasant background.'),
+      music: { genre: 'jazz', energy: 'low' },
+      lights: { brightness: 50, colorTemp: 2800 },
+      temperature: { target: 71, mode: 'home' },
+    },
+  };
 
-// Combined for lookup
-const VIBE_PRESETS: VibePreset[] = [...PRIMARY_VIBES, ...ACTIVITY_VIBES];
+  const buildPreset = (id: string): VibePresetUI => ({
+    id,
+    name: presetData[id].name,
+    description: presetData[id].description,
+    icon: PRESET_ICONS[id] ?? PRESET_ICONS.focus,
+    music: presetData[id].music,
+    lights: presetData[id].lights,
+    temperature: presetData[id].temperature,
+  });
+
+  return {
+    primary: PRIMARY_PRESET_IDS.map(buildPreset),
+    activity: ACTIVITY_PRESET_IDS.map(buildPreset),
+  };
+}
+
+// Get presets (rebuilt each time to pick up i18n changes)
+function getPrimaryVibes(): VibePresetUI[] {
+  return buildUIPresets().primary;
+}
+
+function getActivityVibes(): VibePresetUI[] {
+  return buildUIPresets().activity;
+}
+
+function getAllVibePresets(): VibePresetUI[] {
+  const { primary, activity } = buildUIPresets();
+  return [...primary, ...activity];
+}
 
 // ============================================================================
 // STATE
@@ -238,6 +340,35 @@ let currentState: VibeState = {
   lights: { connected: false, brightness: 50, colorTemp: 4000 },
   temperature: { connected: false, current: 70, target: 70, mode: 'home' },
 };
+
+// Focus trap elements for accessibility
+let previouslyFocusedElement: HTMLElement | null = null;
+let focusTrapActive = false;
+
+// ============================================================================
+// HMR CLEANUP - Prevent duplicate modals on hot reload
+// ============================================================================
+
+function cleanupOrphanedElements(): void {
+  // Remove any existing vibe overlay elements (from HMR)
+  document.querySelectorAll('.vibe-overlay').forEach((el) => el.remove());
+
+  // Remove orphaned Ecobee PIN dialogs
+  document.querySelectorAll('.ecobee-pin-dialog').forEach((el) => el.remove());
+
+  // Remove orphaned style elements
+  document.querySelectorAll('style').forEach((el) => {
+    if (el.textContent?.includes('.vibe-overlay')) {
+      el.remove();
+    }
+  });
+
+  // Reset module state
+  container = null;
+  styleElement = null;
+  isVisible = false;
+  focusTrapActive = false;
+}
 
 // ============================================================================
 // SAFE DOM HELPERS
@@ -1012,6 +1143,117 @@ function injectStyles(): void {
       height: 12px;
     }
 
+    /* Loading State */
+    .vibe-preset--loading,
+    .vibe-activity--loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .vibe-preset--loading .vibe-preset__icon,
+    .vibe-activity--loading .vibe-activity__icon {
+      animation: vibe-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes vibe-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .vibe-control--loading .vibe-control__slider {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .vibe-music__btn--loading,
+    .vibe-not-connected__btn--loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    /* Ecobee PIN Dialog - Moved from inline styles */
+    .ecobee-pin-dialog {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: var(--z-modal, 2100);
+      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.8));
+      backdrop-filter: blur(8px);
+    }
+
+    .ecobee-pin-card {
+      background: var(--color-bg-elevated, #FFFDFB);
+      border-radius: var(--radius-2xl, 20px);
+      padding: var(--space-lg, 24px);
+      max-width: 400px;
+      text-align: center;
+      box-shadow: var(--shadow-xl, 0 20px 60px rgba(44, 37, 32, 0.2));
+    }
+
+    .ecobee-pin-card h3 {
+      color: var(--color-text-primary, #2C2520);
+      margin: 0 0 var(--space-md, 16px);
+      font-size: 1.25rem;
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    }
+
+    .ecobee-pin-card__instructions {
+      color: var(--color-text-secondary, #5C544A);
+      margin: 0 0 var(--space-md, 16px);
+    }
+
+    .ecobee-pin-card__pin {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 0.5rem;
+      color: var(--color-ferni, #3D5A45);
+      padding: var(--space-md, 16px);
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
+      border-radius: var(--radius-lg, 12px);
+      font-family: monospace;
+      margin: 0 0 var(--space-md, 16px);
+    }
+
+    .ecobee-pin-card__steps {
+      text-align: left;
+      color: var(--color-text-secondary, #5C544A);
+      padding-left: var(--space-lg, 20px);
+      margin: 0 0 var(--space-md, 16px);
+    }
+
+    .ecobee-pin-card__steps li {
+      margin: var(--space-xs, 8px) 0;
+    }
+
+    .ecobee-pin-card__expires {
+      color: var(--color-text-muted, #756A5E);
+      font-size: 0.875rem;
+      margin: 0 0 var(--space-md, 16px);
+    }
+
+    .ecobee-pin-card__cancel {
+      background: transparent;
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-sm, 12px) var(--space-lg, 20px);
+      color: var(--color-text-secondary, #5C544A);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all ${DURATION.FAST}ms;
+    }
+
+    .ecobee-pin-card__cancel:hover {
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
+      border-color: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+    }
+
+    .ecobee-pin-card__cancel:focus-visible {
+      outline: 2px solid var(--color-ferni, #3D5A45);
+      outline-offset: 2px;
+    }
+
     /* Reduced Motion */
     @media (prefers-reduced-motion: reduce) {
       .vibe-overlay,
@@ -1019,8 +1261,14 @@ function injectStyles(): void {
       .vibe-preset,
       .vibe-music__btn,
       .vibe-temp__btn,
-      .vibe-control__slider::-webkit-slider-thumb {
+      .vibe-control__slider::-webkit-slider-thumb,
+      .ecobee-pin-card__cancel {
         transition: none;
+      }
+
+      .vibe-preset--loading .vibe-preset__icon,
+      .vibe-activity--loading .vibe-activity__icon {
+        animation: none;
       }
     }
   `;
@@ -1036,13 +1284,13 @@ function renderHeader(): HTMLElement {
   const header = createElement('div', { className: 'vibe-header' });
 
   const left = createElement('div', { className: 'vibe-header__left' });
-  left.appendChild(createElement('span', { className: 'vibe-header__eyebrow' }, ['Your Environment']));
-  left.appendChild(createElement('h2', { className: 'vibe-header__title' }, ['Set the Vibe']));
+  left.appendChild(createElement('span', { className: 'vibe-header__eyebrow' }, [t('vibe.eyebrow', 'Your Environment')]));
+  left.appendChild(createElement('h2', { className: 'vibe-header__title' }, [t('vibe.title', 'Set the Vibe')]));
   header.appendChild(left);
 
   const closeBtn = createElement('button', {
     className: 'vibe-close',
-    'aria-label': 'Close',
+    'aria-label': t('common.close', 'Close'),
   });
   closeBtn.appendChild(createSvgIcon(ICONS.close));
   closeBtn.addEventListener('click', hide);
@@ -1059,11 +1307,13 @@ function renderPresets(): HTMLElement {
 
   // Primary vibes grid
   const primaryGrid = createElement('div', { className: 'vibe-presets' });
+  const primaryVibes = getPrimaryVibes();
 
-  for (const preset of PRIMARY_VIBES) {
+  for (const preset of primaryVibes) {
     const isActive = currentState.activePreset === preset.id;
+    const isLoading = loadingState.activatingPreset === preset.id;
     const card = createElement('button', {
-      className: `vibe-preset ${isActive ? 'vibe-preset--active' : ''}`,
+      className: `vibe-preset ${isActive ? 'vibe-preset--active' : ''} ${isLoading ? 'vibe-preset--loading' : ''}`,
       'aria-label': `${preset.name}: ${preset.description}`,
       'data-preset': preset.id,
     });
@@ -1080,11 +1330,15 @@ function renderPresets(): HTMLElement {
   wrapper.appendChild(primaryGrid);
 
   // More vibes toggle button
+  const moreVibesLabel = activityVibesExpanded
+    ? t('vibe.fewerVibes', 'Fewer vibes')
+    : t('vibe.moreVibes', 'More vibes');
+
   const moreToggle = createElement('button', {
     className: `vibe-more-toggle ${activityVibesExpanded ? 'vibe-more-toggle--expanded' : ''}`,
     'aria-expanded': activityVibesExpanded ? 'true' : 'false',
   });
-  moreToggle.appendChild(document.createTextNode(activityVibesExpanded ? 'Fewer vibes' : 'More vibes'));
+  moreToggle.appendChild(document.createTextNode(moreVibesLabel));
   moreToggle.appendChild(createSvgIcon(ICONS.chevronDown));
   wrapper.appendChild(moreToggle);
 
@@ -1092,11 +1346,13 @@ function renderPresets(): HTMLElement {
   const activityGrid = createElement('div', {
     className: `vibe-activity-grid ${activityVibesExpanded ? 'vibe-activity-grid--visible' : ''}`,
   });
+  const activityVibes = getActivityVibes();
 
-  for (const preset of ACTIVITY_VIBES) {
+  for (const preset of activityVibes) {
     const isActive = currentState.activePreset === preset.id;
+    const isLoading = loadingState.activatingPreset === preset.id;
     const card = createElement('button', {
-      className: `vibe-activity ${isActive ? 'vibe-activity--active' : ''}`,
+      className: `vibe-activity ${isActive ? 'vibe-activity--active' : ''} ${isLoading ? 'vibe-activity--loading' : ''}`,
       'aria-label': `${preset.name}: ${preset.description}`,
       'data-preset': preset.id,
     });
@@ -1118,7 +1374,13 @@ function renderPresets(): HTMLElement {
     activityGrid.classList.toggle('vibe-activity-grid--visible', activityVibesExpanded);
     moreToggle.classList.toggle('vibe-more-toggle--expanded', activityVibesExpanded);
     moreToggle.setAttribute('aria-expanded', activityVibesExpanded ? 'true' : 'false');
-    moreToggle.firstChild!.textContent = activityVibesExpanded ? 'Fewer vibes' : 'More vibes';
+
+    const firstChild = moreToggle.firstChild;
+    if (firstChild) {
+      firstChild.textContent = activityVibesExpanded
+        ? t('vibe.fewerVibes', 'Fewer vibes')
+        : t('vibe.moreVibes', 'More vibes');
+    }
   });
 
   return wrapper;
@@ -1132,10 +1394,10 @@ function renderMusicSection(): HTMLElement {
   const iconWrapper = createElement('div', { className: 'vibe-section__icon' });
   iconWrapper.appendChild(createSvgIcon(ICONS.music));
   header.appendChild(iconWrapper);
-  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, ['Music']));
+  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, [t('vibe.music.title', 'Music')]));
   header.appendChild(createElement('span', {
     className: `vibe-section__status ${currentState.music.playing ? 'vibe-section__status--connected' : ''}`,
-  }, [currentState.music.playing ? 'Playing' : 'Paused']));
+  }, [currentState.music.playing ? t('vibe.music.playing', 'Playing') : t('vibe.music.paused', 'Paused')]));
   section.appendChild(header);
 
   // Now Playing
@@ -1149,17 +1411,17 @@ function renderMusicSection(): HTMLElement {
 
   const info = createElement('div', { className: 'vibe-music__info' });
   info.appendChild(createElement('div', { className: 'vibe-music__track' }, [
-    currentState.music.track || 'Choose a vibe to start music',
+    currentState.music.track || t('vibe.music.chooseVibe', 'Choose a vibe to start music'),
   ]));
   info.appendChild(createElement('div', { className: 'vibe-music__artist' }, [
-    currentState.music.artist || 'Or ask Ferni to play something',
+    currentState.music.artist || t('vibe.music.askFerni', 'Or ask Ferni to play something'),
   ]));
   nowPlaying.appendChild(info);
 
   const controls = createElement('div', { className: 'vibe-music__controls' });
   const playBtn = createElement('button', {
     className: 'vibe-music__btn',
-    'aria-label': currentState.music.playing ? 'Pause' : 'Play',
+    'aria-label': currentState.music.playing ? t('vibe.music.pause', 'Pause') : t('vibe.music.play', 'Play'),
   });
   playBtn.appendChild(createSvgIcon(currentState.music.playing ? ICONS.pause : ICONS.play));
   playBtn.addEventListener('click', toggleMusic);
@@ -1167,7 +1429,7 @@ function renderMusicSection(): HTMLElement {
 
   const skipBtn = createElement('button', {
     className: 'vibe-music__btn vibe-music__btn--secondary',
-    'aria-label': 'Skip',
+    'aria-label': t('vibe.music.skip', 'Skip'),
   });
   skipBtn.appendChild(createSvgIcon(ICONS.skipForward));
   skipBtn.addEventListener('click', skipTrack);
@@ -1177,8 +1439,11 @@ function renderMusicSection(): HTMLElement {
   music.appendChild(nowPlaying);
 
   // Volume slider
-  const volumeControl = createElement('div', { className: 'vibe-control' });
-  volumeControl.appendChild(createElement('span', { className: 'vibe-control__label' }, ['Volume']));
+  const isVolumeLoading = loadingState.adjustingVolume;
+  const volumeControl = createElement('div', {
+    className: `vibe-control ${isVolumeLoading ? 'vibe-control--loading' : ''}`,
+  });
+  volumeControl.appendChild(createElement('span', { className: 'vibe-control__label' }, [t('vibe.volume', 'Volume')]));
 
   const volumeSlider = createElement('input', {
     className: 'vibe-control__slider',
@@ -1186,15 +1451,22 @@ function renderMusicSection(): HTMLElement {
     min: '0',
     max: '100',
     value: String(currentState.music.volume),
-    'aria-label': 'Volume',
+    'aria-label': t('vibe.volume', 'Volume'),
   }) as HTMLInputElement;
 
   const volumeValue = createElement('span', { className: 'vibe-control__value' }, [`${currentState.music.volume}%`]);
 
+  // Debounced volume change
+  let volumeTimeout: ReturnType<typeof setTimeout> | null = null;
   volumeSlider.addEventListener('input', () => {
     currentState.music.volume = parseInt(volumeSlider.value, 10);
     volumeValue.textContent = `${currentState.music.volume}%`;
-    setMusicVolume(currentState.music.volume);
+
+    // Debounce API call
+    if (volumeTimeout) clearTimeout(volumeTimeout);
+    volumeTimeout = setTimeout(() => {
+      void setMusicVolume(currentState.music.volume);
+    }, 150);
   });
 
   volumeControl.appendChild(volumeSlider);
@@ -1212,9 +1484,9 @@ function renderLightsSetup(): HTMLElement {
   icon.appendChild(createSvgIcon(ICONS.sun));
   setup.appendChild(icon);
 
-  setup.appendChild(createElement('h3', { className: 'vibe-setup__title' }, ['Connect Your Lights']));
+  setup.appendChild(createElement('h3', { className: 'vibe-setup__title' }, [t('vibe.lights.connectTitle', 'Connect Your Lights')]));
   setup.appendChild(createElement('p', { className: 'vibe-setup__desc' }, [
-    'Ferni can control your smart lights to set the perfect ambiance. Choose how you\'d like to connect:',
+    t('vibe.lights.connectDescription', 'Ferni can control your smart lights to set the perfect ambiance. Choose how you\'d like to connect:'),
   ]));
 
   const options = createElement('div', { className: 'vibe-setup__options' });
@@ -1225,13 +1497,13 @@ function renderLightsSetup(): HTMLElement {
   haIcon.appendChild(createSvgIcon(ICONS.home));
   haOption.appendChild(haIcon);
   const haInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, ['Home Assistant']));
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, ['Works with all your devices']));
+  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.homeAssistant', 'Home Assistant')]));
+  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.homeAssistantDesc', 'Works with all your devices')]));
   haOption.appendChild(haInfo);
   const haArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   haArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   haOption.appendChild(haArrow);
-  haOption.addEventListener('click', () => connectLightsViaHomeAssistant());
+  haOption.addEventListener('click', () => void connectLightsViaHomeAssistant());
   options.appendChild(haOption);
 
   // Philips Hue option
@@ -1240,18 +1512,18 @@ function renderLightsSetup(): HTMLElement {
   hueIcon.appendChild(createSvgIcon(ICONS.hue));
   hueOption.appendChild(hueIcon);
   const hueInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, ['Philips Hue']));
-  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, ['Connect directly to your Hue bridge']));
+  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.philipsHue', 'Philips Hue')]));
+  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.philipsHueDesc', 'Connect directly to your Hue bridge')]));
   hueOption.appendChild(hueInfo);
   const hueArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   hueArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   hueOption.appendChild(hueArrow);
-  hueOption.addEventListener('click', () => connectLightsViaHue());
+  hueOption.addEventListener('click', () => void connectLightsViaHue());
   options.appendChild(hueOption);
 
   setup.appendChild(options);
 
-  const skipBtn = createElement('button', { className: 'vibe-setup__skip' }, ['Skip for now']);
+  const skipBtn = createElement('button', { className: 'vibe-setup__skip' }, [t('vibe.skipForNow', 'Skip for now')]);
   skipBtn.addEventListener('click', () => hideLightsSetup());
   setup.appendChild(skipBtn);
 
@@ -1266,10 +1538,10 @@ function renderLightsSection(): HTMLElement {
   const iconWrapper = createElement('div', { className: 'vibe-section__icon' });
   iconWrapper.appendChild(createSvgIcon(ICONS.sun));
   header.appendChild(iconWrapper);
-  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, ['Lights']));
+  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, [t('vibe.lights.title', 'Lights')]));
   header.appendChild(createElement('span', {
     className: `vibe-section__status ${currentState.lights.connected ? 'vibe-section__status--connected' : ''}`,
-  }, [currentState.lights.connected ? 'Connected' : 'Not connected']));
+  }, [currentState.lights.connected ? t('vibe.connected', 'Connected') : t('vibe.notConnected', 'Not connected')]));
   section.appendChild(header);
 
   // Show setup flow if active
@@ -1284,18 +1556,24 @@ function renderLightsSection(): HTMLElement {
     icon.appendChild(createSvgIcon(ICONS.sun));
     notConnected.appendChild(icon);
     notConnected.appendChild(createElement('p', { className: 'vibe-not-connected__text' }, [
-      'Connect your smart lights to control ambiance',
+      t('vibe.lights.notConnectedText', 'Connect your smart lights to control ambiance'),
     ]));
-    const connectBtn = createElement('button', { className: 'vibe-not-connected__btn' }, ['Connect Lights']);
-    connectBtn.addEventListener('click', () => connectLights());
+    const isConnecting = loadingState.connectingLights;
+    const connectBtn = createElement('button', {
+      className: `vibe-not-connected__btn ${isConnecting ? 'vibe-not-connected__btn--loading' : ''}`,
+    }, [isConnecting ? t('vibe.connecting', 'Connecting...') : t('vibe.lights.connect', 'Connect Lights')]);
+    connectBtn.addEventListener('click', () => void connectLights());
     notConnected.appendChild(connectBtn);
     section.appendChild(notConnected);
     return section;
   }
 
   // Brightness slider
-  const brightnessControl = createElement('div', { className: 'vibe-control' });
-  brightnessControl.appendChild(createElement('span', { className: 'vibe-control__label' }, ['Brightness']));
+  const isBrightnessLoading = loadingState.adjustingBrightness;
+  const brightnessControl = createElement('div', {
+    className: `vibe-control ${isBrightnessLoading ? 'vibe-control--loading' : ''}`,
+  });
+  brightnessControl.appendChild(createElement('span', { className: 'vibe-control__label' }, [t('vibe.lights.brightness', 'Brightness')]));
 
   const brightnessSlider = createElement('input', {
     className: 'vibe-control__slider',
@@ -1303,15 +1581,21 @@ function renderLightsSection(): HTMLElement {
     min: '0',
     max: '100',
     value: String(currentState.lights.brightness),
-    'aria-label': 'Brightness',
+    'aria-label': t('vibe.lights.brightness', 'Brightness'),
   }) as HTMLInputElement;
 
   const brightnessValue = createElement('span', { className: 'vibe-control__value' }, [`${currentState.lights.brightness}%`]);
 
+  // Debounced brightness change
+  let brightnessTimeout: ReturnType<typeof setTimeout> | null = null;
   brightnessSlider.addEventListener('input', () => {
     currentState.lights.brightness = parseInt(brightnessSlider.value, 10);
     brightnessValue.textContent = `${currentState.lights.brightness}%`;
-    setLightBrightness(currentState.lights.brightness);
+
+    if (brightnessTimeout) clearTimeout(brightnessTimeout);
+    brightnessTimeout = setTimeout(() => {
+      void setLightBrightness(currentState.lights.brightness);
+    }, 150);
   });
 
   brightnessControl.appendChild(brightnessSlider);
@@ -1319,8 +1603,11 @@ function renderLightsSection(): HTMLElement {
   section.appendChild(brightnessControl);
 
   // Color temperature slider
-  const tempControl = createElement('div', { className: 'vibe-control' });
-  tempControl.appendChild(createElement('span', { className: 'vibe-control__label' }, ['Warmth']));
+  const isColorTempLoading = loadingState.adjustingColorTemp;
+  const tempControl = createElement('div', {
+    className: `vibe-control ${isColorTempLoading ? 'vibe-control--loading' : ''}`,
+  });
+  tempControl.appendChild(createElement('span', { className: 'vibe-control__label' }, [t('vibe.lights.warmth', 'Warmth')]));
 
   const tempSlider = createElement('input', {
     className: 'vibe-control__slider',
@@ -1328,17 +1615,29 @@ function renderLightsSection(): HTMLElement {
     min: '2700',
     max: '6500',
     value: String(currentState.lights.colorTemp),
-    'aria-label': 'Color temperature',
+    'aria-label': t('vibe.lights.colorTemperature', 'Color temperature'),
   }) as HTMLInputElement;
 
+  const getWarmthLabel = (temp: number): string => {
+    if (temp < 4000) return t('vibe.lights.warm', 'Warm');
+    if (temp > 5000) return t('vibe.lights.cool', 'Cool');
+    return t('vibe.lights.neutral', 'Neutral');
+  };
+
   const tempValue = createElement('span', { className: 'vibe-control__value' }, [
-    currentState.lights.colorTemp < 4000 ? 'Warm' : currentState.lights.colorTemp > 5000 ? 'Cool' : 'Neutral',
+    getWarmthLabel(currentState.lights.colorTemp),
   ]);
 
+  // Debounced color temp change
+  let colorTempTimeout: ReturnType<typeof setTimeout> | null = null;
   tempSlider.addEventListener('input', () => {
     currentState.lights.colorTemp = parseInt(tempSlider.value, 10);
-    tempValue.textContent = currentState.lights.colorTemp < 4000 ? 'Warm' : currentState.lights.colorTemp > 5000 ? 'Cool' : 'Neutral';
-    setLightColorTemp(currentState.lights.colorTemp);
+    tempValue.textContent = getWarmthLabel(currentState.lights.colorTemp);
+
+    if (colorTempTimeout) clearTimeout(colorTempTimeout);
+    colorTempTimeout = setTimeout(() => {
+      void setLightColorTemp(currentState.lights.colorTemp);
+    }, 150);
   });
 
   tempControl.appendChild(tempSlider);
@@ -1355,9 +1654,9 @@ function renderThermostatSetup(): HTMLElement {
   icon.appendChild(createSvgIcon(ICONS.thermometer));
   setup.appendChild(icon);
 
-  setup.appendChild(createElement('h3', { className: 'vibe-setup__title' }, ['Connect Your Thermostat']));
+  setup.appendChild(createElement('h3', { className: 'vibe-setup__title' }, [t('vibe.temperature.connectTitle', 'Connect Your Thermostat')]));
   setup.appendChild(createElement('p', { className: 'vibe-setup__desc' }, [
-    'Ferni can adjust your home\'s temperature to match your vibe. Choose your thermostat:',
+    t('vibe.temperature.connectDescription', 'Ferni can adjust your home\'s temperature to match your vibe. Choose your thermostat:'),
   ]));
 
   const options = createElement('div', { className: 'vibe-setup__options' });
@@ -1368,13 +1667,13 @@ function renderThermostatSetup(): HTMLElement {
   ecobeeIcon.appendChild(createSvgIcon(ICONS.ecobee));
   ecobeeOption.appendChild(ecobeeIcon);
   const ecobeeInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  ecobeeInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, ['Ecobee']));
-  ecobeeInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, ['Smart thermostat with room sensors']));
+  ecobeeInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.ecobee', 'Ecobee')]));
+  ecobeeInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.ecobeeDesc', 'Smart thermostat with room sensors')]));
   ecobeeOption.appendChild(ecobeeInfo);
   const ecobeeArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   ecobeeArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   ecobeeOption.appendChild(ecobeeArrow);
-  ecobeeOption.addEventListener('click', () => connectThermostatViaEcobee());
+  ecobeeOption.addEventListener('click', () => void connectThermostatViaEcobee());
   options.appendChild(ecobeeOption);
 
   // Nest option
@@ -1383,13 +1682,13 @@ function renderThermostatSetup(): HTMLElement {
   nestIcon.appendChild(createSvgIcon(ICONS.thermometer));
   nestOption.appendChild(nestIcon);
   const nestInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, ['Google Nest']));
-  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, ['Learning thermostat']));
+  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.googleNest', 'Google Nest')]));
+  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.googleNestDesc', 'Learning thermostat')]));
   nestOption.appendChild(nestInfo);
   const nestArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   nestArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   nestOption.appendChild(nestArrow);
-  nestOption.addEventListener('click', () => connectThermostatViaNest());
+  nestOption.addEventListener('click', () => void connectThermostatViaNest());
   options.appendChild(nestOption);
 
   // Home Assistant option
@@ -1398,18 +1697,18 @@ function renderThermostatSetup(): HTMLElement {
   haIcon.appendChild(createSvgIcon(ICONS.home));
   haOption.appendChild(haIcon);
   const haInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, ['Home Assistant']));
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, ['Any thermostat via Home Assistant']));
+  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.homeAssistant', 'Home Assistant')]));
+  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.homeAssistantClimate', 'Any thermostat via Home Assistant')]));
   haOption.appendChild(haInfo);
   const haArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   haArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   haOption.appendChild(haArrow);
-  haOption.addEventListener('click', () => connectThermostatViaHomeAssistant());
+  haOption.addEventListener('click', () => void connectThermostatViaHomeAssistant());
   options.appendChild(haOption);
 
   setup.appendChild(options);
 
-  const skipBtn = createElement('button', { className: 'vibe-setup__skip' }, ['Skip for now']);
+  const skipBtn = createElement('button', { className: 'vibe-setup__skip' }, [t('vibe.skipForNow', 'Skip for now')]);
   skipBtn.addEventListener('click', () => hideThermostatSetup());
   setup.appendChild(skipBtn);
 
@@ -1424,10 +1723,12 @@ function renderTemperatureSection(): HTMLElement {
   const iconWrapper = createElement('div', { className: 'vibe-section__icon' });
   iconWrapper.appendChild(createSvgIcon(ICONS.thermometer));
   header.appendChild(iconWrapper);
-  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, ['Temperature']));
+  header.appendChild(createElement('h3', { className: 'vibe-section__title' }, [t('vibe.temperature.title', 'Temperature')]));
   header.appendChild(createElement('span', {
     className: `vibe-section__status ${currentState.temperature.connected ? 'vibe-section__status--connected' : ''}`,
-  }, [currentState.temperature.connected ? `${currentState.temperature.current}°F now` : 'Not connected']));
+  }, [currentState.temperature.connected
+    ? t('vibe.temperature.currentNow', '{temp} now', { temp: formatTemperature(currentState.temperature.current) })
+    : t('vibe.notConnected', 'Not connected')]));
   section.appendChild(header);
 
   // Show setup flow if active
@@ -1442,35 +1743,39 @@ function renderTemperatureSection(): HTMLElement {
     icon.appendChild(createSvgIcon(ICONS.thermometer));
     notConnected.appendChild(icon);
     notConnected.appendChild(createElement('p', { className: 'vibe-not-connected__text' }, [
-      'Connect your thermostat for comfort control',
+      t('vibe.temperature.notConnectedText', 'Connect your thermostat for comfort control'),
     ]));
-    const connectBtn = createElement('button', { className: 'vibe-not-connected__btn' }, ['Connect Thermostat']);
-    connectBtn.addEventListener('click', () => connectThermostat());
+    const isConnecting = loadingState.connectingThermostat;
+    const connectBtn = createElement('button', {
+      className: `vibe-not-connected__btn ${isConnecting ? 'vibe-not-connected__btn--loading' : ''}`,
+    }, [isConnecting ? t('vibe.connecting', 'Connecting...') : t('vibe.temperature.connect', 'Connect Thermostat')]);
+    connectBtn.addEventListener('click', () => void connectThermostat());
     notConnected.appendChild(connectBtn);
     section.appendChild(notConnected);
     return section;
   }
 
   // Temperature controls
-  const tempDisplay = createElement('div', { className: 'vibe-temp' });
+  const isLoading = loadingState.adjustingTemperature;
+  const tempDisplay = createElement('div', { className: `vibe-temp ${isLoading ? 'vibe-control--loading' : ''}` });
 
   const decreaseBtn = createElement('button', {
     className: 'vibe-temp__btn',
-    'aria-label': 'Decrease temperature',
+    'aria-label': t('vibe.temperature.decrease', 'Decrease temperature'),
   }, ['−']);
-  decreaseBtn.addEventListener('click', () => adjustTemperature(-1));
+  decreaseBtn.addEventListener('click', () => void adjustTemperature(-1));
   tempDisplay.appendChild(decreaseBtn);
 
   const display = createElement('div', { className: 'vibe-temp__display' });
-  display.appendChild(createElement('div', { className: 'vibe-temp__value' }, [`${currentState.temperature.target}°`]));
-  display.appendChild(createElement('div', { className: 'vibe-temp__label' }, ['Target']));
+  display.appendChild(createElement('div', { className: 'vibe-temp__value' }, [formatTargetTemperature(currentState.temperature.target)]));
+  display.appendChild(createElement('div', { className: 'vibe-temp__label' }, [t('vibe.temperature.target', 'Target')]));
   tempDisplay.appendChild(display);
 
   const increaseBtn = createElement('button', {
     className: 'vibe-temp__btn',
-    'aria-label': 'Increase temperature',
+    'aria-label': t('vibe.temperature.increase', 'Increase temperature'),
   }, ['+']);
-  increaseBtn.addEventListener('click', () => adjustTemperature(1));
+  increaseBtn.addEventListener('click', () => void adjustTemperature(1));
   tempDisplay.appendChild(increaseBtn);
 
   section.appendChild(tempDisplay);
@@ -1518,9 +1823,13 @@ async function fetchState(): Promise<void> {
   }
 }
 
-async function activatePreset(preset: VibePreset): Promise<void> {
+async function activatePreset(preset: VibePresetUI): Promise<void> {
+  // Set loading state
+  loadingState.activatingPreset = preset.id;
   currentState.activePreset = preset.id;
-  toast.info(`Setting ${preset.name} vibe...`);
+  render();
+
+  toast.info(t('vibe.settingVibe', 'Setting {name} vibe...', { name: preset.name }));
 
   try {
     // Use the unified vibe activate endpoint
@@ -1538,15 +1847,17 @@ async function activatePreset(preset: VibePreset): Promise<void> {
         currentState.temperature.target = preset.temperature.target;
       }
 
-      toast.success(`${preset.name} vibe set!`);
+      toast.success(t('vibe.vibeSet', '{name} vibe set!', { name: preset.name }));
       callbacks.onVibeChanged?.(preset.id);
     } else {
-      toast.warning(result?.message || "Couldn't fully set the vibe");
+      toast.warning(result?.message || t('vibe.couldNotFullySet', "Couldn't fully set the vibe"));
     }
-    render();
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to activate preset:', error);
-    toast.error("Couldn't set that vibe. Try again?");
+    toast.error(t('vibe.couldNotSetVibe', "Couldn't set that vibe. Try again?"));
+  } finally {
+    loadingState.activatingPreset = null;
+    render();
   }
 }
 
@@ -1562,14 +1873,14 @@ async function toggleMusic(): Promise<void> {
     render();
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to toggle music:', error);
-    toast.error("Couldn't control music. Try again?");
+    toast.error(t('vibe.couldNotControlMusic', "Couldn't control music. Try again?"));
   }
 }
 
 async function skipTrack(): Promise<void> {
   try {
     await apiPost('/api/spotify/skip', {});
-    toast.info('Skipped');
+    toast.info(t('vibe.skipped', 'Skipped'));
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to skip track:', error);
   }
@@ -1602,6 +1913,7 @@ async function setLightColorTemp(colorTemp: number): Promise<void> {
 async function adjustTemperature(delta: number): Promise<void> {
   const newTarget = currentState.temperature.target + delta;
   currentState.temperature.target = newTarget;
+  loadingState.adjustingTemperature = true;
   render();
 
   try {
@@ -1612,7 +1924,10 @@ async function adjustTemperature(delta: number): Promise<void> {
     });
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to adjust temperature:', error);
-    toast.error("Couldn't change temperature. Try again?");
+    toast.error(t('vibe.couldNotChangeTemp', "Couldn't change temperature. Try again?"));
+  } finally {
+    loadingState.adjustingTemperature = false;
+    render();
   }
 }
 
@@ -1641,46 +1956,59 @@ function hideThermostatSetup(): void {
 }
 
 async function connectLightsViaHomeAssistant(): Promise<void> {
-  toast.info('Connecting to Home Assistant...');
+  loadingState.connectingLights = true;
+  render();
+  toast.info(t('vibe.connectingToHA', 'Connecting to Home Assistant...'));
+
   try {
     // Start OAuth flow or show config dialog
     const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/lights/connect', { provider: 'home-assistant' });
     if (result?.authUrl) {
       window.open(result.authUrl, '_blank', 'width=600,height=700');
     } else if (result?.success) {
-      toast.success('Lights connected!');
+      toast.success(t('vibe.lightsConnected', 'Lights connected!'));
       currentState.lights.connected = true;
       showingLightsSetup = false;
-      render();
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant:', error);
-    toast.error("Couldn't connect. Check your Home Assistant URL.");
+    toast.error(t('vibe.couldNotConnectHA', "Couldn't connect. Check your Home Assistant URL."));
+  } finally {
+    loadingState.connectingLights = false;
+    render();
   }
 }
 
 async function connectLightsViaHue(): Promise<void> {
-  toast.info('Looking for Philips Hue bridge...');
+  loadingState.connectingLights = true;
+  render();
+  toast.info(t('vibe.lookingForHue', 'Looking for Philips Hue bridge...'));
+
   try {
     const result = await apiPost<{ success: boolean; authUrl?: string; message?: string }>('/api/vibe/lights/connect', { provider: 'hue' });
     if (result?.authUrl) {
       window.open(result.authUrl, '_blank', 'width=600,height=700');
     } else if (result?.success) {
-      toast.success('Hue lights connected!');
+      toast.success(t('vibe.hueLightsConnected', 'Hue lights connected!'));
       currentState.lights.connected = true;
       showingLightsSetup = false;
-      render();
     } else {
-      toast.info(result?.message || 'Press the button on your Hue bridge, then try again');
+      toast.info(result?.message || t('vibe.pressHueButton', 'Press the button on your Hue bridge, then try again'));
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to connect Hue:', error);
-    toast.error("Couldn't find Hue bridge. Is it on?");
+    toast.error(t('vibe.couldNotFindHue', "Couldn't find Hue bridge. Is it on?"));
+  } finally {
+    loadingState.connectingLights = false;
+    render();
   }
 }
 
 async function connectThermostatViaEcobee(): Promise<void> {
-  toast.info('Getting Ecobee PIN...');
+  loadingState.connectingThermostat = true;
+  render();
+  toast.info(t('vibe.gettingEcobeePin', 'Getting Ecobee PIN...'));
+
   try {
     // Ecobee uses PIN-based OAuth - we get a PIN, user enters it at ecobee.com
     const result = await apiPost<{
@@ -1688,6 +2016,9 @@ async function connectThermostatViaEcobee(): Promise<void> {
       expiresInMinutes?: number;
       instructions?: string;
     }>('/api/ecobee/link/start', {});
+
+    loadingState.connectingThermostat = false;
+    render();
 
     if (result?.pin) {
       // Show PIN to user with instructions
@@ -1699,14 +2030,14 @@ async function connectThermostatViaEcobee(): Promise<void> {
         if (status?.status === 'connected') {
           clearInterval(checkConnection);
           hideEcobeePinDialog();
-          toast.success('Thermostat connected!');
+          toast.success(t('vibe.thermostatConnected', 'Thermostat connected!'));
           currentState.temperature.connected = true;
           showingThermostatSetup = false;
           render();
         } else if (status?.status === 'expired') {
           clearInterval(checkConnection);
           hideEcobeePinDialog();
-          toast.warning('PIN expired. Try again?');
+          toast.warning(t('vibe.pinExpiredRetry', 'PIN expired. Try again?'));
         }
       }, 5000); // Poll every 5 seconds
 
@@ -1716,11 +2047,13 @@ async function connectThermostatViaEcobee(): Promise<void> {
         hideEcobeePinDialog();
       }, 600000);
     } else {
-      toast.error("Couldn't get PIN. Is Ecobee configured?");
+      toast.error(t('vibe.couldNotGetPin', "Couldn't get PIN. Is Ecobee configured?"));
     }
   } catch (error) {
+    loadingState.connectingThermostat = false;
+    render();
     if (import.meta.env?.DEV) console.debug('Failed to connect Ecobee:', error);
-    toast.error("Couldn't connect. Try again?");
+    toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
   }
 }
 
@@ -1732,83 +2065,36 @@ function showEcobeePinDialog(pin: string, expiresInMinutes: number): void {
   hideEcobeePinDialog();
 
   ecobeePinDialog = createElement('div', { className: 'ecobee-pin-dialog' });
-  ecobeePinDialog.style.cssText = `
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal, 2100);
-    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.8));
-    backdrop-filter: blur(8px);
-  `;
 
   const card = createElement('div', { className: 'ecobee-pin-card' });
-  card.style.cssText = `
-    background: var(--color-bg-elevated, #FFFDFB);
-    border-radius: var(--radius-2xl, 20px);
-    padding: var(--space-6, 24px);
-    max-width: 400px;
-    text-align: center;
-    box-shadow: var(--shadow-xl);
-  `;
 
-  const title = createElement('h3', {}, ['Connect Ecobee']);
-  title.style.cssText = `
-    color: var(--color-text-primary);
-    margin: 0 0 var(--space-4, 16px);
-    font-size: 1.25rem;
-  `;
+  const title = createElement('h3', {}, [t('vibe.ecobee.connectTitle', 'Connect Ecobee')]);
 
-  const instructions = createElement('p', {}, ['Enter this PIN at ecobee.com:']);
-  instructions.style.cssText = `
-    color: var(--color-text-secondary);
-    margin: 0 0 var(--space-4, 16px);
-  `;
+  const instructions = createElement('p', { className: 'ecobee-pin-card__instructions' }, [
+    t('vibe.ecobee.enterPin', 'Enter this PIN at ecobee.com:'),
+  ]);
 
-  const pinDisplay = createElement('div', {}, [pin]);
-  pinDisplay.style.cssText = `
-    font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: 0.5rem;
-    color: var(--color-accent-primary, #3D5A45);
-    padding: var(--space-4, 16px);
-    background: var(--color-bg-secondary);
-    border-radius: var(--radius-lg, 12px);
-    font-family: monospace;
-    margin: 0 0 var(--space-4, 16px);
-  `;
+  const pinDisplay = createElement('div', { className: 'ecobee-pin-card__pin' }, [pin]);
 
-  const steps = createElement('ol', {});
-  steps.style.cssText = `
-    text-align: left;
-    color: var(--color-text-secondary);
-    padding-left: var(--space-5, 20px);
-    margin: 0 0 var(--space-4, 16px);
-  `;
-  ['Go to ecobee.com/consumerportal', 'Click "Add Application"', 'Enter the PIN above'].forEach((step) => {
-    const li = createElement('li', {}, [step]);
-    li.style.cssText = 'margin: var(--space-2, 8px) 0;';
+  const steps = createElement('ol', { className: 'ecobee-pin-card__steps' });
+  const stepTexts = [
+    t('vibe.ecobee.step1', 'Go to ecobee.com/consumerportal'),
+    t('vibe.ecobee.step2', 'Click "Add Application"'),
+    t('vibe.ecobee.step3', 'Enter the PIN above'),
+  ];
+  stepTexts.forEach((stepText) => {
+    const li = createElement('li', {}, [stepText]);
     steps.appendChild(li);
   });
 
-  const expires = createElement('p', {}, [`PIN expires in ${expiresInMinutes} minutes`]);
-  expires.style.cssText = `
-    color: var(--color-text-muted);
-    font-size: 0.875rem;
-    margin: 0 0 var(--space-4, 16px);
-  `;
+  const expires = createElement('p', { className: 'ecobee-pin-card__expires' }, [
+    t('vibe.ecobee.pinExpires', 'PIN expires in {minutes} minutes', { minutes: String(expiresInMinutes) }),
+  ]);
 
-  const cancelBtn = createElement('button', { className: 'ecobee-pin-cancel' }, ['Cancel']);
-  cancelBtn.style.cssText = `
-    background: transparent;
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg, 12px);
-    padding: var(--space-3, 12px) var(--space-5, 20px);
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    font-size: 1rem;
-  `;
+  const cancelBtn = createElement('button', {
+    className: 'ecobee-pin-card__cancel',
+    'aria-label': t('common.cancel', 'Cancel'),
+  }, [t('common.cancel', 'Cancel')]);
   cancelBtn.addEventListener('click', hideEcobeePinDialog);
 
   card.appendChild(title);
@@ -1819,6 +2105,9 @@ function showEcobeePinDialog(pin: string, expiresInMinutes: number): void {
   card.appendChild(cancelBtn);
   ecobeePinDialog.appendChild(card);
   document.body.appendChild(ecobeePinDialog);
+
+  // Focus the cancel button for accessibility
+  cancelBtn.focus();
 }
 
 function hideEcobeePinDialog(): void {
@@ -1829,31 +2118,46 @@ function hideEcobeePinDialog(): void {
 }
 
 async function connectThermostatViaNest(): Promise<void> {
-  toast.info('Connecting to Nest...');
+  loadingState.connectingThermostat = true;
+  render();
+  toast.info(t('vibe.connectingToNest', 'Connecting to Nest...'));
+
   try {
     const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/thermostat/connect', { provider: 'nest' });
     if (result?.authUrl) {
       window.open(result.authUrl, '_blank', 'width=600,height=700');
+    } else if (result?.success) {
+      toast.success(t('vibe.nestConnected', 'Nest connected!'));
+      currentState.temperature.connected = true;
+      showingThermostatSetup = false;
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to connect Nest:', error);
-    toast.error("Couldn't connect. Try again?");
+    toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
+  } finally {
+    loadingState.connectingThermostat = false;
+    render();
   }
 }
 
 async function connectThermostatViaHomeAssistant(): Promise<void> {
-  toast.info('Using Home Assistant for climate control...');
+  loadingState.connectingThermostat = true;
+  render();
+  toast.info(t('vibe.connectingToHAClimate', 'Using Home Assistant for climate control...'));
+
   try {
     const result = await apiPost<{ success: boolean }>('/api/vibe/thermostat/connect', { provider: 'home-assistant' });
     if (result?.success) {
-      toast.success('Climate control connected!');
+      toast.success(t('vibe.climateControlConnected', 'Climate control connected!'));
       currentState.temperature.connected = true;
       showingThermostatSetup = false;
-      render();
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant climate:', error);
-    toast.error("Couldn't connect. Try again?");
+    toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
+  } finally {
+    loadingState.connectingThermostat = false;
+    render();
   }
 }
 
@@ -1866,17 +2170,81 @@ async function connectThermostat(): Promise<void> {
 }
 
 // ============================================================================
+// FOCUS TRAP - Accessibility helper
+// ============================================================================
+
+function getFocusableElements(): HTMLElement[] {
+  if (!container) return [];
+  const panel = container.querySelector('.vibe-panel');
+  if (!panel) return [];
+
+  const elements = panel.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  return Array.from(elements).filter(
+    (el) => !el.hasAttribute('disabled') && el.offsetParent !== null
+  );
+}
+
+function handleFocusTrap(e: KeyboardEvent): void {
+  if (!focusTrapActive || e.key !== 'Tab') return;
+
+  const focusable = getFocusableElements();
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+function activateFocusTrap(): void {
+  previouslyFocusedElement = document.activeElement as HTMLElement | null;
+  focusTrapActive = true;
+
+  // Focus the first focusable element
+  const focusable = getFocusableElements();
+  if (focusable.length > 0) {
+    focusable[0].focus();
+  }
+}
+
+function deactivateFocusTrap(): void {
+  focusTrapActive = false;
+
+  // Restore focus to previously focused element
+  if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+    previouslyFocusedElement.focus();
+  }
+  previouslyFocusedElement = null;
+}
+
+// ============================================================================
 // PUBLIC API
 // ============================================================================
 
 export function initialize(): void {
+  // HMR cleanup - prevent duplicate modals
+  cleanupOrphanedElements();
+
   if (container) return;
 
   injectStyles();
 
   container = createElement('div', { className: 'vibe-overlay' });
 
-  const panel = createElement('div', { className: 'vibe-panel' });
+  const panel = createElement('div', {
+    className: 'vibe-panel',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'vibe-title',
+  });
   panel.appendChild(renderHeader());
 
   const body = createElement('div', { className: 'vibe-body' });
@@ -1889,9 +2257,18 @@ export function initialize(): void {
     if (e.target === container) hide();
   });
 
-  // Close on Escape
+  // Keyboard handling
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isVisible) hide();
+    if (!isVisible) return;
+
+    // Close on Escape
+    if (e.key === 'Escape') {
+      hide();
+      return;
+    }
+
+    // Focus trap
+    handleFocusTrap(e);
   });
 
   document.body.appendChild(container);
@@ -1901,11 +2278,19 @@ export async function show(): Promise<void> {
   initialize();
   if (!container) return;
 
+  loadingState.fetchingState = true;
+  render();
+
   await fetchState();
+
+  loadingState.fetchingState = false;
   render();
 
   container.classList.add('vibe-overlay--visible');
   isVisible = true;
+
+  // Activate focus trap for accessibility
+  activateFocusTrap();
 }
 
 export function hide(): void {
@@ -1913,6 +2298,10 @@ export function hide(): void {
 
   container.classList.remove('vibe-overlay--visible');
   isVisible = false;
+
+  // Deactivate focus trap
+  deactivateFocusTrap();
+
   callbacks.onClose?.();
 }
 

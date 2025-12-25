@@ -34,3 +34,43 @@ export {
   applyCommunityLearning,
   type CommunityPattern,
 } from './community-learning.js';
+
+// 🧠 SOTA: Online Learning Loop - Retrain embeddings from corrections
+export {
+  OnlineLearningEngine,
+  getOnlineLearningEngine,
+  initializeOnlineLearning,
+  shutdownOnlineLearning,
+  type LearningExample,
+  type ToolEmbeddingAdjustment,
+  type RetrainingStats,
+} from './online-learning-loop.js';
+
+// 🎯 SOTA: Dynamic Strategy Selection - Per-user optimal cascade
+export {
+  DynamicStrategyEngine,
+  getDynamicStrategyEngine,
+  initializeDynamicStrategy,
+  shutdownDynamicStrategy,
+  STRATEGY_CONFIGS,
+  type RoutingStrategy,
+  type StrategyConfig,
+  type StrategyOutcome,
+  type StrategySelection,
+  type UserStrategyProfile,
+  type UserType,
+  type DynamicStrategyConfig,
+} from './dynamic-strategy.js';
+
+// 👥 SOTA: User Segmentation - Cohort-based learning
+export {
+  UserSegmentationEngine,
+  getUserSegmentationEngine,
+  initializeUserSegmentation,
+  shutdownUserSegmentation,
+  type BehaviorFingerprint,
+  type UserCohort,
+  type UserCohortAssignment,
+  type InteractionEvent,
+  type UserSegmentationConfig,
+} from './user-segmentation.js';

@@ -405,9 +405,22 @@ class RoadmapService {
 
   /**
    * Check if an ID is a roadmap feature (not yet implemented)
+   * Includes menu action IDs that may differ from roadmap feature IDs
    */
   isRoadmapFeature(id: string): boolean {
-    return ROADMAP_FEATURES.some((f) => f.id === id);
+    // Map menu action IDs to roadmap feature IDs
+    const MENU_ACTION_TO_ROADMAP: Record<string, string> = {
+      'video-call-settings': 'video-settings',
+      'together-sessions': 'group-coaching',
+      'household-members': 'household',
+      'voice-id-settings': 'voice-enrollment',
+      'personal-settings': 'personalize',
+      'discover-agents': 'marketplace',
+    };
+    
+    // Check direct match or mapped match
+    const roadmapId = MENU_ACTION_TO_ROADMAP[id] || id;
+    return ROADMAP_FEATURES.some((f) => f.id === roadmapId);
   }
 
   /**

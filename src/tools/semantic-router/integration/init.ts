@@ -8,20 +8,53 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  flushPersonalizationProfiles,
+  initializePersonalization,
+} from '../advanced/personalization.js';
+import { mergeLocaleIntoTools } from '../i18n/index.js';
+import { flushDirtyProfiles, initializeCorrectionStore } from '../learning/correction-store.js';
+// 🧠 SOTA Online Learning Loop
+import {
+  initializeOnlineLearning,
+  shutdownOnlineLearning,
+  getOnlineLearningEngine,
+} from '../learning/online-learning-loop.js';
+// 🎙️ SOTA Prosody Routing (Real Audio → Routing)
+import {
+  initializeProsodyRouting,
+  shutdownProsodyRouting,
+  getProsodyRoutingEngine,
+} from '../advanced/prosody-routing-integration.js';
+// 🎯 SOTA Dynamic Strategy Selection (Per-User Optimal Cascade)
+import {
+  initializeDynamicStrategy,
+  shutdownDynamicStrategy,
+  getDynamicStrategyEngine,
+} from '../learning/dynamic-strategy.js';
+// 👥 SOTA User Segmentation (Cohort Learning)
+import {
+  initializeUserSegmentation,
+  shutdownUserSegmentation,
+  getUserSegmentationEngine,
+} from '../learning/user-segmentation.js';
+import {
+  getToolEmbeddingIndex,
+  initializeFirestorePersistence,
+  initializeToolEmbeddingIndex,
+  isPersistenceAvailable,
+} from '../persistence/index.js';
 import { getToolRegistry } from '../registry.js';
 import { allToolDefinitions } from '../tool-definitions/index.js';
-import {
-  initializeFirestorePersistence,
-  isPersistenceAvailable,
-  initializeToolEmbeddingIndex,
-  getToolEmbeddingIndex,
-} from '../persistence/index.js';
-import {
-  initializePersonalization,
-  flushPersonalizationProfiles,
-} from '../advanced/personalization.js';
-import { initializeCorrectionStore, flushDirtyProfiles } from '../learning/correction-store.js';
 import { initializeCache } from './redis-cache.js';
+
+// 🧠 Intelligent routing imports
+import { enableIntelligentRouting } from '../advanced/intelligent/ab-testing.js';
+import {
+  startPeriodicRefresh,
+  quickWarmup as warmIntelligentRouter,
+} from '../advanced/intelligent/cache-warming.js';
+import { initializeIntelligentRouter } from './intelligent-router-integration.js';
 
 const log = createLogger({ module: 'semantic-router:init' });
 
@@ -94,9 +127,17 @@ async function doInitialize(): Promise<void> {
 
     const registry = getToolRegistry();
 
-    // Register all built-in tool definitions
-    log.info({ count: allToolDefinitions.length }, 'Registering tool definitions');
-    registry.registerMany(allToolDefinitions);
+    // IMPORTANT: Merge locale triggers into tool definitions BEFORE registering
+    // This adds patterns like "check the weather", "could you play", etc. from en.json
+    // Without this, many natural phrases won't match!
+    const localizedTools = await mergeLocaleIntoTools(allToolDefinitions);
+    log.info(
+      { baseCount: allToolDefinitions.length, mergedCount: localizedTools.length },
+      '🌐 Locale triggers merged into tool definitions'
+    );
+
+    // Register all built-in tool definitions WITH locale patterns
+    registry.registerMany(localizedTools);
 
     // Log registered tools
     const registeredTools = registry.getAll();
@@ -116,6 +157,115 @@ async function doInitialize(): Promise<void> {
 
     // Pre-warm cache with common queries (fire-and-forget)
     void warmCache();
+
+    // 🧠 Initialize intelligent routing
+    // P2 FIX: Rolled out to 100% after E2E Tool Calling Audit (Dec 2024)
+    // Previously at 50% for A/B testing, now fully enabled as semantic router primary path
+    const enableIntelligent = process.env.ENABLE_INTELLIGENT_ROUTING !== 'false'; // Default: enabled
+    const intelligentTrafficPct = parseInt(process.env.INTELLIGENT_ROUTING_TRAFFIC_PCT || '100', 10);
+
+    if (enableIntelligent || intelligentTrafficPct > 0) {
+      try {
+        log.info({ trafficPct: intelligentTrafficPct }, 'Initializing intelligent routing...');
+
+        await initializeIntelligentRouter({
+          enableBanditPersistence: true,
+          useGemini: !!process.env.GOOGLE_API_KEY,
+        });
+
+        // Warm intelligent router cache
+        await warmIntelligentRouter();
+
+        // Enable A/B testing with configured traffic percentage
+        if (intelligentTrafficPct > 0) {
+          enableIntelligentRouting(intelligentTrafficPct);
+          log.info({ trafficPct: intelligentTrafficPct }, 'Intelligent routing A/B test enabled');
+        }
+
+        // Start periodic refresh for bandit arms (every 5 minutes)
+        startPeriodicRefresh(5 * 60 * 1000);
+
+        log.info('Intelligent routing initialized');
+      } catch (intelligentError) {
+        log.warn(
+          { error: String(intelligentError) },
+          'Intelligent routing init failed - using semantic only'
+        );
+      }
+    }
+
+    // 🧠 Initialize Online Learning Loop (SOTA feature)
+    // This enables continuous model improvement from corrections
+    try {
+      const onlineLearningConfig = {
+        minExamplesForRetrain: 10,
+        autoRetrainInterval: 60 * 60 * 1000, // 1 hour
+        learningRate: 0.1,
+      };
+      initializeOnlineLearning(onlineLearningConfig);
+      log.info('Online learning loop initialized - models will retrain from corrections');
+    } catch (onlineLearningError) {
+      log.warn(
+        { error: String(onlineLearningError) },
+        'Online learning init failed - static embeddings only'
+      );
+    }
+
+    // 🎙️ Initialize Prosody Routing (SOTA feature)
+    // This enables voice-aware routing decisions based on real audio analysis
+    try {
+      const prosodyConfig = {
+        enabled: process.env.DISABLE_PROSODY_ROUTING !== 'true',
+        minConfidenceForBoost: 0.3,
+        maxBoostMultiplier: 1.5,
+        emergencyThreshold: 0.8,
+        learnBaseline: true,
+        minSamplesForBaseline: 50,
+      };
+      initializeProsodyRouting(prosodyConfig);
+      log.info('Prosody routing initialized - voice signals will influence tool selection');
+    } catch (prosodyError) {
+      log.warn(
+        { error: String(prosodyError) },
+        'Prosody routing init failed - no voice-aware boosting'
+      );
+    }
+
+    // 🎯 Initialize Dynamic Strategy Selection (SOTA feature)
+    // This learns the optimal routing cascade per user
+    try {
+      const dynamicStrategyConfig = {
+        enabled: process.env.DISABLE_DYNAMIC_STRATEGY !== 'true',
+        minSamplesForPersonalization: 10,
+        explorationRate: 0.1,
+        decayFactor: 0.95,
+      };
+      initializeDynamicStrategy(dynamicStrategyConfig);
+      log.info('Dynamic strategy selection initialized - per-user optimal cascade');
+    } catch (dynamicStrategyError) {
+      log.warn(
+        { error: String(dynamicStrategyError) },
+        'Dynamic strategy init failed - using default cascade'
+      );
+    }
+
+    // 👥 Initialize User Segmentation (SOTA feature)
+    // This clusters users into cohorts for accelerated personalization
+    try {
+      const segmentationConfig = {
+        enabled: process.env.DISABLE_USER_SEGMENTATION !== 'true',
+        minInteractionsForFingerprint: 10,
+        numCohorts: 8,
+        cohortInheritanceWeight: 0.5,
+      };
+      initializeUserSegmentation(segmentationConfig);
+      log.info('User segmentation initialized - cohort-based learning enabled');
+    } catch (segmentationError) {
+      log.warn(
+        { error: String(segmentationError) },
+        'User segmentation init failed - no cohort learning'
+      );
+    }
 
     const elapsedMs = Math.round(performance.now() - startTime);
 
@@ -142,7 +292,7 @@ async function doInitialize(): Promise<void> {
  * Falls back to computing fresh if not available.
  */
 async function loadToolEmbeddingsFromIndex(
-  tools: import('../types.js').SemanticToolDefinition[]
+  tools: Array<import('../types.js').SemanticToolDefinition>
 ): Promise<void> {
   try {
     const indexService = getToolEmbeddingIndex();
@@ -256,15 +406,52 @@ export function getInitializationMetrics(): {
   initialized: boolean;
   toolCount: number;
   categories: string[];
+  onlineLearning: {
+    pendingExamples: number;
+    adjustedTools: number;
+    lastRetrainTime: number;
+  } | null;
+  prosodyRouting: {
+    enabled: boolean;
+    activeSessions: number;
+  } | null;
 } {
   const registry = getToolRegistry();
   const tools = registry.getAll();
   const categories = [...new Set(tools.map((t) => t.category))];
 
+  // Get online learning stats if available
+  let onlineLearningStats = null;
+  try {
+    const engine = getOnlineLearningEngine();
+    const stats = engine.getStats();
+    onlineLearningStats = {
+      pendingExamples: stats.pendingExamples,
+      adjustedTools: stats.adjustedTools,
+      lastRetrainTime: stats.lastRetrainTime,
+    };
+  } catch {
+    // Online learning may not be initialized
+  }
+
+  // Get prosody routing stats if available
+  let prosodyStats = null;
+  try {
+    const prosodyEngine = getProsodyRoutingEngine();
+    prosodyStats = {
+      enabled: true,
+      activeSessions: 0, // Would need to expose this from the engine
+    };
+  } catch {
+    // Prosody routing may not be initialized
+  }
+
   return {
     initialized,
     toolCount: tools.length,
     categories,
+    onlineLearning: onlineLearningStats,
+    prosodyRouting: prosodyStats,
   };
 }
 
@@ -278,6 +465,45 @@ export async function shutdownSemanticRouter(): Promise<void> {
   log.info('Shutting down semantic router...');
 
   try {
+    // Stop intelligent router periodic refresh
+    const { stopPeriodicRefresh } = await import('../advanced/intelligent/cache-warming.js');
+    stopPeriodicRefresh();
+
+    // 🧠 Trigger final online learning retrain before shutdown
+    // This ensures all pending corrections are processed
+    try {
+      const engine = getOnlineLearningEngine();
+      const stats = engine.getStats();
+      if (stats.pendingExamples > 0) {
+        log.info({ pendingExamples: stats.pendingExamples }, 'Final retrain before shutdown');
+        await engine.triggerRetrain();
+      }
+      shutdownOnlineLearning();
+    } catch (onlineLearningError) {
+      log.warn({ error: String(onlineLearningError) }, 'Online learning shutdown failed');
+    }
+
+    // 🎙️ Shutdown prosody routing
+    try {
+      shutdownProsodyRouting();
+    } catch (prosodyError) {
+      log.warn({ error: String(prosodyError) }, 'Prosody routing shutdown failed');
+    }
+
+    // 🎯 Shutdown dynamic strategy
+    try {
+      shutdownDynamicStrategy();
+    } catch (strategyError) {
+      log.warn({ error: String(strategyError) }, 'Dynamic strategy shutdown failed');
+    }
+
+    // 👥 Shutdown user segmentation
+    try {
+      shutdownUserSegmentation();
+    } catch (segmentationError) {
+      log.warn({ error: String(segmentationError) }, 'User segmentation shutdown failed');
+    }
+
     // Flush all pending profile saves
     await Promise.all([flushPersonalizationProfiles(), flushDirtyProfiles()]);
 

@@ -1,11 +1,19 @@
 name: FerniVoice
 options:
-  bundleIdPrefix: com.ferni
+  bundleIdPrefix: com.sethdford
   deploymentTarget:
     iOS: "16.0"
   xcodeVersion: "15.0"
   generateEmptyDirectories: true
-  disableAutomaticPackageResolution: false
+
+packages:
+  LiveKit:
+    path: ../../vendor/client-sdk-swift
+  FerniShared:
+    path: ../shared
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "11.0.0"
 
 settings:
   base:
@@ -25,10 +33,20 @@ targets:
         type: group
       - path: FerniVoice
         type: group
+    dependencies:
+      - package: LiveKit
+        product: LiveKit
+      - package: FerniShared
+        product: FerniShared
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseCore
     resources:
       - path: FerniVoice/Assets.xcassets
       - path: FerniVoice/LaunchScreen.storyboard
       - path: FerniVoice/Preview Content
+      - path: FerniVoice/GoogleService-Info.plist
     info:
       path: FerniVoice/Info.plist
       properties:
@@ -43,7 +61,7 @@ targets:
       path: FerniVoice/FerniVoice.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ferni.voice.ios
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni
         INFOPLIST_FILE: FerniVoice/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -61,7 +79,7 @@ targets:
       - target: FerniVoice
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ferni.voice.ios.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.tests
 
 schemes:
   FerniVoice:

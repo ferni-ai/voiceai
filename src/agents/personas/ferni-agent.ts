@@ -558,18 +558,20 @@ OUTPUT ONLY this JSON format (nothing else):
     text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
   ): Promise<NodeReadableStream<AudioFrame> | null> {
-    // Get persona ID from session or use default
-    const personaId =
-      ((this.session.userData as Record<string, unknown> | undefined)?.personaId as string) ||
-      'ferni';
+    // Get persona ID and turn count from session
+    const userData = this.session.userData as Record<string, unknown> | undefined;
+    const personaId = (userData?.personaId as string) || 'ferni';
+    const turnCount = (userData?.turnCount as number) || 0;
 
     // Use the shared TTS wrapper with explicit agent reference
     // Pass session so tool results can be spoken via safeGenerateReply
+    // isFirstTurn enables more aggressive streaming optimization for faster first-audio
     return wrappedTtsNode(this, text, modelSettings, {
       tools: this._tools as Record<string, unknown> | undefined,
       sessionContext: extractTtsSessionContext(this, personaId),
       onInterruptRecoveryApplied: () => clearInterruptFlags(this),
       session: this.session,
+      isFirstTurn: turnCount <= 1, // First turn gets aggressive streaming optimization
     });
   }
 }

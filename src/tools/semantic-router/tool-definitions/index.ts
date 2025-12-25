@@ -87,6 +87,23 @@ export {
   getFlightPriceTool,
 } from './travel.semantic.js';
 
+// Vibe (unified environment control - music, lights, temperature)
+export {
+  vibeTools,
+  setVibeTool,
+  getEnvironmentStatusTool,
+  adjustLightsTool,
+  listVibesTool,
+} from './vibe.semantic.js';
+
+// Group Conversation (team roundtables, conference calls)
+export {
+  groupConversationTools,
+  startRoundtableTool,
+  inviteParticipantTool,
+  endGroupConversationTool,
+} from './group-conversation.semantic.js';
+
 // Communication (send messages, drafting, coaching)
 export {
   communicationTools,
@@ -546,6 +563,10 @@ import { familyTools } from './family.semantic.js';
 import { homeTools } from './home.semantic.js';
 import { legalAdminTools } from './legal-admin.semantic.js';
 
+// Phase 5: Environment & Group
+import { vibeTools } from './vibe.semantic.js';
+import { groupConversationTools } from './group-conversation.semantic.js';
+
 /**
  * All registered semantic tool definitions
  *
@@ -631,6 +652,10 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
   ...familyTools, // 11 tools: parenting, discipline, activities, milestones, celebration, transition, conflict, meeting, elder care, traditions, values
   ...homeTools, // 8 tools: maintenance, repair, declutter, organize, move, emergency, projects, contractors
   ...legalAdminTools, // 7 tools: documents, locate, estate, beneficiaries, insurance, taxes, annual tasks
+
+  // Phase 5: Environment & Group Interactions
+  ...vibeTools, // 4 tools: set vibe, environment status, adjust lights, list vibes
+  ...groupConversationTools, // 3 tools: start roundtable, invite participant, end group conversation
 ];
 
 /**
@@ -713,6 +738,10 @@ export const toolsByCategory: Record<string, SemanticToolDefinition[]> = {
   family: familyTools,
   home: homeTools,
   'legal-admin': legalAdminTools,
+
+  // Phase 5: Environment & Group
+  vibe: vibeTools,
+  'group-conversation': groupConversationTools,
 };
 
 /**

@@ -110,9 +110,9 @@ const STYLES = `
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: var(--color-background-elevated, #FFFDFB);
+    background: var(--color-background-elevated);
     border-radius: var(--radius-full, 20px);
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1));
+    box-shadow: var(--shadow-md);
     cursor: pointer;
     transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     opacity: 0;
@@ -125,7 +125,7 @@ const STYLES = `
   }
 
   .service-health-indicator:hover {
-    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.15));
+    box-shadow: var(--shadow-lg);
   }
 
   .service-health-dot {
@@ -136,16 +136,16 @@ const STYLES = `
   }
 
   .service-health-dot.healthy {
-    background: var(--color-success, #4CAF50);
+    background: var(--color-semantic-success);
   }
 
   .service-health-dot.degraded {
-    background: var(--color-warning, #FF9800);
+    background: var(--color-semantic-warning);
     animation: pulse-warning 2s ease-in-out infinite;
   }
 
   .service-health-dot.unavailable {
-    background: var(--color-error, #F44336);
+    background: var(--color-semantic-error);
     animation: pulse-error 1.5s ease-in-out infinite;
   }
 
@@ -160,7 +160,7 @@ const STYLES = `
   }
 
   .service-health-text {
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     white-space: nowrap;
   }
 
@@ -169,9 +169,9 @@ const STYLES = `
     bottom: calc(100% + 8px);
     right: 0;
     width: min(280px, 100%);
-    background: var(--color-background-elevated, #FFFDFB);
+    background: var(--color-background-elevated);
     border-radius: var(--radius-lg, 12px);
-    box-shadow: var(--shadow-xl, 0 12px 36px rgba(0,0,0,0.2));
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     opacity: 0;
     transform: translateY(10px) scale(0.95);
@@ -188,21 +188,21 @@ const STYLES = `
 
   .service-health-header {
     padding: 12px 16px;
-    background: var(--color-background-subtle, #f5f1e8);
-    border-bottom: 1px solid var(--color-border, #e0d5c8);
+    background: var(--color-background-secondary);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .service-health-header h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
 
   .service-health-header p {
     margin: 4px 0 0;
     font-size: 12px;
-    color: var(--color-text-muted, #8a7a6a);
+    color: var(--color-text-muted);
   }
 
   .service-health-list {
@@ -220,14 +220,14 @@ const STYLES = `
   }
 
   .service-health-item:hover {
-    background: var(--color-background-subtle, #f5f1e8);
+    background: var(--color-background-secondary);
   }
 
   .service-health-item-name {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
 
   .service-health-item-name .mini-dot {
@@ -238,15 +238,15 @@ const STYLES = `
 
   .service-health-item-status {
     font-size: 11px;
-    color: var(--color-text-muted, #8a7a6a);
+    color: var(--color-text-muted);
   }
 
   .service-health-footer {
     padding: 8px 16px;
-    background: var(--color-background-subtle, #f5f1e8);
-    border-top: 1px solid var(--color-border, #e0d5c8);
+    background: var(--color-background-secondary);
+    border-top: 1px solid var(--color-border-subtle);
     font-size: 11px;
-    color: var(--color-text-muted, #8a7a6a);
+    color: var(--color-text-muted);
     text-align: center;
   }
 

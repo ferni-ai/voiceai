@@ -477,8 +477,20 @@ class IOSLiveKitSession: ObservableObject {
 
         guard let url = URL(string: tokenUrl) else { return nil }
 
+        // Create request with optional auth header
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        // Add Firebase token if user is signed in
+        if let firebaseToken = await AuthService.shared.getFirebaseToken() {
+            request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+            sessionLog.info("Token request with authentication")
+        } else {
+            sessionLog.debug("Token request without authentication (anonymous)")
+        }
+
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 sessionLog.error("Token request failed with status \(httpResponse.statusCode)")

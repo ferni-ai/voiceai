@@ -137,6 +137,7 @@
       "yourVibe": "Your Vibe"
     },
     "items": {
+      "insights": "Understanding You",
       "yourJourney": "Your Journey",
       "whatIllKnow": "What I'll Know",
       "trustDetails": "Your Trust Journey",
@@ -230,6 +231,39 @@
     "endConversationGoodbye": "End conversation - Goodbye",
     "takeCare": "Take care.",
     "ending": "Ending..."
+  },
+
+  "memoryBrowser": {
+    "eyebrow": "Your Journey",
+    "title": "What I Remember",
+    "subtitle": "Browse our conversations and what I've learned about you",
+    "tabs": {
+      "conversations": "Conversations",
+      "remembered": "Remembered",
+      "topics": "Topics"
+    },
+    "stats": {
+      "conversations": "Conversations",
+      "timeTogether": "Time Together",
+      "thingsRemembered": "Things Remembered",
+      "since": "Since"
+    },
+    "empty": {
+      "conversations": "Our story begins here. Let's talk and I'll remember every moment.",
+      "remembered": "I haven't learned much about you yet. The more we talk, the more I'll remember!",
+      "topics": "No topics explored yet. Let's start a conversation!",
+      "noResults": "No conversations match your search"
+    },
+    "loading": "Loading your memories...",
+    "error": {
+      "title": "Couldn't load your memories",
+      "message": "Something went wrong. Please try again.",
+      "retry": "Try again"
+    },
+    "footer": "Our journey started {date}",
+    "turnCount": "{count} turns",
+    "voiceVerified": "Voice verified",
+    "learnedFrom": "Learned from our conversations"
   },
 
   "trustJourney": {
@@ -707,6 +741,12 @@
         "description": "Connect with others on similar journeys"
       }
     }
+  },
+
+  "settings": {
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "language": "Language"
   },
 
   "videoSettings": {
@@ -1267,5 +1307,120 @@
     "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
     "focusTimeBlocked": "Focus time blocked!",
     "seedsSent": "Sent {amount} seeds! They'll get {receive}"
+  },
+
+  "vibe": {
+    "eyebrow": "Your Environment",
+    "title": "Set the Vibe",
+    "moreVibes": "More vibes",
+    "fewerVibes": "Fewer vibes",
+    "skipForNow": "Skip for now",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connecting": "Connecting...",
+
+    "presets": {
+      "focus": { "name": "Focus", "description": "Deep work mode. Calm music, bright lights, cool temp." },
+      "relax": { "name": "Relax", "description": "Wind down. Soft jazz, warm dim lights, cozy temp." },
+      "energize": { "name": "Energize", "description": "Get moving. Upbeat music, bright cool lights." },
+      "sleep": { "name": "Sleep", "description": "Time for rest. Quiet, dark, comfortable." },
+      "social": { "name": "Gather", "description": "Having people over. Good music, warm inviting lights." },
+      "morning": { "name": "Morning", "description": "Start the day gently. Bright lights, comfortable temp." },
+      "romantic": { "name": "Romantic", "description": "Date night. Soft music, dim warm lights." },
+      "workout": { "name": "Workout", "description": "Exercise time. High energy music, bright lights, cool." },
+      "movie": { "name": "Movie Night", "description": "Cinema at home. Dim lights, immersive sound." },
+      "cooking": { "name": "Cooking", "description": "Kitchen time. Upbeat tunes, bright task lighting." },
+      "reading": { "name": "Reading", "description": "Book time. Soft background, warm reading light." },
+      "creative": { "name": "Creative", "description": "Art and projects. Inspiring music, natural light feel." },
+      "meditation": { "name": "Meditation", "description": "Inner peace. Nature sounds, soft ambient glow." },
+      "gaming": { "name": "Gaming", "description": "Game on. Dynamic lighting, comfortable temp." },
+      "dinner": { "name": "Dinner", "description": "Mealtime ambiance. Warm glow, pleasant background." }
+    },
+
+    "settingVibe": "Setting {name} vibe...",
+    "vibeSet": "{name} vibe set!",
+    "couldNotFullySet": "Couldn't fully set the vibe",
+    "couldNotSetVibe": "Couldn't set that vibe. Try again?",
+
+    "music": {
+      "title": "Music",
+      "playing": "Playing",
+      "paused": "Paused",
+      "chooseVibe": "Choose a vibe to start music",
+      "askFerni": "Or ask Ferni to play something",
+      "play": "Play",
+      "pause": "Pause",
+      "skip": "Skip"
+    },
+    "volume": "Volume",
+    "skipped": "Skipped",
+    "couldNotControlMusic": "Couldn't control music. Try again?",
+
+    "lights": {
+      "title": "Lights",
+      "connectTitle": "Connect Your Lights",
+      "connectDescription": "Ferni can control your smart lights to set the perfect ambiance. Choose how you'd like to connect:",
+      "notConnectedText": "Connect your smart lights to control ambiance",
+      "connect": "Connect Lights",
+      "brightness": "Brightness",
+      "warmth": "Warmth",
+      "colorTemperature": "Color temperature",
+      "warm": "Warm",
+      "cool": "Cool",
+      "neutral": "Neutral"
+    },
+
+    "temperature": {
+      "title": "Temperature",
+      "connectTitle": "Connect Your Thermostat",
+      "connectDescription": "Ferni can adjust your home's temperature to match your vibe. Choose your thermostat:",
+      "notConnectedText": "Connect your thermostat for comfort control",
+      "connect": "Connect Thermostat",
+      "currentNow": "{temp} now",
+      "target": "Target",
+      "decrease": "Decrease temperature",
+      "increase": "Increase temperature"
+    },
+    "couldNotChangeTemp": "Couldn't change temperature. Try again?",
+
+    "providers": {
+      "homeAssistant": "Home Assistant",
+      "homeAssistantDesc": "Works with all your devices",
+      "homeAssistantClimate": "Any thermostat via Home Assistant",
+      "philipsHue": "Philips Hue",
+      "philipsHueDesc": "Connect directly to your Hue bridge",
+      "ecobee": "Ecobee",
+      "ecobeeDesc": "Smart thermostat with room sensors",
+      "googleNest": "Google Nest",
+      "googleNestDesc": "Learning thermostat"
+    },
+
+    "lightsConnected": "Lights connected!",
+    "hueLightsConnected": "Hue lights connected!",
+    "thermostatConnected": "Thermostat connected!",
+    "nestConnected": "Nest connected!",
+    "climateControlConnected": "Climate control connected!",
+    "thermostatConnectedViaHA": "Thermostat connected via Home Assistant!",
+
+    "connectingToHA": "Connecting to Home Assistant...",
+    "couldNotConnectHA": "Couldn't connect. Check your Home Assistant URL.",
+    "lookingForHue": "Looking for Philips Hue bridge...",
+    "couldNotFindHue": "Couldn't find Hue bridge. Is it on?",
+    "pressHueButton": "Press the button on your Hue bridge, then try again",
+    "gettingEcobeePin": "Getting Ecobee PIN...",
+    "couldNotGetPin": "Couldn't get PIN. Is Ecobee configured?",
+    "connectingToNest": "Connecting to Nest...",
+    "connectingToHAClimate": "Using Home Assistant for climate control...",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "pinExpiredRetry": "PIN expired. Try again?",
+
+    "ecobee": {
+      "connectTitle": "Connect Ecobee",
+      "enterPin": "Enter this PIN at ecobee.com:",
+      "step1": "Go to ecobee.com/consumerportal",
+      "step2": "Click \"Add Application\"",
+      "step3": "Enter the PIN above",
+      "pinExpires": "PIN expires in {minutes} minutes"
+    }
   }
 }

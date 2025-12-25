@@ -55,7 +55,7 @@ const PERSONA_VOICES: Record<string, PersonaVoiceProfile> = {
     voiceId:
       process.env.MAYA_SANTOS_VOICE_ID ||
       process.env.SPEND_SAVE_VOICE_ID ||
-      'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
+      '11175483-5332-496c-8c01-ca527ce04e4a',
     speed: 1.0,
     emotion: 'encouraging',
   },

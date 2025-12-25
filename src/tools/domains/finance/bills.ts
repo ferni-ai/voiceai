@@ -23,6 +23,7 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncBillToCalendar, removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
 // Bridge functions for persistence
 function billDataToBill(data: BillData, userId: string): Bill {
   return {
@@ -346,7 +347,7 @@ function formatBillForSpeech(bill: Bill): string {
 // CORE FUNCTIONS
 // ============================================================================
 
-export function addBill(params: {
+export async function addBill(params: {
   userId: string;
   name: string;
   payee: string;
@@ -359,7 +360,7 @@ export function addBill(params: {
   reminderDaysBefore?: number;
   website?: string;
   notes?: string;
-}): Bill {
+}): Promise<Bill> {
   const bill: Bill = {
     id: generateId('bill'),
     userId: params.userId,
@@ -384,19 +385,40 @@ export function addBill(params: {
   billsCache.set(bill.id, bill);
   persistBill(params.userId, bill);
 
-  getLogger().info({ billId: bill.id, name: bill.name, amount: bill.amount }, '💰 Bill added');
+  getLogger().info({ billId: bill.id, name: bill.name, amount: bill.amount }, 'Bill added');
+
+  // Sync to calendar - bill due date appears on calendar
+  try {
+    await syncBillToCalendar(
+      params.userId,
+      bill.id,
+      bill.name,
+      bill.amount,
+      bill.nextDueDate,
+      {
+        payee: bill.payee,
+        isAutoPay: bill.isAutoPay,
+        reminderDaysBefore: bill.reminderDaysBefore,
+      }
+    );
+  } catch (calendarError) {
+    getLogger().warn(
+      { error: String(calendarError), billId: bill.id },
+      'Failed to sync bill to calendar'
+    );
+  }
 
   return bill;
 }
 
-export function recordPayment(params: {
+export async function recordPayment(params: {
   billId: string;
   userId: string;
   amount?: number;
   paidDate?: Date;
   confirmationNumber?: string;
   notes?: string;
-}): { payment: BillPayment; bill: Bill } | null {
+}): Promise<{ payment: BillPayment; bill: Bill } | null> {
   const bill = billsCache.get(params.billId);
   if (!bill) return null;
 
@@ -424,8 +446,30 @@ export function recordPayment(params: {
 
   getLogger().info(
     { billId: bill.id, paymentId: payment.id, amount: payment.amount },
-    '✅ Payment recorded'
+    'Payment recorded'
   );
+
+  // Update calendar with next due date
+  try {
+    // Remove old calendar event and create new one for next due date
+    await removeCalendarSyncedItem(params.userId, bill.id);
+    await syncBillToCalendar(
+      params.userId,
+      bill.id,
+      bill.name,
+      bill.amount,
+      bill.nextDueDate,
+      {
+        payee: bill.payee,
+        isAutoPay: bill.isAutoPay,
+      }
+    );
+  } catch (calendarError) {
+    getLogger().warn(
+      { error: String(calendarError), billId: bill.id },
+      'Failed to update bill calendar event'
+    );
+  }
 
   return { payment, bill };
 }
@@ -456,7 +500,7 @@ export function updateBill(
   return bill;
 }
 
-export function deactivateBill(billId: string): boolean {
+export async function deactivateBill(billId: string): Promise<boolean> {
   const bill = billsCache.get(billId);
   if (!bill) return false;
 
@@ -466,6 +510,16 @@ export function deactivateBill(billId: string): boolean {
   // Save to cache and persist
   billsCache.set(billId, bill);
   persistBill(bill.userId, bill);
+
+  // Remove from calendar
+  try {
+    await removeCalendarSyncedItem(bill.userId, billId);
+  } catch (calendarError) {
+    getLogger().warn(
+      { error: String(calendarError), billId },
+      'Failed to remove bill from calendar'
+    );
+  }
 
   return true;
 }
@@ -518,7 +572,7 @@ export function createBillTools() {
         const userId = userData?.userId || 'default';
 
         await ensureUserBillsLoaded(userId);
-        const bill = addBill({
+        const bill = await addBill({
           userId,
           name,
           payee,
@@ -571,7 +625,7 @@ export function createBillTools() {
           return `I couldn't find a bill matching "${billName}". Want me to show your bills?`;
         }
 
-        const result = recordPayment({
+        const result = await recordPayment({
           billId: bill.id,
           userId,
           amount,
@@ -779,11 +833,11 @@ export function createBillTools() {
           return `Couldn't find "${billName}".`;
         }
 
-        deactivateBill(bill.id);
+        await deactivateBill(bill.id);
 
         const monthlyTotal = calculateMonthlyTotal(userId);
 
-        return `✅ Removed "${bill.name}" from your bills.\nNew monthly total: $${monthlyTotal.toFixed(2)}`;
+        return `Removed "${bill.name}" from your bills.\nNew monthly total: $${monthlyTotal.toFixed(2)}`;
       },
     }),
 

@@ -9,6 +9,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  syncReminderToCalendar,
+  syncScheduledTextToCalendar,
+  syncScheduledEmailToCalendar,
+  syncScheduledCallToCalendar,
+  removeCalendarSyncedItem,
+} from '../calendar/calendar-bridge.js';
 
 import { getFirestoreStore, type FirestoreStore } from '../../memory/firestore-store.js';
 import { InMemoryStore } from '../../memory/in-memory-store.js';
@@ -171,6 +178,93 @@ export async function createReminder(params: {
     '📅 Reminder scheduled'
   );
 
+  // Sync to calendar for unified visibility
+  // Use the appropriate sync function based on delivery method and contact info
+  // This ensures ALL scheduled items appear on the user's calendar
+  try {
+    let calendarResult;
+
+    // For scheduled messages TO contacts, use specific sync functions for better visibility
+    if (params.isDirectToContact && params.contactName) {
+      switch (reminder.deliveryMethod) {
+        case 'sms':
+        case 'voice_message':
+          calendarResult = await syncScheduledTextToCalendar(
+            params.userId,
+            reminder.id,
+            params.contactName,
+            params.message,
+            params.scheduledFor,
+            params.createdBy
+          );
+          break;
+        case 'email':
+          calendarResult = await syncScheduledEmailToCalendar(
+            params.userId,
+            reminder.id,
+            params.contactName,
+            params.subject || params.message.substring(0, 50),
+            params.scheduledFor,
+            params.createdBy
+          );
+          break;
+        case 'call':
+          calendarResult = await syncScheduledCallToCalendar(
+            params.userId,
+            reminder.id,
+            params.contactName,
+            params.context || 'Scheduled call',
+            params.scheduledFor,
+            15, // Default 15 min duration for calls
+            params.createdBy
+          );
+          break;
+        default:
+          calendarResult = await syncReminderToCalendar(
+            params.userId,
+            reminder.id,
+            params.message,
+            params.scheduledFor,
+            params.createdBy
+          );
+      }
+    } else {
+      // For personal reminders, use the generic reminder sync
+      calendarResult = await syncReminderToCalendar(
+        params.userId,
+        reminder.id,
+        params.message,
+        params.scheduledFor,
+        params.createdBy
+      );
+    }
+
+    if (calendarResult.success) {
+      getLogger().info(
+        {
+          reminderId: reminder.id,
+          calendarEventId: calendarResult.calendarEventId,
+          type: params.isDirectToContact ? `scheduled_${reminder.deliveryMethod}` : 'reminder',
+        },
+        '📅 Scheduled item synced to calendar'
+      );
+    } else if (calendarResult.conflicts && calendarResult.conflicts.length > 0) {
+      getLogger().warn(
+        {
+          reminderId: reminder.id,
+          conflicts: calendarResult.conflicts.length,
+        },
+        '⚠️ Scheduled item created with calendar conflicts'
+      );
+    }
+  } catch (calendarError) {
+    // Don't fail reminder creation if calendar sync fails
+    getLogger().warn(
+      { error: String(calendarError), reminderId: reminder.id },
+      '⚠️ Failed to sync to calendar (item still created)'
+    );
+  }
+
   return reminder;
 }
 
@@ -206,12 +300,24 @@ export function getDueReminders(): ScheduledReminder[] {
 /**
  * Cancel a reminder
  */
-export function cancelReminder(reminderId: string): boolean {
+export async function cancelReminder(reminderId: string): Promise<boolean> {
   const reminder = reminderStore.get(reminderId);
   if (reminder && reminder.status === 'pending') {
     reminder.status = 'cancelled';
     reminderStore.set(reminderId, reminder);
     getLogger().info({ reminderId }, '❌ Reminder cancelled');
+
+    // Also remove from calendar
+    try {
+      await removeCalendarSyncedItem(reminder.userId, reminderId);
+      getLogger().info({ reminderId }, '📅 Reminder removed from calendar');
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: String(calendarError), reminderId },
+        '⚠️ Failed to remove reminder from calendar'
+      );
+    }
+
     return true;
   }
   return false;

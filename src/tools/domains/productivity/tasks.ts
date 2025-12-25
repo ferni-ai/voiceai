@@ -22,6 +22,7 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncTaskToCalendar, removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
 // Bridge function to convert TaskData to Task
 function taskDataToTask(data: TaskData & { userId?: string }, userId: string): Task {
   return {
@@ -345,7 +346,7 @@ function createNextRecurringInstance(task: Task): Task | null {
 // CORE FUNCTIONS
 // ============================================================================
 
-export function createTask(params: {
+export async function createTask(params: {
   userId: string;
   title: string;
   description?: string;
@@ -359,7 +360,7 @@ export function createTask(params: {
   recurrenceEndDate?: Date;
   linkedGoalId?: string;
   reminderMinutesBefore?: number;
-}): Task {
+}): Promise<Task> {
   const sanitizedTitle = sanitizePlainText(params.title, 200);
   const sanitizedDesc = params.description
     ? sanitizePlainText(params.description, 1000)
@@ -392,18 +393,43 @@ export function createTask(params: {
   tasksCache.set(task.id, task);
   persistTask(params.userId, task);
 
+  // Sync task with due date to calendar
+  if (dueDate) {
+    try {
+      // If there's a specific time, use it; otherwise use end of day
+      let scheduledFor = new Date(dueDate);
+      if (params.dueTime) {
+        const [hours, minutes] = params.dueTime.split(':').map(Number);
+        scheduledFor.setHours(hours, minutes, 0, 0);
+      } else {
+        // Default to 9 AM if no specific time
+        scheduledFor.setHours(9, 0, 0, 0);
+      }
+
+      await syncTaskToCalendar(
+        params.userId,
+        task.id,
+        sanitizedTitle,
+        scheduledFor,
+        30 // Default 30 min duration
+      );
+    } catch (calendarError) {
+      getLogger().warn({ error: calendarError, taskId: task.id }, 'Failed to sync task to calendar');
+    }
+  }
+
   getLogger().info(
     { taskId: task.id, title: sanitizedTitle, dueDate: dueDate?.toISOString() },
-    '📝 Task created'
+    'Task created'
   );
 
   return task;
 }
 
-export function completeTask(
+export async function completeTask(
   taskId: string,
   completionNotes?: string
-): { task: Task; nextInstance?: Task } | null {
+): Promise<{ task: Task; nextInstance?: Task } | null> {
   const task = tasksCache.get(taskId);
   if (!task) return null;
 
@@ -416,6 +442,15 @@ export function completeTask(
   tasksCache.set(taskId, task);
   persistTask(task.userId, task);
 
+  // Remove from calendar when completed
+  if (task.dueDate) {
+    try {
+      await removeCalendarSyncedItem(task.userId, taskId);
+    } catch (calendarError) {
+      getLogger().warn({ error: calendarError, taskId }, 'Failed to remove task from calendar');
+    }
+  }
+
   // Create next instance if recurring
   let nextInstance: Task | undefined;
   if (task.isRecurring) {
@@ -427,7 +462,7 @@ export function completeTask(
     }
   }
 
-  getLogger().info({ taskId, title: task.title, hasNext: !!nextInstance }, '✅ Task completed');
+  getLogger().info({ taskId, title: task.title, hasNext: !!nextInstance }, 'Task completed');
 
   return { task, nextInstance };
 }
@@ -556,7 +591,7 @@ export function createTaskTools() {
         // Ensure user's tasks are loaded from persistent store
         await ensureUserTasksLoaded(userId);
 
-        const task = createTask({
+        const task = await createTask({
           userId,
           title,
           dueDate: dueDate || undefined,
@@ -566,20 +601,20 @@ export function createTaskTools() {
           recurrencePattern,
         });
 
-        let response = `✅ Added: "${task.title}"`;
+        let response = `Added: "${task.title}"`;
         if (task.dueDate) {
           const dateStr = task.dueDate.toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'short',
             day: 'numeric',
           });
-          response += ` - Due ${dateStr}`;
+          response += ` - Due ${dateStr} (added to calendar)`;
         }
         if (task.isRecurring && task.recurrencePattern) {
           response += ` (repeats ${task.recurrencePattern})`;
         }
         if (task.priority === 'urgent' || task.priority === 'high') {
-          response += ` 🔴`;
+          response += ` [HIGH PRIORITY]`;
         }
 
         return response;
@@ -606,17 +641,17 @@ export function createTaskTools() {
           return `I couldn't find a pending task matching "${taskTitle}". Want me to show your task list?`;
         }
 
-        const result = completeTask(task.id, notes);
+        const result = await completeTask(task.id, notes);
         if (!result) return `Hmm, I had trouble marking that done. Want to try again?`;
 
-        let response = `🎉 Done! "${result.task.title}" is complete!`;
+        let response = `Done! "${result.task.title}" is complete.`;
         if (result.nextInstance) {
           const nextDate = result.nextInstance.dueDate?.toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'short',
             day: 'numeric',
           });
-          response += `\n\n🔁 Next occurrence scheduled for ${nextDate}.`;
+          response += `\n\nNext occurrence scheduled for ${nextDate}.`;
         }
 
         // Check remaining tasks
@@ -624,7 +659,7 @@ export function createTaskTools() {
         if (remaining.length > 0) {
           response += `\n\nYou have ${remaining.length} task${remaining.length > 1 ? 's' : ''} remaining today.`;
         } else {
-          response += `\n\n✨ No more tasks for today! Well done!`;
+          response += `\n\nNo more tasks for today. Well done!`;
         }
 
         return response;

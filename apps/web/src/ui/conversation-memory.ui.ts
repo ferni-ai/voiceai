@@ -11,8 +11,22 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { trapFocus } from '../utils/accessibility.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('ConversationMemory');
+
+// Debounce utility
+function debounce<Args extends unknown[]>(
+  fn: (...args: Args) => void,
+  ms: number
+): (...args: Args) => void {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: Args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms);
+  };
+}
 
 // ============================================================================
 // TYPES
@@ -67,7 +81,12 @@ let context: ConversationContext | null = null;
 let selectedConversation: Conversation | null = null;
 let callbacks: ConversationMemoryCallbacks = {};
 let isLoading = false;
+let hasError = false;
+let errorMessage = '';
 let searchQuery = '';
+let focusTrapCleanup: (() => void) | null = null;
+let previousActiveElement: HTMLElement | null = null;
+let activeTab = 'conversations';
 
 // ============================================================================
 // STYLES
@@ -353,7 +372,7 @@ const styles = `
   .memory-topic-tag {
     display: inline-block;
     padding: 2px 8px;
-    background: rgba(58, 107, 115, 0.1);
+    background: var(--persona-tint, rgba(58, 107, 115, 0.1));
     color: var(--color-peter, #3a6b73);
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
@@ -517,20 +536,112 @@ const styles = `
     background: var(--color-background-hover, rgba(112, 96, 90, 0.1));
   }
   
+  /* Loading Skeleton */
+  .memory-stats-loading {
+    display: flex;
+    gap: var(--space-4, 16px);
+  }
+  
+  .memory-stat-skeleton {
+    flex: 1;
+    text-align: center;
+    padding: var(--space-2, 8px);
+  }
+  
+  .memory-skeleton {
+    background: linear-gradient(90deg, 
+      var(--color-background-subtle, rgba(112, 96, 90, 0.08)) 25%,
+      var(--color-background-hover, rgba(112, 96, 90, 0.12)) 50%,
+      var(--color-background-subtle, rgba(112, 96, 90, 0.08)) 75%
+    );
+    background-size: 200% 100%;
+    animation: memory-shimmer 1.5s infinite;
+    border-radius: var(--radius-sm, 4px);
+  }
+  
+  .memory-skeleton--value {
+    height: 28px;
+    width: 40px;
+    margin: 0 auto var(--space-1, 4px);
+    border-radius: var(--radius-md, 8px);
+  }
+  
+  .memory-skeleton--label {
+    height: 14px;
+    width: 70px;
+    margin: 0 auto;
+  }
+  
+  @keyframes memory-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* Error State */
+  .memory-error {
+    text-align: center;
+    padding: var(--space-8, 32px) var(--space-4, 16px);
+    color: var(--color-text-secondary, #70605a);
+  }
+  
+  .memory-error__icon {
+    font-size: 48px;
+    margin-bottom: var(--space-3, 12px);
+    opacity: 0.5;
+  }
+  
+  .memory-error__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary, #2c2520);
+    margin-bottom: var(--space-2, 8px);
+  }
+  
+  .memory-error__text {
+    font-size: 14px;
+    margin-bottom: var(--space-4, 16px);
+  }
+  
+  .memory-error__retry {
+    padding: var(--space-2, 8px) var(--space-4, 16px);
+    background: var(--persona-primary, #4a6741);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full, 9999px);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--duration-fast, 100ms) ease;
+  }
+  
+  .memory-error__retry:hover {
+    background: var(--persona-secondary, #3d5a35);
+  }
+  
+  .memory-error__retry:focus-visible {
+    outline: 2px solid var(--persona-primary, #4a6741);
+    outline-offset: 2px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .memory-modal-overlay,
     .memory-modal,
     .memory-tab,
     .memory-conversation,
     .memory-topic-pill,
-    .memory-btn {
+    .memory-btn,
+    .memory-search__input,
+    .memory-modal__close,
+    .memory-error__retry {
       transition: none;
     }
-    .memory-spinner {
+    .memory-spinner,
+    .memory-skeleton {
       animation: none;
     }
   }
 `;
+
 
 // ============================================================================
 // ICONS
@@ -541,6 +652,7 @@ const ICONS = {
   brain: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.54"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.54"/></svg>`,
   heart: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   verified: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+  alertCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
 };
 
 // ============================================================================
@@ -606,13 +718,24 @@ export function initConversationMemory(): void {
  * Cleanup the conversation memory browser.
  */
 export function cleanupConversationMemory(): void {
+  // HMR protection - remove ALL instances
   document.getElementById('conversation-memory-styles')?.remove();
-  document.querySelector('.memory-modal-overlay')?.remove();
+  document.querySelectorAll('.memory-modal-overlay').forEach((el) => el.remove());
+  
+  // Clean up focus trap
+  if (focusTrapCleanup) {
+    focusTrapCleanup();
+    focusTrapCleanup = null;
+  }
+  
   modal = null;
   conversations = [];
   memory = null;
   context = null;
   selectedConversation = null;
+  hasError = false;
+  errorMessage = '';
+  activeTab = 'conversations';
 }
 
 // ============================================================================
@@ -624,6 +747,9 @@ export function cleanupConversationMemory(): void {
  */
 export async function showConversationMemory(options?: ConversationMemoryCallbacks): Promise<void> {
   callbacks = options || {};
+  
+  // Store previous focus for restoration
+  previousActiveElement = document.activeElement as HTMLElement;
 
   if (!modal) {
     createModal();
@@ -631,6 +757,11 @@ export async function showConversationMemory(options?: ConversationMemoryCallbac
 
   modal?.classList.add('visible');
   document.body.style.overflow = 'hidden';
+  
+  // Set up focus trap
+  if (modal) {
+    focusTrapCleanup = trapFocus(modal);
+  }
 
   await loadData();
 }
@@ -639,8 +770,20 @@ export async function showConversationMemory(options?: ConversationMemoryCallbac
  * Hide the conversation memory browser.
  */
 export function hideConversationMemory(): void {
+  // Clean up focus trap
+  if (focusTrapCleanup) {
+    focusTrapCleanup();
+    focusTrapCleanup = null;
+  }
+  
   modal?.classList.remove('visible');
   document.body.style.overflow = '';
+  
+  // Restore focus to previous element
+  if (previousActiveElement && previousActiveElement.focus) {
+    previousActiveElement.focus();
+    previousActiveElement = null;
+  }
 }
 
 function createModal(): void {
@@ -648,19 +791,22 @@ function createModal(): void {
   modal.className = 'memory-modal-overlay';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-labelledby', 'memory-title');
+  modal.setAttribute('aria-describedby', 'memory-subtitle');
   modal.setAttribute('aria-modal', 'true');
 
   modal.innerHTML = `
     <div class="memory-modal-backdrop"></div>
     <div class="memory-modal">
       <header class="memory-modal__header">
-        <p class="memory-modal__eyebrow">Your Journey</p>
-        <h2 id="memory-title" class="memory-modal__title">What I Remember</h2>
-        <p class="memory-modal__subtitle">Browse our conversations and what I've learned about you</p>
+        <p class="memory-modal__eyebrow">${t('memoryBrowser.eyebrow')}</p>
+        <h2 id="memory-title" class="memory-modal__title">${t('memoryBrowser.title')}</h2>
+        <p id="memory-subtitle" class="memory-modal__subtitle">${t('memoryBrowser.subtitle')}</p>
         <button class="memory-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       
-      <div id="memory-stats" class="memory-stats"></div>
+      <div id="memory-stats" class="memory-stats" aria-live="polite">
+        ${renderStatsLoading()}
+      </div>
       
       <div class="memory-search">
         <input 
@@ -668,24 +814,52 @@ function createModal(): void {
           class="memory-search__input" 
           placeholder="${t('placeholders.searchConversations')}"
           id="memory-search-input"
+          aria-label="${t('placeholders.searchConversations')}"
         />
       </div>
       
-      <div class="memory-tabs">
-        <button aria-label="Conversations" class="memory-tab active" data-tab="conversations">Conversations</button>
-        <button aria-label="Remembered" class="memory-tab" data-tab="remembered">Remembered</button>
-        <button aria-label="Topics" class="memory-tab" data-tab="topics">Topics</button>
+      <div class="memory-tabs" role="tablist" aria-label="${t('memoryBrowser.title')}">
+        <button 
+          role="tab" 
+          aria-selected="true" 
+          aria-controls="memory-panel-conversations"
+          id="memory-tab-conversations"
+          class="memory-tab active" 
+          data-tab="conversations"
+        >${t('memoryBrowser.tabs.conversations')}</button>
+        <button 
+          role="tab" 
+          aria-selected="false" 
+          aria-controls="memory-panel-remembered"
+          id="memory-tab-remembered"
+          class="memory-tab" 
+          data-tab="remembered"
+        >${t('memoryBrowser.tabs.remembered')}</button>
+        <button 
+          role="tab" 
+          aria-selected="false" 
+          aria-controls="memory-panel-topics"
+          id="memory-tab-topics"
+          class="memory-tab" 
+          data-tab="topics"
+        >${t('memoryBrowser.tabs.topics')}</button>
       </div>
       
-      <div class="memory-content" id="memory-content">
-        <div class="memory-loading">
-          <div class="memory-spinner"></div>
+      <div 
+        class="memory-content" 
+        id="memory-content" 
+        role="tabpanel" 
+        aria-labelledby="memory-tab-conversations"
+        aria-live="polite"
+      >
+        <div class="memory-loading" aria-label="${t('memoryBrowser.loading')}">
+          <div class="memory-spinner" aria-hidden="true"></div>
         </div>
       </div>
       
       <footer class="memory-modal__footer">
-        <span class="memory-modal__footer-info" id="memory-footer-info"></span>
-        <button aria-label="Done" class="memory-btn" data-action="close">Done</button>
+        <span class="memory-modal__footer-info" id="memory-footer-info" aria-live="polite"></span>
+        <button class="memory-btn" data-action="close">${t('common.done')}</button>
       </footer>
     </div>
   `;
@@ -700,11 +874,32 @@ function createModal(): void {
       const tabName = (e.currentTarget as HTMLElement).dataset.tab;
       if (tabName) switchTab(tabName);
     });
+    
+    // Keyboard navigation for tabs
+    tab.addEventListener('keydown', (e) => {
+      const key = (e as KeyboardEvent).key;
+      const tabs = Array.from(modal!.querySelectorAll('.memory-tab'));
+      const currentIndex = tabs.indexOf(e.currentTarget as Element);
+      
+      if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        e.preventDefault();
+        const nextIndex = key === 'ArrowRight' 
+          ? (currentIndex + 1) % tabs.length 
+          : (currentIndex - 1 + tabs.length) % tabs.length;
+        (tabs[nextIndex] as HTMLElement).focus();
+        (tabs[nextIndex] as HTMLElement).click();
+      }
+    });
   });
 
+  // Debounced search
+  const handleSearch = debounce((value: string) => {
+    searchQuery = value.toLowerCase();
+    renderContent(activeTab);
+  }, 200);
+  
   modal.querySelector('#memory-search-input')?.addEventListener('input', (e) => {
-    searchQuery = (e.target as HTMLInputElement).value.toLowerCase();
-    renderContent('conversations');
+    handleSearch((e.target as HTMLInputElement).value);
   });
 
   modal.addEventListener('keydown', (e) => {
@@ -720,32 +915,115 @@ function createModal(): void {
 
 async function loadData(): Promise<void> {
   isLoading = true;
-  renderContent('conversations');
+  hasError = false;
+  errorMessage = '';
+  renderContent(activeTab);
 
-  // Load all data in parallel
-  const [memoryData, conversationsData, contextData] = await Promise.all([
-    fetchMemory(),
-    fetchConversations(),
-    fetchContext(),
-  ]);
+  try {
+    // Load all data in parallel
+    const [memoryData, conversationsData, contextData] = await Promise.all([
+      fetchMemory(),
+      fetchConversations(),
+      fetchContext(),
+    ]);
 
-  memory = memoryData;
-  conversations = conversationsData;
-  context = contextData;
-  isLoading = false;
+    memory = memoryData;
+    conversations = conversationsData;
+    context = contextData;
+    isLoading = false;
 
-  renderStats();
-  renderContent('conversations');
-  renderFooter();
+    // Check if all requests failed (indicates a real problem)
+    if (!memoryData && conversationsData.length === 0 && !contextData) {
+      // Check if user might not be logged in
+      const userId = localStorage.getItem('ferni_user_id');
+      if (!userId) {
+        hasError = true;
+        errorMessage = 'notLoggedIn';
+      }
+    }
+
+    renderStats();
+    renderContent(activeTab);
+    renderFooter();
+  } catch (error) {
+    log.error('Failed to load memory data:', error);
+    isLoading = false;
+    hasError = true;
+    errorMessage = 'generic';
+    renderStats();
+    renderContent(activeTab);
+  }
+}
+
+/**
+ * Retry loading data after an error
+ */
+function retryLoad(): void {
+  void loadData();
 }
 
 // ============================================================================
 // RENDERING
 // ============================================================================
 
+/**
+ * Render loading skeleton for stats
+ */
+function renderStatsLoading(): string {
+  return `
+    <div class="memory-stats-loading">
+      <div class="memory-stat-skeleton">
+        <div class="memory-skeleton memory-skeleton--value"></div>
+        <div class="memory-skeleton memory-skeleton--label"></div>
+      </div>
+      <div class="memory-stat-skeleton">
+        <div class="memory-skeleton memory-skeleton--value"></div>
+        <div class="memory-skeleton memory-skeleton--label"></div>
+      </div>
+      <div class="memory-stat-skeleton">
+        <div class="memory-skeleton memory-skeleton--value"></div>
+        <div class="memory-skeleton memory-skeleton--label"></div>
+      </div>
+      <div class="memory-stat-skeleton">
+        <div class="memory-skeleton memory-skeleton--value"></div>
+        <div class="memory-skeleton memory-skeleton--label"></div>
+      </div>
+    </div>
+  `;
+}
+
 function renderStats(): void {
   const statsEl = document.getElementById('memory-stats');
-  if (!statsEl || !memory) return;
+  if (!statsEl) return;
+  
+  // Show loading state if still loading
+  if (isLoading) {
+    statsEl.innerHTML = renderStatsLoading();
+    return;
+  }
+  
+  // Show empty state if no memory data
+  if (!memory) {
+    statsEl.innerHTML = `
+      <div class="memory-stat">
+        <div class="memory-stat__value">0</div>
+        <div class="memory-stat__label">${t('memoryBrowser.stats.conversations')}</div>
+      </div>
+      <div class="memory-stat">
+        <div class="memory-stat__value">—</div>
+        <div class="memory-stat__label">${t('memoryBrowser.stats.timeTogether')}</div>
+      </div>
+      <div class="memory-stat">
+        <div class="memory-stat__value">0</div>
+        <div class="memory-stat__label">${t('memoryBrowser.stats.thingsRemembered')}</div>
+      </div>
+      <div class="memory-stat">
+        <div class="memory-stat__value">—</div>
+        <div class="memory-stat__label">${t('memoryBrowser.stats.since')}</div>
+      </div>
+    `;
+    return;
+  }
 
   const durationText = memory.totalDuration ? formatDuration(memory.totalDuration) : '—';
 
@@ -759,19 +1037,19 @@ function renderStats(): void {
   statsEl.innerHTML = `
     <div class="memory-stat">
       <div class="memory-stat__value">${memory.totalConversations}</div>
-      <div class="memory-stat__label">Conversations</div>
+      <div class="memory-stat__label">${t('memoryBrowser.stats.conversations')}</div>
     </div>
     <div class="memory-stat">
       <div class="memory-stat__value">${durationText}</div>
-      <div class="memory-stat__label">Time Together</div>
+      <div class="memory-stat__label">${t('memoryBrowser.stats.timeTogether')}</div>
     </div>
     <div class="memory-stat">
       <div class="memory-stat__value">${context?.rememberedDetails?.length || 0}</div>
-      <div class="memory-stat__label">Things Remembered</div>
+      <div class="memory-stat__label">${t('memoryBrowser.stats.thingsRemembered')}</div>
     </div>
     <div class="memory-stat">
       <div class="memory-stat__value">${firstConvDate}</div>
-      <div class="memory-stat__label">Since</div>
+      <div class="memory-stat__label">${t('memoryBrowser.stats.since')}</div>
     </div>
   `;
 }
@@ -779,13 +1057,25 @@ function renderStats(): void {
 function renderContent(tab: string): void {
   const contentEl = document.getElementById('memory-content');
   if (!contentEl) return;
+  
+  // Update ARIA attributes for tab panel
+  contentEl.setAttribute('aria-labelledby', `memory-tab-${tab}`);
 
   if (isLoading) {
     contentEl.innerHTML = `
-      <div class="memory-loading">
-        <div class="memory-spinner"></div>
+      <div class="memory-loading" role="status" aria-label="${t('memoryBrowser.loading')}">
+        <div class="memory-spinner" aria-hidden="true"></div>
       </div>
     `;
+    return;
+  }
+  
+  // Show error state if there was an error
+  if (hasError) {
+    contentEl.innerHTML = renderErrorState();
+    
+    // Attach retry handler
+    contentEl.querySelector('.memory-error__retry')?.addEventListener('click', retryLoad);
     return;
   }
 
@@ -802,6 +1092,24 @@ function renderContent(tab: string): void {
   }
 }
 
+/**
+ * Render error state
+ */
+function renderErrorState(): string {
+  const errorKey = errorMessage || 'generic';
+  const title = t(`memoryBrowser.error.title`);
+  const message = t(`memoryBrowser.error.message`);
+  
+  return `
+    <div class="memory-error" role="alert">
+      <div class="memory-error__icon" aria-hidden="true">${ICONS.alertCircle}</div>
+      <h3 class="memory-error__title">${title}</h3>
+      <p class="memory-error__text">${message}</p>
+      <button class="memory-error__retry">${t('memoryBrowser.error.retry')}</button>
+    </div>
+  `;
+}
+
 function renderConversations(container: HTMLElement): void {
   let filtered = conversations;
 
@@ -809,17 +1117,19 @@ function renderConversations(container: HTMLElement): void {
     filtered = conversations.filter(
       (c) =>
         c.summary?.toLowerCase().includes(searchQuery) ||
-        c.topics.some((t) => t.toLowerCase().includes(searchQuery))
+        c.topics.some((topic) => topic.toLowerCase().includes(searchQuery))
     );
   }
 
   if (filtered.length === 0) {
+    const emptyMessage = searchQuery 
+      ? t('memoryBrowser.empty.noResults')
+      : t('memoryBrowser.empty.conversations');
+    
     container.innerHTML = `
-      <div class="memory-empty">
-        <div class="memory-empty__icon">${ICONS.brain}</div>
-        <p class="memory-empty__text">
-          ${searchQuery ? 'No conversations match your search' : "We haven't had any conversations yet. Start talking to build our shared memory!"}
-        </p>
+      <div class="memory-empty" role="status">
+        <div class="memory-empty__icon" aria-hidden="true">${ICONS.brain}</div>
+        <p class="memory-empty__text">${emptyMessage}</p>
       </div>
     `;
     return;
@@ -883,8 +1193,7 @@ function renderConversationItem(conv: Conversation, isLast: boolean): string {
             : ''
         }
         <div class="memory-conversation__meta">
-          <span>${conv.turnCount} turns</span>
-          ${conv.voiceVerified ? `<span class="memory-conversation__verified">${ICONS.verified} Voice verified</span>` : ''}
+          <span>${t('memoryBrowser.turnCount', { count: conv.turnCount })}</span>
         </div>
       </div>
     </div>
@@ -896,11 +1205,9 @@ function renderRemembered(container: HTMLElement): void {
 
   if (details.length === 0) {
     container.innerHTML = `
-      <div class="memory-empty">
-        <div class="memory-empty__icon">${ICONS.heart}</div>
-        <p class="memory-empty__text">
-          I haven't learned much about you yet. The more we talk, the more I'll remember!
-        </p>
+      <div class="memory-empty" role="status">
+        <div class="memory-empty__icon" aria-hidden="true">${ICONS.heart}</div>
+        <p class="memory-empty__text">${t('memoryBrowser.empty.remembered')}</p>
       </div>
     `;
     return;
@@ -912,10 +1219,10 @@ function renderRemembered(container: HTMLElement): void {
         .map(
           (detail) => `
         <div class="memory-detail">
-          <div class="memory-detail__icon">${ICONS.heart}</div>
+          <div class="memory-detail__icon" aria-hidden="true">${ICONS.heart}</div>
           <div class="memory-detail__content">
-            <div class="memory-detail__text">${detail}</div>
-            <div class="memory-detail__source">Learned from our conversations</div>
+            <div class="memory-detail__text">${escapeHtml(detail)}</div>
+            <div class="memory-detail__source">${t('memoryBrowser.learnedFrom')}</div>
           </div>
         </div>
       `
@@ -923,6 +1230,15 @@ function renderRemembered(container: HTMLElement): void {
         .join('')}
     </div>
   `;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function renderTopics(container: HTMLElement): void {
@@ -938,11 +1254,9 @@ function renderTopics(container: HTMLElement): void {
 
   if (sortedTopics.length === 0) {
     container.innerHTML = `
-      <div class="memory-empty">
-        <div class="memory-empty__icon">${ICONS.brain}</div>
-        <p class="memory-empty__text">
-          No topics explored yet. Let's start a conversation!
-        </p>
+      <div class="memory-empty" role="status">
+        <div class="memory-empty__icon" aria-hidden="true">${ICONS.brain}</div>
+        <p class="memory-empty__text">${t('memoryBrowser.empty.topics')}</p>
       </div>
     `;
     return;
@@ -979,18 +1293,25 @@ function renderTopics(container: HTMLElement): void {
 
 function renderFooter(): void {
   const footerInfo = document.getElementById('memory-footer-info');
-  if (!footerInfo || !memory) return;
+  if (!footerInfo) return;
+  
+  if (!memory?.firstConversation) {
+    footerInfo.textContent = '';
+    return;
+  }
 
-  const firstDate = memory.firstConversation
-    ? new Date(memory.firstConversation).toLocaleDateString()
-    : 'today';
-
-  footerInfo.textContent = `Our journey started ${firstDate}`;
+  const firstDate = new Date(memory.firstConversation).toLocaleDateString();
+  footerInfo.textContent = t('memoryBrowser.footer', { date: firstDate });
 }
 
 function switchTab(tabName: string): void {
+  activeTab = tabName;
+  
   modal?.querySelectorAll('.memory-tab').forEach((tab) => {
-    tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName);
+    const isActive = tab.getAttribute('data-tab') === tabName;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', String(isActive));
+    tab.setAttribute('tabindex', isActive ? '0' : '-1');
   });
 
   renderContent(tabName);

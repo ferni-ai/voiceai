@@ -487,32 +487,40 @@ function injectStyles(): void {
       50% { opacity: 0.7; }
     }
     
-    /* Dark theme */
-    @media (prefers-color-scheme: dark) {
-      .subscription-badge {
-        background: var(--color-background-secondary, rgba(58, 51, 48, 0.8));
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-secondary, #e8e2da);
-      }
-      
-      .subscription-badge:hover {
-        background: var(--color-background-tertiary, #4a4540);
-      }
-      
-      .subscription-badge--low {
-        background: rgba(202, 138, 4, 0.15);
-        color: #fcd34d;
-      }
-      
-      .subscription-badge--premium {
-        background: rgba(106, 138, 97, 0.2);
-        color: #8ab07f;
-      }
-      
-      .subscription-badge--trial {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(106, 138, 97, 0.2));
-        color: #8ab07f;
-      }
+    /* Dark theme - use data-theme attribute (not prefers-color-scheme) */
+    [data-theme="midnight"] .subscription-badge {
+      background: var(--color-background-secondary);
+      border-color: var(--color-border-subtle);
+      color: var(--color-text-secondary);
+    }
+    
+    [data-theme="midnight"] .subscription-badge:hover {
+      background: var(--color-background-tertiary);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--low {
+      background: rgba(224, 184, 96, 0.15);
+      color: var(--color-semantic-warning);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--premium {
+      background: rgba(106, 138, 97, 0.2);
+      border-color: rgba(106, 138, 97, 0.4);
+      /* Use accent text for readability on dark background */
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--premium .subscription-badge__icon {
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--trial {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(106, 138, 97, 0.2));
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--trial .subscription-badge__icon {
+      color: var(--color-accent-text);
     }
     
     /* Reduced motion */

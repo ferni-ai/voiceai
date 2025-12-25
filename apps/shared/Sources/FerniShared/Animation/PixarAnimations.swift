@@ -37,6 +37,7 @@ public enum PixarTiming {
 // MARK: - Squash & Stretch Parameters
 
 /// Squash and stretch values for different states
+/// Pixar's 12 Principles: Volume preservation (when Y stretches, X squashes)
 public enum SquashStretch {
     public struct Values {
         public let scaleY: CGFloat
@@ -51,6 +52,8 @@ public enum SquashStretch {
             self.rotation = rotation
         }
     }
+
+    // MARK: - Standard Values (Subtle - original)
 
     public static let idle = Values(
         scaleY: 1.012,
@@ -78,6 +81,48 @@ public enum SquashStretch {
         scaleX: 0.993,
         translateY: -1.8,
         rotation: -0.4
+    )
+
+    // MARK: - Lamp Style Values (More dramatic - Pixar Luxo Jr.)
+
+    /// Idle breathing - visible but gentle (like a resting lamp)
+    public static let lampIdle = Values(
+        scaleY: 1.04,       // More visible stretch
+        scaleX: 0.975,      // Compensating squash
+        translateY: -4,     // More bounce
+        rotation: 0.5
+    )
+
+    /// Active state - engaged and alert
+    public static let lampActive = Values(
+        scaleY: 1.06,       // Noticeable stretch
+        scaleX: 0.965,      // Strong squash
+        translateY: -6,     // More dramatic
+        rotation: 0.8
+    )
+
+    /// Speaking - animated and expressive
+    public static let lampSpeaking = Values(
+        scaleY: 1.08,       // Very noticeable
+        scaleX: 0.955,      // Pronounced squash
+        translateY: -8,     // Big movement
+        rotation: 1.2
+    )
+
+    /// Excited - maximum expression (celebrations)
+    public static let lampExcited = Values(
+        scaleY: 1.12,       // Maximum stretch
+        scaleX: 0.94,       // Maximum squash
+        translateY: -12,    // Big bounce
+        rotation: 2.0
+    )
+
+    /// Impact squash - used at bottom of bounce
+    public static let lampSquash = Values(
+        scaleY: 0.85,       // Compressed
+        scaleX: 1.10,       // Expanded width
+        translateY: 4,      // Pushed down
+        rotation: 0
     )
 }
 

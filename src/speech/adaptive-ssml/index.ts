@@ -201,6 +201,24 @@ export {
 } from './active-presence.js';
 
 // ============================================================================
+// STRESS AUTO-ADAPTATION - Gradual Stress-Based Voice Modulation
+// ============================================================================
+
+export {
+  applyStressAdaptationSsml,
+  calculateStressAdaptation,
+  getActiveStressAdaptationCount,
+  getStressAdaptationEngine,
+  getStressAdaptationState,
+  recordStressReading,
+  resetStressAdaptationEngine,
+  stressAdaptation,
+  STRESS_ADAPTATION_CONFIG,
+  type StressAdaptation,
+  type StressReading,
+} from './stress-adaptation.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

@@ -349,6 +349,16 @@ export interface ToolContext {
 
   /** Optional domain-specific configuration from manifest */
   domainConfig?: Record<string, unknown>;
+
+  /**
+   * User's detected location from IP geolocation (TikTok-style personalization)
+   * Used for weather defaults, local content hints, topic suggestions
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string; // State/province
+    countryCode?: string;
+  };
 }
 
 /**

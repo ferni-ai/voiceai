@@ -23,7 +23,7 @@ import { initializeToolRegistry } from '../tools/registry/loader.js';
 import { deprecationService } from '../tools/deprecation.js';
 import { versioningService } from '../tools/versioning.js';
 import { abTestingService } from '../tools/ab-testing.js';
-import { semanticRouter } from '../tools/semantic-router.js';
+import { semanticRouter } from '../tools/semantic-router/compat.js';
 import { recommendationEngine } from '../tools/recommendation-engine.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';

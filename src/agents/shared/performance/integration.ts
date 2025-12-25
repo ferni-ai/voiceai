@@ -124,15 +124,17 @@ export async function initializePerformanceOptimizations(
     );
   }
 
-  // 2. Warm up speculative TTS
+  // 2. Warm up speculative TTS with emotion variants
   if (enableSpeculativeTTS && personaId) {
     initTasks.push(
       (async () => {
         try {
           const { warmupTTSVoice } = await import('./speculative-tts.js');
-          await warmupTTSVoice(personaId);
+          // Warm up with common emotions for faster first-audio with emotion caching
+          const commonEmotions = ['neutral', 'warm', 'concerned', 'supportive', 'curious'];
+          await warmupTTSVoice(personaId, commonEmotions);
           metrics.speculativeTTSEnabled = true;
-          log.info('Speculative TTS warmed up');
+          log.info('Speculative TTS warmed up with emotion variants');
         } catch (error) {
           log.debug({ error: String(error) }, 'Speculative TTS warmup skipped');
         }

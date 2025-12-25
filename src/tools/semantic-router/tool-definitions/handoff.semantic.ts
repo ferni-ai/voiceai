@@ -24,6 +24,7 @@ export const handoffTool: SemanticToolDefinition = {
 
   triggers: {
     phrases: [
+      // Direct commands
       'talk to maya',
       'talk to peter',
       'talk to alex',
@@ -33,14 +34,37 @@ export const handoffTool: SemanticToolDefinition = {
       'transfer me to',
       'hand me off to',
       'switch to',
+      // Polite requests (Gemini problem phrases)
       'can I speak with',
+      'could I speak with',
+      'can I talk to',
+      'could I talk to',
+      'can you transfer me to',
+      'could you transfer me to',
+      'would you transfer me to',
+      // Conversational
       'let me talk to',
+      "i'd like to talk to",
+      'i want to talk to',
+      "i'd like to speak with",
+      'i want to speak with',
+      // Shorthand
+      'get me maya',
+      'get me peter',
+      'connect me to',
     ],
     patterns: [
+      // Direct commands
       /(?:talk|speak|transfer|hand\s*off|switch)\s+(?:me\s+)?(?:to|with)\s+(\w+)/i,
+      // Polite requests (CRITICAL - Gemini problem patterns)
+      /(?:can|could|would|will)\s+(?:you\s+)?(?:transfer|connect|get)\s+(?:me\s+)?(?:to\s+)?(\w+)/i,
       /(?:can|could)\s+i\s+(?:talk|speak)\s+(?:to|with)\s+(\w+)/i,
+      // Desire expressions
       /let\s+me\s+(?:talk|speak)\s+(?:to|with)\s+(\w+)/i,
+      /i(?:'d|\s+would)\s+like\s+to\s+(?:talk|speak)\s+(?:to|with)\s+(\w+)/i,
       /i\s+(?:want|need)\s+to\s+(?:talk|speak)\s+(?:to|with)\s+(\w+)/i,
+      // Shorthand
+      /(?:get|connect)\s+me\s+(?:to\s+)?(\w+)/i,
       /\b(maya|peter|alex|jordan|nayan|ferni)\b/i, // Just the name
     ],
     keywords: [

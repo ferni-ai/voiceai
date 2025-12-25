@@ -131,8 +131,23 @@ async function loadSafetyDisclaimer(): Promise<string | null> {
  * 3. identity/function-calling-specialty.md (persona-specific tools)
  *
  * Falls back to legacy identity/function-calling.md if new files don't exist.
+ * 
+ * SKIP when SEMANTIC_ROUTING_PRIMARY=true:
+ * When semantic routing handles all tool calls, we don't want the LLM
+ * to output JSON function calls (they would be spoken as text).
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
+  // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
+  // The semantic router handles tool execution BEFORE the LLM, so we don't
+  // want to teach the LLM the JSON format (it would output JSON as speech).
+  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
+    log.info(
+      { bundleDir },
+      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
+    );
+    return null;
+  }
+
   // Load safety disclaimer (always include if available)
   const safetyDisclaimer = await loadSafetyDisclaimer();
 

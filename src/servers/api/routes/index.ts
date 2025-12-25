@@ -18,4 +18,11 @@ export { handleVibeRoutes } from './vibe.js';
 export { handleEightSleepRoutes } from './eight-sleep.js';
 export { handleOuraRoutes } from './oura.js';
 export { handleAppleHealthRoutes } from './apple-health.js';
+// Apple Sign In notifications (server-to-server)
+export { handleAppleNotification } from './apple-notifications.js';
+// "Better Than Human" routes
+export { handleVisualMemoryRoutes } from './visual-memory.js';
+export { handleAmbientModeRoutes } from './ambient-mode.js';
+// Intelligent routing (6-strategy cascade)
+export { handleIntelligentRoutingRoutes, registerIntelligentRoutingRoutes } from './intelligent-routing.js';
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

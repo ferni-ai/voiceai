@@ -4,9 +4,9 @@
  * Domain: Weather data and forecasts.
  * Single responsibility: Fetching and presenting weather information.
  *
- * APIs used:
- * - Open-Meteo (free, no key required)
- * - Open-Meteo Geocoding (free, no key required)
+ * APIs used (in priority order):
+ * 1. Apple WeatherKit (primary - more reliable, better data)
+ * 2. Open-Meteo (fallback - free, no key required)
  */
 
 import { llm } from '@livekit/agents';
@@ -14,6 +14,65 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+
+// Lazy import Apple WeatherKit to avoid startup errors when not configured
+async function tryAppleWeather(location: string): Promise<string | null> {
+  const log = getLogger();
+
+  try {
+    const {
+      isWeatherKitAvailable,
+      getWeather,
+      formatCurrentWeatherForVoice,
+      formatAlertsForVoice,
+    } = await import('../../../services/apple/weatherkit.js');
+
+    if (!isWeatherKitAvailable()) {
+      log.debug({ location }, '🍎 WeatherKit not configured');
+      return null;
+    }
+
+    // Use Open-Meteo geocoding for ANY city (not just hardcoded list)
+    const geo = await geocodeLocation(location);
+    if (!geo) {
+      log.debug({ location }, '🍎 Geocoding failed for Apple Weather');
+      return null;
+    }
+
+    log.debug(
+      { location, lat: geo.latitude, lon: geo.longitude },
+      '🍎 Fetching from Apple WeatherKit'
+    );
+    const weather = await getWeather(geo.latitude, geo.longitude);
+
+    if (!weather?.current) {
+      log.debug({ location }, '🍎 No weather data from Apple');
+      return null;
+    }
+
+    // Format location name nicely
+    const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
+    let result = formatCurrentWeatherForVoice(weather.current, locationName);
+
+    // Add any weather alerts (Apple's killer feature!)
+    const alertText = formatAlertsForVoice(weather.alerts);
+    if (alertText) {
+      result = `${alertText} ${result}`;
+    }
+
+    log.info(
+      { location, locationName, source: 'AppleWeatherKit' },
+      '🍎 Weather from Apple WeatherKit'
+    );
+    return result;
+  } catch (error) {
+    getLogger().debug(
+      { location, error: String(error) },
+      '🍎 Apple WeatherKit error, using fallback'
+    );
+    return null;
+  }
+}
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -82,47 +141,95 @@ const WEATHER_CODES: Record<number, string> = {
 // ============================================================================
 
 /**
- * Geocode a location name to coordinates
+ * Fast geocoding: Google (primary, ~50-150ms) → Open-Meteo (fallback, free)
  */
 async function geocodeLocation(location: string): Promise<GeocodingResult | null> {
   const startTime = Date.now();
   const log = getLogger();
 
+  // Try Google first (faster, ~50-150ms vs ~200-500ms)
+  const googleResult = await geocodeWithGoogle(location);
+  if (googleResult) {
+    log.debug({ location, provider: 'google', ms: Date.now() - startTime }, '📍 Geocoded');
+    return googleResult;
+  }
+
+  // Fall back to Open-Meteo (free, no API key needed)
+  const openMeteoResult = await geocodeWithOpenMeteo(location);
+  if (openMeteoResult) {
+    log.debug({ location, provider: 'open-meteo', ms: Date.now() - startTime }, '📍 Geocoded');
+    return openMeteoResult;
+  }
+
+  log.warn({ location, ms: Date.now() - startTime }, '📍 Geocoding failed');
+  return null;
+}
+
+/**
+ * Google Geocoding API (~50-150ms, very fast)
+ */
+async function geocodeWithGoogle(location: string): Promise<GeocodingResult | null> {
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) return null;
+
   try {
-    log.debug({ location }, '🌍 [DIAG] Geocoding location...');
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      status: string;
+      results?: Array<{
+        geometry: { location: { lat: number; lng: number } };
+        address_components?: Array<{
+          long_name: string;
+          types: string[];
+        }>;
+      }>;
+    };
+
+    if (data.status !== 'OK' || !data.results?.length) return null;
+
+    const result = data.results[0];
+    const coords = result.geometry?.location;
+    if (!coords) return null;
+
+    // Extract city and state from address components
+    const components = result.address_components || [];
+    const city = components.find((c) => c.types.includes('locality'))?.long_name;
+    const state = components.find((c) =>
+      c.types.includes('administrative_area_level_1')
+    )?.long_name;
+    const country = components.find((c) => c.types.includes('country'))?.long_name;
+
+    return {
+      latitude: coords.lat,
+      longitude: coords.lng,
+      name: city || location,
+      admin1: state,
+      country,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Open-Meteo Geocoding (free fallback, ~200-500ms)
+ */
+async function geocodeWithOpenMeteo(location: string): Promise<GeocodingResult | null> {
+  try {
     const response = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`,
-      { signal: AbortSignal.timeout(8000) }
+      { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      log.warn(
-        { location, status: response.status, elapsed: Date.now() - startTime },
-        '🌍 [DIAG] Geocoding returned non-OK'
-      );
-      return null;
-    }
+    if (!response.ok) return null;
 
     const data = (await response.json()) as { results?: GeocodingResult[] };
-    const result = data.results?.[0] || null;
-    log.debug(
-      { location, found: !!result, elapsed: Date.now() - startTime },
-      '🌍 [DIAG] Geocoding complete'
-    );
-    return result;
-  } catch (error) {
-    const elapsed = Date.now() - startTime;
-    const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
-    log.warn(
-      {
-        location,
-        error: String(error),
-        elapsed,
-        isTimeout,
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-      },
-      '🌍 [DIAG] Geocoding FAILED - may affect subsequent tools!'
-    );
+    return data.results?.[0] || null;
+  } catch {
     return null;
   }
 }
@@ -140,6 +247,7 @@ function getWeatherDescription(code: number): string {
 
 /**
  * Get current weather for a location
+ * Priority: Apple WeatherKit → Open-Meteo (fallback)
  */
 export async function getCurrentWeather(location: string): Promise<string> {
   const startTime = Date.now();
@@ -147,6 +255,18 @@ export async function getCurrentWeather(location: string): Promise<string> {
 
   log.info({ timestamp: new Date().toISOString(), location }, '🌤️ [DIAG] getCurrentWeather START');
 
+  // Try Apple WeatherKit first (more reliable)
+  const appleResult = await tryAppleWeather(location);
+  if (appleResult) {
+    log.info(
+      { location, elapsed: Date.now() - startTime, source: 'AppleWeatherKit' },
+      '🌤️ Weather from Apple'
+    );
+    return appleResult;
+  }
+
+  // Fallback to Open-Meteo
+  log.debug({ location }, '🌤️ Falling back to Open-Meteo');
   const geo = await geocodeLocation(location);
 
   if (!geo) {

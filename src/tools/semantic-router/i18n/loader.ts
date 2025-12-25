@@ -320,9 +320,19 @@ export function detectLanguage(text: string): string {
   }
 
   // Word-based detection for Latin script languages
+  // Use word boundary matching to avoid false positives (e.g., "ist" in "Christmas")
+  // Note: \b doesn't work well with Unicode, so we use space/punctuation boundaries
+  const matchWholeWord = (text: string, word: string): boolean => {
+    // Escape special regex characters in the word
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match word at start, end, or surrounded by non-letter characters
+    const regex = new RegExp(`(?:^|[\\s,.:;!?'"])${escaped}(?:[\\s,.:;!?'"]|$)`, 'iu');
+    return regex.test(text);
+  };
+
   // Spanish indicators
   const spanishWords = ['qué', 'cómo', 'cuál', 'está', 'tengo', 'quiero', 'puedo', 'hoy', 'mañana'];
-  const spanishCount = spanishWords.filter((w) => lowerText.includes(w)).length;
+  const spanishCount = spanishWords.filter((w) => matchWholeWord(lowerText, w)).length;
 
   // French indicators
   const frenchWords = [
@@ -335,11 +345,11 @@ export function detectLanguage(text: string): string {
     "aujourd'hui",
     'demain',
   ];
-  const frenchCount = frenchWords.filter((w) => lowerText.includes(w)).length;
+  const frenchCount = frenchWords.filter((w) => matchWholeWord(lowerText, w)).length;
 
   // German indicators
   const germanWords = ['was', 'wie', 'ist', 'ich', 'heute', 'morgen', 'kannst', 'bitte'];
-  const germanCount = germanWords.filter((w) => lowerText.includes(w)).length;
+  const germanCount = germanWords.filter((w) => matchWholeWord(lowerText, w)).length;
 
   // Portuguese indicators
   const portugueseWords = [
@@ -353,7 +363,7 @@ export function detectLanguage(text: string): string {
     'amanhã',
     'obrigado',
   ];
-  const portugueseCount = portugueseWords.filter((w) => lowerText.includes(w)).length;
+  const portugueseCount = portugueseWords.filter((w) => matchWholeWord(lowerText, w)).length;
 
   // Find the highest scoring language
   const scores: Record<string, number> = {

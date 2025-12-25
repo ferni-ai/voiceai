@@ -63,46 +63,138 @@ const toolEmbeddingsCache: Map<string, ToolEmbedding> = new Map();
  *
  * This pre-computes embeddings for tool descriptions and examples,
  * enabling fast language-agnostic matching at runtime.
+ *
+ * PERFORMANCE: Uses batch embedding to minimize API calls.
+ * ~1500 texts → ~15 batch API calls instead of 1500 sequential calls.
  */
 export async function initializeMultilingualEmbeddings(
   tools: SemanticToolDefinition[],
   embeddingProvider: EmbeddingProvider
 ): Promise<void> {
-  log.info({ toolCount: tools.length }, 'Initializing multilingual embeddings');
+  const startTime = performance.now();
+  log.info({ toolCount: tools.length }, 'Initializing multilingual embeddings (batched)');
+
+  // ==========================================================================
+  // STEP 1: Collect all texts that need embedding
+  // ==========================================================================
+  interface TextToEmbed {
+    toolId: string;
+    type: 'description' | 'example';
+    index: number; // For examples, which example index
+    text: string;
+  }
+
+  const textsToEmbed: TextToEmbed[] = [];
 
   for (const tool of tools) {
-    try {
-      // Embed the tool description
-      const descriptionEmbedding = await embeddingProvider.embed(tool.description);
+    // Add description
+    textsToEmbed.push({
+      toolId: tool.id,
+      type: 'description',
+      index: 0,
+      text: tool.description,
+    });
 
-      // Embed examples (limit to 5 for performance)
-      const exampleEmbeddings = await Promise.all(
-        tool.examples.slice(0, 5).map(async (example) => {
-          const text = getExampleText(example);
-          return {
-            text,
-            embedding: await embeddingProvider.embed(text),
-          };
-        })
-      );
-
-      toolEmbeddingsCache.set(tool.id, {
+    // Add examples (limit to 5 per tool)
+    const examples = tool.examples.slice(0, 5);
+    for (let i = 0; i < examples.length; i++) {
+      textsToEmbed.push({
         toolId: tool.id,
-        description: tool.description,
-        embedding: descriptionEmbedding,
-        examples: exampleEmbeddings,
+        type: 'example',
+        index: i,
+        text: getExampleText(examples[i]),
       });
-
-      log.debug(
-        { toolId: tool.id, exampleCount: exampleEmbeddings.length },
-        'Tool embeddings cached'
-      );
-    } catch (error) {
-      log.error({ toolId: tool.id, error: String(error) }, 'Failed to embed tool');
     }
   }
 
-  log.info({ cachedTools: toolEmbeddingsCache.size }, 'Multilingual embeddings initialized');
+  log.info(
+    { totalTexts: textsToEmbed.length, tools: tools.length },
+    'Collected texts for batch embedding'
+  );
+
+  // ==========================================================================
+  // STEP 2: Batch embed all texts
+  // ==========================================================================
+  const allTexts = textsToEmbed.map((t) => t.text);
+  let allEmbeddings: EmbeddingVector[];
+
+  try {
+    // Use batch embedding - provider handles chunking into API limits
+    allEmbeddings = await embeddingProvider.embedBatch(allTexts);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Batch embedding failed');
+    throw error;
+  }
+
+  const embedTime = performance.now() - startTime;
+  log.info(
+    { embeddingCount: allEmbeddings.length, embedTimeMs: Math.round(embedTime) },
+    'Batch embedding complete'
+  );
+
+  // ==========================================================================
+  // STEP 3: Map embeddings back to tools
+  // ==========================================================================
+  const toolDataMap = new Map<
+    string,
+    {
+      description: string;
+      embedding: EmbeddingVector | null;
+      examples: Array<{ text: string; embedding: EmbeddingVector }>;
+    }
+  >();
+
+  // Initialize tool data structures
+  for (const tool of tools) {
+    toolDataMap.set(tool.id, {
+      description: tool.description,
+      embedding: null,
+      examples: [],
+    });
+  }
+
+  // Map embeddings back
+  for (let i = 0; i < textsToEmbed.length; i++) {
+    const textInfo = textsToEmbed[i];
+    const embedding = allEmbeddings[i];
+    const toolData = toolDataMap.get(textInfo.toolId);
+
+    if (!toolData) continue;
+
+    if (textInfo.type === 'description') {
+      toolData.embedding = embedding;
+    } else {
+      toolData.examples.push({
+        text: textInfo.text,
+        embedding,
+      });
+    }
+  }
+
+  // ==========================================================================
+  // STEP 4: Populate cache
+  // ==========================================================================
+  for (const [toolId, data] of toolDataMap) {
+    if (data.embedding) {
+      toolEmbeddingsCache.set(toolId, {
+        toolId,
+        description: data.description,
+        embedding: data.embedding,
+        examples: data.examples,
+      });
+    }
+  }
+
+  const totalTime = performance.now() - startTime;
+  log.info(
+    {
+      cachedTools: toolEmbeddingsCache.size,
+      totalTexts: textsToEmbed.length,
+      totalTimeMs: Math.round(totalTime),
+      avgPerTool: Math.round(totalTime / tools.length),
+    },
+    'Multilingual embeddings initialized (batched)'
+  );
 }
 
 /**

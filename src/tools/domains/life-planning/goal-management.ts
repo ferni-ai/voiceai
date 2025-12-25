@@ -21,6 +21,7 @@ import { sanitizePlainText, parseAmount, isValidAmount } from '../../validation.
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncGoalToCalendar, removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
@@ -413,7 +414,23 @@ export async function createGoal(
     getLogger().warn({ error, goalId: id }, 'Failed to persist goal to store');
   }
 
-  getLogger().info({ goalId: id, title, category, timeframe }, '🎯 Goal created');
+  getLogger().info({ goalId: id, title, category, timeframe }, 'Goal created');
+
+  // Sync goal deadline to calendar if target date is set
+  if (targetDate) {
+    try {
+      await syncGoalToCalendar(userId, id, sanitizedTitle, targetDate, {
+        description: sanitizedDesc,
+        category,
+      });
+      getLogger().info({ goalId: id }, 'Goal deadline synced to calendar');
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: String(calendarError), goalId: id },
+        'Failed to sync goal to calendar'
+      );
+    }
+  }
 
   return goal;
 }

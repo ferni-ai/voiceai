@@ -133,11 +133,26 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
 /**
  * Load function calling with base + specialty pattern.
  * Base contains critical rules, specialty contains persona-specific tools.
+ * 
+ * SKIP when SEMANTIC_ROUTING_PRIMARY=true:
+ * When semantic routing handles all tool calls, we don't want the LLM
+ * to output JSON function calls (they would be spoken as text).
  */
 async function loadFunctionCallingWithBase(
   personaId: string,
   specialtyPath: string
 ): Promise<string> {
+  // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
+  // The semantic router handles tool execution BEFORE the LLM, so we don't
+  // want to teach the LLM the JSON format (it would output JSON as speech).
+  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
+    log.info(
+      { personaId },
+      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
+    );
+    return '';
+  }
+
   // Load shared base rules (CRITICAL - contains JSON format instructions)
   const base = await loadSharedFile('function-calling-base.md');
 

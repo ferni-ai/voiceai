@@ -60,11 +60,11 @@
       "emotion": "neutral"
     },
     "warm_presence": {
-      "description": "Just being there - no agenda, pure support",
+      "description": "Supportive friend presence - NOT breathy or intimate",
       "examples": ["I'm here.", "Take your time.", "No rush.", "I'm with you."],
-      "tone": "gentle, unconditional, steady",
-      "speed_ratio": 0.88,
-      "emotion": "affectionate"
+      "tone": "supportive, friendly, steady",
+      "speed_ratio": 0.92,
+      "emotion": "friendly"
     }
   },
 

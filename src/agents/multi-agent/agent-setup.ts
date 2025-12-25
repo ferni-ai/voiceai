@@ -278,6 +278,12 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       temperature: geminiConfig.temperature,
       // instructions: systemPrompt,  // ← REMOVED: Goes on Agent only (matches voice-agent-entry.ts)
       language: geminiConfig.language,
+      // ENABLE USER TRANSCRIPTION - Gemini STT exposes what user says
+      inputAudioTranscription: {
+        // REMOVED languageCode: 'en-US' - Let Gemini auto-detect language
+        // This enables multilingual support (Japanese, Spanish, etc.)
+        // The transcript validator respects expectedLanguage from user profile
+      },
       toolChoice: 'auto',
       geminiTools: { googleSearch: {} },
     };

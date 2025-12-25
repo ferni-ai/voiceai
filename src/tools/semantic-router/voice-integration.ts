@@ -38,7 +38,7 @@ import {
   getLocale,
   initializeMultilingualEmbeddings,
 } from './i18n/index.js';
-import type { SemanticToolDefinition } from './types.js';
+import type { SemanticToolDefinition, EmbeddingProvider } from './types.js';
 
 // Import advanced SOTA features
 import {
@@ -81,6 +81,197 @@ import {
 } from './advanced/index.js';
 
 const log = createLogger({ module: 'semantic-router:voice' });
+
+// ============================================================================
+// WARM-START CONTEXT (P0 FIX: Pre-warm routing for first turn)
+// ============================================================================
+
+/**
+ * Session warm-start context for improved first-turn routing.
+ *
+ * PROBLEM: On session start, the first user turn has an empty transcript,
+ * causing degraded routing (no semantic match, falls back to default tools).
+ *
+ * SOLUTION: Pre-warm the router with user context BEFORE the first turn.
+ * This ensures the first turn has optimal tool selection.
+ */
+interface WarmStartContext {
+  userId: string;
+  sessionId: string;
+  personaId: string;
+  /** Recent topics from user history */
+  recentTopics?: string[];
+  /** User's commonly used tools */
+  frequentTools?: string[];
+  /** User preferences that affect routing */
+  preferences?: Record<string, unknown>;
+  /** Last session context */
+  lastSessionContext?: {
+    lastTool?: string;
+    lastTopic?: string;
+    timestamp?: number;
+  };
+}
+
+/** Cache of warm-started sessions */
+const warmStartedSessions = new Map<string, { timestamp: number; context: WarmStartContext }>();
+const WARM_START_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Pre-warm the semantic router for a session.
+ *
+ * Call this at session start, BEFORE the first user turn.
+ * Significantly improves first-turn tool selection by:
+ * 1. Pre-loading likely tools based on user history
+ * 2. Priming the deep context with recent topics
+ * 3. Caching personalization data
+ *
+ * @example
+ * ```typescript
+ * // In session initialization
+ * await warmStartSession({
+ *   userId: 'user-123',
+ *   sessionId: 'session-456',
+ *   personaId: 'ferni',
+ *   recentTopics: ['music', 'weather'],
+ *   frequentTools: ['playMusic', 'getWeather'],
+ * });
+ * ```
+ */
+export async function warmStartSession(context: WarmStartContext): Promise<{
+  success: boolean;
+  preloadedTools: string[];
+  primedTopics: string[];
+}> {
+  const startTime = performance.now();
+
+  try {
+    // Ensure router is initialized
+    if (!initialized || !router) {
+      await initializeVoiceRouter();
+    }
+
+    const preloadedTools: string[] = [];
+    const primedTopics: string[] = [];
+
+    // 1. Prime deep context with recent topics
+    if (context.recentTopics?.length) {
+      const deepContext = getDeepContext(context.sessionId);
+      for (const topic of context.recentTopics) {
+        // Add each topic to context to prime the router
+        updateContextWithInput(context.sessionId, `Thinking about ${topic}`, deepContext.currentTurn);
+        primedTopics.push(topic);
+      }
+      log.debug(
+        { sessionId: context.sessionId, topics: primedTopics },
+        '🔥 Warm-start: Primed deep context with recent topics'
+      );
+    }
+
+    // 2. Pre-load likely tools based on user history
+    if (context.frequentTools?.length) {
+      // These tools will be prioritized in the next routing decision
+      for (const toolId of context.frequentTools.slice(0, 5)) {
+        preloadedTools.push(toolId);
+      }
+      log.debug(
+        { sessionId: context.sessionId, tools: preloadedTools },
+        '🔥 Warm-start: Pre-loaded frequent tools'
+      );
+    }
+
+    // 3. If we have last session context, prime with that too
+    if (context.lastSessionContext?.lastTool) {
+      const lastTool = context.lastSessionContext.lastTool;
+      if (!preloadedTools.includes(lastTool)) {
+        preloadedTools.push(lastTool);
+      }
+    }
+
+    // 4. Cache the warm-start state
+    warmStartedSessions.set(context.sessionId, {
+      timestamp: Date.now(),
+      context,
+    });
+
+    // Clean up old warm-start entries
+    cleanupWarmStartCache();
+
+    const duration = performance.now() - startTime;
+    log.info(
+      {
+        sessionId: context.sessionId,
+        userId: context.userId,
+        preloadedToolsCount: preloadedTools.length,
+        primedTopicsCount: primedTopics.length,
+        durationMs: Math.round(duration),
+      },
+      '🔥 Session warm-started for optimal first-turn routing'
+    );
+
+    return {
+      success: true,
+      preloadedTools,
+      primedTopics,
+    };
+  } catch (error) {
+    log.warn(
+      { error: String(error), sessionId: context.sessionId },
+      'Warm-start failed (non-fatal, will use cold start)'
+    );
+    return {
+      success: false,
+      preloadedTools: [],
+      primedTopics: [],
+    };
+  }
+}
+
+/**
+ * Check if a session has been warm-started
+ */
+export function isSessionWarmStarted(sessionId: string): boolean {
+  const entry = warmStartedSessions.get(sessionId);
+  if (!entry) return false;
+
+  // Check if still valid (within TTL)
+  if (Date.now() - entry.timestamp > WARM_START_TTL_MS) {
+    warmStartedSessions.delete(sessionId);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get warm-start context for a session (if available)
+ */
+export function getWarmStartContext(sessionId: string): WarmStartContext | null {
+  const entry = warmStartedSessions.get(sessionId);
+  if (!entry || Date.now() - entry.timestamp > WARM_START_TTL_MS) {
+    return null;
+  }
+  return entry.context;
+}
+
+/**
+ * Clear warm-start cache for a session (call on session end)
+ */
+export function clearWarmStartSession(sessionId: string): void {
+  warmStartedSessions.delete(sessionId);
+}
+
+/**
+ * Clean up expired warm-start entries
+ */
+function cleanupWarmStartCache(): void {
+  const now = Date.now();
+  for (const [sessionId, entry] of warmStartedSessions.entries()) {
+    if (now - entry.timestamp > WARM_START_TTL_MS) {
+      warmStartedSessions.delete(sessionId);
+    }
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -196,95 +387,156 @@ export interface VoiceRouterResult {
 // ============================================================================
 
 let initialized = false;
+let initPromise: Promise<void> | null = null;
 let router: SemanticRouter | null = null;
 
 /**
  * Initialize the voice semantic router
  */
 export async function initializeVoiceRouter(): Promise<void> {
+  // Return existing promise if initialization is in progress (race-safe)
+  if (initPromise) {
+    return initPromise;
+  }
+  
   if (initialized) return;
 
-  log.info('Initializing voice semantic router...');
+  initPromise = doInitializeVoiceRouter();
+  try {
+    await initPromise;
+  } finally {
+    initPromise = null;
+  }
+}
+
+async function doInitializeVoiceRouter(): Promise<void> {
+  if (initialized) return;
+  
+  const isDev = process.env.NODE_ENV === 'development';
   const startTime = performance.now();
+  
+  log.info({ isDev }, 'Initializing voice semantic router...');
 
-  // Get the registry and register all tools
+  // Get the registry
   const registry = getToolRegistry();
-
-  // Register ALL semantic tool definitions
-  registry.registerMany(allToolDefinitions);
+  
+  // IMPORTANT: Merge locale triggers into tool definitions BEFORE registering
+  // This adds patterns like "check the weather" from en.json to the hardcoded definitions
+  // Without this, many natural phrases won't match!
+  const localizedTools = await mergeLocaleIntoTools(allToolDefinitions);
+  log.info({ localeToolCount: localizedTools.length }, '🌐 Locale merged into tool definitions');
+  
+  // Register all tools WITH locale patterns
+  registry.registerMany(localizedTools);
 
   const stats = getToolStats();
-  log.info(
-    {
-      totalTools: registry.size,
-      byCategory: stats,
-    },
-    '✅ Semantic tools registered'
-  );
-
-  // Pre-load common locales for faster multilingual routing
-  await preloadLocales(['en', 'es', 'fr', 'de', 'pt']);
-  log.info('🌍 Multilingual locales pre-loaded');
+  log.info({ totalTools: registry.size, byCategory: stats }, '✅ Semantic tools registered');
 
   // Create router
   router = createSemanticRouter({
-    debug: process.env.NODE_ENV === 'development',
+    debug: isDev,
     thresholds: {
       autoExecute: 0.92,
       confirm: 0.8,
-      hint: 0.55, // Lower threshold for hints
+      hint: 0.55,
       minimum: 0.35,
     },
   });
 
-  // Initialize with embedding provider
-  // Use OpenAI for production quality, Google for cost savings
-  const embeddingModel = process.env.EMBEDDING_MODEL || 'openai';
-  const embeddingProvider = createEmbeddingProvider(
-    embeddingModel as 'openai' | 'google' | 'local'
-  );
-
-  await router.initialize(embeddingProvider);
-
-  // Initialize multilingual embeddings for language-agnostic routing
-  try {
-    await initializeMultilingualEmbeddings(
-      allToolDefinitions as SemanticToolDefinition[],
-      embeddingProvider
-    );
-    log.info('🧠 Multilingual embeddings initialized');
-  } catch (embedError) {
-    log.warn({ error: String(embedError) }, 'Multilingual embeddings failed (non-fatal)');
+  // =========================================================================
+  // EMBEDDING STRATEGY:
+  // - DEV: Local embeddings (instant, no API calls, good enough for testing)
+  // - PROD: Google embeddings loaded from Firestore cache (pre-computed)
+  // =========================================================================
+  
+  if (isDev) {
+    // DEV: Use local hash embeddings - instant, no API calls
+    log.info('🚀 DEV MODE: Using local embeddings (instant startup)');
+    const embeddingProvider = createEmbeddingProvider('local');
+    await router.initialize(embeddingProvider);
+  } else {
+    // PROD: Use Google embeddings with Firestore caching
+    log.info('☁️ PROD MODE: Using Google embeddings with Firestore cache');
+    const embeddingProvider = createEmbeddingProvider('google');
+    await router.initialize(embeddingProvider);
+    
+    // Load pre-computed embeddings from Firestore (fast!)
+    // These are computed once on first deploy, then cached
+    loadCachedEmbeddingsAsync(embeddingProvider);
   }
 
-  // Initialize NER engine (compromise.js)
-  try {
-    await initializeNER();
-    log.info('🔍 NER engine initialized');
-  } catch (nerError) {
-    log.warn({ error: String(nerError) }, 'NER engine failed (non-fatal, using regex fallback)');
-  }
+  // =========================================================================
+  // ASYNC BACKGROUND TASKS (fire-and-forget, don't block)
+  // =========================================================================
+  
+  // Load English locale in background
+  preloadLocales(['en']).catch(() => {/* ignore */});
 
-  // Initialize streaming router
+  // NER engine in background
+  initializeNER()
+    .then(() => log.info('🔍 NER engine initialized'))
+    .catch(() => {/* regex fallback works fine */});
+
+  // Streaming router (sync, fast)
   try {
     initializeStreamingRouter(allToolDefinitions as SemanticToolDefinition[]);
     log.info('⚡ Streaming router initialized');
-  } catch (streamError) {
-    log.warn({ error: String(streamError) }, 'Streaming router failed (non-fatal)');
+  } catch {
+    // Non-fatal
   }
+  
+  const duration = performance.now() - startTime;
+  log.info({ durationMs: Math.round(duration), isDev }, '✅ Voice router initialized');
 
   // eslint-disable-next-line require-atomic-updates
   initialized = true;
-  const duration = performance.now() - startTime;
+}
 
-  log.info(
-    {
-      toolCount: registry.size,
-      embeddingModel,
-      durationMs: duration.toFixed(1),
-    },
-    'Voice semantic router initialized'
-  );
+/**
+ * Load pre-computed embeddings from Firestore cache (background, non-blocking)
+ * 
+ * On first deploy, embeddings are computed and cached.
+ * Subsequent startups load from cache (fast).
+ */
+async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): Promise<void> {
+  try {
+    const { getToolEmbeddingIndex, initializeToolEmbeddingIndex } = await import(
+      '../persistence/index.js'
+    );
+    
+    // Initialize the embedding index service
+    await initializeToolEmbeddingIndex();
+    const indexService = getToolEmbeddingIndex();
+    
+    // Batch load embeddings from Firestore cache
+    const embeddings = await indexService.batchGetToolEmbeddings(
+      allToolDefinitions as SemanticToolDefinition[]
+    );
+    
+    const stats = indexService.getStats();
+    log.info(
+      {
+        total: stats.totalTools,
+        cacheHits: stats.cacheHits,
+        firestoreLoads: stats.firestoreLoads,
+        computedFresh: stats.computedFresh,
+      },
+      '☁️ Tool embeddings loaded from Firestore cache'
+    );
+    
+    // If we had to compute fresh embeddings, they're now cached for next time
+    if (stats.computedFresh > 0) {
+      log.info(
+        { computedFresh: stats.computedFresh },
+        '📝 New embeddings computed and cached to Firestore'
+      );
+    }
+  } catch (error) {
+    log.warn(
+      { error: String(error) },
+      'Failed to load cached embeddings - falling back to pattern/keyword routing'
+    );
+  }
 }
 
 /**
@@ -521,6 +773,17 @@ export async function routeVoiceInput(
         conversationHistory: context.conversationHistory,
         services: undefined,
       });
+
+      // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
+      // This prevents the race condition where LLM (running in parallel) outputs JSON for the same tool
+      try {
+        const { markToolExecutedBySemanticRouter } = await import(
+          '../../agents/shared/tool-call-sanitizer.js'
+        );
+        markToolExecutedBySemanticRouter(context.sessionId, action.toolId);
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Failed to mark tool as executed for deduplication');
+      }
 
       // Update deep context with tool result
       updateContextWithToolResult(
@@ -953,3 +1216,283 @@ export function endStreamingSession(sessionId: string): {
 export { extractNEREntities } from './advanced/index.js';
 
 export type { StreamingSignal };
+
+// ============================================================================
+// P1 FIX: TOOL RESULT FEEDBACK LOOP
+// ============================================================================
+
+/**
+ * Tool execution outcome for feedback loop.
+ * Records what happened after routing to improve future decisions.
+ */
+export interface ToolExecutionOutcome {
+  toolId: string;
+  /** Was the tool execution successful? */
+  success: boolean;
+  /** Did the user correct us? (e.g., "No, I wanted music not weather") */
+  wasCorrection: boolean;
+  /** If correction, what tool did user actually want? */
+  intendedToolId?: string;
+  /** Execution time in ms */
+  executionTimeMs: number;
+  /** Original routing confidence */
+  routingConfidence: number;
+  /** Did user express satisfaction? */
+  userSatisfied?: boolean;
+  /** Any error message if failed */
+  errorMessage?: string;
+}
+
+/**
+ * Aggregated feedback statistics for a tool.
+ */
+interface ToolFeedbackStats {
+  totalExecutions: number;
+  successCount: number;
+  failureCount: number;
+  correctionCount: number;
+  avgExecutionTimeMs: number;
+  avgRoutingConfidence: number;
+  /** Tracks which tools users actually wanted when this tool was wrongly selected */
+  confusionMatrix: Record<string, number>;
+  lastUpdated: number;
+}
+
+/** Feedback stats per tool */
+const feedbackStats = new Map<string, ToolFeedbackStats>();
+
+/** Feedback history for analysis (rolling window) */
+const feedbackHistory: Array<ToolExecutionOutcome & { timestamp: number; sessionId: string }> = [];
+const MAX_FEEDBACK_HISTORY = 500;
+
+/**
+ * Record a tool execution outcome for feedback learning.
+ *
+ * Call this AFTER tool execution to improve routing:
+ * 1. Tracks success/failure rates per tool
+ * 2. Records user corrections for confusion analysis
+ * 3. Feeds back to confidence calibration
+ *
+ * @example
+ * ```typescript
+ * // After successful tool execution
+ * await recordToolExecutionOutcome(sessionId, {
+ *   toolId: 'playMusic',
+ *   success: true,
+ *   wasCorrection: false,
+ *   executionTimeMs: 250,
+ *   routingConfidence: 0.92,
+ * });
+ *
+ * // After user correction
+ * await recordToolExecutionOutcome(sessionId, {
+ *   toolId: 'getWeather',
+ *   success: true,
+ *   wasCorrection: true,
+ *   intendedToolId: 'playMusic',
+ *   executionTimeMs: 150,
+ *   routingConfidence: 0.85,
+ * });
+ * ```
+ */
+export async function recordToolExecutionOutcome(
+  sessionId: string,
+  outcome: ToolExecutionOutcome
+): Promise<void> {
+  const { toolId, success, wasCorrection, intendedToolId, executionTimeMs, routingConfidence } =
+    outcome;
+
+  // Get or create stats for this tool
+  let stats = feedbackStats.get(toolId);
+  if (!stats) {
+    stats = {
+      totalExecutions: 0,
+      successCount: 0,
+      failureCount: 0,
+      correctionCount: 0,
+      avgExecutionTimeMs: 0,
+      avgRoutingConfidence: 0,
+      confusionMatrix: {},
+      lastUpdated: Date.now(),
+    };
+    feedbackStats.set(toolId, stats);
+  }
+
+  // Update stats
+  stats.totalExecutions++;
+  if (success) {
+    stats.successCount++;
+  } else {
+    stats.failureCount++;
+  }
+  if (wasCorrection) {
+    stats.correctionCount++;
+    if (intendedToolId) {
+      stats.confusionMatrix[intendedToolId] = (stats.confusionMatrix[intendedToolId] || 0) + 1;
+    }
+  }
+
+  // Update rolling averages
+  const alpha = 0.1; // Exponential moving average weight
+  stats.avgExecutionTimeMs =
+    stats.avgExecutionTimeMs * (1 - alpha) + executionTimeMs * alpha || executionTimeMs;
+  stats.avgRoutingConfidence =
+    stats.avgRoutingConfidence * (1 - alpha) + routingConfidence * alpha || routingConfidence;
+  stats.lastUpdated = Date.now();
+
+  // Add to history
+  feedbackHistory.push({
+    ...outcome,
+    timestamp: Date.now(),
+    sessionId,
+  });
+
+  // Trim history if too long
+  while (feedbackHistory.length > MAX_FEEDBACK_HISTORY) {
+    feedbackHistory.shift();
+  }
+
+  // Log significant events
+  if (wasCorrection) {
+    log.warn(
+      {
+        sessionId,
+        toolId,
+        intendedToolId,
+        routingConfidence,
+        correctionRate: ((stats.correctionCount / stats.totalExecutions) * 100).toFixed(1) + '%',
+      },
+      '⚠️ Tool routing correction recorded - user wanted different tool'
+    );
+
+    // Also record the correction for learning
+    if (intendedToolId) {
+      try {
+        await handleExplicitCorrection('anonymous', '', toolId, intendedToolId);
+      } catch (error) {
+        log.debug({ error: String(error) }, 'Failed to record correction for learning');
+      }
+    }
+  } else if (!success) {
+    log.warn(
+      {
+        sessionId,
+        toolId,
+        errorMessage: outcome.errorMessage,
+        failureRate: ((stats.failureCount / stats.totalExecutions) * 100).toFixed(1) + '%',
+      },
+      '❌ Tool execution failed'
+    );
+  } else {
+    log.debug(
+      {
+        toolId,
+        executionTimeMs,
+        successRate: ((stats.successCount / stats.totalExecutions) * 100).toFixed(1) + '%',
+      },
+      '✅ Tool execution recorded'
+    );
+  }
+}
+
+/**
+ * Get feedback statistics for a tool.
+ */
+export function getToolFeedbackStats(toolId: string): ToolFeedbackStats | null {
+  return feedbackStats.get(toolId) || null;
+}
+
+/**
+ * Get all tool feedback statistics.
+ */
+export function getAllToolFeedbackStats(): Record<string, ToolFeedbackStats> {
+  const result: Record<string, ToolFeedbackStats> = {};
+  for (const [toolId, stats] of feedbackStats.entries()) {
+    result[toolId] = { ...stats };
+  }
+  return result;
+}
+
+/**
+ * Get the overall feedback summary.
+ */
+export function getFeedbackSummary(): {
+  totalExecutions: number;
+  overallSuccessRate: number;
+  overallCorrectionRate: number;
+  avgExecutionTimeMs: number;
+  toolsWithHighCorrectionRate: Array<{ toolId: string; correctionRate: number }>;
+  recentFeedbackCount: number;
+} {
+  let totalExecutions = 0;
+  let totalSuccess = 0;
+  let totalCorrections = 0;
+  let totalExecutionTime = 0;
+  const toolsWithHighCorrectionRate: Array<{ toolId: string; correctionRate: number }> = [];
+
+  for (const [toolId, stats] of feedbackStats.entries()) {
+    totalExecutions += stats.totalExecutions;
+    totalSuccess += stats.successCount;
+    totalCorrections += stats.correctionCount;
+    totalExecutionTime += stats.avgExecutionTimeMs * stats.totalExecutions;
+
+    const correctionRate = stats.totalExecutions > 10 ? stats.correctionCount / stats.totalExecutions : 0;
+    if (correctionRate > 0.1) {
+      // Flag tools with >10% correction rate
+      toolsWithHighCorrectionRate.push({ toolId, correctionRate });
+    }
+  }
+
+  return {
+    totalExecutions,
+    overallSuccessRate: totalExecutions > 0 ? totalSuccess / totalExecutions : 0,
+    overallCorrectionRate: totalExecutions > 0 ? totalCorrections / totalExecutions : 0,
+    avgExecutionTimeMs: totalExecutions > 0 ? totalExecutionTime / totalExecutions : 0,
+    toolsWithHighCorrectionRate: toolsWithHighCorrectionRate.sort(
+      (a, b) => b.correctionRate - a.correctionRate
+    ),
+    recentFeedbackCount: feedbackHistory.length,
+  };
+}
+
+/**
+ * Get confidence adjustment based on tool's historical performance.
+ *
+ * Tools with high success rates get a small boost, while tools with
+ * high correction rates get a penalty.
+ */
+export function getToolPerformanceConfidenceAdjustment(toolId: string): number {
+  const stats = feedbackStats.get(toolId);
+  if (!stats || stats.totalExecutions < 5) {
+    return 1.0; // Not enough data, no adjustment
+  }
+
+  const successRate = stats.successCount / stats.totalExecutions;
+  const correctionRate = stats.correctionCount / stats.totalExecutions;
+
+  // Boost for high success + low correction, penalty otherwise
+  // Range: 0.85 to 1.15
+  let adjustment = 1.0;
+
+  if (successRate > 0.95 && correctionRate < 0.02) {
+    adjustment = 1.1; // Excellent performance - 10% boost
+  } else if (successRate > 0.9 && correctionRate < 0.05) {
+    adjustment = 1.05; // Good performance - 5% boost
+  } else if (correctionRate > 0.2) {
+    adjustment = 0.85; // High correction rate - 15% penalty
+  } else if (correctionRate > 0.1) {
+    adjustment = 0.9; // Moderate correction rate - 10% penalty
+  } else if (successRate < 0.7) {
+    adjustment = 0.9; // Low success rate - 10% penalty
+  }
+
+  return adjustment;
+}
+
+/**
+ * Reset feedback stats (for testing).
+ */
+export function resetFeedbackStats(): void {
+  feedbackStats.clear();
+  feedbackHistory.length = 0;
+}

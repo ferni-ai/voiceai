@@ -206,6 +206,9 @@ export {
   convertToSemanticTool,
 } from './auto-convert/index.js';
 
+// Compatibility Layer (for legacy code)
+export { semanticRouter, type SemanticMatch } from './compat.js';
+
 // ============================================================================
 // ADVANCED SEMANTIC ROUTER
 // ============================================================================

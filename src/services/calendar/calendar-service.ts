@@ -31,13 +31,17 @@ import {
   type CalendarEvent as GoogleCalendarEvent,
 } from '../identity/google-calendar-oauth.js';
 import {
-  getLocalEventsForDay,
-  getLocalEvents,
-  createLocalEvent,
-  updateLocalEvent,
-  deleteLocalEvent,
-  hasLocalEvents,
-} from './local-calendar-store.js';
+  getEventsForDay as getUnifiedEventsForDay,
+  getEvents as getUnifiedEvents,
+  createEvent as createUnifiedEvent,
+  updateEvent as updateUnifiedEvent,
+  deleteEvent as deleteUnifiedEvent,
+} from './unified-calendar-store.js';
+import type {
+  CalendarEvent as UnifiedCalendarEvent,
+  CreateEventInput as UnifiedCreateEventInput,
+  UpdateEventInput as UnifiedUpdateEventInput,
+} from './types.js';
 
 const log = getLogger();
 
@@ -96,6 +100,72 @@ export interface WeekOverview {
   lightestDay: { day: string; meetings: number } | null;
   backToBackDays: string[];
   averageMeetingsPerDay: number;
+}
+
+// ============================================================================
+// ADAPTER FUNCTIONS (unified store <-> calendar-service types)
+// ============================================================================
+
+/**
+ * Convert unified store event to calendar-service event type
+ */
+function unifiedToCalendarEvent(unified: UnifiedCalendarEvent, calendarId: string = 'ferni'): CalendarEvent {
+  return {
+    id: unified.id,
+    title: unified.title,
+    description: unified.description,
+    location: unified.location,
+    startTime: unified.startTime,
+    endTime: unified.endTime,
+    isAllDay: unified.isAllDay,
+    attendees: unified.attendees,
+    status: unified.status,
+    calendarId: unified.externalCalendarId || calendarId,
+  };
+}
+
+/**
+ * Convert calendar-service CreateEventInput to unified store format
+ */
+function toUnifiedCreateInput(input: CreateEventInput): UnifiedCreateEventInput {
+  const endTime = input.endTime ||
+    (input.durationMinutes
+      ? new Date(input.startTime.getTime() + input.durationMinutes * 60000)
+      : new Date(input.startTime.getTime() + 60 * 60000));
+
+  return {
+    title: input.title,
+    description: input.description,
+    location: input.location,
+    startTime: input.startTime,
+    endTime,
+    durationMinutes: input.durationMinutes,
+    attendees: input.attendees,
+    reminders: input.reminders?.map((r) => ({
+      method: r.method,
+      minutesBefore: r.minutes,
+    })),
+  };
+}
+
+/**
+ * Convert partial update to unified update format
+ */
+function toUnifiedUpdateInput(updates: Partial<CreateEventInput>): UnifiedUpdateEventInput {
+  const result: UnifiedUpdateEventInput = {};
+  if (updates.title !== undefined) result.title = updates.title;
+  if (updates.description !== undefined) result.description = updates.description;
+  if (updates.location !== undefined) result.location = updates.location;
+  if (updates.startTime !== undefined) result.startTime = updates.startTime;
+  if (updates.endTime !== undefined) result.endTime = updates.endTime;
+  if (updates.attendees !== undefined) result.attendees = updates.attendees;
+  if (updates.reminders !== undefined) {
+    result.reminders = updates.reminders.map((r) => ({
+      method: r.method,
+      minutesBefore: r.minutes,
+    }));
+  }
+  return result;
 }
 
 // ============================================================================
@@ -222,8 +292,9 @@ export async function getEventsForDay(
     // Use Google Calendar
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
-      log.debug({ userId }, 'Google token expired, falling back to local');
-      return getLocalEventsForDay(userId, date);
+      log.debug({ userId }, 'Google token expired, falling back to unified store');
+      const unifiedEvents = await getUnifiedEventsForDay(userId, date);
+      return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
 
     const startOfDay = new Date(date);
@@ -236,13 +307,15 @@ export async function getEventsForDay(
       const events = await getGoogleEvents(accessToken, calendarId, startOfDay, endOfDay);
       return events.map((e) => googleEventToCalendarEvent(e, calendarId));
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to local');
-      return getLocalEventsForDay(userId, date);
+      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to unified store');
+      const unifiedEvents = await getUnifiedEventsForDay(userId, date);
+      return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
   }
 
-  // Use local calendar
-  return getLocalEventsForDay(userId, date);
+  // Use unified Ferni calendar
+  const unifiedEvents = await getUnifiedEventsForDay(userId, date);
+  return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
 }
 
 /**
@@ -264,21 +337,24 @@ export async function getEventsForWeek(
   if (mode === 'google') {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
-      log.debug({ userId }, 'Google token expired, falling back to local');
-      return getLocalEvents(userId, weekStart, weekEnd);
+      log.debug({ userId }, 'Google token expired, falling back to unified store');
+      const unifiedEvents = await getUnifiedEvents(userId, weekStart, weekEnd);
+      return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
 
     try {
       const events = await getGoogleEvents(accessToken, calendarId, weekStart, weekEnd, 100);
       return events.map((e) => googleEventToCalendarEvent(e, calendarId));
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to local');
-      return getLocalEvents(userId, weekStart, weekEnd);
+      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to unified store');
+      const unifiedEvents = await getUnifiedEvents(userId, weekStart, weekEnd);
+      return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
   }
 
-  // Use local calendar
-  return getLocalEvents(userId, weekStart, weekEnd);
+  // Use unified Ferni calendar
+  const unifiedEvents = await getUnifiedEvents(userId, weekStart, weekEnd);
+  return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
 }
 
 /**
@@ -296,8 +372,9 @@ export async function createEvent(
   if (mode === 'google') {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
-      log.warn({ userId }, 'Google token expired, creating in local calendar');
-      return createLocalEvent(userId, event);
+      log.warn({ userId }, 'Google token expired, creating in unified store');
+      const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
+      return unifiedToCalendarEvent(created, calendarId);
     }
 
     try {
@@ -306,15 +383,16 @@ export async function createEvent(
       log.info({ userId, eventTitle: event.title }, 'Google Calendar event created');
       return googleEventToCalendarEvent(created, calendarId);
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, creating locally');
-      return createLocalEvent(userId, event);
+      log.error({ error: String(error), userId }, 'Google Calendar failed, creating in unified store');
+      const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
+      return unifiedToCalendarEvent(created, calendarId);
     }
   }
 
-  // Use local calendar
-  const created = await createLocalEvent(userId, event);
-  log.info({ userId, eventTitle: event.title }, 'Local calendar event created');
-  return created;
+  // Use unified Ferni calendar
+  const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
+  log.info({ userId, eventTitle: event.title }, 'Unified calendar event created');
+  return unifiedToCalendarEvent(created, calendarId);
 }
 
 /**
@@ -328,13 +406,14 @@ export async function updateEvent(
   updates: Partial<CreateEventInput>,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<CalendarEvent | null> {
-  // Check if this is a local event
-  if (eventId.startsWith('local_')) {
-    const updated = await updateLocalEvent(userId, eventId, updates);
+  // Check if this is a local/unified event (starts with evt_ or local_)
+  if (eventId.startsWith('local_') || eventId.startsWith('evt_')) {
+    const updated = await updateUnifiedEvent(userId, eventId, toUnifiedUpdateInput(updates));
     if (updated) {
-      log.info({ userId, eventId }, 'Local calendar event updated');
+      log.info({ userId, eventId }, 'Unified calendar event updated');
+      return unifiedToCalendarEvent(updated, calendarId);
     }
-    return updated;
+    return null;
   }
 
   // Try Google Calendar
@@ -387,11 +466,11 @@ export async function deleteEvent(
   eventId: string,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<boolean> {
-  // Check if this is a local event
-  if (eventId.startsWith('local_')) {
-    const deleted = await deleteLocalEvent(userId, eventId);
+  // Check if this is a local/unified event (starts with evt_ or local_)
+  if (eventId.startsWith('local_') || eventId.startsWith('evt_')) {
+    const deleted = await deleteUnifiedEvent(userId, eventId);
     if (deleted) {
-      log.info({ userId, eventId }, 'Local calendar event deleted');
+      log.info({ userId, eventId }, 'Unified calendar event deleted');
     }
     return deleted;
   }

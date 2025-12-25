@@ -75,6 +75,10 @@ body {
   --persona-glow: var(--skin-glow, var(--color-ferni-glow, rgba(74, 103, 65, 0.28)));
   --persona-tint: rgba(74, 103, 65, 0.06);
   --persona-bg-tint: var(--persona-tint);
+  
+  /* Persona accent text - theme-aware color for text that needs good contrast */
+  /* Uses gold in dark theme (WCAG AA on dark backgrounds), green in light theme */
+  --persona-accent-text: var(--color-accent-text, #4a6741);
 
   /* Sophisticated Gradients */
   --gradient-radial: radial-gradient(
@@ -8830,7 +8834,8 @@ body {
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
   font-weight: 700;
-  color: var(--persona-primary);
+  /* Use accent text color for WCAG AA compliance in both themes */
+  color: var(--color-accent-text, var(--color-accent-primary));
   margin-bottom: var(--space-xs);
 }
 
@@ -11674,4 +11679,52 @@ body.ambient-aurora {
   #waveformContainer {
     max-width: min(240px, 100%) !important;
   }
+}
+
+/* ========================================================================
+   DARK THEME TEXT CONTRAST FIX
+   
+   Problem: Many components use --persona-primary (#4a6741 green) for text,
+   which has poor contrast (~2.1:1) on dark theme background (#70605a).
+   
+   Solution: Override text colors to use --color-accent-text (#e8c870 gold)
+   which meets WCAG AA (4.0:1) on dark backgrounds.
+   
+   NOTE: This ONLY applies to midnight theme. Light theme is unaffected.
+   ======================================================================== */
+
+/* Global text color override for common eyebrow/label patterns */
+[data-theme="midnight"] .eyebrow,
+[data-theme="midnight"] .section-eyebrow,
+[data-theme="midnight"] .card-eyebrow,
+[data-theme="midnight"] .modal-eyebrow {
+  color: var(--color-accent-text, #e8c870) !important;
+}
+
+/* Badge text that uses persona colors */
+[data-theme="midnight"] .badge--persona,
+[data-theme="midnight"] .tier-badge--premium,
+[data-theme="midnight"] .subscription-badge--premium {
+  color: var(--color-accent-text, #e8c870) !important;
+}
+
+/* Link and interactive text using persona colors */
+[data-theme="midnight"] a[style*="--persona-primary"],
+[data-theme="midnight"] button[style*="--persona-primary"] {
+  color: var(--color-accent-text, #e8c870) !important;
+}
+
+/* Progress indicator text colors - override persona-primary */
+[data-theme="midnight"] .progress-eyebrow,
+[data-theme="midnight"] .progress-next-label {
+  color: var(--color-accent-text, #e8c870) !important;
+}
+
+[data-theme="midnight"] .progress-ring-icon,
+[data-theme="midnight"] .progress-ring-icon-large {
+  color: var(--color-accent-text, #e8c870) !important;
+}
+
+[data-theme="midnight"] .progress-ring-fill {
+  stroke: var(--color-accent-text, #e8c870) !important;
 }

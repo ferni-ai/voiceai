@@ -7,6 +7,7 @@ import FerniShared
 struct SettingsView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var relationshipService: RelationshipArcService
+    @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) var dismiss
 
     @AppStorage("useCloudMode") private var useCloudMode = true
@@ -16,6 +17,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
+                // Account Section (Sign In with Apple)
+                AccountSection()
+
                 // Our Journey Section (Relationship Progress)
                 Section {
                     Button {
@@ -213,4 +217,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(IOSLiveKitSession())
+        .environmentObject(RelationshipArcService.shared)
+        .environmentObject(AuthService.shared)
 }

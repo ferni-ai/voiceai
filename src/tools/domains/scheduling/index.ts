@@ -724,6 +724,15 @@ Message: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' :
 };
 
 // ============================================================================
+// UNIFIED SCHEDULE VIEW - "Better than Human" Capability
+// ============================================================================
+
+import {
+  getUnifiedScheduleDef,
+  checkScheduleConflictsDef,
+} from './unified-schedule-view.js';
+
+// ============================================================================
 // DOMAIN EXPORT
 // ============================================================================
 
@@ -738,11 +747,17 @@ const schedulingTools: ToolDefinition[] = [
   // Intelligent scheduling tools
   getOptimalSendTimeTool,
   scheduleAtBestTimeTool,
+  // Unified schedule view - "Better than Human" capability
+  getUnifiedScheduleDef,
+  checkScheduleConflictsDef,
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'scheduling',
   schedulingTools
 );
+
+// Re-export unified schedule tools for direct access
+export { getUnifiedScheduleDef, checkScheduleConflictsDef };
 
 export default getToolDefinitions;

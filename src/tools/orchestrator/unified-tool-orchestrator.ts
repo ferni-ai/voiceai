@@ -48,7 +48,8 @@ import {
 import { toolRegistry } from '../registry/index.js';
 import { initializeToolRegistry, loadToolDomainsLazy } from '../registry/loader.js';
 import type { Tool, ToolContext, ToolDomain } from '../registry/types.js';
-import { semanticRouter, type SemanticMatch } from '../semantic-router.js';
+// Migrated to new semantic router module
+import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
 
 const log = getLogger();
 
@@ -75,6 +76,15 @@ export interface ToolSelectionRequest {
   forceInclude?: string[];
   /** Force exclude specific tools */
   forceExclude?: string[];
+  /**
+   * User's detected location from IP (TikTok-style personalization)
+   * Used for weather defaults, local content hints
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
 }
 
 export interface ToolSelectionContext {
@@ -403,6 +413,8 @@ export class UnifiedToolOrchestrator {
       agentDisplayName: request.agentDisplayName || request.agentId,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       services: undefined as any, // Will be populated by builder
+      // IP-detected location for weather, local content (TikTok-style)
+      userLocation: request.userLocation,
     };
 
     // 0. GET INTELLIGENCE ENHANCEMENT (Better Than Human)

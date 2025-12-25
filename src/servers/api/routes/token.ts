@@ -441,6 +441,8 @@ export async function handleTokenRoutes(
         locales: ['en-US'],
         detectedAccent: preferred_accent || savedAccent || 'american',
         countryCode: undefined as string | undefined,
+        city: undefined as string | undefined,
+        regionCode: undefined as string | undefined,
       };
 
       try {
@@ -456,14 +458,32 @@ export async function handleTokenRoutes(
           // Use explicit > saved > geo-detected accent
           detectedAccent: preferred_accent || savedAccent || geo.accent,
           countryCode: geo.countryCode,
+          city: geo.city, // For weather, local content hints
+          regionCode: geo.regionCode, // State/province for weather
         };
+
+        if (geo.city) {
+          log.info(
+            { city: geo.city, region: geo.regionCode, country: geo.countryCode, source: geo.source },
+            '📍 Token: user location detected'
+          );
+        } else {
+          log.info({ source: geo.source }, '📍 Token: no city detected in geo data');
+        }
       } catch (geoErr) {
-        log.debug({ note: (geoErr as Error).message }, 'Geo detection note');
+        log.warn({ note: (geoErr as Error).message }, 'Geo detection failed');
       }
 
       log.info(
-        { username, room, persona: selectedPersona, accent: geoData.detectedAccent },
-        'Generated token'
+        {
+          username,
+          room,
+          persona: selectedPersona,
+          accent: geoData.detectedAccent,
+          city: geoData.city,
+          region: geoData.regionCode,
+        },
+        'Generated token with geo'
       );
 
       // Pre-warm LLM content cache (fire-and-forget, before session starts)
@@ -481,6 +501,9 @@ export async function handleTokenRoutes(
           locales: geoData.locales,
           preferredAccent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
+          // IP-detected location for weather, local content hints (TikTok-style)
+          city: geoData.city,
+          regionCode: geoData.regionCode,
         };
         await getAgentDispatch().createDispatch(room, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
@@ -502,6 +525,9 @@ export async function handleTokenRoutes(
           persona_id: selectedPersona,
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
+          // IP-detected location for weather, local content
+          city: geoData.city,
+          regionCode: geoData.regionCode,
         })
       );
     } catch (error) {

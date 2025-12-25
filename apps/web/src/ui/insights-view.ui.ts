@@ -382,7 +382,7 @@ export class InsightsView {
   private renderEmptyState(): string {
     // Use teaser preview system to show what insights WILL look like
     // This creates anticipation instead of disappointment
-    return teaserPreview.patterns();
+    return teaserPreview.patterns().outerHTML;
   }
 
   // ============================================================================

@@ -617,6 +617,27 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/concierge/index.js').then(async (m) => m.getToolDefinitions()),
     },
+
+    // === VIBE DOMAIN (Unified environment control) ===
+    {
+      name: 'vibe' as ToolDomain,
+      loader: async () =>
+        import('../domains/vibe/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === GROUP CONVERSATION DOMAIN (Team roundtables, conference calls) ===
+    {
+      name: 'group-conversation' as ToolDomain,
+      loader: async () =>
+        import('../domains/group-conversation/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === TRAVEL DOMAIN (Flights, hotels, trip planning) ===
+    {
+      name: 'travel' as ToolDomain,
+      loader: async () =>
+        import('../domains/travel/index.js').then(async (m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {
