@@ -1,61 +1,46 @@
 /**
  * Frontend Signal Service
  *
- * Provides a way for lower-level services to send signals to the frontend
- * without directly importing the realtime publisher.
- *
- * This decouples services from the LiveKit room initialization order.
- *
- * @module FrontendSignal
+ * Provides a mechanism for the voice agent to send signals to the frontend
+ * (e.g., conversation_end, agent_exit). The signal callback is initialized
+ * at session start and uses the data channel to communicate.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+type SignalCallback = (type: string, data?: Record<string, unknown>) => Promise<void>;
 
-const log = getLogger().child({ module: 'frontend-signal' });
-
-// Type for the signal sender callback
-type SignalSender = (type: string, data?: Record<string, unknown>) => Promise<void>;
-
-// The callback set by voice-agent after publisher is initialized
-let signalSender: SignalSender | null = null;
+let signalCallback: SignalCallback | null = null;
 
 /**
- * Initialize the frontend signal service with a sender callback.
- * Called by voice-agent after the frontend publisher is ready.
+ * Initialize the frontend signal callback.
+ * Called once at session start to wire up the data channel publisher.
  */
-export function initFrontendSignal(sender: SignalSender): void {
-  signalSender = sender;
-  log.debug('Frontend signal service initialized');
+export function initFrontendSignal(callback: SignalCallback): void {
+  signalCallback = callback;
 }
 
 /**
  * Send a signal to the frontend.
- * Returns true if the signal was sent, false if not initialized.
- *
- * @param type - The signal type (e.g., 'wrap_up', 'mood_shift')
- * @param data - Optional data payload
+ * Returns true if the signal was sent, false if no callback is registered.
  */
 export async function sendFrontendSignal(
   type: string,
   data?: Record<string, unknown>
 ): Promise<boolean> {
-  if (!signalSender) {
-    log.debug({ type }, 'Frontend signal service not initialized, signal not sent');
+  if (!signalCallback) {
     return false;
   }
 
   try {
-    await signalSender(type, data);
+    await signalCallback(type, data);
     return true;
-  } catch (error) {
-    log.warn({ error, type }, 'Failed to send frontend signal');
+  } catch {
     return false;
   }
 }
 
 /**
- * Check if the frontend signal service is ready.
+ * Reset the signal callback (for testing or session cleanup).
  */
-export function isFrontendSignalReady(): boolean {
-  return signalSender !== null;
+export function resetFrontendSignal(): void {
+  signalCallback = null;
 }

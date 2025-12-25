@@ -390,7 +390,9 @@ async function deliverWebhook(
 
       // Retry on 5xx errors
       if (response.status >= 500 && attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, backoffMs * attempt);
+        });
         continue;
       }
 
@@ -401,7 +403,9 @@ async function deliverWebhook(
       logEntry.error = String(err);
 
       if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, backoffMs * attempt);
+        });
         continue;
       }
 

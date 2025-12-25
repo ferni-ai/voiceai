@@ -210,9 +210,9 @@ export class FirestoreMemoryPersistence {
       // Add timeout to prevent slow queries from blocking
       const snapshot = await Promise.race([
         query.get(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY)
-        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY);
+        }),
       ]);
 
       for (const doc of snapshot.docs) {
@@ -242,9 +242,15 @@ export class FirestoreMemoryPersistence {
         }
       }
 
-      log.debug({ userId, memoryCount: result.size, limit: queryLimit }, 'Loaded associative triggers');
+      log.debug(
+        { userId, memoryCount: result.size, limit: queryLimit },
+        'Loaded associative triggers'
+      );
     } catch (error) {
-      log.warn({ error: String(error), userId }, 'Failed to load associative triggers (using empty fallback)');
+      log.warn(
+        { error: String(error), userId },
+        'Failed to load associative triggers (using empty fallback)'
+      );
     }
 
     return result;
@@ -308,9 +314,9 @@ export class FirestoreMemoryPersistence {
       // Add timeout
       const snapshot = await Promise.race([
         query.get(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY)
-        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY);
+        }),
       ]);
 
       const patterns: BehavioralPattern[] = [];
@@ -329,10 +335,16 @@ export class FirestoreMemoryPersistence {
         }
       }
 
-      log.debug({ userId, patternCount: patterns.length, limit: queryLimit }, 'Loaded behavioral patterns');
+      log.debug(
+        { userId, patternCount: patterns.length, limit: queryLimit },
+        'Loaded behavioral patterns'
+      );
       return patterns;
     } catch (error) {
-      log.warn({ error: String(error), userId }, 'Failed to load behavioral patterns (using empty fallback)');
+      log.warn(
+        { error: String(error), userId },
+        'Failed to load behavioral patterns (using empty fallback)'
+      );
       return [];
     }
   }

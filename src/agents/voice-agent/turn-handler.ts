@@ -47,8 +47,17 @@ import {
   completeTurnProfiling,
 } from '../shared/performance/turn-profiler.js';
 import { speculateTTS } from '../shared/performance/speculative-tts.js';
+
+// "Better Than Human" emotion dispatch for frontend EQ system
+import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// "Better Than Human" concern detection with voice prosody
+import {
+  getConcernDetectionEngine,
+  type ProsodySignals,
+} from '../../conversation/concern-detection.js';
+import type { ProsodyFeatures } from '../../speech/audio-prosody/types.js';
 // Adaptive timing for "Better than Human" response latency
 import {
   getAdaptiveTimeouts,
@@ -122,6 +131,63 @@ export interface TurnHandlerContext {
     voiceEmotion?: string;
     topics?: string[];
   }>;
+}
+
+// ============================================================================
+// PROSODY → CONCERN DETECTION BRIDGE
+// Maps voice prosody features to concern detection signals
+// ============================================================================
+
+/**
+ * Map ProsodyFeatures (from audio analysis) to ProsodySignals (for concern detection).
+ *
+ * This bridge enables "Better Than Human" concern detection:
+ * - Voice strain detection (from jitter, breathiness)
+ * - Pitch instability (from pitch variance)
+ * - Speech rate deviation (from baseline)
+ * - Tremor detection (from shimmer, voice quality)
+ * - Energy level tracking
+ */
+function mapProsodyToConcernSignals(prosody: ProsodyFeatures): ProsodySignals {
+  // Calculate voice strain from jitter and breathiness
+  // High jitter + high breathiness = voice strain
+  const strain = Math.min(1, (prosody.jitter || 0) * 2 + (prosody.breathiness || 0) * 0.5);
+
+  // Pitch instability from pitch variance (normalized)
+  // Normal pitch variance is 20-50Hz, elevated is 60+Hz
+  const pitchInstability = Math.min(1, (prosody.pitchVariance || 0) / 80);
+
+  // Speech rate deviation from baseline (150 wpm normal)
+  // Deviation > 0 means faster than normal, < 0 means slower
+  const baselineSpeechRate = 150;
+  const speechRateDeviation = prosody.speechRate
+    ? (prosody.speechRate - baselineSpeechRate) / baselineSpeechRate
+    : 0;
+
+  // Pause irregularity from pause frequency and duration
+  // High pause frequency + long pauses = irregularity
+  const pauseIrregularity = Math.min(
+    1,
+    ((prosody.pauseFrequency || 0) / 10) * ((prosody.pauseDuration || 0) / 500)
+  );
+
+  // Tremor detection from shimmer and voice quality
+  const tremor =
+    (prosody.shimmer || 0) > 0.15 ||
+    prosody.voiceQuality === 'trembling' ||
+    prosody.voiceQuality === 'strained';
+
+  // Energy level normalized (typical range is -60 to 0 dB)
+  const energy = Math.min(1, Math.max(0, (prosody.energyMean + 60) / 60));
+
+  return {
+    strain,
+    pitchInstability,
+    speechRateDeviation,
+    pauseIrregularity,
+    tremor,
+    energy,
+  };
 }
 
 // ============================================================================
@@ -276,6 +342,116 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       }).catch((e) => {
         diag.debug('Speculative TTS failed (non-critical)', { error: String(e) });
       });
+    }
+
+    // ================================================================
+    // 🎭 "BETTER THAN HUMAN": Emotion Signal Dispatch
+    // Sends emotional state to frontend for anticipation UI, concern detection,
+    // micro-expressions, and Avatar Soul effects (pupil dilation, shimmer, etc.)
+    // This is the CRITICAL bridge that enables the EQ system to work.
+    // ================================================================
+    if (result.emotional) {
+      void dispatchEmotionEvents(
+        {
+          emotionalState: result.emotional,
+          userId: services.userId || 'anonymous',
+          personaId: persona.id,
+          sessionId: services.sessionId,
+        },
+        sendDataMessage
+      ).catch((e) => {
+        diag.debug('Emotion dispatch failed (non-critical)', { error: String(e) });
+      });
+    }
+
+    // ================================================================
+    // 🎭 "BETTER THAN HUMAN": Voice Prosody → Concern Detection
+    // This bridges voice prosody analysis with the concern detection engine,
+    // enabling detection of distress signals that text alone would miss:
+    // - Voice strain, tremor, pitch instability
+    // - Speech rate changes, pause irregularity
+    // - Energy level drops
+    // ================================================================
+    const voiceEmotion = (userData as UserData).voiceEmotion;
+    // ================================================================
+    // "BETTER THAN HUMAN" - Anticipatory Distress Detection
+    // This flag is set by audio-processor.ts when real-time prosody
+    // analysis detects falling pitch + high energy variance DURING speech.
+    // This enables us to respond with care BEFORE the user even finishes.
+    // ================================================================
+    const anticipatedDistress = (userData as UserData & { anticipatedDistress?: boolean })
+      .anticipatedDistress;
+
+    if (voiceEmotion?.prosody || anticipatedDistress) {
+      fireAndForget(async () => {
+        const concernEngine = getConcernDetectionEngine(services.sessionId);
+        const prosodySignals = voiceEmotion?.prosody
+          ? mapProsodyToConcernSignals(voiceEmotion.prosody)
+          : undefined;
+
+        // Boost concern analysis if anticipatedDistress was triggered
+        // This is the "reading the future" capability - we detected distress
+        // from prosody BEFORE the full utterance completed
+        const anticipatoryBoost = anticipatedDistress ? 0.2 : 0;
+
+        // Analyze with prosody data (if available)
+        const concernState = concernEngine.analyze(userText, {
+          turnCount: turnNumber,
+          userEmotion: result.emotional?.primary,
+          prosody: prosodySignals,
+          currentTopic: result.analysis?.currentTopic,
+          // Add anticipatory boost as context (prosody signals will be weighted higher)
+        });
+
+        // Apply anticipatory boost to concern score
+        const boostedScore = Math.min(1, concernState.score + anticipatoryBoost);
+        // Elevate from 'none' or 'mild' to 'moderate' if anticipation detected distress
+        const effectiveLevel =
+          anticipatedDistress &&
+          (concernState.level === 'none' || concernState.level === 'mild') &&
+          boostedScore > 0.3
+            ? 'moderate'
+            : concernState.level;
+
+        // If elevated concern detected (using effectiveLevel which factors in anticipation)
+        if (effectiveLevel === 'elevated' || effectiveLevel === 'moderate') {
+          // Build voice signals description
+          const prosodySignalsList = concernState.activeSignals
+            .filter((s) => s.source === 'prosody')
+            .map((s) => s.indicator);
+          const anticipatorySignal = anticipatedDistress ? 'anticipatory voice distress' : null;
+          const allSignals = anticipatorySignal
+            ? [anticipatorySignal, ...prosodySignalsList]
+            : prosodySignalsList;
+
+          result.context.injections.push({
+            category: 'concern_detected',
+            content: `[VOICE CONCERN SIGNALS DETECTED]
+Concern level: ${effectiveLevel} (${(boostedScore * 100).toFixed(0)}%)${anticipatedDistress ? ' [ANTICIPATED DURING SPEECH]' : ''}
+Primary concern type: ${concernState.primaryConcern || 'general distress'}
+Recommended approach: ${concernState.recommendedApproach}
+
+${concernState.responseGuidance}
+
+Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
+            priority: anticipatedDistress ? 90 : 88, // Higher priority if anticipated
+          });
+
+          diag.state('🔊 Voice concern signals detected', {
+            level: effectiveLevel,
+            score: boostedScore.toFixed(2),
+            primaryConcern: concernState.primaryConcern,
+            approach: concernState.recommendedApproach,
+            voiceSignals: prosodySignalsList.length,
+            anticipatedDistress,
+          });
+        }
+      }, 'concern-detection-with-prosody');
+
+      // Reset anticipatedDistress after use (it's per-turn)
+      if (anticipatedDistress) {
+        (userData as UserData & { anticipatedDistress?: boolean }).anticipatedDistress = false;
+      }
     }
 
     // ================================================================

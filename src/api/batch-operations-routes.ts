@@ -274,7 +274,9 @@ async function runReindexUserJob(
       results[task] = { indexed: true, count: 0 };
 
       // Add small delay to prevent overwhelming the system
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
     }
 
     job.progress = job.total;
