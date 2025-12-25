@@ -51,7 +51,8 @@ apps/ios/
 apps/ios-native/
 apps/macos-menubar/
 apps/marketing/
-apps/marketplace-agents/
+# Keep apps/marketplace-agents/registry.json for Dockerfile.ui
+apps/marketplace-agents/agents/
 apps/shared/
 # apps/web - keep for UI server build (frontend code)
 # Only exclude large generated/cache directories
@@ -238,11 +239,12 @@ apps/web/*.html
 
 # ===================
 
-# MARKETPLACE (separate repo)
+# MARKETPLACE (keep registry.json for builds)
 
 # ===================
 
-marketplace-agents/
+# Exclude agents subdir but keep registry.json
+# marketplace-agents/ - removed to allow registry.json
 
 # ===================
 
