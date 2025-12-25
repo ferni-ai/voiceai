@@ -95,8 +95,9 @@ apps/android/android/app/build/
 apps/ios/ios/App/Pods/
 apps/electron/dist/
 
-# Marketplace agents (separate repo)
-marketplace-agents/
+# Marketplace agents (keep registry.json tracked for Docker builds)
+# Full agents are in separate submodules
+apps/marketplace-agents/agents/
 
 # Prevent accidental direct gcloud deploys - use npm run deploy instead
 # This comment reminds developers to use the deploy script
