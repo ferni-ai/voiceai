@@ -80,6 +80,13 @@
       "trailingSlash": false,
       "rewrites": [
         {
+          "source": "/api/waitlist",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/waitlist/**",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -94,7 +101,7 @@
           }
         },
         {
-          "source": "**",
+          "source": "!/api/**",
           "destination": "/404.html"
         }
       ]
@@ -179,6 +186,13 @@
       "trailingSlash": false,
       "rewrites": [
         {
+          "source": "/api/waitlist",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/waitlist/**",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -193,7 +207,7 @@
           }
         },
         {
-          "source": "**",
+          "source": "!/api/**",
           "destination": "/404.html"
         }
       ]
