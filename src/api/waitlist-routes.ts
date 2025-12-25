@@ -225,12 +225,13 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
     ensureFirebaseInitialized();
     const db = getFirestore();
 
+    // Filter out undefined values - Firestore rejects undefined
     const signup: WaitlistSignup = {
       email: body.email.toLowerCase().trim(),
       source,
       timestamp: new Date(),
-      userAgent: req.headers['user-agent'],
-      referrer: req.headers.referer,
+      ...(req.headers['user-agent'] && { userAgent: req.headers['user-agent'] }),
+      ...(req.headers.referer && { referrer: req.headers.referer }),
     };
 
     // Use email as document ID to prevent duplicates
@@ -301,13 +302,14 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
 
     // If email provided, also save to waitlist
     if (isValidEmail(body.email)) {
+      // Filter out undefined values - Firestore rejects undefined
       const signup: WaitlistSignup = {
         email: body.email.toLowerCase().trim(),
         source: 'feature',
         featureId,
         timestamp: new Date(),
-        userAgent: req.headers['user-agent'],
-        referrer: req.headers.referer,
+        ...(req.headers['user-agent'] && { userAgent: req.headers['user-agent'] }),
+        ...(req.headers.referer && { referrer: req.headers.referer }),
       };
 
       const docId = Buffer.from(signup.email).toString('base64').replace(/[/+=]/g, '_');
