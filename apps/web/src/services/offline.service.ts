@@ -142,7 +142,62 @@ export function disposeOfflineService(): void {
 // SERVICE WORKER
 // ============================================================================
 
+/**
+ * Nuclear cache clear - use ?clearcache in URL to force complete refresh
+ * This unregisters service workers and clears all caches
+ */
+async function checkForCacheClear(): Promise<boolean> {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (!urlParams.has('clearcache')) {
+    return false;
+  }
+
+  log.info('🧹 Cache clear requested via URL parameter');
+
+  try {
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+        log.info('Unregistered service worker', { scope: registration.scope });
+      }
+    }
+
+    // Clear all caches
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      for (const cacheName of cacheNames) {
+        await caches.delete(cacheName);
+        log.info('Deleted cache', { cacheName });
+      }
+    }
+
+    // Clear localStorage items that might cause issues
+    localStorage.removeItem('ferni_admin_key');
+    localStorage.removeItem('ferni_dev_mode');
+
+    // Remove the clearcache param and reload
+    urlParams.delete('clearcache');
+    const newUrl = urlParams.toString() 
+      ? `${window.location.pathname}?${urlParams.toString()}`
+      : window.location.pathname;
+    
+    log.info('Cache cleared! Reloading...');
+    window.location.replace(newUrl);
+    return true;
+  } catch (error) {
+    log.error('Cache clear failed', { error: String(error) });
+    return false;
+  }
+}
+
 async function registerServiceWorker(): Promise<void> {
+  // Check for cache clear request first
+  if (await checkForCacheClear()) {
+    return; // Page will reload
+  }
+
   if (!('serviceWorker' in navigator)) {
     log.warn('Service workers not supported');
     offlineState.serviceWorkerStatus = 'unsupported';
