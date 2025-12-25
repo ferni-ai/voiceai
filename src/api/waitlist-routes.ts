@@ -147,7 +147,8 @@ export async function handleWaitlistRoutes(
   }
 
   // Rate limit: 5 signups per minute per IP
-  if (!rateLimit(req, res, { maxRequests: 5, windowMs: 60000, keyPrefix: 'waitlist' })) {
+  // rateLimit returns true if blocked (response already sent), false if allowed
+  if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000, keyPrefix: 'waitlist' })) {
     return true;
   }
 
