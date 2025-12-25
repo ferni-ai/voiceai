@@ -42,11 +42,16 @@ function ensureFirebaseInitialized(): void {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT ||
-        'johnb-2025';
+        process.env.GOOGLE_CLOUD_PROJECT;
 
-      admin.initializeApp({ projectId });
-      log.info({ projectId }, 'Firebase initialized for waitlist routes');
+      if (projectId) {
+        admin.initializeApp({ projectId });
+        log.info({ projectId }, 'Firebase initialized for waitlist routes');
+      } else {
+        // Fall back to ADC (works on Cloud Run)
+        admin.initializeApp();
+        log.info('Firebase initialized with default credentials for waitlist routes');
+      }
     } catch {
       // Already initialized
     }
