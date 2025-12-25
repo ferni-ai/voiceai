@@ -38,9 +38,15 @@ const log = createLogger({ module: 'waitlist-routes' });
 function ensureFirebaseInitialized(): void {
   if (admin.apps.length === 0) {
     try {
-      admin.initializeApp({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || 'ferni-prod',
-      });
+      // Use the same project ID pattern as other routes
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT ||
+        'johnb-2025';
+
+      admin.initializeApp({ projectId });
+      log.info({ projectId }, 'Firebase initialized for waitlist routes');
     } catch {
       // Already initialized
     }
