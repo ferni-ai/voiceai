@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251224">
+  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
   
   
   <meta property="og:title" content="Our Story | Ferni">
@@ -235,14 +236,21 @@
       <div class="story-page__block">
         <h2 class="story-page__subhead">Built different.</h2>
         <p class="story-page__text">
-          A human named Seth had the vision.<br>
+          The Ford family had the vision.<br>
           An AI named Claude helped build it.
         </p>
         <p class="story-page__text story-page__text--muted">
-          Together, they created Ferni—six specialists with distinct personalities, 
+          Doug and Betty Ford spent their lives as therapists—decades of sitting with people in their hardest moments. Their daughter Mindy became a recreational therapist. The Ford children grew up surrounded by conversations about what it really means to help someone.
+        </p>
+        <p class="story-page__text story-page__text--muted">
+          Then the kids discovered technology could scale that care. What if the wisdom of a lifetime in mental health met the reach of modern AI?
+        </p>
+        <p class="story-page__text">
+          Together with Claude, they created Ferni—six specialists with distinct personalities, 
           infinite memory, and one purpose: to be there when others can't.
         </p>
         <p class="story-page__aside">
+          A family of healers. A generation of builders.<br>
           An AI, built by AI, to be there for humans.<br>
           There's something poetic about that.
         </p>
@@ -300,7 +308,119 @@
 
 </main>
 
+
   
+  
+
+<div class="waitlist-modal" id="waitlistModal" role="dialog" aria-modal="true" aria-labelledby="waitlistModalTitle" hidden>
+  
+  <div class="waitlist-modal__backdrop" aria-hidden="true"></div>
+
+  
+  <div class="waitlist-modal__container">
+    
+    <button class="waitlist-modal__close" id="waitlistModalClose" aria-label="Close modal" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
+    
+    <div class="waitlist-modal__content" id="waitlistModalContent">
+
+      
+      <div class="waitlist-modal__avatar" aria-hidden="true">
+        <div class="avatar-glow"></div>
+        <div class="avatar-orb">
+          <span class="avatar-text">FE</span>
+          <div class="avatar-pulse"></div>
+        </div>
+      </div>
+
+      
+      <h2 class="waitlist-modal__headline" id="waitlistModalTitle">
+        We're almost ready.
+      </h2>
+
+      
+      <p class="waitlist-modal__subhead">
+        Join the waitlist to be first when Ferni opens its doors.
+      </p>
+
+      
+      <form class="waitlist-modal__form" id="waitlistModalForm" novalidate>
+        <div class="waitlist-modal__field">
+          <input
+            type="email"
+            id="waitlistModalEmail"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="Your email"
+            aria-label="Email address"
+            aria-describedby="modalEmailError"
+          >
+          <span class="waitlist-modal__error" id="modalEmailError" role="alert" aria-live="polite"></span>
+        </div>
+
+        
+        <div class="waitlist-modal__honeypot" aria-hidden="true" tabindex="-1">
+          <input type="text" name="website" autocomplete="off" tabindex="-1">
+        </div>
+
+        <button type="submit" class="waitlist-modal__submit" id="waitlistModalSubmit">
+          <span class="waitlist-modal__submit-text">Join the waitlist</span>
+          <span class="waitlist-modal__submit-loading" aria-hidden="true">
+            <svg class="waitlist-modal__spinner" viewBox="0 0 24 24" width="20" height="20">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <svg class="waitlist-modal__submit-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </form>
+
+      
+      <p class="waitlist-modal__note">
+        We'll only email you when it's time. No spam, ever.
+      </p>
+    </div>
+
+    
+    <div class="waitlist-modal__success" id="waitlistModalSuccess" hidden>
+      
+      <div class="waitlist-modal__success-icon">
+        <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="var(--color-success, #4a6741)" stroke-opacity="0.3"/>
+          <polyline points="8 12 11 15 16 9" stroke="var(--color-success, #4a6741)"/>
+        </svg>
+      </div>
+
+      
+      <h2 class="waitlist-modal__success-headline">
+        You're on the list!
+      </h2>
+      <p class="waitlist-modal__success-message">
+        We'll reach out soon. Until then, take care of yourself.
+      </p>
+
+      
+      <p class="waitlist-modal__explore-hint">
+        Feel free to explore what's coming...
+      </p>
+
+      <button class="waitlist-modal__explore-btn" id="waitlistModalExplore" type="button">
+        Continue exploring
+      </button>
+    </div>
+
+    
+    <canvas id="modalConfettiCanvas" class="waitlist-modal__confetti" aria-hidden="true"></canvas>
+  </div>
+</div>
+
+
   
   <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__content">
@@ -358,6 +478,9 @@
   
   
   <script src="/js/voice-demo.js"></script>
+
+  
+  <script src="/js/waitlist-modal.js"></script>
 
   <script>
   (function() {

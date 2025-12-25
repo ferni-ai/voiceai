@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Ferni Favicon 16x16 - Optimized for tiny size -->
+  <defs>
+    <linearGradient id="fav16Grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main circle (no ring at this size) -->
+  <circle cx="8" cy="8" r="7.5" fill="url(#fav16Grad)"/>
+  
+  <!-- Subtle highlight -->
+  <ellipse cx="6" cy="5" rx="3.5" ry="1.8" fill="white" opacity="0.12"/>
+  
+  <!-- FE text (extra bold for legibility) -->
+  <text 
+    x="8" 
+    y="8.5" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="5.5"
+    font-weight="900"
+    fill="white">FE</text>
+</svg>
+

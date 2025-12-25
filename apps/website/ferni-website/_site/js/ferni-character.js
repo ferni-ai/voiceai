@@ -478,7 +478,7 @@
         'color: #8AA678; font-size: 12px;'
       );
       console.log(
-        '%cWant to work with us? seth@ferni.ai',
+        '%cWant to work with us? hello@ferni.ai',
         'color: #666; font-size: 11px;'
       );
     },

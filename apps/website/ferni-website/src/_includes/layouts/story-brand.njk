@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251224">
+  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
@@ -183,7 +184,10 @@
 </head>
 <body>
   {{ content | safe }}
-  
+
+  {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
+  {% include "partials/home/waitlist-modal.njk" %}
+
   {# ====== COOKIE CONSENT BANNER ====== #}
   <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__content">
@@ -241,6 +245,9 @@
   
   {# ====== VOICE DEMO - Live AI Interaction ====== #}
   <script src="/js/voice-demo.js"></script>
+
+  {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
+  <script src="/js/waitlist-modal.js"></script>
 
   <script>
   (function() {

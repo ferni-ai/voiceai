@@ -295,12 +295,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/</loc>
-    <lastmod>12/18/2025</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/images/generated/README/</loc>
     <lastmod>12/18/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -389,6 +383,24 @@
     <lastmod>12/21/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/waitlist-index/</loc>
+    <lastmod>12/24/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/admin/waitlist/</loc>
+    <lastmod>12/24/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/</loc>
+    <lastmod>12/25/2025</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
   </url>
 </urlset>
 

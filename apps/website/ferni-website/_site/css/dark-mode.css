@@ -50,10 +50,10 @@
     --color-text-muted: #ddd6cc;
     --color-text-dimmed: #c8bfb4;
     
-    /* ===== Accent Colors - Brighter for dark mode ===== */
-    --color-accent: #5a7a52;
-    --color-accent-hover: #6a8a62;
-    --color-accent-light: rgba(90, 122, 82, 0.2);
+    /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
+    --color-accent: var(--color-ferni-text, #a5c99a);
+    --color-accent-hover: #b8d8a8;
+    --color-accent-light: rgba(165, 201, 154, 0.2);
     --color-highlight: #d4b275;
     --color-highlight-glow: rgba(212, 178, 117, 0.3);
     
@@ -910,29 +910,29 @@
     color: var(--color-text-muted);
   }
   
-  /* Persona Avatar Colors */
+  /* Persona Avatar Colors - Use textOnDark tokens from design-tokens.css */
   .persona-avatar--ferni .persona-avatar__orb {
-    background: #5a7a52;
+    background: var(--color-ferni-text);
   }
-  
+
   .persona-avatar--peter .persona-avatar__orb {
-    background: #4a8b93;
+    background: var(--color-peter-text);
   }
-  
+
   .persona-avatar--alex .persona-avatar__orb {
-    background: #6a7ba0;
+    background: var(--color-alex-text);
   }
-  
+
   .persona-avatar--maya .persona-avatar__orb {
-    background: #b68a7a;
+    background: var(--color-maya-text);
   }
-  
+
   .persona-avatar--jordan .persona-avatar__orb {
-    background: #d4957a;
+    background: var(--color-jordan-text);
   }
-  
+
   .persona-avatar--nayan .persona-avatar__orb {
-    background: #c8a57a;
+    background: var(--color-nayan-text);
   }
 }
 
@@ -1025,33 +1025,33 @@
     color: var(--color-text-secondary);
   }
   
-  /* Avatars */
+  /* Avatars - Use textOnDark tokens from design-tokens.css */
   .journey__avatar {
     border-color: var(--color-border-medium);
   }
-  
+
   .journey__avatar--ferni {
-    background: #5a7a52;
+    background: var(--color-ferni-text);
   }
-  
+
   .journey__avatar--maya {
-    background: #b68a7a;
+    background: var(--color-maya-text);
   }
-  
+
   .journey__avatar--peter {
-    background: #4a8b93;
+    background: var(--color-peter-text);
   }
-  
+
   .journey__avatar--alex {
-    background: #6a7ba0;
+    background: var(--color-alex-text);
   }
-  
+
   .journey__avatar--jordan {
-    background: #d4957a;
+    background: var(--color-jordan-text);
   }
-  
+
   .journey__avatar--nayan {
-    background: #c8a57a;
+    background: var(--color-nayan-text);
   }
   
   /* Note */

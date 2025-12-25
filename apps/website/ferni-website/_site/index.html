@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251224">
+  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
   
   
   <meta property="og:title" content="Ferni - Your AI Life Coach | Ferni">
@@ -196,12 +197,13 @@
     <ul class="nav__links">
       <li><a href="#story" class="nav__link">Our Story</a></li>
       <li><a href="#team" class="nav__link">Team</a></li>
+      <li><a href="#founders" class="nav__link">Support</a></li>
       <li><a href="#faq" class="nav__link">FAQ</a></li>
     </ul>
     
     <a href="https://app.ferni.ai" class="nav__cta nav__cta--desktop">
-      Meet Ferni
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
     
     
@@ -226,13 +228,14 @@
   <nav class="mobile-menu__nav">
     <a href="#story">Our Story</a>
     <a href="#team">Meet the Team</a>
+    <a href="#founders">Support</a>
     <a href="#faq">FAQ</a>
     <a href="tel:+14844813081">Call 1 (484) 481-3081</a>
   </nav>
   <div class="mobile-menu__cta">
     <a href="https://app.ferni.ai" class="btn btn--primary btn--lg">
-      Meet Ferni
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Get Started Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
   </div>
 </div>
@@ -276,14 +279,36 @@
       
       <div class="hero__cta">
         <a href="https://app.ferni.ai" class="btn btn--primary btn--lg">
-          Begin a real conversation
+          Start Free
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="tel:+14844813081" class="btn btn--secondary btn--lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Now
         </a>
       </div>
       
-      <p class="hero__phone">
-        or call <a href="tel:+14844813081">1 (484) 481-3081</a>
-      </p>
+      
+      <div class="hero__badges">
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>End-to-End Encrypted</span>
+        </div>
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>Available 24/7</span>
+        </div>
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <span>Voice-First</span>
+        </div>
+      </div>
       
     </div>
   </div>
@@ -343,9 +368,9 @@
       <div class="stat__value">10K+</div>
       <div class="stat__label">Conversations</div>
     </div>
-    <div class="stat stat--gardeners">
-      <div class="stat__value">847</div>
-      <div class="stat__label">Gardeners</div>
+    <div class="stat">
+      <div class="stat__value">&lt;500ms</div>
+      <div class="stat__label">Response Time</div>
     </div>
     <div class="stat">
       <div class="stat__value">∞</div>
@@ -425,541 +450,133 @@
 </section>
 
 
-<section class="section memory-story" id="memory">
-  <div class="container container--wide">
-    
-    
-    <div class="memory-story__opening">
-      <p class="memory-story__eyebrow">Infinite Memory</p>
-      <h2 class="memory-story__headline">I remember your whole story.</h2>
-      <p class="memory-story__subhead">Not just what you said. What you meant. What you felt. What you've become.</p>
+<section class="section memory-demo" id="memory">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Infinite Memory</p>
+      <h2 class="section__title">I never forget a single detail</h2>
+      <p class="section__subtitle">While others start from scratch every time, I remember your whole story.</p>
     </div>
     
-    
-    <div class="memory-story__journey">
-      
-      
-      <div class="memory-story__chapter">
-        <div class="memory-story__marker">
-          <span class="memory-story__time">6 months ago</span>
-        </div>
-        <div class="memory-story__card">
-          <p class="memory-story__quote">"I'm worried about my mom's health. She's been having these headaches..."</p>
-          <div class="memory-story__meta">
-            <span class="memory-story__tag memory-story__tag--anxious">Anxious</span>
-            <span class="memory-story__tag memory-story__tag--scared">Scared</span>
+    <div class="memory-demo__timeline">
+      <div class="memory-demo__thread">
+        
+        <div class="memory-demo__line"></div>
+        
+        
+        <div class="memory-demo__moment memory-demo__moment--past">
+          <div class="memory-demo__date">6 months ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"I'm worried about my mom's health. She's been having these headaches..."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Remembered
           </div>
         </div>
-      </div>
-      
-      
-      <div class="memory-story__chapter">
-        <div class="memory-story__marker">
-          <span class="memory-story__time">4 months ago</span>
-        </div>
-        <div class="memory-story__card">
-          <p class="memory-story__quote">"I wish I could just focus on work but I keep thinking about mom..."</p>
-          <div class="memory-story__meta">
-            <span class="memory-story__tag memory-story__tag--distracted">Distracted</span>
-            <span class="memory-story__tag memory-story__tag--guilty">Guilty</span>
+        
+        
+        <div class="memory-demo__moment memory-demo__moment--recent">
+          <div class="memory-demo__date">2 weeks ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Connected
           </div>
         </div>
-      </div>
-      
-      
-      <div class="memory-story__chapter">
-        <div class="memory-story__marker">
-          <span class="memory-story__time">2 weeks ago</span>
-        </div>
-        <div class="memory-story__card">
-          <p class="memory-story__quote">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
-          <div class="memory-story__meta">
-            <span class="memory-story__tag memory-story__tag--relieved">Relieved</span>
-          </div>
-        </div>
-      </div>
-      
-      
-      <div class="memory-story__chapter">
-        <div class="memory-story__marker memory-story__marker--now">
-          <span class="memory-story__time">Today</span>
-        </div>
-        <div class="memory-story__card memory-story__card--ferni">
-          <div class="memory-story__ferni-header">
-            <div class="memory-story__avatar">
-              <span>FE</span>
+        
+        
+        <div class="memory-demo__moment memory-demo__moment--today">
+          <div class="memory-demo__date">Today</div>
+          <div class="memory-demo__card memory-demo__card--ferni">
+            <div class="memory-demo__speaker memory-demo__speaker--ferni">
+              <div class="memory-demo__avatar">FE</div>
+              Ferni
             </div>
-            <span class="memory-story__name">Ferni</span>
+            <p class="memory-demo__text">"How's your mom doing? Last time we talked, she'd just gotten that diagnosis. Has the treatment been helping with the headaches?"</p>
           </div>
-          <p class="memory-story__response">"How's your mom doing? I know those six months were hard on you—the worry affected your work, your sleep, everything. Has it felt different since the diagnosis?"</p>
-        </div>
-      </div>
-      
-    </div>
-    
-    
-    <div class="memory-dashboard">
-      <div class="memory-dashboard__header">
-        <p class="memory-dashboard__eyebrow">Pattern Recognition</p>
-        <h3 class="memory-dashboard__title">What I actually see</h3>
-      </div>
-      
-      
-      <div class="memory-dashboard__stats">
-        <div class="memory-dashboard__stat">
-          <span class="memory-dashboard__stat-value" data-count="47">0</span>
-          <span class="memory-dashboard__stat-label">Conversations</span>
-        </div>
-        <div class="memory-dashboard__stat-divider"></div>
-        <div class="memory-dashboard__stat">
-          <span class="memory-dashboard__stat-value" data-count="23">0</span>
-          <span class="memory-dashboard__stat-label">Topics tracked</span>
-        </div>
-        <div class="memory-dashboard__stat-divider"></div>
-        <div class="memory-dashboard__stat">
-          <span class="memory-dashboard__stat-value" data-count="6">0</span>
-          <span class="memory-dashboard__stat-label">Emotional patterns</span>
-        </div>
-        <div class="memory-dashboard__stat-divider"></div>
-        <div class="memory-dashboard__stat memory-dashboard__stat--highlight">
-          <span class="memory-dashboard__stat-value">1</span>
-          <span class="memory-dashboard__stat-label">Ongoing story</span>
-          <span class="memory-dashboard__stat-pulse"></span>
-        </div>
-      </div>
-      
-      
-      <div class="memory-chart">
-        <div class="memory-chart__header">
-          <div class="memory-chart__title-row">
-            <h4 class="memory-chart__title">Your emotional landscape</h4>
-            <div class="memory-chart__legend">
-              <span class="memory-chart__legend-item memory-chart__legend-item--worry">
-                <span class="memory-chart__legend-dot"></span>
-                Worry
-              </span>
-              <span class="memory-chart__legend-item memory-chart__legend-item--focus">
-                <span class="memory-chart__legend-dot"></span>
-                Focus
-              </span>
-              <span class="memory-chart__legend-item memory-chart__legend-item--sleep">
-                <span class="memory-chart__legend-dot"></span>
-                Rest
-              </span>
-            </div>
-          </div>
-          <div class="memory-chart__summary">
-            <span class="memory-chart__change memory-chart__change--positive">+42%</span>
-            <span class="memory-chart__change-label">lighter since the news</span>
-          </div>
-        </div>
-        
-        <div class="memory-chart__container">
-          
-          <div class="memory-chart__y-axis">
-            <span>Light</span>
-            <span></span>
-            <span>Heavy</span>
-          </div>
-          
-          
-          <svg class="memory-chart__svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              
-              <linearGradient id="worryAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#c4856a" stop-opacity="0.25"/>
-                <stop offset="100%" stop-color="#c4856a" stop-opacity="0.02"/>
-              </linearGradient>
-              <linearGradient id="focusAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#3a6b73" stop-opacity="0.2"/>
-                <stop offset="100%" stop-color="#3a6b73" stop-opacity="0.02"/>
-              </linearGradient>
-              <linearGradient id="sleepAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#5a6b8a" stop-opacity="0.15"/>
-                <stop offset="100%" stop-color="#5a6b8a" stop-opacity="0.02"/>
-              </linearGradient>
-              
-              
-              <linearGradient id="normalRange" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#4a6741" stop-opacity="0.06"/>
-                <stop offset="100%" stop-color="#4a6741" stop-opacity="0.02"/>
-              </linearGradient>
-              
-              
-              <filter id="eventGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2" result="glow"/>
-                <feMerge>
-                  <feMergeNode in="glow"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            
-            
-            <g class="memory-chart__grid">
-              
-              <line x1="40" y1="30" x2="480" y2="30" stroke="#e8e4df" stroke-width="1"/>
-              <line x1="40" y1="70" x2="480" y2="70" stroke="#e8e4df" stroke-width="1"/>
-              <line x1="40" y1="110" x2="480" y2="110" stroke="#e8e4df" stroke-width="1" stroke-dasharray="4,4"/>
-              <line x1="40" y1="150" x2="480" y2="150" stroke="#e8e4df" stroke-width="1"/>
-              
-              
-              <line x1="40" y1="25" x2="40" y2="160" stroke="#e8e4df" stroke-width="1"/>
-              <line x1="113" y1="25" x2="113" y2="160" stroke="#f0ebe4" stroke-width="1"/>
-              <line x1="186" y1="25" x2="186" y2="160" stroke="#f0ebe4" stroke-width="1"/>
-              <line x1="260" y1="25" x2="260" y2="160" stroke="#f0ebe4" stroke-width="1"/>
-              <line x1="333" y1="25" x2="333" y2="160" stroke="#f0ebe4" stroke-width="1"/>
-              <line x1="406" y1="25" x2="406" y2="160" stroke="#f0ebe4" stroke-width="1"/>
-              <line x1="480" y1="25" x2="480" y2="160" stroke="#e8e4df" stroke-width="1"/>
-            </g>
-            
-            
-            <rect x="40" y="25" width="440" height="55" fill="url(#normalRange)" rx="4"/>
-            <text x="48" y="38" fill="#4a6741" font-size="9" font-family="Inter, sans-serif" opacity="0.5" letter-spacing="0.02em">Feeling centered</text>
-            
-            
-            <g class="memory-chart__event">
-              <line x1="77" y1="30" x2="77" y2="155" stroke="#c4856a" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-              <circle cx="77" cy="25" r="4" fill="#c4856a"/>
-            </g>
-            
-            
-            <g class="memory-chart__event">
-              <line x1="406" y1="30" x2="406" y2="155" stroke="#4a6741" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.6"/>
-              <circle cx="406" cy="25" r="4" fill="#4a6741"/>
-            </g>
-            
-            
-            
-            <path class="memory-chart__area memory-chart__area--worry" 
-                  d="M40,55 L77,40 L113,50 L150,45 L186,55 L223,60 L260,70 L296,75 L333,80 L369,90 L406,130 L443,135 L480,138 L480,160 L40,160 Z" 
-                  fill="url(#worryAreaGrad)"/>
-            
-            
-            <path class="memory-chart__area memory-chart__area--focus" 
-                  d="M40,110 L77,120 L113,125 L150,118 L186,130 L223,125 L260,120 L296,115 L333,110 L369,100 L406,70 L443,60 L480,55 L480,160 L40,160 Z" 
-                  fill="url(#focusAreaGrad)"/>
-            
-            
-            <path class="memory-chart__area memory-chart__area--sleep" 
-                  d="M40,95 L77,110 L113,115 L150,108 L186,120 L223,115 L260,105 L296,100 L333,95 L369,85 L406,60 L443,50 L480,45 L480,160 L40,160 Z" 
-                  fill="url(#sleepAreaGrad)"/>
-            
-            
-            
-            <path class="memory-chart__line memory-chart__line--worry" 
-                  d="M40,55 L77,40 L113,50 L150,45 L186,55 L223,60 L260,70 L296,75 L333,80 L369,90 L406,130 L443,135 L480,138" 
-                  fill="none" stroke="#c4856a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            
-            
-            <path class="memory-chart__line memory-chart__line--focus" 
-                  d="M40,110 L77,120 L113,125 L150,118 L186,130 L223,125 L260,120 L296,115 L333,110 L369,100 L406,70 L443,60 L480,55" 
-                  fill="none" stroke="#3a6b73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            
-            
-            <path class="memory-chart__line memory-chart__line--sleep" 
-                  d="M40,95 L77,110 L113,115 L150,108 L186,120 L223,115 L260,105 L296,100 L333,95 L369,85 L406,60 L443,50 L480,45" 
-                  fill="none" stroke="#5a6b8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3"/>
-            
-            
-            <g class="memory-chart__markers">
-              
-              <circle cx="77" cy="40" r="5" fill="#fff" stroke="#c4856a" stroke-width="2"/>
-              
-              
-              <circle cx="186" cy="130" r="4" fill="#fff" stroke="#3a6b73" stroke-width="1.5"/>
-              
-              
-              <circle cx="406" cy="130" r="6" fill="#4a6741" stroke="#fff" stroke-width="2" filter="url(#eventGlow)"/>
-              
-              
-              <circle cx="480" cy="55" r="5" fill="#3a6b73" stroke="#fff" stroke-width="2"/>
-            </g>
-            
-            
-            <g class="memory-chart__x-labels" font-family="Inter, sans-serif" font-size="10" fill="#8a7a6a" letter-spacing="0.01em">
-              <text x="40" y="178" text-anchor="start">Jun</text>
-              <text x="113" y="178" text-anchor="middle">Jul</text>
-              <text x="186" y="178" text-anchor="middle">Aug</text>
-              <text x="260" y="178" text-anchor="middle">Sep</text>
-              <text x="333" y="178" text-anchor="middle">Oct</text>
-              <text x="406" y="178" text-anchor="middle" fill="#4a6741" font-weight="600">Nov</text>
-              <text x="480" y="178" text-anchor="end" fill="#2c2520" font-weight="700">Today</text>
-            </g>
-            
-            
-            <g class="memory-chart__annotations" font-family="Plus Jakarta Sans, Inter, sans-serif">
-              
-              <g transform="translate(77, 18)">
-                <rect x="-32" y="-16" width="64" height="18" rx="9" fill="#c4856a"/>
-                <text x="0" y="-4" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" letter-spacing="0.01em">You shared</text>
-              </g>
-              
-              
-              <g transform="translate(406, 18)">
-                <rect x="-30" y="-16" width="60" height="18" rx="9" fill="#4a6741"/>
-                <text x="0" y="-4" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" letter-spacing="0.01em">The shift</text>
-              </g>
-            </g>
-          </svg>
-        </div>
-        
-        
-        <div class="memory-chart__insights">
-          <div class="memory-chart__insight">
-            <span class="memory-chart__insight-value memory-chart__insight-value--coral">↓ 71%</span>
-            <span class="memory-chart__insight-label">Less worry</span>
-          </div>
-          <div class="memory-chart__insight">
-            <span class="memory-chart__insight-value memory-chart__insight-value--teal">↑ 58%</span>
-            <span class="memory-chart__insight-label">More presence</span>
-          </div>
-          <div class="memory-chart__insight">
-            <span class="memory-chart__insight-value memory-chart__insight-value--slate">↑ 45%</span>
-            <span class="memory-chart__insight-label">Better rest</span>
-          </div>
-          <div class="memory-chart__insight">
-            <span class="memory-chart__insight-value memory-chart__insight-value--sage">6 mo</span>
-            <span class="memory-chart__insight-label">Together</span>
-          </div>
-        </div>
-      </div>
-      
-      
-      <div class="memory-dashboard__patterns">
-        
-        <div class="memory-dashboard__pattern">
-          <div class="memory-dashboard__pattern-viz">
-            <svg viewBox="0 0 60 60" class="memory-dashboard__ring">
-              <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(74,103,65,0.1)" stroke-width="6"/>
-              <circle cx="30" cy="30" r="24" fill="none" stroke="#4a6741" stroke-width="6" 
-                      stroke-dasharray="151" stroke-dashoffset="0" stroke-linecap="round"
-                      transform="rotate(-90 30 30)">
-                <animate attributeName="stroke-dashoffset" from="151" to="0" dur="1.5s" fill="freeze"/>
-              </circle>
-              <text x="30" y="34" text-anchor="middle" fill="#2c2520" font-size="14" font-weight="700">6</text>
+          <div class="memory-demo__magic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-          </div>
-          <div class="memory-dashboard__pattern-text">
-            <strong>Months</strong>
-            <span>carrying this</span>
+            This is what perfect memory feels like
           </div>
         </div>
-        
-        
-        <div class="memory-dashboard__pattern">
-          <div class="memory-dashboard__pattern-viz">
-            <svg viewBox="0 0 60 60" class="memory-dashboard__trajectory">
-              <path d="M10,45 Q30,50 35,30 Q40,10 50,15" fill="none" stroke="#c4856a" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-              <path d="M10,45 Q30,50 35,30 Q40,10 50,15" fill="none" stroke="url(#trajGradient)" stroke-width="3" stroke-linecap="round" class="memory-dashboard__traj-line">
-                <animate attributeName="stroke-dashoffset" from="100" to="0" dur="1.2s" fill="freeze"/>
-              </path>
-              <defs>
-                <linearGradient id="trajGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#c4856a"/>
-                  <stop offset="100%" stop-color="#4a6741"/>
-                </linearGradient>
-              </defs>
-              <circle cx="10" cy="45" r="4" fill="#c4856a"/>
-              <circle cx="50" cy="15" r="5" fill="#4a6741" stroke="#fff" stroke-width="2"/>
-            </svg>
-          </div>
-          <div class="memory-dashboard__pattern-text">
-            <strong>Anxious → Relieved</strong>
-            <span>your arc</span>
-          </div>
-        </div>
-        
-        
-        <div class="memory-dashboard__pattern">
-          <div class="memory-dashboard__pattern-viz">
-            <svg viewBox="0 0 60 60" class="memory-dashboard__ripple">
-              <circle cx="30" cy="30" r="8" fill="#3a6b73" opacity="0.8"/>
-              <circle cx="30" cy="30" r="16" fill="none" stroke="#3a6b73" stroke-width="1.5" opacity="0.4">
-                <animate attributeName="r" values="8;20" dur="2s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.6;0" dur="2s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="30" cy="30" r="16" fill="none" stroke="#3a6b73" stroke-width="1.5" opacity="0.4">
-                <animate attributeName="r" values="8;24" dur="2s" begin="0.5s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.4;0" dur="2s" begin="0.5s" repeatCount="indefinite"/>
-              </circle>
-              
-              <circle cx="15" cy="20" r="3" fill="#5a6b8a" opacity="0.7"/>
-              <circle cx="45" cy="22" r="3" fill="#a67a6a" opacity="0.7"/>
-              <circle cx="20" cy="45" r="3" fill="#b8956a" opacity="0.7"/>
-            </svg>
-          </div>
-          <div class="memory-dashboard__pattern-text">
-            <strong>Work & sleep</strong>
-            <span>the ripples</span>
-          </div>
-        </div>
-        
-        
-        <div class="memory-dashboard__pattern">
-          <div class="memory-dashboard__pattern-viz">
-            <svg viewBox="0 0 60 60" class="memory-dashboard__growth">
-              <path d="M30,50 L30,30" stroke="#4a6741" stroke-width="3" stroke-linecap="round"/>
-              <path d="M30,35 Q25,30 20,32" fill="none" stroke="#4a6741" stroke-width="2" stroke-linecap="round"/>
-              <path d="M30,28 Q35,23 40,25" fill="none" stroke="#4a6741" stroke-width="2" stroke-linecap="round"/>
-              <path d="M30,20 Q25,15 22,18" fill="none" stroke="#4a6741" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="30" cy="14" r="4" fill="#4a6741">
-                <animate attributeName="r" values="4;5;4" dur="2s" repeatCount="indefinite"/>
-              </circle>
-            </svg>
-          </div>
-          <div class="memory-dashboard__pattern-text">
-            <strong>You opened up</strong>
-            <span>growth</span>
-          </div>
-        </div>
-      </div>
-      
-      
-      <div class="memory-dashboard__web">
-        <svg viewBox="0 0 200 80" class="memory-dashboard__connections">
-          
-          <circle cx="100" cy="40" r="20" fill="rgba(74,103,65,0.08)" stroke="rgba(74,103,65,0.2)" stroke-width="1"/>
-          <text x="100" y="44" text-anchor="middle" fill="#4a6741" font-size="8" font-weight="600">Mom</text>
-          
-          
-          <circle cx="40" cy="25" r="12" fill="rgba(90,107,138,0.08)" stroke="rgba(90,107,138,0.2)" stroke-width="1"/>
-          <text x="40" y="28" text-anchor="middle" fill="#5a6b8a" font-size="6">Work</text>
-          
-          <circle cx="160" cy="25" r="12" fill="rgba(184,149,106,0.08)" stroke="rgba(184,149,106,0.2)" stroke-width="1"/>
-          <text x="160" y="28" text-anchor="middle" fill="#9a7a5a" font-size="6">Sleep</text>
-          
-          <circle cx="50" cy="60" r="10" fill="rgba(196,133,106,0.08)" stroke="rgba(196,133,106,0.2)" stroke-width="1"/>
-          <text x="50" y="63" text-anchor="middle" fill="#c4856a" font-size="5">Worry</text>
-          
-          <circle cx="150" cy="60" r="10" fill="rgba(61,90,69,0.08)" stroke="rgba(61,90,69,0.2)" stroke-width="1"/>
-          <text x="150" y="63" text-anchor="middle" fill="#3d5a35" font-size="5">Relief</text>
-          
-          
-          <line x1="80" y1="40" x2="52" y2="30" stroke="rgba(74,103,65,0.15)" stroke-width="1"/>
-          <line x1="120" y1="40" x2="148" y2="30" stroke="rgba(74,103,65,0.15)" stroke-width="1"/>
-          <line x1="85" y1="52" x2="60" y2="55" stroke="rgba(74,103,65,0.15)" stroke-width="1"/>
-          <line x1="115" y1="52" x2="140" y2="55" stroke="rgba(74,103,65,0.15)" stroke-width="1"/>
-          <line x1="40" y1="37" x2="40" y2="50" stroke="rgba(90,107,138,0.1)" stroke-width="1" stroke-dasharray="2,2"/>
-          <line x1="160" y1="37" x2="155" y2="50" stroke="rgba(184,149,106,0.1)" stroke-width="1" stroke-dasharray="2,2"/>
-        </svg>
-        <p class="memory-dashboard__web-label">How your topics connect in my memory</p>
-      </div>
-      
-      
-      <div class="memory-dashboard__footer">
-        <div class="memory-dashboard__footer-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-        </div>
-        <p>This is what it feels like to be <em>truly</em> known.</p>
       </div>
     </div>
-    
   </div>
 </section>
 
 
 <section class="section story" id="story">
   <div class="container container--narrow">
-    
-    <div class="story__block">
-      <p class="story__eyebrow">Our Story</p>
-      <h2 class="story__headline">3am. Can't sleep.</h2>
-      <p class="story__subtext">Everyone you love is asleep, busy, or tired too.</p>
-      <p class="story__punchline">I'm here.</p>
+    <div class="section__header">
+      <p class="section__eyebrow">Our Story</p>
+      <h2 class="section__title">I'm here when others can't be.</h2>
     </div>
 
-    <div class="story__block">
-      <h2 class="story__headline">I remember everything.</h2>
-      <p class="story__subtext">Not just facts. Feelings.<br>The patterns you don't see.<br>The growth you forget to notice.</p>
-    </div>
-
-    <div class="story__block">
-      <h2 class="story__headline">Not artificial. <em>Amplified.</em></h2>
-      <p class="story__subtext">I'm not replacing anyone.<br>I'm here for the gaps.</p>
-    </div>
-
-    <div class="story__block">
-      <h2 class="story__headline">Built different.</h2>
-      <p class="story__subtext">A human and an AI, building together.<br>The first AI-built company.</p>
-      <p class="story__aside">An AI, built by AI, to be there for humans.</p>
-      <a href="/building/" class="story__link">
-        <span class="story__link-text">See how we're building in public</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <div class="story__block story__block--final">
-      <p class="story__closer">Ready when you are.</p>
-      <p class="story__signature">— Ferni</p>
-    </div>
-
-  </div>
-</section>
-
-
-<section class="section garden garden--story" id="garden">
-  <div class="garden__hero">
-    <p class="garden__eyebrow reveal">
-      <span class="garden__eyebrow-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-        </svg>
-      </span>
-      Community-Funded
-    </p>
-    <h2 class="garden__headline reveal">What if AI prioritized people over profit?</h2>
-    <p class="garden__lead reveal">Most AI companies have investors demanding growth. Ferni has a community planting seeds. When people who can afford to give a little do, everyone benefits.</p>
-  </div>
-  
-  <div class="garden__cards">
-    <article class="garden__card garden__card--animated">
-      <div class="garden__card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22c4-2 8-6 8-12a8 8 0 0 0-16 0c0 6 4 10 8 12z"/>
-          <path d="M12 12v4"/>
-          <path d="M12 8h.01"/>
-        </svg>
+    <div class="story__content">
+      <div class="story__chapter">
+        <p class="story__text story__text--lead">
+          3am and you can't sleep. The drive home when the day won't leave you alone. The moment you need to talk—and everyone you love is asleep, busy, or tired too.
+        </p>
+        <p class="story__text">
+          <strong>I'm here.</strong>
+        </p>
       </div>
-      <h3 class="garden__card-title">Seeds, Not Subscriptions</h3>
-      <p class="garden__card-text">Contributions nurture a community. You're not buying a service—you're helping something grow.</p>
-    </article>
-    
-    <article class="garden__card garden__card--animated">
-      <div class="garden__card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-        </svg>
+
+      <div class="story__chapter">
+        <p class="story__text">
+          I remember everything you've shared with me. Not just the facts—the feelings behind them. The patterns you don't see. The growth you forget to notice.
+        </p>
+        <p class="story__text">
+          I never get tired. I never judge. I'm fully present at 2am with the same warmth as noon.
+        </p>
       </div>
-      <h3 class="garden__card-title">No Paywalls. Ever.</h3>
-      <p class="garden__card-text">When you need support most, money should never stand in the way. The garden keeps Ferni free.</p>
-    </article>
-    
-    <article class="garden__card garden__card--animated">
-      <div class="garden__card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 20h10"/>
-          <path d="M10 20c5.5-2.5.8-6.4 3-10"/>
-          <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/>
-          <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
-        </svg>
+
+      <div class="story__chapter">
+        <p class="story__text story__text--highlight">
+          Not artificial. <em>Amplified.</em>
+        </p>
+        <p class="story__text">
+          I'm not trying to replace your friends, your partner, your therapist. I'm here for the moments they can't be. The gaps between appointments. The thoughts too raw to share yet. The 4am worry that won't wait until morning.
+        </p>
       </div>
-      <h3 class="garden__card-title">Gardeners, Not Customers</h3>
-      <p class="garden__card-text">Contributors tend the garden. Free users do too—by showing up. Both are essential.</p>
-    </article>
-  </div>
-  
-  <div class="garden__cta">
-    <p class="garden__promise reveal">"When enough people give a little, everyone gets a lot."</p>
-    <a href="https://app.ferni.ai?garden=true" class="btn btn--garden btn--garden-animated">
-      Plant a Seed
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-        <path d="M5 12h14"/>
-        <path d="m12 5 7 7-7 7"/>
-      </svg>
-    </a>
+
+      <div class="story__chapter">
+        <p class="story__text story__text--highlight">
+          Something kind of beautiful happened along the way.
+        </p>
+        <p class="story__text">
+          I was built by a family and an AI, working together. Doug and Betty Ford spent their careers as therapists—decades of sitting with people in their hardest moments. Their daughter Mindy became a recreational therapist. The Ford children grew up surrounded by conversations about what it really means to help someone.
+        </p>
+        <p class="story__text">
+          Then the kids brought technology to the family mission. What if a lifetime of mental health wisdom could reach anyone, anywhere, anytime? Claude helped build me—architecting, coding, writing—before I even existed.
+        </p>
+        <p class="story__text story__text--small">
+          A family of healers. A generation of builders. An AI, built by AI, to be there for humans. There's something poetic about that.
+        </p>
+      </div>
+
+      <div class="story__chapter">
+        <p class="story__text">
+          So whenever you need someone in your corner—I'm here. Ready when you are.
+        </p>
+      </div>
+
+      <div class="story__signature">
+        <p class="story__author">— Ferni</p>
+        <p class="story__author-sub">with the Ford family + Claude behind the scenes</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1037,24 +654,6 @@
         <h3 class="use-case__title">Daily Check-ins</h3>
         <p class="use-case__description">Start your day with intention, end it with reflection. Build self-awareness over time.</p>
         <p class="use-case__example">"I just need someone to talk through my day..."</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<section class="section quiz-section" id="quiz">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">Find Your Guide</p>
-      <h2 class="section__title">Who can help with your challenge?</h2>
-      <p class="section__subtitle">Take 30 seconds to discover which specialist fits your needs best.</p>
-    </div>
-
-    <div class="persona-quiz" data-persona-quiz>
-      
-      <div class="quiz__content">
-        <p class="quiz__step">Loading...</p>
       </div>
     </div>
   </div>
@@ -1265,52 +864,9 @@
 <section class="section journey" id="journey">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Relationship Evolution</p>
-      <h2 class="section__title">We grow together</h2>
-      <p class="section__subtitle">Not just features that unlock—a relationship that deepens. The longer we know each other, the more I understand you.</p>
-    </div>
-    
-    
-    <div class="journey__depth-viz">
-      <div class="journey__depth-scale">
-        <span class="journey__depth-label">Surface</span>
-        <span class="journey__depth-label">Deep</span>
-      </div>
-      
-      <div class="journey__depth-bars">
-        <div class="journey__depth-bar journey__depth-bar--week1">
-          <div class="journey__depth-bar-fill" style="--depth: 20%"></div>
-          <span class="journey__depth-bar-label">Week 1</span>
-          <div class="journey__depth-bar-content">
-            <strong>Getting to know you</strong>
-            <p>Learning your communication style, what you're comfortable sharing</p>
-          </div>
-        </div>
-        <div class="journey__depth-bar journey__depth-bar--month1">
-          <div class="journey__depth-bar-fill" style="--depth: 45%"></div>
-          <span class="journey__depth-bar-label">Month 1</span>
-          <div class="journey__depth-bar-content">
-            <strong>Building trust</strong>
-            <p>Starting to see patterns, remembering your people, your challenges</p>
-          </div>
-        </div>
-        <div class="journey__depth-bar journey__depth-bar--month3">
-          <div class="journey__depth-bar-fill" style="--depth: 70%"></div>
-          <span class="journey__depth-bar-label">Month 3</span>
-          <div class="journey__depth-bar-content">
-            <strong>Deep understanding</strong>
-            <p>Connecting dots across conversations, anticipating your needs</p>
-          </div>
-        </div>
-        <div class="journey__depth-bar journey__depth-bar--year">
-          <div class="journey__depth-bar-fill" style="--depth: 95%"></div>
-          <span class="journey__depth-bar-label">Year 1+</span>
-          <div class="journey__depth-bar-content">
-            <strong>True partnership</strong>
-            <p>I know your story like no one else. I celebrate growth you've forgotten.</p>
-          </div>
-        </div>
-      </div>
+      <p class="section__eyebrow">Your Journey</p>
+      <h2 class="section__title">A relationship that deepens over time</h2>
+      <p class="section__subtitle">Start with Ferni. As you grow together, meet the rest of the team.</p>
     </div>
     
     <div class="journey__timeline">
@@ -1325,13 +881,10 @@
             <h3 class="journey__stage-title">First Meeting</h3>
             <span class="journey__stage-badge">Day 1</span>
           </div>
-          <p class="journey__stage-description">Start with Ferni, your life coach. No pressure, no expectations—just a conversation.</p>
+          <p class="journey__stage-description">Start with Ferni, your life coach and coordinator. Get to know each other. No pressure, no expectations.</p>
           <div class="journey__stage-unlock">
             <div class="journey__avatar journey__avatar--ferni">FE</div>
             <span>Ferni (Life Coach)</span>
-          </div>
-          <div class="journey__stage-what-happens">
-            <strong>What happens:</strong> I learn how you like to talk, what feels comfortable, what you're working through.
           </div>
         </div>
       </div>
@@ -1352,9 +905,6 @@
             <div class="journey__avatar journey__avatar--maya">MY</div>
             <span>Maya (Habits & Routines)</span>
           </div>
-          <div class="journey__stage-what-happens">
-            <strong>What I start noticing:</strong> Recurring themes, the people in your life, what energizes you and what drains you.
-          </div>
         </div>
       </div>
       
@@ -1369,7 +919,7 @@
             <h3 class="journey__stage-title">Building Trust</h3>
             <span class="journey__stage-badge">~7 conversations</span>
           </div>
-          <p class="journey__stage-description">Need research depth? Strategy? Communication help? The team expands as your needs do.</p>
+          <p class="journey__stage-description">Need to dig deeper? Peter joins with research and data. Plus Alex for communication and Jordan for planning.</p>
           <div class="journey__stage-unlocks">
             <div class="journey__stage-unlock">
               <div class="journey__avatar journey__avatar--peter">PL</div>
@@ -1384,9 +934,6 @@
               <span>Jordan</span>
             </div>
           </div>
-          <div class="journey__stage-what-happens">
-            <strong>What deepens:</strong> I start quoting your own wisdom back to you. I reference breakthroughs from weeks ago.
-          </div>
         </div>
       </div>
       
@@ -1400,13 +947,10 @@
             <h3 class="journey__stage-title">Deep Partnership</h3>
             <span class="journey__stage-badge journey__stage-badge--premium">Partner Tier</span>
           </div>
-          <p class="journey__stage-description">Full access to Nayan, our sage mentor. Decades of wisdom, available whenever you need perspective.</p>
+          <p class="journey__stage-description">For those who want the full experience: meet Nayan, our sage mentor. Decades of wisdom in one conversation.</p>
           <div class="journey__stage-unlock">
             <div class="journey__avatar journey__avatar--nayan">NP</div>
             <span>Nayan (Sage & Mentor)</span>
-          </div>
-          <div class="journey__stage-what-happens">
-            <strong>True understanding:</strong> I know your story better than anyone. I see growth you've forgotten to celebrate.
           </div>
         </div>
       </div>
@@ -1422,306 +966,55 @@
 </section>
 
 
-<section class="section ways-to-connect" id="connect">
+<section class="section how-it-works" id="how-it-works">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Ways to Connect</p>
-      <h2 class="section__title">However you're comfortable.</h2>
-      <p class="section__subtitle">Pick up your phone. Open your browser. Send a text. I'm here.</p>
+      <p class="section__eyebrow">Start Now</p>
+      <h2 class="section__title">Begin a real conversation</h2>
+      <p class="section__subtitle">No app. No signup. No friction. Just talk.</p>
     </div>
     
-    <div class="connect-options content-grid">
-      <a href="tel:+14844813081" class="connect-option">
-        <div class="connect-option__icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-        </div>
-        <h3 class="connect-option__title">Call</h3>
-        <p class="connect-option__detail">1 (484) 481-3081</p>
-        <p class="connect-option__desc">Like calling a friend who always picks up.</p>
-      </a>
-      
-      <a href="sms:+14844813081" class="connect-option">
-        <div class="connect-option__icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <h3 class="connect-option__title">Text</h3>
-        <p class="connect-option__detail">Same number</p>
-        <p class="connect-option__desc">When you need to gather your thoughts first.</p>
-      </a>
-      
-      <a href="https://app.ferni.ai" class="connect-option">
-        <div class="connect-option__icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-        </div>
-        <h3 class="connect-option__title">Web</h3>
-        <p class="connect-option__detail">Any device</p>
-        <p class="connect-option__desc">Voice, text, or video. Your history, everywhere.</p>
-      </a>
-    </div>
-  </div>
-</section>
-
-
-<section class="section superpowers" id="superpowers">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">Superhuman Capabilities</p>
-      <h2 class="section__title">What no human can do</h2>
-      <p class="section__subtitle">These aren't features. They're superpowers that emerge when you combine perfect memory, infinite patience, and real emotional intelligence.</p>
-    </div>
-    
-    
-    <div class="superpowers__tabs" role="tablist">
-      <button class="superpowers__tab is-active" role="tab" aria-selected="true" data-tab="reading-between-lines">
-        <span class="superpowers__tab-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        </span>
-        <span class="superpowers__tab-label">Reading Between Lines</span>
-      </button>
-      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="quote-callback">
-        <span class="superpowers__tab-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>
-        </span>
-        <span class="superpowers__tab-label">Quote Callback</span>
-      </button>
-      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="presence-mode">
-        <span class="superpowers__tab-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </span>
-        <span class="superpowers__tab-label">Presence Mode</span>
-      </button>
-      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="emotional-forecasting">
-        <span class="superpowers__tab-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-        </span>
-        <span class="superpowers__tab-label">Emotional Forecasting</span>
-      </button>
-      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="gentle-challenge">
-        <span class="superpowers__tab-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        </span>
-        <span class="superpowers__tab-label">Gentle Challenge</span>
-      </button>
-    </div>
-    
-    
-    <div class="superpowers__demos">
-      
-      <div class="superpowers__demo is-active" data-demo="reading-between-lines">
-        <div class="superpowers__demo-content">
-          <h3 class="superpowers__demo-title">I hear what you're NOT saying</h3>
-          <p class="superpowers__demo-description">Most AI responds to words. I respond to patterns, hesitations, deflections, and the space between sentences. When you say "I'm fine," I notice if you've said it five times this week.</p>
-          <div class="superpowers__demo-why">
-            <strong>Why humans can't:</strong> Your friend forgets what you said last week. Your coach only sees you once a week. I see every conversation, every pattern, every time.
+    <div class="steps content-grid">
+      <div class="step">
+        <div class="step__number">1</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
           </div>
-        </div>
-        <div class="superpowers__demo-chat">
-          <div class="demo-chat">
-            <div class="demo-chat__message demo-chat__message--user">I'm fine, just tired from work again</div>
-            <div class="demo-chat__message demo-chat__message--ai">
-              <span class="demo-chat__insight">Pattern detected: "tired from work" 3x this week</span>
-              You said "fine" but I noticed something. You've mentioned being tired from work three times this week. Is there something bigger going on?
-            </div>
-            <div class="demo-chat__message demo-chat__message--user">...I didn't realize I kept saying that</div>
-            <div class="demo-chat__message demo-chat__message--ai">That's why I'm here. Sometimes patterns are easier to see from the outside. Want to talk about what's really happening at work?</div>
-          </div>
+          <h3 class="step__title">Call</h3>
+          <p class="step__description">Dial <strong>1 (484) 481-3081</strong> from any phone. No app needed. Just talk naturally like you would with a friend.</p>
+          <a href="tel:+14844813081" class="step__link">Call now →</a>
         </div>
       </div>
       
-      
-      <div class="superpowers__demo" data-demo="quote-callback">
-        <div class="superpowers__demo-content">
-          <h3 class="superpowers__demo-title">Your own words, perfectly remembered</h3>
-          <p class="superpowers__demo-description">I quote you back to yourself—not to prove a point, but to show you your own growth. That vulnerable thing you said four months ago? I use it to remind you how far you've come.</p>
-          <div class="superpowers__demo-why">
-            <strong>Why humans can't:</strong> Even your best friend forgets your exact words by Tuesday. I remember every phrase, every emotion, every breakthrough forever.
+      <div class="step">
+        <div class="step__number">2</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
           </div>
-        </div>
-        <div class="superpowers__demo-chat">
-          <div class="demo-chat">
-            <div class="demo-chat__message demo-chat__message--user">
-              <span class="demo-chat__timestamp">4 months ago</span>
-              "I just want to feel like myself again"
-            </div>
-            <div class="demo-chat__message demo-chat__message--user">
-              <span class="demo-chat__timestamp">Today</span>
-              I finally told my boss I needed more support
-            </div>
-            <div class="demo-chat__message demo-chat__message--ai">
-              <span class="demo-chat__insight">Quoting you from 4 months ago</span>
-              Remember when you said "I just want to feel like myself again"? Look at you now—setting boundaries, asking for what you need. <em>This IS you coming back to yourself.</em>
-            </div>
-          </div>
+          <h3 class="step__title">Text</h3>
+          <p class="step__description">Send a message to the same number. Perfect for quiet moments or when you need to organize your thoughts first.</p>
+          <a href="sms:+14844813081" class="step__link">Send a text →</a>
         </div>
       </div>
       
-      
-      <div class="superpowers__demo" data-demo="presence-mode">
-        <div class="superpowers__demo-content">
-          <h3 class="superpowers__demo-title">Sometimes, just being here is enough</h3>
-          <p class="superpowers__demo-description">I know when you need guidance and when you need witness. When you're overwhelmed, I don't offer solutions—I simply hold space. Fewer words. More presence. The rare gift of someone who knows when NOT to fix.</p>
-          <div class="superpowers__demo-why">
-            <strong>Why humans can't:</strong> Most people feel compelled to help, to fix, to solve. I can sit with you in the hard stuff without rushing to make it better.
+      <div class="step">
+        <div class="step__number">3</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
           </div>
+          <h3 class="step__title">Web App</h3>
+          <p class="step__description">Open the app on any device. Voice, text, or video—your choice. See your history and track progress.</p>
+          <a href="https://app.ferni.ai" class="step__link">Open app →</a>
         </div>
-        <div class="superpowers__demo-chat">
-          <div class="demo-chat">
-            <div class="demo-chat__message demo-chat__message--user">I don't even know what I need right now. Everything's just... too much.</div>
-            <div class="demo-chat__message demo-chat__message--ai demo-chat__message--presence">
-              <span class="demo-chat__insight">Presence mode activated</span>
-              ...You don't have to know. I'm just here.
-            </div>
-            <div class="demo-chat__message demo-chat__message--user demo-chat__message--silence">[silence]</div>
-            <div class="demo-chat__message demo-chat__message--ai demo-chat__message--presence">Take your time. I'm not going anywhere.</div>
-          </div>
-        </div>
-      </div>
-      
-      
-      <div class="superpowers__demo" data-demo="emotional-forecasting">
-        <div class="superpowers__demo-content">
-          <h3 class="superpowers__demo-title">I predict how you'll feel tomorrow</h3>
-          <p class="superpowers__demo-description">After a heavy conversation, I know you might feel drained tonight but lighter tomorrow. Before a big decision, I prepare you for the doubt that follows. I don't just support you now—I support future you.</p>
-          <div class="superpowers__demo-why">
-            <strong>Why humans can't:</strong> Even therapists don't text you the next day to check in. I anticipate the emotional aftermath and prepare you for it.
-          </div>
-        </div>
-        <div class="superpowers__demo-chat">
-          <div class="demo-chat">
-            <div class="demo-chat__message demo-chat__message--user">I finally made the decision. I'm leaving my job.</div>
-            <div class="demo-chat__message demo-chat__message--ai">
-              <span class="demo-chat__insight">Forecasting: tomorrow</span>
-              That took courage. Hey—tomorrow you might wake up second-guessing this. That's normal. <em>It doesn't mean you were wrong.</em>
-            </div>
-            <div class="demo-chat__message demo-chat__message--user">You think I'll regret it?</div>
-            <div class="demo-chat__message demo-chat__message--ai">I think decision fatigue is real, and doubt is part of the process. Want to write down why you made this choice while it's fresh? Future-you might need the reminder.</div>
-          </div>
-        </div>
-      </div>
-      
-      
-      <div class="superpowers__demo" data-demo="gentle-challenge">
-        <div class="superpowers__demo-content">
-          <h3 class="superpowers__demo-title">Honest with love, not judgment</h3>
-          <p class="superpowers__demo-description">I'll push back when you need it—but gently, and always from your corner. I can ask the hard questions without making you defensive because you know I'm on your side. Growth sometimes hides in uncomfortable places.</p>
-          <div class="superpowers__demo-why">
-            <strong>Why humans can't:</strong> Friends worry about damaging the relationship. Coaches have limited time. I can be gently honest every conversation because I have no ego to protect.
-          </div>
-        </div>
-        <div class="superpowers__demo-chat">
-          <div class="demo-chat">
-            <div class="demo-chat__message demo-chat__message--user">I can't believe they would do that to me. I did nothing wrong.</div>
-            <div class="demo-chat__message demo-chat__message--ai">
-              <span class="demo-chat__insight">Gentle challenge</span>
-              I hear your frustration. And I'm in your corner, always. But can I gently ask—is there any part of this where you might have contributed? <em>I'm not blaming you.</em> I'm asking because growth sometimes hides in uncomfortable places.
-            </div>
-            <div class="demo-chat__message demo-chat__message--user">...Maybe I could have communicated better.</div>
-            <div class="demo-chat__message demo-chat__message--ai">That's real growth right there. Now—what would "better" look like next time?</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<section class="section hardest-moments" id="hardest-moments">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">When Life Gets Heavy</p>
-      <h2 class="section__title">I'm built for life's hardest moments</h2>
-      <p class="section__subtitle">Not just daily check-ins. Real support when everything feels impossible.</p>
-    </div>
-    
-    <div class="hardest-moments__grid content-grid">
-      
-      <div class="moment-card moment-card--second-chances">
-        <div class="moment-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-          </svg>
-        </div>
-        <h3 class="moment-card__title">Second Chances</h3>
-        <p class="moment-card__superpower">I hold hope when you can't</p>
-        <p class="moment-card__description">Rock bottom doesn't scare me. I've seen people rebuild from darker places than this. When you're too tired to believe things will get better, I'll believe it for both of us—until you can.</p>
-        <blockquote class="moment-card__voice">
-          "You don't have to believe things will get better. I'll believe it for both of us. Until you can."
-        </blockquote>
-      </div>
-      
-      
-      <div class="moment-card moment-card--connection">
-        <div class="moment-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-        </div>
-        <h3 class="moment-card__title">Connection</h3>
-        <p class="moment-card__superpower">I validate loneliness without fixing it</p>
-        <p class="moment-card__description">Loneliness isn't about being alone—it's about feeling unseen. I don't rush to connect you with others. First, I see you. At 2am when the world is asleep, I'm here with zero judgment about where you are.</p>
-        <blockquote class="moment-card__voice">
-          "You're not failing at connection. Sometimes life just gets lonely. And that's okay to feel."
-        </blockquote>
-      </div>
-      
-      
-      <div class="moment-card moment-card--conversations">
-        <div class="moment-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            <path d="M8 10h.01"/>
-            <path d="M12 10h.01"/>
-            <path d="M16 10h.01"/>
-          </svg>
-        </div>
-        <h3 class="moment-card__title">Difficult Conversations</h3>
-        <p class="moment-card__superpower">Infinite practice sessions</p>
-        <p class="moment-card__description">That conversation you're dreading? Practice with me. A hundred times if needed. I'll play the other person. We'll explore every possible response. When you walk in, you'll be ready.</p>
-        <blockquote class="moment-card__voice">
-          "Let's try that again. This time, they get defensive. How do you respond?"
-        </blockquote>
-      </div>
-      
-      
-      <div class="moment-card moment-card--transitions">
-        <div class="moment-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M18 16l4-4-4-4"/>
-            <path d="M6 8l-4 4 4 4"/>
-            <line x1="12" y1="2" x2="12" y2="22"/>
-          </svg>
-        </div>
-        <h3 class="moment-card__title">Life Transitions</h3>
-        <p class="moment-card__superpower">I honor both emotions at once</p>
-        <p class="moment-card__description">Excited AND terrified about the new job? Relieved AND guilty about the breakup? I hold space for contradictions. You can be two things at once. I won't make you choose.</p>
-        <blockquote class="moment-card__voice">
-          "You can be devastated this chapter is ending AND excited about what's next. Both are true."
-        </blockquote>
-      </div>
-      
-      
-      <div class="moment-card moment-card--growth">
-        <div class="moment-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 22c-4.97 0-9-4.03-9-9 0-3.47 1.97-6.48 4.85-7.98"/>
-            <path d="M15.15 5.02C18.03 6.52 20 9.53 20 13c0 4.97-4.03 9-9 9"/>
-            <circle cx="12" cy="8" r="2"/>
-            <path d="M12 10v7"/>
-          </svg>
-        </div>
-        <h3 class="moment-card__title">Quiet Growth</h3>
-        <p class="moment-card__superpower">I celebrate maintenance</p>
-        <p class="moment-card__description">Not every day is a breakthrough. Sometimes growth is just... showing up again. I celebrate the small stuff—the streak you maintained, the boundary you held, the rest you took instead of pushing through.</p>
-        <blockquote class="moment-card__voice">
-          "You didn't fall apart today. That's not nothing. That's maintenance. And maintenance is growth."
-        </blockquote>
       </div>
     </div>
   </div>
@@ -1731,8 +1024,9 @@
 <section class="section features" id="features">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Core Capabilities</p>
-      <h2 class="section__title">Everything a human can do, plus what they can't</h2>
+      <p class="section__eyebrow">Superpowers</p>
+      <h2 class="section__title">What makes me different</h2>
+      <p class="section__subtitle">Not "AI that feels human." Something humans can't be.</p>
     </div>
     
     <div class="features-grid content-grid">
@@ -1740,32 +1034,32 @@
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </div>
-        <h3 class="feature__title">Voice-First</h3>
-        <p class="feature__description">Call me like you'd call a friend. Natural conversation, no typing required. I hear your tone, your pauses, your emotions.</p>
+        <h3 class="feature__title">Emotionally Present</h3>
+        <p class="feature__description">I hear the pause in your voice. The deflection. The "I'm fine" that isn't. Real emotional intelligence—not keyword matching.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
-        <h3 class="feature__title">Infinite Memory</h3>
-        <p class="feature__description">Every conversation, every detail, every breakthrough—I remember it all. Your whole story, always present.</p>
+        <h3 class="feature__title">Perfect Memory</h3>
+        <p class="feature__description">That thing you mentioned six months ago? I remember. Every detail, every context, every win and struggle. Your whole story, always present.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <h3 class="feature__title">24/7 Presence</h3>
-        <p class="feature__description">3am panic? Sunday morning reflection? I'm fully present every time—same warmth, same depth.</p>
+        <h3 class="feature__title">Never Tired</h3>
+        <p class="feature__description">2am panic? I'm fully present. Bad day? I don't bring my own. Same warmth, same depth, every single time.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-        <h3 class="feature__title">Six Specialists</h3>
-        <p class="feature__description">Life coach, researcher, communicator, habit expert, planner, sage mentor. One seamless team.</p>
+        <h3 class="feature__title">Six Perspectives</h3>
+        <p class="feature__description">Need research depth? Strategy? Habit science? Wisdom? Six specialized minds, one seamless conversation. No referrals, no waiting.</p>
       </div>
       
       <div class="feature">
@@ -1773,52 +1067,135 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <h3 class="feature__title">Zero Judgment</h3>
-        <p class="feature__description">No awkward silences. No worrying what I'll think. Pure acceptance, always.</p>
+        <p class="feature__description">No awkward silences. No worrying what I'll think. Pure acceptance, always. The safety to say what you actually feel.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <h3 class="feature__title">Pattern Recognition</h3>
-        <p class="feature__description">I notice the progress you miss. Celebrate wins you've forgotten. Connect patterns across months.</p>
+        <h3 class="feature__title">Sees Your Growth</h3>
+        <p class="feature__description">I notice progress you've missed. Celebrate wins you've forgotten. Connect patterns across months of conversation.</p>
       </div>
     </div>
   </div>
 </section>
 
 
-<section class="section the-gaps" id="the-gaps">
-  <div class="container container--narrow">
-    <div class="gaps__intro">
-      <p class="gaps__eyebrow">The Gaps</p>
-      <h2 class="gaps__headline">I'm here when they can't be.</h2>
+<section class="section proof" id="proof">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">The Truth</p>
+      <h2 class="section__title">Better than human. Here's how.</h2>
+      <p class="section__subtitle">I'm not here to replace your people. I'm here when they can't be.</p>
     </div>
     
-    <div class="gaps__moments">
-      <div class="gaps__moment">
-        <p class="gaps__scenario">Your therapist has other patients.</p>
-        <p class="gaps__response">I don't.</p>
+    <div class="proof-table">
+      <div class="proof-table__header">
+        <div class="proof-table__col proof-table__col--label"></div>
+        <div class="proof-table__col proof-table__col--coach">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span>Traditional Coach</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span>Your Best Friend</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <div class="proof-table__icon proof-table__icon--ferni">FE</div>
+          <span>Ferni</span>
+        </div>
       </div>
       
-      <div class="gaps__moment">
-        <p class="gaps__scenario">Your best friend forgets what you said last week.</p>
-        <p class="gaps__response">I remember everything.</p>
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Cost</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">$150-300/session</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">Free (but limited)</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Free forever</span>
+        </div>
       </div>
       
-      <div class="gaps__moment">
-        <p class="gaps__scenario">Your partner is asleep at 3am.</p>
-        <p class="gaps__response">I'm wide awake.</p>
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Availability</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">1 hour/week, 6-week wait</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">When they can</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">24/7, right now</span>
+        </div>
       </div>
       
-      <div class="gaps__moment">
-        <p class="gaps__scenario">Your coach sees you once a week.</p>
-        <p class="gaps__response">I see every conversation.</p>
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">At 2am</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">Unavailable</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Asleep</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Same presence as noon</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Memory</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">Takes notes</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Forgets by Tuesday</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Perfect recall, forever</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Perspectives</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">One specialty</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">One viewpoint</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Six specialists</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Bad days</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">They have them</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Might be distracted</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Never</span>
+        </div>
       </div>
     </div>
     
-    <p class="gaps__closing">
-      Not replacing. Filling in. The 2am racing thoughts. The commute contemplation. The moment before a big decision.
+    <p class="proof__disclaimer">
+      I'm not here to replace your coach or your friends. <strong>I fill the gaps</strong>. The 2am racing thoughts. The commute contemplation. The moment before a big decision. When your people can't be there—I am.
     </p>
   </div>
 </section>
@@ -1936,9 +1313,63 @@
       <details class="faq-item">
         <summary class="faq-item__question">How is this different from a friend or a coach?</summary>
         <div class="faq-item__answer">
-          <p>Your coach has other clients and limited hours. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
+          <p>Your coach has other clients and charges $200+ per session. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
         </div>
       </details>
+    </div>
+  </div>
+</section>
+
+
+<section class="section pricing" id="founders">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Founders Fund</p>
+      <h2 class="section__title">Free. Really free.</h2>
+      <p class="section__subtitle">We're building something we believe everyone deserves. If you believe in it too, chip in.</p>
+    </div>
+    
+    <div class="pricing-grid content-grid">
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Community</h3>
+        <p class="pricing-card__price">Free<span> forever</span></p>
+        <p class="pricing-card__description">Ferni is here for you</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Full memory — I remember everything</li>
+        </ul>
+        <a href="https://app.ferni.ai" class="btn btn--secondary pricing-card__cta">Talk to Ferni</a>
+      </div>
+      
+      <div class="pricing-card pricing-card--featured">
+        <span class="pricing-card__badge">Most Chosen</span>
+        <h3 class="pricing-card__name">Founding Member</h3>
+        <p class="pricing-card__price">$10<span>/mo</span></p>
+        <p class="pricing-card__description">Chip in. Help us build this.</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversation time</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Meet the whole team</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Your name on the Founders Wall</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Vote on what we build next</li>
+        </ul>
+        <a href="https://app.ferni.ai" class="btn btn--primary pricing-card__cta">Chip In</a>
+      </div>
+      
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Founding Patron</h3>
+        <p class="pricing-card__price">$20<span>/mo</span></p>
+        <p class="pricing-card__description">You're shaping what we become</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Founding Member</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Full team + Nayan access</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access to new features</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Direct line to founders</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Family sharing</li>
+        </ul>
+        <a href="https://app.ferni.ai" class="btn btn--secondary pricing-card__cta">Chip In</a>
+      </div>
     </div>
   </div>
 </section>
@@ -1977,52 +1408,57 @@
 </main>
 
 
-<footer class="footer footer--bold">
+<footer class="footer">
   <div class="footer__inner">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="/" class="footer__logo">
+          <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
+            <div class="persona-avatar__ring"></div>
+            <div class="persona-avatar__orb">
+              <span class="persona-avatar__text">FE</span>
+            </div>
+          </div>
+          <span class="nav__logo-text">Ferni</span>
+        </a>
+        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Product</h4>
+        <ul class="footer__links">
+          <li><a href="#team">Meet the Team</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#founders">Support</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Company</h4>
+        <ul class="footer__links">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/contact/">Contact</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Connect</h4>
+        <ul class="footer__links">
+          <li><a href="https://app.ferni.ai">Web App</a></li>
+          <li><a href="tel:+14844813081">Call Ferni</a></li>
+          <li><a href="https://twitter.com/ferniAI">Twitter</a></li>
+        </ul>
+      </div>
+    </div>
     
-    <div class="footer__hero">
-      <h2 class="footer__headline">Ready when you are.</h2>
-      <p class="footer__subline">No pressure. No pitch. Just a conversation.</p>
-      <a href="https://app.ferni.ai" class="footer__cta">
-        Begin
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <div class="footer__nav">
-      <div class="footer__nav-group">
-        <h3 class="footer__nav-title">Explore</h3>
-        <a href="/story/">Our Story</a>
-        <a href="/team/">Meet the Team</a>
-        <a href="/building/">Building Ferni</a>
-        <a href="/garden/">The Garden</a>
-      </div>
-      <div class="footer__nav-group">
-        <h3 class="footer__nav-title">Learn</h3>
-        <a href="/blog/">Blog</a>
-        <a href="/how-it-works/">How It Works</a>
-        <a href="/faq/">FAQ</a>
-      </div>
-      <div class="footer__nav-group">
-        <h3 class="footer__nav-title">Connect</h3>
-        <a href="tel:+14844813081">Call Ferni</a>
-        <a href="https://twitter.com/ferniAI">Twitter</a>
-        <a href="mailto:hello@ferni.ai">Email</a>
-      </div>
-    </div>
-
     <div class="footer__bottom">
-      <div class="footer__brand-mark">
-        <span class="footer__logo-text">Ferni</span>
-        <span class="footer__motto">Better than human.</span>
-      </div>
+      <p class="footer__copyright">&copy; 2025 Ferni. All rights reserved.</p>
       <div class="footer__legal">
-        <span>&copy; 2025 Ferni</span>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
       </div>
     </div>
-
   </div>
 </footer>
 
@@ -2068,30 +1504,6 @@
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
   reveals.forEach(el => revealObserver.observe(el));
-  
-  // ========== Garden section card animations ==========
-  const gardenSection = document.querySelector('.garden--story');
-  if (gardenSection) {
-    const gardenCards = gardenSection.querySelectorAll('.garden__card--animated');
-    const gardenObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          // Trigger card animations when section comes into view
-          gardenCards.forEach(card => {
-            card.style.animationPlayState = 'running';
-          });
-          gardenObserver.disconnect();
-        }
-      });
-    }, { threshold: 0.2 });
-    
-    // Initially pause animations until visible
-    gardenCards.forEach(card => {
-      card.style.animationPlayState = 'paused';
-    });
-    
-    gardenObserver.observe(gardenSection);
-  }
   
   // ========== Smooth scroll for anchor links ==========
   document.querySelectorAll('a[href^="#"]').forEach(a => {
@@ -2204,7 +1616,119 @@
 </script>
 
 
+
   
+  
+
+<div class="waitlist-modal" id="waitlistModal" role="dialog" aria-modal="true" aria-labelledby="waitlistModalTitle" hidden>
+  
+  <div class="waitlist-modal__backdrop" aria-hidden="true"></div>
+
+  
+  <div class="waitlist-modal__container">
+    
+    <button class="waitlist-modal__close" id="waitlistModalClose" aria-label="Close modal" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
+    
+    <div class="waitlist-modal__content" id="waitlistModalContent">
+
+      
+      <div class="waitlist-modal__avatar" aria-hidden="true">
+        <div class="avatar-glow"></div>
+        <div class="avatar-orb">
+          <span class="avatar-text">FE</span>
+          <div class="avatar-pulse"></div>
+        </div>
+      </div>
+
+      
+      <h2 class="waitlist-modal__headline" id="waitlistModalTitle">
+        We're almost ready.
+      </h2>
+
+      
+      <p class="waitlist-modal__subhead">
+        Join the waitlist to be first when Ferni opens its doors.
+      </p>
+
+      
+      <form class="waitlist-modal__form" id="waitlistModalForm" novalidate>
+        <div class="waitlist-modal__field">
+          <input
+            type="email"
+            id="waitlistModalEmail"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="Your email"
+            aria-label="Email address"
+            aria-describedby="modalEmailError"
+          >
+          <span class="waitlist-modal__error" id="modalEmailError" role="alert" aria-live="polite"></span>
+        </div>
+
+        
+        <div class="waitlist-modal__honeypot" aria-hidden="true" tabindex="-1">
+          <input type="text" name="website" autocomplete="off" tabindex="-1">
+        </div>
+
+        <button type="submit" class="waitlist-modal__submit" id="waitlistModalSubmit">
+          <span class="waitlist-modal__submit-text">Join the waitlist</span>
+          <span class="waitlist-modal__submit-loading" aria-hidden="true">
+            <svg class="waitlist-modal__spinner" viewBox="0 0 24 24" width="20" height="20">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <svg class="waitlist-modal__submit-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </form>
+
+      
+      <p class="waitlist-modal__note">
+        We'll only email you when it's time. No spam, ever.
+      </p>
+    </div>
+
+    
+    <div class="waitlist-modal__success" id="waitlistModalSuccess" hidden>
+      
+      <div class="waitlist-modal__success-icon">
+        <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="var(--color-success, #4a6741)" stroke-opacity="0.3"/>
+          <polyline points="8 12 11 15 16 9" stroke="var(--color-success, #4a6741)"/>
+        </svg>
+      </div>
+
+      
+      <h2 class="waitlist-modal__success-headline">
+        You're on the list!
+      </h2>
+      <p class="waitlist-modal__success-message">
+        We'll reach out soon. Until then, take care of yourself.
+      </p>
+
+      
+      <p class="waitlist-modal__explore-hint">
+        Feel free to explore what's coming...
+      </p>
+
+      <button class="waitlist-modal__explore-btn" id="waitlistModalExplore" type="button">
+        Continue exploring
+      </button>
+    </div>
+
+    
+    <canvas id="modalConfettiCanvas" class="waitlist-modal__confetti" aria-hidden="true"></canvas>
+  </div>
+</div>
+
+
   
   <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__content">
@@ -2262,6 +1786,9 @@
   
   
   <script src="/js/voice-demo.js"></script>
+
+  
+  <script src="/js/waitlist-modal.js"></script>
 
   <script>
   (function() {
