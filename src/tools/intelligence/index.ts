@@ -28,3 +28,10 @@ export {
   type CrossPersonaContext,
   type PersonaHandoffEvent,
 } from './unified-intelligence-layer.js';
+
+// Cognitive tool interpretation
+export {
+  interpretToolResult,
+  type ToolResultContext,
+  type CognitiveInterpretation,
+} from './cognitive-tool-interpretation.js';

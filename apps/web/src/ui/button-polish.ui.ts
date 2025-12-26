@@ -333,7 +333,7 @@ export function polishAllButtons(options: ButtonPolishOptions = {}): void {
 
   buttons.forEach((button) => {
     // Detect variant from classes
-    let variant: ButtonVariant = options.variant || 'secondary';
+    let variant: ButtonVariant = options.variant ?? 'secondary';
 
     if (button.classList.contains('btn-primary') || button.classList.contains('primary')) {
       variant = 'primary';
@@ -411,7 +411,10 @@ export function disposeButtonPolish(): void {
   // Remove polished class from all buttons
   document.querySelectorAll<HTMLElement>('[data-polished]').forEach((button) => {
     button.classList.remove('btn-polished');
-    button.classList.remove(/btn-polished--.*/);
+    // Remove all modifier classes matching btn-polished--*
+    Array.from(button.classList)
+      .filter((cls) => cls.startsWith('btn-polished--'))
+      .forEach((cls) => button.classList.remove(cls));
     delete button.dataset.polished;
   });
 

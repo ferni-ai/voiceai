@@ -21,7 +21,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('NowPlaying');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)

@@ -10,7 +10,7 @@ import {
   setPreferences,
   getPreferences,
 } from '../../../../../src/services/outreach-intelligence.js';
-import { setUserContactInfo } from '../../../../../src/tools/proactive-outreach.js';
+import { setUserContactInfo } from '../../../../../src/tools/domains/proactive/outreach/index.js';
 
 async function test() {
   const userId = 'test-user';

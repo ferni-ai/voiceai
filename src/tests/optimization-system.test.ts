@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FeedbackCollector } from '../tools/feedback-collector.js';
-import { PatternAnalyzer } from '../tools/pattern-analyzer.js';
-import { RecommendationEngine } from '../tools/recommendation-engine.js';
-import { AutoToolOptimizer } from '../tools/auto-optimizer.js';
+import { FeedbackCollector } from '../tools/optimization/feedback-collector.js';
+import { PatternAnalyzer } from '../tools/optimization/pattern-analyzer.js';
+import { RecommendationEngine } from '../tools/optimization/recommendation-engine.js';
+import { AutoToolOptimizer } from '../tools/optimization/auto-optimizer.js';
 
 // =============================================================================
 // FEEDBACK COLLECTOR TESTS

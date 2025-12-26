@@ -13,6 +13,8 @@ import { humanizationSignalEmitter } from '../../services/humanization/humanizat
 import { createLogger } from '../../utils/safe-logger.js';
 import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 
+import { seededPick } from '../utils/rng.js';
+
 import {
   ADVICE_PATTERNS,
   CONNECTION_PATTERNS,
@@ -197,7 +199,7 @@ export class PredictiveAnticipationEngine {
     if (confidence > 0.6) {
       const options = VOICE_STATE_ACKNOWLEDGMENTS[state];
       if (options && options.length > 0) {
-        acknowledgment = options[Math.floor(Math.random() * options.length)];
+        acknowledgment = seededPick(`${this.userId}:${this.turnCount}:voiceState:${state}`, options) ?? options[0];
       }
     }
 
@@ -253,7 +255,7 @@ export class PredictiveAnticipationEngine {
       confidence,
       evidence: `After ${this.currentTopic}, you often talk about ${mostLikely.to} (${mostLikely.count} times)`,
       shouldPrompt,
-      promptPhrase: shouldPrompt ? phrases[Math.floor(Math.random() * phrases.length)] : undefined,
+      promptPhrase: shouldPrompt ? seededPick(`${this.userId}:${this.turnCount}:topicPrompt:${mostLikely.to}`, phrases) ?? phrases[0] : undefined,
     };
   }
 

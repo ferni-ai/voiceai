@@ -23,10 +23,10 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { soundUI } from './sound.ui.js';
 
-const log = createLogger('PermissionConsentUI');
+const _log = createLogger('PermissionConsentUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // LUCIDE ICONS (brand-compliant, no emoji)
@@ -663,15 +663,19 @@ function injectStyles(): void {
     .consent-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .consent-panel {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(336px, 90vw, 480px);
       width: 100%;
       max-height: 85vh;
@@ -682,6 +686,12 @@ function injectStyles(): void {
 
     .permission-consent-modal.visible .consent-panel {
       transform: scale(1) translateY(0);
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .consent-panel {
+        background: var(--color-background-elevated, #faf6f0);
+      }
     }
 
     .consent-close {
@@ -730,7 +740,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-xl);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .consent-icon svg {
@@ -848,7 +858,7 @@ function injectStyles(): void {
       width: 18px;
       height: 18px;
       margin-top: 2px;
-      accent-color: var(--persona-primary);
+      accent-color: var(--persona-text);
       cursor: pointer;
     }
 

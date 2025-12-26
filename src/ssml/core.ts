@@ -13,15 +13,9 @@
 import {
   applyThinkingTimeSSML,
   calculateThinkingTime,
-  type ThinkingContext,
-  type ThinkingInjection,
 } from '../conversation/thinking-time-injector.js';
-import {
-  addBreathGroupPauses,
-  injectNaturalFillers,
-  type BreathGroupConfig,
-  type FillerConfig,
-} from '../speech/advanced-humanization.js';
+import { addBreathGroupPauses, injectNaturalFillers } from '../speech/advanced-humanization.js';
+import type { SsmlTagOptions } from './types.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { checkTTSText, trackTTSCheck } from '../speech/tts-monitoring.js';
 import { FINANCIAL_END, FINANCIAL_START, STAGE_DIRECTION_KEYWORDS } from './constants.js';
@@ -285,6 +279,11 @@ export function sanitizeSsml(text: string): string {
   // Remove ALL non-verbal actions that LLMs might generate
   // ================================================
 
+  // PROTECT [laughter] before stage direction removal
+  // Replace with a unique placeholder that won't match any keyword patterns
+  const LAUGHTER_PLACEHOLDER = '\uE010LAUGHTER\uE011';
+  result = result.replace(/\[laughter\]/gi, LAUGHTER_PLACEHOLDER);
+
   // Build regex pattern for stage directions
   const keywordPattern = STAGE_DIRECTION_KEYWORDS.join('|');
 
@@ -294,8 +293,15 @@ export function sanitizeSsml(text: string): string {
   // Remove parenthesis-wrapped stage directions: (sighs), (takes a breath), etc.
   result = result.replace(new RegExp(`\\([^)]*(?:${keywordPattern})[^)]*\\)`, 'gi'), '');
 
-  // Remove bracket-wrapped stage directions (except [laughter]): [pauses], [smiles], etc.
+  // Remove bracket-wrapped stage directions: [pauses], [smiles], etc.
+  // Note: [laughter] is protected by placeholder above
   result = result.replace(new RegExp(`\\[[^\\]]*(?:${keywordPattern})[^\\]]*\\]`, 'gi'), '');
+
+  // RESTORE [laughter] placeholder
+  result = result.replace(
+    new RegExp(LAUGHTER_PLACEHOLDER.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&'), 'g'),
+    '[laughter]'
+  );
 
   // Remove common standalone stage direction phrases
   result = result.replace(
@@ -473,36 +479,7 @@ export function sanitizeSsml(text: string): string {
 // MAIN TAGGING FUNCTION
 // =============================================================================
 
-/**
- * Options for persona-aware SSML tagging.
- */
-interface SsmlTagOptions {
-  personaId?: string;
-  baseSpeed?: number;
-  baseVolume?: number;
-  humanize?: boolean;
-
-  /** Enable natural filler injection ("um", "well", etc.) - default: true */
-  naturalFillers?: boolean;
-
-  /** Enable breath group pacing (pauses at phrase boundaries) - default: true */
-  breathGroupPacing?: boolean;
-
-  /** Filler injection config */
-  fillerConfig?: FillerConfig;
-
-  /** Breath group config */
-  breathConfig?: BreathGroupConfig;
-
-  /** Enable thinking time injection - default: false (must provide context) */
-  thinkingTime?: boolean;
-
-  /** Context for thinking time calculation (required if thinkingTime is true) */
-  thinkingContext?: ThinkingContext;
-
-  /** Pre-calculated thinking injection (if already computed by awareness system) */
-  thinkingInjection?: ThinkingInjection;
-}
+// SsmlTagOptions is imported from './types.js' - single source of truth
 
 /**
  * Tag text with SSML for natural speech

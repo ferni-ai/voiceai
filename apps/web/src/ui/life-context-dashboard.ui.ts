@@ -149,8 +149,9 @@ const styles = `
   .life-context-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
 
   .life-context-modal {
@@ -158,14 +159,24 @@ const styles = `
     width: 95%;
     max-width: clamp(476px, 90vw, 680px);
     max-height: 90vh;
-    background: var(--color-background-elevated);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl);
+    /* Glass modal styling */
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: scale(0.95);
     transition: transform var(--duration-slow, 300ms) var(--ease-spring);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .life-context-modal {
+      background: var(--color-background-elevated);
+    }
   }
 
   .life-context-modal-overlay.visible .life-context-modal {
@@ -185,7 +196,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-1, 4px);
   }
 
@@ -262,15 +273,15 @@ const styles = `
   }
 
   .life-context-score-card__value--good {
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
 
   .life-context-score-card__value--warning {
-    color: var(--color-jordan);
+    color: var(--color-jordan-text);
   }
 
   .life-context-score-card__value--concern {
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
 
   .life-context-score-card__label {
@@ -361,17 +372,17 @@ const styles = `
 
   .life-context-domain-card__level--low {
     background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
 
   .life-context-domain-card__level--medium {
     background: var(--color-jordan-tint, rgba(203, 161, 53, 0.1));
-    color: var(--color-jordan);
+    color: var(--color-jordan-text);
   }
 
   .life-context-domain-card__level--high {
     background: var(--color-maya-tint, rgba(166, 122, 106, 0.15));
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
 
   .life-context-domain-card__reason {
@@ -427,17 +438,17 @@ const styles = `
 
   .life-context-pattern__severity--low {
     background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
 
   .life-context-pattern__severity--medium {
     background: var(--color-jordan-tint, rgba(203, 161, 53, 0.1));
-    color: var(--color-jordan);
+    color: var(--color-jordan-text);
   }
 
   .life-context-pattern__severity--high {
     background: var(--color-maya-tint, rgba(166, 122, 106, 0.15));
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
 
   .life-context-pattern__insight {
@@ -541,7 +552,7 @@ const styles = `
     height: 40px;
     flex-shrink: 0;
     opacity: 0.6;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
   
   .life-context-empty--centered .life-context-empty__icon {
@@ -699,7 +710,7 @@ const styles = `
     width: 40px;
     height: 40px;
     border: 4px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
-    border-top-color: var(--color-ferni);
+    border-top-color: var(--color-ferni-text);
     border-radius: 50%;
     animation: life-context-spin var(--duration-entrance, 1000ms) linear infinite;
   }

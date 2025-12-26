@@ -990,3 +990,23 @@ export default {
   analyzeMessage,
   resetIntelligence,
 };
+
+// ============================================================================
+// SEMANTIC DATA CAPTURE ROUTER ("Better than Human" - passive learning)
+// ============================================================================
+
+export { processDataCapture, captureDataBetterThanHuman } from './data-capture/index.js';
+
+export {
+  allDataCaptureDefinitions,
+  contactCaptureDefinition,
+  commitmentCaptureDefinition,
+  dreamCaptureDefinition,
+  relationshipCaptureDefinition,
+} from './data-capture/definitions/index.js';
+
+export type {
+  DataCaptureDefinition,
+  DataCaptureContext,
+  DataCaptureResult,
+} from './data-capture/types.js';

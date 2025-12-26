@@ -653,9 +653,11 @@ export function createLLMProvider(
  * Auto-detect and create provider from environment
  */
 export function createProviderFromEnv(): UnifiedLLMProvider | null {
-  if (process.env.GOOGLE_API_KEY) {
-    log.info('Using Gemini provider (auto-detected from GOOGLE_API_KEY)');
-    return createGeminiProvider({ apiKey: process.env.GOOGLE_API_KEY });
+  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (geminiKey) {
+    log.info('Using Gemini provider (auto-detected from GEMINI_API_KEY or GOOGLE_API_KEY)');
+    return createGeminiProvider({ apiKey: geminiKey });
   }
 
   if (process.env.OPENAI_API_KEY) {

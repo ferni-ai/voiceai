@@ -30,6 +30,7 @@ import {
 } from '../services/journal/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON } from './helpers.js';
+import { requireAuth } from './auth-middleware.js';
 
 const log = getLogger();
 
@@ -174,11 +175,10 @@ export async function handleJournalRoutes(
 
     // POST /api/journal/capture - Save auto-captured moment
     if (method === 'POST' && pathname === '/api/journal/capture') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       const body = await parseBody<{
         type: string; // MomentType
@@ -235,11 +235,10 @@ export async function handleJournalRoutes(
 
     // GET /api/journal/entries - Get all journal entries
     if (method === 'GET' && pathname === '/api/journal/entries') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       try {
         // Parse query parameters from URL
@@ -272,11 +271,10 @@ export async function handleJournalRoutes(
 
     // GET /api/journal/stats - Get journal statistics
     if (method === 'GET' && pathname === '/api/journal/stats') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       try {
         const journalService = getJournalService();
@@ -293,11 +291,10 @@ export async function handleJournalRoutes(
 
     // GET /api/journal/search - Search journal entries
     if (method === 'GET' && pathname === '/api/journal/search') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       const url = new URL(req.url || '', `http://${req.headers.host}`);
       const query = url.searchParams.get('q');
@@ -323,11 +320,10 @@ export async function handleJournalRoutes(
     // GET /api/journal/aggregated - Get entries from ALL Digital Twins
     // This provides a unified view across all user's agents
     if (method === 'GET' && pathname === '/api/journal/aggregated') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       try {
         const url = new URL(req.url || '', `http://${req.headers.host}`);
@@ -372,11 +368,10 @@ export async function handleJournalRoutes(
 
     // GET /api/journal/export - Export all journal data for download
     if (method === 'GET' && pathname === '/api/journal/export') {
-      const userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        sendJson(res, 401, { error: 'User ID required' });
-        return true;
-      }
+      // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+      const auth = await requireAuth(req, res);
+      if (!auth) return true; // 401 already sent
+      const { userId } = auth;
 
       try {
         const url = new URL(req.url || '', `http://${req.headers.host}`);

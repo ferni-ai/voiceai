@@ -5,7 +5,7 @@
  * Single responsibility: Fetching and presenting weather information.
  *
  * APIs used (in priority order):
- * 1. Apple WeatherKit (primary - more reliable, better data)
+ * 1. Google Weather API (primary - fast, uses existing GOOGLE_API_KEY)
  * 2. Open-Meteo (fallback - free, no key required)
  */
 
@@ -15,61 +15,92 @@ import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
-// Lazy import Apple WeatherKit to avoid startup errors when not configured
-async function tryAppleWeather(location: string): Promise<string | null> {
+// ============================================================================
+// GOOGLE WEATHER API
+// Uses the Google Maps Weather API - requires GOOGLE_API_KEY
+// Docs: https://developers.google.com/maps/documentation/weather
+// ============================================================================
+
+interface GoogleWeatherResponse {
+  currentConditions?: {
+    temperature?: { degrees: number; units: string };
+    feelsLike?: { degrees: number; units: string };
+    humidity?: { percent: number };
+    windSpeed?: { value: number; units: string };
+    weatherCondition?: string;
+    description?: string;
+  };
+  error?: { code: number; message: string };
+}
+
+/**
+ * Try Google Weather API first (fastest, uses existing API key)
+ */
+async function tryGoogleWeather(location: string): Promise<string | null> {
   const log = getLogger();
+  const apiKey = process.env.GOOGLE_API_KEY;
+
+  if (!apiKey) {
+    log.debug({ location }, '🌤️ Google Weather skipped - no API key');
+    return null;
+  }
 
   try {
-    const {
-      isWeatherKitAvailable,
-      getWeather,
-      formatCurrentWeatherForVoice,
-      formatAlertsForVoice,
-    } = await import('../../../services/apple/weatherkit.js');
-
-    if (!isWeatherKitAvailable()) {
-      log.debug({ location }, '🍎 WeatherKit not configured');
-      return null;
-    }
-
-    // Use Open-Meteo geocoding for ANY city (not just hardcoded list)
-    const geo = await geocodeLocation(location);
+    // First geocode the location
+    const geo = await geocodeWithGoogle(location);
     if (!geo) {
-      log.debug({ location }, '🍎 Geocoding failed for Apple Weather');
+      log.debug({ location }, '🌤️ Google geocoding failed');
       return null;
     }
 
-    log.debug(
-      { location, lat: geo.latitude, lon: geo.longitude },
-      '🍎 Fetching from Apple WeatherKit'
-    );
-    const weather = await getWeather(geo.latitude, geo.longitude);
+    // Call Google Weather API
+    const url = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: {
+          latitude: geo.latitude,
+          longitude: geo.longitude,
+        },
+        unitsSystem: 'IMPERIAL', // Fahrenheit, mph
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
 
-    if (!weather?.current) {
-      log.debug({ location }, '🍎 No weather data from Apple');
+    if (!response.ok) {
+      // Google Weather API might not be enabled - fall back silently
+      log.debug({ location, status: response.status }, '🌤️ Google Weather API error');
       return null;
     }
 
-    // Format location name nicely
+    const data = (await response.json()) as GoogleWeatherResponse;
+
+    if (data.error || !data.currentConditions) {
+      log.debug({ location, error: data.error?.message }, '🌤️ Google Weather no data');
+      return null;
+    }
+
+    const current = data.currentConditions;
+    const temp = current.temperature?.degrees;
+    const feelsLike = current.feelsLike?.degrees;
+    const humidity = current.humidity?.percent;
+    const windSpeed = current.windSpeed?.value;
+    const condition = current.description || current.weatherCondition || 'varied conditions';
+
     const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
-    let result = formatCurrentWeatherForVoice(weather.current, locationName);
+    const feelsLikeStr = feelsLike && Math.abs(feelsLike - (temp || 0)) > 3
+      ? `, feels like ${Math.round(feelsLike)}°F`
+      : '';
 
-    // Add any weather alerts (Apple's killer feature!)
-    const alertText = formatAlertsForVoice(weather.alerts);
-    if (alertText) {
-      result = `${alertText} ${result}`;
-    }
+    log.info({ location, locationName, source: 'GoogleWeather' }, '🌤️ Weather from Google');
 
-    log.info(
-      { location, locationName, source: 'AppleWeatherKit' },
-      '🍎 Weather from Apple WeatherKit'
+    return (
+      `Right now in ${locationName}: ${Math.round(temp || 0)}°F with ${condition.toLowerCase()}${feelsLikeStr}. ` +
+      `Humidity is ${humidity || 0}% and winds are ${Math.round(windSpeed || 0)} mph.`
     );
-    return result;
   } catch (error) {
-    getLogger().debug(
-      { location, error: String(error) },
-      '🍎 Apple WeatherKit error, using fallback'
-    );
+    log.debug({ location, error: String(error) }, '🌤️ Google Weather exception');
     return null;
   }
 }
@@ -169,17 +200,25 @@ async function geocodeLocation(location: string): Promise<GeocodingResult | null
  * Google Geocoding API (~50-150ms, very fast)
  */
 async function geocodeWithGoogle(location: string): Promise<GeocodingResult | null> {
+  const log = getLogger();
   const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    log.debug({ location }, '📍 Google geocoding skipped - no API key');
+    return null;
+  }
 
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ location, status: response.status }, '📍 Google geocoding HTTP error');
+      return null;
+    }
 
     const data = (await response.json()) as {
       status: string;
+      error_message?: string;
       results?: Array<{
         geometry: { location: { lat: number; lng: number } };
         address_components?: Array<{
@@ -189,7 +228,10 @@ async function geocodeWithGoogle(location: string): Promise<GeocodingResult | nu
       }>;
     };
 
-    if (data.status !== 'OK' || !data.results?.length) return null;
+    if (data.status !== 'OK' || !data.results?.length) {
+      log.warn({ location, status: data.status, error: data.error_message }, '📍 Google geocoding returned no results');
+      return null;
+    }
 
     const result = data.results[0];
     const coords = result.geometry?.location;
@@ -210,7 +252,8 @@ async function geocodeWithGoogle(location: string): Promise<GeocodingResult | nu
       admin1: state,
       country,
     };
-  } catch {
+  } catch (error) {
+    log.warn({ location, error: String(error) }, '📍 Google geocoding exception');
     return null;
   }
 }
@@ -219,17 +262,33 @@ async function geocodeWithGoogle(location: string): Promise<GeocodingResult | nu
  * Open-Meteo Geocoding (free fallback, ~200-500ms)
  */
 async function geocodeWithOpenMeteo(location: string): Promise<GeocodingResult | null> {
+  const log = getLogger();
+  
+  // Open-Meteo doesn't like "City, State" format - extract just the city name
+  // "San Francisco, California" → "San Francisco"
+  // "New York, New York" → "New York"
+  const cityOnly = location.split(',')[0].trim();
+  
   try {
-    const response = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`,
-      { signal: AbortSignal.timeout(5000) }
-    );
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1`;
+    log.debug({ location, cityOnly, url }, '📍 Open-Meteo geocoding request');
+    
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ location, cityOnly, status: response.status }, '📍 Open-Meteo geocoding HTTP error');
+      return null;
+    }
 
     const data = (await response.json()) as { results?: GeocodingResult[] };
+    
+    if (!data.results?.length) {
+      log.warn({ location, cityOnly }, '📍 Open-Meteo returned no results');
+    }
+    
     return data.results?.[0] || null;
-  } catch {
+  } catch (error) {
+    log.warn({ location, cityOnly, error: String(error) }, '📍 Open-Meteo geocoding exception');
     return null;
   }
 }
@@ -247,7 +306,7 @@ function getWeatherDescription(code: number): string {
 
 /**
  * Get current weather for a location
- * Priority: Apple WeatherKit → Open-Meteo (fallback)
+ * Priority: Google Weather API → Open-Meteo (fallback)
  */
 export async function getCurrentWeather(location: string): Promise<string> {
   const startTime = Date.now();
@@ -255,17 +314,17 @@ export async function getCurrentWeather(location: string): Promise<string> {
 
   log.info({ timestamp: new Date().toISOString(), location }, '🌤️ [DIAG] getCurrentWeather START');
 
-  // Try Apple WeatherKit first (more reliable)
-  const appleResult = await tryAppleWeather(location);
-  if (appleResult) {
+  // Try Google Weather API first (fast, uses existing API key)
+  const googleResult = await tryGoogleWeather(location);
+  if (googleResult) {
     log.info(
-      { location, elapsed: Date.now() - startTime, source: 'AppleWeatherKit' },
-      '🌤️ Weather from Apple'
+      { location, elapsed: Date.now() - startTime, source: 'GoogleWeather' },
+      '🌤️ Weather from Google'
     );
-    return appleResult;
+    return googleResult;
   }
 
-  // Fallback to Open-Meteo
+  // Fallback to Open-Meteo (free, no API key needed)
   log.debug({ location }, '🌤️ Falling back to Open-Meteo');
   const geo = await geocodeLocation(location);
 

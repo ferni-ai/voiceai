@@ -35,9 +35,9 @@ const STYLES = `
   .professional-tasks-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
 
   .professional-tasks-modal {
@@ -45,16 +45,26 @@ const STYLES = `
     width: 100%;
     max-width: clamp(420px, 90vw, 600px);
     max-height: 85vh;
-    background: var(--color-background-elevated);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-2xl);
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transform: scale(0.95);
     opacity: 0;
-    transition: transform ${DURATION.SLOW}ms ${EASING.SPRING}, 
+    transition: transform ${DURATION.SLOW}ms ${EASING.SPRING},
                 opacity ${DURATION.SLOW}ms ${EASING.GENTLE};
+  }
+
+  @supports not (backdrop-filter: blur(24px)) {
+    .professional-tasks-modal {
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border);
+    }
   }
 
   .professional-tasks-modal.visible {
@@ -454,7 +464,7 @@ interface DomainExpertise {
 function render(): string {
   if (!currentAgent) return '';
 
-  const skills = (currentAgent.personality?.values || []) as string[];
+  const skills = (currentAgent.personality?.values || []);
   const domains = (currentAgent.memories?.wisdom || []) as unknown as DomainExpertise[];
   const taskTemplates = getDefaultTaskTemplates();
 
@@ -787,8 +797,8 @@ function attachListeners(): void {
   };
   document.addEventListener('keydown', escHandler);
 
-  tasksModal.querySelector('[data-action="add-skill"]')?.addEventListener('click', handleAddSkill);
-  tasksModal.querySelector('[data-action="add-domain"]')?.addEventListener('click', handleAddDomain);
+  tasksModal.querySelector('[data-action="add-skill"]')?.addEventListener('click', () => { void handleAddSkill(); });
+  tasksModal.querySelector('[data-action="add-domain"]')?.addEventListener('click', () => { void handleAddDomain(); });
 
   // Skill edit/delete
   tasksModal.querySelectorAll('[data-action="edit-skill"]').forEach(btn => {
@@ -824,7 +834,7 @@ async function handleAddSkill(): Promise<void> {
   if (!skill || !currentAgent) return;
 
   try {
-    const currentSkills = (currentAgent.personality?.values || []) as string[];
+    const currentSkills = (currentAgent.personality?.values || []);
     const updates = {
       personality: {
         ...currentAgent.personality,
@@ -875,7 +885,7 @@ async function handleEditSkill(e: Event): Promise<void> {
   if (!currentAgent) return;
 
   const { toast } = await import('./toast.ui.js');
-  const skills = (currentAgent.personality?.values || []) as string[];
+  const skills = (currentAgent.personality?.values || []);
   const currentSkill = skills[index];
 
   const newSkill = prompt('Edit this skill:', currentSkill);
@@ -909,7 +919,7 @@ async function handleDeleteSkill(e: Event): Promise<void> {
   if (!currentAgent) return;
 
   const { toast } = await import('./toast.ui.js');
-  const skills = (currentAgent.personality?.values || []) as string[];
+  const skills = (currentAgent.personality?.values || []);
 
   if (!confirm(`Remove skill "${skills[index]}"?`)) return;
 

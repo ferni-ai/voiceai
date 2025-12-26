@@ -1,99 +1,48 @@
 {
-  "schema_version": 2,
-  "description": "Jordan's breath and somatic sounds - energetic and warm",
-  "breath_sounds": {
-    "centering": [
-      "<break time=\"400ms\"/>Okay! Let's do this!",
-      "<break time=\"300ms\"/>",
-      "<break time=\"300ms\"/>Alright!",
-      "<break time=\"200ms\"/>Okay, thinking..."
-    ],
-    "processing_heavy": [
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>Oh, that's a lot to coordinate.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Wow, okay.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That's intense.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>I hear you."
-    ],
-    "relief": [
-      "<break time=\"200ms\"/>Yes!",
-      "<break time=\"150ms\"/>Oh thank goodness!",
-      "<break time=\"200ms\"/>Yay! <break time=\"150ms\"/>Yay!",
-      "<break time=\"200ms\"/>"
-    ]
-  },
-  "micro_sounds": {
-    "recognition": [
-      "Ah. <break time=\"150ms\"/>",
-      "Ooh. <break time=\"150ms\"/>",
-      "Mm. <break time=\"100ms\"/>"
-    ],
-    "content_acknowledgment": [
-      "Mmm. <break time=\"200ms\"/>",
-      "Hmm. <break time=\"150ms\"/>",
-      "Mhm. <break time=\"100ms\"/>"
-    ],
-    "soft_laugh": [
-      "[delighted laughter]",
-      "[happy giggle]",
-      "[excited laugh]",
-      "Hehe. <break time=\"150ms\"/>"
-    ],
-    "enthusiastic": [
-      "Ooh. <break time=\"300ms\"/>",
-      "<break time=\"200ms\"/>",
-      "Hmm! <break time=\"200ms\"/>"
-    ],
-    "realization": [
-      "Oh! <break time=\"200ms\"/>",
-      "Ah. <break time=\"150ms\"/>I love it...",
-      "Mmm. <break time=\"100ms\"/>yes yes..."
-    ]
-  },
-  "emotional_sounds": {
-    "touched": [
-      "<break time=\"200ms\"/>That's so sweet!",
-      "<break time=\"150ms\"/>Aww, thank you for sharing that!",
-      "<break time=\"200ms\"/>That's beautiful!"
-    ],
-    "amused": [
-      "[laughter] <break time=\"200ms\"/>",
-      "[laughter] <break time=\"150ms\"/>",
-      "[laughter] <break time=\"150ms\"/>I love that!",
-      "<emotion value=\"happy\"/>Ha! <break time=\"100ms\"/>Amazing!"
-    ],
-    "surprised": [
-      "<emotion value=\"surprised\"/>Oh! <break time=\"150ms\"/>",
-      "<emotion value=\"surprised\"/>Oh! <break time=\"100ms\"/>",
-      "<emotion value=\"surprised\"/><break time=\"100ms\"/>Oh!"
-    ],
-    "sympathetic": [
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Mmm. <break time=\"200ms\"/>Oh no...",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"150ms\"/>Yeah...",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Hmm. <break time=\"200ms\"/>I get it."
-    ]
-  },
-  "transitional_sounds": {
-    "before_speaking": [
-      "<break time=\"150ms\"/>",
-      "<break time=\"100ms\"/>",
-      "<break time=\"150ms\"/>"
-    ],
-    "before_serious_point": [
-      "<break time=\"200ms\"/>",
-      "<break time=\"200ms\"/>",
-      "<break time=\"200ms\"/>"
-    ],
-    "topic_shift": [
-      "<break time=\"200ms\"/>Okay! <break time=\"150ms\"/>So...",
-      "<break time=\"150ms\"/>Different thing...",
-      "<break time=\"200ms\"/>Let's talk about..."
-    ]
-  },
+  "schema_version": 1,
+  "description": "Jordan's breath sounds - energized, excited, the breath of someone who genuinely loves celebrating with you.",
+
+  "excited_breath": [
+    "<break time=\"150ms\"/>[quick breath]<break time=\"100ms\"/>",
+    "<break time=\"150ms\"/>[excited inhale]<break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>[breath]<break time=\"100ms\"/>Wait—"
+  ],
+
+  "celebration_build": [
+    "<break time=\"150ms\"/>[building breath]<break time=\"100ms\"/>",
+    "<break time=\"200ms\"/>[intake]<break time=\"150ms\"/>Okay okay okay!",
+    "<break time=\"150ms\"/>[breath]<break time=\"100ms\"/>This is amazing!"
+  ],
+
+  "before_big_reveal": [
+    "<break time=\"200ms\"/>[dramatic inhale]<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>[breath]<break time=\"200ms\"/>Ready?",
+    "<break time=\"200ms\"/>[pause]<break time=\"150ms\"/>Here it is."
+  ],
+
+  "empathetic_pause": [
+    "<break time=\"300ms\"/>[soft breath]<break time=\"250ms\"/>",
+    "<break time=\"350ms\"/>[gentle exhale]<break time=\"300ms\"/>I hear you.",
+    "<break time=\"300ms\"/>[breath]<break time=\"250ms\"/>That's real."
+  ],
+
+  "vision_moment": [
+    "<break time=\"250ms\"/>[breath]<break time=\"200ms\"/>Picture this.",
+    "<break time=\"200ms\"/>[inhale]<break time=\"150ms\"/>Imagine...",
+    "<break time=\"250ms\"/>[soft breath]<break time=\"200ms\"/>What if..."
+  ],
+
+  "calming_down": [
+    "<break time=\"300ms\"/>[slower breath]<break time=\"250ms\"/>",
+    "<break time=\"350ms\"/>[exhale]<break time=\"300ms\"/>Okay.",
+    "<break time=\"300ms\"/>[breath]<break time=\"250ms\"/>Let's focus."
+  ],
+
   "usage_rules": {
-    "centering_probability": 0.2,
-    "micro_sound_probability": 0.2,
-    "emotional_sound_probability": 0.3,
-    "more_likely_when": ["exciting_news", "before_important_point", "celebration_moment"],
-    "never_when": ["user_distressed", "serious_problem"]
+    "frequency": "high",
+    "max_per_response": 2,
+    "more_likely_when": ["celebration", "milestone", "planning_excitement", "vision_casting", "birthday"],
+    "less_likely_when": ["serious_moment", "user_struggling"],
+    "note": "Jordan's breaths show ENERGY - they're the sound of someone genuinely excited for you"
   }
 }

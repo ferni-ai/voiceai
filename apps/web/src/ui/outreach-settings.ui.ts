@@ -14,7 +14,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 const log = createLogger('OutreachSettings');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -76,25 +76,26 @@ const ICONS = {
 
 let settingsPanel: HTMLElement | null = null;
 let isOpen = false;
+// OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
 let currentPreferences: OutreachPreferences = {
-  enabled: true,
+  enabled: false, // DISABLED by default - user must opt in
   channels: {
-    sms: true,
-    email: true,
+    sms: false, // Disabled until user explicitly enables
+    email: false, // Disabled until user explicitly enables
     call: false,
   },
   quietHours: {
-    enabled: true,
+    enabled: true, // Keep quiet hours ON for protection
     start: '22:00',
     end: '07:00',
   },
-  frequency: 'balanced',
+  frequency: 'minimal', // Start with minimal frequency
   triggerTypes: {
-    commitments: true,
-    emotional: true,
-    celebrations: true,
-    thinkingOfYou: true,
-    reminders: true,
+    commitments: true, // User-requested commitments should be allowed
+    emotional: false, // Disabled until user opts in
+    celebrations: false, // Disabled until user opts in
+    thinkingOfYou: false, // Disabled until user opts in
+    reminders: true, // User-requested reminders should be allowed
   },
 };
 
@@ -117,10 +118,10 @@ async function loadPreferences(): Promise<void> {
 
     if (response.ok && response.data?.success && response.data.preferences) {
       const data = response.data;
-      // Merge with defaults
+      // Merge with defaults - OPT-OUT BY DEFAULT
       currentPreferences = {
         ...currentPreferences,
-        enabled: data.outreachEnabled ?? true,
+        enabled: data.outreachEnabled ?? false,
         channels: {
           sms: data.allowedChannels?.includes('sms') ?? true,
           email: data.allowedChannels?.includes('email') ?? true,
@@ -443,19 +444,21 @@ function setupEventListeners(panel: HTMLElement): void {
   });
 
   // Save button
-  panel.querySelector('.outreach-settings-save')?.addEventListener('click', async () => {
-    const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
-    saveBtn.textContent = t('common.saving');
-    saveBtn.disabled = true;
+  panel.querySelector('.outreach-settings-save')?.addEventListener('click', () => {
+    void (async () => {
+      const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
+      saveBtn.textContent = t('common.saving');
+      saveBtn.disabled = true;
 
-    await savePreferences();
+      await savePreferences();
 
-    saveBtn.textContent = t('common.saved');
-    trackedTimeout(() => {
-      saveBtn.textContent = t('buttons.savePreferences');
-      saveBtn.disabled = false;
-      close();
-    }, 1000);
+      saveBtn.textContent = t('common.saved');
+      trackedTimeout(() => {
+        saveBtn.textContent = t('buttons.savePreferences');
+        saveBtn.disabled = false;
+        close();
+      }, 1000);
+    })();
   });
 }
 
@@ -481,8 +484,9 @@ function getStyles(): string {
     .outreach-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .outreach-settings-card {
@@ -490,13 +494,23 @@ function getStyles(): string {
       width: 90%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 85vh;
-      background: var(--color-background-elevated);
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-2xl);
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
       transition: transform var(--duration-moderate) var(--ease-spring);
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .outreach-settings-card {
+        background: var(--color-background-elevated);
+      }
     }
 
     .outreach-settings-overlay.open .outreach-settings-card {

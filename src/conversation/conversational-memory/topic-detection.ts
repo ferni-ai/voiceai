@@ -7,6 +7,7 @@
  * @module conversation/conversational-memory/topic-detection
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { getTopicTracker } from '../../intelligence/topic-tracker.js';
 import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 
@@ -105,7 +106,7 @@ export class TopicDetector {
 
     if (specificTransitions[toTopic]) {
       const options = specificTransitions[toTopic];
-      return options[Math.floor(Math.random() * options.length)];
+      return seededPick(`${Date.now()}:109`, options) ?? options[0];
     }
 
     const generic = [
@@ -114,7 +115,7 @@ export class TopicDetector {
       "Yes, that's important too.",
       "Okay, I'm with you.",
     ];
-    return generic[Math.floor(Math.random() * generic.length)];
+    return seededPick(`${Date.now()}:118`, generic) ?? generic[0];
   }
 
   /**
@@ -130,7 +131,7 @@ export class TopicDetector {
       `That reminds me—we were talking about ${topic}...`,
     ];
 
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:134`, phrases) ?? phrases[0];
   }
 
   /**

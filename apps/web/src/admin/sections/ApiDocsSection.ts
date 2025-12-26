@@ -42,7 +42,7 @@ interface ApiCategory {
 /**
  * Render the API docs section
  */
-export async function render(): Promise<string> {
+export function render(): string {
   log.debug('Rendering API docs section');
 
   const categories = getApiCategories();

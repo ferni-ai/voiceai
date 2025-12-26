@@ -17,9 +17,14 @@ import type { SpeechCharacteristics } from '../personas/types.js';
 // ============================================================================
 
 /**
- * User energy level
+ * User energy level (external interface - 3 levels for backward compat)
  */
 export type EnergyLevel = 'low' | 'medium' | 'high';
+
+/**
+ * Extended energy level (5 levels for humanization system)
+ */
+export type ExtendedEnergyLevel = 'very_low' | 'low' | 'neutral' | 'elevated' | 'high';
 
 /**
  * Topic emotional weight
@@ -33,6 +38,8 @@ export interface SpeechContext {
   // User speech patterns
   userWPM: number;
   userEnergy: EnergyLevel;
+  /** Extended 5-level energy for humanization system */
+  extendedUserEnergy?: ExtendedEnergyLevel;
   userEmotion: string;
 
   // Conversation context
@@ -46,6 +53,14 @@ export interface SpeechContext {
   allowLaughter: boolean;
   pauseMultiplier: number; // 1.0 - 1.5
   emotionIntensity: number; // 0.5 - 1.0
+
+  // Late night & laughter context
+  /** Is it late at night? (11pm-5am local time) */
+  isLateNight?: boolean;
+  /** Did the user just laugh? (detected from transcript) */
+  userJustLaughed?: boolean;
+  /** Random seed for deterministic behavior selection */
+  randomSeed?: string;
 }
 
 // ============================================================================
@@ -110,10 +125,35 @@ export class WPMTracker {
 // ============================================================================
 
 /**
- * Detect user energy level from text patterns
+ * Detect user energy level from text patterns (3-level for backward compat)
  */
 export function detectEnergyLevel(text: string): EnergyLevel {
+  const extended = detectExtendedEnergyLevel(text);
+  // Map 5-level to 3-level
+  switch (extended) {
+    case 'very_low':
+    case 'low':
+      return 'low';
+    case 'high':
+    case 'elevated':
+      return 'high';
+    default:
+      return 'medium';
+  }
+}
+
+/**
+ * Detect user energy level from text patterns (5-level for humanization)
+ */
+export function detectExtendedEnergyLevel(text: string): ExtendedEnergyLevel {
   const lowerText = text.toLowerCase();
+
+  // Very high energy indicators
+  const veryHighEnergy = [
+    /!{3,}/, // Multiple exclamation marks (3+)
+    /\b(omg|oh my god|holy|wow|yes yes)\b/i,
+    /\b(SO excited|absolutely amazing|incredible)\b/i,
+  ];
 
   // High energy indicators
   const highEnergy = [
@@ -122,16 +162,29 @@ export function detectEnergyLevel(text: string): EnergyLevel {
     /\b(can't wait|so happy|thrilled|pumped)\b/i,
   ];
 
+  // Very low energy indicators
+  const veryLowEnergy = [
+    /\b(exhausted|drained|can't go on|give up|hopeless)\b/i,
+    /\b(barely|struggling|too tired)\b/i,
+    /^(yeah|mhm|ok|sure)\.?$/i, // Single word responses
+  ];
+
   // Low energy indicators
   const lowEnergy = [
-    /\b(tired|exhausted|drained|overwhelmed|down|sad|depressed)\b/i,
-    /\b(can't|don't want to|no energy|barely)\b/i,
+    /\b(tired|overwhelmed|down|sad|depressed)\b/i,
+    /\b(don't want to|no energy)\b/i,
     /\.{3,}/, // Trailing ellipses
     /^(yeah|okay|fine|sure|whatever)\.?$/i, // Minimal responses
   ];
 
+  let veryHighScore = 0;
   let highScore = 0;
   let lowScore = 0;
+  let veryLowScore = 0;
+
+  for (const pattern of veryHighEnergy) {
+    if (pattern.test(text)) veryHighScore++;
+  }
 
   for (const pattern of highEnergy) {
     if (pattern.test(text)) highScore++;
@@ -141,19 +194,54 @@ export function detectEnergyLevel(text: string): EnergyLevel {
     if (pattern.test(lowerText)) lowScore++;
   }
 
+  for (const pattern of veryLowEnergy) {
+    if (pattern.test(lowerText)) veryLowScore++;
+  }
+
   // Short responses suggest lower energy
-  if (text.split(/\s+/).length < 5) {
+  const wordCount = text.split(/\s+/).length;
+  if (wordCount < 3) {
+    veryLowScore += 0.5;
+  } else if (wordCount < 5) {
     lowScore += 0.5;
   }
 
   // Long enthusiastic responses suggest higher energy
-  if (text.split(/\s+/).length > 20 && text.includes('!')) {
+  if (wordCount > 20 && text.includes('!')) {
     highScore += 0.5;
   }
+  if (wordCount > 30 && (text.match(/!/g) || []).length > 2) {
+    veryHighScore += 0.5;
+  }
 
-  if (highScore > lowScore + 1) return 'high';
+  // Return appropriate energy level
+  if (veryHighScore > 0) return 'high';
+  if (highScore > lowScore + 1) return 'elevated';
+  if (veryLowScore > 0) return 'very_low';
   if (lowScore > highScore + 1) return 'low';
-  return 'medium';
+  return 'neutral';
+}
+
+/**
+ * Check if it's late night (11pm - 5am)
+ */
+export function isLateNightHours(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 23 || hour < 5;
+}
+
+/**
+ * Detect if user just laughed from their transcript
+ */
+export function detectUserLaughter(text: string): boolean {
+  const laughterPatterns = [
+    /\b(haha|hahaha|lol|lmao|rofl)\b/i,
+    /\b(that's funny|so funny|hilarious)\b/i,
+    /😂|🤣|😆/,
+    /\[laughing\]|\[laughter\]/i,
+  ];
+
+  return laughterPatterns.some((pattern) => pattern.test(text));
 }
 
 /**
@@ -274,6 +362,8 @@ export function buildSpeechContext(input: {
   personaSpeech?: SpeechCharacteristics;
   /** Fallback: persona energy level (0-1) to derive speech characteristics */
   personaEnergy?: number;
+  /** Session ID for deterministic random seed */
+  sessionId?: string;
 }): SpeechContext {
   // Get persona speech characteristics (or derive from energy, or use default)
   const personaSpeech =
@@ -282,8 +372,9 @@ export function buildSpeechContext(input: {
       ? deriveSpeechCharacteristicsFromEnergy(input.personaEnergy)
       : DEFAULT_SPEECH_CHARACTERISTICS['conversational']);
 
-  // Determine user energy
+  // Determine user energy (both 3-level and 5-level)
   const userEnergy = input.userText ? detectEnergyLevel(input.userText) : 'medium';
+  const extendedUserEnergy = input.userText ? detectExtendedEnergyLevel(input.userText) : 'neutral';
 
   // Determine topic weight
   const topicWeight = determineTopicWeight(input.emotion, input.topics);
@@ -380,9 +471,19 @@ export function buildSpeechContext(input: {
   const minSpeed = Math.max(0.65, personaSpeech.minimumEnergy * 0.7);
   const maxSpeed = Math.min(1.15, personaSpeech.maximumEnergy * 1.1);
 
+  // Detect late night and user laughter
+  const isLateNight = isLateNightHours();
+  const userJustLaughed = input.userText ? detectUserLaughter(input.userText) : false;
+
+  // Generate random seed for deterministic behavior selection
+  const randomSeed = input.sessionId
+    ? `${input.sessionId}-${input.turnCount || 0}`
+    : undefined;
+
   return {
     userWPM,
     userEnergy,
+    extendedUserEnergy,
     // Use explicitly passed userEmotion (tracked from user's speech) or fall back to current text emotion
     userEmotion: input.userEmotion || input.emotion?.primary || 'neutral',
     conversationPhase: phase,
@@ -393,6 +494,9 @@ export function buildSpeechContext(input: {
     allowLaughter,
     pauseMultiplier,
     emotionIntensity,
+    isLateNight,
+    userJustLaughed,
+    randomSeed,
   };
 }
 
@@ -460,6 +564,8 @@ export default {
   buildSpeechContext,
   detectEnergyLevel,
   determineTopicWeight,
+  isLateNightHours,
+  detectUserLaughter,
   WPMTracker,
   getSessionWPMTracker,
   resetSessionWPMTracker,

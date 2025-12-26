@@ -17,6 +17,9 @@ export {
   type RoutingContext,
 } from './turn-processor-integration.js';
 
+// Re-export HolisticContextSummary for downstream consumers
+export type { HolisticContextSummary } from '../types.js';
+
 // Initialization
 export {
   initializeSemanticRouter,
@@ -87,3 +90,23 @@ export {
   type LearningOutcome,
   type EnhancedRouting,
 } from './active-learning-integration.js';
+
+// 🚀 SOTA Integration (State of the Art features)
+export {
+  // Pre-routing enhancements
+  applySOTAPreRouting,
+  applySOTAConfidenceAdjustments,
+  // Post-routing outcome tracking
+  recordSOTAOutcome,
+  recordImplicitCorrection,
+  // Prosody tracking
+  startProsodyTracking,
+  endProsodyTracking,
+  feedAudioToProsody,
+  // Stats
+  getSOTAStats,
+  // Types
+  type SOTARoutingContext,
+  type SOTARoutingResult,
+  type SOTAOutcome,
+} from './sota-integration.js';

@@ -1262,7 +1262,16 @@ async function buildAlexCommunicationInsightsContext(
     const formattedSections = formatBriefingForInjection(briefing, handoffContext, turnCount);
 
     // Get superhuman context (network, commitments, capacity)
-    const superhumanContext = await getSuperhuman(userId, 'alex');
+    // V3 Semantic Intelligence needs current conversation context
+    const personMatch = input.userText?.match(
+      /\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i
+    );
+    const superhumanContext = await getSuperhuman(userId, 'alex', {
+      currentTranscript: input.userText,
+      currentTopics: input.analysis?.topics?.detected,
+      currentEmotion: input.analysis?.emotion?.primary,
+      currentMentionedPerson: personMatch?.[1],
+    });
     if (superhumanContext) {
       formattedSections.push('\n' + superhumanContext);
     }

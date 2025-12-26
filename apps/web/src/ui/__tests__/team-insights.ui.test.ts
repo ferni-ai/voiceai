@@ -82,10 +82,9 @@ describe('Team Insights UI', () => {
 
   describe('TeamInsight type', () => {
     it('should have correct interface structure', async () => {
-      const { TeamInsight } = await import('../team-insights.ui.js');
-      
-      // TypeScript will enforce this at compile time, but we test runtime exports
-      const mockInsight: typeof TeamInsight = {
+      // Import the type for compile-time checking only
+      // TypeScript interfaces don't exist at runtime - they're erased during compilation
+      const mockInsight = {
         id: 'test-123',
         source: 'peter',
         category: 'financial_pattern',
@@ -96,8 +95,11 @@ describe('Team Insights UI', () => {
         isNew: true,
       };
 
+      // Verify the mock object has the expected shape
       expect(mockInsight.id).toBe('test-123');
       expect(mockInsight.source).toBe('peter');
+      expect(mockInsight).toHaveProperty('category');
+      expect(mockInsight).toHaveProperty('priority');
     });
   });
 
@@ -196,7 +198,7 @@ describe('TeamInsights persona styles', () => {
 
     // These should be CSS variable references in the actual code
     // This test documents the expected color scheme
-    Object.entries(expectedColors).forEach(([persona, color]) => {
+    Object.entries(expectedColors).forEach(([_persona, color]) => {
       expect(color).toBeDefined();
       expect(typeof color).toBe('string');
       expect(color.startsWith('#')).toBe(true);
@@ -291,6 +293,7 @@ describe('TeamInsights time formatting', () => {
     expect(daysDiff).toBe(3);
   });
 });
+
 
 
 

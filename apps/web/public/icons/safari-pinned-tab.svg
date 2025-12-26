@@ -1,6 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Safari Pinned Tab - Monochrome Three Stones -->
-  <circle cx="8" cy="8" r="6" fill="black"/>
-  <circle cx="8" cy="8" r="2.5" fill="white"/>
-  <circle cx="8" cy="8" r="1.2" fill="black"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Safari Pinned Tab - Must be monochrome (black shapes only) -->
+  
+  <!-- Main circle -->
+  <circle cx="8" cy="8" r="7.5" fill="black"/>
+  
+  <!-- FE text (white/transparent knockout) -->
+  <text 
+    x="8" 
+    y="8.5" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="5.5"
+    font-weight="800"
+    fill="white">FE</text>
 </svg>

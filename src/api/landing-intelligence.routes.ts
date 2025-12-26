@@ -78,7 +78,7 @@ function humanizeTextForTTS(text: string, personaId: string): string {
       userEmotion: 'neutral',
       topicWeight: 'medium',
       turnCount: 1,
-      userEnergy: 'medium',
+      userEnergy: 'neutral',
       enableLaughter: true,
     };
 

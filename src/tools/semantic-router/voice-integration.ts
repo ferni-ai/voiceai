@@ -27,8 +27,18 @@ import {
 } from './index.js';
 import { getToolRegistry } from './registry.js';
 
-// Import all tool definitions
-import { allToolDefinitions, getToolStats } from './tool-definitions/index.js';
+// Import all tool definitions (with capability filtering)
+import {
+  allToolDefinitions,
+  getToolStats,
+  getAvailableToolDefinitions,
+} from './tool-definitions/index.js';
+
+// Import capability checker for runtime availability checks
+import {
+  isToolAvailable,
+  getUnavailabilityReason,
+} from './capability-checker.js';
 
 // Import i18n support
 import {
@@ -420,10 +430,22 @@ async function doInitializeVoiceRouter(): Promise<void> {
   // Get the registry
   const registry = getToolRegistry();
   
+  // CAPABILITY FILTERING: Only register tools whose backing services are configured
+  // This prevents hallucination by ensuring we don't route to unavailable tools
+  const availableTools = getAvailableToolDefinitions();
+  log.info(
+    {
+      totalDefined: allToolDefinitions.length,
+      available: availableTools.length,
+      excluded: allToolDefinitions.length - availableTools.length,
+    },
+    '🔧 Tools filtered by capability availability'
+  );
+  
   // IMPORTANT: Merge locale triggers into tool definitions BEFORE registering
   // This adds patterns like "check the weather" from en.json to the hardcoded definitions
   // Without this, many natural phrases won't match!
-  const localizedTools = await mergeLocaleIntoTools(allToolDefinitions);
+  const localizedTools = await mergeLocaleIntoTools(availableTools);
   log.info({ localeToolCount: localizedTools.length }, '🌐 Locale merged into tool definitions');
   
   // Register all tools WITH locale patterns
@@ -445,23 +467,17 @@ async function doInitializeVoiceRouter(): Promise<void> {
 
   // =========================================================================
   // EMBEDDING STRATEGY:
-  // - DEV: Local embeddings (instant, no API calls, good enough for testing)
-  // - PROD: Google embeddings loaded from Firestore cache (pre-computed)
+  // Always use Google embeddings for best quality (text-embedding-004)
+  // Firestore caching makes subsequent calls fast (~30-80ms first call, cached after)
   // =========================================================================
   
-  if (isDev) {
-    // DEV: Use local hash embeddings - instant, no API calls
-    log.info('🚀 DEV MODE: Using local embeddings (instant startup)');
-    const embeddingProvider = createEmbeddingProvider('local');
-    await router.initialize(embeddingProvider);
-  } else {
-    // PROD: Use Google embeddings with Firestore caching
-    log.info('☁️ PROD MODE: Using Google embeddings with Firestore cache');
-    const embeddingProvider = createEmbeddingProvider('google');
-    await router.initialize(embeddingProvider);
-    
-    // Load pre-computed embeddings from Firestore (fast!)
-    // These are computed once on first deploy, then cached
+  log.info({ isDev }, '☁️ Using Google embeddings (text-embedding-004)');
+  const embeddingProvider = createEmbeddingProvider('google');
+  await router.initialize(embeddingProvider);
+  
+  // Load pre-computed embeddings from Firestore (fast!)
+  // These are computed once on first deploy, then cached
+  if (!isDev) {
     loadCachedEmbeddingsAsync(embeddingProvider);
   }
 
@@ -477,9 +493,9 @@ async function doInitializeVoiceRouter(): Promise<void> {
     .then(() => log.info('🔍 NER engine initialized'))
     .catch(() => {/* regex fallback works fine */});
 
-  // Streaming router (sync, fast)
+  // Streaming router (sync, fast) - use available tools only
   try {
-    initializeStreamingRouter(allToolDefinitions as SemanticToolDefinition[]);
+    initializeStreamingRouter(availableTools as SemanticToolDefinition[]);
     log.info('⚡ Streaming router initialized');
   } catch {
     // Non-fatal
@@ -501,7 +517,7 @@ async function doInitializeVoiceRouter(): Promise<void> {
 async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): Promise<void> {
   try {
     const { getToolEmbeddingIndex, initializeToolEmbeddingIndex } = await import(
-      '../persistence/index.js'
+      './persistence/index.js'
     );
     
     // Initialize the embedding index service
@@ -954,18 +970,65 @@ function getTimeOfDay(): string {
 
 /**
  * Generate a hint for the LLM based on routing result
+ *
+ * IMPORTANT: Hints guide the LLM but explicitly tell it NOT to pretend
+ * to execute tools or fabricate outcomes. This is critical for telephony.
+ *
+ * Also checks capability availability - if a tool's backing service isn't
+ * configured, tells the LLM explicitly that the capability is unavailable.
  */
 function generateLLMHint(type: string, action: RouterAction): string {
+  // Anti-hallucination warning for telephony tools
+  const ANTI_HALLUCINATION_WARNING =
+    ' CRITICAL: Do NOT pretend to execute this tool or make up outcomes. If you cannot actually call the tool, ask for information or explain what you need.';
+
+  // Check if this is a telephony-related tool
+  const isTelephonyTool = (toolId?: string): boolean =>
+    toolId
+      ? toolId.includes('telephony') ||
+        toolId.includes('call') ||
+        toolId.includes('phone') ||
+        toolId.includes('sms') ||
+        toolId.includes('message')
+      : false;
+
+  // =========================================================================
+  // CAPABILITY CHECK: If tool isn't available, tell LLM explicitly
+  // This is the KEY fix to prevent hallucination - tools that can't run
+  // should never be hinted as if they can.
+  // =========================================================================
+  const getToolIdFromAction = (): string | undefined => {
+    if (action.type === 'confirm' || action.type === 'hint') {
+      return action.toolId;
+    }
+    return undefined;
+  };
+
+  const toolId = getToolIdFromAction();
+  if (toolId && !isToolAvailable(toolId)) {
+    const reason = getUnavailabilityReason(toolId);
+    return `[CAPABILITY UNAVAILABLE] The user wants to use ${toolId}, but ${reason}. Tell the user honestly that this capability is not available yet. Do NOT pretend to perform the action or fabricate results.`;
+  }
+
   switch (type) {
     case 'confirm':
       if (action.type === 'confirm') {
-        return `[TOOL HINT] User likely wants: ${action.toolId}. Args: ${JSON.stringify(action.args)}. Confirm naturally before executing.`;
+        const hint = `[TOOL HINT] User likely wants: ${action.toolId}. Args: ${JSON.stringify(action.args)}. Confirm naturally before executing.`;
+        return isTelephonyTool(action.toolId) ? hint + ANTI_HALLUCINATION_WARNING : hint;
       }
       break;
 
     case 'hint':
       if (action.type === 'hint') {
-        return `[TOOL HINT] Consider using: ${action.toolId} (confidence: ${(action.confidence * 100).toFixed(0)}%)`;
+        const hint = `[TOOL HINT] Consider using: ${action.toolId} (confidence: ${(action.confidence * 100).toFixed(0)}%)`;
+        // For low-confidence telephony hints, add stronger warning
+        if (isTelephonyTool(action.toolId)) {
+          return (
+            hint +
+            ' NOTE: Only proceed if you have the required contact info. Do NOT pretend to make calls or fabricate conversations.'
+          );
+        }
+        return hint;
       }
       break;
 
@@ -978,7 +1041,9 @@ function generateLLMHint(type: string, action: RouterAction): string {
 
     case 'clarify':
       if (action.type === 'clarify') {
-        return `[TOOL HINT] To use a tool, need: ${action.missingInfo.join(', ')}. Ask naturally.`;
+        const hint = `[TOOL HINT] To use a tool, need: ${action.missingInfo.join(', ')}. Ask naturally.`;
+        // Add warning to prevent fabrication
+        return hint + ' Do NOT pretend the action happened if you do not have the required information.';
       }
       break;
   }

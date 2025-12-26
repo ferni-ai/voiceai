@@ -702,7 +702,7 @@ function renderSignalRow(signal: RecentSignal): string {
       <td><span style="text-transform: capitalize">${signal.signalType.replace('_', ' ')}</span></td>
       <td><span class="severity-badge severity-badge--${signal.severity}">${signal.severity}</span></td>
       <td>${signal.details}</td>
-      <td>${signal.actionTaken || '—'}</td>
+      <td>${signal.actionTaken ?? '—'}</td>
     </tr>
   `;
 }

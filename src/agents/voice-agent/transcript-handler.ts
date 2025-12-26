@@ -51,7 +51,7 @@ import {
   processPartialTranscript as processSesamePartial,
   startNewTurn as startSesameTurn,
 } from '../../speech/sesame-inspired/index.js';
-import type { ConversationContext as FeedbackContext } from '../../tools/feedback-collector.js';
+import type { ConversationContext as FeedbackContext } from '../../tools/optimization/feedback-collector.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
@@ -77,6 +77,8 @@ import {
   detectTeamHuddleRequest,
   createTeamHuddleTrigger,
 } from '../../services/engagement/engagement-conversation-triggers.js';
+// Better Than Human - Transcript processing integration
+import { processTranscriptForBetterThanHuman } from '../integrations/better-than-human-integration.js';
 // Phase 5: Anticipatory Triggers - "Better than Human" early signal detection
 import {
   processPartialInput as processAnticipatoryInput,
@@ -91,6 +93,13 @@ import {
   routeTranscript,
   isSemanticRoutingEnabled,
 } from '../../tools/semantic-router/integration/index.js';
+// Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
+import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
+// Speech Orchestrator integration for micro-reactions
+import {
+  isOrchestratorEnabled,
+  processAnticipation,
+} from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
@@ -348,6 +357,52 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         });
       } catch {
         // Sesame processing is non-critical
+      }
+
+      // ===============================================
+      // 🎭 UNIFIED ANTICIPATION PIPELINE ("Better Than Human")
+      // Process partial transcript through anticipation pipeline to:
+      // - Predict user intent (celebration, question, emotional share, etc.)
+      // - Anticipate emotional trajectory (rising excitement, falling sadness)
+      // - Prepare prosody adjustments for response (speed, emotion, micro-reactions)
+      // ===============================================
+      if (isOrchestratorEnabled()) {
+        try {
+          // Get anticipation pipeline for this session
+          const pipeline = getAnticipationPipeline(sessionId);
+
+          // Process the partial transcript
+          const anticipation = pipeline.process({
+            sessionId,
+            partialTranscript: event.transcript,
+            isSpeaking: true,
+            tone: userData.voiceEmotion?.primary as
+              | 'neutral'
+              | 'excited'
+              | 'sad'
+              | 'frustrated'
+              | 'curious'
+              | undefined,
+          });
+
+          // If actionable, store for use in response preparation
+          if (anticipation?.isActionable) {
+            // Store on userData for turn handler to use
+            (userData as UserData & { anticipatedProsody?: typeof anticipation.prosody }).anticipatedProsody =
+              anticipation.prosody;
+
+            diag.state('🎭 Anticipation pipeline result', {
+              intent: anticipation.intent.intent,
+              intentConfidence: anticipation.intent.confidence.toFixed(2),
+              emotionTrajectory: anticipation.emotion.trajectory,
+              emotionConfidence: anticipation.emotion.confidence.toFixed(2),
+              speedMultiplier: anticipation.prosody.speedMultiplier.toFixed(2),
+              microReaction: !!anticipation.prosody.microReactionSsml,
+            });
+          }
+        } catch {
+          // Anticipation pipeline processing is non-critical
+        }
       }
 
       // ===============================================
@@ -935,6 +990,41 @@ async function processFinalTranscript(
   } = ctx;
 
   // ===============================================
+  // 🧠 DATA CAPTURE: "Better Than Human" passive learning
+  // ALWAYS captures data regardless of routing path!
+  // Captures contacts, commitments, dreams, relationships, mood, etc.
+  // "My mom's number is X" → auto-save to contacts
+  // "I've always wanted to visit Japan" → dream keeper
+  // "I promised Sarah I'd call" → commitment keeper
+  // "I'm feeling overwhelmed" → mood capture
+  // ===============================================
+  try {
+    if (!userId) {
+      diag.debug('Skipping data capture - no userId');
+    } else {
+      const { captureDataBetterThanHuman } = await import('../../intelligence/data-capture/index.js');
+      const captureResult = await captureDataBetterThanHuman({
+        userId,
+        sessionId,
+        transcript: event.transcript,
+        recentTopics: userData.recentTopics,
+      });
+
+      // Store acknowledgment for LLM context injection
+      if (captureResult.suggestedAcknowledgment) {
+        userData.dataCaptureAcknowledgment = captureResult.suggestedAcknowledgment;
+        diag.state('🧠 Better Than Human: Data captured passively', {
+          acknowledgment: captureResult.suggestedAcknowledgment,
+          count: captureResult.captured.length,
+        });
+      }
+    }
+  } catch (captureError) {
+    // Non-fatal - data capture is enhancement, not critical
+    diag.warn('Data capture error', { error: String(captureError) });
+  }
+
+  // ===============================================
   // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
   // Route high-confidence tool requests BEFORE Gemini processes
   // This bypasses the LLM entirely for deterministic tool calls
@@ -1054,6 +1144,15 @@ async function processFinalTranscript(
   // Run human listening pipeline
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
+  // 🌟 Better Than Human transcript processing
+  // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
+  processBetterThanHumanTranscript(
+    event.transcript,
+    userData,
+    sessionId,
+    sessionPersona.id
+  );
+
   // Extract memorable moments
   const newMoments = extractMemorableMoments(event.transcript);
   if (newMoments.length > 0) {
@@ -1068,6 +1167,8 @@ async function processFinalTranscript(
   }
 
   // Update context with last user message
+  // NOTE: Data capture now runs BEFORE semantic routing (see above) to ensure
+  // we capture everything regardless of how the request is handled
   silenceContext.lastUserMessage = event.transcript;
 
   // ===============================================
@@ -1280,6 +1381,58 @@ function processHumanListeningPipeline(
       }
     },
     { context: 'human-listening-pipeline' }
+  );
+}
+
+/**
+ * Process Better Than Human transcript analysis
+ * Detects first-time vulnerability, emotional contradictions, patterns, linguistic style
+ */
+function processBetterThanHumanTranscript(
+  transcript: string,
+  userData: UserData,
+  sessionId: string,
+  personaId: string
+): void {
+  safeFireAndForget(
+    async () => {
+      const result = await processTranscriptForBetterThanHuman(
+        {
+          transcript,
+          isFinal: true,
+          emotion: userData.lastEmotionAnalysis?.primary,
+          emotionIntensity: userData.lastEmotionAnalysis?.intensity,
+          topic: userData.lastTopic,
+        },
+        {
+          userId: userData.userId || '',
+          sessionId,
+          personaId,
+          turnCount: userData.turnCount || 0,
+        }
+      );
+
+      // Store results in userData for context building
+      if (result.vulnerability?.isFirstTime) {
+        (userData as Record<string, unknown>).betterThanHumanVulnerability = result.vulnerability;
+        diag.state('💎 First-time vulnerability detected', {
+          category: result.vulnerability.category,
+          level: result.vulnerability.level.toFixed(2),
+        });
+      }
+
+      if (result.contradiction?.detected) {
+        (userData as Record<string, unknown>).betterThanHumanContradiction = result.contradiction;
+        diag.state('🎭 Emotional contradiction detected', {
+          emotions: result.contradiction.emotions.join(' + '),
+        });
+      }
+
+      if (result.patterns?.insights && result.patterns.insights.length > 0) {
+        (userData as Record<string, unknown>).betterThanHumanPatterns = result.patterns;
+      }
+    },
+    { context: 'better-than-human-transcript' }
   );
 }
 

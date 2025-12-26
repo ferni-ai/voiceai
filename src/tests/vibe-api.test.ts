@@ -142,7 +142,13 @@ describe('Vibe Service', () => {
 
     it('should show connected when devices exist', async () => {
       vi.mocked(getAllDevices).mockResolvedValue([
-        { id: 'light.living', name: 'Living Room', type: 'light', state: 'on', platform: 'home_assistant' },
+        {
+          id: 'light.living',
+          name: 'Living Room',
+          type: 'light',
+          state: 'on',
+          platform: 'home_assistant',
+        },
       ]);
       vi.mocked(isEcobeeConfigured).mockResolvedValue(true);
 
@@ -185,7 +191,13 @@ describe('Vibe Service', () => {
 
     it('should set lights when lights are connected', async () => {
       vi.mocked(getAllDevices).mockResolvedValue([
-        { id: 'light.living', name: 'Living Room', type: 'light', state: 'on', platform: 'home_assistant' },
+        {
+          id: 'light.living',
+          name: 'Living Room',
+          type: 'light',
+          state: 'on',
+          platform: 'home_assistant',
+        },
       ]);
 
       const result = await activateVibe('test-user', 'focus');
@@ -205,7 +217,7 @@ describe('Vibe Service', () => {
 
 describe('Vibe Presets Content', () => {
   it('focus preset should have work-appropriate settings', () => {
-    const focus = VIBE_PRESETS.focus;
+    const { focus } = VIBE_PRESETS;
     expect(focus.lights?.brightness).toBeGreaterThan(60); // Bright for work
     expect(focus.lights?.colorTemp).toBeGreaterThan(4500); // Cool/daylight
     expect(focus.temperature?.target).toBeLessThan(72); // Cooler for alertness
@@ -213,17 +225,16 @@ describe('Vibe Presets Content', () => {
   });
 
   it('sleep preset should have restful settings', () => {
-    const sleep = VIBE_PRESETS.sleep;
+    const { sleep } = VIBE_PRESETS;
     expect(sleep.lights?.brightness).toBeLessThan(20); // Dim
     expect(sleep.lights?.colorTemp).toBeLessThan(2500); // Very warm
     expect(sleep.temperature?.mode).toBe('sleep'); // Sleep mode on thermostat
   });
 
   it('social preset should have inviting settings', () => {
-    const social = VIBE_PRESETS.social;
+    const { social } = VIBE_PRESETS;
     expect(social.lights?.brightness).toBeGreaterThan(50); // Visible but not harsh
     expect(social.lights?.colorTemp).toBeLessThan(4000); // Warm/cozy
     expect(social.music?.energy).toBe('medium'); // Background music
   });
 });
-

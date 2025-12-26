@@ -29,13 +29,14 @@ interface Participant {
   avatarColor?: string;
 }
 
-interface TeamMember {
-  id: string;
-  name: string;
-  color: string;
-  specialty: string;
-  isUnlocked: boolean;
-}
+// TeamMember interface - not currently used but available for future features
+// interface TeamMember {
+//   id: string;
+//   name: string;
+//   color: string;
+//   specialty: string;
+//   isUnlocked: boolean;
+// }
 
 // ============================================================================
 // PERSONA COLORS (from design system)
@@ -995,7 +996,7 @@ export const groupConversationUI = new GroupConversationUI();
 export function initGroupConversationUI(): void {
   // GroupConversationUI is self-initializing via constructor
   // This function exists for consistency with other UI modules
-  groupConversationUI.init?.();
+  // No explicit init needed - class is instantiated at module load
 }
 
 export function showTeamSelector(options: {

@@ -35,9 +35,6 @@ import { getSportScores, getTeamScore } from './sports.js';
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createTrafficTools } from './traffic.js';
 
-// Import Apple WeatherKit tools
-import { appleWeatherTools } from './apple-weather-tools.js';
-
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LEGACY TOOL WRAPPER (for tools that don't need routing)
@@ -167,14 +164,18 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
           execute: async ({ location }) => {
             const startTime = Date.now();
 
-            // Use detected location if not provided (TikTok-style personalization)
-            let effectiveLocation = location;
+            // Recognize placeholder values that mean "use my location"
+            const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
+            const isPlaceholder = location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
+
+            // Use detected location if not provided OR if placeholder (TikTok-style personalization)
+            let effectiveLocation = isPlaceholder ? undefined : location;
             if (!effectiveLocation && ctx.userLocation?.city) {
               effectiveLocation = ctx.userLocation.regionCode
                 ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
                 : ctx.userLocation.city;
               log.info(
-                { detectedCity: effectiveLocation },
+                { detectedCity: effectiveLocation, originalLocation: location },
                 '📍 Using IP-detected location for weather'
               );
             }
@@ -219,8 +220,12 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
           execute: async ({ location, days = 5 }) => {
             const startTime = Date.now();
 
-            // Use detected location if not provided
-            let effectiveLocation = location;
+            // Recognize placeholder values that mean "use my location"
+            const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
+            const isPlaceholder = location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
+
+            // Use detected location if not provided OR if placeholder
+            let effectiveLocation = isPlaceholder ? undefined : location;
             if (!effectiveLocation && ctx.userLocation?.city) {
               effectiveLocation = ctx.userLocation.regionCode
                 ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
@@ -368,7 +373,7 @@ const informationTools: ToolDefinition[] = [
   ...getWeatherToolDefinitions(),
   ...getSportsToolDefinitions(),
   ...getTrafficToolDefinitions(),
-  ...appleWeatherTools, // Apple WeatherKit for detailed weather/alerts
+  // Apple WeatherKit removed - using Google Weather API only
 ];
 
 // ============================================================================

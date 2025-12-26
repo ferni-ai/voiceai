@@ -9,6 +9,7 @@
  * @module conversation/superhuman/story-continuity
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'StoryContinuity' });
@@ -181,7 +182,7 @@ export function getOrCreatePerson(userId: string, partial: Partial<PersonInLife>
 
   // Create new person
   const person: PersonInLife = {
-    id: `person_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `person_${Date.now()}_${Date.now().toString(36).slice(-6)}`,
     userId,
     name: partial.name || partial.relationship || 'Someone',
     relationship: partial.relationship || 'other',
@@ -354,7 +355,7 @@ function generateFollowUpQuestion(person: PersonInLife, storyline: Storyline): s
   };
 
   const options = questions[person.relationship] || questions.other;
-  return options[Math.floor(Math.random() * options.length)];
+  return seededPick(`${Date.now()}:358`, options) ?? options[0];
 }
 
 /**

@@ -82,9 +82,9 @@ let lastHintTime = 0;
 
 export function initModalCoordinator(): void {
   // Load persisted timestamps
-  lastModalTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastModalTime) || '0');
-  lastCelebrationTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastCelebrationTime) || '0');
-  lastHintTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastHintTime) || '0');
+  lastModalTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastModalTime) ?? '0');
+  lastCelebrationTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastCelebrationTime) ?? '0');
+  lastHintTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastHintTime) ?? '0');
 
   // Listen for conversation state changes
   document.addEventListener('ferni:conversation-start', () => {
@@ -120,7 +120,7 @@ export function initModalCoordinator(): void {
  * Get total conversation count from localStorage
  */
 export function getConversationCount(): number {
-  return parseInt(localStorage.getItem(STORAGE_KEYS.conversationCount) || '0');
+  return parseInt(localStorage.getItem(STORAGE_KEYS.conversationCount) ?? '0');
 }
 
 /**

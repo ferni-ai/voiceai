@@ -15,6 +15,7 @@
  * This module transforms robotic content delivery into engaging storytelling.
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'ContentDeliveryPacing' });
@@ -540,7 +541,7 @@ export function addSignposting(
     addOpening &&
     !SIGNPOSTING.opening.some((p) => text.toLowerCase().startsWith(p.toLowerCase()))
   ) {
-    const opener = SIGNPOSTING.opening[Math.floor(Math.random() * SIGNPOSTING.opening.length)];
+    const opener = seededPick(`${Date.now()}:1`, SIGNPOSTING.opening) ?? SIGNPOSTING.opening[0];
     result = `${opener} ${result}`;
   }
 
@@ -554,7 +555,7 @@ export function addSignposting(
       const secondSentence = sentences[1];
       if (secondSentence && !/^(also|and|plus|but|however|additionally)/i.test(secondSentence)) {
         const transition =
-          SIGNPOSTING.transitions[Math.floor(Math.random() * SIGNPOSTING.transitions.length)];
+          seededPick(`${Date.now()}:2`, SIGNPOSTING.transitions) ?? SIGNPOSTING.transitions[0];
         sentences[1] = `${transition} ${secondSentence}`;
         result = sentences.join(' ');
       }
@@ -583,7 +584,7 @@ export function getSummaryIntro(contentType: ContentType): string {
   };
 
   const options = intros[contentType] || intros.conversational;
-  return options[Math.floor(Math.random() * options.length)];
+  return seededPick(`${Date.now()}:587`, options) ?? options[0];
 }
 
 // ============================================================================

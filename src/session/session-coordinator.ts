@@ -49,6 +49,7 @@ import {
   getPendingCallbacksFromProfile,
 } from '../personality/memory-adapter.js';
 import { analyzeMessageTiming, type TimingAnalysis } from '../personality/timing-intelligence.js';
+import { clearAllUserEmotionalTracking } from '../personality/emotional-patterns.js';
 import type { RelevanceMatch } from '../personality/types.js';
 
 // Conversation module (post-LLM humanization)
@@ -430,6 +431,10 @@ export class SessionCoordinator {
    */
   endSession(): void {
     this.emotionalMemory.endSession();
+
+    // Clean up in-memory emotional tracking data (patterns, growth moments)
+    // This prevents memory leaks in long-running processes
+    clearAllUserEmotionalTracking(this.userId);
 
     if (this.conversationSession) {
       // Conversation session cleanup is handled by unified-integration

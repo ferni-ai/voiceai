@@ -17,6 +17,7 @@
  * @module @ferni/humanization/emotional-leading
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'EmotionalLeading' });
@@ -579,7 +580,7 @@ export class EmotionalLeadingEngine {
 
   private selectBridgePhrase(strategy: LeadingStrategy): string {
     const phrases = STRATEGY_CONFIGS[strategy].bridgePhrases;
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:583`, phrases) ?? phrases[0];
   }
 
   private describeToneShift(strategy: LeadingStrategy): string {

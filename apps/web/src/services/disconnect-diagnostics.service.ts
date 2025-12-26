@@ -327,7 +327,7 @@ export async function captureDisconnectDiagnostic(
   // Get audio context state
   let audioContextState: string | undefined;
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (AudioContextClass) {
       const ctx = new AudioContextClass();
       audioContextState = ctx.state;
@@ -376,7 +376,7 @@ export async function captureDisconnectDiagnostic(
     // Device Info
     userAgent: navigator.userAgent,
     platform: navigator.platform,
-    deviceMemory: (navigator as any).deviceMemory,
+    deviceMemory: (navigator as { deviceMemory?: number }).deviceMemory,
     hardwareConcurrency: navigator.hardwareConcurrency,
 
     // Error Context

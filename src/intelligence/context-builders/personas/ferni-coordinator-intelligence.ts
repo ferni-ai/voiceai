@@ -38,6 +38,8 @@ import {
   type CalendarLoadFactors,
 } from '../../../services/calendar/calendar-load-service.js';
 import { detectRecoveryNeeds } from '../../../services/calendar/recovery-protection.js';
+// Superhuman services: 19 "Better Than Human" capabilities
+import { getSuperhuman } from '../superhuman/superhuman-integration.js';
 
 const log = createLogger({ module: 'context:ferni-coordinator' });
 
@@ -103,7 +105,7 @@ function analyzePeterInsights(insights: CrossPersonaInsight[]): HandoffSuggestio
   return insights
     .filter((i) => i.content.toLowerCase().includes('stress') || i.content.includes('spending'))
     .map((insight) => ({
-      targetPersona: 'maya' as const,
+      targetPersona: 'maya-santos' as const,
       reason: 'Peter noticed stress patterns in spending',
       trigger: insight.content,
       urgency: insight.priority === 'high' ? ('high' as const) : ('normal' as const),
@@ -122,7 +124,7 @@ function analyzeMayaInsights(insights: CrossPersonaInsight[]): HandoffSuggestion
       return isHabitRelated && isStruggling;
     })
     .map((insight) => ({
-      targetPersona: 'jordan' as const,
+      targetPersona: 'jordan-taylor' as const,
       reason: 'Maya noticed habit struggles that might need goal adjustment',
       trigger: insight.content,
       urgency: 'normal' as const,
@@ -136,7 +138,7 @@ function analyzeJordanInsights(insights: CrossPersonaInsight[]): HandoffSuggesti
   return insights
     .filter((i) => i.content.toLowerCase().includes('deadline') || i.content.includes('upcoming'))
     .map((insight) => ({
-      targetPersona: 'alex' as const,
+      targetPersona: 'alex-chen' as const,
       reason: 'Jordan has upcoming deadlines that need scheduling',
       trigger: insight.content,
       urgency: insight.priority === 'critical' ? ('urgent' as const) : ('normal' as const),
@@ -151,7 +153,7 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
 
   if (teamStatus.habitHealth.atRiskCount > 2) {
     suggestions.push({
-      targetPersona: 'maya',
+      targetPersona: 'maya-santos',
       reason: `${teamStatus.habitHealth.atRiskCount} habits at risk`,
       trigger: 'Multiple habits showing streak breaks',
       urgency: 'high',
@@ -165,7 +167,7 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
     !teamStatus.financialHealth.savingsOnTrack
   ) {
     suggestions.push({
-      targetPersona: 'peter',
+      targetPersona: 'peter-john',
       reason: 'Budget showing signs of stress',
       trigger: 'Financial health indicators showing concern',
       urgency: 'normal',
@@ -176,7 +178,7 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
 
   if (teamStatus.goalStatus.nearingCompletion > 0) {
     suggestions.push({
-      targetPersona: 'jordan',
+      targetPersona: 'jordan-taylor',
       reason: `${teamStatus.goalStatus.nearingCompletion} goals almost complete`,
       trigger: 'Goals approaching finish line',
       urgency: 'low',
@@ -358,7 +360,7 @@ async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarConte
 
   if (loadLevel === 'overloaded') {
     calendarHandoffSuggestion = {
-      targetPersona: 'alex',
+      targetPersona: 'alex-chen',
       reason: `Calendar overload: ${Math.round(loadFactors.weeklyMeetingHours)}h of meetings this week`,
       trigger: 'calendar_overload',
       urgency: 'high',
@@ -367,7 +369,7 @@ async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarConte
     };
   } else if (recoveryNeeded && recoveryNeeds.some((r) => r.urgency === 'immediate')) {
     calendarHandoffSuggestion = {
-      targetPersona: 'alex',
+      targetPersona: 'alex-chen',
       reason: 'Immediate recovery needed based on calendar patterns',
       trigger: 'recovery_urgent',
       urgency: 'urgent',
@@ -376,7 +378,7 @@ async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarConte
     };
   } else if (focusTimePercent < 15) {
     calendarHandoffSuggestion = {
-      targetPersona: 'alex',
+      targetPersona: 'alex-chen',
       reason: `Only ${focusTimePercent}% focus time available`,
       trigger: 'low_focus_time',
       urgency: 'normal',
@@ -535,6 +537,38 @@ async function buildFerniCoordinatorIntelligenceContext(
           'coordinator_intel'
         )
       );
+    }
+
+    // =========================================================================
+    // SUPERHUMAN SERVICES INJECTION
+    // Ferni has access to ALL 19 capabilities since they're the coordinator
+    // V3 Semantic Intelligence needs current conversation context
+    // =========================================================================
+    try {
+      // Quick person extraction for semantic intelligence
+      const personMatch = input.userText?.match(
+        /\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i
+      );
+      const mentionedPerson = personMatch ? personMatch[1] : undefined;
+
+      const superhumanContext = await getSuperhuman(userId, 'ferni', {
+        // V3 Semantic Intelligence - pass current conversation context
+        currentTranscript: input.userText,
+        currentTopics: input.analysis?.topics?.detected,
+        currentEmotion: input.analysis?.emotion?.primary,
+        currentMentionedPerson: mentionedPerson,
+      });
+      if (superhumanContext) {
+        injections.push(
+          createHighInjection(
+            `[🌟 SUPERHUMAN INTELLIGENCE - "Better Than Human"]\n${superhumanContext}`,
+            'superhuman_services'
+          )
+        );
+        log.info({ userId }, '🌟 Superhuman services context injected for Ferni');
+      }
+    } catch (superhumanErr) {
+      log.debug({ error: String(superhumanErr) }, 'Superhuman context failed (non-fatal)');
     }
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to build coordinator intelligence');

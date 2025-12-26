@@ -24,7 +24,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('B2BAdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -113,23 +113,34 @@ const styles = `
 .b2b-admin-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
 }
 
 .b2b-admin-card {
   position: relative;
-  background: var(--color-background-elevated);
-  border-radius: var(--radius-2xl, 24px);
+  /* Glass modal styling */
+  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
   width: calc(100% - 48px);
   max-width: min(900px, 100%);
   max-height: 85vh;
-  box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .b2b-admin-card {
+    background: var(--color-background-elevated);
+  }
 }
 
 .b2b-admin-overlay.open .b2b-admin-card {
@@ -270,7 +281,7 @@ const styles = `
 
 .b2b-admin-stat-change {
   font-size: 0.8rem;
-  color: var(--persona-primary);
+  color: var(--persona-text);
   margin-top: var(--space-1, 4px);
 }
 
@@ -307,7 +318,7 @@ const styles = `
 .b2b-admin-section-title svg {
   width: 20px;
   height: 20px;
-  color: var(--persona-primary);
+  color: var(--persona-text);
 }
 
 .b2b-admin-section-content {
@@ -338,7 +349,7 @@ const styles = `
 }
 
 .b2b-admin-roi-value.positive {
-  color: var(--persona-primary);
+  color: var(--persona-text);
 }
 
 .b2b-admin-roi-value.investment {
@@ -460,7 +471,7 @@ const styles = `
 
 .b2b-admin-team-badge.admin {
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary);
+  color: var(--persona-text);
 }
 
 .b2b-admin-team-badge.member {
@@ -485,8 +496,8 @@ const styles = `
 }
 
 .b2b-admin-team-action-btn:hover {
-  border-color: var(--persona-primary);
-  color: var(--persona-primary);
+  border-color: var(--persona-text);
+  color: var(--persona-text);
 }
 
 .b2b-admin-team-action-btn.danger:hover {
@@ -511,7 +522,7 @@ const styles = `
 
 .b2b-admin-invite-input:focus {
   outline: none;
-  border-color: var(--persona-primary);
+  border-color: var(--persona-text);
 }
 
 .b2b-admin-invite-select {
@@ -580,7 +591,7 @@ const styles = `
 .b2b-admin-form-input:focus,
 .b2b-admin-form-textarea:focus {
   outline: none;
-  border-color: var(--persona-primary);
+  border-color: var(--persona-text);
 }
 
 .b2b-admin-save-btn {
@@ -609,7 +620,7 @@ const styles = `
 .b2b-admin-topic-tag {
   padding: var(--space-1, 4px) var(--space-3, 12px);
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary);
+  color: var(--persona-text);
   border-radius: var(--radius-full, 9999px);
   font-size: 0.85rem;
 }
@@ -1148,7 +1159,7 @@ function renderBilling(roi: ROIEstimate): string {
         </div>
         <div class="b2b-admin-form-group">
           <label class="b2b-admin-form-label">Estimated ROI</label>
-          <p style="color: var(--persona-primary);">${roi.roi}% return on investment</p>
+          <p style="color: var(--persona-text);">${roi.roi}% return on investment</p>
           <p class="b2b-admin-form-help">
             Net benefit: $${((roi.estimatedSavings - roi.monthlyInvestment) / 100).toLocaleString()}/month
           </p>

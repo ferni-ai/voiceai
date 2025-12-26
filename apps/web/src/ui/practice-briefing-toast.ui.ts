@@ -11,8 +11,8 @@
  * - Humanized, encouraging copy
  */
 
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { createAnimationConfig, ICONS } from './engagement-components.js';
+import { DURATION } from '../config/animation-constants.js';
+import { ICONS } from './engagement-components.js';
 import type { PracticeBriefing } from '../services/practice-briefings.service.js';
 import { createLogger } from '../utils/logger.js';
 

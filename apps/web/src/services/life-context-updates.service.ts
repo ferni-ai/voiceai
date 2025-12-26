@@ -284,7 +284,7 @@ async function fetchLifeContext(userId: string): Promise<void> {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { snapshot?: unknown; triggers?: unknown[] };
 
     if (data.snapshot) {
       lastSnapshot = data.snapshot;

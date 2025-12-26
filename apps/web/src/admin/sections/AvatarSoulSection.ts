@@ -29,7 +29,7 @@ async function getAvatarSoul() {
 // RENDER
 // ============================================================================
 
-export async function render(): Promise<string> {
+export function render(): string {
   return `
     <div class="soul-section">
       <header class="soul-header">
@@ -597,13 +597,15 @@ export async function render(): Promise<string> {
 export function setupEvents(): void {
   // Button clicks
   document.querySelectorAll('[data-soul]').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
-      const action = target.getAttribute('data-soul');
-      const value = target.getAttribute('data-value');
-      if (action && value) {
-        await handleSoulAction(action, value);
-      }
+    btn.addEventListener('click', (e) => {
+      void (async () => {
+        const target = e.target as HTMLElement;
+        const action = target.getAttribute('data-soul');
+        const value = target.getAttribute('data-value');
+        if (action && value) {
+          await handleSoulAction(action, value);
+        }
+      })();
     });
   });
 
@@ -613,33 +615,39 @@ export function setupEvents(): void {
   const breathSlider = document.getElementById('adminBreathSlider') as HTMLInputElement;
 
   if (energySlider) {
-    energySlider.addEventListener('input', async () => {
-      const value = parseFloat(energySlider.value);
-      const display = document.getElementById('adminEnergyValue');
-      const statusDisplay = document.getElementById('adminSoulEnergy');
-      if (display) display.textContent = value.toString();
-      if (statusDisplay) statusDisplay.textContent = value.toString();
-      await handleSoulSlider('energy', value);
+    energySlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseFloat(energySlider.value);
+        const display = document.getElementById('adminEnergyValue');
+        const statusDisplay = document.getElementById('adminSoulEnergy');
+        if (display) display.textContent = value.toString();
+        if (statusDisplay) statusDisplay.textContent = value.toString();
+        await handleSoulSlider('energy', value);
+      })();
     });
   }
 
   if (warmthSlider) {
-    warmthSlider.addEventListener('input', async () => {
-      const value = parseFloat(warmthSlider.value);
-      const display = document.getElementById('adminWarmthValue');
-      const statusDisplay = document.getElementById('adminSoulWarmth');
-      if (display) display.textContent = value.toString();
-      if (statusDisplay) statusDisplay.textContent = value.toString();
-      await handleSoulSlider('warmth', value);
+    warmthSlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseFloat(warmthSlider.value);
+        const display = document.getElementById('adminWarmthValue');
+        const statusDisplay = document.getElementById('adminSoulWarmth');
+        if (display) display.textContent = value.toString();
+        if (statusDisplay) statusDisplay.textContent = value.toString();
+        await handleSoulSlider('warmth', value);
+      })();
     });
   }
 
   if (breathSlider) {
-    breathSlider.addEventListener('input', async () => {
-      const value = parseInt(breathSlider.value);
-      const display = document.getElementById('adminBreathValue');
-      if (display) display.textContent = value.toString();
-      await handleSoulSlider('breath', value);
+    breathSlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseInt(breathSlider.value);
+        const display = document.getElementById('adminBreathValue');
+        if (display) display.textContent = value.toString();
+        await handleSoulSlider('breath', value);
+      })();
     });
   }
 }
@@ -730,10 +738,11 @@ async function handleSoulSlider(type: string, value: number): Promise<void> {
       case 'warmth':
         soul.avatarSoul.recordInteraction(value);
         break;
-      case 'breath':
+      case 'breath': {
         const shimmerIntensity = (value - 8) / 16;
         soul.avatarSoul.flashShimmer(shimmerIntensity);
         break;
+      }
     }
   } catch (err) {
     log.error('Soul slider failed:', err);
@@ -760,7 +769,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
           DILATED: '18px',
           CONNECTED: '18px',
         };
-        if (pupilStateEl) pupilStateEl.textContent = sizes[value] || '12px';
+        if (pupilStateEl) pupilStateEl.textContent = sizes[value] ?? '12px';
       }
       if (stateEl) stateEl.textContent = value.charAt(0) + value.slice(1).toLowerCase();
       break;
@@ -776,7 +785,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
             joy: 'rgba(255, 215, 100, 0.6)',
             concern: 'rgba(154, 123, 90, 0.4)',
           };
-          glow.style.setProperty('--soul-glow-color', colors[value] || defaultColor);
+          glow.style.setProperty('--soul-glow-color', colors[value] ?? defaultColor);
           glow.classList.add('active');
         }
       }
@@ -800,7 +809,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
           comfortPulse: 'Comfort',
           growthCelebration: 'Celebrate!',
         };
-        stateEl.textContent = labels[value] || value;
+        stateEl.textContent = labels[value] ?? value;
       }
       break;
 

@@ -131,12 +131,22 @@ export function makeVoiceAlive(text: string, context: AliveVoiceContext = {}): A
 
   // 7. Apply contextual laughter (if enabled, default: true)
   if (context.enableLaughter !== false) {
+    // Map 5-level energy to 3-level for laughter context
+    const mapEnergyTo3Level = (
+      energy?: 'very_low' | 'low' | 'neutral' | 'elevated' | 'high'
+    ): 'low' | 'medium' | 'high' | undefined => {
+      if (!energy) return undefined;
+      if (energy === 'very_low' || energy === 'low') return 'low';
+      if (energy === 'elevated' || energy === 'high') return 'high';
+      return 'medium';
+    };
+
     const laughResult = addContextualLaughter(
       result,
       {
         userMessage: context.userMessage,
         userEmotion: detectedContext.userEmotion,
-        userEnergy: context.userEnergy,
+        userEnergy: mapEnergyTo3Level(context.userEnergy),
         topicWeight: detectedContext.topicWeight,
         turnCount: context.turnCount,
         personaId: context.personaId,

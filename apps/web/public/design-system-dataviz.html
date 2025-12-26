@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Data Visualization Kit - 2025</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-elevated: #1a1a25;
+      --bg-glass: rgba(255, 255, 255, 0.03);
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #707080;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --ferni: #4a6741;
+      --ferni-light: #6a9961;
+      --positive: #10b981;
+      --negative: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+      --cyan: #06b6d4;
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+
+    .header { background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); padding: var(--space-xl); text-align: center; border-bottom: 1px solid var(--border-subtle); }
+    .header h1 { font-size: 2.5rem; background: linear-gradient(135deg, var(--ferni), var(--ferni-light), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header .tagline { color: var(--text-secondary); margin-top: var(--space-sm); }
+
+    .nav { position: sticky; top: 0; background: rgba(10, 10, 15, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-subtle); padding: var(--space-md); z-index: 100; display: flex; gap: var(--space-sm); flex-wrap: wrap; justify-content: center; }
+    .nav a { color: var(--text-secondary); text-decoration: none; padding: var(--space-xs) var(--space-md); border-radius: 20px; font-size: 0.8rem; transition: all 0.2s; }
+    .nav a:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    .main { max-width: 1400px; margin: 0 auto; padding: var(--space-xl); }
+    .section { margin-bottom: var(--space-xl); scroll-margin-top: 80px; }
+    .section-header { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-subtle); }
+    .section-header h2 { font-size: 1.5rem; }
+    .section-header .badge { padding: var(--space-xs) var(--space-sm); background: var(--ferni); color: white; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+    .section-desc { color: var(--text-secondary); margin-bottom: var(--space-lg); font-size: 0.9rem; }
+
+    .subsection { background: var(--bg-secondary); border-radius: 16px; padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .subsection h3 { font-size: 1rem; margin-bottom: var(--space-md); color: var(--text-primary); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--space-lg); }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-lg); }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); }
+
+    .card { background: var(--bg-elevated); border-radius: 12px; padding: var(--space-lg); border: 1px solid var(--border-subtle); }
+    .card-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-sm); }
+
+    /* ==================== PILL METRICS ==================== */
+    .pill-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: 50px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .pill-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+    .pill-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pill-trend { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; }
+
+    .pill.positive { border-color: rgba(16, 185, 129, 0.3); }
+    .pill.positive .pill-icon { background: rgba(16, 185, 129, 0.2); color: var(--positive); }
+    .pill.positive .pill-trend { background: rgba(16, 185, 129, 0.15); color: var(--positive); }
+
+    .pill.negative { border-color: rgba(239, 68, 68, 0.3); }
+    .pill.negative .pill-icon { background: rgba(239, 68, 68, 0.2); color: var(--negative); }
+    .pill.negative .pill-trend { background: rgba(239, 68, 68, 0.15); color: var(--negative); }
+
+    .pill.info { border-color: rgba(59, 130, 246, 0.3); }
+    .pill.info .pill-icon { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+
+    .pill.purple { border-color: rgba(139, 92, 246, 0.3); }
+    .pill.purple .pill-icon { background: rgba(139, 92, 246, 0.2); color: var(--purple); }
+
+    /* Large pills */
+    .pill-lg {
+      padding: var(--space-md) var(--space-lg);
+      font-size: 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-xs);
+      min-width: 140px;
+    }
+
+    .pill-lg .pill-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .pill-lg .pill-value { font-size: 1.75rem; }
+
+    /* ==================== DONUT CHARTS ==================== */
+    .donut-container { display: flex; align-items: center; gap: var(--space-xl); }
+
+    .donut { position: relative; }
+    .donut svg { transform: rotate(-90deg); }
+    .donut-segment { fill: none; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); }
+    .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+    .donut-value { font-size: 2rem; font-weight: 700; }
+    .donut-label { font-size: 0.75rem; color: var(--text-muted); }
+
+    .donut-legend { display: flex; flex-direction: column; gap: var(--space-sm); }
+    .donut-legend-item { display: flex; align-items: center; gap: var(--space-sm); font-size: 0.875rem; }
+    .donut-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .donut-legend-value { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* Nested Donut */
+    .donut-nested { position: relative; width: 180px; height: 180px; }
+    .donut-nested svg { position: absolute; top: 0; left: 0; }
+
+    /* Mini Donut */
+    .donut-mini { width: 60px; height: 60px; }
+    .donut-mini .donut-value { font-size: 0.875rem; }
+
+    /* ==================== GITHUB CONTRIBUTIONS ==================== */
+    .contributions-calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .contributions-row {
+      display: flex;
+      gap: 3px;
+    }
+
+    .contributions-cell {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: var(--bg-elevated);
+      transition: all 0.2s;
+    }
+
+    .contributions-cell:hover {
+      transform: scale(1.3);
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .contributions-cell.level-0 { background: rgba(74, 103, 65, 0.1); }
+    .contributions-cell.level-1 { background: rgba(74, 103, 65, 0.3); }
+    .contributions-cell.level-2 { background: rgba(74, 103, 65, 0.5); }
+    .contributions-cell.level-3 { background: rgba(74, 103, 65, 0.7); }
+    .contributions-cell.level-4 { background: var(--ferni); box-shadow: 0 0 8px rgba(74, 103, 65, 0.4); }
+
+    .contributions-months {
+      display: flex;
+      gap: 3px;
+      margin-bottom: var(--space-sm);
+      padding-left: 30px;
+    }
+
+    .contributions-month {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      width: calc(12px * 4 + 3px * 3);
+    }
+
+    .contributions-days {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-right: var(--space-sm);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .contributions-day { height: 12px; line-height: 12px; }
+
+    .contributions-wrapper { display: flex; }
+
+    .contributions-legend {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-top: var(--space-md);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .contributions-legend-cells { display: flex; gap: 2px; }
+
+    /* ==================== BENCHMARK CHARTS ==================== */
+    .benchmark-bar {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-md);
+    }
+
+    .benchmark-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+    }
+
+    .benchmark-label { color: var(--text-secondary); }
+    .benchmark-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .benchmark-track {
+      height: 8px;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      position: relative;
+      overflow: visible;
+    }
+
+    .benchmark-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .benchmark-marker {
+      position: absolute;
+      top: -4px;
+      width: 2px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 1px;
+    }
+
+    .benchmark-marker::after {
+      content: attr(data-label);
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Horizontal Bar Chart */
+    .hbar-chart { display: flex; flex-direction: column; gap: var(--space-md); }
+
+    .hbar-item { display: flex; align-items: center; gap: var(--space-md); }
+    .hbar-label { width: 80px; font-size: 0.8rem; color: var(--text-secondary); text-align: right; flex-shrink: 0; }
+    .hbar-track { flex: 1; height: 24px; background: var(--bg-elevated); border-radius: 4px; position: relative; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: flex-end; padding-right: var(--space-sm); }
+    .hbar-value { font-size: 0.75rem; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+    /* ==================== PROJECTION CHARTS ==================== */
+    .projection-chart {
+      position: relative;
+      height: 200px;
+      padding: var(--space-md) 0;
+    }
+
+    .projection-svg { width: 100%; height: 100%; }
+
+    .projection-area { transition: opacity 0.3s; }
+    .projection-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .projection-line-dashed { stroke-dasharray: 5, 5; }
+    .projection-dot { transition: r 0.2s; }
+    .projection-dot:hover { r: 6; }
+
+    .projection-grid line { stroke: var(--border-subtle); stroke-width: 1; }
+    .projection-axis text { font-size: 0.65rem; fill: var(--text-muted); }
+
+    .projection-legend {
+      display: flex;
+      gap: var(--space-lg);
+      margin-top: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .projection-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .projection-legend-line {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .projection-legend-line.dashed {
+      background: repeating-linear-gradient(90deg, currentColor 0, currentColor 4px, transparent 4px, transparent 8px);
+      height: 2px;
+    }
+
+    /* ==================== GAUGE CHARTS ==================== */
+    .gauge-container { display: flex; flex-direction: column; align-items: center; }
+
+    .gauge { position: relative; width: 160px; height: 90px; overflow: hidden; }
+
+    .gauge svg { position: absolute; bottom: 0; left: 0; }
+
+    .gauge-bg { fill: none; stroke: var(--bg-elevated); stroke-width: 12; stroke-linecap: round; }
+    .gauge-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .gauge-value {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .gauge-label {
+      margin-top: var(--space-sm);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .gauge-range {
+      display: flex;
+      justify-content: space-between;
+      width: 160px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+    }
+
+    /* ==================== SPARKLINE VARIANTS ==================== */
+    .sparkline-area {
+      display: flex;
+      align-items: flex-end;
+      height: 40px;
+      position: relative;
+    }
+
+    .sparkline-area svg { width: 100%; height: 100%; }
+    .sparkline-area-fill { transition: d 0.5s; }
+    .sparkline-area-line { fill: none; stroke-width: 2; }
+
+    /* Inline Sparkline */
+    .inline-metric {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md);
+      background: var(--bg-glass);
+      border-radius: 12px;
+    }
+
+    .inline-metric-info { flex: 1; }
+    .inline-metric-label { font-size: 0.75rem; color: var(--text-muted); }
+    .inline-metric-value { font-size: 1.5rem; font-weight: 700; }
+    .inline-metric-change { font-size: 0.8rem; }
+    .inline-metric-change.up { color: var(--positive); }
+    .inline-metric-change.down { color: var(--negative); }
+
+    .inline-sparkline { width: 80px; height: 30px; }
+
+    /* ==================== LEAGUE TABLE ==================== */
+    .league-table { width: 100%; border-collapse: collapse; }
+
+    .league-table th {
+      text-align: left;
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .league-table td {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .league-table tr:hover td { background: var(--bg-glass); }
+
+    .league-rank {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .league-rank.gold { background: linear-gradient(135deg, #ffd700, #ffb347); color: #333; }
+    .league-rank.silver { background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: #333; }
+    .league-rank.bronze { background: linear-gradient(135deg, #cd7f32, #daa06d); color: #333; }
+    .league-rank.normal { background: var(--bg-elevated); color: var(--text-secondary); }
+
+    .league-bar { width: 100px; height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+    .league-bar-fill { height: 100%; border-radius: 3px; }
+
+    .league-trend { font-size: 0.75rem; }
+    .league-trend.up { color: var(--positive); }
+    .league-trend.down { color: var(--negative); }
+    .league-trend.same { color: var(--text-muted); }
+
+    /* ==================== WATERFALL CHART ==================== */
+    .waterfall-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-sm);
+      height: 180px;
+      padding-bottom: 30px;
+      position: relative;
+    }
+
+    .waterfall-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .waterfall-bar {
+      width: 100%;
+      max-width: 50px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .waterfall-bar.positive { background: linear-gradient(to top, rgba(16, 185, 129, 0.6), var(--positive)); }
+    .waterfall-bar.negative { background: linear-gradient(to top, rgba(239, 68, 68, 0.6), var(--negative)); }
+    .waterfall-bar.total { background: linear-gradient(to top, rgba(74, 103, 65, 0.6), var(--ferni)); }
+
+    .waterfall-value {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .waterfall-label {
+      position: absolute;
+      bottom: -25px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .waterfall-connector {
+      position: absolute;
+      height: 1px;
+      background: var(--border-subtle);
+      top: 0;
+      right: -50%;
+      width: 100%;
+    }
+
+    /* ==================== BULLET CHART ==================== */
+    .bullet-chart { margin-bottom: var(--space-lg); }
+
+    .bullet-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--space-xs);
+    }
+
+    .bullet-title { font-size: 0.875rem; }
+    .bullet-subtitle { font-size: 0.75rem; color: var(--text-muted); }
+    .bullet-values { text-align: right; }
+    .bullet-actual { font-weight: 700; }
+    .bullet-target { font-size: 0.75rem; color: var(--text-muted); }
+
+    .bullet-track {
+      height: 20px;
+      background: linear-gradient(to right,
+        rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.2) 33%,
+        rgba(251, 191, 36, 0.2) 33%, rgba(251, 191, 36, 0.2) 66%,
+        rgba(16, 185, 129, 0.2) 66%, rgba(16, 185, 129, 0.2) 100%);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .bullet-fill {
+      position: absolute;
+      top: 5px;
+      left: 0;
+      height: 10px;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .bullet-marker {
+      position: absolute;
+      top: 2px;
+      width: 3px;
+      height: 16px;
+      background: var(--negative);
+      border-radius: 1px;
+    }
+
+    /* ==================== HEATMAP ==================== */
+    .heatmap { display: flex; flex-direction: column; gap: 2px; }
+
+    .heatmap-row {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .heatmap-label {
+      width: 60px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: right;
+      padding-right: var(--space-sm);
+    }
+
+    .heatmap-cell {
+      width: 30px;
+      height: 20px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 500;
+      transition: transform 0.2s;
+    }
+
+    .heatmap-cell:hover { transform: scale(1.1); }
+
+    .heatmap-header {
+      display: flex;
+      gap: 2px;
+      margin-left: 60px;
+      margin-bottom: var(--space-xs);
+    }
+
+    .heatmap-header-cell {
+      width: 30px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ==================== KPI TILES ==================== */
+    .kpi-tile {
+      padding: var(--space-lg);
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-tile::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .kpi-tile.positive::before { background: var(--positive); }
+    .kpi-tile.negative::before { background: var(--negative); }
+    .kpi-tile.warning::before { background: var(--warning); }
+    .kpi-tile.info::before { background: var(--info); }
+
+    .kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-sm); }
+    .kpi-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+    .kpi-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+    .kpi-badge.up { background: rgba(16, 185, 129, 0.15); color: var(--positive); }
+    .kpi-badge.down { background: rgba(239, 68, 68, 0.15); color: var(--negative); }
+
+    .kpi-value { font-size: 2.25rem; font-weight: 700; line-height: 1; margin-bottom: var(--space-sm); }
+    .kpi-comparison { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .kpi-sparkline { height: 30px; margin-top: var(--space-md); }
+
+    .footer { text-align: center; padding: var(--space-xl); color: var(--text-muted); border-top: 1px solid var(--border-subtle); margin-top: var(--space-xl); font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <h1>Ferni Data Visualization Kit</h1>
+  <p class="tagline">2025 Best-in-Class Charts for Data Geeks</p>
+</header>
+
+<nav class="nav">
+  <a href="#pills">Pill Metrics</a>
+  <a href="#donuts">Donut Charts</a>
+  <a href="#contributions">GitHub Calendar</a>
+  <a href="#benchmarks">Benchmarking</a>
+  <a href="#projections">Projections</a>
+  <a href="#gauges">Gauges</a>
+  <a href="#kpis">KPI Tiles</a>
+  <a href="#waterfall">Waterfall</a>
+  <a href="#heatmap">Heatmaps</a>
+  <a href="#league">League Tables</a>
+</nav>
+
+<main class="main">
+
+  <!-- PILL METRICS -->
+  <section id="pills" class="section">
+    <div class="section-header">
+      <h2>Pill Metrics</h2>
+      <span class="badge">Compact KPIs</span>
+    </div>
+    <p class="section-desc">Compact, scannable metrics in pill format. Perfect for dashboards and status bars.</p>
+
+    <div class="subsection">
+      <h3>Standard Pills</h3>
+      <div class="pill-row">
+        <div class="pill positive">
+          <div class="pill-icon">+</div>
+          <span class="pill-value">2,847</span>
+          <span>users</span>
+          <span class="pill-trend">+12%</span>
+        </div>
+        <div class="pill negative">
+          <div class="pill-icon">-</div>
+          <span class="pill-value">142</span>
+          <span>churned</span>
+          <span class="pill-trend">-3%</span>
+        </div>
+        <div class="pill info">
+          <div class="pill-icon">i</div>
+          <span class="pill-value">89%</span>
+          <span>retention</span>
+        </div>
+        <div class="pill purple">
+          <div class="pill-icon">*</div>
+          <span class="pill-value">4.8</span>
+          <span>avg rating</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Large Pills (Dashboard Cards)</h3>
+      <div class="pill-row">
+        <div class="pill pill-lg positive">
+          <span class="pill-label">Active Users</span>
+          <span class="pill-value">12,847</span>
+          <span class="pill-trend">+18% vs last month</span>
+        </div>
+        <div class="pill pill-lg info">
+          <span class="pill-label">Sessions</span>
+          <span class="pill-value">48.2K</span>
+          <span class="pill-trend">2.4 per user avg</span>
+        </div>
+        <div class="pill pill-lg purple">
+          <span class="pill-label">Engagement</span>
+          <span class="pill-value">94%</span>
+          <span class="pill-trend">Above benchmark</span>
+        </div>
+        <div class="pill pill-lg negative">
+          <span class="pill-label">Bounce Rate</span>
+          <span class="pill-value">23%</span>
+          <span class="pill-trend">-5% improvement</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DONUT CHARTS -->
+  <section id="donuts" class="section">
+    <div class="section-header">
+      <h2>Donut Charts</h2>
+      <span class="badge">Part-to-Whole</span>
+    </div>
+    <p class="section-desc">Elegant donut charts for showing composition and distribution.</p>
+
+    <div class="grid-3">
+      <div class="subsection">
+        <h3>Standard Donut</h3>
+        <div class="donut-container">
+          <div class="donut" style="width: 140px; height: 140px;">
+            <svg viewBox="0 0 140 140" width="140" height="140">
+              <circle class="donut-segment" cx="70" cy="70" r="55" stroke="var(--ferni)" stroke-width="20" stroke-dasharray="0 346" id="donut1-seg1"/>
+              <circle class="donut-segment" cx="70" cy="70" r="55" stroke="var(--ferni-light)" stroke-width="20" stroke-dasharray="0 346" id="donut1-seg2"/>
+              <circle class="donut-segment" cx="70" cy="70" r="55" stroke="#8bc34a" stroke-width="20" stroke-dasharray="0 346" id="donut1-seg3"/>
+            </svg>
+            <div class="donut-center">
+              <div class="donut-value">847</div>
+              <div class="donut-label">Total</div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            <div class="donut-legend-item"><div class="donut-legend-dot" style="background: var(--ferni);"></div>Mobile<div class="donut-legend-value">423</div></div>
+            <div class="donut-legend-item"><div class="donut-legend-dot" style="background: var(--ferni-light);"></div>Desktop<div class="donut-legend-value">298</div></div>
+            <div class="donut-legend-item"><div class="donut-legend-dot" style="background: #8bc34a;"></div>Tablet<div class="donut-legend-value">126</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>Thin Donut</h3>
+        <div class="donut-container">
+          <div class="donut" style="width: 140px; height: 140px;">
+            <svg viewBox="0 0 140 140" width="140" height="140">
+              <circle cx="70" cy="70" r="60" fill="none" stroke="var(--bg-elevated)" stroke-width="6"/>
+              <circle class="donut-segment" cx="70" cy="70" r="60" stroke="var(--positive)" stroke-width="6" stroke-dasharray="0 377" id="donut2-seg1"/>
+              <circle class="donut-segment" cx="70" cy="70" r="60" stroke="var(--warning)" stroke-width="6" stroke-dasharray="0 377" id="donut2-seg2"/>
+              <circle class="donut-segment" cx="70" cy="70" r="60" stroke="var(--negative)" stroke-width="6" stroke-dasharray="0 377" id="donut2-seg3"/>
+            </svg>
+            <div class="donut-center">
+              <div class="donut-value" style="color: var(--positive);">78%</div>
+              <div class="donut-label">Success</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>Mini Donuts</h3>
+        <div style="display: flex; gap: var(--space-lg); flex-wrap: wrap;">
+          <div style="text-align: center;">
+            <div class="donut donut-mini">
+              <svg viewBox="0 0 60 60" width="60" height="60">
+                <circle cx="30" cy="30" r="24" fill="none" stroke="var(--bg-elevated)" stroke-width="6"/>
+                <circle class="donut-segment" cx="30" cy="30" r="24" stroke="var(--positive)" stroke-width="6" stroke-dasharray="0 151" id="mini1"/>
+              </svg>
+              <div class="donut-center"><div class="donut-value">92%</div></div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Health</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="donut donut-mini">
+              <svg viewBox="0 0 60 60" width="60" height="60">
+                <circle cx="30" cy="30" r="24" fill="none" stroke="var(--bg-elevated)" stroke-width="6"/>
+                <circle class="donut-segment" cx="30" cy="30" r="24" stroke="var(--warning)" stroke-width="6" stroke-dasharray="0 151" id="mini2"/>
+              </svg>
+              <div class="donut-center"><div class="donut-value">67%</div></div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Progress</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="donut donut-mini">
+              <svg viewBox="0 0 60 60" width="60" height="60">
+                <circle cx="30" cy="30" r="24" fill="none" stroke="var(--bg-elevated)" stroke-width="6"/>
+                <circle class="donut-segment" cx="30" cy="30" r="24" stroke="var(--purple)" stroke-width="6" stroke-dasharray="0 151" id="mini3"/>
+              </svg>
+              <div class="donut-center"><div class="donut-value">85%</div></div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Quality</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GITHUB CONTRIBUTIONS -->
+  <section id="contributions" class="section">
+    <div class="section-header">
+      <h2>GitHub-Style Contributions</h2>
+      <span class="badge">Activity Heatmap</span>
+    </div>
+    <p class="section-desc">Track activity patterns over time with GitHub-style contribution calendars.</p>
+
+    <div class="subsection">
+      <h3>12-Month Activity Calendar</h3>
+      <div style="overflow-x: auto;">
+        <div class="contributions-months" id="contrib-months"></div>
+        <div class="contributions-wrapper">
+          <div class="contributions-days">
+            <div class="contributions-day"></div>
+            <div class="contributions-day">Mon</div>
+            <div class="contributions-day"></div>
+            <div class="contributions-day">Wed</div>
+            <div class="contributions-day"></div>
+            <div class="contributions-day">Fri</div>
+            <div class="contributions-day"></div>
+          </div>
+          <div class="contributions-calendar" id="contrib-calendar"></div>
+        </div>
+        <div class="contributions-legend">
+          <span>Less</span>
+          <div class="contributions-legend-cells">
+            <div class="contributions-cell level-0"></div>
+            <div class="contributions-cell level-1"></div>
+            <div class="contributions-cell level-2"></div>
+            <div class="contributions-cell level-3"></div>
+            <div class="contributions-cell level-4"></div>
+          </div>
+          <span>More</span>
+          <span style="margin-left: auto;">847 contributions in the last year</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENCHMARKING -->
+  <section id="benchmarks" class="section">
+    <div class="section-header">
+      <h2>Benchmarking Charts</h2>
+      <span class="badge">Comparison</span>
+    </div>
+    <p class="section-desc">Compare performance against targets, competitors, and industry standards.</p>
+
+    <div class="grid-2">
+      <div class="subsection">
+        <h3>Benchmark Bars with Markers</h3>
+        <div class="benchmark-bar">
+          <div class="benchmark-header"><span class="benchmark-label">Customer Satisfaction</span><span class="benchmark-value" style="color: var(--positive);">87%</span></div>
+          <div class="benchmark-track">
+            <div class="benchmark-fill" style="width: 87%; background: linear-gradient(90deg, var(--ferni), var(--positive));" id="bench1"></div>
+            <div class="benchmark-marker" style="left: 75%;" data-label="Industry Avg"></div>
+          </div>
+        </div>
+        <div class="benchmark-bar">
+          <div class="benchmark-header"><span class="benchmark-label">Response Time</span><span class="benchmark-value" style="color: var(--warning);">2.4s</span></div>
+          <div class="benchmark-track">
+            <div class="benchmark-fill" style="width: 60%; background: linear-gradient(90deg, var(--ferni), var(--warning));" id="bench2"></div>
+            <div class="benchmark-marker" style="left: 40%;" data-label="Target"></div>
+          </div>
+        </div>
+        <div class="benchmark-bar">
+          <div class="benchmark-header"><span class="benchmark-label">Conversion Rate</span><span class="benchmark-value" style="color: var(--positive);">12.4%</span></div>
+          <div class="benchmark-track">
+            <div class="benchmark-fill" style="width: 82%; background: linear-gradient(90deg, var(--ferni), var(--positive));" id="bench3"></div>
+            <div class="benchmark-marker" style="left: 65%;" data-label="Competitor"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>Horizontal Bar Comparison</h3>
+        <div class="hbar-chart">
+          <div class="hbar-item"><span class="hbar-label">Q4 2024</span><div class="hbar-track"><div class="hbar-fill" style="width: 92%; background: var(--ferni);"><span class="hbar-value">$4.2M</span></div></div></div>
+          <div class="hbar-item"><span class="hbar-label">Q3 2024</span><div class="hbar-track"><div class="hbar-fill" style="width: 78%; background: var(--ferni-light);"><span class="hbar-value">$3.6M</span></div></div></div>
+          <div class="hbar-item"><span class="hbar-label">Q2 2024</span><div class="hbar-track"><div class="hbar-fill" style="width: 65%; background: #8bc34a;"><span class="hbar-value">$3.0M</span></div></div></div>
+          <div class="hbar-item"><span class="hbar-label">Q1 2024</span><div class="hbar-track"><div class="hbar-fill" style="width: 54%; background: #c5e1a5;"><span class="hbar-value">$2.5M</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Bullet Charts (Target vs Actual)</h3>
+      <div class="grid-2">
+        <div class="bullet-chart">
+          <div class="bullet-header">
+            <div><div class="bullet-title">Revenue</div><div class="bullet-subtitle">Q4 Performance</div></div>
+            <div class="bullet-values"><div class="bullet-actual">$4.2M</div><div class="bullet-target">Target: $4.0M</div></div>
+          </div>
+          <div class="bullet-track">
+            <div class="bullet-fill" style="width: 84%;" id="bullet1"></div>
+            <div class="bullet-marker" style="left: 80%;"></div>
+          </div>
+        </div>
+        <div class="bullet-chart">
+          <div class="bullet-header">
+            <div><div class="bullet-title">New Users</div><div class="bullet-subtitle">Monthly Target</div></div>
+            <div class="bullet-values"><div class="bullet-actual">1,847</div><div class="bullet-target">Target: 2,000</div></div>
+          </div>
+          <div class="bullet-track">
+            <div class="bullet-fill" style="width: 62%;" id="bullet2"></div>
+            <div class="bullet-marker" style="left: 67%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTIONS -->
+  <section id="projections" class="section">
+    <div class="section-header">
+      <h2>Projection Charts</h2>
+      <span class="badge">Forecasting</span>
+    </div>
+    <p class="section-desc">Visualize trends with forecasts, confidence intervals, and projections.</p>
+
+    <div class="subsection">
+      <h3>Trend Line with Projection</h3>
+      <div class="projection-chart">
+        <svg class="projection-svg" viewBox="0 0 600 180" preserveAspectRatio="none" id="projection-chart-1">
+          <!-- Grid -->
+          <g class="projection-grid">
+            <line x1="50" y1="150" x2="580" y2="150" />
+            <line x1="50" y1="110" x2="580" y2="110" stroke-dasharray="4,4" />
+            <line x1="50" y1="70" x2="580" y2="70" stroke-dasharray="4,4" />
+            <line x1="50" y1="30" x2="580" y2="30" stroke-dasharray="4,4" />
+          </g>
+          <!-- Confidence interval -->
+          <path class="projection-area" d="M400,100 L450,85 L500,75 L550,60 L550,100 L500,115 L450,125 L400,115 Z" fill="rgba(74, 103, 65, 0.15)" id="confidence-area"/>
+          <!-- Historical line -->
+          <path class="projection-line" d="M50,140 L100,130 L150,120 L200,125 L250,110 L300,100 L350,95 L400,85" stroke="var(--ferni)" id="historical-line"/>
+          <!-- Projection line -->
+          <path class="projection-line projection-line-dashed" d="M400,85 L450,70 L500,55 L550,40" stroke="var(--ferni-light)" id="projection-line"/>
+          <!-- Dots -->
+          <g id="projection-dots">
+            <circle class="projection-dot" cx="50" cy="140" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="100" cy="130" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="150" cy="120" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="200" cy="125" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="250" cy="110" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="300" cy="100" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="350" cy="95" r="4" fill="var(--ferni)"/>
+            <circle class="projection-dot" cx="400" cy="85" r="4" fill="var(--ferni)"/>
+          </g>
+          <!-- Axis labels -->
+          <g class="projection-axis">
+            <text x="50" y="165">Jan</text>
+            <text x="150" y="165">Mar</text>
+            <text x="250" y="165">May</text>
+            <text x="350" y="165">Jul</text>
+            <text x="450" y="165">Sep</text>
+            <text x="550" y="165">Nov</text>
+            <text x="30" y="150" text-anchor="end">0</text>
+            <text x="30" y="110" text-anchor="end">25</text>
+            <text x="30" y="70" text-anchor="end">50</text>
+            <text x="30" y="30" text-anchor="end">75</text>
+          </g>
+          <!-- Today marker -->
+          <line x1="400" y1="20" x2="400" y2="150" stroke="var(--text-muted)" stroke-dasharray="4,4"/>
+          <text x="400" y="15" fill="var(--text-muted)" font-size="10" text-anchor="middle">Today</text>
+        </svg>
+      </div>
+      <div class="projection-legend">
+        <div class="projection-legend-item"><div class="projection-legend-line" style="background: var(--ferni);"></div>Historical</div>
+        <div class="projection-legend-item"><div class="projection-legend-line dashed" style="color: var(--ferni-light);"></div>Projected</div>
+        <div class="projection-legend-item"><div style="width: 20px; height: 10px; background: rgba(74, 103, 65, 0.15); border-radius: 2px;"></div>Confidence Interval</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAUGES -->
+  <section id="gauges" class="section">
+    <div class="section-header">
+      <h2>Gauge Charts</h2>
+      <span class="badge">Progress Indicators</span>
+    </div>
+    <p class="section-desc">Semi-circular gauges for showing progress toward goals.</p>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="gauge-container">
+          <div class="gauge">
+            <svg viewBox="0 0 160 90" width="160" height="90">
+              <path class="gauge-bg" d="M15,80 A65,65 0 0,1 145,80"/>
+              <path class="gauge-fill" d="M15,80 A65,65 0 0,1 145,80" stroke="var(--positive)" stroke-dasharray="204" stroke-dashoffset="204" id="gauge1"/>
+            </svg>
+            <div class="gauge-value" style="color: var(--positive);" id="gauge1-val">0%</div>
+          </div>
+          <div class="gauge-label">System Health</div>
+          <div class="gauge-range"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="gauge-container">
+          <div class="gauge">
+            <svg viewBox="0 0 160 90" width="160" height="90">
+              <path class="gauge-bg" d="M15,80 A65,65 0 0,1 145,80"/>
+              <path class="gauge-fill" d="M15,80 A65,65 0 0,1 145,80" stroke="var(--warning)" stroke-dasharray="204" stroke-dashoffset="204" id="gauge2"/>
+            </svg>
+            <div class="gauge-value" style="color: var(--warning);" id="gauge2-val">0%</div>
+          </div>
+          <div class="gauge-label">CPU Usage</div>
+          <div class="gauge-range"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="gauge-container">
+          <div class="gauge">
+            <svg viewBox="0 0 160 90" width="160" height="90">
+              <path class="gauge-bg" d="M15,80 A65,65 0 0,1 145,80"/>
+              <path class="gauge-fill" d="M15,80 A65,65 0 0,1 145,80" stroke="var(--purple)" stroke-dasharray="204" stroke-dashoffset="204" id="gauge3"/>
+            </svg>
+            <div class="gauge-value" style="color: var(--purple);" id="gauge3-val">0%</div>
+          </div>
+          <div class="gauge-label">Memory</div>
+          <div class="gauge-range"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="gauge-container">
+          <div class="gauge">
+            <svg viewBox="0 0 160 90" width="160" height="90">
+              <path class="gauge-bg" d="M15,80 A65,65 0 0,1 145,80"/>
+              <path class="gauge-fill" d="M15,80 A65,65 0 0,1 145,80" stroke="var(--ferni)" stroke-dasharray="204" stroke-dashoffset="204" id="gauge4"/>
+            </svg>
+            <div class="gauge-value" style="color: var(--ferni);" id="gauge4-val">0%</div>
+          </div>
+          <div class="gauge-label">Goal Progress</div>
+          <div class="gauge-range"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI TILES -->
+  <section id="kpis" class="section">
+    <div class="section-header">
+      <h2>KPI Tiles</h2>
+      <span class="badge">Executive Dashboard</span>
+    </div>
+    <p class="section-desc">Executive-ready KPI tiles with sparklines and trend indicators.</p>
+
+    <div class="grid-4">
+      <div class="kpi-tile positive">
+        <div class="kpi-header"><span class="kpi-label">Revenue</span><span class="kpi-badge up">+18%</span></div>
+        <div class="kpi-value">$4.2M</div>
+        <div class="kpi-comparison">vs $3.6M last quarter</div>
+        <div class="kpi-sparkline" id="kpi-spark-1"></div>
+      </div>
+      <div class="kpi-tile info">
+        <div class="kpi-header"><span class="kpi-label">Active Users</span><span class="kpi-badge up">+12%</span></div>
+        <div class="kpi-value">12.8K</div>
+        <div class="kpi-comparison">vs 11.4K last month</div>
+        <div class="kpi-sparkline" id="kpi-spark-2"></div>
+      </div>
+      <div class="kpi-tile warning">
+        <div class="kpi-header"><span class="kpi-label">Avg Response</span><span class="kpi-badge down">-8%</span></div>
+        <div class="kpi-value">2.4s</div>
+        <div class="kpi-comparison">vs 2.6s last week</div>
+        <div class="kpi-sparkline" id="kpi-spark-3"></div>
+      </div>
+      <div class="kpi-tile negative">
+        <div class="kpi-header"><span class="kpi-label">Churn Rate</span><span class="kpi-badge up">+0.3%</span></div>
+        <div class="kpi-value">2.1%</div>
+        <div class="kpi-comparison">vs 1.8% last month</div>
+        <div class="kpi-sparkline" id="kpi-spark-4"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WATERFALL -->
+  <section id="waterfall" class="section">
+    <div class="section-header">
+      <h2>Waterfall Chart</h2>
+      <span class="badge">Flow Analysis</span>
+    </div>
+    <p class="section-desc">Visualize how values build up or break down over steps.</p>
+
+    <div class="subsection">
+      <h3>Revenue Breakdown</h3>
+      <div class="waterfall-chart" id="waterfall-chart">
+        <div class="waterfall-item">
+          <div class="waterfall-bar total" style="height: 120px;"><div class="waterfall-value">$3.6M</div></div>
+          <div class="waterfall-label">Start</div>
+        </div>
+        <div class="waterfall-item">
+          <div class="waterfall-bar positive" style="height: 80px; margin-bottom: 120px;"><div class="waterfall-value">+$800K</div></div>
+          <div class="waterfall-label">New Sales</div>
+        </div>
+        <div class="waterfall-item">
+          <div class="waterfall-bar positive" style="height: 40px; margin-bottom: 200px;"><div class="waterfall-value">+$400K</div></div>
+          <div class="waterfall-label">Upsells</div>
+        </div>
+        <div class="waterfall-item">
+          <div class="waterfall-bar negative" style="height: 30px; margin-bottom: 240px;"><div class="waterfall-value">-$300K</div></div>
+          <div class="waterfall-label">Churn</div>
+        </div>
+        <div class="waterfall-item">
+          <div class="waterfall-bar negative" style="height: 30px; margin-bottom: 210px;"><div class="waterfall-value">-$300K</div></div>
+          <div class="waterfall-label">Refunds</div>
+        </div>
+        <div class="waterfall-item">
+          <div class="waterfall-bar total" style="height: 180px;"><div class="waterfall-value">$4.2M</div></div>
+          <div class="waterfall-label">End</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HEATMAP -->
+  <section id="heatmap" class="section">
+    <div class="section-header">
+      <h2>Heatmaps</h2>
+      <span class="badge">Density Analysis</span>
+    </div>
+    <p class="section-desc">Visualize density and patterns across two dimensions.</p>
+
+    <div class="subsection">
+      <h3>Weekly Activity by Hour</h3>
+      <div class="heatmap" id="heatmap-weekly"></div>
+    </div>
+  </section>
+
+  <!-- LEAGUE TABLE -->
+  <section id="league" class="section">
+    <div class="section-header">
+      <h2>League Tables</h2>
+      <span class="badge">Rankings</span>
+    </div>
+    <p class="section-desc">Ranked tables with visual indicators for competitive analysis.</p>
+
+    <div class="subsection">
+      <h3>Top Performers</h3>
+      <table class="league-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">Rank</th>
+            <th>Name</th>
+            <th>Score</th>
+            <th style="width: 120px;">Progress</th>
+            <th style="width: 60px;">Trend</th>
+          </tr>
+        </thead>
+        <tbody id="league-body">
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  Ferni Data Visualization Kit 2025 - Best-in-Class Charts for Data Storytelling
+</footer>
+
+<script>
+  // Helper: clear element children safely
+  function clearElement(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+  // Helper: create element with text
+  function createEl(tag, text, className) {
+    var el = document.createElement(tag);
+    if (text) el.textContent = text;
+    if (className) el.className = className;
+    return el;
+  }
+
+  // Animate donut segments
+  function animateDonut(segments, values, circumference) {
+    var offset = 0;
+    segments.forEach(function(id, i) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var segmentLength = (values[i] / 100) * circumference;
+      setTimeout(function() {
+        el.style.strokeDasharray = segmentLength + ' ' + circumference;
+        el.style.strokeDashoffset = -offset;
+      }, i * 200);
+      offset += segmentLength;
+    });
+  }
+
+  // Animate mini donut
+  function animateMiniDonut(id, percent) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var circumference = 151;
+    var length = (percent / 100) * circumference;
+    setTimeout(function() {
+      el.style.strokeDasharray = length + ' ' + circumference;
+    }, 300);
+  }
+
+  // Animate gauge
+  function animateGauge(pathId, valueId, percent, duration) {
+    var path = document.getElementById(pathId);
+    var valueEl = document.getElementById(valueId);
+    if (!path || !valueEl) return;
+    var maxOffset = 204;
+    var targetOffset = maxOffset - (percent / 100) * maxOffset;
+    setTimeout(function() {
+      path.style.strokeDashoffset = targetOffset;
+    }, 300);
+    // Animate number
+    var start = 0;
+    var startTime = performance.now();
+    function update(time) {
+      var elapsed = time - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      var current = Math.round(start + (percent - start) * progress);
+      valueEl.textContent = current + '%';
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    setTimeout(function() { requestAnimationFrame(update); }, 300);
+  }
+
+  // Create GitHub contributions calendar
+  function createContributions() {
+    var calendar = document.getElementById('contrib-calendar');
+    var months = document.getElementById('contrib-months');
+    if (!calendar || !months) return;
+
+    var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    monthNames.forEach(function(m) {
+      var span = createEl('span', m, 'contributions-month');
+      months.appendChild(span);
+    });
+
+    // 7 rows (days), 52 columns (weeks)
+    for (var day = 0; day < 7; day++) {
+      var row = document.createElement('div');
+      row.className = 'contributions-row';
+      for (var week = 0; week < 52; week++) {
+        var cell = document.createElement('div');
+        cell.className = 'contributions-cell';
+        var level = Math.floor(Math.random() * 5);
+        if (Math.random() > 0.3) level = Math.min(level, 2);
+        cell.classList.add('level-' + level);
+        row.appendChild(cell);
+      }
+      calendar.appendChild(row);
+    }
+  }
+
+  // Create heatmap
+  function createHeatmap() {
+    var container = document.getElementById('heatmap-weekly');
+    if (!container) return;
+
+    var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var hours = ['12a', '3a', '6a', '9a', '12p', '3p', '6p', '9p'];
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'heatmap-header';
+    hours.forEach(function(h) {
+      var cell = createEl('div', h, 'heatmap-header-cell');
+      header.appendChild(cell);
+    });
+    container.appendChild(header);
+
+    // Rows
+    days.forEach(function(day) {
+      var row = document.createElement('div');
+      row.className = 'heatmap-row';
+      var label = createEl('div', day, 'heatmap-label');
+      row.appendChild(label);
+
+      for (var h = 0; h < 8; h++) {
+        var cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        var value = Math.floor(Math.random() * 100);
+        var hue = 100 - value;
+        var lightness = 25 + value * 0.3;
+        cell.style.background = 'hsl(' + hue + ', 60%, ' + lightness + '%)';
+        cell.style.color = value > 50 ? '#fff' : 'var(--text-muted)';
+        cell.textContent = value;
+        row.appendChild(cell);
+      }
+      container.appendChild(row);
+    });
+  }
+
+  // Create league table
+  function createLeagueTable() {
+    var tbody = document.getElementById('league-body');
+    if (!tbody) return;
+
+    var data = [
+      { name: 'Emma Johnson', score: 9847, progress: 98, trend: 'up' },
+      { name: 'Michael Chen', score: 9234, progress: 92, trend: 'up' },
+      { name: 'Sarah Williams', score: 8876, progress: 89, trend: 'same' },
+      { name: 'David Kim', score: 8654, progress: 87, trend: 'down' },
+      { name: 'Lisa Anderson', score: 8432, progress: 84, trend: 'up' }
+    ];
+
+    data.forEach(function(item, i) {
+      var tr = document.createElement('tr');
+
+      // Rank
+      var rankTd = document.createElement('td');
+      var rankDiv = document.createElement('div');
+      rankDiv.className = 'league-rank';
+      if (i === 0) rankDiv.classList.add('gold');
+      else if (i === 1) rankDiv.classList.add('silver');
+      else if (i === 2) rankDiv.classList.add('bronze');
+      else rankDiv.classList.add('normal');
+      rankDiv.textContent = i + 1;
+      rankTd.appendChild(rankDiv);
+      tr.appendChild(rankTd);
+
+      // Name
+      var nameTd = createEl('td', item.name);
+      tr.appendChild(nameTd);
+
+      // Score
+      var scoreTd = document.createElement('td');
+      scoreTd.style.fontWeight = '600';
+      scoreTd.style.fontVariantNumeric = 'tabular-nums';
+      scoreTd.textContent = item.score.toLocaleString();
+      tr.appendChild(scoreTd);
+
+      // Progress bar
+      var progressTd = document.createElement('td');
+      var barDiv = document.createElement('div');
+      barDiv.className = 'league-bar';
+      var fillDiv = document.createElement('div');
+      fillDiv.className = 'league-bar-fill';
+      fillDiv.style.width = item.progress + '%';
+      fillDiv.style.background = 'var(--ferni)';
+      barDiv.appendChild(fillDiv);
+      progressTd.appendChild(barDiv);
+      tr.appendChild(progressTd);
+
+      // Trend
+      var trendTd = document.createElement('td');
+      var trendSpan = document.createElement('span');
+      trendSpan.className = 'league-trend ' + item.trend;
+      if (item.trend === 'up') trendSpan.textContent = '+2';
+      else if (item.trend === 'down') trendSpan.textContent = '-1';
+      else trendSpan.textContent = '-';
+      trendTd.appendChild(trendSpan);
+      tr.appendChild(trendTd);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Create KPI sparklines
+  function createKpiSparkline(containerId, values, color) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 80 30');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+
+    var max = Math.max.apply(null, values);
+    var min = Math.min.apply(null, values);
+    var range = max - min || 1;
+
+    var points = values.map(function(v, i) {
+      var x = (i / (values.length - 1)) * 80;
+      var y = 28 - ((v - min) / range) * 24;
+      return x + ',' + y;
+    });
+
+    // Area
+    var areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    areaPath.setAttribute('d', 'M0,30 L' + points.join(' L') + ' L80,30 Z');
+    areaPath.setAttribute('fill', color);
+    areaPath.setAttribute('fill-opacity', '0.2');
+    svg.appendChild(areaPath);
+
+    // Line
+    var linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    linePath.setAttribute('d', 'M' + points.join(' L'));
+    linePath.setAttribute('fill', 'none');
+    linePath.setAttribute('stroke', color);
+    linePath.setAttribute('stroke-width', '2');
+    svg.appendChild(linePath);
+
+    container.appendChild(svg);
+  }
+
+  // Initialize all on load
+  window.addEventListener('load', function() {
+    // Donuts
+    animateDonut(['donut1-seg1', 'donut1-seg2', 'donut1-seg3'], [50, 35, 15], 346);
+    animateDonut(['donut2-seg1', 'donut2-seg2', 'donut2-seg3'], [78, 15, 7], 377);
+    animateMiniDonut('mini1', 92);
+    animateMiniDonut('mini2', 67);
+    animateMiniDonut('mini3', 85);
+
+    // Gauges
+    animateGauge('gauge1', 'gauge1-val', 92, 1500);
+    animateGauge('gauge2', 'gauge2-val', 67, 1500);
+    animateGauge('gauge3', 'gauge3-val', 54, 1500);
+    animateGauge('gauge4', 'gauge4-val', 78, 1500);
+
+    // GitHub contributions
+    createContributions();
+
+    // Heatmap
+    createHeatmap();
+
+    // League table
+    createLeagueTable();
+
+    // KPI sparklines
+    createKpiSparkline('kpi-spark-1', [3.2, 3.4, 3.3, 3.6, 3.5, 3.8, 4.0, 4.2], 'var(--positive)');
+    createKpiSparkline('kpi-spark-2', [10.2, 10.8, 11.0, 11.2, 11.4, 11.8, 12.2, 12.8], 'var(--info)');
+    createKpiSparkline('kpi-spark-3', [2.8, 2.7, 2.9, 2.6, 2.5, 2.6, 2.5, 2.4], 'var(--warning)');
+    createKpiSparkline('kpi-spark-4', [1.5, 1.6, 1.7, 1.8, 1.8, 1.9, 2.0, 2.1], 'var(--negative)');
+  });
+</script>
+
+</body>
+</html>

@@ -17,6 +17,7 @@
  * @module @ferni/relationship-events
  */
 
+import { seededChance, seededIndex, seededPick } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'RelationshipEvents' });
@@ -350,7 +351,7 @@ export class RelationshipEventsEngine {
     const phrases = MILESTONE_PHRASES[milestone.type];
     if (!phrases || phrases.length === 0) return null;
 
-    let phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    let phrase = seededPick(`${Date.now()}:354`, phrases) ?? phrases[0];
 
     // Replace placeholders
     if (milestone.type === 'session_milestone') {
@@ -366,7 +367,7 @@ export class RelationshipEventsEngine {
     // Determine if we should acknowledge now
     // Higher significance = more likely, but not certain
     const probability = 0.3 + milestone.significance * 0.4;
-    const shouldAcknowledge = Math.random() < probability && turnCount >= 3;
+    const shouldAcknowledge = seededChance(`${Date.now()}:1`, probability) && turnCount >= 3;
 
     if (shouldAcknowledge) {
       milestone.acknowledged = true;
@@ -400,7 +401,7 @@ export class RelationshipEventsEngine {
     for (const topic of currentTopics) {
       if (this.state.definingTopics.includes(topic)) {
         const phrases = MILESTONE_PHRASES.callback_moment;
-        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        const phrase = seededPick(`${Date.now()}:404`, phrases) ?? phrases[0];
         return phrase.replace('{topic}', topic);
       }
     }
@@ -415,7 +416,7 @@ export class RelationshipEventsEngine {
     const memories = this.state.sharedMemories.filter((m) => m.referenceCount >= 2);
     if (memories.length === 0) return null;
 
-    return memories[Math.floor(Math.random() * memories.length)];
+    return seededPick(`${Date.now()}:419`, memories) ?? memories[0];
   }
 
   /**

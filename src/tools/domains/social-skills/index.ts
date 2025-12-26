@@ -642,9 +642,9 @@ const handleSocialRejectionDef: ToolDefinition = {
 // ============================================================================
 
 const maintainFriendshipsDef: ToolDefinition = {
-  id: 'maintainFriendships',
-  name: 'Maintain Friendships',
-  description: 'Keep friendships alive despite busy life',
+  id: 'socialFriendshipSkills',
+  name: 'Friendship Maintenance Skills',
+  description: 'Social skills for keeping friendships alive despite busy life',
   domain: 'social-skills',
   tags: ['social', 'friendship', 'maintenance', 'busy'],
 

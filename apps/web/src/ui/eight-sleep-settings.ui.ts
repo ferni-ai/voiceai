@@ -12,7 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js';
+import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './toast.ui.js';
 
 // ============================================================================
@@ -496,8 +496,8 @@ function renderScoreRing(score: number): HTMLElement {
   progressCircle.setAttribute('r', '42');
 
   const circumference = 2 * Math.PI * 42;
-  const progress = (score / 100) * circumference;
-  progressCircle.setAttribute('stroke-dasharray', `${progress} ${circumference}`);
+  const _progress = (score / 100) * circumference;
+  progressCircle.setAttribute('stroke-dasharray', `${_progress} ${circumference}`);
   svg.appendChild(progressCircle);
 
   container.appendChild(svg);
@@ -552,10 +552,10 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
     tempTitle.appendChild(document.createTextNode('Bed Temperature'));
     tempHeader.appendChild(tempTitle);
 
-    const tempStatus = createElement('div', { className: 'eightsleep-temp-status' }, [
+    const _tempStatus = createElement('div', { className: 'eightsleep-temp-status' }, [
       status.temperature.active ? `Level ${status.temperature.currentLevel}` : 'Off',
     ]);
-    tempHeader.appendChild(tempStatus);
+    tempHeader.appendChild(_tempStatus);
     tempCard.appendChild(tempHeader);
 
     // Slider
@@ -565,11 +565,11 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
       min: '-10',
       max: '10',
       value: String(status.temperature.targetLevel),
-    }) as HTMLInputElement;
+    });
 
-    slider.addEventListener('change', async () => {
+    slider.addEventListener('change', () => {
       const level = parseInt(slider.value, 10);
-      await setTemperature(level);
+      void setTemperature(level);
     });
 
     tempCard.appendChild(slider);
@@ -630,7 +630,7 @@ function renderDisconnectedState(): HTMLElement {
   ]));
 
   const btn = createElement('button', { className: 'eightsleep-btn eightsleep-btn-primary' }, ['Connect Eight Sleep']);
-  btn.addEventListener('click', startAuthFlow);
+  btn.addEventListener('click', () => { void startAuthFlow(); });
   content.appendChild(btn);
 
   return content;
@@ -643,7 +643,7 @@ function renderDisconnectedState(): HTMLElement {
 async function fetchStatus(): Promise<EightSleepStatus> {
   try {
     const response = await apiGet<EightSleepStatus>('/api/eight-sleep/status');
-    return response;
+    return response.data || { connected: false };
   } catch (error) {
     console.error('Failed to fetch Eight Sleep status:', error);
     return { connected: false };
@@ -654,9 +654,9 @@ async function startAuthFlow(): Promise<void> {
   try {
     const response = await apiGet<{ url: string }>('/api/eight-sleep/auth/url');
 
-    if (response.url) {
+    if (response.data?.url) {
       // Redirect to Eight Sleep OAuth
-      window.location.href = response.url;
+      window.location.href = response.data.url;
     }
   } catch (error) {
     console.error('Failed to start Eight Sleep auth:', error);

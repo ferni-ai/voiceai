@@ -224,7 +224,7 @@ describe('Voice Enrollment UI', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       // Look for progress indicator
-      const progress = document.querySelector('.voice-enrollment-progress');
+      const _progress = document.querySelector('.voice-enrollment-progress');
       // Progress might be shown depending on implementation
     });
   });
@@ -326,7 +326,7 @@ describe('Voice Enrollment UI', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       // Look for live region or status element
-      const status = document.querySelector('[role="status"]');
+      const _status = document.querySelector('[role="status"]');
       // Implementation dependent
     });
   });

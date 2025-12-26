@@ -8,6 +8,7 @@
  * @module conversation/conversational-memory/quoted-memory
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -197,7 +198,7 @@ export class QuotedMemoryEngine {
       `Going back to ${memory.context}... "${memory.phrase}." What's behind that?`,
     ];
 
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const phrase = seededPick(`${Date.now()}:201`, phrases) ?? phrases[0];
 
     // Emit signal to frontend for EQ response
     void humanizationSignalEmitter.memoryCallback(

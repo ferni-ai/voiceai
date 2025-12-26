@@ -39,7 +39,7 @@ export {
 } from '../semantic-router/compat.js';
 
 // Re-export newer router types
-export { SemanticRouter, type RouterConfig, type ToolMatch } from '../semantic-router/index.js';
+export { SemanticRouter, type SemanticRouterConfig, type ToolMatch } from '../semantic-router/index.js';
 
 // Deprecation Management
 export {

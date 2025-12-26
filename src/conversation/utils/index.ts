@@ -14,6 +14,7 @@ export {
   DISENGAGEMENT_PATTERNS,
   EMOTIONAL_CONTENT_PATTERNS,
   EVIDENCE_PATTERNS,
+  HEAVY_CONTENT_KEYWORDS,
   HEAVY_CONTENT_PATTERNS,
   HESITATION_PATTERNS,
   // Pattern constants
@@ -34,6 +35,7 @@ export {
   detectEngagementLevel,
   detectEvidence,
   detectHeavyContent,
+  detectHeavyContentKeywords,
   detectHesitation,
   detectHighEngagement,
   // Energy detection

@@ -32,24 +32,9 @@ export interface ViewTransitionOptions {
 }
 
 /**
- * Extend Document interface for View Transitions API
+ * View Transition is now natively supported in TypeScript's DOM lib.
+ * No custom declarations needed - just use the native types.
  */
-declare global {
-  interface Document {
-    startViewTransition?: (callback: () => void | Promise<void>) => ViewTransition;
-  }
-
-  interface ViewTransition {
-    finished: Promise<void>;
-    ready: Promise<void>;
-    updateCallbackDone: Promise<void>;
-    skipTransition(): void;
-  }
-
-  interface CSSStyleDeclaration {
-    viewTransitionName: string;
-  }
-}
 
 // ============================================================================
 // FEATURE DETECTION
@@ -107,7 +92,7 @@ export async function withViewTransition(
     }
 
     // Start the view transition
-    const transition = document.startViewTransition!(async () => {
+    const transition = document.startViewTransition(async () => {
       await callback();
     });
 

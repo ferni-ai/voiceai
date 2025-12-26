@@ -7,6 +7,7 @@
  * @module conversation/conversational-memory/contradiction-detection
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import type { ProfileContradiction, UserProfile, UserStatement } from './types.js';
 
 // ============================================================================
@@ -160,7 +161,7 @@ export class ContradictionDetector {
       `Help me connect the dots—earlier you said "${original.text}"...`,
     ];
 
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:164`, phrases) ?? phrases[0];
   }
 
   /**
@@ -195,6 +196,6 @@ export class ContradictionDetector {
       `I want to make sure I have this right—I thought you said ${contradiction.storedValue}?`,
     ];
 
-    return fieldPhrases[Math.floor(Math.random() * fieldPhrases.length)];
+    return seededPick(`${Date.now()}:199`, fieldPhrases) ?? fieldPhrases[0];
   }
 }

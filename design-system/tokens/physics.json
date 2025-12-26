@@ -1,0 +1,369 @@
+{
+  "_version": "1.0.0",
+  "_description": "Physics-based animation system. Goes beyond Apple's spring animations with emotional momentum.",
+
+  "physics": {
+    "_philosophy": "Apple pioneered spring physics. We add emotional weight - UI elements feel heavier when delivering serious content, lighter when playful.",
+
+    "springs": {
+      "_description": "Spring configurations with emotional context",
+
+      "snappy": {
+        "tension": 400,
+        "friction": 30,
+        "mass": 1,
+        "useCase": "Quick confirmations, toggles, micro-interactions",
+        "emotionalContext": "efficient, responsive"
+      },
+      "gentle": {
+        "tension": 170,
+        "friction": 26,
+        "mass": 1,
+        "useCase": "Modal appearances, card expansions",
+        "emotionalContext": "calm, welcoming"
+      },
+      "bouncy": {
+        "tension": 300,
+        "friction": 10,
+        "mass": 1,
+        "useCase": "Celebrations, achievements, delightful moments",
+        "emotionalContext": "joyful, playful"
+      },
+      "heavy": {
+        "tension": 120,
+        "friction": 40,
+        "mass": 2,
+        "useCase": "Important decisions, serious content, warnings",
+        "emotionalContext": "weighty, significant"
+      },
+      "ethereal": {
+        "tension": 80,
+        "friction": 20,
+        "mass": 0.5,
+        "useCase": "Ambient elements, background particles, dreamy states",
+        "emotionalContext": "floating, dreamlike"
+      },
+      "organic": {
+        "tension": 200,
+        "friction": 22,
+        "mass": 1.2,
+        "useCase": "Avatar movements, natural gestures",
+        "emotionalContext": "alive, breathing"
+      }
+    },
+
+    "momentum": {
+      "_description": "Momentum preservation for gesture-driven UI",
+
+      "scroll": {
+        "deceleration": 0.998,
+        "velocityThreshold": 0.5,
+        "rubberBandEffect": true,
+        "rubberBandStiffness": 0.55,
+        "snapToPoints": true
+      },
+      "swipe": {
+        "velocityThreshold": 500,
+        "distanceThreshold": "30%",
+        "completeAnimation": "spring(gentle)",
+        "cancelAnimation": "spring(snappy)"
+      },
+      "drag": {
+        "friction": 0.92,
+        "velocityMultiplier": 1.2,
+        "releaseSpring": "spring(gentle)",
+        "boundarySpring": "spring(bouncy)"
+      },
+      "throw": {
+        "_description": "For dismissible cards, carousel items",
+        "minVelocity": 300,
+        "friction": 0.95,
+        "gravityY": 0,
+        "bounceOnEdge": true
+      }
+    },
+
+    "gravity": {
+      "_description": "Gravity effects for falling, settling elements",
+
+      "light": {
+        "acceleration": 200,
+        "bounce": 0.4,
+        "useCase": "Gentle settling, soft landings"
+      },
+      "normal": {
+        "acceleration": 980,
+        "bounce": 0.3,
+        "useCase": "Standard physics"
+      },
+      "heavy": {
+        "acceleration": 1500,
+        "bounce": 0.1,
+        "useCase": "Dramatic impacts, importance"
+      },
+      "floating": {
+        "acceleration": 50,
+        "bounce": 0.6,
+        "useCase": "Dreamy, underwater feel"
+      }
+    },
+
+    "magnetism": {
+      "_description": "Magnetic snap behaviors for precision interactions",
+
+      "snap": {
+        "distance": "20px",
+        "strength": 0.8,
+        "animation": "spring(snappy)"
+      },
+      "attract": {
+        "distance": "100px",
+        "strength": 0.3,
+        "curve": "exponential"
+      },
+      "repel": {
+        "distance": "50px",
+        "strength": 0.5,
+        "curve": "linear"
+      }
+    },
+
+    "collision": {
+      "_description": "Element collision behaviors",
+
+      "bounce": {
+        "restitution": 0.6,
+        "friction": 0.1
+      },
+      "soft": {
+        "restitution": 0.2,
+        "friction": 0.5
+      },
+      "stick": {
+        "restitution": 0,
+        "friction": 1
+      }
+    }
+  },
+
+  "emotionalMomentum": {
+    "_philosophy": "UI carries emotional weight from previous interactions",
+
+    "carryover": {
+      "_description": "How emotional state affects subsequent animations",
+
+      "afterCelebration": {
+        "springModifier": "bouncy",
+        "duration": "5s",
+        "particleBoost": 1.5
+      },
+      "afterSeriousContent": {
+        "springModifier": "heavy",
+        "duration": "10s",
+        "colorShift": "muted"
+      },
+      "afterQuietMoment": {
+        "springModifier": "ethereal",
+        "duration": "8s",
+        "motionReduction": 0.7
+      },
+      "afterHighEnergy": {
+        "springModifier": "snappy",
+        "duration": "3s",
+        "transitionSpeed": 1.2
+      }
+    },
+
+    "contextualWeight": {
+      "_description": "Element weight based on content importance",
+
+      "critical": {
+        "mass": 2.5,
+        "spring": "heavy",
+        "entranceDelay": "200ms",
+        "requiresAcknowledgment": true
+      },
+      "important": {
+        "mass": 1.5,
+        "spring": "gentle",
+        "entranceDelay": "100ms"
+      },
+      "standard": {
+        "mass": 1,
+        "spring": "gentle",
+        "entranceDelay": "0ms"
+      },
+      "ambient": {
+        "mass": 0.5,
+        "spring": "ethereal",
+        "entranceDelay": "0ms"
+      }
+    }
+  },
+
+  "fluidMotion": {
+    "_philosophy": "Fluid dynamics for organic, living interfaces",
+
+    "wave": {
+      "_description": "Wave propagation through UI elements",
+      "speed": "300px/s",
+      "amplitude": "8px",
+      "frequency": "0.5Hz",
+      "damping": 0.95,
+      "useCase": "Loading states, ambient motion"
+    },
+
+    "ripple": {
+      "_description": "Touch ripple effects",
+      "speed": "600px/s",
+      "opacity": 0.12,
+      "scale": 2.5,
+      "duration": "600ms",
+      "easing": "ease-out"
+    },
+
+    "morphing": {
+      "_description": "Smooth shape transitions",
+      "duration": "400ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "preserveArea": true,
+      "useCase": "FAB to dialog, card to detail"
+    },
+
+    "breathing": {
+      "_description": "Subtle scale oscillation for living elements",
+      "scale": [0.98, 1.02],
+      "duration": "4s",
+      "easing": "ease-in-out",
+      "sync": "userBreathRate"
+    }
+  },
+
+  "spatialDepth": {
+    "_philosophy": "Beyond flat design - true depth perception without being gimmicky",
+
+    "layers": {
+      "background": {
+        "z": -100,
+        "blur": "8px",
+        "scale": 0.95,
+        "parallaxFactor": 0.3
+      },
+      "surface": {
+        "z": 0,
+        "blur": "0",
+        "scale": 1,
+        "parallaxFactor": 0.5
+      },
+      "elevated": {
+        "z": 50,
+        "blur": "0",
+        "scale": 1,
+        "parallaxFactor": 0.7,
+        "shadow": "var(--shadow-md)"
+      },
+      "floating": {
+        "z": 100,
+        "blur": "0",
+        "scale": 1.02,
+        "parallaxFactor": 0.9,
+        "shadow": "var(--shadow-lg)"
+      },
+      "overlay": {
+        "z": 200,
+        "blur": "0",
+        "scale": 1,
+        "parallaxFactor": 1,
+        "shadow": "var(--shadow-xl)"
+      }
+    },
+
+    "parallax": {
+      "_description": "Depth-based motion parallax",
+      "sensitivity": 0.02,
+      "maxOffset": "20px",
+      "smoothing": 0.1,
+      "gyroscopeEnabled": true
+    },
+
+    "focus": {
+      "_description": "Depth of field simulation",
+      "unfocusedBlur": "4px",
+      "transitionDuration": "300ms",
+      "vignette": true
+    }
+  },
+
+  "haptics": {
+    "_philosophy": "Haptic feedback patterns that feel organic, not robotic",
+
+    "patterns": {
+      "success": {
+        "type": "notification",
+        "intensity": 0.8,
+        "pattern": [10, 50, 10]
+      },
+      "warning": {
+        "type": "warning",
+        "intensity": 0.6,
+        "pattern": [20, 30, 20, 30, 20]
+      },
+      "error": {
+        "type": "error",
+        "intensity": 1,
+        "pattern": [50, 100, 50]
+      },
+      "selection": {
+        "type": "selection",
+        "intensity": 0.3,
+        "pattern": [5]
+      },
+      "impact": {
+        "light": { "type": "impactLight", "intensity": 0.4 },
+        "medium": { "type": "impactMedium", "intensity": 0.6 },
+        "heavy": { "type": "impactHeavy", "intensity": 0.9 }
+      },
+      "heartbeat": {
+        "_description": "For intimate moments, empathy",
+        "type": "custom",
+        "pattern": [30, 80, 30, 200],
+        "repeat": 2
+      },
+      "breathing": {
+        "_description": "Synced with breath visualization",
+        "type": "custom",
+        "inhale": { "duration": "4s", "intensity": "0→0.3" },
+        "exhale": { "duration": "6s", "intensity": "0.3→0" }
+      }
+    }
+  },
+
+  "gestureRecognition": {
+    "_description": "Advanced gesture patterns",
+
+    "signatures": {
+      "swipeUp": { "direction": [0, -1], "minVelocity": 300, "minDistance": 50 },
+      "swipeDown": { "direction": [0, 1], "minVelocity": 300, "minDistance": 50 },
+      "swipeLeft": { "direction": [-1, 0], "minVelocity": 300, "minDistance": 50 },
+      "swipeRight": { "direction": [1, 0], "minVelocity": 300, "minDistance": 50 },
+      "pinchIn": { "type": "pinch", "direction": "in", "minScale": 0.7 },
+      "pinchOut": { "type": "pinch", "direction": "out", "minScale": 1.3 },
+      "longPress": { "duration": "500ms", "maxMovement": 10 },
+      "doubleTap": { "interval": "300ms", "maxDistance": 30 },
+      "twoFingerTap": { "fingers": 2, "duration": "100ms" },
+      "forcePress": { "force": 0.5, "duration": "200ms" }
+    },
+
+    "combos": {
+      "_description": "Gesture combinations for power users",
+      "quickActions": {
+        "gesture": "longPress + swipeUp",
+        "action": "showQuickMenu"
+      },
+      "secretMenu": {
+        "gesture": "twoFingerTap × 3",
+        "action": "showDevPanel"
+      }
+    }
+  }
+}

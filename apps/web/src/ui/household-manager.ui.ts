@@ -21,7 +21,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('HouseholdManager');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -132,9 +132,15 @@ const styles = `
   .household-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--color-overlay, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .household-modal-backdrop {
+      background: rgba(44, 37, 32, 0.85);
+    }
   }
   
   .household-modal {
@@ -142,12 +148,22 @@ const styles = `
     width: 90%;
     max-width: clamp(336px, 90vw, 480px);
     max-height: 85vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1));
     overflow: hidden;
     transform: scale(0.95);
     transition: transform var(--duration-slow, ${DURATION.SLOW}ms) ${EASING.SPRING};
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .household-modal {
+      background: var(--color-background-elevated, #fffdfb);
+      border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    }
   }
   
   .household-modal-overlay.visible .household-modal {
@@ -1067,7 +1083,7 @@ function renderMainView(content: HTMLElement): void {
   // Handle enter key in input
   content.querySelector('#member-name')?.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') {
-      handleAddMember();
+      void handleAddMember();
     }
   });
 
@@ -1125,7 +1141,7 @@ function renderCreateForm(content: HTMLElement): void {
   // Handle enter key
   content.querySelector('#household-name')?.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') {
-      handleCreateHousehold();
+      void handleCreateHousehold();
     }
   });
 }

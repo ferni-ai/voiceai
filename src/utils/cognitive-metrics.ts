@@ -13,28 +13,48 @@
 
 import { getLogger } from './safe-logger.js';
 
-// Lazy import to avoid circular dependencies
-let broadcastMetricsFn:
-  | ((metrics: {
-      avgTotalOverhead: number;
-      p95TotalOverhead: number;
-      maxTotalOverhead: number;
-      under50msPercentage: number;
-      under100msPercentage: number;
-      samplesCount: number;
-    }) => void)
-  | null = null;
+// ============================================================================
+// BROADCAST CALLBACK (Dependency Injection for metrics broadcast)
+// ============================================================================
 
-async function getBroadcastMetrics() {
-  if (!broadcastMetricsFn) {
-    try {
-      const { broadcastMetrics } = await import('../services/cognitive-broadcast.js');
-      broadcastMetricsFn = broadcastMetrics;
-    } catch {
-      // Broadcast not available
-    }
-  }
-  return broadcastMetricsFn;
+/**
+ * Callback type for broadcasting cognitive metrics.
+ * Services layer can register a callback to receive metrics broadcasts.
+ */
+export type CognitiveMetricsBroadcastCallback = (metrics: {
+  avgTotalOverhead: number;
+  p95TotalOverhead: number;
+  maxTotalOverhead: number;
+  under50msPercentage: number;
+  under100msPercentage: number;
+  samplesCount: number;
+}) => void;
+
+let broadcastCallback: CognitiveMetricsBroadcastCallback | null = null;
+
+/**
+ * Register a callback to receive cognitive metrics broadcasts.
+ * This allows the services layer to hook into metrics broadcasts.
+ *
+ * @example
+ * // In services/cognitive-broadcast.ts:
+ * import { registerCognitiveMetricsBroadcast } from '../utils/cognitive-metrics.js';
+ *
+ * registerCognitiveMetricsBroadcast((metrics) => {
+ *   broadcastMetrics(metrics);
+ * });
+ */
+export function registerCognitiveMetricsBroadcast(
+  callback: CognitiveMetricsBroadcastCallback
+): void {
+  broadcastCallback = callback;
+}
+
+/**
+ * Clear the registered callback (for testing).
+ */
+export function clearCognitiveMetricsBroadcast(): void {
+  broadcastCallback = null;
 }
 
 // ============================================================================
@@ -303,13 +323,12 @@ export function maybeLogMetrics(): void {
  */
 let turnsSinceBroadcast = 0;
 
-export async function maybeBroadcastMetrics(): Promise<void> {
+export function maybeBroadcastMetrics(): void {
   turnsSinceBroadcast++;
   if (turnsSinceBroadcast >= BROADCAST_INTERVAL) {
-    const broadcast = await getBroadcastMetrics();
-    if (broadcast) {
+    if (broadcastCallback) {
       const summary = cognitiveMetrics.getSummary();
-      broadcast({
+      broadcastCallback({
         avgTotalOverhead: summary.avgTotalOverhead,
         p95TotalOverhead: summary.p95TotalOverhead,
         maxTotalOverhead: summary.maxTotalOverhead,
@@ -330,4 +349,6 @@ export default {
   getCognitiveMetricsSummary,
   maybeLogMetrics,
   maybeBroadcastMetrics,
+  registerCognitiveMetricsBroadcast,
+  clearCognitiveMetricsBroadcast,
 };

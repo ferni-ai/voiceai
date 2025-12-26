@@ -7,7 +7,6 @@
 import { t } from '../../../i18n/index.js';
 import {
   listCustomAgents,
-  type CustomAgent,
 } from '../../../services/custom-agent.service.js';
 import { showEmpty } from '../components/empty-state.js';
 import { renderCustomAgentCard } from '../components/custom-agent-card.js';

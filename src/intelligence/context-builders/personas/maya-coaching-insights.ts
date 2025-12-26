@@ -1162,7 +1162,16 @@ async function buildMayaCoachingInsightsContext(
     const briefingLines = formatMayaBriefing(briefing, handoffBriefing, turnCount);
 
     // Get superhuman context (commitments, capacity, predictions)
-    const superhumanContext = await getSuperhuman(userId, 'maya');
+    // V3 Semantic Intelligence needs current conversation context
+    const personMatch = input.userText?.match(
+      /\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i
+    );
+    const superhumanContext = await getSuperhuman(userId, 'maya', {
+      currentTranscript: input.userText,
+      currentTopics: input.analysis?.topics?.detected,
+      currentEmotion: input.analysis?.emotion?.primary,
+      currentMentionedPerson: personMatch?.[1],
+    });
     if (superhumanContext) {
       briefingLines.push(`\n${superhumanContext}`);
     }

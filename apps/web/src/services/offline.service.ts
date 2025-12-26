@@ -60,7 +60,7 @@ const SYNC_QUEUE_KEY = 'ferni_sync_queue';
 const MAX_QUEUE_SIZE = 100;
 const MAX_RETRIES = 3;
 
-let offlineState: OfflineState = {
+const offlineState: OfflineState = {
   isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
   lastOnline: null,
   pendingSyncCount: 0,

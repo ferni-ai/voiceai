@@ -21,10 +21,18 @@ let isShuttingDown = false;
 // Track uncaught exception count - too many in short period = real problem
 let uncaughtExceptionCount = 0;
 const EXCEPTION_WINDOW_MS = 60_000; // 1 minute
-const MAX_EXCEPTIONS_BEFORE_EXIT = 5;
 
-// Memory thresholds for preemptive restart
-const MEMORY_PREEMPTIVE_RESTART_THRESHOLD = 0.92; // 92% of heap limit - restart before OOM
+// Configurable thresholds - more lenient in development
+const isLocalDev = process.env.NODE_ENV === 'development' || !process.env.K_SERVICE;
+const MAX_EXCEPTIONS_BEFORE_EXIT = parseInt(
+  process.env.MAX_EXCEPTIONS_BEFORE_EXIT || (isLocalDev ? '20' : '5'),
+  10
+);
+
+// Memory thresholds for preemptive restart (more lenient in dev)
+const MEMORY_PREEMPTIVE_RESTART_THRESHOLD = parseFloat(
+  process.env.MEMORY_RESTART_THRESHOLD || (isLocalDev ? '0.98' : '0.92')
+);
 const MEMORY_HEAP_LIMIT_MB = parseInt(process.env.NODE_MAX_HEAP_MB || '3072', 10);
 
 // Crash analytics
@@ -332,6 +340,14 @@ export async function gracefulShutdown(signal: string): Promise<void> {
  * to prevent the agent from silently "cutting out" when errors occur.
  */
 export function registerShutdownSignalHandlers(): void {
+  // Log active thresholds for debugging
+  process.stderr.write(
+    `[shutdown-handler] Stability thresholds: ` +
+      `maxExceptions=${MAX_EXCEPTIONS_BEFORE_EXIT}, ` +
+      `memoryThreshold=${Math.round(MEMORY_PREEMPTIVE_RESTART_THRESHOLD * 100)}%, ` +
+      `mode=${isLocalDev ? 'development' : 'production'}\n`
+  );
+
   // Standard shutdown signals
   process.on('SIGTERM', () => {
     void gracefulShutdown('SIGTERM');

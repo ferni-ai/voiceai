@@ -101,6 +101,20 @@
           }
         },
         {
+          "source": "/api/sites/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/sites/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "!/api/**",
           "destination": "/404.html"
         }
@@ -201,6 +215,20 @@
         },
         {
           "source": "/api/landing/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/sites/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/sites/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"

@@ -14,7 +14,7 @@ import {
   sanitizePlainText,
   sanitizeEmailForLog,
   sanitizePhoneForLog,
-} from '../tools/validation.js';
+} from '../utils/validation.js';
 
 // API Keys from environment
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';

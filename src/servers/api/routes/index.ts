@@ -25,4 +25,7 @@ export { handleVisualMemoryRoutes } from './visual-memory.js';
 export { handleAmbientModeRoutes } from './ambient-mode.js';
 // Intelligent routing (6-strategy cascade)
 export { handleIntelligentRoutingRoutes, registerIntelligentRoutingRoutes } from './intelligent-routing.js';
+// Telephony webhooks (Twilio call status)
+export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.js';
+// NOTE: handleOutreachRoutes is registered from src/api/outreach.routes.ts in the main server
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

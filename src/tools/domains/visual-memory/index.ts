@@ -259,6 +259,196 @@ const countVisualMemoriesDef: ToolDefinition = {
 };
 
 // ============================================================================
+// EMOTIONAL MEMORY LAYER - "Better Than Human"
+// ============================================================================
+
+const recallEmotionalContextDef: ToolDefinition = {
+  id: 'recallEmotionalContext',
+  name: 'Recall Emotional Context',
+  description: 'Remember how a photo made the user feel when they shared it. Better than human emotional memory.',
+  domain: 'memory',
+  tags: ['memory', 'visual', 'emotional', 'better-than-human'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('recallEmotionalContext'),
+      parameters: z.object({
+        query: z.string().describe('What photo or moment to recall emotional context for'),
+      }),
+      execute: async ({ query }) => {
+        try {
+          const { visualMemory } = await import('../../../services/visual-memory/index.js');
+
+          const isEnabled = await visualMemory.isEnabled(ctx.userId);
+          if (!isEnabled) {
+            return "I need visual memory enabled to recall emotional contexts from photos.";
+          }
+
+          const searchResult = await visualMemory.search({
+            userId: ctx.userId,
+            query,
+            limit: 1,
+          });
+
+          if (!searchResult || searchResult.results.length === 0) {
+            return `I don't have a photo matching "${query}" in my memory.`;
+          }
+
+          const memory = searchResult.results[0].memory;
+
+          // Build emotional context from available data
+          let response = `**Photo Emotional Context**\n\n`;
+          response += `**Photo:** ${memory.aiDescription || 'An image you shared'}\n\n`;
+
+          if (memory.userDescription) {
+            response += `**You said about it:** "${memory.userDescription}"\n\n`;
+          }
+
+          // Infer emotional context from metadata
+          const emotions: string[] = [];
+          if (memory.detectedLabels?.some((l: string) => ['smile', 'happy', 'celebration'].includes(l.toLowerCase()))) {
+            emotions.push('joy');
+          }
+          if (memory.detectedLabels?.some((l: string) => ['family', 'people', 'group'].includes(l.toLowerCase()))) {
+            emotions.push('connection');
+          }
+
+          if (emotions.length > 0) {
+            response += `**Emotional tone:** ${emotions.join(', ')}\n\n`;
+          }
+
+          response += `---\n\n`;
+          response += `*This is "Better Than Human" memory—I remember not just what you showed me, but the moment you shared it.*`;
+
+          log.info({ userId: ctx.userId, query }, 'Recalled emotional context for photo');
+
+          return response;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId, query }, 'Recall emotional context failed');
+          return "I couldn't recall the emotional context right now.";
+        }
+      },
+    });
+  },
+};
+
+const findMomentsOfJoyDef: ToolDefinition = {
+  id: 'findMomentsOfJoy',
+  name: 'Find Moments of Joy',
+  description: 'Search visual memories for moments that captured joy, celebration, or happiness',
+  domain: 'memory',
+  tags: ['memory', 'visual', 'emotional', 'joy', 'better-than-human'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('findMomentsOfJoy'),
+      parameters: z.object({
+        timeframe: z.enum(['recent', 'all']).optional().describe('Timeframe to search'),
+      }),
+      execute: async ({ timeframe }) => {
+        try {
+          const { visualMemory } = await import('../../../services/visual-memory/index.js');
+
+          const isEnabled = await visualMemory.isEnabled(ctx.userId);
+          if (!isEnabled) {
+            return "Enable visual memory to let me remember your moments of joy.";
+          }
+
+          // Search for joy-related images
+          const searchResult = await visualMemory.search({
+            userId: ctx.userId,
+            query: 'happy celebration smile joy party fun together',
+            limit: 5,
+          });
+
+          if (!searchResult || searchResult.results.length === 0) {
+            return "I don't have many photos from you yet. Share your happy moments, and I'll remember them forever.";
+          }
+
+          const joyfulMemories = searchResult.results;
+          let response = `**Moments of Joy I Remember**\n\n`;
+
+          for (let i = 0; i < joyfulMemories.length; i++) {
+            const m = joyfulMemories[i].memory;
+            const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'recently';
+            response += `${i + 1}. ${m.aiDescription || 'A joyful moment'} (${date})\n`;
+          }
+
+          response += `\n---\n\n`;
+          response += `*A human friend might forget these moments. I never will.*`;
+
+          log.info({ userId: ctx.userId, count: joyfulMemories.length }, 'Found moments of joy');
+
+          return response;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId }, 'Find moments of joy failed');
+          return "I couldn't search for joyful moments right now.";
+        }
+      },
+    });
+  },
+};
+
+const rememberWhenDef: ToolDefinition = {
+  id: 'rememberWhen',
+  name: 'Remember When',
+  description: 'Nostalgic recall - find photos from a specific time period or event',
+  domain: 'memory',
+  tags: ['memory', 'visual', 'nostalgia', 'better-than-human'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('rememberWhen'),
+      parameters: z.object({
+        moment: z.string().describe('What moment or period to remember (e.g., "last birthday", "that trip to...")'),
+      }),
+      execute: async ({ moment }) => {
+        try {
+          const { visualMemory } = await import('../../../services/visual-memory/index.js');
+
+          const isEnabled = await visualMemory.isEnabled(ctx.userId);
+          if (!isEnabled) {
+            return "Enable visual memory so I can help you remember when...";
+          }
+
+          const searchResult = await visualMemory.search({
+            userId: ctx.userId,
+            query: moment,
+            limit: 5,
+          });
+
+          if (!searchResult || searchResult.results.length === 0) {
+            return `I don't have photos from "${moment}" in my memory. Maybe you haven't shared those yet?`;
+          }
+
+          const memories = searchResult.results;
+          let response = `**Remember When... ${moment}**\n\n`;
+
+          for (let i = 0; i < memories.length; i++) {
+            const m = memories[i].memory;
+            const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'a while back';
+            response += `${i + 1}. ${m.aiDescription || 'A moment from that time'} (${date})\n`;
+            if (m.userDescription) {
+              response += `   _"${m.userDescription}"_\n`;
+            }
+          }
+
+          response += `\n---\n\n`;
+          response += `*These moments are safe with me. Would you like to tell me more about any of them?*`;
+
+          log.info({ userId: ctx.userId, moment, count: memories.length }, 'Nostalgic recall completed');
+
+          return response;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId, moment }, 'Remember when failed');
+          return "I couldn't search my memory right now.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN EXPORT
 // ============================================================================
 
@@ -267,6 +457,10 @@ const visualMemoryTools: ToolDefinition[] = [
   describeSharedPhotoDef,
   listRecentPhotosDef,
   countVisualMemoriesDef,
+  // Emotional memory layer
+  recallEmotionalContextDef,
+  findMomentsOfJoyDef,
+  rememberWhenDef,
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(

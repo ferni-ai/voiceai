@@ -174,11 +174,44 @@ export class CoordinatorAdapter {
       source?: 'user' | 'llm' | 'system';
     }
   ): Promise<AdapterHandoffResult> {
+    const adapterStart = Date.now();
     const source = options?.source ?? 'user';
     const fastMode = options?.fastMode; // Let coordinator decide default based on source
 
-    log.info({ targetAgent, reason, fastMode, source }, '🚀 CoordinatorAdapter executing handoff');
+    log.info(
+      {
+        sessionId: this.sessionId,
+        targetAgent,
+        reason,
+        fastMode,
+        source,
+        hasUserProfile: !!options?.userProfile,
+        subscriptionTier: options?.subscriptionTier,
+      },
+      '🔌 [ADAPTER] executeHandoff() ENTRY'
+    );
 
+    // CRITICAL: Check if session is closing - abort immediately to prevent timeout
+    const { isSessionClosing } = await import('../session-closing-tracker.js');
+    if (isSessionClosing(this.sessionId)) {
+      log.warn(
+        { sessionId: this.sessionId, targetAgent },
+        '🔌 [ADAPTER] ⚠️ Session closing - aborting handoff'
+      );
+      return {
+        success: false,
+        targetAgent,
+        error: 'Session is closing - handoff aborted',
+        traceId: `aborted-${Date.now()}`,
+      };
+    }
+
+    log.info(
+      { targetAgent, reason, fastMode, source },
+      '🔌 [ADAPTER] Calling coordinator.execute()...'
+    );
+
+    const coordinatorStart = Date.now();
     const result = await this.coordinator.execute({
       targetAgent,
       reason,
@@ -191,6 +224,19 @@ export class CoordinatorAdapter {
       recentMessages: this.getRecentMessages(),
       cognitiveContext: this.getCognitiveContext(),
     });
+
+    log.info(
+      {
+        sessionId: this.sessionId,
+        targetAgent,
+        success: result.success,
+        error: result.error,
+        traceId: result.traceId,
+        coordinatorDurationMs: Date.now() - coordinatorStart,
+        totalDurationMs: Date.now() - adapterStart,
+      },
+      '🔌 [ADAPTER] executeHandoff() EXIT'
+    );
 
     return {
       success: result.success,
@@ -335,37 +381,51 @@ export class CoordinatorAdapter {
     toPersonaId: string,
     context: BanterContext
   ): Promise<void> {
-    log.debug({ from: fromPersonaId, to: toPersonaId }, '🎭 Generating soft open banter');
-
     try {
-      // Get the fallback banter phrase (actual speech, not meta-instructions)
+      // Get the banter phrase (actual speech, not meta-instructions)
       const goodbyePhrase = getHandoffBanter(fromPersonaId, toPersonaId);
 
-      if (goodbyePhrase) {
-        // Use safeGenerateReply with the actual speech as "instructions"
-        // The model sees this as something it "said" and continues naturally
-        const result = await safeGenerateReply(this.session, {
-          instructions: goodbyePhrase, // ACTUAL SPEECH, not "say goodbye warmly"
-          allowInterruptions: false,
-          timeoutMs: 4000,
-          context: 'handoff-soft-open',
-        });
+      // Use specific banter if available, otherwise use generic fallback
+      const fromDisplayName = getPersonaDisplayName(fromPersonaId);
+      const toDisplayName = getPersonaDisplayName(toPersonaId);
+      const finalGoodbye =
+        goodbyePhrase || `Let me get ${toDisplayName} for you. One moment.`;
 
-        if (result.success) {
-          diag.entry('🎭 Soft open banter complete');
-        } else {
-          // Fallback to coordinated speech if generateReply fails
-          // OPTIMIZATION: Reduced from 1500ms to 500ms - speech plays while handoff continues
-          coordinatedSay(this.sessionId, goodbyePhrase, { allowInterruptions: false });
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          diag.entry('🎭 Soft open fallback (coordinated say)');
-        }
-      } else {
-        diag.entry('🎭 Soft open skipped - no banter phrase');
+      log.info(
+        { fromPersonaId, toPersonaId, hasSpecificBanter: !!goodbyePhrase, goodbye: finalGoodbye },
+        '🎭 Speaking soft open (goodbye)'
+      );
+
+      // Try safeGenerateReply first
+      const result = await safeGenerateReply(this.session, {
+        instructions: finalGoodbye,
+        allowInterruptions: false,
+        timeoutMs: 4000,
+        context: 'handoff-soft-open',
+      });
+
+      if (result.success) {
+        diag.entry('🎭 Soft open complete (safeGenerateReply)');
+        return;
+      }
+
+      // Fallback: coordinatedSay or session.say
+      log.warn(
+        { error: result.error, fromPersonaId },
+        '🎭 safeGenerateReply failed for soft open, using fallback'
+      );
+
+      try {
+        coordinatedSay(this.sessionId, finalGoodbye, { allowInterruptions: false });
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        diag.entry('🎭 Soft open complete (coordinatedSay)');
+      } catch {
+        this.session.say(finalGoodbye, { allowInterruptions: false });
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        diag.entry('🎭 Soft open complete (session.say)');
       }
     } catch (err) {
-      log.warn({ error: String(err) }, '🎭 Soft open error - skipping');
-      // Non-critical - continue with handoff
+      log.warn({ error: String(err), fromPersonaId, toPersonaId }, '🎭 Soft open error - skipping');
     }
   }
 
@@ -377,40 +437,60 @@ export class CoordinatorAdapter {
    * So we pass the greeting phrase directly, and model naturally greets.
    */
   private async handleArrivingWelcome(toPersonaId: string, context: BanterContext): Promise<void> {
-    log.debug({ to: toPersonaId }, '🎭 Generating arriving welcome');
+    // Use previousAgent from context (passed from coordinator) - NOT from services.handoffState
+    const fromPersonaId = context.previousAgent || 'ferni';
 
     try {
-      // Get the fallback banter phrase (actual speech, not meta-instructions)
-      const fromPersonaId =
-        (this.services.handoffState as { previousAgent?: string })?.previousAgent || 'ferni';
+      // Get the banter phrase (actual speech, not meta-instructions)
       const greetingPhrase = getArrivingBanter(toPersonaId, fromPersonaId);
 
-      if (greetingPhrase) {
-        // Use safeGenerateReply with the actual greeting as "instructions"
-        // The model sees this as something it "said" and continues naturally
-        const result = await safeGenerateReply(this.session, {
-          instructions: greetingPhrase, // ACTUAL SPEECH, not "greet the user warmly"
-          allowInterruptions: false,
-          timeoutMs: 4000,
-          context: 'handoff-arriving-welcome',
-        });
+      // Get greeting phrase - use specific banter if available, otherwise use generic fallback
+      const displayName = getPersonaDisplayName(toPersonaId);
+      const finalGreeting = greetingPhrase || `Hey! ${displayName} here. How can I help?`;
 
-        if (result.success) {
-          diag.entry('🎭 Arriving welcome complete');
-        } else {
-          // Fallback to coordinated speech if generateReply fails
-          // OPTIMIZATION: Reduced from 2000ms to 600ms - greeting plays asynchronously
-          coordinatedSay(this.sessionId, greetingPhrase, { allowInterruptions: false });
-          await new Promise((resolve) => setTimeout(resolve, 600));
-          diag.entry('🎭 Arriving welcome fallback (coordinated say)');
-        }
-      } else {
-        // No greeting phrase - let the persona's first natural response be the greeting
-        diag.entry('🎭 Arriving welcome skipped - letting natural response be greeting');
+      log.info(
+        { toPersonaId, fromPersonaId, hasSpecificBanter: !!greetingPhrase, greeting: finalGreeting },
+        '🎭 Speaking arriving welcome'
+      );
+
+      // Try safeGenerateReply first - best UX as model can continue naturally
+      const result = await safeGenerateReply(this.session, {
+        instructions: finalGreeting,
+        allowInterruptions: false,
+        timeoutMs: 4000,
+        context: 'handoff-arriving-welcome',
+      });
+
+      if (result.success) {
+        diag.entry('🎭 Arriving welcome complete (safeGenerateReply)');
+        return;
+      }
+
+      // Fallback 1: coordinatedSay (speech coordination)
+      log.warn(
+        { error: result.error, toPersonaId, skippedConcurrent: result.skippedConcurrent },
+        '🎭 safeGenerateReply failed, trying coordinatedSay'
+      );
+
+      try {
+        coordinatedSay(this.sessionId, finalGreeting, { allowInterruptions: false });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        diag.entry('🎭 Arriving welcome complete (coordinatedSay)');
+        return;
+      } catch (coordErr) {
+        log.warn({ error: String(coordErr) }, '🎭 coordinatedSay failed, trying session.say');
+      }
+
+      // Fallback 2: Direct session.say (last resort - always works if session is valid)
+      try {
+        this.session.say(finalGreeting, { allowInterruptions: false });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        diag.entry('🎭 Arriving welcome complete (session.say)');
+      } catch (sayErr) {
+        log.error({ error: String(sayErr), toPersonaId }, '🎭 ALL greeting methods failed!');
       }
     } catch (err) {
-      log.warn({ error: String(err) }, '🎭 Arriving welcome error - skipping');
-      // Non-critical - continue with handoff
+      log.error({ error: String(err), toPersonaId, fromPersonaId }, '🎭 Arriving welcome error');
     }
   }
 

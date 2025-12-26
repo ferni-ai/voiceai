@@ -75,6 +75,8 @@ export type {
   SemanticRouterConfig,
   // Routing results
   SemanticRouterResult,
+  // Holistic NLU context
+  HolisticContextSummary,
   // Tool definition
   SemanticToolDefinition,
   SemanticTrigger,
@@ -260,3 +262,61 @@ export {
   logRoutingDecision,
 } from './advanced/datasets.js';
 export type { DatasetStats, TrainingExample } from './advanced/datasets.js';
+
+// ============================================================================
+// HOLISTIC NLU (Natural Language Understanding)
+// ============================================================================
+
+// Shared Vocabularies - relationship, emotion, time, domain detection
+export {
+  analyzeHolisticContext,
+  detectRelationshipContext,
+  detectEmotionalState,
+  detectTimeContext,
+  detectLifeDomain,
+  detectIntentMarkers,
+  calculateToolBoost,
+  calculateToolPenalty,
+  RELATIONSHIP_VOCABULARY,
+  EMOTIONAL_VOCABULARY,
+  TIME_VOCABULARY,
+  LIFE_DOMAIN_VOCABULARY,
+  INTENT_VOCABULARY,
+} from './shared-vocabulary.js';
+export type { HolisticContext } from './shared-vocabulary.js';
+
+// Context Enrichment - multi-turn emotional trajectory, domain transitions
+export {
+  ConversationContextTracker,
+  getContextTracker,
+  cleanupContextTracker,
+  processUserTurn,
+} from './context-enrichment.js';
+export type {
+  ConversationTurnContext,
+  EmotionalTrajectory,
+  DomainTransition,
+  ConversationTone,
+  EnrichedContext,
+} from './context-enrichment.js';
+
+// Multi-Intent Detection - compound queries, parallel intents
+export {
+  detectMultipleIntents,
+  getMultiIntentBoosts,
+  matchesAnyIntent,
+  getBestMatchingIntent,
+} from './multi-intent.js';
+export type { DetectedIntent as MultiDetectedIntent, MultiIntentResult } from './multi-intent.js';
+
+// Holistic Layer Integration
+export {
+  runHolisticLayer,
+  shouldBoostTool,
+  shouldPenalizeTool,
+  // Cache management
+  getHolisticCacheStats,
+  clearHolisticCache,
+  pruneHolisticCache,
+} from './holistic-layer.js';
+export type { HolisticLayerResult, HolisticCacheStats } from './holistic-layer.js';

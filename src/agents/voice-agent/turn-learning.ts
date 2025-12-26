@@ -28,6 +28,13 @@ import {
   getRecentlySurfacedDomains,
 } from '../../intelligence/capability-learning.js';
 
+// "Our Songs" - shared musical memories ("Better Than Human" feature)
+import { getMusicPlayer } from '../../audio/music-player.js';
+import {
+  detectSignificantMoment,
+  recordOurSong,
+} from '../../services/trust-systems/our-songs.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -269,6 +276,15 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
           );
         }
       }
+
+      // =================================================================
+      // 🎵 "OUR SONGS" - Shared Musical Memories ("Better Than Human")
+      // When a significant emotional moment happens while music is playing,
+      // we record it as "our song" for later callback (e.g., "Remember when...")
+      // =================================================================
+      void recordOurSongMoment(ctx).catch((err) => {
+        logger.debug({ error: String(err) }, '"Our Songs" recording (non-critical)');
+      });
     }
   }
 
@@ -324,4 +340,68 @@ function detectCapabilityEngagement(userText: string): {
     engaged: reasons.length > 0,
     reasons,
   };
+}
+
+// ============================================================================
+// "OUR SONGS" - SHARED MUSICAL MEMORIES
+// ============================================================================
+
+/**
+ * Record a song as "our song" if a significant moment is happening during music.
+ *
+ * This is a "Better Than Human" feature - we remember moments with music
+ * and can callback later: "Remember when we were talking about X and this song was playing?"
+ *
+ * Flow:
+ * 1. Check if music is currently playing
+ * 2. Detect if this is a significant moment (breakthrough, celebration, vulnerable, etc.)
+ * 3. If both true, record the song + moment for later callback
+ */
+async function recordOurSongMoment(ctx: LearningContext): Promise<void> {
+  const logger = log();
+
+  if (!ctx.userId) return;
+
+  // 1. Check if music is playing
+  const musicPlayer = getMusicPlayer();
+  const musicState = musicPlayer.getState();
+
+  if (!musicState.isPlaying || !musicState.currentTrack) {
+    return; // No music playing - nothing to record
+  }
+
+  // 2. Detect if this is a significant moment worth remembering
+  const significantMoment = detectSignificantMoment({
+    recentUserText: ctx.userText,
+    emotion: ctx.emotionalResult.primary || 'neutral',
+    isUserSpeaking: false, // We're processing after user finished speaking
+  });
+
+  if (!significantMoment.isSignificant || !significantMoment.type) {
+    return; // Not a significant moment
+  }
+
+  // 3. Record this as "our song" for later callback
+  const track = musicState.currentTrack;
+
+  logger.info('🎵 Recording "Our Song" moment', {
+    song: track.name,
+    artist: track.artist,
+    momentType: significantMoment.type,
+    userText: ctx.userText.slice(0, 50),
+  });
+
+  // Record the song memory
+  recordOurSong({
+    userId: ctx.userId,
+    song: {
+      name: track.name,
+      artist: track.artist || 'Unknown Artist',
+      spotifyId: track.uri, // Use URI as Spotify ID
+    },
+    momentType: significantMoment.type,
+    emotion: significantMoment.emotion || 'grateful', // Default to 'grateful' if no emotion detected
+    context: ctx.emotionalResult.primary || 'meaningful moment',
+    memorableQuote: ctx.userText.slice(0, 200),
+  });
 }

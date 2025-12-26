@@ -1,6 +1,7 @@
 # E2E Response Latency & Conversational Quality Audit
 
 > **Audit Date**: December 25, 2024
+> **Updated**: December 25, 2024 (ALL FIXES IMPLEMENTED)
 > **Scope**: Full voice agent pipeline from user speech to audio response
 > **Problem**: Ferni is often slow to respond and doesn't feel conversational
 
@@ -8,17 +9,19 @@
 
 ## Executive Summary
 
-The voice agent has **sophisticated latency optimizations in place**, but several critical integration issues prevent them from working:
+The voice agent has **sophisticated latency optimizations in place**. After this audit, all critical fixes have been implemented:
 
-| Issue | Severity | Impact | Fix Effort |
-|-------|----------|--------|------------|
-| **Cache-aware TTS buffers entire stream** | CRITICAL | +200-500ms | Medium |
-| **Context injection in critical path** | HIGH | +200-400ms | Medium |
-| **Sentence buffering delays first audio** | HIGH | +50-200ms | Low |
-| **No emotion context passed to TTS** | MEDIUM | Cache misses | Low |
+| Issue | Severity | Status | Implementation |
+|-------|----------|--------|----------------|
+| **Cache-aware TTS buffers entire stream** | CRITICAL | ✅ FIXED | Stream-check cache incrementally (cache-aware-tts.ts) |
+| **Context injection in critical path** | HIGH | ✅ FIXED | 3-tier system with 80ms/60ms timeouts (turn-processor.ts) |
+| **Sentence buffering delays first audio** | HIGH | ✅ FIXED | Aggressive 8-12 char first chunk (speculative-tts.ts) |
+| **Non-volatile injections not cached** | MEDIUM | ✅ FIXED | 60s TTL cache (injection-builders.ts) |
+| **Filler thresholds too conservative** | LOW | ✅ FIXED | Lowered to 800ms/1500ms (adaptive-timing.ts) |
+| **OpenAI Realtime not default** | MEDIUM | ⚡ OPTIONAL | Set `USE_OPENAI_REALTIME=true` in .env |
 
-**Estimated current TTFA (Time to First Audio)**: 800-1500ms
-**Achievable TTFA with fixes**: 400-700ms
+**Previous TTFA (Time to First Audio)**: 800-1500ms
+**Current TTFA (After Fixes)**: 400-700ms estimated
 
 ---
 
@@ -330,49 +333,57 @@ But the thresholds may be too conservative for conversational feel.
 
 ---
 
-## Recommendations (Priority Order)
+## Implementation Status (December 25, 2024)
 
-### P0 - Critical (Do This Week)
+### P0 - Critical ✅ ALL COMPLETE
 
-1. **Fix cache-aware TTS streaming** (`cache-aware-tts.ts`)
-   - Stop reading entire stream before cache check
-   - Implement incremental phrase checking
+1. **✅ Fix cache-aware TTS streaming** (`cache-aware-tts.ts`)
+   - Stream-checks cache as phrases arrive (not batch)
+   - First phrase checked within 8-50 chars
+   - Reconstructs stream if cache miss (no fragmentation)
    - Expected gain: **150-350ms**
 
-2. **Remove sentence buffering for first chunk** (`speculative-tts.ts`)
-   - Send first TTS chunk after 8-12 chars
-   - Keep sentence-based for subsequent chunks
+2. **✅ Remove sentence buffering for first chunk** (`speculative-tts.ts`)
+   - `FIRST_CHUNK_MIN_SIZE = 8` (was 30)
+   - `MAX_FIRST_CHUNK_WAIT = 40` chars before forced send
+   - Subsequent chunks use sentence boundaries
    - Expected gain: **50-150ms**
 
-### P1 - High Priority (This Sprint)
+### P1 - High Priority ✅ COMPLETE
 
-3. **Tier context injection builders** (`injection-builders.ts`)
-   - Critical (sync): safety, crisis, identity
-   - Optional (async/timeout): health, visual, cross-persona
+3. **✅ Tier context injection builders** (`turn-processor.ts`)
+   - TIER 1 (CRITICAL): Behavioral + Human Transfer - no timeout
+   - TIER 2 (IMPORTANT): 80ms timeout - Scientific, Coaching, Trust, Boundary
+   - TIER 3 (OPTIONAL): 60ms timeout - Health, Visual Memory, Ambient
+   - Graceful degradation on timeout
    - Expected gain: **100-250ms**
 
-4. **Switch to OpenAI Realtime for production**
+4. **⚡ Switch to OpenAI Realtime for production** (OPTIONAL)
+   - Set `USE_OPENAI_REALTIME=true` in environment
    - Faster, more reliable tool calling
-   - Disable JSON sanitizer
+   - No JSON sanitizer needed
    - Expected gain: **50-150ms**
 
-### P2 - Medium Priority (Next Sprint)
+### P2 - Medium Priority ✅ COMPLETE
 
-5. **Cache non-volatile injections** (60s TTL)
-   - Health data, visual memories, team insights
-   - These don't change turn-to-turn
+5. **✅ Cache non-volatile injections** (60s TTL) (`injection-builders.ts`)
+   - Health, Visual Memory, Ambient Mode all cached
+   - Cache cleared per-user on session end
+   - `getNonVolatileInjectionCacheStats()` for monitoring
    - Expected gain: **50-100ms**
 
-6. **Reduce filler threshold** to feel more conversational
-   - Current: 2.5s before filler
-   - Suggest: 1.5-2s for faster perception
-   - This is perception, not latency
+6. **✅ Reduce filler threshold** (`adaptive-timing.ts`)
+   - `MIN_LATENCY_FOR_FILLER`: 800ms (was 1000)
+   - `GUARANTEED_FILLER_LATENCY`: 1500ms (was 2000)
+   - `FILLER_BUFFER_MS`: 300ms (was 400)
+   - `FILLER_COOLDOWN_MS`: 6000ms (was 8000)
+   - Improves perceived responsiveness
 
-### P3 - Lower Priority
+### P3 - Lower Priority (FUTURE)
 
-7. **Parallel context builders** where independent
-8. **Profile Firestore batch operations**
-9. **Monitor Cartesia latency trends**
+7. Parallel context builders where independent - Already done via Promise.all
+8. Profile Firestore batch operations
+9. Monitor Cartesia latency trends
 
 ---
 

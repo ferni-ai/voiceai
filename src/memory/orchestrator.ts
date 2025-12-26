@@ -217,7 +217,7 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
   }): Promise<void> {
     const { userId, turns, sessionEmotion, personaId, sessionId, sessionEndState } = context;
 
-    // 1. Extract signals from conversation
+    // 1. Extract signals from conversation AND route to Superhuman Services
     try {
       const signals = await this.signalExtractor.extractSignals(turns, {
         userId,
@@ -229,9 +229,15 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
           userId,
           dates: signals.importantDates.length,
           values: signals.values.length,
+          dreams: signals.dreams.length,
         },
         'Extracted signals from conversation'
       );
+
+      // Route signals to Superhuman Services for "Better than Human" capabilities
+      // This feeds: Dream Keeper, Values Alignment, Relationship Network, Capacity Guardian
+      const { routeSignalsToSuperhuman } = await import('./superhuman-signal-router.js');
+      await routeSignalsToSuperhuman(userId, signals);
     } catch (error) {
       log.warn({ error: String(error) }, 'Signal extraction failed');
     }

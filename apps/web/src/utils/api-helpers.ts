@@ -14,7 +14,6 @@
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
-import { isDevelopment } from './environment.js';
 
 // Track if we've ensured auth is ready
 let authReadyPromise: Promise<void> | null = null;

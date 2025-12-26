@@ -1,4 +1,5 @@
 import SwiftUI
+import FerniShared
 
 // MARK: - Pixar Animation System
 // Timing constants and shared state for Luxo Jr. style animations.
@@ -72,6 +73,21 @@ enum SquashStretch {
         translateY: -1.8,
         rotation: -0.4
     )
+
+    // Lamp-style (more subtle for Luxo Jr. aesthetic)
+    static let lampIdle = Values(
+        scaleY: 1.008,
+        scaleX: 0.996,
+        translateY: -1.0,
+        rotation: 0.2
+    )
+
+    static let lampActive = Values(
+        scaleY: 1.014,
+        scaleX: 0.993,
+        translateY: -1.8,
+        rotation: 0.4
+    )
 }
 
 // MARK: - Emotion Hints
@@ -112,6 +128,20 @@ enum EmotionHint: String, Equatable {
         case .empathetic: return .warmthGlow
         case .encouraging: return .warmthBloom
         case .calm: return .none
+        }
+    }
+
+    /// Convert to FerniShared EmotionHint for cross-module compatibility
+    var toShared: FerniShared.EmotionHint {
+        switch self {
+        case .neutral: return .neutral
+        case .happy: return .happy
+        case .excited: return .excited
+        case .curious: return .curious
+        case .thinking: return .thinking
+        case .empathetic: return .empathetic
+        case .encouraging: return .encouraging
+        case .calm: return .calm
         }
     }
 }

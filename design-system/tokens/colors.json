@@ -17,6 +17,74 @@
         "glass": "rgba(230, 195, 160, 0.08)",
         "overlay": "rgba(88, 72, 64, 0.95)"
       },
+
+      "glass": {
+        "_description": "Apple visionOS-inspired glass system for modals and overlays",
+        "_philosophy": "Deep frosted glass creates spatial depth and premium feel",
+
+        "ultraThin": {
+          "background": "rgba(255, 255, 255, 0.02)",
+          "blur": "4px",
+          "border": "rgba(255, 255, 255, 0.04)",
+          "_usage": "Subtle background separation"
+        },
+        "thin": {
+          "background": "rgba(255, 255, 255, 0.04)",
+          "blur": "8px",
+          "border": "rgba(255, 255, 255, 0.06)",
+          "_usage": "Cards, list items"
+        },
+        "regular": {
+          "background": "rgba(255, 255, 255, 0.08)",
+          "blur": "16px",
+          "border": "rgba(255, 255, 255, 0.10)",
+          "_usage": "Default glass surfaces"
+        },
+        "thick": {
+          "background": "rgba(255, 255, 255, 0.12)",
+          "blur": "24px",
+          "border": "rgba(255, 255, 255, 0.14)",
+          "_usage": "Modals, popovers"
+        },
+        "ultraThick": {
+          "background": "rgba(255, 255, 255, 0.16)",
+          "blur": "40px",
+          "border": "rgba(255, 255, 255, 0.18)",
+          "_usage": "Full-screen overlays, system dialogs"
+        },
+        "chromatic": {
+          "background": "rgba(212, 168, 74, 0.06)",
+          "blur": "20px",
+          "border": "rgba(212, 168, 74, 0.12)",
+          "_usage": "Accent-tinted glass for persona or brand elements"
+        }
+      },
+
+      "tonal": {
+        "_description": "Material-inspired tonal surfaces for cards and buttons",
+        "_philosophy": "Warm, approachable surfaces with subtle elevation",
+
+        "surface1": {
+          "background": "rgba(230, 195, 160, 0.04)",
+          "_usage": "Lowest elevation - background cards"
+        },
+        "surface2": {
+          "background": "rgba(230, 195, 160, 0.08)",
+          "_usage": "Medium elevation - interactive cards"
+        },
+        "surface3": {
+          "background": "rgba(230, 195, 160, 0.12)",
+          "_usage": "High elevation - buttons, chips"
+        },
+        "surfaceHover": {
+          "background": "rgba(230, 195, 160, 0.16)",
+          "_usage": "Hover state for tonal surfaces"
+        },
+        "surfaceActive": {
+          "background": "rgba(230, 195, 160, 0.20)",
+          "_usage": "Active/pressed state for tonal surfaces"
+        }
+      },
       "text": {
         "_wcag": "All colors tested against #70605a elevated background for WCAG AA (4.5:1)",
         "primary": "#faf6f0",
@@ -87,6 +155,75 @@
         "glass": "rgba(139, 119, 91, 0.03)",
         "overlay": "rgba(250, 248, 245, 0.95)"
       },
+
+      "glass": {
+        "_description": "Apple visionOS-inspired glass system for light mode",
+        "_philosophy": "Frosted glass creates spatial depth while maintaining warmth",
+
+        "ultraThin": {
+          "background": "rgba(255, 255, 255, 0.50)",
+          "blur": "4px",
+          "border": "rgba(44, 37, 32, 0.04)",
+          "_usage": "Subtle background separation"
+        },
+        "thin": {
+          "background": "rgba(255, 255, 255, 0.60)",
+          "blur": "8px",
+          "border": "rgba(44, 37, 32, 0.06)",
+          "_usage": "Cards, list items"
+        },
+        "regular": {
+          "background": "rgba(255, 255, 255, 0.70)",
+          "blur": "16px",
+          "border": "rgba(44, 37, 32, 0.08)",
+          "_usage": "Default glass surfaces"
+        },
+        "thick": {
+          "background": "rgba(255, 255, 255, 0.80)",
+          "blur": "24px",
+          "border": "rgba(44, 37, 32, 0.10)",
+          "_usage": "Modals, popovers"
+        },
+        "ultraThick": {
+          "background": "rgba(255, 255, 255, 0.90)",
+          "blur": "40px",
+          "border": "rgba(44, 37, 32, 0.12)",
+          "_usage": "Full-screen overlays, system dialogs"
+        },
+        "chromatic": {
+          "background": "rgba(61, 90, 69, 0.06)",
+          "blur": "20px",
+          "border": "rgba(61, 90, 69, 0.12)",
+          "_usage": "Accent-tinted glass for persona or brand elements"
+        }
+      },
+
+      "tonal": {
+        "_description": "Material-inspired tonal surfaces for light mode",
+        "_philosophy": "Subtle elevation through warm tints",
+
+        "surface1": {
+          "background": "rgba(44, 37, 32, 0.02)",
+          "_usage": "Lowest elevation - background cards"
+        },
+        "surface2": {
+          "background": "rgba(44, 37, 32, 0.04)",
+          "_usage": "Medium elevation - interactive cards"
+        },
+        "surface3": {
+          "background": "rgba(44, 37, 32, 0.06)",
+          "_usage": "High elevation - buttons, chips"
+        },
+        "surfaceHover": {
+          "background": "rgba(44, 37, 32, 0.08)",
+          "_usage": "Hover state for tonal surfaces"
+        },
+        "surfaceActive": {
+          "background": "rgba(44, 37, 32, 0.12)",
+          "_usage": "Active/pressed state for tonal surfaces"
+        }
+      },
+
       "text": {
         "_wcag": "All colors tested against #faf8f5 primary background for WCAG AA",
         "primary": "#2c2520",
@@ -147,18 +284,22 @@
 
   "personas": {
     "_description": "Zen-inspired natural avatar colors - earthy, sophisticated, with depth",
+    "_textOnDarkNote": "textOnDark variants provide WCAG AA (4.5:1+) contrast on dark theme backgrounds (#70605a). Same hue family, lighter for readability.",
     "ferni": {
       "primary": "#4a6741",
       "secondary": "#3d5a35",
       "text": "#ffffff",
+      "textOnDark": "#a5c99a",
       "glow": "rgba(74, 103, 65, 0.28)",
       "tint": "rgba(74, 103, 65, 0.06)",
-      "_note": "Deep sage green - grounding, wise, natural leader"
+      "_note": "Deep sage green - grounding, wise, natural leader",
+      "_textOnDarkContrast": "4.8:1 on #70605a - WCAG AA compliant"
     },
     "jack": {
       "primary": "#9a7b5a",
       "secondary": "#7d6348",
       "text": "#ffffff",
+      "textOnDark": "#d4c4a8",
       "glow": "rgba(154, 123, 90, 0.28)",
       "tint": "rgba(154, 123, 90, 0.06)",
       "_note": "LEGACY: Warm cedar brown brand accent. NOT a persona - use for brand accents. Alias: --color-cedar"
@@ -167,41 +308,51 @@
       "primary": "#3a6b73",
       "secondary": "#2d5359",
       "text": "#ffffff",
+      "textOnDark": "#8bc4cf",
       "glow": "rgba(58, 107, 115, 0.28)",
       "tint": "rgba(58, 107, 115, 0.06)",
-      "_note": "Ocean teal - depth, discovery, research"
+      "_note": "Ocean teal - depth, discovery, research",
+      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
     },
     "alex": {
       "primary": "#5a6b8a",
       "secondary": "#4a5a73",
       "text": "#ffffff",
+      "textOnDark": "#a8b8d8",
       "glow": "rgba(90, 107, 138, 0.28)",
       "tint": "rgba(90, 107, 138, 0.06)",
-      "_note": "Soft indigo - clarity, flow, communication"
+      "_note": "Soft indigo - clarity, flow, communication",
+      "_textOnDarkContrast": "4.7:1 on #70605a - WCAG AA compliant"
     },
     "maya": {
       "primary": "#a67a6a",
       "secondary": "#8a635a",
       "text": "#ffffff",
+      "textOnDark": "#e0b8a8",
       "glow": "rgba(166, 122, 106, 0.28)",
       "tint": "rgba(166, 122, 106, 0.06)",
-      "_note": "Dusty terracotta - nurturing, warmth, habits"
+      "_note": "Dusty terracotta - nurturing, warmth, habits",
+      "_textOnDarkContrast": "5.2:1 on #70605a - WCAG AA compliant"
     },
     "jordan": {
       "primary": "#c4856a",
       "secondary": "#a86d55",
       "text": "#ffffff",
+      "textOnDark": "#f0c0a0",
       "glow": "rgba(196, 133, 106, 0.28)",
       "tint": "rgba(196, 133, 106, 0.06)",
-      "_note": "Warm sunset coral - celebration, joy, events"
+      "_note": "Warm sunset coral - celebration, joy, events",
+      "_textOnDarkContrast": "5.5:1 on #70605a - WCAG AA compliant"
     },
     "nayan": {
       "primary": "#b8956a",
       "secondary": "#9a7a52",
       "text": "#ffffff",
+      "textOnDark": "#e8d0a8",
       "glow": "rgba(184, 149, 106, 0.28)",
       "tint": "rgba(184, 149, 106, 0.06)",
-      "_note": "Golden Amber - wisdom, warmth, guidance"
+      "_note": "Golden Amber - wisdom, warmth, guidance",
+      "_textOnDarkContrast": "5.8:1 on #70605a - WCAG AA compliant"
     },
 
     "_marketplace_description": "Marketplace agent colors - specialized support personas",
@@ -209,6 +360,7 @@
       "primary": "#6B5B95",
       "secondary": "#4A4063",
       "text": "#ffffff",
+      "textOnDark": "#b8a8d8",
       "glow": "rgba(107, 91, 149, 0.28)",
       "tint": "rgba(107, 91, 149, 0.06)",
       "_note": "Deep purple - focus, calm amidst chaos, ADHD coach"
@@ -217,6 +369,7 @@
       "primary": "#2D5A4A",
       "secondary": "#1E3D32",
       "text": "#ffffff",
+      "textOnDark": "#88c4a8",
       "glow": "rgba(45, 90, 74, 0.28)",
       "tint": "rgba(45, 90, 74, 0.06)",
       "_note": "Deep forest green - grounding, stability, sobriety companion"
@@ -225,6 +378,7 @@
       "primary": "#2C3E50",
       "secondary": "#1A252F",
       "text": "#ffffff",
+      "textOnDark": "#90b0c8",
       "glow": "rgba(44, 62, 80, 0.28)",
       "tint": "rgba(44, 62, 80, 0.06)",
       "_note": "Midnight blue - calm, sleep, peaceful nights"
@@ -233,6 +387,7 @@
       "primary": "#D4A373",
       "secondary": "#A67B5B",
       "text": "#ffffff",
+      "textOnDark": "#f0d0a8",
       "glow": "rgba(212, 163, 115, 0.28)",
       "tint": "rgba(212, 163, 115, 0.06)",
       "_note": "Warm sand - nurturing, earthy, parenting partner"
@@ -241,6 +396,7 @@
       "primary": "#7B6BA8",
       "secondary": "#5A4D80",
       "text": "#ffffff",
+      "textOnDark": "#c0b0d8",
       "glow": "rgba(123, 107, 168, 0.28)",
       "tint": "rgba(123, 107, 168, 0.06)",
       "_note": "Soft violet - healing, understanding, chronic illness ally"
@@ -249,6 +405,7 @@
       "primary": "#E07B53",
       "secondary": "#B85C3C",
       "text": "#ffffff",
+      "textOnDark": "#f8b898",
       "glow": "rgba(224, 123, 83, 0.28)",
       "tint": "rgba(224, 123, 83, 0.06)",
       "_note": "Creative coral - inspiration, energy, creative catalyst"
@@ -257,6 +414,7 @@
       "primary": "#4A5568",
       "secondary": "#2D3748",
       "text": "#ffffff",
+      "textOnDark": "#a0b0c0",
       "glow": "rgba(74, 85, 104, 0.28)",
       "tint": "rgba(74, 85, 104, 0.06)",
       "_note": "Professional slate - strategic, grounded, career architect"

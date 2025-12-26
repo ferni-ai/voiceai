@@ -579,3 +579,41 @@ export {
   type RecordCacheHitFn,
   type RecordCacheMissFn,
 } from './performance-metrics-types.js';
+
+// ============================================================================
+// AGENT ID TYPES (Shared persona/agent identifiers)
+// ============================================================================
+
+export {
+  getCanonicalAgentId,
+  SHORT_TO_CANONICAL,
+  type AgentId,
+  type CanonicalPersonaId,
+  type ShortPersonaId,
+} from './agent-ids.js';
+
+// ============================================================================
+// CONTACT TYPES (Contact management and outreach)
+// ============================================================================
+
+export type {
+  BatchOutreachRequest,
+  BatchOutreachResult,
+  BudgetRange,
+  ChannelType,
+  ContactChannel,
+  ContactGroup,
+  ContactImportantDate,
+  DateSentiment,
+  EnhancedContact,
+  ImportantDateType,
+  OccasionPreferences,
+  OutreachContext,
+  OutreachOccasion,
+  OutreachSuggestion,
+  OutreachTone,
+  PersonalizedMessage,
+  RelationshipSentiment,
+  RelationshipType,
+  SuggestionType,
+} from './contacts.js';

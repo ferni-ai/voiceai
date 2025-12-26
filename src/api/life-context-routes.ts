@@ -200,8 +200,10 @@ export async function handleLifeContextRoutes(
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   // Get userId from query or header
+  // SECURITY: Prioritize Firebase auth (x-firebase-uid) over deprecated x-user-id
   const url = new URL(req.url || '', `http://${req.headers.host}`);
-  const userId = getParam(url, 'userId') || (req.headers['x-user-id'] as string);
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  const userId = firebaseUid || getParam(url, 'userId') || (req.headers['x-user-id'] as string);
 
   if (!userId) {
     sendError(res, 'userId is required', 400);

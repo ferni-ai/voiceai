@@ -116,7 +116,7 @@ let isLoading = false;
  */
 function getAdminKey(): string {
   // Check localStorage for stored admin key (set during admin login)
-  const storedKey = localStorage.getItem('admin_key') || localStorage.getItem('ferni_admin_key');
+  const storedKey = localStorage.getItem('admin_key') ?? localStorage.getItem('ferni_admin_key');
   if (storedKey) return storedKey;
   
   // In development only, allow dev-mode fallback
@@ -143,7 +143,7 @@ async function fetchThresholds(): Promise<Thresholds> {
   return response.json();
 }
 
-async function updateThreshold(key: string, value: number): Promise<void> {
+async function _updateThreshold(key: string, value: number): Promise<void> {
   const adminKey = getAdminKey();
   await fetch(`/api/finops/thresholds?admin_key=${adminKey}`, {
     method: 'PUT',
@@ -1059,62 +1059,70 @@ export async function setupEvents(): Promise<void> {
 
   // Save MRR
   const saveMrrBtn = document.getElementById('save-mrr');
-  saveMrrBtn?.addEventListener('click', async () => {
-    const input = document.getElementById('config-mrr') as HTMLInputElement;
-    const mrr = parseFloat(input.value);
-    if (!isNaN(mrr)) {
-      await setMRR(mrr);
-      await refreshData();
-    }
+  saveMrrBtn?.addEventListener('click', () => {
+    void (async () => {
+      const input = document.getElementById('config-mrr') as HTMLInputElement;
+      const mrr = parseFloat(input.value);
+      if (!isNaN(mrr)) {
+        await setMRR(mrr);
+        await refreshData();
+      }
+    })();
   });
 
   // Save Cash
   const saveCashBtn = document.getElementById('save-cash');
-  saveCashBtn?.addEventListener('click', async () => {
-    const input = document.getElementById('config-cash') as HTMLInputElement;
-    const cash = parseFloat(input.value);
-    if (!isNaN(cash)) {
-      await setCash(cash);
-      await refreshData();
-    }
+  saveCashBtn?.addEventListener('click', () => {
+    void (async () => {
+      const input = document.getElementById('config-cash') as HTMLInputElement;
+      const cash = parseFloat(input.value);
+      if (!isNaN(cash)) {
+        await setCash(cash);
+        await refreshData();
+      }
+    })();
   });
 
   // Sync MRR from Stripe
   const syncMrrBtn = document.getElementById('sync-mrr');
-  syncMrrBtn?.addEventListener('click', async () => {
-    const btn = syncMrrBtn as HTMLButtonElement;
-    const originalText = btn.textContent;
-    btn.textContent = 'Syncing...';
-    btn.disabled = true;
+  syncMrrBtn?.addEventListener('click', () => {
+    void (async () => {
+      const btn = syncMrrBtn as HTMLButtonElement;
+      const originalText = btn.textContent;
+      btn.textContent = 'Syncing...';
+      btn.disabled = true;
 
-    try {
-      const result = await syncMRRFromStripe();
-      if (result.success) {
-        const mrrInput = document.getElementById('config-mrr') as HTMLInputElement;
-        if (mrrInput) {
-          mrrInput.value = result.mrr.toFixed(2);
+      try {
+        const result = await syncMRRFromStripe();
+        if (result.success) {
+          const mrrInput = document.getElementById('config-mrr') as HTMLInputElement;
+          if (mrrInput) {
+            mrrInput.value = result.mrr.toFixed(2);
+          }
+          await refreshData();
         }
-        await refreshData();
+      } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
       }
-    } finally {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
+    })();
   });
 
   // Save LTV:CAC Config
   const saveLtvBtn = document.getElementById('save-ltv-config');
-  saveLtvBtn?.addEventListener('click', async () => {
-    const cacInput = document.getElementById('config-cac') as HTMLInputElement;
-    const churnInput = document.getElementById('config-churn') as HTMLInputElement;
+  saveLtvBtn?.addEventListener('click', () => {
+    void (async () => {
+      const cacInput = document.getElementById('config-cac') as HTMLInputElement;
+      const churnInput = document.getElementById('config-churn') as HTMLInputElement;
 
-    const cac = cacInput?.value ? parseFloat(cacInput.value) : undefined;
-    const churn = churnInput?.value ? parseFloat(churnInput.value) : undefined;
+      const cac = cacInput?.value ? parseFloat(cacInput.value) : undefined;
+      const churn = churnInput?.value ? parseFloat(churnInput.value) : undefined;
 
-    if (cac !== undefined || churn !== undefined) {
-      await setLTVCACConfig(cac, churn);
-      await refreshData();
-    }
+      if (cac !== undefined || churn !== undefined) {
+        await setLTVCACConfig(cac, churn);
+        await refreshData();
+      }
+    })();
   });
 }
 
@@ -1236,7 +1244,7 @@ function updateUI(): void {
   // Config inputs
   const mrrInput = document.getElementById('config-mrr') as HTMLInputElement;
   if (mrrInput && !document.activeElement?.isSameNode(mrrInput)) {
-    mrrInput.value = String(snapshot.monthlyRecurringRevenue || '');
+    mrrInput.value = String(snapshot.monthlyRecurringRevenue ?? '');
   }
 
   // Threshold grid

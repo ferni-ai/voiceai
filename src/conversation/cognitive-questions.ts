@@ -5,6 +5,7 @@
  * cognitive style. This creates truly differentiated conversations.
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
 import type { ReasoningStyle } from '../personas/cognitive-types.js';
 import { getCognitiveProfile } from '../personas/cognitive-profiles.js';
 
@@ -534,8 +535,8 @@ export function generateCognitiveQuestion(
   }
 
   // Check for persona favorites
-  if (signature && Math.random() < 0.4) {
-    const favorite = signature.favorites[Math.floor(Math.random() * signature.favorites.length)];
+  if (signature && seededChance(`${Date.now()}:538`, 0.4)) {
+    const favorite = seededPick(`${Date.now()}:1`, signature.favorites) ?? signature.favorites[0];
     const matchingQuestion = questionPool.find((q) => q.text === favorite);
     if (matchingQuestion) {
       return formatQuestion(matchingQuestion, signature);
@@ -547,7 +548,7 @@ export function generateCognitiveQuestion(
     questionPool = primaryQuestions;
   }
 
-  const selected = questionPool[Math.floor(Math.random() * questionPool.length)];
+  const selected = seededPick(`${Date.now()}:551`, questionPool) ?? questionPool[0];
   return formatQuestion(selected, signature);
 }
 

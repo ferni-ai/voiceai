@@ -131,7 +131,8 @@ export interface HumeEmotionPoint {
 // Configuration
 // ============================================================================
 
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+// Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY for backward compatibility
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 // Use centralized model config (toggle via admin UI or model-config.json)
 function getGeminiModel(): string {

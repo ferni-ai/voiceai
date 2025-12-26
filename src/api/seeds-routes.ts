@@ -215,9 +215,15 @@ async function getOrCreateUserSeeds(
 // parseBody, sendJSON, sendError imported from './helpers.js'
 
 /**
- * Get user ID from request headers (local version - header-based only)
+ * Get user ID from request headers
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
  */
 function getUserId(req: IncomingMessage): string | null {
+  // SECURITY: Prioritize Firebase auth
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
+
+  // Legacy headers (deprecated - will be removed)
   return (req.headers['x-user-id'] as string) || (req.headers['x-device-id'] as string) || null;
 }
 

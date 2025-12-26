@@ -41,7 +41,7 @@ export type { MusicDashboardUICallbacks } from './music-dashboard/types.js';
 const log = createLogger('MusicDashboard');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // MUSIC DASHBOARD UI CLASS
@@ -130,7 +130,7 @@ class MusicDashboardUI {
 
     this.wrapper
       .querySelector('.music-dashboard__close')
-      ?.addEventListener('click', () => this.hide());
+      ?.addEventListener('click', () => void this.hide());
     this.panel.classList.add('music-dashboard--visible');
     this.isVisible = true;
   }
@@ -156,7 +156,7 @@ class MusicDashboardUI {
 
     this.wrapper
       .querySelector('.music-dashboard__close')
-      ?.addEventListener('click', () => this.hide());
+      ?.addEventListener('click', () => void this.hide());
     this.wrapper.querySelector('.music-dashboard__cta')?.addEventListener('click', () => {
       this.hide();
       this.callbacks.onPlayGame?.('name-that-tune');
@@ -213,7 +213,7 @@ class MusicDashboardUI {
     // Bind events
     this.wrapper
       .querySelector('.music-dashboard__close')
-      ?.addEventListener('click', () => this.hide());
+      ?.addEventListener('click', () => void this.hide());
     this.bindNewFeatureEvents();
   }
 
@@ -249,7 +249,7 @@ class MusicDashboardUI {
 
     this.wrapper
       .querySelector('.music-dashboard__close')
-      ?.addEventListener('click', () => this.hide());
+      ?.addEventListener('click', () => void this.hide());
     this.wrapper.querySelector('.music-dashboard__cta')?.addEventListener('click', () => {
       this.hide();
       this.callbacks.onPlayGame?.('name-that-tune');
@@ -379,25 +379,25 @@ class MusicDashboardUI {
 
     // Calculate DNA confidence based on connected sources
     let confidence = 0;
-    let connectedCount = 0;
+    let _connectedCount = 0;
 
     // Games always contribute
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
     if (gamesPlayed > 0) {
       confidence += Math.min(30, gamesPlayed * 2); // Up to 30% from games
-      connectedCount++;
+      _connectedCount++;
     }
 
     // Spotify adds 35%
     if (sources?.spotify?.connected) {
       confidence += 35;
-      connectedCount++;
+      _connectedCount++;
     }
 
     // Apple Music adds 35%
     if (sources?.appleMusic?.connected) {
       confidence += 35;
-      connectedCount++;
+      _connectedCount++;
     }
 
     // Cap at 100
@@ -1507,7 +1507,7 @@ class MusicDashboardUI {
       .music-dashboard__challenge-xp {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-bold);
-        color: var(--persona-primary);
+        color: var(--persona-text);
         background: var(--persona-tint);
         padding: var(--space-1) var(--space-2);
         border-radius: var(--radius-full);
@@ -1648,7 +1648,7 @@ class MusicDashboardUI {
         font-size: var(--text-2xs);
         font-weight: var(--font-weight-semibold);
         text-transform: uppercase;
-        color: var(--persona-primary);
+        color: var(--persona-text);
         margin-left: auto;
       }
 
@@ -1687,7 +1687,7 @@ class MusicDashboardUI {
         font-family: var(--font-display);
         font-size: var(--text-2xl);
         font-weight: var(--font-weight-bold);
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       .music-dashboard__social-stat--rank .music-dashboard__social-value {
@@ -1726,7 +1726,7 @@ class MusicDashboardUI {
         gap: var(--space-2);
         padding: var(--space-3);
         background: transparent;
-        color: var(--persona-primary);
+        color: var(--persona-text);
         font-weight: var(--font-weight-semibold);
         font-size: var(--text-base);
         border: 2px solid var(--persona-primary);
@@ -1793,7 +1793,7 @@ class MusicDashboardUI {
       .music-dashboard__share-btn svg {
         width: 16px;
         height: 16px;
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       /* Empty & Loading States */
@@ -1942,7 +1942,7 @@ class MusicDashboardUI {
       }
 
       .music-sources__item--connected {
-        border-color: var(--persona-primary);
+        border-color: var(--persona-text);
         background: linear-gradient(135deg,
           var(--persona-tint),
           var(--color-background-elevated)
@@ -1991,7 +1991,7 @@ class MusicDashboardUI {
       }
 
       .music-sources__status--connected {
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       .music-sources__status svg {
@@ -2005,7 +2005,7 @@ class MusicDashboardUI {
         gap: var(--space-1);
         padding: var(--space-2) var(--space-3);
         background: var(--color-background-elevated);
-        color: var(--persona-primary);
+        color: var(--persona-text);
         font-weight: var(--font-weight-semibold);
         font-size: var(--text-xs);
         border: 1px solid var(--persona-primary);
@@ -2046,7 +2046,7 @@ class MusicDashboardUI {
       .music-sources__confidence-value {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-bold);
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       .music-sources__confidence-bar {

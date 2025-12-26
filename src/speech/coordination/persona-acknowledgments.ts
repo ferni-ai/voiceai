@@ -339,18 +339,102 @@ export function getToolCategory(toolId?: string): AcknowledgmentCategory {
   return TOOL_CATEGORIES[toolId] ?? TOOL_CATEGORIES.default ?? 'thinking';
 }
 
+// ============================================================================
+// PERSONA BUNDLE CACHE
+// ============================================================================
+
+// Cache for loaded persona acknowledgments from bundles
+const bundleAcknowledgmentsCache = new Map<string, PersonaAcknowledgments | null>();
+
 /**
- * Get acknowledgments for persona (loads from bundle or uses default)
+ * Attempt to load acknowledgments from persona bundle's thinking_sounds.
+ * This is called once per persona and cached.
+ */
+async function loadPersonaBundleAcknowledgments(
+  personaId: string
+): Promise<PersonaAcknowledgments | null> {
+  // Check cache first
+  if (bundleAcknowledgmentsCache.has(personaId)) {
+    return bundleAcknowledgmentsCache.get(personaId) ?? null;
+  }
+
+  try {
+    const { loadPersonaBehaviors } = await import('../../services/persona-content-loader.js');
+    const behaviors = await loadPersonaBehaviors(personaId);
+
+    if (!behaviors) {
+      bundleAcknowledgmentsCache.set(personaId, null);
+      return null;
+    }
+
+    // Build PersonaAcknowledgments from bundle behaviors
+    const thinkingSounds = behaviors.thinking_sounds;
+    const hasThinkingSounds = thinkingSounds && (Array.isArray(thinkingSounds) || typeof thinkingSounds === 'object');
+
+    if (!hasThinkingSounds) {
+      bundleAcknowledgmentsCache.set(personaId, null);
+      return null;
+    }
+
+    // Extract phrases from thinking_sounds
+    const soundsArray = Array.isArray(thinkingSounds)
+      ? thinkingSounds
+      : (thinkingSounds as { thinking?: string[]; processing?: string[] }).thinking ?? [];
+
+    const processingArray = !Array.isArray(thinkingSounds)
+      ? (thinkingSounds as { processing?: string[] }).processing ?? []
+      : [];
+
+    // Build acknowledgments structure
+    const acks: PersonaAcknowledgments = {
+      personaId,
+      phrases: {
+        thinking: soundsArray.length > 0 ? soundsArray : ['Hmm...', 'One sec', 'Just a moment'],
+        searching: processingArray.length > 0 ? processingArray : ['Checking on that', 'One moment'],
+        calculating: processingArray.length > 0 ? processingArray : ['Running the numbers', 'One sec'],
+        creating: ['Working on that', 'One moment', 'Almost there'],
+        connecting: ['Connecting...', 'One sec', 'Almost there'],
+        remembering: ['Oh yeah...', 'I remember...', 'Right...'],
+      },
+      fillers: soundsArray.slice(0, 3), // Use first few thinking sounds as fillers
+      pauseMarker: '...',
+    };
+
+    bundleAcknowledgmentsCache.set(personaId, acks);
+    log.debug({ personaId }, 'Loaded acknowledgments from persona bundle');
+    return acks;
+  } catch (error) {
+    log.debug({ personaId, error: String(error) }, 'Could not load from bundle, using defaults');
+    bundleAcknowledgmentsCache.set(personaId, null);
+    return null;
+  }
+}
+
+/**
+ * Get acknowledgments for persona.
+ * Checks bundle cache first, falls back to defaults.
+ * Note: First call triggers async bundle load (cached thereafter).
  */
 function getPersonaAcknowledgments(personaId: string): PersonaAcknowledgments {
-  // TODO: Load from persona bundle if available
-  // For now, fall back to defaults
-  const acks = DEFAULT_ACKNOWLEDGMENTS[personaId] || DEFAULT_ACKNOWLEDGMENTS.ferni;
+  // Check if we have cached bundle acknowledgments
+  const cached = bundleAcknowledgmentsCache.get(personaId);
+  if (cached) {
+    return cached;
+  }
 
-  // If we have Ferni bundle loaded with acknowledgments, use those
-  // This would integrate with persona-content-loader.ts
+  // If not cached, trigger async load for next time
+  // This is fire-and-forget - current call uses defaults
+  void loadPersonaBundleAcknowledgments(personaId);
 
-  return acks;
+  // Fall back to hardcoded defaults
+  return DEFAULT_ACKNOWLEDGMENTS[personaId] || DEFAULT_ACKNOWLEDGMENTS.ferni;
+}
+
+/**
+ * Preload persona bundle acknowledgments (call on session start)
+ */
+export async function preloadPersonaAcknowledgments(personaId: string): Promise<void> {
+  await loadPersonaBundleAcknowledgments(personaId);
 }
 
 /**

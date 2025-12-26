@@ -35,7 +35,7 @@ import { teaserPreview } from './teaser-preview.ui.js';
 const log = createLogger('EngagementUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -148,7 +148,7 @@ export class EngagementUI {
   private renderEmptyState(): string {
     // Use teaser preview system to show what daily habits WILL look like
     // Creates anticipation by showing realistic dummy data
-    return teaserPreview.habits();
+    return teaserPreview.habits().outerHTML;
   }
 
   /**
@@ -1033,7 +1033,7 @@ export class EngagementUI {
    */
   destroy(): void {
     // FIX: Clear all tracked timeouts to prevent memory leaks
-    clearAllTimeouts();
+    _clearAllTimeouts();
 
     if (this.container) {
       this.container.remove();

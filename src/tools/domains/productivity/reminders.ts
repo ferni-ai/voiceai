@@ -207,7 +207,7 @@ const cancelReminderDef: ToolDefinition = {
           return `I couldn't find a reminder matching "${reminderQuery}". Say "what are my reminders" to see the list.`;
         }
 
-        const success = cancelReminder(targetReminder.id);
+        const success = await cancelReminder(targetReminder.id);
         if (success) {
           log.info({ reminderId: targetReminder.id }, 'Reminder cancelled');
           return `Done! I cancelled the reminder: "${targetReminder.message}"`;

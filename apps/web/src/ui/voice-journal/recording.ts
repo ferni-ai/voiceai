@@ -14,7 +14,6 @@ import {
   setIsRecording,
   getRecordingStartTime,
   setRecordingStartTime,
-  getRecordingDuration,
   setRecordingDuration,
   getMediaRecorder,
   setMediaRecorder,

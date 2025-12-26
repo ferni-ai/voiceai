@@ -21,7 +21,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import {
   getDomainInterpretation,
   getToolProcessingSound,
-} from '../../../tools/cognitive-tool-interpretation.js';
+} from '../../../tools/intelligence/cognitive-tool-interpretation.js';
 
 const log = createLogger({ module: 'context:tool-humanization' });
 

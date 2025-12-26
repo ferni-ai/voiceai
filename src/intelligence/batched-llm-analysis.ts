@@ -299,7 +299,8 @@ class BatchedLLMAnalyzer {
       // Dynamic import to avoid circular dependencies
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
 
-      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+      // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
       if (!apiKey) {
         throw new Error('No Google API key configured');
       }

@@ -17,6 +17,7 @@
  * @module conversation/thinking-phrase-coordinator
  */
 
+import { seededChance, seededIndex, seededPick } from './utils/rng.js';
 import {
   generateContent,
   getContentWithFallback,
@@ -318,7 +319,7 @@ class ThinkingPhraseCoordinator {
 
     // Apply probability - don't always use a phrase
     const probability = this.calculateProbability(request);
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return null;
     }
 
@@ -352,7 +353,7 @@ class ThinkingPhraseCoordinator {
     }
 
     // Random selection from templates
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return seededPick(`${Date.now()}:356`, candidates) ?? candidates[0];
   }
 
   /**

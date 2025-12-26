@@ -74,9 +74,15 @@ export interface SignedUrlResult {
 
 /**
  * Lazy-loaded GCS Storage client
+ *
+ * Note: Using `any` here because @google-cloud/storage is dynamically imported
+ * and the Storage class type varies by import method. The client is used
+ * with .bucket() calls which require runtime type flexibility.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let storageClient: any = null;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getStorageClient(): Promise<any> {
   if (storageClient) {
     return storageClient;

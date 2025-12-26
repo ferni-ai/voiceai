@@ -119,12 +119,14 @@ export function registerMetric(
 }
 
 /**
- * Record a data point for a metric
+ * Record a data point for a metric.
+ * If the metric isn't registered yet, silently ignore (will be registered when service starts).
  */
 export function recordMetricValue(name: string, value: number): void {
   const series = metrics.get(name);
   if (!series) {
-    log.warn({ name }, 'Metric not registered, ignoring');
+    // Silently ignore - metric will be registered when predictive alerting starts
+    // This prevents log spam when the service hasn't been initialized yet
     return;
   }
 

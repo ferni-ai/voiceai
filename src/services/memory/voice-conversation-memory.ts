@@ -341,27 +341,50 @@ export async function getUserMemory(userId: string): Promise<ConversationMemory 
     const doc = await db.collection(MEMORIES_COLLECTION).doc(userId).get();
     if (!doc.exists) return null;
 
-    const data = doc.data()!;
+    const data = doc.data() as Record<string, unknown>;
+
+    // Type for Firestore topic document
+    interface FirestoreTopic {
+      topic: string;
+      count: number;
+      lastMentioned?: { toDate: () => Date };
+    }
+
+    // Type for Firestore moment document
+    interface FirestoreMoment {
+      summary: string;
+      date?: { toDate: () => Date };
+      emotion?: string;
+    }
+
+    // Type for Firestore milestone document
+    interface FirestoreMilestone {
+      milestone: string;
+      date?: { toDate: () => Date };
+    }
+
     const memory: ConversationMemory = {
-      userId: data.userId,
-      totalConversations: data.totalConversations,
-      totalDuration: data.totalDuration,
-      firstConversation: data.firstConversation?.toDate(),
-      lastConversation: data.lastConversation?.toDate(),
+      userId: data.userId as string,
+      totalConversations: data.totalConversations as number,
+      totalDuration: data.totalDuration as number,
+      firstConversation: (data.firstConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
+      lastConversation: (data.lastConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
       topics:
-        data.topics?.map((t: any) => ({
-          ...t,
-          lastMentioned: t.lastMentioned?.toDate(),
+        (data.topics as FirestoreTopic[] | undefined)?.map((t) => ({
+          topic: t.topic,
+          count: t.count,
+          lastMentioned: t.lastMentioned?.toDate() ?? new Date(),
         })) || [],
       importantMoments:
-        data.importantMoments?.map((m: any) => ({
-          ...m,
-          date: m.date?.toDate(),
+        (data.importantMoments as FirestoreMoment[] | undefined)?.map((m) => ({
+          summary: m.summary,
+          date: m.date?.toDate() ?? new Date(),
+          emotion: m.emotion,
         })) || [],
       relationshipMilestones:
-        data.relationshipMilestones?.map((m: any) => ({
-          ...m,
-          date: m.date?.toDate(),
+        (data.relationshipMilestones as FirestoreMilestone[] | undefined)?.map((m) => ({
+          milestone: m.milestone,
+          date: m.date?.toDate() ?? new Date(),
         })) || [],
     };
 
@@ -495,23 +518,37 @@ export async function getRecentConversations(
       .limit(limit)
       .get();
 
+    // Type for Firestore turn document
+    interface FirestoreTurn {
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp?: { toDate: () => Date };
+      metadata?: {
+        emotion?: string;
+        confidence?: number;
+        topics?: string[];
+      };
+    }
+
     return snapshot.docs.map((doc) => {
-      const data = doc.data();
+      const data = doc.data() as Record<string, unknown>;
       return {
         id: doc.id,
-        userId: data.userId,
-        sessionId: data.sessionId,
+        userId: data.userId as string,
+        sessionId: data.sessionId as string,
         turns:
-          data.turns?.map((t: any) => ({
-            ...t,
-            timestamp: t.timestamp?.toDate(),
+          (data.turns as FirestoreTurn[] | undefined)?.map((t) => ({
+            role: t.role,
+            content: t.content,
+            timestamp: t.timestamp?.toDate() ?? new Date(),
+            metadata: t.metadata,
           })) || [],
-        startedAt: data.startedAt?.toDate(),
-        endedAt: data.endedAt?.toDate(),
-        summary: data.summary,
-        topics: data.topics || [],
-        voiceVerified: data.voiceVerified,
-        verificationConfidence: data.verificationConfidence,
+        startedAt: (data.startedAt as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
+        endedAt: (data.endedAt as { toDate: () => Date } | undefined)?.toDate(),
+        summary: data.summary as string | undefined,
+        topics: (data.topics as string[]) || [],
+        voiceVerified: data.voiceVerified as boolean,
+        verificationConfidence: data.verificationConfidence as number | undefined,
       };
     });
   } catch (error) {

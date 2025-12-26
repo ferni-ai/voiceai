@@ -1,0 +1,4 @@
+module GTMSessionFetcherCore {
+umbrella "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/gtm-session-fetcher/Sources/Core/Public"
+export *
+}

@@ -13,17 +13,21 @@ const log = createLogger({ module: 'MusicExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Unified API (recommended)
   'playmusic',
   'musiccontrol',
   'musicinfo',
   'suggestmusic',
-  // Legacy aliases
+  // Legacy aliases (backward compatibility)
   'pausemusic',
   'pausecallmusic',
   'stopmusic',
   'stopcallmusic',
   'resumemusic',
   'resumecallmusic',
+  'skipmusic',
+  'nextsong',
+  'skipsong',
 ] as const;
 
 /**
@@ -147,6 +151,15 @@ async function execute(
     log.info({ fn }, '🎵 Legacy resume tool');
     await musicPlayer.resume();
     return 'Resuming the music.';
+  }
+
+  // Legacy skip aliases
+  if (fnLower === 'skipmusic' || fnLower === 'nextsong' || fnLower === 'skipsong') {
+    const { getMusicPlayer } = await import('../../../audio/music-player.js');
+    const musicPlayer = getMusicPlayer();
+    log.info({ fn }, '🎵 Legacy skip tool');
+    await musicPlayer.skip();
+    return 'Skipping to the next track.';
   }
 
   return null;

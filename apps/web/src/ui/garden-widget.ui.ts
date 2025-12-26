@@ -520,7 +520,7 @@ export function getGardenWidgetStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     .garden-widget__user-icon svg {

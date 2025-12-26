@@ -94,11 +94,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'distressed',
         energy: 'low',
-        positivity: 'negative',
         confidence: 0.8,
-        secondaryEmotions: [],
-        valence: -0.6,
-        arousal: 0.5,
+        keywords: ['overwhelmed'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -112,11 +109,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'anxious',
         energy: 'high',
-        positivity: 'negative',
         confidence: 0.75,
-        secondaryEmotions: [],
-        valence: -0.5,
-        arousal: 0.7,
+        keywords: ['worried'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -129,11 +123,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'sad',
         energy: 'low',
-        positivity: 'negative',
         confidence: 0.8,
-        secondaryEmotions: [],
-        valence: -0.7,
-        arousal: 0.3,
+        keywords: ['lonely'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -146,11 +137,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'excited',
         energy: 'high',
-        positivity: 'positive',
         confidence: 0.9,
-        secondaryEmotions: [],
-        valence: 0.8,
-        arousal: 0.8,
+        keywords: ['amazing'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -164,11 +152,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'happy',
         energy: 'high',
-        positivity: 'positive',
         confidence: 0.85,
-        secondaryEmotions: [],
-        valence: 0.7,
-        arousal: 0.7,
+        keywords: ['great'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -181,11 +166,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'happy',
         energy: 'low',
-        positivity: 'positive',
         confidence: 0.8,
-        secondaryEmotions: [],
-        valence: 0.5,
-        arousal: 0.3,
+        keywords: ['content'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -197,11 +179,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'angry',
         energy: 'high',
-        positivity: 'negative',
         confidence: 0.9,
-        secondaryEmotions: [],
-        valence: -0.8,
-        arousal: 0.9,
+        keywords: ['furious'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -214,11 +193,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'frustrated',
         energy: 'medium',
-        positivity: 'negative',
         confidence: 0.85,
-        secondaryEmotions: [],
-        valence: -0.6,
-        arousal: 0.6,
+        keywords: ['annoyed'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -230,11 +206,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'confused',
         energy: 'low',
-        positivity: 'neutral',
         confidence: 0.7,
-        secondaryEmotions: [],
-        valence: 0,
-        arousal: 0.4,
+        keywords: ['lost'],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);
@@ -247,11 +220,8 @@ describe('VoiceAdaptation', () => {
       const emotion: EmotionResult = {
         primary: 'neutral',
         energy: 'medium',
-        positivity: 'neutral',
         confidence: 0.6,
-        secondaryEmotions: [],
-        valence: 0,
-        arousal: 0.5,
+        keywords: [],
       };
 
       const adjusted = adjustForUserEmotion(baseModifiers, emotion);

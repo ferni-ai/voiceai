@@ -419,8 +419,9 @@ export class MarketingDashboard {
       .marketing-dashboard-backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.4);
-        backdrop-filter: blur(20px);
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
       }
 
       .marketing-dashboard-card {
@@ -428,9 +429,12 @@ export class MarketingDashboard {
         width: 90%;
         max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -440,6 +444,12 @@ export class MarketingDashboard {
 
       .marketing-dashboard-overlay.visible .marketing-dashboard-card {
         transform: scale(1);
+      }
+
+      @supports not (backdrop-filter: blur(24px)) {
+        .marketing-dashboard-card {
+          background: var(--color-background-elevated, #faf6f0);
+        }
       }
 
       .dashboard-header {
@@ -455,7 +465,7 @@ export class MarketingDashboard {
         font-size: 0.75rem;
         font-weight: 600;
         letter-spacing: 0.1em;
-        color: var(--color-alex);
+        color: var(--color-alex-text);
         margin-bottom: 4px;
       }
 
@@ -517,7 +527,7 @@ export class MarketingDashboard {
       }
 
       .account-card.connected {
-        border-color: var(--color-alex);
+        border-color: var(--color-alex-text);
         border-width: 2px;
       }
 
@@ -565,7 +575,7 @@ export class MarketingDashboard {
       .account-action:hover {
         background: var(--color-alex);
         color: white;
-        border-color: var(--color-alex);
+        border-color: var(--color-alex-text);
       }
 
       .analytics-grid {
@@ -626,7 +636,7 @@ export class MarketingDashboard {
       .insights h4 {
         font-size: 0.75rem;
         font-weight: 600;
-        color: var(--color-alex);
+        color: var(--color-alex-text);
         margin: 0 0 var(--space-2, 8px) 0;
       }
 
@@ -690,12 +700,12 @@ export class MarketingDashboard {
 
       .post-status.scheduled {
         background: rgba(90, 107, 138, 0.1);
-        color: var(--color-alex);
+        color: var(--color-alex-text);
       }
 
       .post-status.posted {
         background: rgba(74, 103, 65, 0.1);
-        color: var(--color-ferni);
+        color: var(--color-ferni-text);
       }
 
       .post-status.failed {
@@ -758,7 +768,7 @@ export class MarketingDashboard {
         width: 32px;
         height: 32px;
         border: 3px solid var(--color-border, rgba(0,0,0,0.1));
-        border-top-color: var(--color-alex);
+        border-top-color: var(--color-alex-text);
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: var(--space-4, 16px);
@@ -821,7 +831,7 @@ export function showMarketingDashboard(): void {
   if (!dashboardInstance) {
     dashboardInstance = new MarketingDashboard();
   }
-  dashboardInstance.show();
+  void dashboardInstance.show();
 }
 
 export function hideMarketingDashboard(): void {

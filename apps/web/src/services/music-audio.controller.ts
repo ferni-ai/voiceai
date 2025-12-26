@@ -107,7 +107,7 @@ class MusicAudioController {
   // 🎵 Visualization callback and animation loop
   private visualizationCallback: ((volume: number) => void) | null = null;
   private visualizationAnimationFrame: number | null = null;
-  private visualizationDataArray: Uint8Array | null = null;
+  private visualizationDataArray: Uint8Array<ArrayBuffer> | null = null;
 
   constructor() {
     log.debug('MusicAudioController created');
@@ -549,7 +549,7 @@ class MusicAudioController {
       // Calculate average volume (0-1)
       let sum = 0;
       for (let i = 0; i < this.visualizationDataArray.length; i++) {
-        sum += this.visualizationDataArray[i]!;
+        sum += this.visualizationDataArray[i];
       }
       const average = sum / this.visualizationDataArray.length / 255;
 

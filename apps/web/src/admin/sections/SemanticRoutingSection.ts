@@ -586,7 +586,7 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
     const paths = ['pattern', 'keyword', 'embedding', 'combined', 'none'];
     matchPathEl.innerHTML = paths
       .map((path) => {
-        const count = aggregate.matchPathBreakdown[path] || 0;
+        const count = aggregate.matchPathBreakdown[path] ?? 0;
         const pct = (count / total) * 100;
         return `
           <div class="distribution-item">
@@ -694,7 +694,7 @@ function formatMatchPath(path: string): string {
     combined: 'Combined Score',
     none: 'No Match (Conversation)',
   };
-  return names[path] || path;
+  return names[path] ?? path;
 }
 
 function escapeHtml(text: string): string {

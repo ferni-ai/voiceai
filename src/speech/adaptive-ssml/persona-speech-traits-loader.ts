@@ -4,6 +4,17 @@
  * Dynamically loads and applies persona-specific speech traits.
  * This bridges the persona bundles with the alive-voice SSML pipeline.
  *
+ * ## Architecture
+ *
+ * Two complementary systems work together:
+ * 1. **Hardcoded Traits** (speech-traits.ts): Regex-based SSML injection for key phrases
+ * 2. **JSON Behaviors** (speech-imperfections.json): Probabilistic human behaviors
+ *
+ * The JSON system provides "Better Than Human" naturalness by injecting:
+ * - Speech imperfections (trailing off, self-corrections)
+ * - Thinking sounds (hmm, processing)
+ * - Backchannels (mm-hmm, I see)
+ *
  * Each persona has unique speech patterns:
  * - **Peter John (Jack Bogle)**: Grandfatherly warmth, financial wisdom, elderly pauses
  * - **Maya Santos**: Habit vocabulary, encouragement warmth, practical wisdom
@@ -15,6 +26,12 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  humanizeSpeech,
+  quickHumanizeSync,
+  preloadAllSpeechProfiles,
+  type BehaviorSelectionContext,
+} from '../humanization/index.js';
 
 const log = getLogger().child({ module: 'PersonaSpeechTraits' });
 
@@ -32,6 +49,10 @@ export interface SpeechTraitContext {
   baseSpeed: number;
   /** Count of laughter in text */
   laughterCount: number;
+  /** Turn number (behaviors more likely after rapport built) */
+  turnNumber?: number;
+  /** Random seed for deterministic testing */
+  randomSeed?: string;
 }
 
 /**
@@ -156,6 +177,10 @@ let preloaded = false;
 /**
  * Preload all persona speech traits for synchronous access.
  * Call this during application startup.
+ *
+ * This preloads BOTH:
+ * - Layer 1: Hardcoded traits (speech-traits.ts)
+ * - Layer 2: JSON behaviors (speech-imperfections.json, etc.)
  */
 export async function preloadAllTraits(): Promise<void> {
   if (preloaded) return;
@@ -169,10 +194,16 @@ export async function preloadAllTraits(): Promise<void> {
     'nayan-patel',
   ];
 
-  await Promise.all(personas.map((id) => loadPersonaTraits(id)));
+  // Preload both layers in parallel
+  await Promise.all([
+    // Layer 1: Hardcoded traits
+    ...personas.map((id) => loadPersonaTraits(id)),
+    // Layer 2: JSON behavior profiles
+    preloadAllSpeechProfiles(),
+  ]);
 
   preloaded = true;
-  log.info({ count: traitRegistry.size }, 'Preloaded persona speech traits');
+  log.info({ count: traitRegistry.size }, 'Preloaded persona speech traits (both layers)');
 }
 
 /**
@@ -190,9 +221,13 @@ export function getPersonaTraitsSync(personaId: string): PersonaSpeechTraitConfi
 /**
  * Apply persona speech traits to text (async).
  *
+ * This function applies TWO layers of humanization:
+ * 1. Hardcoded traits (speech-traits.ts) - Regex-based SSML for key phrases
+ * 2. JSON behaviors (speech-imperfections.json) - Probabilistic human behaviors
+ *
  * @param text - Text to process
  * @param personaId - Persona ID
- * @param context - Speech context
+ * @param context - Speech context (emotion, baseSpeed, turnNumber, etc.)
  * @returns Enhanced text with persona speech patterns
  */
 export async function applyPersonaSpeechTraits(
@@ -202,27 +237,138 @@ export async function applyPersonaSpeechTraits(
 ): Promise<string> {
   const config = await loadPersonaTraits(personaId);
 
-  if (!config) {
-    return text;
+  const { emotion = 'neutral', baseSpeed = config?.baseSpeed || 0.95, laughterCount = 0 } = context;
+  let result = text;
+
+  // LAYER 1: Hardcoded traits from speech-traits.ts (regex-based)
+  if (config) {
+    try {
+      result = config.apply(result, emotion, baseSpeed, laughterCount);
+      log.debug(
+        { personaId, originalLength: text.length, resultLength: result.length },
+        'Applied persona speech traits (layer 1: hardcoded)'
+      );
+    } catch (error) {
+      log.error({ personaId, error }, 'Error applying persona speech traits');
+      // Continue with original text
+    }
   }
 
-  const { emotion = 'neutral', baseSpeed = config.baseSpeed, laughterCount = 0 } = context;
-
+  // LAYER 2: JSON-based behaviors (probabilistic humanization)
+  // This adds speech imperfections, thinking sounds, etc. from JSON files
   try {
-    const result = config.apply(text, emotion, baseSpeed, laughterCount);
-    log.debug(
-      { personaId, originalLength: text.length, resultLength: result.length },
-      'Applied persona speech traits'
-    );
-    return result;
+    const behaviorContext: BehaviorSelectionContext = {
+      personaId,
+      emotional: {
+        userEmotion: mapEmotionToUserEmotion(emotion),
+        agentTone: mapEmotionToAgentTone(emotion),
+        isVulnerable: emotion === 'sympathetic' || emotion === 'sad',
+        isLateNight: isLateNight(),
+      },
+      content: {
+        isQuestion: result.includes('?'),
+        isCelebration: /\b(congrat|amazing|proud|celebrate)\b/i.test(result),
+        isComforting: /\b(sorry|understand|hard|tough)\b/i.test(result),
+      },
+      turnNumber: context.turnNumber,
+      randomSeed: context.randomSeed,
+    };
+
+    const humanized = await humanizeSpeech(result, behaviorContext);
+    if (humanized.wasHumanized) {
+      result = humanized.text;
+      log.debug(
+        { personaId, features: humanized.features },
+        'Applied persona speech traits (layer 2: JSON behaviors)'
+      );
+    }
   } catch (error) {
-    log.error({ personaId, error }, 'Error applying persona speech traits');
-    return text;
+    log.warn({ personaId, error: String(error) }, 'JSON behavior humanization failed (non-blocking)');
+    // Continue with layer 1 result
+  }
+
+  return result;
+}
+
+/**
+ * Map emotion string to user emotion type
+ */
+function mapEmotionToUserEmotion(
+  emotion: string
+): 'distressed' | 'excited' | 'sad' | 'angry' | 'neutral' | 'reflective' | 'anxious' | undefined {
+  switch (emotion.toLowerCase()) {
+    case 'distressed':
+    case 'stressed':
+      return 'distressed';
+    case 'excited':
+    case 'happy':
+    case 'enthusiastic':
+      return 'excited';
+    case 'sad':
+    case 'sympathetic':
+      return 'sad';
+    case 'angry':
+    case 'frustrated':
+      return 'angry';
+    case 'anxious':
+    case 'worried':
+      return 'anxious';
+    case 'reflective':
+    case 'thoughtful':
+      return 'reflective';
+    default:
+      return 'neutral';
   }
 }
 
 /**
+ * Map emotion string to agent tone
+ */
+function mapEmotionToAgentTone(
+  emotion: string
+): 'celebratory' | 'supportive' | 'curious' | 'serious' | 'playful' | 'grounding' | undefined {
+  switch (emotion.toLowerCase()) {
+    case 'excited':
+    case 'happy':
+    case 'enthusiastic':
+      return 'celebratory';
+    case 'sympathetic':
+    case 'sad':
+    case 'compassionate':
+      return 'supportive';
+    case 'curious':
+    case 'interested':
+      return 'curious';
+    case 'serious':
+    case 'concerned':
+      return 'serious';
+    case 'playful':
+    case 'joking':
+      return 'playful';
+    case 'calm':
+    case 'grounding':
+      return 'grounding';
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Check if it's late night (10pm - 6am)
+ */
+function isLateNight(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 22 || hour < 6;
+}
+
+/**
  * Apply persona speech traits synchronously (requires preload).
+ *
+ * This function applies TWO layers of humanization (sync versions):
+ * 1. Hardcoded traits (speech-traits.ts) - Regex-based SSML for key phrases
+ * 2. JSON behaviors (speech-imperfections.json) - Probabilistic human behaviors
+ *
+ * IMPORTANT: Call preloadAllTraits() AND preloadAllSpeechProfiles() at startup.
  *
  * @param text - Text to process
  * @param personaId - Persona ID
@@ -235,20 +381,42 @@ export function applyPersonaSpeechTraitsSync(
   context: Partial<SpeechTraitContext> = {}
 ): string {
   const config = getPersonaTraitsSync(personaId);
+  const { emotion = 'neutral', baseSpeed = config?.baseSpeed ?? 0.95, laughterCount = 0 } = context;
 
-  if (!config) {
-    // Not preloaded or not found - return original
-    return text;
+  let result = text;
+
+  // LAYER 1: Hardcoded traits from speech-traits.ts (regex-based)
+  if (config) {
+    try {
+      result = config.apply(result, emotion, baseSpeed, laughterCount);
+      log.debug(
+        { personaId, originalLength: text.length, resultLength: result.length },
+        'Applied persona speech traits sync (layer 1: hardcoded)'
+      );
+    } catch (error) {
+      log.error({ personaId, error }, 'Error applying persona speech traits sync');
+      // Continue with original text
+    }
   }
 
-  const { emotion = 'neutral', baseSpeed = config.baseSpeed, laughterCount = 0 } = context;
-
+  // LAYER 2: JSON-based behaviors (probabilistic humanization) - SYNC VERSION
+  // Uses cached profiles - requires preloadAllSpeechProfiles() at startup
   try {
-    return config.apply(text, emotion, baseSpeed, laughterCount);
+    result = quickHumanizeSync(result, personaId, {
+      emotion,
+      isQuestion: result.includes('?'),
+      isCelebration: /\b(congrat|amazing|proud|celebrate)\b/i.test(result),
+      isComforting: /\b(sorry|understand|hard|tough)\b/i.test(result),
+      turnNumber: context.turnNumber,
+      randomSeed: context.randomSeed,
+    });
+    log.debug({ personaId }, 'Applied persona speech traits sync (layer 2: JSON behaviors)');
   } catch (error) {
-    log.error({ personaId, error }, 'Error applying persona speech traits');
-    return text;
+    log.warn({ personaId, error: String(error) }, 'JSON behavior sync humanization failed (non-blocking)');
+    // Continue with layer 1 result
   }
+
+  return result;
 }
 
 // =============================================================================

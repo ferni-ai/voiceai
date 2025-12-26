@@ -290,8 +290,8 @@ class NextCheckinWidget {
         if (item) {
           this.nextOutreach = {
             id: item.id,
-            personaId: item.personaId || 'ferni',
-            personaName: item.personaName || getPersonaName(item.personaId || 'ferni'),
+            personaId: item.personaId ?? 'ferni',
+            personaName: item.personaName ?? getPersonaName(item.personaId ?? 'ferni'),
             scheduledFor: new Date(item.scheduledFor),
             type: item.type,
             channel: item.channel,
@@ -326,7 +326,7 @@ class NextCheckinWidget {
       return;
     }
 
-    const color = PERSONA_COLORS[this.nextOutreach.personaId] || PERSONA_COLORS.ferni;
+    const color = PERSONA_COLORS[this.nextOutreach.personaId] ?? PERSONA_COLORS.ferni;
     const initial = this.nextOutreach.personaName.charAt(0);
     const timeStr = formatRelativeTime(this.nextOutreach.scheduledFor);
 
@@ -395,7 +395,7 @@ function getPersonaName(personaId: string): string {
     jordan: 'Jordan',
     nayan: 'Nayan',
   };
-  return names[personaId] || 'Ferni';
+  return names[personaId] ?? 'Ferni';
 }
 
 function formatRelativeTime(date: Date): string {

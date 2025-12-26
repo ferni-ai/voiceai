@@ -26,11 +26,15 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
 import { teaserPreview } from './teaser-preview.ui.js';
+import {
+  enhancePredictionsWithNarrative,
+  injectStorytellingStyles,
+} from './visualization-storytelling.js';
 
 const log = createLogger('PredictionsUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -85,12 +89,13 @@ export class PredictionsUI {
   initialize(): void {
     // HMR protection
     if (this.container) return;
-    
+
     // Clean up orphaned elements
     const existingPanel = document.getElementById('predictions-panel');
     if (existingPanel) existingPanel.remove();
-    
+
     injectSharedStyles();
+    injectStorytellingStyles(); // Enhanced narrative styles
     this.createStyles();
     this.createPanel();
   }
@@ -143,7 +148,7 @@ export class PredictionsUI {
   private renderEmptyState(): string {
     // Use teaser preview system to show what predictions WILL look like
     // This creates anticipation and shows the value of prediction games
-    return teaserPreview.predictions();
+    return teaserPreview.predictions().outerHTML;
   }
 
   /**
@@ -207,6 +212,14 @@ export class PredictionsUI {
         (card as HTMLElement).style.animationDelay = `${index * 60}ms`;
       });
     }
+
+    // Enhance with narrative storytelling (adds meaning to stats)
+    enhancePredictionsWithNarrative(
+      content as HTMLElement,
+      data.accuracy,
+      data.totalResolved,
+      data.currentStreak
+    );
   }
 
   /**
@@ -270,31 +283,33 @@ export class PredictionsUI {
     const input = modal.querySelector('#actual-result') as HTMLInputElement;
     const submitBtn = modal.querySelector('.prediction-resolution-modal__submit');
 
-    submitBtn?.addEventListener('click', async () => {
-      const actualValue = parseInt(input.value, 10);
-      if (isNaN(actualValue)) {
-        input.classList.add('prediction-resolution-modal__input--error');
-        return;
-      }
-
-      if (this.onResolutionSubmit) {
-        submitBtn.textContent = t('common.saving');
-        (submitBtn as HTMLButtonElement).disabled = true;
-
-        try {
-          await this.onResolutionSubmit(predictionId, actualValue);
-
-          // Trigger EQ response based on prediction accuracy
-          this.triggerResolutionEQ(prediction.userPrediction, actualValue);
-
-          closeModal();
-        } catch (err) {
-          submitBtn.textContent = t('common.errorRetry');
-          (submitBtn as HTMLButtonElement).disabled = false;
+    submitBtn?.addEventListener('click', () => {
+      void (async () => {
+        const actualValue = parseInt(input.value, 10);
+        if (isNaN(actualValue)) {
+          input.classList.add('prediction-resolution-modal__input--error');
+          return;
         }
-      } else {
-        closeModal();
-      }
+
+        if (this.onResolutionSubmit) {
+          submitBtn.textContent = t('common.saving');
+          (submitBtn as HTMLButtonElement).disabled = true;
+
+          try {
+            await this.onResolutionSubmit(predictionId, actualValue);
+
+            // Trigger EQ response based on prediction accuracy
+            this.triggerResolutionEQ(prediction.userPrediction, actualValue);
+
+            closeModal();
+          } catch (err) {
+            submitBtn.textContent = t('common.errorRetry');
+            (submitBtn as HTMLButtonElement).disabled = false;
+          }
+        } else {
+          closeModal();
+        }
+      })();
     });
 
     // Focus input
@@ -564,8 +579,9 @@ export class PredictionsUI {
       .predictions-panel__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
       }
 
       /* Card */
@@ -574,10 +590,12 @@ export class PredictionsUI {
         width: 100%;
         max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow: var(--shadow-2xl);
-        border: 1px solid var(--color-border-subtle);
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -585,6 +603,13 @@ export class PredictionsUI {
         opacity: 0;
         transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
                     opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      @supports not (backdrop-filter: blur(24px)) {
+        .predictions-panel__card {
+          background: var(--color-background-elevated);
+          border: 1px solid var(--color-border-subtle);
+        }
       }
 
       .predictions-panel--visible .predictions-panel__card {
@@ -651,6 +676,30 @@ export class PredictionsUI {
         color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wide);
+      }
+
+      /* Narrative Enhancement */
+      .predictions-narrative {
+        grid-column: 1 / -1;
+        text-align: center;
+        font-family: var(--font-display);
+        font-size: var(--text-base, 1rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--persona-primary, #4a6741);
+        padding-bottom: var(--space-2, 8px);
+        border-bottom: 1px solid var(--color-border-subtle);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .predictions-deeper {
+        grid-column: 1 / -1;
+        text-align: center;
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted);
+        font-style: italic;
+        margin: 0;
+        padding-top: var(--space-2, 8px);
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       /* Groups */
@@ -811,22 +860,33 @@ export class PredictionsUI {
       .prediction-resolution-modal__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-heavy);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
       }
 
       .prediction-resolution-modal__card {
         position: relative;
         width: 100%;
         max-width: min(360px, 100%);
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-xl, 1.25rem);
-        box-shadow: var(--shadow-2xl);
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         overflow: hidden;
         transform: scale(0.95);
         opacity: 0;
         transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
                     opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      @supports not (backdrop-filter: blur(24px)) {
+        .prediction-resolution-modal__card {
+          background: var(--color-background-elevated);
+          border: 1px solid var(--color-border-subtle);
+        }
       }
 
       .prediction-resolution-modal--visible .prediction-resolution-modal__card {

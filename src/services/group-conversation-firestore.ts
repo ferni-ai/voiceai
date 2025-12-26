@@ -35,8 +35,32 @@ import type {
   GroupParticipant,
   AttributedUtterance,
   GroupConversationSummary,
-} from '../agents/group-conversation/types.js';
-import type { ActionItem, KeyMoment } from '../agents/group-conversation/transcript-service.js';
+} from '../types/group-conversation.js';
+
+// ActionItem and KeyMoment types - defined locally to avoid circular import
+// These match the types in agents/group-conversation/transcript-service.ts
+interface ActionItem {
+  text: string;
+  assignedTo?: string;
+  dueDate?: string;
+  mentionedBy: string;
+  timestamp: Date;
+  confidence: number;
+}
+
+interface KeyMoment {
+  type:
+    | 'decision'
+    | 'agreement'
+    | 'disagreement'
+    | 'breakthrough'
+    | 'action_item'
+    | 'emotion_shift'
+    | 'topic_change';
+  description: string;
+  utteranceIds: string[];
+  timestamp: Date;
+}
 
 const log = getLogger();
 

@@ -28,7 +28,7 @@ import {
 const log = createLogger('VoiceEnrollmentUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -151,22 +151,32 @@ function injectStyles(): void {
     .voice-enrollment-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
-    
+
     .voice-enrollment-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - 48px);
       max-height: calc(100vh - 48px);
       overflow: hidden;
       transform: scale(0.9) translateY(20px);
       transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .voice-enrollment-card {
+        background: var(--color-background-elevated, #FFFDFB);
+      }
     }
     
     .voice-enrollment-modal--visible .voice-enrollment-card {
@@ -882,10 +892,11 @@ function setState(state: EnrollmentState, data?: unknown): void {
       content.innerHTML = renderReadyState();
       attachButtonListeners();
       break;
-    case 'recording':
+    case 'recording': {
       const { sampleIndex, total } = data as { sampleIndex: number; total: number };
       content.innerHTML = renderRecordingState(sampleIndex, total);
       break;
+    }
     case 'processing':
       content.innerHTML = renderProcessingState();
       break;
@@ -908,12 +919,12 @@ function attachButtonListeners(): void {
   const btnRetry = modal?.querySelector('#btn-retry');
   const btnDelete = modal?.querySelector('#btn-delete');
 
-  btnStart?.addEventListener('click', handleStartEnrollment);
+  btnStart?.addEventListener('click', () => { void handleStartEnrollment(); });
   btnCancel?.addEventListener('click', handleCancel);
   btnClose?.addEventListener('click', handleCancel);
   btnDone?.addEventListener('click', handleComplete);
-  btnRetry?.addEventListener('click', handleRetry);
-  btnDelete?.addEventListener('click', handleDeleteProfile);
+  btnRetry?.addEventListener('click', () => { void handleRetry(); });
+  btnDelete?.addEventListener('click', () => { void handleDeleteProfile(); });
 }
 
 // ============================================================================

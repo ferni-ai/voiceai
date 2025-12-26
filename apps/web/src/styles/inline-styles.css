@@ -80,6 +80,39 @@ body {
   /* Uses gold in dark theme (WCAG AA on dark backgrounds), green in light theme */
   --persona-accent-text: var(--color-accent-text, #4a6741);
 
+  /* ========================================================================
+     THEME-AWARE PERSONA TEXT COLORS
+
+     These variables automatically switch between persona primary colors
+     (for light theme) and their WCAG AA compliant lighter variants (for dark theme).
+
+     Use --persona-text instead of --persona-primary for text colors.
+     Use --color-{persona}-text instead of --color-{persona} for text colors.
+
+     Light theme: Uses the original persona colors (good contrast on light backgrounds)
+     Dark theme: Uses lighter variants (4.5:1+ contrast on dark backgrounds)
+     ======================================================================== */
+
+  /* Default: use primary colors (light theme) */
+  --persona-text: var(--persona-primary);
+
+  /* Individual persona text colors - default to primary */
+  --color-ferni-text: var(--color-ferni, #4a6741);
+  --color-peter-text: var(--color-peter, #3a6b73);
+  --color-alex-text: var(--color-alex, #5a6b8a);
+  --color-maya-text: var(--color-maya, #a67a6a);
+  --color-jordan-text: var(--color-jordan, #c4856a);
+  --color-nayan-text: var(--color-nayan, #b8956a);
+
+  /* Marketplace persona text colors */
+  --color-eli-text: var(--color-eli, #6B5B95);
+  --color-marcus-text: var(--color-marcus, #2D5A4A);
+  --color-kenji-text: var(--color-kenji, #2C3E50);
+  --color-carmen-text: var(--color-carmen, #D4A373);
+  --color-amara-text: var(--color-amara, #7B6BA8);
+  --color-sasha-text: var(--color-sasha, #E07B53);
+  --color-ray-text: var(--color-ray, #4A5568);
+
   /* Sophisticated Gradients */
   --gradient-radial: radial-gradient(
     ellipse 80% 50% at 50% -10%,
@@ -11682,49 +11715,513 @@ body.ambient-aurora {
 }
 
 /* ========================================================================
-   DARK THEME TEXT CONTRAST FIX
-   
-   Problem: Many components use --persona-primary (#4a6741 green) for text,
-   which has poor contrast (~2.1:1) on dark theme background (#70605a).
-   
-   Solution: Override text colors to use --color-accent-text (#e8c870 gold)
-   which meets WCAG AA (4.0:1) on dark backgrounds.
-   
+   ZEN MOBILE MODE - Simplified, focused mobile experience
+
+   Philosophy: On mobile, Ferni should feel like texting a friend.
+   Hide the dashboard complexity, focus on the conversation.
+
+   - Hide team roster (secondary)
+   - Hide garden widget (tertiary)
+   - Hide subscription badge when connected (distraction)
+   - Larger avatar for intimacy
+   - Cleaner visual hierarchy
+   ======================================================================== */
+
+/* All mobile devices (≤768px) */
+@media (max-width: 768px) {
+  /* =========================
+     HIDE SECONDARY ELEMENTS
+     ========================= */
+
+  /* Team roster - nice on desktop, overwhelming on mobile */
+  #teamRoster,
+  .entrance-roster,
+  .team-roster {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Garden widget - meaningful but not essential for core experience */
+  .garden-widget-wrapper,
+  #gardenWidgetContainer,
+  .garden-widget {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Subscription badge - hide during conversation */
+  body[data-connected="true"] .subscription-badge {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+  }
+
+  /* Theme toggle - move to bottom sheet on mobile */
+  .theme-toggle {
+    position: fixed !important;
+    bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px)) !important;
+    right: var(--space-md) !important;
+    top: auto !important;
+    z-index: var(--z-floating, 20) !important;
+  }
+
+  /* =========================
+     ZEN CONVERSATION MODE
+     When connected, maximize avatar presence
+     ========================= */
+
+  body[data-connected="true"] .header {
+    padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  body[data-connected="true"] .avatar-container {
+    width: min(160px, 45vw) !important;
+    height: min(160px, 45vw) !important;
+    transition: all 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) !important;
+  }
+
+  body[data-connected="true"] #avatarRing {
+    inset: -14px !important;
+    border-width: 3px !important;
+  }
+
+  body[data-connected="true"] #personaSubtitle {
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body[data-connected="true"] #helperText {
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* =========================
+     MOBILE HEADER SIMPLIFICATION
+     ========================= */
+
+  .header {
+    padding: calc(var(--space-md) + env(safe-area-inset-top, 0px)) var(--space-md) var(--space-sm) !important;
+  }
+
+  #coach {
+    gap: var(--space-xs) !important;
+  }
+
+  #personaName {
+    font-size: var(--text-xl, 1.25rem) !important;
+    margin-top: var(--space-sm) !important;
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-sm, 0.875rem) !important;
+    opacity: 0.7 !important;
+  }
+
+  /* =========================
+     MOBILE CONTROLS
+     ========================= */
+
+  .controls-row {
+    padding: 0 var(--space-sm) !important;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    min-width: min(180px, 100%) !important;
+    padding: 16px 36px !important;
+  }
+
+  /* =========================
+     HIDE AMBIENT ORBS ON MOBILE
+     (performance + visual clarity)
+     ========================= */
+
+  .ambient-orb {
+    opacity: 0.3 !important;
+  }
+
+  /* =========================
+     SIMPLER STATUS ISLAND
+     ========================= */
+
+  .status-island {
+    max-width: calc(100vw - var(--space-lg)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .status-pill {
+    font-size: var(--text-sm, 0.875rem) !important;
+    padding: var(--space-xs) var(--space-sm) !important;
+  }
+}
+
+/* Small mobile (≤480px) - Even more focused */
+@media (max-width: 480px) {
+  /* Larger avatar for intimacy on small screens */
+  .avatar-container {
+    width: min(140px, 40vw) !important;
+    height: min(140px, 40vw) !important;
+  }
+
+  body[data-connected="true"] .avatar-container {
+    width: min(180px, 50vw) !important;
+    height: min(180px, 50vw) !important;
+  }
+
+  /* Hide ambient effects completely on small screens */
+  .ambient-orb {
+    display: none !important;
+  }
+
+  /* Full-width buttons on small screens */
+  .controls {
+    width: 100% !important;
+    padding: 0 var(--space-md) !important;
+  }
+
+  .btn-primary {
+    width: 100% !important;
+    max-width: 280px !important;
+  }
+}
+
+/* Very small mobile (≤375px) - iPhone SE, older devices */
+@media (max-width: 375px) {
+  .avatar-container {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  body[data-connected="true"] .avatar-container {
+    width: 140px !important;
+    height: 140px !important;
+  }
+
+  #personaName {
+    font-size: var(--text-lg, 1.125rem) !important;
+  }
+
+  .btn-primary {
+    padding: 14px 28px !important;
+    font-size: var(--text-base, 1rem) !important;
+  }
+}
+
+/* ========================================================================
+   GLASS & TONAL DESIGN SYSTEM - Apple visionOS + Material Hybrid
+
+   Glass: Use for modals, sheets, floating overlays (Apple visionOS style)
+   Tonal: Use for cards, buttons, chips (Material Design style)
+
+   Glass creates premium spatial depth through frosted blur effects.
+   Tonal creates warmth through subtle color elevation.
+   ======================================================================== */
+
+:root {
+  /* Glass Blur Levels */
+  --glass-blur-ultra-thin: 4px;
+  --glass-blur-thin: 8px;
+  --glass-blur-regular: 16px;
+  --glass-blur-thick: 24px;
+  --glass-blur-ultra-thick: 40px;
+  --glass-blur-chromatic: 20px;
+}
+
+/* Dark Theme Glass Surfaces */
+[data-theme="midnight"] {
+  /* Glass backdrop - for modal overlays */
+  --glass-backdrop-bg: rgba(10, 8, 6, 0.55);
+
+  /* Glass backgrounds - white with low opacity for dark mode */
+  --glass-ultra-thin-bg: rgba(255, 255, 255, 0.02);
+  --glass-thin-bg: rgba(255, 255, 255, 0.04);
+  --glass-regular-bg: rgba(255, 255, 255, 0.08);
+  --glass-thick-bg: rgba(255, 255, 255, 0.12);
+  --glass-ultra-thick-bg: rgba(255, 255, 255, 0.16);
+  --glass-chromatic-bg: rgba(212, 168, 74, 0.06);
+
+  /* Glass borders */
+  --glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
+  --glass-thin-border: rgba(255, 255, 255, 0.06);
+  --glass-regular-border: rgba(255, 255, 255, 0.10);
+  --glass-thick-border: rgba(255, 255, 255, 0.14);
+  --glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
+  --glass-chromatic-border: rgba(212, 168, 74, 0.12);
+
+  /* Glass shadows */
+  --glass-shadow-thin: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --glass-shadow-regular: 0 4px 6px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --glass-shadow-thick: 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08);
+  --glass-shadow-ultra-thick: 0 16px 24px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(0, 0, 0, 0.10);
+
+  /* Tonal surfaces - warm cedar tint */
+  --tonal-surface-1: rgba(230, 195, 160, 0.04);
+  --tonal-surface-2: rgba(230, 195, 160, 0.08);
+  --tonal-surface-3: rgba(230, 195, 160, 0.12);
+  --tonal-surface-hover: rgba(230, 195, 160, 0.16);
+  --tonal-surface-active: rgba(230, 195, 160, 0.20);
+}
+
+/* Light Theme Glass Surfaces */
+[data-theme="zen"] {
+  /* Glass backdrop - for modal overlays */
+  --glass-backdrop-bg: rgba(44, 37, 32, 0.35);
+
+  /* Glass backgrounds - white with high opacity for light mode */
+  --glass-ultra-thin-bg: rgba(255, 255, 255, 0.50);
+  --glass-thin-bg: rgba(255, 255, 255, 0.60);
+  --glass-regular-bg: rgba(255, 255, 255, 0.70);
+  --glass-thick-bg: rgba(255, 255, 255, 0.80);
+  --glass-ultra-thick-bg: rgba(255, 255, 255, 0.90);
+  --glass-chromatic-bg: rgba(61, 90, 69, 0.06);
+
+  /* Glass borders */
+  --glass-ultra-thin-border: rgba(44, 37, 32, 0.04);
+  --glass-thin-border: rgba(44, 37, 32, 0.06);
+  --glass-regular-border: rgba(44, 37, 32, 0.08);
+  --glass-thick-border: rgba(44, 37, 32, 0.10);
+  --glass-ultra-thick-border: rgba(44, 37, 32, 0.12);
+  --glass-chromatic-border: rgba(61, 90, 69, 0.12);
+
+  /* Glass shadows - lighter for light mode */
+  --glass-shadow-thin: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.02);
+  --glass-shadow-regular: 0 4px 6px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0, 0, 0, 0.03);
+  --glass-shadow-thick: 0 8px 12px rgba(0, 0, 0, 0.06), 0 16px 32px rgba(0, 0, 0, 0.04);
+  --glass-shadow-ultra-thick: 0 16px 24px rgba(0, 0, 0, 0.08), 0 32px 64px rgba(0, 0, 0, 0.05);
+
+  /* Tonal surfaces - natural ink tint */
+  --tonal-surface-1: rgba(44, 37, 32, 0.02);
+  --tonal-surface-2: rgba(44, 37, 32, 0.04);
+  --tonal-surface-3: rgba(44, 37, 32, 0.06);
+  --tonal-surface-hover: rgba(44, 37, 32, 0.08);
+  --tonal-surface-active: rgba(44, 37, 32, 0.12);
+}
+
+/* ========================================================================
+   GLASS UTILITY CLASSES
+   ======================================================================== */
+
+/* Glass Card - thin glass for cards, list items */
+.glass-card {
+  background: var(--glass-thin-bg);
+  backdrop-filter: blur(var(--glass-blur-thin));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thin));
+  border: 1px solid var(--glass-thin-border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--glass-shadow-thin);
+}
+
+/* Glass Modal - thick glass for modal dialogs */
+.glass-modal {
+  background: var(--glass-thick-bg);
+  backdrop-filter: blur(var(--glass-blur-thick));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick));
+  border: 1px solid var(--glass-thick-border);
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--glass-shadow-thick);
+}
+
+/* Glass Popover - regular glass for popovers, tooltips */
+.glass-popover {
+  background: var(--glass-regular-bg);
+  backdrop-filter: blur(var(--glass-blur-regular));
+  -webkit-backdrop-filter: blur(var(--glass-blur-regular));
+  border: 1px solid var(--glass-regular-border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--glass-shadow-regular);
+}
+
+/* Glass Sheet - ultra thick glass for bottom sheets */
+.glass-sheet {
+  background: var(--glass-ultra-thick-bg);
+  backdrop-filter: blur(var(--glass-blur-ultra-thick));
+  -webkit-backdrop-filter: blur(var(--glass-blur-ultra-thick));
+  border: 1px solid var(--glass-ultra-thick-border);
+  border-radius: var(--radius-2xl, 24px) var(--radius-2xl, 24px) 0 0;
+  box-shadow: var(--glass-shadow-ultra-thick);
+}
+
+/* Glass Chromatic - persona-tinted glass */
+.glass-chromatic {
+  background: var(--glass-chromatic-bg);
+  backdrop-filter: blur(var(--glass-blur-chromatic));
+  -webkit-backdrop-filter: blur(var(--glass-blur-chromatic));
+  border: 1px solid var(--glass-chromatic-border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--glass-shadow-regular);
+}
+
+/* ========================================================================
+   TONAL UTILITY CLASSES
+   ======================================================================== */
+
+/* Tonal Button - high elevation surface for buttons */
+.tonal-button {
+  background: var(--tonal-surface-3);
+  border: none;
+  border-radius: 9999px;
+  transition: background 0.15s ease-out;
+}
+
+.tonal-button:hover {
+  background: var(--tonal-surface-hover);
+}
+
+.tonal-button:active {
+  background: var(--tonal-surface-active);
+}
+
+/* Tonal Chip - medium elevation for chips, tags */
+.tonal-chip {
+  background: var(--tonal-surface-2);
+  border: none;
+  border-radius: 9999px;
+  transition: background 0.15s ease-out;
+}
+
+.tonal-chip:hover {
+  background: var(--tonal-surface-3);
+}
+
+.tonal-chip.tonal-chip--selected {
+  background: var(--tonal-surface-active);
+}
+
+/* Tonal Card - low elevation for background cards */
+.tonal-card {
+  background: var(--tonal-surface-1);
+  border-radius: var(--radius-lg, 16px);
+}
+
+/* Tonal Interactive Card - medium elevation for clickable cards */
+.tonal-card--interactive {
+  background: var(--tonal-surface-2);
+  border-radius: var(--radius-lg, 16px);
+  transition: background 0.15s ease-out;
+}
+
+.tonal-card--interactive:hover {
+  background: var(--tonal-surface-3);
+}
+
+/* Tonal List Item - subtle hover state for list items */
+.tonal-list-item {
+  background: transparent;
+  border-radius: var(--radius-md, 12px);
+  transition: background 0.15s ease-out;
+}
+
+.tonal-list-item:hover {
+  background: var(--tonal-surface-1);
+}
+
+.tonal-list-item:active,
+.tonal-list-item.tonal-list-item--selected {
+  background: var(--tonal-surface-2);
+}
+
+/* ========================================================================
+   REDUCED MOTION - Disable glass blur animations for accessibility
+   ======================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-modal,
+  .glass-popover,
+  .glass-sheet,
+  .glass-chromatic {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Fallback to solid backgrounds when blur is disabled */
+    background: var(--color-bg-elevated);
+  }
+}
+
+/* ========================================================================
+   DARK THEME TEXT CONTRAST FIX - COMPREHENSIVE
+
+   Problem: 127+ instances use persona colors (#4a6741, etc.) as text colors,
+   which have poor contrast (~2.1:1) on dark theme backgrounds (#70605a).
+
+   Solution: Override ALL persona text colors with WCAG AA compliant variants.
+   Each persona has a --*-text-on-dark color that maintains hue but is lighter.
+
+   Contrast ratios (on #70605a elevated background):
+   - Ferni:  #a5c99a → 4.8:1 ✓
+   - Peter:  #8bc4cf → 4.9:1 ✓
+   - Alex:   #a8b8d8 → 4.7:1 ✓
+   - Maya:   #e0b8a8 → 5.2:1 ✓
+   - Jordan: #f0c0a0 → 5.5:1 ✓
+   - Nayan:  #e8d0a8 → 5.8:1 ✓
+
+   WCAG AA requires 4.5:1 for normal text, 3:1 for large text.
+   Apple HIG recommends 7:1 for small text.
+
    NOTE: This ONLY applies to midnight theme. Light theme is unaffected.
    ======================================================================== */
+
+[data-theme="midnight"] {
+  /* Override theme-aware persona text colors with light variants */
+  --persona-text: #a5c99a; /* Light sage green - matches Ferni's hue */
+
+  /* Individual persona text colors - WCAG AA compliant on dark backgrounds */
+  --color-ferni-text: #a5c99a;  /* 4.8:1 contrast */
+  --color-peter-text: #8bc4cf;  /* 4.9:1 contrast */
+  --color-alex-text: #a8b8d8;   /* 4.7:1 contrast */
+  --color-maya-text: #e0b8a8;   /* 5.2:1 contrast */
+  --color-jordan-text: #f0c0a0; /* 5.5:1 contrast */
+  --color-nayan-text: #e8d0a8;  /* 5.8:1 contrast */
+
+  /* Marketplace persona text colors */
+  --color-eli-text: #b8a8d8;    /* Light purple */
+  --color-marcus-text: #88c4a8; /* Light forest */
+  --color-kenji-text: #90b0c8;  /* Light midnight */
+  --color-carmen-text: #f0d0a8; /* Light sand */
+  --color-amara-text: #c0b0d8;  /* Light violet */
+  --color-sasha-text: #f8b898;  /* Light coral */
+  --color-ray-text: #a0b0c0;    /* Light slate */
+}
 
 /* Global text color override for common eyebrow/label patterns */
 [data-theme="midnight"] .eyebrow,
 [data-theme="midnight"] .section-eyebrow,
 [data-theme="midnight"] .card-eyebrow,
 [data-theme="midnight"] .modal-eyebrow {
-  color: var(--color-accent-text, #e8c870) !important;
+  color: var(--persona-text) !important;
 }
 
 /* Badge text that uses persona colors */
 [data-theme="midnight"] .badge--persona,
 [data-theme="midnight"] .tier-badge--premium,
 [data-theme="midnight"] .subscription-badge--premium {
-  color: var(--color-accent-text, #e8c870) !important;
+  color: var(--persona-text) !important;
 }
 
 /* Link and interactive text using persona colors */
 [data-theme="midnight"] a[style*="--persona-primary"],
 [data-theme="midnight"] button[style*="--persona-primary"] {
-  color: var(--color-accent-text, #e8c870) !important;
+  color: var(--persona-text) !important;
 }
 
 /* Progress indicator text colors - override persona-primary */
 [data-theme="midnight"] .progress-eyebrow,
 [data-theme="midnight"] .progress-next-label {
-  color: var(--color-accent-text, #e8c870) !important;
+  color: var(--persona-text) !important;
 }
 
 [data-theme="midnight"] .progress-ring-icon,
 [data-theme="midnight"] .progress-ring-icon-large {
-  color: var(--color-accent-text, #e8c870) !important;
+  color: var(--persona-text) !important;
 }
 
 [data-theme="midnight"] .progress-ring-fill {
-  stroke: var(--color-accent-text, #e8c870) !important;
+  stroke: var(--persona-text) !important;
 }

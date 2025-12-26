@@ -27,6 +27,11 @@ const animation = JSON.parse(
 );
 const effects = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/effects.json'), 'utf8'));
 
+// Advanced token files (Beyond M3 & Apple)
+const insights = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/insights.json'), 'utf8'));
+const physics = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/physics.json'), 'utf8'));
+const predictive = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/predictive.json'), 'utf8'));
+
 // ============================================================================
 // CSS GENERATION HELPERS
 // ============================================================================
@@ -3392,6 +3397,215 @@ export function safeAnimate(
     return;
   }
   element.classList.add(animationClass);
+}
+
+// ============================================================================
+// INSIGHTS - Fidelity-Style Financial Visualizations
+// ============================================================================
+
+/**
+ * Insight card size configurations.
+ */
+export const INSIGHT_CARDS = ${JSON.stringify(insights.insights?.cards || {}, null, 2)};
+
+/**
+ * Data visualization colors (warm, not cold financial blue).
+ */
+export const DATA_COLORS = ${JSON.stringify(insights.insights?.dataColors || {}, null, 2)};
+
+/**
+ * Chart style configurations.
+ */
+export const CHART_STYLES = ${JSON.stringify(insights.insights?.charts || {}, null, 2)};
+
+/**
+ * Metric display configurations.
+ */
+export const METRIC_STYLES = ${JSON.stringify(insights.insights?.metrics || {}, null, 2)};
+
+/**
+ * Progress indicator configurations.
+ */
+export const PROGRESS_INDICATORS = ${JSON.stringify(insights.insights?.progressIndicators || {}, null, 2)};
+
+/**
+ * Narrative visualization configurations.
+ */
+export const NARRATIVE_VISUALS = ${JSON.stringify(insights.narrativeVisuals || {}, null, 2)};
+
+/**
+ * Comparison label configurations.
+ */
+export const COMPARISON_LABELS = ${JSON.stringify(insights.comparison || {}, null, 2)};
+
+/**
+ * Insight micro-interactions.
+ */
+export const INSIGHT_INTERACTIONS = ${JSON.stringify(insights.microInteractions || {}, null, 2)};
+
+// ============================================================================
+// PHYSICS - Emotional Spring System (Beyond Apple)
+// ============================================================================
+
+/**
+ * Spring configurations with emotional context.
+ */
+export interface SpringConfig {
+  tension: number;
+  friction: number;
+  mass: number;
+  useCase: string;
+  emotionalContext: string;
+}
+
+export type SpringType = 'snappy' | 'gentle' | 'bouncy' | 'heavy' | 'ethereal' | 'organic';
+
+/**
+ * Emotional spring configurations.
+ */
+export const SPRINGS: Record<SpringType, SpringConfig> = ${JSON.stringify(
+    Object.fromEntries(
+      Object.entries(physics.physics?.springs || {}).filter(([k]) => !k.startsWith('_'))
+    ),
+    null,
+    2
+  )};
+
+/**
+ * Get spring config by emotional type.
+ */
+export function createEmotionalSpring(type: SpringType): SpringConfig {
+  return SPRINGS[type] || SPRINGS.gentle;
+}
+
+/**
+ * Momentum configurations for gesture-driven UI.
+ */
+export const MOMENTUM = ${JSON.stringify(physics.physics?.momentum || {}, null, 2)};
+
+/**
+ * Gravity effect configurations.
+ */
+export const GRAVITY = ${JSON.stringify(physics.physics?.gravity || {}, null, 2)};
+
+/**
+ * Magnetic snap behaviors.
+ */
+export const MAGNETISM = ${JSON.stringify(physics.physics?.magnetism || {}, null, 2)};
+
+/**
+ * Collision configurations.
+ */
+export const COLLISION = ${JSON.stringify(physics.physics?.collision || {}, null, 2)};
+
+/**
+ * Emotional momentum carryover - UI carries emotional weight from previous interactions.
+ */
+export const EMOTIONAL_MOMENTUM = ${JSON.stringify(physics.emotionalMomentum || {}, null, 2)};
+
+/**
+ * Fluid motion configurations.
+ */
+export const FLUID_MOTION = ${JSON.stringify(physics.fluidMotion || {}, null, 2)};
+
+/**
+ * Spatial depth layer configurations.
+ */
+export const SPATIAL_LAYERS = ${JSON.stringify(physics.spatialDepth?.layers || {}, null, 2)};
+
+/**
+ * Parallax configuration.
+ */
+export const PARALLAX = ${JSON.stringify(physics.spatialDepth?.parallax || {}, null, 2)};
+
+/**
+ * Haptic feedback patterns.
+ */
+export const HAPTIC_PATTERNS = ${JSON.stringify(physics.haptics?.patterns || {}, null, 2)};
+
+/**
+ * Gesture recognition signatures.
+ */
+export const GESTURE_SIGNATURES = ${JSON.stringify(physics.gestureRecognition?.signatures || {}, null, 2)};
+
+/**
+ * Gesture combo patterns.
+ */
+export const GESTURE_COMBOS = ${JSON.stringify(physics.gestureRecognition?.combos || {}, null, 2)};
+
+// ============================================================================
+// PREDICTIVE UI - Anticipatory Interface Patterns
+// ============================================================================
+
+/**
+ * Skeleton loading styles.
+ */
+export const SKELETON_STYLES = ${JSON.stringify(predictive.predictive?.preloading?.skeleton || {}, null, 2)};
+
+/**
+ * Ghost content placeholder shapes.
+ */
+export const GHOST_CONTENT = ${JSON.stringify(predictive.predictive?.preloading?.ghostContent || {}, null, 2)};
+
+/**
+ * Progressive reveal configuration.
+ */
+export const PROGRESSIVE_REVEAL = ${JSON.stringify(predictive.predictive?.preloading?.progressiveReveal || {}, null, 2)};
+
+/**
+ * Anticipation configurations.
+ */
+export const ANTICIPATION = ${JSON.stringify(predictive.predictive?.anticipation || {}, null, 2)};
+
+/**
+ * Suggestion UI configurations.
+ */
+export const SUGGESTION = ${JSON.stringify(predictive.predictive?.suggestion || {}, null, 2)};
+
+/**
+ * Adaptation configurations - UI learns from user patterns.
+ */
+export const ADAPTATION = ${JSON.stringify(predictive.predictive?.adaptation || {}, null, 2)};
+
+/**
+ * Loading stage configurations.
+ */
+export const LOADING_STAGES = ${JSON.stringify(predictive.predictive?.loading?.stages || {}, null, 2)};
+
+/**
+ * Loading progress indicator styles.
+ */
+export const LOADING_PROGRESS = ${JSON.stringify(predictive.predictive?.loading?.progressIndicators || {}, null, 2)};
+
+/**
+ * UI intelligence configurations.
+ */
+export const UI_INTELLIGENCE = ${JSON.stringify(predictive.intelligence || {}, null, 2)};
+
+/**
+ * Get loading state based on duration.
+ */
+export function getLoadingState(durationMs: number): 'instant' | 'fast' | 'normal' | 'slow' | 'extended' {
+  if (durationMs < 100) return 'instant';
+  if (durationMs < 300) return 'fast';
+  if (durationMs < 1000) return 'normal';
+  if (durationMs < 5000) return 'slow';
+  return 'extended';
+}
+
+/**
+ * Get personalization settings based on user preference.
+ */
+export function getPersonalization(
+  density: 'minimal' | 'balanced' | 'dense',
+  speed: 'deliberate' | 'balanced' | 'quick',
+  complexity: 'calm' | 'balanced' | 'rich'
+) {
+  return {
+    density: UI_INTELLIGENCE.personalization?.informationDensity?.[density] || {},
+    speed: UI_INTELLIGENCE.personalization?.interactionSpeed?.[speed] || {},
+    complexity: UI_INTELLIGENCE.personalization?.visualComplexity?.[complexity] || {},
+  };
 }
 `;
 

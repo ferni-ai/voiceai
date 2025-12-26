@@ -40,10 +40,47 @@ import type {
   ToolMatch,
   RoutingMetadata,
   DEFAULT_ROUTER_CONFIG,
+  HolisticContextSummary,
 } from './types.js';
 import { isSemanticRoutingResult } from './types.js';
+import type { HolisticLayerResult } from './holistic-layer.js';
 
 const log = createLogger({ module: 'semantic-router' });
+
+// ============================================================================
+// HOLISTIC CONTEXT CONVERSION
+// ============================================================================
+
+/**
+ * Convert internal HolisticLayerResult to external HolisticContextSummary.
+ * This provides a clean, serializable representation for downstream consumers.
+ */
+function toHolisticContextSummary(
+  holisticResult: HolisticLayerResult
+): HolisticContextSummary {
+  const ctx = holisticResult.holisticContext;
+  const multiIntent = holisticResult.multiIntent;
+
+  // Convert Map to Record for serialization
+  const domainBoosts: Record<string, number> = {};
+  for (const [domain, boost] of ctx.domainBoosts) {
+    if (boost > 0) {
+      domainBoosts[domain] = boost;
+    }
+  }
+
+  return {
+    relationshipType: ctx.relationship?.type,
+    relationshipSentiment: ctx.relationship?.sentiment,
+    emotionType: ctx.emotion?.type,
+    emotionValence: ctx.emotion?.valence,
+    urgency: ctx.overallUrgency,  // HolisticContext uses overallUrgency
+    sentiment: ctx.sentiment,
+    isCrisis: ctx.sentiment === 'crisis',
+    isCompoundIntent: multiIntent.isCompound,
+    domainBoosts,
+  };
+}
 
 // ============================================================================
 // ROUTING METRICS (P1 FIX: Add observability)
@@ -226,9 +263,10 @@ export class SemanticRouter {
         embedding: 0.85,
         context: 0.6,
         history: 0.4,
+        holistic: 0.85, // Holistic NLU (relationship, emotion, multi-intent)
       },
       maxMatches: 5,
-      enabledLayers: ['pattern', 'keyword', 'embedding', 'context'],
+      enabledLayers: ['pattern', 'keyword', 'embedding', 'context', 'holistic'],
       embeddingModel: 'google',
       cacheEmbeddings: true,
       debug: false,
@@ -300,8 +338,11 @@ export class SemanticRouter {
       }
     }
 
-    // Run combined matching
+    // Run combined matching (pass sessionId for multi-turn context enrichment)
     const matchResult = runCombinedMatching(inputText, this.registry, this.config, {
+      sessionId: context?.sessionId,
+      userId: context?.userId,
+      personaId: context?.personaId,
       conversationHistory: context?.conversationHistory,
       recentTools: context?.recentTools,
       queryEmbedding,
@@ -373,6 +414,10 @@ export class SemanticRouter {
           ? matchResult.matches[0]?.extractedArgs
           : undefined,
       metadata,
+      // Include holistic NLU context for downstream consumers
+      holisticContext: matchResult.holisticResult
+        ? toHolisticContextSummary(matchResult.holisticResult)
+        : undefined,
     };
 
     // Log for debugging

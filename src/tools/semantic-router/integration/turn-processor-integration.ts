@@ -22,6 +22,7 @@ import type {
   SemanticRouterResult,
   RouterAction,
   ToolMatch,
+  HolisticContextSummary,
 } from '../types.js';
 import { DEFAULT_ROUTER_CONFIG, isToolExecutionResult } from '../types.js';
 import {
@@ -33,6 +34,15 @@ import {
 import { recordRoutingEvent, recordRoutingOutcome } from '../analytics/routing-analytics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
 import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
+
+// SOTA Integration - 4 "Better Than Human" learning systems
+import {
+  applySOTAPreRouting,
+  applySOTAConfidenceAdjustments,
+  recordSOTAOutcome,
+  type SOTARoutingContext,
+  type SOTARoutingResult,
+} from './sota-integration.js';
 
 const log = createLogger({ module: 'semantic-router-integration' });
 
@@ -115,6 +125,19 @@ export interface TurnRouterResult {
    * The agent can log this to understand which system handled the call.
    */
   routingPath?: RoutingPath;
+
+  /** SOTA enhancement result (strategy, prosody, cohort priors) */
+  sotaResult?: SOTARoutingResult;
+
+  /** SOTA strategy used for this routing decision */
+  sotaStrategy?: string;
+
+  /**
+   * Holistic NLU context from routing (convenience field).
+   * Includes relationship detection, emotional state, urgency, and crisis detection.
+   * Also accessible via routeResult?.holisticContext
+   */
+  holisticContext?: HolisticContextSummary;
 }
 
 /** Context for routing decision */
@@ -124,6 +147,14 @@ export interface RoutingContext {
   personaId: string;
   conversationHistory: Array<{ role: string; content: string }>;
   recentTools: string[];
+
+  // SOTA: Optional audio data for prosody analysis
+  audioBuffer?: Float32Array;
+  sampleRate?: number;
+
+  // SOTA: Optional complexity signals
+  inputComplexity?: number;
+  urgencySignal?: number;
 }
 
 // ============================================================================
@@ -188,16 +219,80 @@ export async function startSemanticRouting(
 
   const startTime = performance.now();
 
+  // SOTA context for "Better Than Human" enhancements
+  let sotaResult: SOTARoutingResult | undefined;
+
   try {
     await getRouter(); // Ensure router is initialized
+
+    // =========================================================================
+    // SOTA PRE-ROUTING: Apply learning enhancements before routing
+    // - Select optimal routing strategy (Thompson Sampling)
+    // - Apply prosody signals from voice analysis
+    // - Get cohort priors for cold-start users
+    // =========================================================================
+    try {
+      const sotaContext: SOTARoutingContext = {
+        userId: context.userId,
+        sessionId: context.sessionId,
+        personaId: context.personaId,
+        inputText: userText,
+        inputComplexity: context.inputComplexity,
+        urgencySignal: context.urgencySignal,
+        audioBuffer: context.audioBuffer,
+        sampleRate: context.sampleRate,
+      };
+      sotaResult = await applySOTAPreRouting(sotaContext);
+      log.debug(
+        {
+          strategy: sotaResult.strategy.strategy,
+          confidenceBoost: sotaResult.confidenceBoost,
+          isColdStart: sotaResult.isColdStart,
+          hasProsody: !!sotaResult.prosodyAdjustment,
+        },
+        '🧠 SOTA pre-routing applied'
+      );
+    } catch (sotaError) {
+      log.debug({ error: String(sotaError) }, 'SOTA pre-routing skipped (non-fatal)');
+    }
+
     log.info({ userText }, '🔍 Routing user input');
-    const routeResult = await routeUserInput(userText);
+    // Map conversation history to expected format (or skip if types mismatch)
+    const mappedHistory = context.conversationHistory?.map((turn) => ({
+      role: turn.role as 'user' | 'assistant',
+      text: turn.content,
+      timestamp: new Date(),
+    }));
+    let routeResult = await routeUserInput(userText, {
+      userId: context.userId,
+      sessionId: context.sessionId,
+      personaId: context.personaId,
+      conversationHistory: mappedHistory,
+      recentTools: context.recentTools,
+    });
+
+    // =========================================================================
+    // SOTA POST-ROUTING: Apply confidence adjustments from learning systems
+    // - Cohort tool preferences boost confidence
+    // - Prosody signals (stress, urgency) boost crisis tools
+    // - User history patterns adjust scores
+    // =========================================================================
+    if (sotaResult && routeResult.matches.length > 0) {
+      const adjustedMatches = applySOTAConfidenceAdjustments(routeResult.matches, sotaResult);
+      routeResult = { ...routeResult, matches: adjustedMatches };
+      log.debug(
+        { originalTop: routeResult.matches[0]?.toolId, adjustedTop: adjustedMatches[0]?.toolId },
+        '🧠 SOTA confidence adjustments applied'
+      );
+    }
+
     const topMatch = routeResult.matches?.[0];
     log.info(
       {
         action: routeResult.action?.type,
         confidence: topMatch?.confidence,
         toolId: topMatch?.toolId,
+        sotaStrategy: sotaResult?.strategy.strategy,
       },
       '🎯 Route result'
     );
@@ -227,6 +322,9 @@ export async function startSemanticRouting(
         executed: false,
         analyticsEventId,
         routingPath: 'semantic_conversation',
+        sotaResult,
+        sotaStrategy: sotaResult?.strategy.strategy,
+        holisticContext: routeResult.holisticContext,
       };
     }
 
@@ -258,11 +356,30 @@ export async function startSemanticRouting(
             llmFallbackUsed: false,
           });
 
+          // SOTA: Record successful outcome for learning systems
+          if (sotaResult) {
+            recordSOTAOutcome(
+              {
+                userId: context.userId,
+                sessionId: context.sessionId,
+                toolId: topMatch.toolId,
+                toolCategory: 'general', // Category not available on ToolMatch
+                wasCorrect: true,
+                wasCorrected: false,
+                confidence: topMatch.confidence,
+                latencyMs: totalLatencyMs,
+                strategyUsed: sotaResult.strategy.strategy,
+              },
+              routeResult
+            );
+          }
+
           log.info(
             {
               toolId: topMatch.toolId,
               confidence: topMatch.confidence.toFixed(2),
               latencyMs: totalLatencyMs,
+              sotaStrategy: sotaResult?.strategy.strategy,
             },
             '🚀 SEMANTIC → AUTO-EXECUTE (LLM bypassed, tool executed directly)'
           );
@@ -273,6 +390,24 @@ export async function startSemanticRouting(
             executionSuccess: false,
             llmFallbackUsed: true,
           });
+
+          // SOTA: Record failed outcome for learning systems
+          if (sotaResult) {
+            recordSOTAOutcome(
+              {
+                userId: context.userId,
+                sessionId: context.sessionId,
+                toolId: topMatch.toolId,
+                toolCategory: 'general', // Category not available on ToolMatch
+                wasCorrect: false,
+                wasCorrected: false,
+                confidence: topMatch.confidence,
+                latencyMs: totalLatencyMs,
+                strategyUsed: sotaResult.strategy.strategy,
+              },
+              routeResult
+            );
+          }
 
           log.warn(
             { toolId: topMatch.toolId, error: executeResult.error },
@@ -288,6 +423,9 @@ export async function startSemanticRouting(
           error: executeResult.success ? undefined : executeResult.error,
           analyticsEventId,
           routingPath: executeResult.success ? 'semantic_auto_execute' : 'json_fallback',
+          sotaResult,
+          sotaStrategy: sotaResult?.strategy.strategy,
+          holisticContext: routeResult.holisticContext,
         };
       } catch (execError) {
         log.warn(
@@ -316,6 +454,9 @@ export async function startSemanticRouting(
           error: String(execError),
           analyticsEventId,
           routingPath: 'error',
+          sotaResult,
+          sotaStrategy: sotaResult?.strategy.strategy,
+          holisticContext: routeResult.holisticContext,
         };
       }
     }
@@ -339,6 +480,7 @@ export async function startSemanticRouting(
           toolId: topMatch.toolId,
           confidence: topMatch.confidence.toFixed(2),
           action: actionType,
+          sotaStrategy: sotaResult?.strategy.strategy,
         },
         `💡 SEMANTIC → ${actionType.toUpperCase()} (guiding LLM toward ${topMatch.toolId})`
       );
@@ -349,6 +491,9 @@ export async function startSemanticRouting(
         executed: false,
         analyticsEventId,
         routingPath: actionType === 'confirm' ? 'semantic_confirm' : 'semantic_hint',
+        sotaResult,
+        sotaStrategy: sotaResult?.strategy.strategy,
+        holisticContext: routeResult.holisticContext,
       };
     }
 
@@ -361,6 +506,9 @@ export async function startSemanticRouting(
       executed: false,
       analyticsEventId,
       routingPath: 'semantic_conversation',
+      sotaResult,
+      sotaStrategy: sotaResult?.strategy.strategy,
+      holisticContext: routeResult.holisticContext,
     };
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
@@ -370,11 +518,14 @@ export async function startSemanticRouting(
     );
     recordRoutingError(context.userId, context.sessionId, userText, String(error), latencyMs);
     // No analytics event ID in error case since we failed before recording
+    // sotaResult may be undefined if error occurred before SOTA pre-routing
     return {
       attempted: false,
       executed: false,
       error: String(error),
       routingPath: 'error',
+      sotaResult,
+      sotaStrategy: sotaResult?.strategy.strategy,
     };
   }
 }
@@ -416,6 +567,18 @@ async function executeMatchedTool(
 
     // Execute via domain bridge
     const result = await executeDomainTool(toolId, match.extractedArgs, execContext);
+
+    // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
+    if (result.success && context.sessionId) {
+      try {
+        const { markToolExecutedBySemanticRouter } = await import(
+          '../../../agents/shared/tool-call-sanitizer.js'
+        );
+        markToolExecutedBySemanticRouter(context.sessionId, toolId);
+      } catch {
+        // Non-critical - deduplication is defensive
+      }
+    }
 
     log.info(
       {
@@ -473,6 +636,18 @@ async function executeMatchedTool(
 
     // Execute the tool
     const result = await tool.execute(match.extractedArgs, execContext);
+
+    // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
+    if (context.sessionId) {
+      try {
+        const { markToolExecutedBySemanticRouter } = await import(
+          '../../../agents/shared/tool-call-sanitizer.js'
+        );
+        markToolExecutedBySemanticRouter(context.sessionId, toolId);
+      } catch {
+        // Non-critical - deduplication is defensive
+      }
+    }
 
     // Handle both ToolExecutionResult and SemanticRoutingResult
     if (isToolExecutionResult(result)) {
@@ -537,6 +712,8 @@ export function applyRoutingResult(
   };
   /** For observability - which routing system handled this request */
   routingPath: RoutingPath;
+  /** Holistic NLU context for downstream crisis/emotion handling */
+  holisticContext?: HolisticContextSummary;
 } {
   // Safety override: Never bypass LLM during crisis
   if (options.crisisDetected) {
@@ -551,6 +728,7 @@ export function applyRoutingResult(
         matchPath: 'none',
       },
       routingPath: 'json_fallback', // Safety fallback to LLM
+      holisticContext: routerResult.holisticContext,
     };
   }
 
@@ -566,6 +744,7 @@ export function applyRoutingResult(
         matchPath: 'none',
       },
       routingPath: routerResult.routingPath || 'json_fallback',
+      holisticContext: routerResult.holisticContext,
     };
   }
 
@@ -590,6 +769,7 @@ export function applyRoutingResult(
         matchPath: determineMatchPath(topMatch),
       },
       routingPath: 'semantic_auto_execute',
+      holisticContext: routerResult.holisticContext,
     };
   }
 
@@ -604,6 +784,7 @@ export function applyRoutingResult(
       matchPath: topMatch ? determineMatchPath(topMatch) : 'none',
     },
     routingPath: routerResult.routingPath || 'semantic_hint',
+    holisticContext: routerResult.holisticContext,
   };
 }
 

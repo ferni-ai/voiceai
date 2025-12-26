@@ -639,10 +639,10 @@ async function fetchTrustMetrics(): Promise<TrustMetrics> {
     if (response.ok) {
       const data = await response.json();
       return {
-        totalProfiles: data.totalProfiles || 0,
-        avgTrustScore: data.avgTrustScore || 0,
-        activeRelationships: data.activeRelationships || 0,
-        milestonesReached: data.milestonesReached || 0,
+        totalProfiles: data.totalProfiles ?? 0,
+        avgTrustScore: data.avgTrustScore ?? 0,
+        activeRelationships: data.activeRelationships ?? 0,
+        milestonesReached: data.milestonesReached ?? 0,
       };
     }
   } catch (error) {
@@ -666,7 +666,7 @@ async function fetchTrustEvents(): Promise<TrustEvent[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.activity || [];
+      return data.activity ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch trust events');
@@ -690,7 +690,7 @@ async function fetchStageDistribution(): Promise<StageData[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.stages || [];
+      return data.stages ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch stage distribution');
@@ -728,7 +728,7 @@ async function fetchTrustSystems(): Promise<TrustSystem[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.systems || [];
+      return data.systems ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch trust systems');
@@ -746,7 +746,7 @@ function getStageColor(stage: string): string {
     deep: 'var(--persona-peter, #3a6b73)',
     flourishing: 'var(--color-accent, #C4A265)',
   };
-  return colors[stage] || 'var(--color-text-secondary, #a89a8c)';
+  return colors[stage] ?? 'var(--color-text-secondary, #a89a8c)';
 }
 
 async function fetchWarmthStats(): Promise<WarmthStats> {

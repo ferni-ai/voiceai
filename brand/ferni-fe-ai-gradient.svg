@@ -1,71 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- FE AI logo - enhanced gradient version -->
   <defs>
-    <!-- Beautiful multi-color gradient like Arc -->
-    <linearGradient id="rainbowGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#4a6741"/>
-      <stop offset="25%" style="stop-color:#3a9d8f"/>
-      <stop offset="50%" style="stop-color:#5b8dd9"/>
-      <stop offset="75%" style="stop-color:#9b7ed9"/>
-      <stop offset="100%" style="stop-color:#e07b6b"/>
+    <linearGradient id="gradientOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#2d4528"/>
+      <stop offset="50%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
     </linearGradient>
-    
-    <!-- Warm sunset gradient -->
-    <linearGradient id="sunsetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff6b6b"/>
-      <stop offset="50%" style="stop-color:#feca57"/>
-      <stop offset="100%" style="stop-color:#48dbfb"/>
+    <linearGradient id="gradientShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.2"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
     </linearGradient>
-    
-    <!-- Glass effect for circles -->
-    <linearGradient id="glassLight" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:rgba(255,255,255,0.4)"/>
-      <stop offset="100%" style="stop-color:rgba(255,255,255,0.1)"/>
-    </linearGradient>
-    
-    <!-- Soft shadow -->
-    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    
-    <filter id="dropShadow">
-      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#2C2520" flood-opacity="0.25"/>
-    </filter>
   </defs>
   
-  <!-- Main Ferni ellipse with rainbow gradient -->
-  <ellipse 
-    cx="200" 
-    cy="120" 
-    rx="180" 
-    ry="100" 
-    fill="url(#rainbowGradient)"
-    filter="url(#dropShadow)"
-  />
-  
-  <!-- FE circle (frosted glass effect) -->
-  <circle cx="130" cy="120" r="45" fill="rgba(0,0,0,0.2)"/>
-  <circle cx="130" cy="120" r="44" fill="url(#glassLight)" opacity="0.6"/>
-  <text 
-    x="130" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="700"
-    fill="#FFFDFB" 
-    text-anchor="middle"
-  >FE</text>
-  
-  <!-- AI circle (bright, stands out) -->
-  <circle cx="270" cy="120" r="45" fill="rgba(255,255,255,0.95)"/>
-  <circle cx="270" cy="120" r="44" fill="url(#glassLight)" opacity="0.3"/>
-  <text 
-    x="270" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="700"
-    fill="#4a4a4a" 
-    text-anchor="middle"
-  >AI</text>
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#5a8060" stroke-width="1.5" opacity="0.4"/>
+  <circle cx="50" cy="50" r="40" fill="url(#gradientOrb)"/>
+  <circle cx="50" cy="50" r="40" fill="url(#gradientShine)"/>
+  <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="30" font-weight="800" fill="white" letter-spacing="-1">
+    <tspan dy="2">FE</tspan>
+  </text>
 </svg>

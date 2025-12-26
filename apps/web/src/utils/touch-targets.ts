@@ -112,13 +112,14 @@ function checkTouchTarget(el: HTMLElement): { passed: boolean; width: number; he
   const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
   const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
 
+  // Include padding in effective size for touch target calculation
   const effectiveWidth = rect.width + paddingLeft + paddingRight;
   const effectiveHeight = rect.height + paddingTop + paddingBottom;
 
   return {
-    passed: rect.width >= MIN_TOUCH_SIZE && rect.height >= MIN_TOUCH_SIZE,
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
+    passed: effectiveWidth >= MIN_TOUCH_SIZE && effectiveHeight >= MIN_TOUCH_SIZE,
+    width: Math.round(effectiveWidth),
+    height: Math.round(effectiveHeight),
   };
 }
 

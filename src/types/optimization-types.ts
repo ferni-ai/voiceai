@@ -112,3 +112,71 @@ export interface Recommendation {
   createdAt: Date;
   status: 'pending' | 'approved' | 'rejected' | 'implemented';
 }
+
+// ============================================================================
+// PATTERN ANALYSIS TYPES
+// ============================================================================
+
+export interface ToolCoOccurrence {
+  toolA: string;
+  toolB: string;
+  count: number;
+  avgGap: number; // Average turns between uses
+  correlation: number; // -1 to 1
+}
+
+export interface ToolSequence {
+  sequence: string[];
+  count: number;
+  avgDuration: number; // In turns
+  successRate: number;
+}
+
+export interface UserJourney {
+  name: string;
+  description: string;
+  tools: string[];
+  frequency: number;
+  avgSuccess: number;
+}
+
+export interface GapAnalysis {
+  description: string;
+  requestCount: number;
+  examples: string[];
+  suggestedDomain: string;
+  suggestedToolName: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface ConsolidationOpportunity {
+  tools: string[];
+  reason: string;
+  suggestedName: string;
+  expectedBenefit: string;
+  confidence: number;
+}
+
+export interface UserSegment {
+  name: string;
+  description: string;
+  userCount: number;
+  topTools: string[];
+  avgSessionLength: number;
+  characteristics: string[];
+}
+
+export interface SessionData {
+  sessionId: string;
+  userId: string;
+  agentId: string;
+  startTime: Date;
+  endTime?: Date;
+  toolCalls: Array<{
+    toolId: string;
+    timestamp: Date;
+    success: boolean;
+    latencyMs: number;
+  }>;
+  feedback: FeedbackRecord[];
+}

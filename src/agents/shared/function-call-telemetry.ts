@@ -24,8 +24,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { recordToolExecution } from './dev-telemetry.js';
 
 const log = createLogger({ module: 'function-call-telemetry' });
+
+// Dev mode check for trace integration
+const isDev = process.env.NODE_ENV === 'development' || process.env.DEV_TELEMETRY === 'true';
 
 // ============================================================================
 // TYPES
@@ -177,6 +181,11 @@ export function logJsonExecuted(
     log.info({ sessionId, fn, durationMs }, '✅ SUCCESS: JSON function call executed');
   } else {
     log.error({ sessionId, fn, durationMs, error }, '❌ FAILED: JSON function call failed');
+  }
+
+  // Bridge to dev-telemetry for E2E tracing
+  if (isDev) {
+    recordToolExecution(sessionId, fn, durationMs, success);
   }
 }
 

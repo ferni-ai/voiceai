@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/playfulness
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -85,7 +86,7 @@ export async function generatePlayfulness(
 
   const adjustedProbability = probability * relationshipBoost;
 
-  if (Math.random() > adjustedProbability) {
+  if (!seededChance(`${Date.now()}:1`, adjustedProbability)) {
     return null;
   }
 
@@ -106,7 +107,7 @@ export async function generatePlayfulness(
     phrases = LIGHT_JOKES;
   }
 
-  const content = phrases[Math.floor(Math.random() * phrases.length)];
+  const content = seededPick(`${Date.now()}:110`, phrases) ?? phrases[0];
 
   return {
     type: 'playfulness',

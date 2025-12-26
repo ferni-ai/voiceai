@@ -761,9 +761,9 @@ const setBoundaryConversationDef: ToolDefinition = {
 };
 
 const sayNoWithGraceDef: ToolDefinition = {
-  id: 'sayNoWithGrace',
-  name: 'Say No With Grace',
-  description: 'Learn to say no without guilt or excessive explanation',
+  id: 'practiceDecline',
+  name: 'Practice Declining',
+  description: 'Practice saying no in difficult conversations without guilt',
   domain: 'difficult-conversations',
   tags: ['difficult-conversations', 'no', 'decline', 'grace'],
 

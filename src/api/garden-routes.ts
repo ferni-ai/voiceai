@@ -891,9 +891,10 @@ export async function handleGardenRoutes(
     return true;
   }
 
-  // If we have Firebase auth, update the header so handlers use Firebase UID consistently
+  // If we have Firebase auth, set the preferred header for downstream handlers
   if (auth) {
-    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
+    // SECURITY: Use x-firebase-uid (preferred over deprecated x-user-id)
+    (req.headers as Record<string, string | string[] | undefined>)['x-firebase-uid'] = auth.userId;
   }
 
   // GET /api/garden/user - Get user's garden

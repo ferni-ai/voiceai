@@ -280,7 +280,7 @@ describe('Household Manager UI', () => {
       await showHouseholdManager();
       await new Promise((r) => setTimeout(r, 200));
 
-      const removeButtons = document.querySelectorAll('[data-action="remove-member"]');
+      const _removeButtons = document.querySelectorAll('[data-action="remove-member"]');
       // Should have remove button for at least one member (Jane, not owner)
     });
 
@@ -294,7 +294,7 @@ describe('Household Manager UI', () => {
       const ownerCard = Array.from(findMemberCards()).find((card) =>
         card.textContent?.includes('John')
       );
-      const removeBtn = ownerCard?.querySelector('[data-action="remove-member"]');
+      const _removeBtn = ownerCard?.querySelector('[data-action="remove-member"]');
       // Owner typically doesn't have remove option
     });
 
@@ -333,7 +333,7 @@ describe('Household Manager UI', () => {
       await showHouseholdManager();
       await new Promise((r) => setTimeout(r, 100));
 
-      const toggle = findAutoIdentifyToggle();
+      const _toggle = findAutoIdentifyToggle();
       // Should match mockHousehold.settings.autoIdentify
     });
 
@@ -371,7 +371,7 @@ describe('Household Manager UI', () => {
       await showHouseholdManager();
       await new Promise((r) => setTimeout(r, 200));
 
-      const enrollButtons = document.querySelectorAll('[data-action="enroll-member"]');
+      const _enrollButtons = document.querySelectorAll('[data-action="enroll-member"]');
       // Should have enroll option for Jane
     });
   });
@@ -436,7 +436,7 @@ describe('Household Manager UI', () => {
       const memberCards = findMemberCards();
       memberCards.forEach((card) => {
         // Should have proper heading or label
-        const heading = card.querySelector('h3, h4, [role="heading"]');
+        const _heading = card.querySelector('h3, h4, [role="heading"]');
         // Cards should be accessible
       });
     });
@@ -493,7 +493,7 @@ describe('Household Manager UI', () => {
       await showHouseholdManager();
 
       // Should show loading indicator
-      const loading = document.querySelector('.household-loading, .loading');
+      const _loading = document.querySelector('.household-loading, .loading');
       // Implementation dependent
     });
   });

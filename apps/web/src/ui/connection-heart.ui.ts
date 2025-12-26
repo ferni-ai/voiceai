@@ -25,7 +25,7 @@ import { journeyUI } from './journey.ui.js';
 const log = createLogger('ConnectionHeart');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE

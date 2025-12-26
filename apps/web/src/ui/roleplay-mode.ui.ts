@@ -60,9 +60,13 @@ const STYLES = `
     width: 100%;
     max-width: clamp(385px, 90vw, 550px);
     max-height: 85vh;
-    background: var(--color-background-elevated);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-2xl);
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -605,7 +609,7 @@ function attachListeners(): void {
     card.addEventListener('click', handleScenarioSelect);
   });
 
-  roleplayModal.querySelector('[data-action="start-roleplay"]')?.addEventListener('click', handleStartRoleplay);
+  roleplayModal.querySelector('[data-action="start-roleplay"]')?.addEventListener('click', () => { void handleStartRoleplay(); });
 }
 
 function handleScenarioSelect(e: Event): void {

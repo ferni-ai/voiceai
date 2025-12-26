@@ -9,6 +9,8 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
+import { seededPick } from '../utils/rng.js';
+
 import type {
   ConversationCommitment,
   ConversationThread,
@@ -142,7 +144,7 @@ export class CallbackGenerator {
   /**
    * Create a thread callback
    */
-  createThreadCallback(thread: ConversationThread): MemoryCallback {
+  createThreadCallback(thread: ConversationThread, seed?: string): MemoryCallback {
     const phrases = [
       `You mentioned ${thread.topic} earlier—I'd like to come back to that.`,
       `Can we circle back to ${thread.topic}?`,
@@ -150,7 +152,7 @@ export class CallbackGenerator {
       `Before we go further, let's revisit ${thread.topic}.`,
     ];
 
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const phrase = seededPick(seed ?? `thread:${thread.topic}`, phrases) ?? phrases[0];
 
     return {
       phrase,
@@ -162,7 +164,7 @@ export class CallbackGenerator {
   /**
    * Create a statement callback
    */
-  createStatementCallback(statement: UserStatement): MemoryCallback {
+  createStatementCallback(statement: UserStatement, seed?: string): MemoryCallback {
     const phrases = [
       `Earlier you said "${statement.text}"—that's relevant here.`,
       `This connects to what you mentioned: "${statement.text}"`,
@@ -170,7 +172,7 @@ export class CallbackGenerator {
       `Going back to something you shared—"${statement.text}"`,
     ];
 
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const phrase = seededPick(seed ?? `statement:${statement.turn}`, phrases) ?? phrases[0];
 
     return {
       phrase,
@@ -183,7 +185,7 @@ export class CallbackGenerator {
   /**
    * Create a commitment callback
    */
-  createCommitmentCallback(commitment: ConversationCommitment): MemoryCallback {
+  createCommitmentCallback(commitment: ConversationCommitment, seed?: string): MemoryCallback {
     const phrases =
       commitment.who === 'user'
         ? [
@@ -196,7 +198,7 @@ export class CallbackGenerator {
             `I promised "${commitment.what}"—here's what I found.`,
           ];
 
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const phrase = seededPick(seed ?? `commitment:${commitment.turn}`, phrases) ?? phrases[0];
 
     return {
       phrase,

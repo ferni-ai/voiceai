@@ -93,7 +93,7 @@ export async function render(): Promise<string> {
   toolDefaults = tools;
 
   const defaults = store?.defaults;
-  const personas = store?.personas || {};
+  const personas = store?.personas ?? {};
   const personaIds = Object.keys(personas);
 
   return `
@@ -466,7 +466,7 @@ function renderDefaultsForm(defaults: GeminiModelConfig): string {
 }
 
 function renderPersonaForm(personaId: string, config: PersonaModelConfig | null): string {
-  const gemini = config?.gemini || configStore?.defaults || {
+  const gemini = config?.gemini ?? configStore?.defaults ?? {
     model: 'gemini-2.0-flash-exp',
     temperature: 0.8,
     language: 'en-US',
@@ -762,7 +762,7 @@ async function fetchModels(): Promise<AvailableModel[]> {
     const response = await fetch('/api/v1/admin/model-config/models', { headers });
     if (response.ok) {
       const data = await response.json();
-      return data.models || [];
+      return data.models ?? [];
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to fetch models');
@@ -781,7 +781,7 @@ async function fetchConfig(): Promise<ModelConfigStore | null> {
     const response = await fetch('/api/v1/admin/model-config', { headers });
     if (response.ok) {
       const data = await response.json();
-      return data.data || null;
+      return data.data ?? null;
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to fetch config');
@@ -795,7 +795,7 @@ async function fetchToolDomains(): Promise<AvailableToolDomain[]> {
     const response = await fetch('/api/v1/admin/model-config/tool-domains', { headers });
     if (response.ok) {
       const data = await response.json();
-      return data.domains || [];
+      return data.domains ?? [];
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to fetch tool domains');
@@ -814,7 +814,7 @@ async function fetchToolDefaults(): Promise<ToolConfig | null> {
     const response = await fetch('/api/v1/admin/model-config/tool-defaults', { headers });
     if (response.ok) {
       const data = await response.json();
-      return data.toolDefaults || null;
+      return data.toolDefaults ?? null;
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to fetch tool defaults');
@@ -840,17 +840,17 @@ export function setupEvents(): void {
   // Defaults form submission
   const defaultsForm = document.querySelector('[data-form="defaults"]');
   if (defaultsForm) {
-    defaultsForm.addEventListener('submit', handleDefaultsSubmit);
+    defaultsForm.addEventListener('submit', (e) => { void handleDefaultsSubmit(e); });
   }
 
   // Persona form submission
   const personaForm = document.querySelector('[data-form="persona"]');
   if (personaForm) {
-    personaForm.addEventListener('submit', handlePersonaSubmit);
+    personaForm.addEventListener('submit', (e) => { void handlePersonaSubmit(e); });
 
     // Toggle prompt textarea enabled state
     const checkbox = personaForm.querySelector('input[name="useSystemPromptOverride"]');
-    const textarea = personaForm.querySelector('textarea[name="systemPromptOverride"]') as HTMLTextAreaElement | null;
+    const textarea = personaForm.querySelector<HTMLTextAreaElement>('textarea[name="systemPromptOverride"]');
     if (checkbox && textarea) {
       checkbox.addEventListener('change', (e) => {
         textarea.disabled = !(e.target as HTMLInputElement).checked;
@@ -861,25 +861,25 @@ export function setupEvents(): void {
   // Tool defaults form submission
   const toolDefaultsForm = document.querySelector('[data-form="tool-defaults"]');
   if (toolDefaultsForm) {
-    toolDefaultsForm.addEventListener('submit', handleToolDefaultsSubmit);
+    toolDefaultsForm.addEventListener('submit', (e) => { void handleToolDefaultsSubmit(e); });
   }
 
   // Load persona button
   const loadBtn = document.querySelector('[data-action="load-persona"]');
   if (loadBtn) {
-    loadBtn.addEventListener('click', handleLoadPersona);
+    loadBtn.addEventListener('click', () => { void handleLoadPersona(); });
   }
 
   // Delete persona button
   const deleteBtn = document.querySelector('[data-action="delete-persona"]');
   if (deleteBtn) {
-    deleteBtn.addEventListener('click', handleDeletePersona);
+    deleteBtn.addEventListener('click', (e) => { void handleDeletePersona(e); });
   }
 
   // Reset all button
   const resetBtn = document.querySelector('[data-action="reset-all"]');
   if (resetBtn) {
-    resetBtn.addEventListener('click', handleResetAll);
+    resetBtn.addEventListener('click', () => { void handleResetAll(); });
   }
 }
 
@@ -923,7 +923,7 @@ async function handleDefaultsSubmit(e: Event): Promise<void> {
       }
     } else {
       const data = await response.json();
-      throw new Error(data.error || 'Failed to save');
+      throw new Error(data.error ?? 'Failed to save');
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to save defaults');
@@ -980,7 +980,7 @@ async function handlePersonaSubmit(e: Event): Promise<void> {
       }
     } else {
       const data = await response.json();
-      throw new Error(data.error || 'Failed to save');
+      throw new Error(data.error ?? 'Failed to save');
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to save persona config');
@@ -1024,7 +1024,7 @@ async function handleToolDefaultsSubmit(e: Event): Promise<void> {
 
   const config: Record<string, unknown> = {
     useOrchestrator: formData.get('useOrchestrator') === 'on',
-    maxTools: parseInt(formData.get('maxTools') as string, 10) || 0,
+    maxTools: parseInt(formData.get('maxTools') as string, 10) ?? 0,
     debugMode: formData.get('debugMode') === 'on',
     logToolSchemas: formData.get('logToolSchemas') === 'on',
     logToolResults: formData.get('logToolResults') === 'on',
@@ -1056,7 +1056,7 @@ async function handleToolDefaultsSubmit(e: Event): Promise<void> {
       }
     } else {
       const data = await response.json();
-      throw new Error(data.error || 'Failed to save');
+      throw new Error(data.error ?? 'Failed to save');
     }
   } catch (err) {
     log.error({ error: err }, 'Failed to save tool defaults');
@@ -1077,7 +1077,7 @@ async function handleLoadPersona(): Promise<void> {
   if (!select || !container) return;
 
   const personaId = select.value;
-  const config = configStore?.personas[personaId] || null;
+  const config = configStore?.personas[personaId] ?? null;
 
   container.innerHTML = renderPersonaForm(personaId, config);
   setupEvents(); // Re-attach events to new form

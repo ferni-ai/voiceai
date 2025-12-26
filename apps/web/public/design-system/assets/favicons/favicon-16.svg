@@ -1,10 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Ferni Favicon 16x16 -->
-  <rect width="16" height="16" rx="3" fill="#3D5A45"/>
-  <text x="8" y="11.5" 
-        font-family="system-ui, -apple-system, sans-serif" 
-        font-size="8" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle">FE</text>
+  <!-- Ferni Orb Favicon 16x16 - Simplified for small size -->
+  <defs>
+    <linearGradient id="orbGrad16" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#5a7a52"/>
+      <stop offset="50%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer ring (subtle at this size) -->
+  <circle cx="8" cy="8" r="7" fill="none" stroke="#8aa880" stroke-width="0.5" opacity="0.4"/>
+  <!-- Main orb -->
+  <circle cx="8" cy="8" r="6" fill="url(#orbGrad16)"/>
+  <!-- Highlight (simplified) -->
+  <ellipse cx="8" cy="5.5" rx="3" ry="1.5" fill="white" opacity="0.2"/>
 </svg>

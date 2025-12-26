@@ -78,9 +78,12 @@ type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
 /**
  * GET /api/monetization/tip/config
  * Get tip jar configuration and user's tip history
+ *
+ * SECURITY: Uses authenticated userId when available
  */
 async function getTipConfig(ctx: RequestContext): Promise<ResponseContext> {
-  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  // SECURITY: Prefer authenticated userId over deprecated x-user-id
+  const userId = ctx.authUserId || ctx.query.userId;
 
   const config = tipJar.getConfig();
   const stats = tipJar.getStats();
@@ -375,15 +378,18 @@ async function contributeFund(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * GET /api/monetization/fund/impact
  * Get contributor's impact
+ *
+ * SECURITY: Uses authenticated userId
  */
 async function getContributorImpact(ctx: RequestContext): Promise<ResponseContext> {
-  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  // SECURITY: Prefer authenticated userId over deprecated x-user-id
+  const userId = ctx.authUserId || ctx.query.userId;
 
   if (!userId) {
     return {
-      status: 400,
+      status: 401,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
+      body: { error: 'Authentication required' },
     };
   }
 
@@ -477,10 +483,13 @@ async function createOrganization(ctx: RequestContext): Promise<ResponseContext>
 /**
  * GET /api/monetization/b2b/organization/:orgId
  * Get organization details
+ *
+ * SECURITY: Uses authenticated userId
  */
 async function getOrganization(ctx: RequestContext): Promise<ResponseContext> {
   const { orgId } = ctx.query;
-  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  // SECURITY: Prefer authenticated userId over deprecated x-user-id
+  const userId = ctx.authUserId || ctx.query.userId;
 
   if (!orgId) {
     return {
@@ -700,11 +709,9 @@ async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseConte
  */
 async function getUserMonetization(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
+  // Admins can query other users, regular users can only see their own data
+  const requestedUserId = ctx.query.userId;
+  const userId = ctx.isAdmin && requestedUserId ? String(requestedUserId) : ctx.authUserId || '';
 
   if (!userId) {
     return {
@@ -757,9 +764,12 @@ async function getUserMonetization(ctx: RequestContext): Promise<ResponseContext
 /**
  * GET /api/monetization/journey/current
  * Get current season info and user journey progress
+ *
+ * SECURITY: Uses authenticated userId
  */
 async function getJourneyInfo(ctx: RequestContext): Promise<ResponseContext> {
-  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  // SECURITY: Prefer authenticated userId over deprecated x-user-id
+  const userId = ctx.authUserId || ctx.query.userId;
 
   const currentSeason = getCurrentSeason();
 

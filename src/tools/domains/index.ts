@@ -142,6 +142,9 @@ export { getToolDefinitions as getDreamsToolDefinitions } from './dreams/index.j
 // Self-Compassion domain - inner critic, self-kindness, acceptance
 export { getToolDefinitions as getSelfCompassionToolDefinitions } from './self-compassion/index.js';
 
+// Coaching Support domain - motivation, boundaries, anger, burnout coaching (extends self-compassion)
+export { getToolDefinitions as getCoachingSupportToolDefinitions } from './coaching-support/index.js';
+
 // Play domain - joy, fun, playfulness, lightness
 export { getToolDefinitions as getPlayToolDefinitions } from './play/index.js';
 
@@ -376,6 +379,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./curiosity/index.js').then(async (m) => m.getToolDefinitions()),
     import('./dreams/index.js').then(async (m) => m.getToolDefinitions()),
     import('./self-compassion/index.js').then(async (m) => m.getToolDefinitions()),
+    // Coaching Support domain - motivation, boundaries, anger, burnout coaching
+    import('./coaching-support/index.js').then(async (m) => m.getToolDefinitions()),
     import('./play/index.js').then(async (m) => m.getToolDefinitions()),
     import('./presence/index.js').then(async (m) => m.getToolDefinitions()),
     // Engagement domain - daily rituals, games, persona activities

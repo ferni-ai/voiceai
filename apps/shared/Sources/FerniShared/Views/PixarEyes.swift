@@ -248,6 +248,10 @@ public struct SimpleAnimatedEyes: View {
     let orbSize: CGFloat
     let personaColor: Color
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var blinkProgress: CGFloat = 0
     @State private var lookDirection: CGPoint = .zero
 
@@ -264,12 +268,17 @@ public struct SimpleAnimatedEyes: View {
             lookDirection: lookDirection
         )
         .onAppear {
+            // Skip continuous animations when reduce motion is enabled
+            guard !reduceMotion else { return }
             startBlinking()
             startLooking()
         }
     }
 
     private func startBlinking() {
+        // Skip if reduce motion is enabled
+        guard !reduceMotion else { return }
+
         // Random blink interval
         let nextBlink = Double.random(in: 2.5...4.5)
 
@@ -280,6 +289,9 @@ public struct SimpleAnimatedEyes: View {
     }
 
     private func performBlink() {
+        // Skip if reduce motion is enabled
+        guard !reduceMotion else { return }
+
         withAnimation(.easeIn(duration: 0.06)) {
             blinkProgress = 1.0
         }
@@ -292,6 +304,9 @@ public struct SimpleAnimatedEyes: View {
     }
 
     private func startLooking() {
+        // Skip if reduce motion is enabled
+        guard !reduceMotion else { return }
+
         // Occasional look around
         let nextLook = Double.random(in: 3...6)
 
@@ -459,38 +474,132 @@ public struct LampEye: View {
 // MARK: - Symbolic Expressions
 
 /// Types of symbolic expressions that can overlay the avatar
+/// These are moments of connection expressed through simple symbols
 public enum SymbolicExpression: String, CaseIterable {
     case none
-    case heart          // ❤️ Love/warmth
-    case sparkle        // ✨ Excitement/joy
-    case thinking       // 💭 Processing
-    case listening      // 👂 Active listening
-    case happy          // 😊 Happy (curved line like smile)
-    case curious        // 🤔 Question mark
+
+    // MARK: - Connection & Warmth
+    case heart          // Deep connection, empathy, "I'm here for you"
+    case heartSpark     // Recognition of returning user, "I remember you"
+    case warmth         // Gentle care, comfort
+
+    // MARK: - Joy & Celebration
+    case sparkle        // Excitement, celebration, achievement
+    case star           // You did great! Pride moment
+    case confetti       // Big celebration, milestone reached
+
+    // MARK: - Attention & Presence
+    case listening      // Active listening, "I hear you"
+    case focus          // Deep attention, processing something important
+    case thinking       // Working on something, contemplating
+
+    // MARK: - Curiosity & Discovery
+    case curious        // Question, wondering
+    case lightbulb      // Idea! Realization moment
+    case discover       // Found something interesting
+
+    // MARK: - Calm & Comfort
+    case peace          // Calm, zen, breathing together
+    case moon           // Late night presence, gentle
+    case wave           // Greeting, hello, welcome back
+
+    // MARK: - Energy & Encouragement
+    case bolt           // Energy, motivation, let's go!
+    case flame          // Passion, fired up
+    case music          // Vibing, enjoying music together
 
     /// SF Symbol name for this expression
-    var symbolName: String? {
+    public var symbolName: String? {
         switch self {
         case .none: return nil
+
+        // Connection & Warmth
         case .heart: return "heart.fill"
+        case .heartSpark: return "heart.circle.fill"
+        case .warmth: return "hands.and.sparkles.fill"
+
+        // Joy & Celebration
         case .sparkle: return "sparkles"
-        case .thinking: return "thought.bubble.fill"
+        case .star: return "star.fill"
+        case .confetti: return "party.popper.fill"
+
+        // Attention & Presence
         case .listening: return "ear.fill"
-        case .happy: return "face.smiling"
-        case .curious: return "questionmark"
+        case .focus: return "eye.fill"
+        case .thinking: return "ellipsis.circle.fill"
+
+        // Curiosity & Discovery
+        case .curious: return "questionmark.circle.fill"
+        case .lightbulb: return "lightbulb.fill"
+        case .discover: return "magnifyingglass"
+
+        // Calm & Comfort
+        case .peace: return "leaf.fill"
+        case .moon: return "moon.fill"
+        case .wave: return "hand.wave.fill"
+
+        // Energy & Encouragement
+        case .bolt: return "bolt.fill"
+        case .flame: return "flame.fill"
+        case .music: return "music.note"
         }
     }
 
     /// Color for this expression
-    var color: Color {
+    public var color: Color {
         switch self {
         case .none: return .clear
-        case .heart: return Color(red: 1.0, green: 0.4, blue: 0.5)  // Warm pink
-        case .sparkle: return Color(red: 1.0, green: 0.85, blue: 0.3)  // Gold
-        case .thinking: return .white.opacity(0.8)
-        case .listening: return .white.opacity(0.8)
-        case .happy: return Color(red: 1.0, green: 0.85, blue: 0.3)  // Warm gold
-        case .curious: return .white.opacity(0.9)
+
+        // Connection & Warmth - warm pinks and golds
+        case .heart: return Color(red: 1.0, green: 0.4, blue: 0.5)
+        case .heartSpark: return Color(red: 1.0, green: 0.5, blue: 0.6)
+        case .warmth: return Color(red: 1.0, green: 0.75, blue: 0.5)
+
+        // Joy & Celebration - bright golds and yellows
+        case .sparkle: return Color(red: 1.0, green: 0.85, blue: 0.3)
+        case .star: return Color(red: 1.0, green: 0.9, blue: 0.4)
+        case .confetti: return Color(red: 1.0, green: 0.7, blue: 0.3)
+
+        // Attention & Presence - soft whites
+        case .listening: return .white.opacity(0.9)
+        case .focus: return .white.opacity(0.85)
+        case .thinking: return .white.opacity(0.7)
+
+        // Curiosity & Discovery - curious blues
+        case .curious: return Color(red: 0.6, green: 0.8, blue: 1.0)
+        case .lightbulb: return Color(red: 1.0, green: 0.95, blue: 0.5)
+        case .discover: return Color(red: 0.7, green: 0.85, blue: 1.0)
+
+        // Calm & Comfort - peaceful greens and soft blues
+        case .peace: return Color(red: 0.5, green: 0.8, blue: 0.6)
+        case .moon: return Color(red: 0.8, green: 0.85, blue: 1.0)
+        case .wave: return .white.opacity(0.9)
+
+        // Energy & Encouragement - vibrant oranges and reds
+        case .bolt: return Color(red: 1.0, green: 0.8, blue: 0.2)
+        case .flame: return Color(red: 1.0, green: 0.5, blue: 0.2)
+        case .music: return Color(red: 0.8, green: 0.6, blue: 1.0)
+        }
+    }
+
+    /// Duration this expression should show (in seconds)
+    public var displayDuration: Double {
+        switch self {
+        case .none: return 0
+        case .heartSpark, .lightbulb: return 1.5  // Quick recognition
+        case .confetti, .star: return 2.5  // Celebration lingers
+        case .thinking, .focus: return 0  // Until state changes
+        default: return 2.0  // Standard duration
+        }
+    }
+
+    /// Whether this expression pulses/animates while visible
+    public var shouldPulse: Bool {
+        switch self {
+        case .heart, .heartSpark, .flame, .bolt, .music:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -503,9 +612,14 @@ public struct SymbolicExpressionView: View {
     let size: CGFloat
     let isVisible: Bool
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var scale: CGFloat = 0.5
     @State private var opacity: CGFloat = 0
     @State private var rotation: Double = -10
+    @State private var pulseScale: CGFloat = 1.0
 
     public init(expression: SymbolicExpression, size: CGFloat, isVisible: Bool) {
         self.expression = expression
@@ -519,10 +633,11 @@ public struct SymbolicExpressionView: View {
                 Image(systemName: symbolName)
                     .font(.system(size: size * 0.35, weight: .medium))
                     .foregroundColor(expression.color)
-                    .shadow(color: expression.color.opacity(0.5), radius: 4)
+                    .shadow(color: expression.color.opacity(0.6), radius: 6)
+                    .shadow(color: expression.color.opacity(0.3), radius: 12)  // Outer glow
             }
         }
-        .scaleEffect(scale)
+        .scaleEffect(scale * pulseScale)
         .opacity(opacity)
         .rotationEffect(.degrees(rotation))
         .onChange(of: isVisible) { visible in
@@ -533,13 +648,25 @@ public struct SymbolicExpressionView: View {
                     opacity = 1.0
                     rotation = 0
                 }
+                // Start pulsing if needed
+                if expression.shouldPulse {
+                    startPulsing()
+                }
             } else {
                 // Animate out
                 withAnimation(.easeOut(duration: 0.2)) {
                     scale = 0.5
                     opacity = 0
                     rotation = 10
+                    pulseScale = 1.0
                 }
+            }
+        }
+        .onChange(of: expression) { newExpression in
+            // Reset pulse when expression changes
+            pulseScale = 1.0
+            if newExpression.shouldPulse && isVisible {
+                startPulsing()
             }
         }
         .onAppear {
@@ -547,7 +674,23 @@ public struct SymbolicExpressionView: View {
                 scale = 1.0
                 opacity = 1.0
                 rotation = 0
+                if expression.shouldPulse {
+                    startPulsing()
+                }
             }
+        }
+    }
+
+    private func startPulsing() {
+        // Skip pulsing animation when reduce motion is enabled
+        guard !reduceMotion else { return }
+
+        // Gentle heartbeat-like pulse
+        withAnimation(
+            .easeInOut(duration: 0.6)
+            .repeatForever(autoreverses: true)
+        ) {
+            pulseScale = 1.15
         }
     }
 }
@@ -562,6 +705,10 @@ public struct AnimatedLampEye: View {
 
     /// Optional symbolic expression to show instead of the eye
     var symbolicExpression: SymbolicExpression = .none
+
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var lookDirection: CGPoint = .zero
     @State private var squash: CGFloat = 1.0
@@ -611,6 +758,9 @@ public struct AnimatedLampEye: View {
     }
 
     private func startIdleAnimations() {
+        // Skip continuous animations when reduce motion is enabled
+        guard !reduceMotion else { return }
+
         // Subtle look around
         scheduleLook()
         // Occasional squash (like breathing)
@@ -618,10 +768,13 @@ public struct AnimatedLampEye: View {
     }
 
     private func scheduleLook() {
+        // Skip when reduce motion is enabled
+        guard !reduceMotion else { return }
+
         let delay = Double.random(in: 2.5...5.0)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
-                lookDirection = CGPoint(
+                self.lookDirection = CGPoint(
                     x: CGFloat.random(in: -0.4...0.4),
                     y: CGFloat.random(in: -0.2...0.2)
                 )
@@ -630,29 +783,32 @@ public struct AnimatedLampEye: View {
             // Return to center
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 withAnimation(.easeOut(duration: 0.4)) {
-                    lookDirection = .zero
+                    self.lookDirection = .zero
                 }
             }
 
-            scheduleLook()
+            self.scheduleLook()
         }
     }
 
     private func scheduleBreath() {
+        // Skip when reduce motion is enabled
+        guard !reduceMotion else { return }
+
         let delay = Double.random(in: 3.0...5.0)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             // Subtle squash (like a content sigh)
             withAnimation(.easeInOut(duration: 0.3)) {
-                squash = 0.92
+                self.squash = 0.92
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
-                    squash = 1.0
+                    self.squash = 1.0
                 }
             }
 
-            scheduleBreath()
+            self.scheduleBreath()
         }
     }
 }

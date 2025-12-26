@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isSemanticRoutingEnabled } from '../config.js';
 
 const log = createLogger({ module: 'semantic-router:config' });
 
@@ -790,6 +791,14 @@ export function getLLMProviderName(): 'gemini' | 'openai' {
  */
 export function initializeConfig(): void {
   currentConfig = loadConfigFromEnv();
+
+  // Check if semantic routing is globally disabled
+  // (SEMANTIC_ROUTING_ENABLED=false in env)
+  if (!isSemanticRoutingEnabled()) {
+    log.info('⏸️ Semantic routing DISABLED via SEMANTIC_ROUTING_ENABLED=false');
+    log.info('   → JSON function calling workaround will be used instead');
+    return; // Skip all preset configuration
+  }
 
   // Check for explicit preset override via env
   const presetOverride = process.env.SEMANTIC_ROUTER_PRESET as

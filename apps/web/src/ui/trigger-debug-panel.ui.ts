@@ -319,7 +319,7 @@ function renderPanel(data: TriggerAnalyticsResponse | null): string {
     `;
   }
 
-  const { summary, byTrigger, byBuilder, recentActivations } = data;
+  const { summary, byTrigger: _byTrigger, byBuilder, recentActivations } = data;
 
   // Summary section
   const summaryHTML = `

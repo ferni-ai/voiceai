@@ -8,7 +8,7 @@
 
 import { sanitizeSsml, tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { SpeechContext } from '../speech-context.js';
+import type { EnergyLevel, SpeechContext } from '../speech-context.js';
 import { makeVoiceAlive, type AliveVoiceContext } from './alive-voice.js';
 import {
   applySuperhmanVoice,
@@ -16,6 +16,26 @@ import {
   updateSuperhmanVoiceSession,
   type SuperhumanVoiceContext,
 } from './superhuman-voice.js';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Map 3-level energy to 5-level for humanization system
+ */
+function mapTo5Level(
+  energy: EnergyLevel
+): 'very_low' | 'low' | 'neutral' | 'elevated' | 'high' {
+  switch (energy) {
+    case 'low':
+      return 'low';
+    case 'high':
+      return 'elevated';
+    default:
+      return 'neutral';
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -96,7 +116,12 @@ export function tagTextWithSsmlAdaptive(
     userEmotion: context.userEmotion,
     topicWeight: context.topicWeight,
     turnCount: context.turnCount,
-    userEnergy: context.userEnergy,
+    // Use extended 5-level energy for humanization if available
+    userEnergy: context.extendedUserEnergy || mapTo5Level(context.userEnergy),
+    // New humanization fields
+    isLateNight: context.isLateNight,
+    userJustLaughed: context.userJustLaughed,
+    randomSeed: context.randomSeed,
   };
 
   const aliveResult = makeVoiceAlive(tagged, aliveContext);

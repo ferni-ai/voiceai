@@ -62,7 +62,7 @@ let mediaRecorder: MediaRecorder | null = null;
 let audioChunks: Blob[] = [];
 let recordedAudioBlob: Blob | null = null;
 let isRecording = false;
-let createdAgentId: string | null = null;
+let _createdAgentId: string | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -180,7 +180,7 @@ export function openCustomAgentWizard(options: WizardOptions | boolean = true): 
       type: preselectedType,
     };
     currentStep = 1;
-    createdAgentId = null;
+    _createdAgentId = null;
     log.info(`Starting wizard with preselected type: ${preselectedType}`);
   } else if (resumeDraft) {
     // Load existing draft or start fresh
@@ -197,7 +197,7 @@ export function openCustomAgentWizard(options: WizardOptions | boolean = true): 
     clearAgentDraft();
     draft = { step: 0, updatedAt: new Date().toISOString() };
     currentStep = 0;
-    createdAgentId = null;
+    _createdAgentId = null;
   }
 
   // Show modal
@@ -926,7 +926,7 @@ function attachStepListeners(): void {
       });
       break;
 
-    case 'info':
+    case 'info': {
       const nameInput = content.querySelector('#agent-name') as HTMLInputElement;
       const displayNameInput = content.querySelector('#agent-display-name') as HTMLInputElement;
       const descInput = content.querySelector('#agent-description') as HTMLTextAreaElement;
@@ -943,6 +943,7 @@ function attachStepListeners(): void {
         btn.addEventListener('click', handleIconSelect);
       });
       break;
+    }
 
     case 'voice':
       content.querySelectorAll('.voice-option').forEach((btn) => {
@@ -1385,9 +1386,9 @@ async function createAgent(): Promise<void> {
       type: draft.type!,
       icon: draft.icon,
     });
-    
-    createdAgentId = agent.id;
-    
+
+    _createdAgentId = agent.id;
+
     // Upload voice if recorded
     if (draft.voiceOption === 'clone' && recordedAudioBlob) {
       const { audioUrl } = await uploadVoiceSample(agent.id, recordedAudioBlob);
@@ -2005,7 +2006,7 @@ function getWizardStyles(): string {
     .voice-tag {
       font-size: 0.65rem;
       padding: 2px 6px;
-      background: var(--color-bg-tertiary);
+      background: var(--tonal-surface-1);
       border-radius: var(--radius-sm, 4px);
       color: var(--color-text-dimmed);
     }

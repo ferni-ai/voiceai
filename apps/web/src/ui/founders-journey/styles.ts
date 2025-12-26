@@ -38,22 +38,32 @@ export function getFoundersJourneyStyles(): string {
     .founders-journey-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.75));
-      backdrop-filter: blur(var(--glass-blur-modal, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     /* Card Container */
     .founders-journey-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: 600px;
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
       overflow-x: hidden;
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .founders-journey-card {
+        background: var(--color-background-elevated, #FFFDFB);
+      }
     }
 
     .founders-journey-close {
@@ -191,12 +201,12 @@ export function getFoundersJourneyStyles(): string {
 
     .founders-journey-tab--active {
       background: var(--persona-tint);
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .founders-journey-tab--active svg,
     .founders-journey-tab--active span {
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-journey-tab:focus-visible {
@@ -275,7 +285,7 @@ export function getFoundersJourneyStyles(): string {
       padding: var(--space-3, 12px);
       background: var(--persona-tint);
       border-radius: var(--radius-lg, 12px);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-principle-icon svg {
@@ -307,7 +317,7 @@ export function getFoundersJourneyStyles(): string {
     .founders-vision-promise-text {
       font-size: 1rem;
       font-weight: 500;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       margin: 0;
     }
 
@@ -358,7 +368,7 @@ export function getFoundersJourneyStyles(): string {
 
     .founders-timeline-item--present .founders-timeline-marker {
       background: var(--persona-primary);
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .founders-timeline-item--future .founders-timeline-marker {
@@ -387,7 +397,7 @@ export function getFoundersJourneyStyles(): string {
     .founders-timeline-date {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -440,7 +450,7 @@ export function getFoundersJourneyStyles(): string {
     .founders-win-icon {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-win-icon svg {
@@ -477,7 +487,7 @@ export function getFoundersJourneyStyles(): string {
     }
 
     .founders-feature-card:hover {
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
       background: var(--color-background-elevated);
     }
 
@@ -498,7 +508,7 @@ export function getFoundersJourneyStyles(): string {
     }
 
     .founders-feature-stage--seed { background: var(--color-semantic-info-bg, #e8f4fd); color: var(--color-semantic-info, #2563eb); }
-    .founders-feature-stage--sprout { background: var(--persona-tint); color: var(--persona-primary); }
+    .founders-feature-stage--sprout { background: var(--persona-tint); color: var(--persona-text); }
     .founders-feature-stage--bud { background: var(--color-semantic-warning-bg, #fff8e6); color: var(--color-semantic-warning, #d97706); }
     .founders-feature-stage--bloom { background: var(--color-semantic-success-bg, #ecfdf5); color: var(--color-semantic-success, #10b981); }
 
@@ -582,7 +592,7 @@ export function getImpactStyles(): string {
       font-family: var(--font-display);
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       line-height: 1;
     }
 
@@ -664,7 +674,7 @@ export function getImpactStyles(): string {
     .founders-personal-icon {
       width: 24px;
       height: 24px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-personal-icon svg {
@@ -675,7 +685,7 @@ export function getImpactStyles(): string {
     .founders-personal-title {
       font-size: 0.9375rem;
       font-weight: 600;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-personal-stats {
@@ -722,7 +732,7 @@ export function getImpactStyles(): string {
     .founders-personal-thanks {
       font-size: 0.875rem;
       font-style: italic;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       text-align: center;
       margin: 0;
     }
@@ -745,7 +755,7 @@ export function getImpactStyles(): string {
     .founders-milestone-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-milestone-icon svg {
@@ -791,7 +801,7 @@ export function getImpactStyles(): string {
     }
 
     .founders-milestone-reward {
-      color: var(--persona-primary);
+      color: var(--persona-text);
       font-weight: 500;
     }
   `;
@@ -820,7 +830,7 @@ export function getStoriesStyles(): string {
     .founders-stories-title svg {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-stories-slider {
@@ -860,7 +870,7 @@ export function getStoriesStyles(): string {
     .founders-story-cite {
       font-size: 0.875rem;
       font-style: normal;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       font-weight: 500;
     }
 
@@ -887,7 +897,7 @@ export function getStoriesStyles(): string {
     .founders-stories-nav:hover,
     .founders-stories-nav:focus-visible {
       background: var(--color-background-elevated);
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .founders-stories-nav:focus-visible {
@@ -941,7 +951,7 @@ export function getStoriesStyles(): string {
     .founders-impact-cta-text {
       font-size: 1rem;
       font-weight: 500;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       margin: 0;
     }
 
@@ -1030,7 +1040,7 @@ export function getFoundersWallStyles(): string {
     .founders-wall-tier-title svg {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-wall-tier-count {
@@ -1185,7 +1195,7 @@ export function getFoundersWallStyles(): string {
       font-family: var(--font-display);
       font-size: 2rem;
       font-weight: 700;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .founders-wall-label {

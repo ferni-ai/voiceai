@@ -104,6 +104,10 @@ export const EASING = {
   EXPO_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)',
   EXPO_IN_OUT: 'cubic-bezier(0.87, 0, 0.13, 1)',
 
+  // Aliases for backward compatibility
+  EASE_OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)', // alias for EXPO_OUT
+  OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)', // alias for EXPO_OUT
+
   // Gentle/Organic
   GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
   ORGANIC: 'cubic-bezier(0.4, 0.2, 0.2, 1.1)',

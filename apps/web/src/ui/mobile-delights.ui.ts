@@ -26,7 +26,7 @@ import { avatarLookAt, pauseAvatarEyeTracking } from './eye-tracking.ui.js';
 const log = createLogger('MobileDelights');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -144,7 +144,7 @@ export function initMobileDelights(options: MobileDelightsConfig = {}): void {
 
   // Initialize features
   if (config.enableTiltParallax) {
-    initTiltParallax();
+    void initTiltParallax();
   }
 
   if (config.enableTapToLook) {

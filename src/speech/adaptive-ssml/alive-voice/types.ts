@@ -19,8 +19,8 @@ export interface AliveVoiceContext {
   turnCount?: number;
   /** Persona ID */
   personaId?: string;
-  /** User's energy level */
-  userEnergy?: 'low' | 'medium' | 'high';
+  /** User's energy level (maps to energy-matching.json) */
+  userEnergy?: 'very_low' | 'low' | 'neutral' | 'elevated' | 'high';
   /** Is this response to good news? */
   isGoodNews?: boolean;
   /** Is this response to bad news? */
@@ -39,6 +39,10 @@ export interface AliveVoiceContext {
   sessionId?: string;
   /** Enable contextual laughter */
   enableLaughter?: boolean;
+  /** Is it late at night? (11pm-5am) */
+  isLateNight?: boolean;
+  /** Random seed for deterministic behavior selection */
+  randomSeed?: string;
 }
 
 export interface AliveVoiceResult {

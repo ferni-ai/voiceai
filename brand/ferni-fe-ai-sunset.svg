@@ -1,49 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- FE AI logo - sunset variant (Jordan's color) -->
   <defs>
-    <!-- Warm sunset/golden hour gradient -->
-    <linearGradient id="sunsetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f97316"/>
-      <stop offset="35%" style="stop-color:#ec4899"/>
-      <stop offset="70%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#3b82f6"/>
+    <linearGradient id="sunsetOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#a86d55"/>
+      <stop offset="100%" stop-color="#c4856a"/>
     </linearGradient>
-    
-    <filter id="dropShadow">
-      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#2C2520" flood-opacity="0.25"/>
-    </filter>
+    <linearGradient id="sunsetShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
   </defs>
   
-  <!-- Main ellipse -->
-  <ellipse 
-    cx="200" 
-    cy="120" 
-    rx="180" 
-    ry="100" 
-    fill="url(#sunsetGradient)"
-    filter="url(#dropShadow)"
-  />
-  
-  <!-- FE circle -->
-  <circle cx="130" cy="120" r="45" fill="rgba(0,0,0,0.2)"/>
-  <text 
-    x="130" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="700"
-    fill="#FFFDFB" 
-    text-anchor="middle"
-  >FE</text>
-  
-  <!-- AI circle -->
-  <circle cx="270" cy="120" r="45" fill="rgba(255,255,255,0.95)"/>
-  <text 
-    x="270" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="700"
-    fill="#4a4a4a" 
-    text-anchor="middle"
-  >AI</text>
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#c4856a" stroke-width="1.5" opacity="0.35"/>
+  <circle cx="50" cy="50" r="40" fill="url(#sunsetOrb)"/>
+  <circle cx="50" cy="50" r="40" fill="url(#sunsetShine)"/>
+  <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="30" font-weight="800" fill="white" letter-spacing="-1">
+    <tspan dy="2">FE</tspan>
+  </text>
 </svg>

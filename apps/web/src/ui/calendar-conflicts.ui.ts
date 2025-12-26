@@ -140,7 +140,7 @@ class CalendarConflictsUI {
 
       if (response.data?.success) {
         this.conflicts = response.data.conflicts;
-        this.preferredResolution = response.data.preference || 'manual';
+        this.preferredResolution = response.data.preference ?? 'manual';
       } else {
         this.conflicts = [];
       }
@@ -242,8 +242,8 @@ class CalendarConflictsUI {
 
   private renderConflictCard(conflict: CalendarConflict): string {
     const providerName = this.getProviderName(conflict.provider);
-    const ferniTitle = conflict.ferniEvent.title || '(No title)';
-    const providerTitle = conflict.providerEvent.title || '(No title)';
+    const ferniTitle = conflict.ferniEvent.title ?? '(No title)';
+    const providerTitle = conflict.providerEvent.title ?? '(No title)';
 
     const ferniTime = this.formatDateTime(conflict.ferniEvent.startTime, conflict.ferniEvent.endTime);
     const providerTime = this.formatDateTime(conflict.providerEvent.startTime, conflict.providerEvent.endTime);
@@ -483,7 +483,7 @@ class CalendarConflictsUI {
   }
 
   private getUserId(): string {
-    return localStorage.getItem('ferni_user_id') || 'anonymous';
+    return localStorage.getItem('ferni_user_id') ?? 'anonymous';
   }
 
   private escapeHtml(text: string): string {
@@ -845,12 +845,16 @@ class CalendarConflictsUI {
       }
 
       .calendar-conflicts__btn--secondary {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--tonal-surface-2);
         color: var(--color-text-primary, #2c2520);
       }
 
       .calendar-conflicts__btn--secondary:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--tonal-surface-3);
+      }
+
+      .calendar-conflicts__btn--secondary:active {
+        background: var(--tonal-surface-active);
       }
 
       .calendar-conflicts__btn:disabled {

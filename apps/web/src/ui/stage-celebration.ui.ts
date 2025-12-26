@@ -180,19 +180,23 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: var(--backdrop-medium);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
     
     .celebration-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+      border-radius: var(--radius-xl, 20px);
       padding: var(--space-10, 40px) var(--space-12, 48px);
       text-align: center;
       max-width: clamp(294px, 90vw, 420px);
       width: calc(100% - var(--space-8, 32px));
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25));
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.9) translateY(20px);
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
@@ -336,21 +340,25 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: var(--backdrop-medium);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
     
     .journey-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+      border-radius: var(--radius-xl, 20px);
       max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - var(--space-8, 32px));
       max-height: calc(100vh - var(--space-16, 64px));
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25));
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.9) translateY(20px);
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
@@ -1178,9 +1186,9 @@ export function toggleProgressPanel(): void {
   });
 }
 
-function updateProgressPanel(): void {
+function _updateProgressPanel(): void {
   if (!progressPanel) return;
-  
+
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();

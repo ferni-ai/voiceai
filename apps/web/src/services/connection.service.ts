@@ -394,12 +394,12 @@ class ConnectionService {
       // 📊 Initialize disconnect diagnostics session
       try {
         const { startSession, trackPeerConnection } = await import('./disconnect-diagnostics.service.js');
-        const sessionId = tokenResponse.roomName || `session-${Date.now()}`;
-        startSession(sessionId, tokenResponse.roomName || 'unknown', tokenResponse.identity);
+        const sessionId = tokenResponse.room || `session-${Date.now()}`;
+        startSession(sessionId, tokenResponse.room || 'unknown', tokenResponse.username);
         
         // Track the RTCPeerConnection for WebRTC diagnostics
         // LiveKit's Room internally uses RTCPeerConnection - try to access it
-        const pc = (this.room as any).engine?.pcManager?.publisher?.pc as RTCPeerConnection | undefined;
+        const pc = (this.room as unknown as { engine?: { pcManager?: { publisher?: { pc?: RTCPeerConnection } } } }).engine?.pcManager?.publisher?.pc;
         if (pc) {
           trackPeerConnection(pc);
           log.debug('📊 Tracking RTCPeerConnection for diagnostics');
@@ -605,7 +605,7 @@ class ConnectionService {
       log.info('🔄 Room reconnected - re-enabling microphone');
       try {
         // Check if mic should be enabled (user hasn't muted)
-        const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+        const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
         if (!isMuted && this.room?.localParticipant) {
           await this.room.localParticipant.setMicrophoneEnabled(true);
           log.info('🎤 Microphone re-enabled after reconnection');
@@ -918,14 +918,14 @@ class ConnectionService {
       if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
         log.debug('📱 App became visible - checking microphone state');
         try {
-          const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
           if (!isMuted && this.room?.localParticipant) {
             // Small delay to let audio context resume
             await new Promise(resolve => setTimeout(resolve, 100));
             
             // Check if mic is already publishing
             const audioTracks = this.room.localParticipant.getTrackPublications()
-              .filter((pub: any) => pub.kind === 'audio' && pub.track);
+              .filter((pub: { kind?: string; track?: unknown }) => pub.kind === 'audio' && pub.track);
             
             if (audioTracks.length === 0) {
               log.info('📱 No audio track found - re-enabling microphone');
@@ -951,7 +951,7 @@ class ConnectionService {
       if (isActive && this.room?.state === 'connected') {
         log.info('📱 Native app became active - restoring microphone');
         try {
-          const isMuted = (window as any).appState?.get?.('isMuted') ?? false;
+          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
           if (!isMuted && this.room?.localParticipant) {
             // Longer delay for native - iOS audio session needs time to restore
             await new Promise(resolve => setTimeout(resolve, 300));

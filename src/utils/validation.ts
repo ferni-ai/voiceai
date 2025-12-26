@@ -135,12 +135,14 @@ export function sanitizePhoneForLog(phone: string): string {
 export function sanitizePlainText(text: string): string {
   if (!text || typeof text !== 'string') return '';
 
-  return text
-    .trim()
-    // eslint-disable-next-line no-control-regex -- Intentionally matching control characters for sanitization
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
-    .replace(/[<>]/g, '') // Remove angle brackets (prevent HTML injection)
-    .slice(0, 10000); // Reasonable max length
+  return (
+    text
+      .trim()
+      // eslint-disable-next-line no-control-regex -- Intentionally matching control characters for sanitization
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+      .replace(/[<>]/g, '') // Remove angle brackets (prevent HTML injection)
+      .slice(0, 10000)
+  ); // Reasonable max length
 }
 
 /**

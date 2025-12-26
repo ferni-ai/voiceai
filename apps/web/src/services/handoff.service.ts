@@ -335,7 +335,7 @@ class HandoffService {
     const event = message as HandoffEvent;
     // FIX BUG: Backend may send 'target' OR 'newAgent' - accept either
     const eventWithTarget = event as HandoffEvent & { target?: string };
-    const agentId = event.newAgent || eventWithTarget.target || '';
+    const agentId = event.newAgent ?? eventWithTarget.target ?? '';
     const toPersona = normalizeAgentId(agentId);
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
     const fromPersona = eventWithPrevious.previousAgent
@@ -366,7 +366,7 @@ class HandoffService {
         success?: boolean;
         error?: string;
       };
-      const target = normalizeAgentId(ackEvent.target || ackEvent.newAgent);
+      const target = normalizeAgentId(ackEvent.target ?? ackEvent.newAgent);
       const success = ackEvent.success ?? true;
       const error = ackEvent.error;
 
@@ -394,7 +394,7 @@ class HandoffService {
 
       // WARM HANDOFF: Extract banter text from the event
       const banter: HandoffBanter | undefined =
-        event.softOpenBanter || event.arrivingBanter
+        event.softOpenBanter ?? event.arrivingBanter
           ? { softOpen: event.softOpenBanter, arriving: event.arrivingBanter }
           : undefined;
 
@@ -1005,7 +1005,7 @@ class HandoffService {
 
     this.metPersonas.clear();
     // BUG FIX: Use the actual starting persona, not always 'ferni'
-    this.metPersonas.add(startingPersonaId || 'ferni');
+    this.metPersonas.add(startingPersonaId ?? 'ferni');
     this._isTransitioning = false;
     this._targetPersona = null;
     // FIX BUG #31: Reset sequence tracking on session reset
@@ -1076,7 +1076,7 @@ class HandoffService {
     // FIX BUG: Backend sends 'target' (from coordinator) OR 'newAgent' (legacy)
     // Accept either field to prevent undefined being passed to normalizeAgentId
     const eventWithTarget = event as HandoffEvent & { target?: string };
-    const agentId = event.newAgent || eventWithTarget.target;
+    const agentId = event.newAgent ?? eventWithTarget.target;
     const toPersona = normalizeAgentId(agentId);
 
     log.debug('Normalizing handoff:', {

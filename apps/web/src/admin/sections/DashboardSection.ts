@@ -513,7 +513,7 @@ function renderStatCard(stat: QuickStat): string {
       ${
         stat.change
           ? `
-        <div class="stat-change stat-change--${stat.trend || 'neutral'}">
+        <div class="stat-change stat-change--${stat.trend ?? 'neutral'}">
           ${trendIcon}
           ${stat.change}
         </div>
@@ -628,7 +628,7 @@ async function fetchRecentActivity(): Promise<ActivityEvent[]> {
 
     if (response.ok) {
       const data = await response.json();
-      return data.activity || [];
+      return data.activity ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch recent activity');

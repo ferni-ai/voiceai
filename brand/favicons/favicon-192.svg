@@ -1,51 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <!-- 
-    Ferni Favicon 192x192 - Three Stones (PWA)
-    High-resolution with full detail and subtle animations
-  -->
-  
+<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Stone body gradient -->
-    <radialGradient id="stoneGrad192" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    
-    <!-- Outer glow -->
-    <filter id="glow192" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <linearGradient id="fav192Orb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="fav192Shine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fav192Badge" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="fav192Shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#2c2520" flood-opacity="0.25"/>
     </filter>
-    
-    <!-- Catchlight shine -->
-    <radialGradient id="catchlight192" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </radialGradient>
   </defs>
   
-  <!-- Background with rounded corners (iOS style) -->
-  <rect width="192" height="192" rx="38" fill="#F5F1E8"/>
+  <circle cx="96" cy="96" r="90" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35"/>
+  <circle cx="96" cy="96" r="80" fill="url(#fav192Orb)"/>
+  <circle cx="96" cy="96" r="80" fill="url(#fav192Shine)"/>
   
-  <!-- Outer glow ring -->
-  <circle cx="96" cy="96" r="76" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.25"/>
+  <text x="96" y="96" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="56" font-weight="800" fill="white" letter-spacing="-2">
+    <tspan dy="4">FE</tspan>
+  </text>
   
-  <!-- Outer Stone: Body -->
-  <circle cx="96" cy="96" r="68" fill="url(#stoneGrad192)" filter="url(#glow192)"/>
-  
-  <!-- Middle Stone: Eye White -->
-  <circle cx="96" cy="96" r="28" fill="white"/>
-  
-  <!-- Iris -->
-  <circle cx="96" cy="96" r="18" fill="#5a8060"/>
-  
-  <!-- Inner Stone: Pupil -->
-  <circle cx="96" cy="96" r="9" fill="#2c2520"/>
-  
-  <!-- Catchlight (life spark) - larger, more visible -->
-  <circle cx="90" cy="90" r="4" fill="url(#catchlight192)"/>
-  
-  <!-- Secondary catchlight (smaller) -->
-  <circle cx="102" cy="100" r="1.5" fill="white" opacity="0.4"/>
+  <circle cx="156" cy="156" r="22" fill="url(#fav192Badge)" stroke="#FFFDFB" stroke-width="4" filter="url(#fav192Shadow)"/>
+  <path d="M156 149c0-3.2-2.6-5.8-5.8-5.8s-5.8 2.6-5.8 5.8c0 5.8 11 14.5 11 14.5s11-8.7 11-14.5c0-3.2-2.6-5.8-5.8-5.8s-5.8 2.6-5.8 5.8z"
+    fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

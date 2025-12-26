@@ -20,12 +20,38 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Ferni plays music that matches your mood to help you feel better.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Ferni uses your contacts to remember the people in your life and help you stay connected.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Ferni uses health data to provide personalized wellness insights and notice when you might need extra support.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Ferni may save wellness notes to your Health app.</string>
+	<key>NSHomeKitUsageDescription</key>
+	<string>Ferni can adjust your smart home lighting to create calming or energizing environments.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ferni uses your location to provide context-aware support, like knowing when you're at home vs work.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Ferni needs microphone access for voice conversations with your AI team.</string>
+	<key>NSSiriUsageDescription</key>
+	<string>Add Ferni shortcuts to Siri for quick access to emotional support.</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.ferni.talk</string>
+		<string>com.ferni.support</string>
+		<string>com.ferni.checkin</string>
+		<string>com.ferni.music.calming</string>
+		<string>com.ferni.routine.morning</string>
+		<string>com.ferni.routine.evening</string>
+		<string>com.ferni.vent</string>
+		<string>com.ferni.gratitude</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 		<string>voip</string>
+		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

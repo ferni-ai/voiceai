@@ -7,6 +7,7 @@
  * @module @ferni/superhuman/content-loader
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -327,7 +328,7 @@ export function clearContentCache(personaId?: string): void {
  */
 export function getRandomPhrase(phrases: string[] | undefined): string | null {
   if (!phrases || phrases.length === 0) return null;
-  return phrases[Math.floor(Math.random() * phrases.length)];
+  return seededPick(`${Date.now()}:331`, phrases) ?? phrases[0];
 }
 
 /**

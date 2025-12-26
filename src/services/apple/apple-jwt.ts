@@ -15,6 +15,7 @@
  */
 
 import * as crypto from 'crypto';
+import * as fs from 'fs';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -54,7 +55,6 @@ function getPrivateKey(): string {
 
   // Otherwise, try to read it as a file path
   try {
-    const fs = require('fs');
     return fs.readFileSync(APPLE_PRIVATE_KEY, 'utf8');
   } catch {
     throw new Error('APPLE_PRIVATE_KEY is not valid key content or file path');

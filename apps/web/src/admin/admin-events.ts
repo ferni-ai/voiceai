@@ -46,8 +46,8 @@ export async function toggleFlag(flagId: string, enabled: boolean): Promise<bool
       toast.success(`Flag ${enabled ? 'enabled' : 'disabled'}`);
       return true;
     } else {
-      const error = await response.json();
-      toast.error(error.error || 'Failed to update flag');
+      const error = (await response.json()) as { error?: string };
+      toast.error(error.error ?? 'Failed to update flag');
       return false;
     }
   } catch (error) {
@@ -70,8 +70,8 @@ export async function setFlagRollout(flagId: string, percentage: number): Promis
       toast.success(`Rollout set to ${percentage}%`);
       return true;
     } else {
-      const error = await response.json();
-      toast.error(error.error || 'Failed to update rollout');
+      const error = (await response.json()) as { error?: string };
+      toast.error(error.error ?? 'Failed to update rollout');
       return false;
     }
   } catch (error) {
@@ -164,8 +164,8 @@ export async function toggleAgent(agentId: string, enabled: boolean): Promise<bo
       toast.success(`Agent ${enabled ? 'enabled' : 'disabled'}`);
       return true;
     } else {
-      const error = await response.json();
-      toast.error(error.error || 'Failed to update agent');
+      const error = (await response.json()) as { error?: string };
+      toast.error(error.error ?? 'Failed to update agent');
       return false;
     }
   } catch (error) {
@@ -186,7 +186,11 @@ export async function editAgent(agentId: string): Promise<void> {
       return;
     }
     
-    const { agent } = await response.json();
+    const { agent } = (await response.json()) as { agent: {
+      name: string;
+      subtitle?: string;
+      colors?: { primary?: string; secondary?: string };
+    } };
     
     // Create and show edit modal
     const modal = document.createElement('div');
@@ -204,15 +208,15 @@ export async function editAgent(agentId: string): Promise<void> {
         <div class="admin-modal-content">
           <div class="admin-form-group">
             <label class="admin-label" for="agentSubtitle">Subtitle</label>
-            <input type="text" class="admin-input" id="agentSubtitle" value="${agent.subtitle || ''}" placeholder="e.g. Life Coach">
+            <input type="text" class="admin-input" id="agentSubtitle" value="${agent.subtitle ?? ''}" placeholder="e.g. Life Coach">
           </div>
           <div class="admin-form-group">
             <label class="admin-label" for="agentPrimaryColor">Primary Color</label>
-            <input type="color" class="admin-color-input" id="agentPrimaryColor" value="${agent.colors?.primary || TEMPLATE_COLORS.ferni.primary}">
+            <input type="color" class="admin-color-input" id="agentPrimaryColor" value="${agent.colors?.primary ?? TEMPLATE_COLORS.ferni.primary}">
           </div>
           <div class="admin-form-group">
             <label class="admin-label" for="agentSecondaryColor">Secondary Color</label>
-            <input type="color" class="admin-color-input" id="agentSecondaryColor" value="${agent.colors?.secondary || TEMPLATE_COLORS.ferni.secondary}">
+            <input type="color" class="admin-color-input" id="agentSecondaryColor" value="${agent.colors?.secondary ?? TEMPLATE_COLORS.ferni.secondary}">
           </div>
         </div>
         <footer class="admin-modal-footer">
@@ -223,31 +227,33 @@ export async function editAgent(agentId: string): Promise<void> {
     `;
     
     document.body.appendChild(modal);
-    
+
     // Handle close
-    modal.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
-      if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
-        modal.remove();
-      }
-      if (target.matches('[data-action="save-agent"]')) {
-        const subtitle = (document.getElementById('agentSubtitle') as HTMLInputElement).value;
-        const primary = (document.getElementById('agentPrimaryColor') as HTMLInputElement).value;
-        const secondary = (document.getElementById('agentSecondaryColor') as HTMLInputElement).value;
-        
-        const saveResponse = await adminFetch(`/api/v1/admin/agents/${agentId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ subtitle, colors: { primary, secondary } }),
-        });
-        
-        if (saveResponse.ok) {
-          toast.success('Agent updated');
+    modal.addEventListener('click', (e) => {
+      void (async () => {
+        const target = e.target as HTMLElement;
+        if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
           modal.remove();
-          window.location.reload();
-        } else {
-          toast.error("Couldn't save changes");
         }
-      }
+        if (target.matches('[data-action="save-agent"]')) {
+          const subtitle = (document.getElementById('agentSubtitle') as HTMLInputElement).value;
+          const primary = (document.getElementById('agentPrimaryColor') as HTMLInputElement).value;
+          const secondary = (document.getElementById('agentSecondaryColor') as HTMLInputElement).value;
+
+          const saveResponse = await adminFetch(`/api/v1/admin/agents/${agentId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ subtitle, colors: { primary, secondary } }),
+          });
+
+          if (saveResponse.ok) {
+            toast.success('Agent updated');
+            modal.remove();
+            window.location.reload();
+          } else {
+            toast.error("Couldn't save changes");
+          }
+        }
+      })();
     });
   } catch (error) {
     log.error({ error, agentId }, 'Failed to edit agent');
@@ -463,14 +469,15 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
 
   document.body.appendChild(modal);
 
-  modal.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement;
+  modal.addEventListener('click', (e) => {
+    void (async () => {
+      const target = e.target as HTMLElement;
 
-    if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
-      modal.remove();
-    }
+      if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+        modal.remove();
+      }
 
-    if (target.matches('[data-action="create-from-template"]')) {
+      if (target.matches('[data-action="create-from-template"]')) {
       const id = (document.getElementById('templateAgentId') as HTMLInputElement).value.trim();
       const name = (document.getElementById('templateAgentName') as HTMLInputElement).value.trim();
       const subtitle = (document.getElementById('templateAgentSubtitle') as HTMLInputElement).value.trim();
@@ -506,7 +513,7 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
         });
 
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as { bundlePath?: string };
           toast.success(`Agent "${name}" created successfully!`);
 
           if (result.bundlePath) {
@@ -518,14 +525,15 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
           modal.remove();
           window.location.reload();
         } else {
-          const error = await response.json();
-          toast.error(error.error || 'Failed to create agent');
+          const error = (await response.json()) as { error?: string };
+          toast.error(error.error ?? 'Failed to create agent');
         }
       } catch (error) {
         log.error({ error, templateId }, 'Failed to create agent from template');
         toast.error("Couldn't create agent");
       }
     }
+    })();
   });
 }
 
@@ -537,8 +545,8 @@ export async function validateAgents(): Promise<{ success: boolean; output?: str
     const response = await adminFetch('/api/v1/admin/agents/validate', {
       method: 'POST',
     });
-    
-    const result = await response.json();
+
+    const result = (await response.json()) as { success: boolean; output?: string; errors?: string };
     
     if (result.success) {
       toast.success('All agents valid!');
@@ -551,8 +559,8 @@ export async function validateAgents(): Promise<{ success: boolean; output?: str
       result.success ? 'Validation Passed' : 'Validation Results',
       {
         success: result.success,
-        output: result.output || 'No output',
-        errors: result.errors || null,
+        output: result.output ?? 'No output',
+        errors: result.errors ?? null,
       }
     );
     
@@ -730,11 +738,11 @@ export async function runQuickVoiceCheck(): Promise<void> {
     });
     
     if (response.ok) {
-      const result = await response.json();
+      const result = (await response.json()) as { passed: boolean; score?: number; reason?: string };
       if (result.passed) {
-        toast.success(`Voice check passed (${result.score}% consistency)`);
+        toast.success(`Voice check passed (${result.score ?? 0}% consistency)`);
       } else {
-        toast.warning(`Voice check flagged: ${result.reason || 'Needs review'}`);
+        toast.warning(`Voice check flagged: ${result.reason ?? 'Needs review'}`);
       }
       
       // Show detailed results in modal
@@ -757,18 +765,18 @@ export async function exportEvalOpsReport(): Promise<void> {
       adminFetch('/api/evalops/metrics'),
       adminFetch('/api/evalops/evaluations/flagged'),
     ]);
-    
-    const metrics = metricsRes.ok ? await metricsRes.json() : {};
-    const flagged = flaggedRes.ok ? await flaggedRes.json() : { evaluations: [] };
+
+    const metrics = metricsRes.ok ? (await metricsRes.json()) as { totalEvaluations?: number; passRate?: number } : {};
+    const flagged = flaggedRes.ok ? (await flaggedRes.json()) as { evaluations?: unknown[] } : { evaluations: [] };
     
     const report = {
       generatedAt: new Date().toISOString(),
       metrics,
-      flaggedResponses: flagged.evaluations || [],
+      flaggedResponses: flagged.evaluations ?? [],
       summary: {
-        totalEvaluations: metrics.totalEvaluations || 0,
-        passRate: metrics.passRate || 0,
-        flaggedCount: flagged.evaluations?.length || 0,
+        totalEvaluations: metrics.totalEvaluations ?? 0,
+        passRate: metrics.passRate ?? 0,
+        flaggedCount: flagged.evaluations?.length ?? 0,
       },
     };
     
@@ -870,15 +878,16 @@ export async function openCreateAgentModal(): Promise<void> {
   `;
   
   document.body.appendChild(modal);
-  
-  modal.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement;
-    
-    if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
-      modal.remove();
-    }
-    
-    if (target.matches('[data-action="create-new-agent"]')) {
+
+  modal.addEventListener('click', (e) => {
+    void (async () => {
+      const target = e.target as HTMLElement;
+
+      if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+        modal.remove();
+      }
+
+      if (target.matches('[data-action="create-new-agent"]')) {
       const id = (document.getElementById('newAgentId') as HTMLInputElement).value.trim();
       const name = (document.getElementById('newAgentName') as HTMLInputElement).value.trim();
       const subtitle = (document.getElementById('newAgentSubtitle') as HTMLInputElement).value.trim();
@@ -924,6 +933,7 @@ export async function openCreateAgentModal(): Promise<void> {
         toast.error("Couldn't create agent");
       }
     }
+    })();
   });
 }
 
@@ -1029,7 +1039,7 @@ export async function sendApiRequest(
     }
     
     const response = await fetch(url, options);
-    const data = await response.json().catch(() => response.text());
+    const data: unknown = await response.json().catch(() => response.text());
     
     return {
       status: response.status,
@@ -1056,14 +1066,14 @@ export function initAdminEvents(): void {
   const portal = document.getElementById('adminPortal');
   if (!portal) return;
   
-  portal.addEventListener('click', handleAdminClick);
-  portal.addEventListener('change', handleAdminChange);
-  portal.addEventListener('input', handleAdminInput);
-  
+  portal.addEventListener('click', (e) => { void handleAdminClick(e); });
+  portal.addEventListener('change', (e) => { void handleAdminChange(e); });
+  portal.addEventListener('input', (e) => { void handleAdminInput(e); });
+
   // Drag events for agent reordering
   portal.addEventListener('dragstart', handleDragStart);
   portal.addEventListener('dragover', handleDragOver);
-  portal.addEventListener('drop', handleDrop);
+  portal.addEventListener('drop', (e) => { void handleDrop(e); });
   portal.addEventListener('dragend', handleDragEnd);
   
   // Design system handlers will be set up when that section loads
@@ -1149,8 +1159,8 @@ async function handleAdminClick(e: Event): Promise<void> {
   // Send API request button
   if (target.closest('[data-action="send-request"]')) {
     e.preventDefault();
-    const method = (document.getElementById('testerMethod') as HTMLSelectElement)?.value || 'GET';
-    const url = (document.getElementById('testerUrl') as HTMLInputElement)?.value || '/health';
+    const method = (document.getElementById('testerMethod') as HTMLSelectElement)?.value ?? 'GET';
+    const url = (document.getElementById('testerUrl') as HTMLInputElement)?.value ?? '/health';
     const body = (document.getElementById('testerBody') as HTMLTextAreaElement)?.value;
     const responseEl = document.getElementById('testerResponse');
     
@@ -1217,8 +1227,9 @@ async function handleAdminInput(e: Event): Promise<void> {
     const flagId = target.getAttribute('data-flag-id');
     if (flagId) {
       // Debounce: wait 500ms after user stops typing
-      clearTimeout((target as unknown as { _debounceTimer?: number })._debounceTimer);
-      (target as unknown as { _debounceTimer?: number })._debounceTimer = window.setTimeout(async () => {
+      const targetWithTimer = target as HTMLInputElement & { _debounceTimer?: number };
+      clearTimeout(targetWithTimer._debounceTimer);
+      targetWithTimer._debounceTimer = window.setTimeout(async () => {
         const percentage = parseInt(target.value, 10);
         if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
           await setFlagRollout(flagId, percentage);
@@ -1234,8 +1245,8 @@ async function handleAdminInput(e: Event): Promise<void> {
     const flagItems = document.querySelectorAll('.flag-item');
     
     flagItems.forEach((item: Element) => {
-      const flagId = item.getAttribute('data-flag')?.toLowerCase() || '';
-      const flagName = item.querySelector('.flag-name')?.textContent?.toLowerCase() || '';
+      const flagId = item.getAttribute('data-flag')?.toLowerCase() ?? '';
+      const flagName = item.querySelector('.flag-name')?.textContent?.toLowerCase() ?? '';
       const isMatch = flagId.includes(searchTerm) || flagName.includes(searchTerm);
       (item as HTMLElement).style.display = isMatch ? '' : 'none';
     });
@@ -1255,7 +1266,7 @@ function handleDragStart(e: DragEvent): void {
   if (agentCard && agentCard.getAttribute('draggable') === 'true') {
     draggedElement = agentCard;
     agentCard.classList.add('dragging');
-    e.dataTransfer?.setData('text/plain', agentCard.getAttribute('data-agent-id') || '');
+    e.dataTransfer?.setData('text/plain', agentCard.getAttribute('data-agent-id') ?? '');
     e.dataTransfer!.effectAllowed = 'move';
   }
 }
@@ -1334,7 +1345,7 @@ export function setupDesignSystemHandlers(): void {
           excited: 'var(--color-semantic-warning, #d4a84b)',
           calm: 'var(--persona-maya, #a67a6a)',
         };
-        avatar.style.background = colors[emotion] || 'var(--persona-primary, #4a6741)';
+        avatar.style.background = colors[emotion] ?? 'var(--persona-primary, #4a6741)';
       }
     });
   });

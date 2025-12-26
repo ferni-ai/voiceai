@@ -6,6 +6,7 @@
  * 2. Keyword scoring (fast, fuzzy)
  * 3. Embedding similarity (slower, semantic)
  * 4. Context awareness (uses conversation history)
+ * 5. Holistic NLU (relationship, emotion, time, domain, multi-intent)
  *
  * @module tools/semantic-router/matcher
  */
@@ -22,6 +23,7 @@ import type {
   ToolMatch,
 } from './types.js';
 import { getKeywordWord, getKeywordWeight } from './types.js';
+import { runHolisticLayer, type HolisticLayerResult } from './holistic-layer.js';
 
 // ============================================================================
 // TEXT NORMALIZATION
@@ -494,6 +496,7 @@ interface ScoreEntry {
   embedding: number;
   context: number;
   history: number;
+  holistic: number;
   matchedBy: MatchLayer[];
   matchReason: string[];
 }
@@ -639,6 +642,7 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
           embedding: scores.embedding,
           context: scores.context,
           history: scores.history,
+          holistic: scores.holistic,
         },
         extractedArgs: {},
         missingArgs: [],
@@ -659,7 +663,8 @@ function calculateWeightedScore(
     scores.keyword * config.layerWeights.keyword +
     scores.embedding * config.layerWeights.embedding +
     scores.context * config.layerWeights.context +
-    scores.history * config.layerWeights.history;
+    scores.history * config.layerWeights.history +
+    scores.holistic * config.layerWeights.holistic;
 
   let totalWeight = 0;
   if (scores.pattern > 0) totalWeight += config.layerWeights.pattern;
@@ -667,6 +672,7 @@ function calculateWeightedScore(
   if (scores.embedding > 0) totalWeight += config.layerWeights.embedding;
   if (scores.context > 0) totalWeight += config.layerWeights.context;
   if (scores.history > 0) totalWeight += config.layerWeights.history;
+  if (scores.holistic > 0) totalWeight += config.layerWeights.holistic;
 
   return { weightedScore, totalWeight };
 }
@@ -678,7 +684,8 @@ function calculateWeightedScore(
 export interface CombinedMatchResult {
   intent: DetectedIntent;
   matches: ToolMatch[];
-  timings: Record<MatchLayer | 'total' | 'normalize' | 'intent', number>;
+  timings: Record<MatchLayer | 'total' | 'normalize' | 'intent' | 'holistic', number>;
+  holisticResult?: HolisticLayerResult;
 }
 
 /**
@@ -692,6 +699,9 @@ export function runCombinedMatching(
     conversationHistory?: ConversationTurn[];
     recentTools?: string[];
     queryEmbedding?: EmbeddingVector;
+    sessionId?: string; // For holistic NLU multi-turn tracking
+    userId?: string;
+    personaId?: string;
   }
 ): CombinedMatchResult {
   const startTime = performance.now();
@@ -720,6 +730,7 @@ export function runCombinedMatching(
       embedding: number;
       context: number;
       history: number;
+      holistic: number;
       matchedBy: MatchLayer[];
       matchReason: string[];
     }
@@ -733,6 +744,7 @@ export function runCombinedMatching(
       embedding: 0,
       context: 0,
       history: 0,
+      holistic: 0,
       matchedBy: [],
       matchReason: [],
     });
@@ -751,6 +763,15 @@ export function runCombinedMatching(
     timings
   );
 
+  // Run holistic NLU layer (relationship, emotion, multi-intent detection)
+  const holisticResult = runHolisticLayer(
+    inputText,
+    context?.sessionId,
+    allTools,
+    scoreMap,
+    timings
+  );
+
   // Combine and sort matches
   const allMatches = combineAndSortMatches(scoreMap, config);
   const topMatches = allMatches.slice(0, config.maxMatches);
@@ -761,5 +782,6 @@ export function runCombinedMatching(
     intent,
     matches: topMatches,
     timings: timings as CombinedMatchResult['timings'],
+    holisticResult,
   };
 }

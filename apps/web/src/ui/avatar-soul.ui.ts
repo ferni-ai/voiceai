@@ -41,7 +41,7 @@ import { ferniExpressions } from './ferni-expressions.ui.js';
 const log = createLogger('AvatarSoul');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -2007,7 +2007,7 @@ function injectSoulStyles(): void {
  */
 export function disposeAvatarSoul(): void {
   // FIX BUG: Clear all tracked timeouts first
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Kill all GSAP animations
   if (pupilTimeline) pupilTimeline.kill();

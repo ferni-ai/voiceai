@@ -127,7 +127,8 @@ import { handleDebugRoutes } from '../../api/debug-routes.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
-import { handleCustomAgentRoutes } from '../../api/custom-agent.routes.js';
+// SECURITY: Uses new modular version with Firebase auth (no x-user-id)
+import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
@@ -135,6 +136,7 @@ import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
+import { handleSitesRoutes } from '../../api/sites-routes.js';
 
 // =============================================================================
 // Route Registry
@@ -564,6 +566,18 @@ export const routes: RouteDefinition[] = [
     handler: handleSeedsRoutes,
     category: 'api',
     description: 'Seeds economy',
+  },
+  {
+    prefix: '/api/sites',
+    handler: handleSitesRoutes,
+    category: 'api',
+    description: 'Deployed agent websites',
+  },
+  {
+    prefix: '/sites/',
+    handler: handleSitesRoutes,
+    category: 'static',
+    description: 'Static site serving for path-based sites',
   },
   {
     prefix: '/api/share/',

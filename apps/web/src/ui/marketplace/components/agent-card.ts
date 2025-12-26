@@ -5,12 +5,10 @@
  */
 
 import { t } from '../../../i18n/index.js';
-import { appState } from '../../../state/app.state.js';
 import type { MarketplaceAgent } from '../../../services/marketplace.service.js';
 import {
   getCategoryLabel,
   getPersonaGradient,
-  getPersonaGlow,
 } from '../constants.js';
 import { renderStars, formatReviewCount } from '../utils.js';
 
@@ -31,8 +29,7 @@ export function renderAgentCard(
   isInstalled: boolean
 ): string {
   const agentGradient = getPersonaGradient(agent.id);
-  const agentGlow = getPersonaGlow(agent.id);
-  const agentImage = agent.avatarUrl || '/assets/img/default-agent-avatar.png';
+  const agentImage = agent.icon || '/assets/img/default-agent-avatar.png';
 
   const actions = [];
   if (isInstalled) {
@@ -53,9 +50,9 @@ export function renderAgentCard(
 
   return `
     <div class="marketplace-agent ${isInstalled ? 'installed' : ''}" data-agent-id="${agent.id}" style="
-      --persona-primary: ${agent.primaryColor || 'var(--color-accent-primary)'};
-      --persona-secondary: ${agent.secondaryColor || 'var(--color-accent-secondary)'};
-      --persona-glow: ${agent.glowColor || 'var(--color-accent-glow)'};
+      --persona-primary: ${agent.colors?.primary || 'var(--color-accent-primary)'};
+      --persona-secondary: ${agent.colors?.secondary || 'var(--color-accent-secondary)'};
+      --persona-glow: ${agent.colors?.glow || 'var(--color-accent-glow)'};
       background: ${agentGradient};
       box-shadow: 0 0 0 1px var(--persona-glow), 0 0 20px -5px var(--persona-glow);
     ">
@@ -65,7 +62,7 @@ export function renderAgentCard(
           <h4 class="agent-name">${agent.name}</h4>
           <div class="agent-meta">
             <span class="agent-category">${getCategoryLabel(agent.category)}</span>
-            ${agent.reviewStats ? `<span class="agent-rating">${renderStars(agent.reviewStats.averageRating)} ${formatReviewCount(agent.reviewStats.count)}</span>` : ''}
+            ${agent.rating ? `<span class="agent-rating">${renderStars(agent.rating)} ${formatReviewCount(agent.reviewCount || 0)}</span>` : ''}
           </div>
         </div>
       </div>

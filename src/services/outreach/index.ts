@@ -669,7 +669,7 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
     // Fallback to legacy delivery if new services didn't work
     if (!delivered) {
       log.debug({ channel: finalChannel, userId }, 'Falling back to legacy delivery');
-      const proactiveOutreach = await import('../../tools/proactive-outreach.js');
+      const proactiveOutreach = await import('../../tools/domains/proactive/outreach/index.js');
 
       switch (finalChannel) {
         case 'sms':

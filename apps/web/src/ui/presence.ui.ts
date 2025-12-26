@@ -31,7 +31,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('PresenceUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 import {
   AVATAR_BREATH_TIMING,
@@ -1262,7 +1262,7 @@ export function resetFromSettling(): void {
 
 export function dispose(): void {
   // FIX BUG: Clear all tracked timeouts first
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Stop all animations
   stopEyeTracking();

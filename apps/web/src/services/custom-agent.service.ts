@@ -195,7 +195,7 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }));
+    const error = (await response.json().catch(() => ({ message: response.statusText }))) as { message?: string };
     throw new Error(error.message || `API request failed: ${response.status}`);
   }
 
@@ -295,11 +295,11 @@ export async function uploadVoiceSample(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }));
+    const error = (await response.json().catch(() => ({ message: response.statusText }))) as { message?: string };
     throw new Error(error.message || 'Failed to upload voice sample');
   }
 
-  return response.json();
+  return response.json() as Promise<unknown>;
 }
 
 /**

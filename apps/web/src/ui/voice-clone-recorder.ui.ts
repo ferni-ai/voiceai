@@ -17,7 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
-import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
+import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 
 const log = createLogger('VoiceCloneRecorder');
 
@@ -144,7 +144,7 @@ const RECORDING_PROMPTS: RecordingPrompt[] = [
 ];
 
 const MIN_SAMPLES_REQUIRED = 5;
-const IDEAL_SAMPLES = 10;
+const _IDEAL_SAMPLES = 10;
 
 // ============================================================================
 // STATE
@@ -181,7 +181,7 @@ const STYLES = `
   .voice-clone-recorder-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy, rgba(0, 0, 0, 0.7));
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }

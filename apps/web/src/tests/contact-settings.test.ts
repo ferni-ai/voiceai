@@ -305,7 +305,7 @@ describe('Contact Settings UI', () => {
       await new Promise((r) => setTimeout(r, 200));
 
       // Should show code input
-      const codeInput = document.querySelector('[data-field="verification-code"]');
+      const _codeInput = document.querySelector('[data-field="verification-code"]');
       // Implementation dependent
     });
 
@@ -316,7 +316,7 @@ describe('Contact Settings UI', () => {
       await new Promise((r) => setTimeout(r, 200));
 
       // Should show verified indicator
-      const verifiedBadge = document.querySelector('.phone-verified, [data-verified="true"]');
+      const _verifiedBadge = document.querySelector('.phone-verified, [data-verified="true"]');
       // Implementation dependent
     });
   });
@@ -339,8 +339,8 @@ describe('Contact Settings UI', () => {
       await new Promise((r) => setTimeout(r, 200));
 
       // Quiet hours is enabled in mock data
-      const startTime = document.querySelector('[data-field="quiet-start"]');
-      const endTime = document.querySelector('[data-field="quiet-end"]');
+      const _startTime = document.querySelector('[data-field="quiet-start"]');
+      const _endTime = document.querySelector('[data-field="quiet-end"]');
       // Implementation dependent
     });
 
@@ -494,7 +494,7 @@ describe('Contact Settings UI', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       const phoneInput = findPhoneInput();
-      const emailInput = findEmailInput();
+      const _emailInput = findEmailInput();
 
       // Inputs should have labels or aria-labels
       expect(
@@ -537,7 +537,7 @@ describe('Contact Settings UI', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       const modal = findContactModal();
-      const text = modal?.textContent || '';
+      const _text = modal?.textContent || '';
 
       // Should explain quiet hours purpose
     });

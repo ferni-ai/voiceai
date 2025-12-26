@@ -17,10 +17,12 @@
  */
 
 import { log } from '@livekit/agents';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { SessionServices } from '../../services/index.js';
 import type { EnglishAccent } from '../../config/voice-accents.js';
-import { createSessionServices } from '../../services/index.js';
+import { resetAllConversationState } from '../../conversation/index.js';
+import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
+import type { PersonaConfig } from '../../personas/types.js';
+import type { AgentId } from '../../services/agent-bus.js';
+import { getConversationState } from '../../services/conversation-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   checkTrialStatus,
@@ -28,37 +30,48 @@ import {
   startTrial,
   type TrialCheckResult,
 } from '../../services/first-taste-trial.js';
-import { onSessionStart as loadTrustProfiles } from '../../services/trust-systems/index.js';
-import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
+import { createSessionServices, type SessionServices } from '../../services/index.js';
 import {
   createFirestoreSuperhumanStore,
   loadSuperhumanData,
 } from '../../services/superhuman-persistence.js';
-import { startPeriodicSync } from './periodic-sync-handler.js';
-import { getConversationState } from '../../services/conversation-state.js';
-import { resetHandoffState, resetMetPersonas, setCurrentAgent } from '../../tools/handoff/index.js';
-import type { AgentId } from '../../services/agent-bus.js';
+import { onSessionStart as loadTrustProfiles } from '../../services/trust-systems/index.js';
 import { resetCatchphraseTracking } from '../../speech/response-naturalness.js';
-import { resetAllConversationState } from '../../conversation/index.js';
 import { abTestingService } from '../../tools/ab-testing.js';
-import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
-import { autoOptimizer } from '../../tools/auto-optimizer.js';
+import { resetHandoffState, resetMetPersonas, setCurrentAgent } from '../../tools/handoff/index.js';
+import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
+import { patternAnalyzer } from '../../tools/optimization/pattern-analyzer.js';
+import { startPeriodicSync } from './periodic-sync-handler.js';
 
 // Capability learning - load patterns on startup
 import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Better Than Human - 9 new superhuman services
+import { loadBetterThanHumanProfiles } from '../integrations/better-than-human-integration.js';
+
+// "Better Than Human" - Speech Orchestrator for anticipation & prosody
+import {
+  enableSpeechOrchestrator,
+  initializeSpeechOrchestrator,
+} from '../integrations/speech-orchestrator-integration.js';
+// "Better Than Human" - Proactive outreach engine
+import { getOutreachOrchestrator } from '../../services/outreach/outreach-orchestrator.js';
+import { startThinkingOfYouEngine } from '../../services/outreach/thinking-of-you.js';
 
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
 
+// Naturalness Engine - unified voice adaptation (stress, patterns, ambient, rapport)
+import { initializeNaturalnessEngine } from '../../speech/naturalness/index.js';
+
 // Predictive cache warming for anticipated queries
 import {
+  detectTimeSignals,
   setupMemoryFetcher,
   warmCacheForSession,
-  detectTimeSignals,
-  type SessionSignals,
   type PersonaId as PredictivePersonaId,
+  type SessionSignals,
 } from '../../memory/predictive-cache-warming.js';
 
 // FinOps cost tracking
@@ -259,7 +272,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             const db = admin.firestore();
 
             // Cast to the expected interface - firebase-admin Firestore is compatible
-            type FirestoreInterface = {
+            interface FirestoreInterface {
               collection: (name: string) => {
                 doc: (id: string) => {
                   get: () => Promise<{ exists: boolean; data: () => unknown }>;
@@ -267,7 +280,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
                   delete: () => Promise<void>;
                 };
               };
-            };
+            }
 
             const superhumanStore = createFirestoreSuperhumanStore(
               async () => db as unknown as FirestoreInterface
@@ -280,6 +293,13 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             });
           }
         })(),
+
+        // Better Than Human - 9 new superhuman services (Silence Interpreter, etc.)
+        loadBetterThanHumanProfiles(userId).catch((bthErr) =>
+          diag.warn('Better Than Human profiles load failed (non-fatal)', {
+            error: String(bthErr),
+          })
+        ),
 
         // Predictive Intelligence - initialize pattern tracking for predictions
         (async () => {
@@ -460,6 +480,32 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             });
           }
         })(),
+
+        // Phase 9: Naturalness Engine - load persisted voice patterns for adaptive speech
+        (async () => {
+          try {
+            await initializeNaturalnessEngine(sessionId, userId);
+            diag.session('🌊 Naturalness engine initialized (voice patterns loaded)', { userId });
+          } catch (naturalnessErr) {
+            diag.warn('Naturalness engine init failed (non-fatal)', {
+              error: String(naturalnessErr),
+            });
+          }
+        })(),
+
+        // Phase 10: Semantic Intelligence v3 - warm up all 6 "Better Than Human" semantic services
+        (async () => {
+          try {
+            const { warmupSemanticIntelligence } =
+              await import('../../services/superhuman/semantic-intelligence/integration.js');
+            await warmupSemanticIntelligence(userId);
+            diag.session('🧠 Semantic intelligence v3 warmed up', { userId });
+          } catch (semanticErr) {
+            diag.warn('Semantic intelligence warmup failed (non-fatal)', {
+              error: String(semanticErr),
+            });
+          }
+        })(),
       ]);
 
       const profileDuration = Date.now() - profileLoadStart;
@@ -475,39 +521,51 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
 
   // ================================================================
-  // CHECK TRIAL STATUS
+  // TRIAL STATUS - Start with defaults, update in background
+  // ⚡ OPTIMIZATION: Trial checks run in background to not block greeting.
+  // The trialStatusPromise can be awaited later if needed for trial-specific behavior.
   // ================================================================
-  let isTrialUser = false;
-  let isFirstConversation = false;
-  let trialStatus: TrialCheckResult | null = null;
+  const trialState = {
+    isTrialUser: false,
+    isFirstConversation: false,
+    trialStatus: null as TrialCheckResult | null,
+  };
 
-  if (userId && !isReturningUser) {
-    try {
-      const eligible = await isEligibleForTrial(userId);
-      if (eligible) {
-        await startTrial(userId);
-        isTrialUser = true;
-        isFirstConversation = true;
-        trialStatus = await checkTrialStatus(userId, 0);
-        diag.session('Started first taste trial for new user', { userId });
-      }
-    } catch (trialErr) {
-      diag.warn('Trial check failed (non-fatal)', { error: String(trialErr) });
-    }
-  } else if (userId) {
-    try {
-      trialStatus = await checkTrialStatus(userId, 0);
-      if (trialStatus.inTrial) {
-        isTrialUser = true;
-        diag.session('User is in active trial', {
-          userId,
-          timeRemainingMs: trialStatus.timeRemainingMs,
-        });
-      }
-    } catch (trialErr) {
-      diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
-    }
-  }
+  // Start trial check in background - returns a promise for later await if needed
+  const trialStatusPromise = userId
+    ? (async () => {
+        try {
+          if (!isReturningUser) {
+            // New user - check eligibility and start trial
+            const eligible = await isEligibleForTrial(userId);
+            if (eligible) {
+              await startTrial(userId);
+              trialState.isTrialUser = true;
+              trialState.isFirstConversation = true;
+              trialState.trialStatus = await checkTrialStatus(userId, 0);
+              diag.session('Started first taste trial for new user', { userId });
+            }
+          } else {
+            // Returning user - just check status
+            const status = await checkTrialStatus(userId, 0);
+            trialState.trialStatus = status;
+            if (status.inTrial) {
+              trialState.isTrialUser = true;
+              diag.session('User is in active trial', {
+                userId,
+                timeRemainingMs: status.timeRemainingMs,
+              });
+            }
+          }
+        } catch (trialErr) {
+          diag.warn('Trial check failed (non-fatal)', { error: String(trialErr) });
+        }
+        return trialState;
+      })()
+    : Promise.resolve(trialState);
+
+  // Fire and forget the promise (don't block)
+  void trialStatusPromise;
 
   // ================================================================
   // INITIALIZE CONVERSATION STATE
@@ -563,17 +621,32 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     preferredAccent: userAccent as EnglishAccent,
 
     // Trial state (stored directly for rapid access)
-    isTrialUser,
-    isFirstConversation,
-    trialStatus: trialStatus
+    // ⚡ These start as defaults and get updated when trialStatusPromise resolves
+    isTrialUser: trialState.isTrialUser,
+    isFirstConversation: trialState.isFirstConversation,
+    trialStatus: trialState.trialStatus
       ? {
-          inTrial: trialStatus.inTrial,
-          timeRemainingMs: trialStatus.timeRemainingMs ?? 0,
-          approachingEnd: trialStatus.approachingEnd,
-          trialEnded: trialStatus.trialEnded,
+          inTrial: trialState.trialStatus.inTrial,
+          timeRemainingMs: trialState.trialStatus.timeRemainingMs ?? 0,
+          approachingEnd: trialState.trialStatus.approachingEnd,
+          trialEnded: trialState.trialStatus.trialEnded,
         }
       : undefined,
     hasSpokenTrialEndPrompt: false,
+  });
+
+  // ⚡ OPTIMIZATION: Update userData when trial check completes (non-blocking)
+  void trialStatusPromise.then((state) => {
+    userData.isTrialUser = state.isTrialUser;
+    userData.isFirstConversation = state.isFirstConversation;
+    if (state.trialStatus) {
+      userData.trialStatus = {
+        inTrial: state.trialStatus.inTrial,
+        timeRemainingMs: state.trialStatus.timeRemainingMs ?? 0,
+        approachingEnd: state.trialStatus.approachingEnd,
+        trialEnded: state.trialStatus.trialEnded,
+      };
+    }
   });
 
   diag.session('UserData proxy created (single source of truth)', {
@@ -631,6 +704,36 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   }
 
   // ================================================================
+  // "BETTER THAN HUMAN": SPEECH ORCHESTRATOR + PROACTIVE OUTREACH
+  // These features enable superhuman emotional intelligence:
+  // - Speech Orchestrator: Anticipation during user speech, prosody prep
+  // - Thinking of You Engine: Proactive outreach when not in session
+  // ================================================================
+  fireAndForget(async () => {
+    try {
+      // 1. Enable and initialize Speech Orchestrator for anticipation
+      enableSpeechOrchestrator();
+      await initializeSpeechOrchestrator(sessionId, sessionPersona.id);
+      diag.session('🎭 Speech Orchestrator enabled for anticipation', { sessionId });
+
+      // 2. Start Thinking of You engine (background proactive outreach)
+      startThinkingOfYouEngine();
+
+      // 3. Ensure OutreachOrchestrator is listening for events
+      // (The listener was added in outreach-orchestrator.ts singleton)
+      getOutreachOrchestrator();
+
+      diag.session('💌 Proactive outreach system initialized', {
+        sessionId,
+        userId,
+        isReturningUser,
+      });
+    } catch (err) {
+      diag.warn('Better Than Human init failed (non-fatal)', { error: String(err) });
+    }
+  }, 'better-than-human-init');
+
+  // ================================================================
   // A/B TESTING + AUTO-OPTIMIZATION
   // ================================================================
   const activeExperiments = abTestingService.getActiveExperiments();
@@ -659,7 +762,10 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     diag.session('🔄 Periodic deep understanding sync started', { sessionId, userId });
   }
 
-  logger.info({ sessionId, userId, isReturningUser, isTrialUser }, 'Session initialized');
+  logger.info(
+    { sessionId, userId, isReturningUser, isTrialUser: trialState.isTrialUser },
+    'Session initialized'
+  );
 
   // ================================================================
   // TOOL REFRESH WITH REAL USER CONTEXT
@@ -714,9 +820,9 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   return {
     services,
     isReturningUser,
-    isTrialUser,
-    isFirstConversation,
-    trialStatus,
+    isTrialUser: trialState.isTrialUser,
+    isFirstConversation: trialState.isFirstConversation,
+    trialStatus: trialState.trialStatus,
     userData,
     sessionStateManager,
     stopPeriodicSync: stopSync,

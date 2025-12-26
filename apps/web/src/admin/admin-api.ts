@@ -12,7 +12,6 @@
  */
 
 import { getAuthToken, initAuth } from '../services/firebase-auth.service.js';
-import { isDevelopment } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AdminAPI');
@@ -152,7 +151,7 @@ export async function adminGet<T = unknown>(
       log.warn('Admin GET failed', { path, status: response.status, error: errorData });
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
+        error: errorData.error ?? `HTTP ${response.status}`,
         status: response.status,
       };
     }
@@ -191,7 +190,7 @@ export async function adminPost<T = unknown>(
       log.warn('Admin POST failed', { path, status: response.status, error: errorData });
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
+        error: errorData.error ?? `HTTP ${response.status}`,
         status: response.status,
       };
     }

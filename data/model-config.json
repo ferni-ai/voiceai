@@ -6,7 +6,7 @@
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 30,
+    "maxTools": 50,
     "enabledDomains": [
       "entertainment",
       "memory",

@@ -555,7 +555,7 @@ function setupEventListeners(): void {
 
   const refreshBtn = document.getElementById('insights-refresh-btn');
   refreshBtn?.addEventListener('click', () => {
-    refreshAll();
+    void refreshAll();
   });
 
   const clearBtn = document.getElementById('insights-clear-btn');
@@ -601,7 +601,7 @@ export function showInsightsDebugPanel(): void {
   setupEventListeners();
 
   // Initial render
-  refreshAll();
+  void refreshAll();
 
   // Auto-refresh every 5 seconds
   refreshInterval = setInterval(refreshAll, 5000);

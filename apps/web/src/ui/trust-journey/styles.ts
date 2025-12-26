@@ -51,27 +51,36 @@ function getStyles(): string {
     .trust-journey-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
-    
+
     .trust-journey-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(504px, 90vw, 720px);
       width: calc(100% - var(--space-8, 32px));
       max-height: calc(100vh - var(--space-12, 48px));
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25)),
-                  0 0 0 1px rgba(255, 255, 255, 0.1);
       transform: scale(0.92) translateY(30px);
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
                   opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .trust-journey-card {
+        background: var(--color-background-elevated, #FFFDFB);
+      }
     }
     
     .trust-journey-panel.visible .trust-journey-card {

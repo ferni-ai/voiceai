@@ -1,40 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Ferni Three Stones Logo - 512x512 -->
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Android Adaptive Icon - Foreground -->
   <defs>
-    <radialGradient id="stoneGrad512" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    <radialGradient id="catchlightGrad512" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glowFilter512" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5.12" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    <linearGradient id="androidGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
   </defs>
-
-  <!-- Background -->
-  <rect width="512" height="512" fill="#F5F1E8"/>
   
-  <circle cx="256" cy="256" r="193.17760000000004" fill="none" stroke="#4a6741" stroke-width="1.536" opacity="0.25"/>
-  <!-- Outer Stone: Body -->
-  <circle cx="256" cy="256" r="175.616" fill="url(#stoneGrad512)" filter="url(#glowFilter512)"/>
-
-  <!-- Middle Stone: Eye White -->
-  <circle cx="256" cy="256" r="72.00256" fill="white"/>
-
-  <!-- Iris -->
-  <circle cx="256" cy="256" r="47.94316800000001" fill="#5a8060"/>
-
-  <!-- Inner Stone: Pupil -->
-  <circle cx="256" cy="256" r="23.883776000000005" fill="#2c2520"/>
-
-  <!-- Catchlight (life spark) -->
-  <circle cx="227.90144" cy="227.90144" r="9.658880000000002" fill="url(#catchlightGrad512)"/>
+  <!-- Transparent background for adaptive icon -->
+  <rect width="512" height="512" fill="transparent"/>
   
-  <!-- Secondary catchlight -->
-  <circle cx="270.04928" cy="267.239424" r="3.8635520000000008" fill="white" opacity="0.4"/>
+  <!-- Icon shape (centered for safe zone) -->
+  <rect x="72" y="72" width="368" height="368" rx="80" fill="url(#androidGradient)"/>
+  
+  <!-- FE Monogram -->
+  <text x="256" y="300" 
+        font-family="'Plus Jakarta Sans', 'Roboto', sans-serif" 
+        font-size="180" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle">FE</text>
 </svg>

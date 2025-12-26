@@ -31,7 +31,7 @@ import {
   recordCorrection,
   recordImplicitCorrection,
   recordToolUsage,
-  getToolBoostForUser,
+  getUserPreferences,
   initializeCorrectionStore,
 } from '../learning/index.js';
 import type { SemanticRouterResult, ToolMatch } from '../types.js';
@@ -146,9 +146,9 @@ export async function getPreRoutingEnhancements(
 
   try {
     // Get learned tool preferences for this user
-    const boosts = await getToolBoostForUser(userId);
+    const prefs = getUserPreferences(userId);
 
-    for (const [toolId, boost] of Object.entries(boosts)) {
+    for (const [toolId, boost] of prefs.toolBoosts.entries()) {
       if (boost !== 0) {
         toolBoosts.set(toolId, boost);
       }
@@ -328,8 +328,22 @@ export async function completeTurnTracking(
     inputLocale: turnState.inputLocale,
     routingResult: turnState.routingResult || {
       matches: [],
-      action: { type: 'conversation' },
-      latencyMs: 0,
+      action: { type: 'conversation', reason: 'no routing result' },
+      intent: {
+        category: 'conversation',
+        confidence: 0,
+        mood: 'statement',
+        urgency: 'normal',
+      },
+      metadata: {
+        totalTimeMs: 0,
+        layerTimesMs: { pattern: 0, keyword: 0, embedding: 0, context: 0, history: 0, holistic: 0 },
+        toolsConsidered: 0,
+        inputText: turnState.inputText,
+        normalizedText: turnState.inputText.toLowerCase().trim(),
+        contextUsed: [],
+        routerVersion: '1.0.0',
+      },
     },
     conversationHistory: session.conversationHistory,
     recentTools: session.recentTools,
@@ -356,29 +370,19 @@ export async function completeTurnTracking(
 
     // Record tool usage for future boosting
     if (actualTool) {
-      await recordToolUsage(turnState.userId, actualTool, {
-        sessionId: turnState.sessionId,
-        personaId: turnState.personaId,
-        inputText: turnState.inputText,
-      });
+      recordToolUsage(turnState.userId, actualTool);
     }
 
     // If implicit correction (LLM used different tool), record it
     if (wasCorrection && actualTool && turnState.predictedTool) {
-      await recordImplicitCorrection({
-        userId: turnState.userId,
-        sessionId: turnState.sessionId,
-        originalQuery: turnState.inputText,
-        normalizedQuery: turnState.inputText.toLowerCase().trim(),
-        predictedTool: turnState.predictedTool,
-        predictedConfidence: turnState.predictedConfidence,
-        predictedArgs: {},
+      recordImplicitCorrection(
+        turnState.userId,
+        turnState.sessionId,
+        turnState.inputText,
+        turnState.predictedTool,
         actualTool,
-        correctionSource: 'user_implicit',
-        conversationContext: session.conversationHistory.slice(-3).map((h) => h.text),
-        personaId: turnState.personaId,
-        feedbackType: 'wrong_tool',
-      });
+        turnState.personaId
+      );
 
       log.info(
         {
@@ -493,7 +497,25 @@ export async function predictNextTools(
       personaId: 'ferni',
       inputText: '',
       inputLocale: 'en',
-      routingResult: { matches: [], action: { type: 'conversation' }, latencyMs: 0 },
+      routingResult: {
+        matches: [],
+        action: { type: 'conversation', reason: 'prediction context' },
+        intent: {
+          category: 'conversation',
+          confidence: 0,
+          mood: 'statement',
+          urgency: 'normal',
+        },
+        metadata: {
+          totalTimeMs: 0,
+          layerTimesMs: { pattern: 0, keyword: 0, embedding: 0, context: 0, history: 0, holistic: 0 },
+          toolsConsidered: 0,
+          inputText: '',
+          normalizedText: '',
+          contextUsed: [],
+          routerVersion: '1.0.0',
+        },
+      },
       conversationHistory: session.conversationHistory,
       recentTools: session.recentTools,
     });
@@ -601,6 +623,7 @@ export {
   type LearningOutcome,
   type EnhancedRouting,
 };
+
 
 
 

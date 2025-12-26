@@ -50,11 +50,14 @@ interface ConversationCostResponse {
 
 /**
  * Extract user ID from request headers or query params.
- * Supports Firebase UID, X-User-Id header, or query param.
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id.
  */
 function extractUserId(req: IncomingMessage, query: URLSearchParams): string | null {
-  // Try Authorization header (Firebase token - would need to decode)
-  // For now, use simpler X-User-Id header or query param
+  // SECURITY: Prioritize Firebase auth
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
+
+  // Legacy header (deprecated)
   const headerUserId = req.headers['x-user-id'] as string | undefined;
   const queryUserId = query.get('userId') || query.get('user_id');
 

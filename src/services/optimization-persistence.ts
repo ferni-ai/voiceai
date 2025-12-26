@@ -15,15 +15,13 @@ import type {
   FeedbackRecord,
   FeedbackSummary,
   Recommendation,
-} from '../types/optimization-types.js';
-import type {
   ToolCoOccurrence,
   ToolSequence,
   UserJourney,
   GapAnalysis,
   ConsolidationOpportunity,
   SessionData,
-} from '../tools/pattern-analyzer.js';
+} from '../types/optimization-types.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 

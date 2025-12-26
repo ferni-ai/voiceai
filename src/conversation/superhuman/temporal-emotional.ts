@@ -15,6 +15,7 @@
  * @module @ferni/superhuman/temporal-emotional
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   EmotionalShift,
@@ -208,7 +209,7 @@ export class TemporalEmotionalEngine {
 
     // Check for energy comparison opportunity
     const energyInsight = this.checkEnergyComparison(context.currentEnergy);
-    if (energyInsight.shouldMention && Math.random() < 0.15) {
+    if (energyInsight.shouldMention && seededChance(`${Date.now()}:212`, 0.15)) {
       this.lastInsightTurn = context.turnCount;
       return energyInsight;
     }
@@ -216,7 +217,7 @@ export class TemporalEmotionalEngine {
     // Check for openness comparison (new capability)
     if (context.currentOpenness !== undefined) {
       const opennessInsight = this.checkOpennessComparison(context.currentOpenness);
-      if (opennessInsight.shouldMention && Math.random() < 0.12) {
+      if (opennessInsight.shouldMention && seededChance(`${Date.now()}:220`, 0.12)) {
         this.lastInsightTurn = context.turnCount;
         return opennessInsight;
       }
@@ -224,21 +225,21 @@ export class TemporalEmotionalEngine {
 
     // Check for mood shift observation
     const moodInsight = this.checkMoodShift();
-    if (moodInsight.shouldMention && Math.random() < 0.1) {
+    if (moodInsight.shouldMention && seededChance(`${Date.now()}:228`, 0.1)) {
       this.lastInsightTurn = context.turnCount;
       return moodInsight;
     }
 
     // Check for growth observation
     const growthInsight = this.checkGrowthObservation();
-    if (growthInsight.shouldMention && Math.random() < 0.08) {
+    if (growthInsight.shouldMention && seededChance(`${Date.now()}:235`, 0.08)) {
       this.lastInsightTurn = context.turnCount;
       return growthInsight;
     }
 
     // Check for openness growth over time (different from comparison)
     const opennessGrowthInsight = this.checkOpennessGrowth();
-    if (opennessGrowthInsight.shouldMention && Math.random() < 0.06) {
+    if (opennessGrowthInsight.shouldMention && seededChance(`${Date.now()}:242`, 0.06)) {
       this.lastInsightTurn = context.turnCount;
       return opennessGrowthInsight;
     }
@@ -253,7 +254,7 @@ export class TemporalEmotionalEngine {
     if (this.profile.sessionEmotions.length < 3) return null;
 
     // Only 10% chance
-    if (Math.random() > 0.1) return null;
+    if (!seededChance(`${Date.now()}:1`, 0.1)) return null;
 
     const recent = this.profile.sessionEmotions.slice(-5);
     const recentWithSameEmotion = recent.filter((s) => s.dominantEmotion === currentEmotion);
@@ -577,7 +578,7 @@ export class TemporalEmotionalEngine {
   }
 
   private selectRandom<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return seededPick(`${Date.now()}:581`, arr) ?? arr[0];
   }
 
   // ==========================================================================

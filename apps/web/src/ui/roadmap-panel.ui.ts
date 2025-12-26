@@ -966,7 +966,7 @@ class RoadmapPanelUI {
   /**
    * Bind events for detail mode
    */
-  private bindDetailEvents(feature: RoadmapFeature): void {
+  private bindDetailEvents(_feature: RoadmapFeature): void {
     if (!this.modal) return;
 
     // Close on backdrop click
@@ -1105,8 +1105,8 @@ class RoadmapPanelUI {
         position: absolute;
         inset: 0;
         background: var(--color-background-overlay, rgba(44, 37, 32, 0.6));
-        backdrop-filter: blur(var(--glass-blur-strong, 24px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
       }
 
       .roadmap-panel__card {
@@ -1114,9 +1114,13 @@ class RoadmapPanelUI {
         width: 100%;
         max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         display: flex;
         flex-direction: column;
         overflow: hidden;

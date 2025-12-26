@@ -573,11 +573,15 @@ export {
   // Natural fillers ("um", "well", etc.)
   injectNaturalFillers,
   mapContextToEmotion,
+  // Persona emotion profiles (standalone module for circular dep avoidance)
+  getEmotionProfile,
+  PERSONA_EMOTION_PROFILES,
   type BreathGroupConfig,
   type CartesiaEmotion,
   type EmotionContext,
   type FillerConfig,
   type HumanizationOptions as AdvancedHumanizationOptions,
+  type PersonaEmotionProfile,
   type RhythmVariation,
 } from './advanced-humanization.js';
 
@@ -888,3 +892,46 @@ export {
   type TTSBulkheadResult,
   type TTSBulkheadStats,
 } from './tts-bulkhead.js';
+
+// ============================================================================
+// SPEECH HUMANIZATION (Better Than Human - JSON behavior injection)
+// ============================================================================
+
+export {
+  // Main humanization function (async)
+  humanizeSpeech,
+  quickHumanize,
+  getAvailableCategories,
+  // Sync humanization (for persona-fingerprints sync pipeline)
+  quickHumanizeSync,
+  // Behavior loading (async)
+  loadSpeechProfile,
+  clearSpeechProfileCache,
+  preloadAllSpeechProfiles,
+  selectImperfection,
+  selectThinkingSound,
+  selectBackchannel,
+  selectBreathSound,
+  getInjectionConfig,
+  // Sync accessors (for use after preloading)
+  getSpeechProfileSync,
+  areSpeechProfilesPreloaded,
+  selectThinkingSoundSync,
+  selectImperfectionSync,
+  selectBreathSoundSync,
+  // Types
+  type BehaviorSelectionContext,
+  type EmotionalSelectionContext,
+  type ContentSelectionContext,
+  type SelectedBehavior,
+  type HumanizedSpeechResult,
+  type SpeechImperfectionsSchema,
+  type ThinkingSoundsSchema,
+  type BackchannelsSchema,
+  type BreathSoundsSchema,
+  type PersonaSpeechProfile,
+  type ImperfectionCategory,
+  type CoreImperfectionCategory,
+  type ExtendedImperfectionCategory,
+  type InjectionConfig,
+} from './humanization/index.js';

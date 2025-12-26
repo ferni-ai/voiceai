@@ -35,6 +35,16 @@ public struct FerniDynamicIslandViews {
                 .scaleEffect(speakingState == .agentSpeaking ? 1.2 : 1.0)
                 .animation(.easeInOut(duration: 0.3).repeatForever(autoreverses: true), value: speakingState)
                 .shadow(color: (Color(hexString: personaColorHex)).opacity(0.5), radius: 3)
+                .accessibilityLabel(speakingStateLabel)
+        }
+
+        private var speakingStateLabel: String {
+            switch speakingState {
+            case .agentSpeaking: return "Ferni is speaking"
+            case .userSpeaking: return "You are speaking"
+            case .listening: return "Ferni is listening"
+            case .idle: return "Ferni voice session"
+            }
         }
     }
 
@@ -61,6 +71,16 @@ public struct FerniDynamicIslandViews {
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                     .foregroundColor(.white)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+        }
+
+        private var accessibilityLabel: String {
+            if isMuted {
+                return "Muted, duration \(formattedDuration)"
+            } else {
+                return "Duration \(formattedDuration)"
+            }
         }
     }
 
@@ -77,6 +97,7 @@ public struct FerniDynamicIslandViews {
             Circle()
                 .fill(Color(hexString: personaColorHex))
                 .frame(width: 12, height: 12)
+                .accessibilityLabel("Ferni voice session active")
         }
     }
 
@@ -95,6 +116,7 @@ public struct FerniDynamicIslandViews {
             HStack(spacing: 16) {
                 // Left: Avatar orb
                 avatarOrb
+                    .accessibilityHidden(true)  // Announced via main container
 
                 // Center: Info
                 VStack(alignment: .leading, spacing: 4) {
@@ -123,6 +145,7 @@ public struct FerniDynamicIslandViews {
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
+                .accessibilityHidden(true)  // Announced via main container
 
                 Spacer()
 
@@ -143,9 +166,52 @@ public struct FerniDynamicIslandViews {
                         .foregroundColor(.red)
                     }
                 }
+                .accessibilityHidden(true)  // Announced via main container
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(expandedAccessibilityLabel)
+            .accessibilityHint("Tap to open Ferni app")
+        }
+
+        private var expandedAccessibilityLabel: String {
+            var parts: [String] = []
+
+            // Persona and state
+            parts.append(attributes.personaName)
+            parts.append(speakingStateLabel)
+
+            // Concern
+            if state.showingConcern {
+                parts.append("showing concern")
+            }
+
+            // Transcript or status
+            if let transcript = state.transcriptSnippet {
+                parts.append("saying: \(transcript)")
+            } else {
+                parts.append(state.statusText)
+            }
+
+            // Duration
+            parts.append("duration \(state.formattedDuration)")
+
+            // Mute state
+            if state.isMuted {
+                parts.append("microphone muted")
+            }
+
+            return parts.joined(separator: ", ")
+        }
+
+        private var speakingStateLabel: String {
+            switch state.speakingState {
+            case .agentSpeaking: return "speaking"
+            case .userSpeaking: return "listening to you"
+            case .listening: return "listening"
+            case .idle: return "idle"
+            }
         }
 
         // MARK: - Avatar Orb
@@ -246,6 +312,16 @@ public struct FerniDynamicIslandViews {
                 .frame(width: 52, height: 52)
                 .scaleEffect(state.speakingState == .agentSpeaking ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true), value: state.speakingState)
+                .accessibilityLabel("\(attributes.personaName) avatar, \(speakingStateLabel)")
+        }
+
+        private var speakingStateLabel: String {
+            switch state.speakingState {
+            case .agentSpeaking: return "speaking"
+            case .userSpeaking: return "listening"
+            case .listening: return "listening"
+            case .idle: return "idle"
+            }
         }
     }
 
@@ -267,6 +343,16 @@ public struct FerniDynamicIslandViews {
                         .font(.system(size: 14))
                         .foregroundColor(.red)
                 }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+        }
+
+        private var accessibilityLabel: String {
+            if state.isMuted {
+                return "Duration \(state.formattedDuration), microphone muted"
+            } else {
+                return "Duration \(state.formattedDuration)"
             }
         }
     }
@@ -302,6 +388,22 @@ public struct FerniDynamicIslandViews {
                         .multilineTextAlignment(.center)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+        }
+
+        private var accessibilityLabel: String {
+            var parts: [String] = [attributes.personaName]
+
+            if state.showingConcern {
+                parts.append("showing concern")
+            }
+
+            if let transcript = state.transcriptSnippet {
+                parts.append("saying: \(transcript)")
+            }
+
+            return parts.joined(separator: ", ")
         }
     }
 
@@ -322,6 +424,16 @@ public struct FerniDynamicIslandViews {
                 }
             }
             .padding(.top, 8)
+            .accessibilityLabel(audioIndicatorLabel)
+        }
+
+        private var audioIndicatorLabel: String {
+            switch state.speakingState {
+            case .agentSpeaking: return "Audio indicator, Ferni speaking"
+            case .userSpeaking: return "Audio indicator, you are speaking"
+            case .listening: return "Audio indicator, listening"
+            case .idle: return "Audio indicator"
+            }
         }
 
         private func barOpacity(for index: Int) -> Double {

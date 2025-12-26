@@ -96,26 +96,26 @@ export const onAuthStateChanged = (
   return () => {};
 };
 
-export const signInWithCustomToken = async (_auth: Auth, _customToken: string): Promise<UserCredential> => {
-  throw new Error('Firebase not configured');
+export const signInWithCustomToken = (_auth: Auth, _customToken: string): Promise<UserCredential> => {
+  return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const signInAnonymously = async (_auth: Auth): Promise<UserCredential> => {
-  throw new Error('Firebase not configured');
+export const signInAnonymously = (_auth: Auth): Promise<UserCredential> => {
+  return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const signInWithPopup = async (_auth: Auth, _provider: unknown): Promise<UserCredential> => {
-  throw new Error('Firebase not configured');
+export const signInWithPopup = (_auth: Auth, _provider: unknown): Promise<UserCredential> => {
+  return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const signOut = async (_auth: Auth) => {};
+export const signOut = (_auth: Auth) => Promise.resolve();
 
-export const linkWithCredential = async (_user: User, _credential: unknown): Promise<UserCredential> => {
-  throw new Error('Firebase not configured');
+export const linkWithCredential = (_user: User, _credential: unknown): Promise<UserCredential> => {
+  return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const sendPasswordResetEmail = async (_auth: Auth, _email: string) => {
-  throw new Error('Firebase not configured');
+export const sendPasswordResetEmail = (_auth: Auth, _email: string) => {
+  return Promise.reject(new Error('Firebase not configured'));
 };
 
 // Provider classes

@@ -12,7 +12,7 @@
  */
 
 import { t } from '../i18n/index.js';
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
@@ -20,7 +20,7 @@ import { toast } from './toast.ui.js';
 
 const log = createLogger('CalendarProviderUI');
 
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -128,8 +128,9 @@ function injectStyles(): void {
     .calendar-provider-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy);
-      backdrop-filter: blur(var(--glass-blur-heavy));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .calendar-provider-panel {
@@ -139,11 +140,20 @@ function injectStyles(): void {
       max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
       border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-2xl);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.95) translateY(10px);
       transition: transform var(--duration-slow) var(--ease-spring);
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .calendar-provider-panel {
+        background: var(--color-bg-elevated);
+      }
     }
 
     .calendar-provider-overlay.visible .calendar-provider-panel {
@@ -508,7 +518,7 @@ function renderContent(): string {
 async function fetchProviderStatus(): Promise<ProviderStatus[]> {
   try {
     const response = await apiGet<{ providers: ProviderStatus[] }>('/api/calendar/providers/status');
-    return response?.providers || [];
+    return response?.data?.providers || [];
   } catch (error) {
     log.error('Failed to fetch provider status', error);
     // Return default disconnected states
@@ -525,8 +535,8 @@ async function connectProvider(provider: CalendarProvider): Promise<void> {
     if (provider === 'google') {
       // Redirect to Google OAuth
       const response = await apiGet<{ authUrl: string }>('/api/calendar/google/auth-url');
-      if (response?.authUrl) {
-        window.location.href = response.authUrl;
+      if (response?.data?.authUrl) {
+        window.location.href = response.data.authUrl;
       }
     } else if (provider === 'apple') {
       // Show Apple credentials modal (handled separately)
@@ -535,8 +545,8 @@ async function connectProvider(provider: CalendarProvider): Promise<void> {
     } else if (provider === 'outlook') {
       // Redirect to Microsoft OAuth
       const response = await apiGet<{ authUrl: string }>('/api/calendar/outlook/auth-url');
-      if (response?.authUrl) {
-        window.location.href = response.authUrl;
+      if (response?.data?.authUrl) {
+        window.location.href = response.data.authUrl;
       }
     }
   } catch (error) {
@@ -671,7 +681,7 @@ export function hideCalendarProviderSettings(): void {
     container?.remove();
     container = null;
     providers = [];
-    clearAllTimeouts();
+    _clearAllTimeouts();
   }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
   
   log.debug('Calendar provider settings hidden');
@@ -714,5 +724,5 @@ function setupEventListeners(callbacks: CalendarProviderCallbacks): void {
 // EXPORTS
 // ============================================================================
 
-export { clearAllTimeouts as cleanupCalendarProviderSettings };
+export { _clearAllTimeouts as cleanupCalendarProviderSettings };
 

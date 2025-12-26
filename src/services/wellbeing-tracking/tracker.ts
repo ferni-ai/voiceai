@@ -61,6 +61,7 @@ const DETECTION_PATTERNS: Record<
       },
       { pattern: /\b(good|happy|pleased|content|fine)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(okay|alright|decent|not bad)\b/i, value: 0.5, confidence: 0.5 },
+      { pattern: /\b(feeling (good|great|better|like myself))\b/i, value: 0.8, confidence: 0.6 },
     ],
     negative: [
       {
@@ -70,6 +71,10 @@ const DETECTION_PATTERNS: Record<
       },
       { pattern: /\b(bad|sad|down|low|unhappy|depressed)\b/i, value: -0.7, confidence: 0.6 },
       { pattern: /\b(meh|blah|not great|could be better)\b/i, value: -0.3, confidence: 0.5 },
+      // BETTER THAN HUMAN: "not feeling like myself" patterns
+      { pattern: /\b(haven't felt like myself|not feeling like myself|don't feel like myself)\b/i, value: -0.7, confidence: 0.7 },
+      { pattern: /\b(can't shake (it|this|the feeling)|something's off)\b/i, value: -0.6, confidence: 0.6 },
+      { pattern: /\b(just not right|out of sorts|off lately)\b/i, value: -0.5, confidence: 0.5 },
     ],
   },
 
@@ -80,16 +85,18 @@ const DETECTION_PATTERNS: Record<
         value: 0.9,
         confidence: 0.7,
       },
-      { pattern: /\b(good energy|feeling strong|rested)\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(good energy|feeling strong|rested|full of energy)\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(refreshed|revitalized|recharged)\b/i, value: 0.8, confidence: 0.6 },
     ],
     negative: [
       {
-        pattern: /\b(exhausted|drained|wiped out|burnt out|depleted)\b/i,
+        pattern: /\b(exhausted|drained|wiped out|burnt out|depleted|running on empty)\b/i,
         value: 0.1,
         confidence: 0.7,
       },
-      { pattern: /\b(tired|fatigued|low energy|sluggish)\b/i, value: 0.3, confidence: 0.6 },
-      { pattern: /\b(a bit tired|kind of tired)\b/i, value: 0.4, confidence: 0.5 },
+      { pattern: /\b(tired|fatigued|low energy|sluggish|no energy)\b/i, value: 0.3, confidence: 0.6 },
+      { pattern: /\b(a bit tired|kind of tired|too tired|honestly tired)\b/i, value: 0.4, confidence: 0.5 },
+      { pattern: /\b(can barely|barely keeping|running on fumes|dead tired)\b/i, value: 0.15, confidence: 0.6 },
     ],
   },
 
@@ -116,6 +123,7 @@ const DETECTION_PATTERNS: Record<
   worry: {
     positive: [
       { pattern: /\b(calm|peaceful|relaxed|at ease|not worried)\b/i, value: 0.1, confidence: 0.6 },
+      { pattern: /\b(pressure is off|less stressed|calmed down|things calmed down)\b/i, value: 0.2, confidence: 0.6 },
     ],
     negative: [
       {
@@ -129,6 +137,15 @@ const DETECTION_PATTERNS: Record<
         value: 0.4,
         confidence: 0.5,
       },
+      // BETTER THAN HUMAN: Colloquial anxiety expressions
+      { pattern: /\b(anxiety)(\s+is|'s|has been)?\s+(through the roof|sky high|off the charts)\b/i, value: 0.9, confidence: 0.8 },
+      { pattern: /\b(my anxiety|having anxiety|anxiety attacks?|anxiety has been)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(hard to focus|can't concentrate|mind is racing|hard to sleep)\b/i, value: 0.65, confidence: 0.6 },
+      // Work/life pressure patterns
+      { pattern: /\b(under pressure|the pressure|too much pressure|constant pressure)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(to-do list keeps|keeps getting longer|never ends|piling up)\b/i, value: 0.6, confidence: 0.6 },
+      { pattern: /\b(relentless|constantly (behind|catching up)|can't keep up)\b/i, value: 0.75, confidence: 0.6 },
+      { pattern: /\b(overwhelmed at work|work is overwhelming|drowning in work)\b/i, value: 0.8, confidence: 0.7 },
     ],
   },
 
@@ -139,16 +156,20 @@ const DETECTION_PATTERNS: Record<
         value: 0.9,
         confidence: 0.7,
       },
-      { pattern: /\b(decent sleep|okay sleep|fine sleep)\b/i, value: 0.6, confidence: 0.5 },
+      // Colloquial expressions for good sleep
+      { pattern: /\b(slept like a (log|baby|rock)|knocked out|passed out cold)\b/i, value: 0.9, confidence: 0.7 },
+      { pattern: /\b(woke up feeling|feeling (refreshed|rested|great))\b/i, value: 0.8, confidence: 0.6 },
+      { pattern: /\b(decent sleep|okay sleep|fine sleep|got my 8|got (enough|some) sleep)\b/i, value: 0.6, confidence: 0.5 },
     ],
     negative: [
-      { pattern: /\b(insomnia|didn't sleep|can't sleep|no sleep)\b/i, value: 0.1, confidence: 0.7 },
+      { pattern: /\b(insomnia|didn't sleep|can't sleep|no sleep|couldn't sleep)\b/i, value: 0.1, confidence: 0.7 },
       {
-        pattern: /\b(slept badly|terrible sleep|restless|tossed and turned)\b/i,
+        pattern: /\b(slept badly|terrible sleep|restless|tossed and turned|up all night)\b/i,
         value: 0.2,
         confidence: 0.6,
       },
-      { pattern: /\b(not enough sleep|only.*hours|woke up tired)\b/i, value: 0.3, confidence: 0.5 },
+      { pattern: /\b(not enough sleep|only.*hours|woke up tired|barely slept|hardly slept)\b/i, value: 0.3, confidence: 0.5 },
+      { pattern: /\b(sleep deprived|exhausted from lack of sleep)\b/i, value: 0.15, confidence: 0.6 },
     ],
   },
 
@@ -223,6 +244,16 @@ const DETECTION_PATTERNS: Record<
         value: 0.8,
         confidence: 0.6,
       },
+      // Gym/exercise patterns (BETTER THAN HUMAN)
+      { pattern: /\b(going to the gym|been to the gym|hit the gym|at the gym)\b/i, value: 0.85, confidence: 0.7 },
+      { pattern: /\b(working out|been working out|exercise every day|daily workout)\b/i, value: 0.8, confidence: 0.6 },
+      { pattern: /\b(yoga|pilates|running|jogging|cardio|lifting weights?)\b/i, value: 0.7, confidence: 0.5 },
+      { pattern: /\b(go(ing)? for a walk|daily walk|walk(ing)? every day)\b/i, value: 0.75, confidence: 0.6 },
+      { pattern: /\b(making (an )?effort|trying to|been making sure|started)\s+(to )?(exercise|walk|work out)\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(really paying off|making progress|getting stronger|seeing results)\b/i, value: 0.85, confidence: 0.6 },
+      // Work-life balance positive
+      { pattern: /\b(good work.?life balance|leaving work at work|disconnecting)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(not checking (emails?|work)|logging off|stepping away from work)\b/i, value: 0.7, confidence: 0.6 },
     ],
     negative: [
       {
@@ -230,6 +261,11 @@ const DETECTION_PATTERNS: Record<
         value: 0.2,
         confidence: 0.6,
       },
+      { pattern: /\b(haven't worked out|haven't exercised|no time for gym|stopped going)\b/i, value: 0.25, confidence: 0.6 },
+      // Work-life balance negative (BETTER THAN HUMAN - catches "constantly checking emails")
+      { pattern: /\b(constantly checking|can't stop checking|always checking)\b/i, value: 0.2, confidence: 0.7 },
+      { pattern: /\b(even on (weekends?|vacation)|always on|never disconnect|can't switch off)\b/i, value: 0.25, confidence: 0.6 },
+      { pattern: /\b(work is taking over|no boundaries|no work.?life balance)\b/i, value: 0.2, confidence: 0.7 },
     ],
   },
 };

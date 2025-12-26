@@ -595,7 +595,7 @@ export function createAppointmentTools() {
         }
 
         // Update via the core function
-        const apt = updateAppointmentStatus(
+        const apt = await updateAppointmentStatus(
           foundApt.id,
           'confirmed',
           notes ? `Manually confirmed by user: ${notes}` : 'Manually confirmed by user',

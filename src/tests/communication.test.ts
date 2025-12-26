@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { parseScheduleTime, createCommunicationTools } from '../tools/communication.js';
+import { parseScheduleTime, createCommunicationTools } from '../tools/domains/communication/index.js';
 
 // Mock the communication service to prevent real API calls
 vi.mock('../services/communication-service.js', () => ({

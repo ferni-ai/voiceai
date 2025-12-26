@@ -1,44 +1,23 @@
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Living Avatar App Icon - Simplified for conversion -->
-  <!-- The orb that embodies the human spirit -->
+  <defs>
+    <linearGradient id="orbSimpleOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="orbSimpleShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
   
-  <!-- Background - Warm cream -->
-  <rect width="1024" height="1024" fill="#F5F1E8"/>
+  <rect width="1024" height="1024" rx="180" fill="#F5F1E8"/>
   
-  <!-- Outer glow rings -->
-  <circle cx="512" cy="512" r="440" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.12"/>
-  <circle cx="512" cy="512" r="400" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.08"/>
+  <circle cx="512" cy="512" r="380" fill="url(#orbSimpleOrb)"/>
+  <circle cx="512" cy="512" r="380" fill="url(#orbSimpleShine)"/>
   
-  <!-- Outer glow (soft) -->
-  <circle cx="512" cy="512" r="360" fill="#4a6741" opacity="0.15"/>
-  
-  <!-- Main orb -->
-  <circle cx="512" cy="512" r="340" fill="#4a6741"/>
-  
-  <!-- Lighter top area for depth -->
-  <ellipse cx="460" cy="420" rx="180" ry="140" fill="#5a7a4d" opacity="0.5"/>
-  
-  <!-- Top highlight -->
-  <ellipse cx="420" cy="380" rx="120" ry="80" fill="white" opacity="0.25"/>
-  
-  <!-- Waveform bars - the voice visualization -->
-  <!-- Bar 1 (left) -->
-  <rect x="392" y="488" width="12" height="48" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 2 -->
-  <rect x="422" y="476" width="12" height="72" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 3 -->
-  <rect x="452" y="464" width="12" height="96" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 4 -->
-  <rect x="482" y="456" width="12" height="112" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 5 (center, tallest) -->
-  <rect x="512" y="448" width="12" height="128" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 6 -->
-  <rect x="542" y="456" width="12" height="112" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 7 -->
-  <rect x="572" y="464" width="12" height="96" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 8 -->
-  <rect x="602" y="476" width="12" height="72" rx="6" fill="white" opacity="0.95"/>
-  <!-- Bar 9 (right) -->
-  <rect x="632" y="488" width="12" height="48" rx="6" fill="white" opacity="0.95"/>
+  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="280" font-weight="800" fill="white" letter-spacing="-8">
+    <tspan dy="18">FE</tspan>
+  </text>
 </svg>
-

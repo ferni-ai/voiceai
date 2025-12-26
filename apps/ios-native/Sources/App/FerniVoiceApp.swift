@@ -16,6 +16,7 @@ struct FerniVoiceApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var relationshipService = RelationshipArcService.shared
     @StateObject private var authService = AuthService.shared
+    @StateObject private var betterThanHuman = BetterThanHumanIntegration()
     @State private var showSplash = true
 
     init() {
@@ -31,7 +32,10 @@ struct FerniVoiceApp: App {
                     .environmentObject(appState)
                     .environmentObject(relationshipService)
                     .environmentObject(authService)
+                    .environmentObject(betterThanHuman)
                     .preferredColorScheme(.dark)
+                    // Apply Better Than Human features (Late Night Mode, celebrations, etc.)
+                    .betterThanHumanEnabled(betterThanHuman)
 
                 // Animated splash screen overlay - uses MagicalSplash with relationship awareness
                 if showSplash {

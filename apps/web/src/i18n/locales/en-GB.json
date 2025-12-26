@@ -501,6 +501,7 @@
       "whatILearned": "What I've Learnt",
       "whatsGrowing": "What's Growing",
       "yourJourney": "Your Journey",
+      "yourYear": "Your Year with Ferni",
       "whatIllKnow": "What I'll Know",
       "yourPlan": "Your Plan"
     },
@@ -533,7 +534,21 @@
     "title": "What's Next?",
     "unlockHint": "{remaining} to unlock",
     "unpinItem": "Unpin",
-    "yourStage": "Your stage"
+    "yourStage": "Your stage",
+    "mobileSheet": {
+      "title": "Quick Actions",
+      "openMenu": "Open quick actions menu",
+      "dragToClose": "Drag to close or tap backdrop",
+      "actions": {
+        "settings": "Settings",
+        "team": "Team",
+        "music": "Music",
+        "calendar": "Calendar",
+        "history": "History",
+        "people": "People",
+        "insights": "Insights"
+      }
+    }
   },
   "meta": {
     "direction": "ltr",
@@ -830,27 +845,28 @@
   "support": {
     "becomeFounder": "Become a Founder",
     "costTransparency": {
-      "aiThinking": "AI thinking",
-      "infrastructure": "Infrastructure",
-      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
-      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
-      "title": "What it costs to run Ferni",
-      "totalPerConversation": "Total per conversation",
-      "voiceSynthesis": "Voice synthesis"
+      "infrastructure": "Keeping the lights on",
+      "intro": "Real talk: every chat has a cost. Here's the honest breakdown of a 10-minute conversation:",
+      "note": "We keep Ferni free because we believe everyone deserves someone who listens. Your help makes that possible.",
+      "thinking": "Thinking",
+      "title": "What a conversation actually costs",
+      "total": "Total",
+      "voice": "Voice"
     },
-    "eyebrow": "FOUNDERS FUND",
-    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "eyebrow": "From Us to You",
+    "footer": "Not ready to chip in? That's completely okay. Ferni is here for you either way.",
     "founderButton": "Chip In",
     "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
-    "growTogether": "Ways to Help Us Build This",
+    "growTogether": "Ways to Chip In",
     "manageBilling": "Update payment method",
     "plantASeed": "Plant a Seed",
     "plantButton": "Plant This Seed",
-    "plantDesc": "A one-time contribution to help Ferni grow.",
-    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
-    "thankYouSupporter": "Welcome, Founder",
-    "title": "Support Ferni",
-    "yourSupport": "You're helping us build something everyone deserves"
+    "plantDesc": "A one-time gift to help Ferni grow.",
+    "seeVision": "See Where We're Headed",
+    "subtitle": "Ferni is free — and always will be. If this resonates, you can help us keep going.",
+    "thankYouSupporter": "Welcome, Friend",
+    "title": "Help Ferni Grow",
+    "yourSupport": "You're helping build something everyone deserves"
   },
   "team": {
     "currentlyWith": "Currently with {name}",

@@ -203,6 +203,7 @@ class IntegrationsSettingsUI {
       sleepAwareness: false,
       eventAnticipation: false,
       locationAwareness: false,
+      careerAwareness: false,
       financialPrediction: false,
       relationshipInsights: false,
     };
@@ -522,7 +523,9 @@ class IntegrationsSettingsUI {
       .integrations-settings__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-modal, rgba(44, 37, 32, 0.4));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
         opacity: 0;
         transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
@@ -539,9 +542,12 @@ class IntegrationsSettingsUI {
         width: 90%;
         max-width: clamp(364px, 90vw, 520px);
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
-        border-radius: var(--radius-xl, 1rem);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25));
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -552,6 +558,12 @@ class IntegrationsSettingsUI {
       .integrations-settings--visible .integrations-settings__card {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
+      }
+
+      @supports not (backdrop-filter: blur(24px)) {
+        .integrations-settings__card {
+          background: var(--color-background-elevated, #faf6f0);
+        }
       }
 
       /* Header */

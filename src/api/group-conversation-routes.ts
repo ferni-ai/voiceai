@@ -55,12 +55,13 @@ interface GroupSessionRecord {
 
 /**
  * Extract user ID from request (auth middleware should have set this)
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
  */
 function getUserId(req: Request): string | null {
-  // Check various auth patterns
+  // Check various auth patterns - prioritize Firebase auth
   const userId =
-    (req as any).userId ||
-    req.headers['x-user-id'] ||
+    (req as { userId?: string }).userId ||
+    (req.headers['x-firebase-uid'] as string) ||
     (req.query.userId as string) ||
     (req.body?.userId as string);
 

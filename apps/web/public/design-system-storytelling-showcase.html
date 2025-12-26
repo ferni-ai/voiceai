@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Storytelling Visualizations - Complete Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       DESIGN TOKENS (from design system)
+       ========================================================================= */
+    :root {
+      /* Colors - Midnight Theme (Dark) */
+      --color-bg-primary: #1a1a2e;
+      --color-bg-secondary: rgba(255, 255, 255, 0.04);
+      --color-bg-tertiary: rgba(255, 255, 255, 0.06);
+      --color-bg-elevated: rgba(255, 255, 255, 0.08);
+      --color-text-primary: #f5f5f5;
+      --color-text-secondary: #b8b8b8;
+      --color-text-muted: #888888;
+      --color-border-subtle: rgba(255, 255, 255, 0.06);
+      --color-border-medium: rgba(255, 255, 255, 0.12);
+
+      /* Persona Colors */
+      --persona-primary: #7dad7a;
+      --color-ferni: #7dad7a;
+      --color-maya: #c9a17a;
+      --color-peter: #7a9dad;
+      --color-jordan: #9d7aad;
+      --color-alex: #7a8cad;
+      --color-nayan: #d4a574;
+
+      /* Semantic */
+      --color-semantic-success: #7dad7a;
+      --color-semantic-error: #c97b7b;
+      --color-semantic-warning: #d4a574;
+
+      /* Glass */
+      --glass-thin-bg: rgba(255, 255, 255, 0.06);
+      --glass-thin-border: rgba(255, 255, 255, 0.08);
+      --glass-thick-bg: rgba(255, 255, 255, 0.10);
+      --glass-thick-border: rgba(255, 255, 255, 0.12);
+
+      /* Typography */
+      --font-display: 'Plus Jakarta Sans', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --text-2xs: 0.625rem;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+
+      /* Spacing */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+
+      /* Radius */
+      --radius-md: 0.5rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.25rem;
+      --radius-full: 9999px;
+    }
+
+    /* Zen Theme (Light) */
+    [data-theme="zen"] {
+      --color-bg-primary: #faf9f7;
+      --color-bg-secondary: rgba(44, 37, 32, 0.02);
+      --color-bg-tertiary: rgba(44, 37, 32, 0.04);
+      --color-bg-elevated: #ffffff;
+      --color-text-primary: #2C2520;
+      --color-text-secondary: #5a4a42;
+      --color-text-muted: #70605a;
+      --color-border-subtle: rgba(44, 37, 32, 0.06);
+      --color-border-medium: rgba(44, 37, 32, 0.12);
+      --glass-thin-bg: rgba(255, 255, 255, 0.8);
+      --glass-thin-border: rgba(44, 37, 32, 0.08);
+      --glass-thick-bg: rgba(255, 255, 255, 0.9);
+      --glass-thick-border: rgba(44, 37, 32, 0.1);
+      --persona-primary: #4a6741;
+      --color-ferni: #4a6741;
+    }
+
+    /* =========================================================================
+       BASE STYLES
+       ========================================================================= */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      padding: var(--space-6);
+      min-height: 100vh;
+    }
+
+    /* =========================================================================
+       LAYOUT
+       ========================================================================= */
+    .showcase {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .showcase__header {
+      text-align: center;
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .showcase__title {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--space-2);
+    }
+
+    .showcase__subtitle {
+      color: var(--color-text-muted);
+      font-size: var(--text-lg);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      background: var(--glass-thick-bg);
+      border: 1px solid var(--glass-thick-border);
+      border-radius: var(--radius-full);
+      padding: var(--space-2) var(--space-4);
+      cursor: pointer;
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      z-index: 1000;
+    }
+
+    .showcase__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: var(--space-5);
+    }
+
+    .showcase__section {
+      background: var(--glass-thin-bg);
+      border: 1px solid var(--glass-thin-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+    }
+
+    .showcase__section-title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--space-4);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .showcase__section-desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* =========================================================================
+       LIFE SEASONS
+       ========================================================================= */
+    .life-seasons__wheel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .life-seasons__segment {
+      position: relative;
+      height: 100px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: var(--space-2);
+      transition: transform 0.2s ease;
+      cursor: help;
+      overflow: hidden;
+    }
+
+    .life-seasons__segment:hover {
+      transform: scale(1.05);
+    }
+
+    .life-seasons__segment--spring { background: var(--color-maya); }
+    .life-seasons__segment--summer { background: var(--color-nayan); }
+    .life-seasons__segment--autumn { background: var(--color-peter); }
+    .life-seasons__segment--winter { background: var(--color-alex); }
+
+    .life-seasons__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      z-index: 1;
+    }
+
+    .life-seasons__energy {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,255,255,0.3);
+      transition: height 0.5s ease;
+    }
+
+    .life-seasons__insight {
+      font-size: var(--text-sm);
+      font-style: italic;
+      color: var(--persona-primary);
+      text-align: center;
+    }
+
+    /* =========================================================================
+       CONVERSATION RIVER
+       ========================================================================= */
+    .conversation-river__svg {
+      width: 100%;
+      height: 180px;
+      margin-bottom: var(--space-3);
+    }
+
+    .conversation-river__stream {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.8;
+      transition: opacity 0.3s;
+    }
+
+    .conversation-river__stream:hover {
+      opacity: 1;
+    }
+
+    .conversation-river__label {
+      font-size: 11px;
+      fill: var(--color-text-secondary);
+    }
+
+    .conversation-river__legend {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    /* =========================================================================
+       THE MIRROR
+       ========================================================================= */
+    .the-mirror__card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+    }
+
+    .the-mirror__surface,
+    .the-mirror__deeper {
+      flex: 1;
+    }
+
+    .the-mirror__label {
+      display: block;
+      font-size: var(--text-2xs);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .the-mirror__text {
+      font-size: var(--text-sm);
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+    }
+
+    .the-mirror__text--insight {
+      color: var(--persona-primary);
+      font-weight: 500;
+    }
+
+    .the-mirror__divider {
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--color-border-medium), transparent);
+    }
+
+    .the-mirror__invitation {
+      font-size: var(--text-xs);
+      font-style: italic;
+      color: var(--color-maya);
+      margin-top: var(--space-2);
+    }
+
+    /* =========================================================================
+       ENERGY FLOW
+       ========================================================================= */
+    .energy-flow__svg {
+      width: 100%;
+      height: 220px;
+    }
+
+    .energy-flow__node {
+      stroke: var(--color-border-medium);
+      stroke-width: 1;
+    }
+
+    .energy-flow__node--source { fill: var(--color-maya); }
+    .energy-flow__node--transform { fill: var(--persona-primary); }
+    .energy-flow__node--sink { fill: var(--color-peter); }
+
+    .energy-flow__label {
+      font-size: 9px;
+      fill: white;
+      font-weight: 500;
+    }
+
+    .energy-flow__path {
+      fill: none;
+      stroke: var(--color-border-medium);
+      opacity: 0.4;
+    }
+
+    /* =========================================================================
+       THE UNSAID
+       ========================================================================= */
+    .the-unsaid__card {
+      padding: var(--space-4);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      border-left: 3px solid var(--persona-primary);
+      margin-bottom: var(--space-3);
+    }
+
+    .the-unsaid__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+    }
+
+    .the-unsaid__topic {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .the-unsaid__confidence {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    .the-unsaid__signals {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin: 0 0 var(--space-2);
+      padding-left: var(--space-4);
+    }
+
+    .the-unsaid__prompt {
+      font-size: var(--text-sm);
+      font-style: italic;
+      color: var(--persona-primary);
+    }
+
+    /* =========================================================================
+       GROWTH RINGS
+       ========================================================================= */
+    .growth-rings__svg {
+      width: 100%;
+      max-width: 220px;
+      height: 220px;
+      display: block;
+      margin: 0 auto var(--space-4);
+    }
+
+    .growth-rings__ring {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .growth-rings__center {
+      fill: var(--persona-primary);
+    }
+
+    .growth-rings__legend {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .growth-rings__legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .growth-rings__legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* =========================================================================
+       VALUES ALIGNMENT
+       ========================================================================= */
+    .values-alignment__svg {
+      width: 100%;
+      max-width: 240px;
+      height: 240px;
+      display: block;
+      margin: 0 auto var(--space-4);
+    }
+
+    .values-alignment__grid {
+      fill: none;
+      stroke: var(--color-border-subtle);
+      stroke-width: 1;
+    }
+
+    .values-alignment__axis {
+      stroke: var(--color-border-subtle);
+      stroke-width: 1;
+    }
+
+    .values-alignment__label {
+      font-size: 10px;
+      fill: var(--color-text-muted);
+    }
+
+    .values-alignment__stated {
+      fill: var(--color-maya);
+      fill-opacity: 0.3;
+      stroke: var(--color-maya);
+      stroke-width: 2;
+    }
+
+    .values-alignment__lived {
+      fill: var(--persona-primary);
+      fill-opacity: 0.3;
+      stroke: var(--persona-primary);
+      stroke-width: 2;
+    }
+
+    .values-alignment__legend {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+      margin-bottom: var(--space-3);
+    }
+
+    .values-alignment__legend-item {
+      font-size: var(--text-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .values-alignment__legend-item::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .values-alignment__legend-item--stated::before { background: var(--color-maya); }
+    .values-alignment__legend-item--lived::before { background: var(--persona-primary); }
+
+    /* =========================================================================
+       UNFINISHED STORIES
+       ========================================================================= */
+    .unfinished-stories__card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+    }
+
+    .unfinished-stories__ring {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      flex-shrink: 0;
+    }
+
+    .unfinished-stories__ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .unfinished-stories__ring-bg {
+      fill: none;
+      stroke: var(--color-bg-tertiary);
+      stroke-width: 3;
+    }
+
+    .unfinished-stories__ring-progress {
+      fill: none;
+      stroke: var(--persona-primary);
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    .unfinished-stories__progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .unfinished-stories__story-title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .unfinished-stories__time-ago {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      display: block;
+      margin-bottom: var(--space-2);
+    }
+
+    .unfinished-stories__reminder {
+      font-size: var(--text-sm);
+      font-style: italic;
+      color: var(--persona-primary);
+    }
+
+    /* =========================================================================
+       RIPPLE EFFECTS
+       ========================================================================= */
+    .ripple-effects {
+      text-align: center;
+    }
+
+    .ripple-effects__trigger {
+      display: inline-block;
+      padding: var(--space-3) var(--space-5);
+      background: var(--persona-primary);
+      color: white;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      margin-bottom: var(--space-4);
+    }
+
+    .ripple-effects__effects {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-3);
+    }
+
+    .ripple-effects__effect {
+      padding: var(--space-3);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      min-width: 100px;
+      animation: rippleIn 0.4s ease forwards;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .ripple-effects__effect:nth-child(1) { animation-delay: 0.1s; }
+    .ripple-effects__effect:nth-child(2) { animation-delay: 0.2s; }
+    .ripple-effects__effect:nth-child(3) { animation-delay: 0.3s; }
+    .ripple-effects__effect:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes rippleIn {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .ripple-effects__effect--positive { border-left: 3px solid var(--color-semantic-success); }
+    .ripple-effects__effect--negative { border-left: 3px solid var(--color-semantic-error); }
+    .ripple-effects__effect--neutral { border-left: 3px solid var(--color-border-medium); }
+
+    .ripple-effects__area {
+      display: block;
+      font-weight: 600;
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .ripple-effects__desc {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* =========================================================================
+       RESPONSIVE
+       ========================================================================= */
+    @media (max-width: 768px) {
+      .showcase__grid {
+        grid-template-columns: 1fr;
+      }
+
+      .life-seasons__wheel {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .the-mirror__card {
+        flex-direction: column;
+      }
+
+      .the-mirror__divider {
+        width: 100%;
+        height: 1px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+
+  <div class="showcase">
+    <header class="showcase__header">
+      <h1 class="showcase__title">Storytelling Visualizations</h1>
+      <p class="showcase__subtitle">Transforming metrics into meaning - Complete Suite</p>
+    </header>
+
+    <div class="showcase__grid">
+      <!-- Life Seasons -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Life Seasons</h2>
+        <p class="showcase__section-desc">Your energy ebbs and flows with life's rhythms</p>
+        <div class="life-seasons__wheel">
+          <div class="life-seasons__segment life-seasons__segment--spring" title="Spring: New beginnings, creativity flowing">
+            <span class="life-seasons__label">Spring</span>
+            <div class="life-seasons__energy" style="height: 75%"></div>
+          </div>
+          <div class="life-seasons__segment life-seasons__segment--summer" title="Summer: Peak energy, expansion, confidence">
+            <span class="life-seasons__label">Summer</span>
+            <div class="life-seasons__energy" style="height: 90%"></div>
+          </div>
+          <div class="life-seasons__segment life-seasons__segment--autumn" title="Autumn: Harvest, reflection, letting go">
+            <span class="life-seasons__label">Autumn</span>
+            <div class="life-seasons__energy" style="height: 60%"></div>
+          </div>
+          <div class="life-seasons__segment life-seasons__segment--winter" title="Winter: Rest, introspection, planning">
+            <span class="life-seasons__label">Winter</span>
+            <div class="life-seasons__energy" style="height: 40%"></div>
+          </div>
+        </div>
+        <p class="life-seasons__insight">You're in a summer season - riding high energy. Enjoy it, and save reserves for autumn.</p>
+      </section>
+
+      <!-- Conversation River -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Conversation River</h2>
+        <p class="showcase__section-desc">Topics flow through your conversations like tributaries</p>
+        <svg class="conversation-river__svg" viewBox="0 0 400 180">
+          <!-- Work stream - rising -->
+          <path d="M 80 30 Q 140 25, 200 28 Q 260 31, 320 22 Q 350 18, 390 15"
+                class="conversation-river__stream" stroke="#7a8cad" stroke-width="8"/>
+          <text x="10" y="34" class="conversation-river__label">Work</text>
+
+          <!-- Family stream - stable -->
+          <path d="M 80 70 Q 140 72, 200 68 Q 260 72, 320 70 Q 350 68, 390 70"
+                class="conversation-river__stream" stroke="#7dad7a" stroke-width="6" stroke-dasharray="2 2"/>
+          <text x="10" y="74" class="conversation-river__label">Family</text>
+
+          <!-- Health stream - rising -->
+          <path d="M 80 110 Q 140 115, 200 105 Q 260 95, 320 85 Q 350 78, 390 70"
+                class="conversation-river__stream" stroke="#c9a17a" stroke-width="5"/>
+          <text x="10" y="114" class="conversation-river__label">Health</text>
+
+          <!-- Creativity stream - falling -->
+          <path d="M 80 145 Q 140 148, 200 155 Q 260 162, 320 168 Q 350 172, 390 175"
+                class="conversation-river__stream" stroke="#9d7aad" stroke-width="4" stroke-dasharray="8 4"/>
+          <text x="10" y="149" class="conversation-river__label">Creativity</text>
+        </svg>
+        <p class="conversation-river__legend">Work and Health are rising currents. Creativity is ebbing - missing something?</p>
+      </section>
+
+      <!-- The Mirror -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">The Mirror</h2>
+        <p class="showcase__section-desc">What you say vs. what patterns reveal</p>
+        <div class="the-mirror__card">
+          <div class="the-mirror__surface">
+            <span class="the-mirror__label">You said</span>
+            <p class="the-mirror__text">"I'm fine, just busy with work stuff"</p>
+          </div>
+          <div class="the-mirror__divider"></div>
+          <div class="the-mirror__deeper">
+            <span class="the-mirror__label">I notice</span>
+            <p class="the-mirror__text the-mirror__text--insight">You've said "just busy" 8 times this month. Your energy dips when discussing work boundaries.</p>
+            <p class="the-mirror__invitation">I wonder if there's something underneath the busyness worth exploring?</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Energy Flow -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Energy Flow</h2>
+        <p class="showcase__section-desc">How your emotional energy transforms through life areas</p>
+        <svg class="energy-flow__svg" viewBox="0 0 450 200">
+          <!-- Sources -->
+          <rect x="10" y="20" width="60" height="30" rx="4" class="energy-flow__node energy-flow__node--source"/>
+          <text x="40" y="40" text-anchor="middle" class="energy-flow__label">Sleep</text>
+
+          <rect x="10" y="70" width="60" height="35" rx="4" class="energy-flow__node energy-flow__node--source"/>
+          <text x="40" y="92" text-anchor="middle" class="energy-flow__label">Exercise</text>
+
+          <rect x="10" y="125" width="60" height="25" rx="4" class="energy-flow__node energy-flow__node--source"/>
+          <text x="40" y="142" text-anchor="middle" class="energy-flow__label">Social</text>
+
+          <!-- Transforms -->
+          <rect x="180" y="40" width="80" height="45" rx="4" class="energy-flow__node energy-flow__node--transform"/>
+          <text x="220" y="68" text-anchor="middle" class="energy-flow__label">Focus</text>
+
+          <rect x="180" y="105" width="80" height="40" rx="4" class="energy-flow__node energy-flow__node--transform"/>
+          <text x="220" y="130" text-anchor="middle" class="energy-flow__label">Creativity</text>
+
+          <!-- Sinks -->
+          <rect x="370" y="30" width="70" height="35" rx="4" class="energy-flow__node energy-flow__node--sink"/>
+          <text x="405" y="52" text-anchor="middle" class="energy-flow__label">Work</text>
+
+          <rect x="370" y="85" width="70" height="30" rx="4" class="energy-flow__node energy-flow__node--sink"/>
+          <text x="405" y="105" text-anchor="middle" class="energy-flow__label">Family</text>
+
+          <rect x="370" y="130" width="70" height="30" rx="4" class="energy-flow__node energy-flow__node--sink"/>
+          <text x="405" y="150" text-anchor="middle" class="energy-flow__label">Self</text>
+
+          <!-- Flows -->
+          <path d="M 70 35 C 125 35, 125 55, 180 55" class="energy-flow__path" stroke-width="6"/>
+          <path d="M 70 87 C 125 87, 125 62, 180 62" class="energy-flow__path" stroke-width="8"/>
+          <path d="M 70 137 C 125 137, 125 125, 180 125" class="energy-flow__path" stroke-width="4"/>
+          <path d="M 260 55 C 315 55, 315 45, 370 45" class="energy-flow__path" stroke-width="7"/>
+          <path d="M 260 70 C 315 70, 315 100, 370 100" class="energy-flow__path" stroke-width="5"/>
+          <path d="M 260 125 C 315 125, 315 145, 370 145" class="energy-flow__path" stroke-width="4"/>
+        </svg>
+      </section>
+
+      <!-- The Unsaid -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">The Unsaid</h2>
+        <p class="showcase__section-desc">Topics that might be on your mind, even if unspoken</p>
+        <div class="the-unsaid__card" style="border-left-color: var(--color-semantic-success)">
+          <div class="the-unsaid__header">
+            <span class="the-unsaid__topic">Career transition</span>
+            <span class="the-unsaid__confidence">Strong signal</span>
+          </div>
+          <ul class="the-unsaid__signals">
+            <li>You mentioned "feeling stuck" 3 times</li>
+            <li>Energy drops when discussing current role</li>
+            <li>Increased interest in learning topics</li>
+          </ul>
+          <p class="the-unsaid__prompt">What would it feel like to explore what's next?</p>
+        </div>
+        <div class="the-unsaid__card" style="border-left-color: var(--color-semantic-warning)">
+          <div class="the-unsaid__header">
+            <span class="the-unsaid__topic">A relationship shift</span>
+            <span class="the-unsaid__confidence">Gentle signal</span>
+          </div>
+          <ul class="the-unsaid__signals">
+            <li>Less mention of a close friend lately</li>
+            <li>Subtle tension in related topics</li>
+          </ul>
+          <p class="the-unsaid__prompt">Sometimes distance is temporary. Sometimes it's telling us something.</p>
+        </div>
+      </section>
+
+      <!-- Growth Rings -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Growth Rings</h2>
+        <p class="showcase__section-desc">Each ring marks a season of your growth</p>
+        <svg class="growth-rings__svg" viewBox="0 0 220 220">
+          <!-- Rings from outside in (oldest to newest) -->
+          <circle cx="110" cy="110" r="95" class="growth-rings__ring"
+                  stroke="hsl(160, 35%, 45%)" stroke-width="12" stroke-dasharray="12 3"/>
+          <circle cx="110" cy="110" r="78" class="growth-rings__ring"
+                  stroke="hsl(140, 40%, 50%)" stroke-width="15" stroke-dasharray="10 4"/>
+          <circle cx="110" cy="110" r="58" class="growth-rings__ring"
+                  stroke="hsl(120, 35%, 55%)" stroke-width="10" stroke-dasharray="8 2"/>
+          <circle cx="110" cy="110" r="44" class="growth-rings__ring"
+                  stroke="hsl(100, 40%, 50%)" stroke-width="14" stroke-dasharray="14 2"/>
+          <circle cx="110" cy="110" r="26" class="growth-rings__ring"
+                  stroke="var(--persona-primary)" stroke-width="12"/>
+          <!-- Center (now) -->
+          <circle cx="110" cy="110" r="8" class="growth-rings__center"/>
+        </svg>
+        <div class="growth-rings__legend">
+          <div class="growth-rings__legend-item">
+            <span class="growth-rings__legend-dot" style="background: var(--persona-primary)"></span>
+            <span>2024: Building boundaries, finding voice</span>
+          </div>
+          <div class="growth-rings__legend-item">
+            <span class="growth-rings__legend-dot" style="background: hsl(100, 40%, 50%)"></span>
+            <span>2023: Major career growth</span>
+          </div>
+          <div class="growth-rings__legend-item">
+            <span class="growth-rings__legend-dot" style="background: hsl(120, 35%, 55%)"></span>
+            <span>2022: Relationship deepening</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Values Alignment -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Values Alignment</h2>
+        <p class="showcase__section-desc">What you say matters vs. what actions show</p>
+        <svg class="values-alignment__svg" viewBox="0 0 260 260">
+          <!-- Grid circles -->
+          <circle cx="130" cy="130" r="25" class="values-alignment__grid"/>
+          <circle cx="130" cy="130" r="50" class="values-alignment__grid"/>
+          <circle cx="130" cy="130" r="75" class="values-alignment__grid"/>
+          <circle cx="130" cy="130" r="100" class="values-alignment__grid"/>
+
+          <!-- Axis lines and labels -->
+          <line x1="130" y1="130" x2="130" y2="20" class="values-alignment__axis"/>
+          <text x="130" y="12" text-anchor="middle" class="values-alignment__label">Family</text>
+
+          <line x1="130" y1="130" x2="225" y2="85" class="values-alignment__axis"/>
+          <text x="235" y="80" text-anchor="start" class="values-alignment__label">Growth</text>
+
+          <line x1="130" y1="130" x2="225" y2="175" class="values-alignment__axis"/>
+          <text x="235" y="180" text-anchor="start" class="values-alignment__label">Health</text>
+
+          <line x1="130" y1="130" x2="130" y2="240" class="values-alignment__axis"/>
+          <text x="130" y="252" text-anchor="middle" class="values-alignment__label">Adventure</text>
+
+          <line x1="130" y1="130" x2="35" y2="175" class="values-alignment__axis"/>
+          <text x="25" y="180" text-anchor="end" class="values-alignment__label">Creativity</text>
+
+          <line x1="130" y1="130" x2="35" y2="85" class="values-alignment__axis"/>
+          <text x="25" y="80" text-anchor="end" class="values-alignment__label">Security</text>
+
+          <!-- Stated values (what they say) -->
+          <polygon points="130,45 205,95 195,180 130,215 55,175 65,90" class="values-alignment__stated"/>
+
+          <!-- Lived values (what actions show) -->
+          <polygon points="130,55 185,100 175,165 130,190 75,160 85,105" class="values-alignment__lived"/>
+        </svg>
+        <div class="values-alignment__legend">
+          <span class="values-alignment__legend-item values-alignment__legend-item--stated">What you say</span>
+          <span class="values-alignment__legend-item values-alignment__legend-item--lived">What you do</span>
+        </div>
+      </section>
+
+      <!-- Unfinished Stories -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Unfinished Stories</h2>
+        <p class="showcase__section-desc">Threads waiting to be woven...</p>
+        <div class="unfinished-stories__card">
+          <div class="unfinished-stories__ring">
+            <svg viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9" class="unfinished-stories__ring-bg"/>
+              <circle cx="18" cy="18" r="15.9" class="unfinished-stories__ring-progress"
+                      stroke-dasharray="65 35" stroke-dashoffset="25"/>
+            </svg>
+            <span class="unfinished-stories__progress-text">65%</span>
+          </div>
+          <div>
+            <h4 class="unfinished-stories__story-title">The book you wanted to write</h4>
+            <span class="unfinished-stories__time-ago">12 days since last mention</span>
+            <p class="unfinished-stories__reminder">You had that spark when we talked about your grandmother's stories. The outline is still there.</p>
+          </div>
+        </div>
+        <div class="unfinished-stories__card">
+          <div class="unfinished-stories__ring">
+            <svg viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9" class="unfinished-stories__ring-bg"/>
+              <circle cx="18" cy="18" r="15.9" class="unfinished-stories__ring-progress"
+                      stroke-dasharray="30 70" stroke-dashoffset="25"/>
+            </svg>
+            <span class="unfinished-stories__progress-text">30%</span>
+          </div>
+          <div>
+            <h4 class="unfinished-stories__story-title">Reconnecting with Alex</h4>
+            <span class="unfinished-stories__time-ago">3 weeks since last mention</span>
+            <p class="unfinished-stories__reminder">You said you'd reach out after the holidays. The holidays passed.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ripple Effects -->
+      <section class="showcase__section">
+        <h2 class="showcase__section-title">Ripple Effects</h2>
+        <p class="showcase__section-desc">How one choice ripples through your life</p>
+        <div class="ripple-effects">
+          <div class="ripple-effects__trigger">Started morning walks</div>
+          <div class="ripple-effects__effects">
+            <div class="ripple-effects__effect ripple-effects__effect--positive">
+              <span class="ripple-effects__area">Sleep</span>
+              <span class="ripple-effects__desc">+25% quality</span>
+            </div>
+            <div class="ripple-effects__effect ripple-effects__effect--positive">
+              <span class="ripple-effects__area">Mood</span>
+              <span class="ripple-effects__desc">More stable</span>
+            </div>
+            <div class="ripple-effects__effect ripple-effects__effect--positive">
+              <span class="ripple-effects__area">Focus</span>
+              <span class="ripple-effects__desc">Sharper AM</span>
+            </div>
+            <div class="ripple-effects__effect ripple-effects__effect--neutral">
+              <span class="ripple-effects__area">Social</span>
+              <span class="ripple-effects__desc">Less evenings</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      body.setAttribute('data-theme', currentTheme === 'zen' ? '' : 'zen');
+    }
+  </script>
+</body>
+</html>

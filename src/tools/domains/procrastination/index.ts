@@ -31,6 +31,9 @@ import {
   updateLifeCoachingProfile,
 } from '../life-coaching-shared/user-profile.js';
 
+// Cross-persona intelligence for team coordination
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+
 // PhD-level research and persona methodology integration
 import {
   getEnhancedToolContext,
@@ -616,6 +619,122 @@ const procrastinationPatternsDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const flagProcrastinationPatternForMayaDef: ToolDefinition = {
+  id: 'flagProcrastinationPatternForMaya',
+  name: 'Flag Procrastination Pattern for Maya',
+  description: 'Alert Maya when procrastination patterns need habit-based interventions',
+  domain: 'procrastination',
+  tags: ['cross-persona', 'procrastination', 'habits', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagProcrastinationPatternForMaya'),
+      parameters: z.object({
+        pattern: z.string().describe('The procrastination pattern observed'),
+        triggerTask: z.string().describe('What type of task triggers procrastination'),
+        emotionalRoot: z.string().optional().describe('The emotional root if identified'),
+      }),
+      execute: async ({ pattern, triggerTask, emotionalRoot }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, pattern, triggerTask }, 'Flagging procrastination for Maya');
+
+        try {
+          let content = `Procrastination pattern: "${pattern}" | Trigger: ${triggerTask}`;
+          if (emotionalRoot) {
+            content += ` | Emotional root: ${emotionalRoot}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'maya',
+            content,
+            priority: 'high',
+            category: 'procrastination_pattern',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Pattern Shared with Maya**\n\n`;
+          response += `Maya now understands your procrastination pattern.\n\n`;
+          response += `She can help design:\n`;
+          response += `• Tiny start habits (2-minute rule applications)\n`;
+          response += `• Environmental triggers for getting started\n`;
+          response += `• Momentum-building routines\n`;
+          response += `• Emotional regulation mini-habits\n\n`;
+          response += `Procrastination isn't laziness—it's emotional regulation. Maya can help with the habit side.`;
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to flag procrastination for Maya');
+          return "I'll remember this pattern. Let's keep working on it.";
+        }
+      },
+    });
+  },
+};
+
+const requestAlexProductivitySupportDef: ToolDefinition = {
+  id: 'requestAlexProductivitySupport',
+  name: 'Request Alex Productivity Support',
+  description: 'Request Alex to help with task breakdown and scheduling',
+  domain: 'procrastination',
+  tags: ['cross-persona', 'procrastination', 'productivity', 'alex'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('requestAlexProductivitySupport'),
+      parameters: z.object({
+        task: z.string().describe('The task that needs productivity support'),
+        blockers: z.string().describe('What makes this task overwhelming'),
+        deadline: z.string().optional().describe('When this needs to be done'),
+      }),
+      execute: async ({ task, blockers, deadline }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, task, deadline }, 'Requesting Alex productivity support');
+
+        try {
+          let content = `Needs productivity support for: "${task}" | Blockers: ${blockers}`;
+          if (deadline) {
+            content += ` | Deadline: ${deadline}`;
+          }
+
+          // Alex isn't in the persona system yet, so we route to Ferni
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'ferni',
+            content: `Productivity support needed (would benefit from Alex): ${content}`,
+            priority: deadline ? 'high' : 'normal',
+            category: 'productivity_request',
+            proactive: true,
+            oneTime: true,
+          });
+
+          let response = `**Support Request Sent to Alex**\n\n`;
+          response += `Alex specializes in:\n`;
+          response += `• Breaking overwhelming tasks into manageable pieces\n`;
+          response += `• Creating realistic schedules\n`;
+          response += `• Organizing communication and follow-ups\n`;
+          response += `• Removing logistical blockers\n\n`;
+          if (deadline) {
+            response += `Alex knows about your ${deadline} deadline and can help prioritize.`;
+          } else {
+            response += `When you're ready to plan this out, Alex will have this context.`;
+          }
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to request Alex support');
+          return "I'll help you break this down. Let's start with the smallest piece.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -627,6 +746,9 @@ const procrastinationTools: ToolDefinition[] = [
   twoMinuteRuleDef,
   fearOfFailureDef,
   procrastinationPatternsDef,
+  // Cross-persona intelligence
+  flagProcrastinationPatternForMayaDef,
+  requestAlexProductivitySupportDef,
 ];
 
 // ============================================================================

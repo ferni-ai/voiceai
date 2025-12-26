@@ -89,6 +89,9 @@ import {
   type ConversationDynamicsResult as InjectionDynamicsResult,
 } from './injection-builders.js';
 
+// Honesty guardrail - prevents Ferni from implying she did something she didn't
+import { getHonestyInjection } from '../../intelligence/context-builders/honesty-guardrail.js';
+
 // Smart injection filtering - be selective like a human
 import { detectConversationMode, filterInjections } from './injection-filter.js';
 
@@ -136,6 +139,9 @@ import {
   recordContextInjectionTiming,
   createTimer,
 } from '../../services/performance-metrics.js';
+
+// Development telemetry for E2E observability
+import { createTurnTrace, type Trace } from '../shared/dev-telemetry.js';
 
 // Coaching Intelligence - "Better than Human" pattern detection
 import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
@@ -294,6 +300,19 @@ async function buildContextInjections(
     emotionalState,
   });
   injections.push(...safetyInjections);
+
+  // 2b. HONESTY GUARDRAIL: Prevent implying we did something we didn't
+  // When user asks "did you call my mom?", check action history and answer honestly
+  // Priority 99 = just below identity (100), but before everything else
+  const sessionId = services.sessionId || 'unknown';
+  const honestyInjection = getHonestyInjection(sessionId, userText);
+  if (honestyInjection) {
+    injections.push({
+      category: 'honesty',
+      content: honestyInjection,
+      priority: 99, // Critical - right after identity
+    });
+  }
 
   // ============================================================================
   // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED - Dec 2024)
@@ -1008,6 +1027,17 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   const dynamicsInjections = buildConversationDynamicsInjections(dynamicsForBuilder);
   injections.push(...dynamicsInjections);
 
+  // Data capture acknowledgment (if we captured contact info, etc.)
+  if (userData.dataCaptureAcknowledgment) {
+    injections.push({
+      category: 'data_capture',
+      content: `[SAVED DATA: ${userData.dataCaptureAcknowledgment} - Acknowledge this naturally in your response, e.g., "Got it, I've saved that."]`,
+      priority: 75, // High priority - should be acknowledged
+    });
+    // Clear after injecting
+    userData.dataCaptureAcknowledgment = undefined;
+  }
+
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
 
@@ -1050,6 +1080,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const startTime = Date.now();
   const { turnCtx, userText, userData, services, logger } = ctx;
 
+  // ============================================================================
+  // 📊 DEV TELEMETRY: Create turn trace for E2E observability
+  // ============================================================================
+  const isDev = process.env.NODE_ENV === 'development' || process.env.DEV_TELEMETRY === 'true';
+  const trace = isDev ? createTurnTrace(services.sessionId) : null;
+
   // Log start
   diag.user('Processing user turn', {
     preview: userText.slice(0, 100),
@@ -1087,12 +1123,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 1. Analyze message (synchronous - required for all downstream)
   const analysisTimer = createTimer();
+  trace?.stage('message_analysis');
+  const analysisSpan = trace?.startSpan('message_analysis');
   const analysisResult = analyzeMessage(ctx);
-  recordPhaseTiming('message_analysis', analysisTimer.stop());
+  const analysisMs = analysisTimer.stop();
+  analysisSpan?.end();
+  recordPhaseTiming('message_analysis', analysisMs);
 
   // 2. Update conversation state (synchronous)
   const stateTimer = createTimer();
+  const stateSpan = trace?.startSpan('conversation_state');
   updateConversationState(ctx, analysisResult);
+  stateSpan?.end();
   recordPhaseTiming('conversation_state', stateTimer.stop());
 
   // ============================================================================
@@ -1267,19 +1309,21 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 4. Build emotional state (synchronous - depends on analysis)
   const emotionTimer = createTimer();
+  trace?.stage('emotional_state');
+  const emotionSpan = trace?.startSpan('emotional_state');
   const emotionalState = buildEmotionalState(ctx, analysisResult);
+  emotionSpan?.end();
   recordPhaseTiming('emotional_state', emotionTimer.stop());
 
   // 4b. Record mismatch as cross-persona insight (fire-and-forget)
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
       | 'ferni'
-      | 'maya'
-      | 'peter'
-      | 'alex'
-      | 'jordan'
-      | 'nayan'
-      | 'jack';
+      | 'maya-santos'
+      | 'peter-john'
+      | 'alex-chen'
+      | 'jordan-taylor'
+      | 'nayan-patel';
     void recordMismatchInsight(
       services.userId || 'anonymous',
       personaId,
@@ -1296,93 +1340,94 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     distressLevel: emotionalState.distressLevel,
   });
 
-  // Wait for easter egg check (should be fast, but was started in parallel)
-  const easterEgg = await easterEggPromise;
-
-  // 5. Build response guidance
+  // 5. Build response guidance (synchronous - fast)
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
 
-  // 5b. HUMAN-FIRST 2FA: Process message for magic moments and contact detection
-  // This detects:
-  // - Phone numbers/emails in user message (auto-saves them)
-  // - Magic moments (emotional highs perfect for phone ask)
-  // - Verification codes (if user is verifying)
-  let identityMessageResult:
-    | {
-        shouldAskForPhone?: boolean;
-        contactDetected?: boolean;
-        verificationResult?: { verified: boolean; message: string };
-        llmContextUpdate?: string;
-      }
-    | undefined;
-
-  try {
-    const { onUserMessage } =
-      await import('../../services/trust-and-identity/voice-agent-integration.js');
-    const emotionalIntensity = emotionalState.intensity ?? 0.5;
-
-    identityMessageResult = await onUserMessage(services.sessionId, userText, emotionalIntensity);
-
-    if (identityMessageResult.contactDetected) {
-      diag.user('📱 Contact info detected and saved');
-    }
-
-    if (identityMessageResult.shouldAskForPhone) {
-      diag.user('✨ Magic moment detected - phone ask pending');
-    }
-
-    if (identityMessageResult.verificationResult) {
-      diag.user('🔐 Verification code processed', {
-        verified: identityMessageResult.verificationResult.verified,
-      });
-    }
-  } catch (identityErr) {
-    // Non-fatal - don't block turn processing
-    diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
-  }
-
-  // 6. Build identity context
+  // 6. Build identity context (synchronous - fast)
   const identityContext = buildIdentityContext(ctx);
 
-  // 7. Build humanizing context
+  // 7. Build humanizing context (synchronous - fast)
   const humanizingResult = buildHumanizingContextForTurn(ctx, analysisResult);
 
-  // 8. Process bundle runtime
+  // 8. Process bundle runtime (synchronous - fast)
   const bundleRuntimeContext = processBundleRuntime(ctx, analysisResult);
 
   // ============================================================================
-  // PARALLEL CONTEXT BUILDING: Run context + humanization concurrently
-  // These are the two heaviest async operations - running in parallel saves ~50ms
+  // LATENCY OPTIMIZATION: Run identity/2FA check in parallel with context building
+  // This saves ~50-100ms by not blocking on identity detection
+  // ============================================================================
+  const identityPromise = (async () => {
+    try {
+      const { onUserMessage } =
+        await import('../../services/trust-and-identity/voice-agent-integration.js');
+      const emotionalIntensity = emotionalState.intensity ?? 0.5;
+      const result = await onUserMessage(services.sessionId, userText, emotionalIntensity);
+
+      if (result.contactDetected) {
+        diag.user('📱 Contact info detected and saved');
+      }
+      if (result.shouldAskForPhone) {
+        diag.user('✨ Magic moment detected - phone ask pending');
+      }
+      if (result.verificationResult) {
+        diag.user('🔐 Verification code processed', {
+          verified: result.verificationResult.verified,
+        });
+      }
+      return result;
+    } catch (identityErr) {
+      diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
+      return undefined;
+    }
+  })();
+
+  // ============================================================================
+  // PARALLEL CONTEXT BUILDING: Run ALL async operations concurrently
+  // This is the CRITICAL LATENCY OPTIMIZATION - saves ~100-200ms by running:
+  // - Context injections (heavy)
+  // - Advanced humanization (heavy)
+  // - Identity/2FA detection (I/O bound)
+  // - Easter egg check (light)
+  // All in parallel instead of sequentially.
   // ============================================================================
 
+  trace?.stage('context_building');
+  const contextBuildSpan = trace?.startSpan('context_injections');
   const contextTimer = createTimer();
-  const [contextInjectionsResult, advancedHumanizationResult] = await Promise.all([
-    // 9. Build all context injections
-    (async () => {
-      const injectionsTimer = createTimer();
-      const result = await buildContextInjections(
-        ctx,
-        analysisResult,
-        emotionalState,
-        responseGuidance,
-        identityContext,
-        humanizingResult,
-        bundleRuntimeContext,
-        conversationDynamics
-      );
-      recordContextInjectionTiming('all_context_injections', injectionsTimer.stop());
-      return result;
-    })(),
+  const [contextInjectionsResult, advancedHumanizationResult, identityMessageResult, easterEgg] =
+    await Promise.all([
+      // 9. Build all context injections (HEAVY - 100-200ms)
+      (async () => {
+        const injectionsTimer = createTimer();
+        const result = await buildContextInjections(
+          ctx,
+          analysisResult,
+          emotionalState,
+          responseGuidance,
+          identityContext,
+          humanizingResult,
+          bundleRuntimeContext,
+          conversationDynamics
+        );
+        recordContextInjectionTiming('all_context_injections', injectionsTimer.stop());
+        return result;
+      })(),
 
-    // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
-    // This is the core "Better Than Human" humanization layer
-    (async () => {
-      const humanizationTimer = createTimer();
-      const result = await processAdvancedHumanization(ctx, analysisResult, emotionalState);
-      recordContextInjectionTiming('advanced_humanization', humanizationTimer.stop());
-      return result;
-    })(),
-  ]);
+      // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities (HEAVY - 50-100ms)
+      (async () => {
+        const humanizationTimer = createTimer();
+        const result = await processAdvancedHumanization(ctx, analysisResult, emotionalState);
+        recordContextInjectionTiming('advanced_humanization', humanizationTimer.stop());
+        return result;
+      })(),
+
+      // 9b. Identity/2FA detection (I/O bound - 50-100ms)
+      identityPromise,
+
+      // 9c. Easter egg check (light - <10ms, but was started earlier)
+      easterEggPromise,
+    ]);
+  contextBuildSpan?.end();
   recordPhaseTiming('context_injections', contextTimer.stop());
 
   // Extract injections and trust context from the result
@@ -1623,8 +1668,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // ============================================================================
   // 🎯 SEMANTIC ROUTING: Await tool routing result and apply if applicable
   // ============================================================================
+  trace?.stage('semantic_routing');
   let semanticRouting: SemanticRoutingResult | undefined;
   if (semanticRoutingPromise) {
+    const routingSpan = trace?.startSpan('semantic_routing');
     const routingTimer = createTimer();
     const routingResult = await semanticRoutingPromise;
     const routingLatencyMs = routingTimer.stop();
@@ -1665,7 +1712,13 @@ If they're just conversing, respond naturally without the tool call.`,
         priority: 80,
       });
     }
+    routingSpan?.end();
   }
+
+  // ============================================================================
+  // 📊 DEV TELEMETRY: Complete the trace with final metrics
+  // ============================================================================
+  trace?.complete();
 
   return {
     analysis: analysisResult,

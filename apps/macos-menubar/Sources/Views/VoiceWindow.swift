@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import FerniShared
 
 // MARK: - Voice Window View
 
@@ -34,7 +35,8 @@ struct VoiceWindowView: View {
                     personaId: voiceManager.currentPersonaId,
                     isActive: voiceManager.state.isActive,
                     size: 70,
-                    emotionHint: nil  // Can be wired to emotion detection later
+                    emotionHint: nil,
+                    betterThanHumanState: voiceManager.betterThanHumanState
                 ))
                 .frame(height: 180)
 
@@ -59,6 +61,7 @@ struct VoiceWindowView: View {
             .padding(24)
         }
         .frame(width: 220, height: 320)
+        .lateNightMode()  // Apply time-aware warm theming
     }
 
     // MARK: - Status Indicator
@@ -68,7 +71,8 @@ struct VoiceWindowView: View {
         if voiceManager.isHandoffInProgress, let target = voiceManager.handoffTargetPersona {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.right.circle.fill")
-                    .foregroundColor(PersonaRegistry.get(target).primaryColor)
+                    // Use textColorOnDark for WCAG AA contrast on dark backgrounds
+                    .foregroundColor(PersonaRegistry.get(target).textColorOnDark)
                 Text("Switching to \(PersonaRegistry.get(target).name)...")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white.opacity(0.9))

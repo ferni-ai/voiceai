@@ -152,9 +152,12 @@ function getAppointmentTitle(type: AppointmentType, businessName: string): strin
     dentist: 'Dentist Appointment',
     salon: 'Salon Appointment',
     spa: 'Spa Appointment',
+    vet: 'Vet Appointment',
     veterinary: 'Vet Appointment',
+    service: 'Service Appointment',
     general_service: 'Appointment',
     consultation: 'Consultation',
+    meeting: 'Meeting',
     other: 'Appointment',
   };
   return `${typeLabels[type] || 'Appointment'} at ${businessName}`;
@@ -170,9 +173,12 @@ function getDefaultDuration(type: AppointmentType): number {
     dentist: 60,
     salon: 60,
     spa: 120,
+    vet: 45,
     veterinary: 45,
+    service: 60,
     general_service: 60,
     consultation: 60,
+    meeting: 60,
     other: 60,
   };
   return durations[type] || 60;

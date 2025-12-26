@@ -139,6 +139,7 @@
     "items": {
       "insights": "Understanding You",
       "yourJourney": "Your Journey",
+      "yourYear": "Your Year with Ferni",
       "whatIllKnow": "What I'll Know",
       "trustDetails": "Your Trust Journey",
       "progressAnalytics": "How You're Growing",
@@ -209,7 +210,21 @@
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "mobileSheet": {
+      "title": "Quick Actions",
+      "openMenu": "Open quick actions menu",
+      "dragToClose": "Drag to close or tap backdrop",
+      "actions": {
+        "settings": "Settings",
+        "team": "Team",
+        "music": "Music",
+        "calendar": "Calendar",
+        "history": "History",
+        "people": "People",
+        "insights": "Insights"
+      }
+    }
   },
 
   "session": {
@@ -915,30 +930,30 @@
   },
 
   "support": {
-    "eyebrow": "FOUNDERS FUND",
-    "title": "Support Ferni",
-    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
-    "seeVision": "See the Vision & Roadmap",
+    "eyebrow": "From Us to You",
+    "title": "Help Ferni Grow",
+    "subtitle": "Ferni is free — and always will be. If this resonates, you can help us keep going.",
+    "seeVision": "See Where We're Headed",
     "costTransparency": {
-      "title": "What it costs to run Ferni",
-      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
-      "aiThinking": "AI thinking",
-      "voiceSynthesis": "Voice synthesis",
-      "infrastructure": "Infrastructure",
-      "totalPerConversation": "Total per conversation",
-      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way."
+      "title": "What a conversation actually costs",
+      "intro": "Real talk: every chat has a cost. Here's the honest breakdown of a 10-minute conversation:",
+      "thinking": "Thinking",
+      "voice": "Voice",
+      "infrastructure": "Keeping the lights on",
+      "total": "Total",
+      "note": "We keep Ferni free because we believe everyone deserves someone who listens. Your help makes that possible."
     },
-    "growTogether": "Ways to Help Us Build This",
+    "growTogether": "Ways to Chip In",
     "plantASeed": "Plant a Seed",
-    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "plantDesc": "A one-time gift to help Ferni grow.",
     "plantButton": "Plant This Seed",
     "becomeFounder": "Become a Founder",
     "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
     "founderButton": "Chip In",
-    "thankYouSupporter": "Welcome, Founder",
-    "yourSupport": "You're helping us build something everyone deserves",
+    "thankYouSupporter": "Welcome, Friend",
+    "yourSupport": "You're helping build something everyone deserves",
     "manageBilling": "Update payment method",
-    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way."
+    "footer": "Not ready to chip in? That's completely okay. Ferni is here for you either way."
   },
 
   "foundersJourney": {
@@ -959,7 +974,7 @@
       "principles": {
         "free": {
           "title": "Free, Honestly",
-          "description": "AI costs money to run. Every conversation costs us about $0.05. Founders help cover that so others don't have to."
+          "description": "Every conversation costs about $0.05 to run. Founders help cover that so others don't have to."
         },
         "community": {
           "title": "Small, Not Scale",

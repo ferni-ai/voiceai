@@ -28,7 +28,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('AccountButtonUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -100,7 +100,7 @@ export function initAccountButtonUI(): void {
   // Listen for One-Tap errors - show friendly error toast
   const handleOneTapError = (event: Event): void => {
     const customEvent = event as CustomEvent<{ error: string }>;
-    const errorMessage = customEvent.detail?.error || 'Something went wrong';
+    const errorMessage = customEvent.detail?.error ?? 'Something went wrong';
     log.warn('One-Tap sign-in failed:', errorMessage);
 
     import('./toast.ui.js').then(({ toast }) => {
@@ -203,8 +203,8 @@ function updateButtonState(state: AuthState): void {
 
   if (state.isLinked) {
     // Show user info
-    textSpan.textContent = state.displayName || state.email?.split('@')[0] || 'Account';
-    button.setAttribute('aria-label', `Account menu for ${state.email || 'linked account'}`);
+    textSpan.textContent = state.displayName ?? state.email?.split('@')[0] ?? 'Account';
+    button.setAttribute('aria-label', `Account menu for ${state.email ?? 'linked account'}`);
   } else if (state.isAuthenticated) {
     // Anonymous user - warm invitation to be remembered
     textSpan.textContent = 'Remember me';
@@ -681,7 +681,7 @@ function showAccountMenu(): void {
   menu.innerHTML = `
     <div class="account-menu-item account-info">
       <span class="account-label">I'll remember you as</span>
-      <span class="account-email">${currentAuthState.email || currentAuthState.displayName || 'You'}</span>
+      <span class="account-email">${currentAuthState.email ?? currentAuthState.displayName ?? 'You'}</span>
     </div>
     <button aria-label="Forget this device" class="account-menu-item" data-action="signout">Forget this device</button>
   `;

@@ -66,11 +66,11 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
+    const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string };
+    throw new Error(error.error ?? `API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<unknown>;
 }
 
 // ============================================================================

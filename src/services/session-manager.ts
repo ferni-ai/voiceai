@@ -126,7 +126,7 @@ import { getPersonalizer } from './profile-personalizer.js';
 import type { CreateSessionOptions, SessionServices } from './types.js';
 
 // Handoff state (per-session, not global)
-import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
+import { createHandoffState, initializeFromPersistedData } from './handoff/handoff-state.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {

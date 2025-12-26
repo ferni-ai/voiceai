@@ -19,6 +19,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+import { seededChance } from '../utils/rng.js';
+
 // Shared detection utilities
 import {
   classifyTopicWeight,
@@ -451,7 +453,7 @@ export class HumanizationOrchestrator {
     ) {
       // Apply config-based probability boost
       const baseProbability = globalConfig.probabilities.selfCorrection;
-      const shouldTry = Math.random() < baseProbability + 0.5; // Engine handles final probability
+      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:selfCorrection`, baseProbability + 0.5);
 
       if (shouldTry) {
         const selfCorrection = this.engines.selfCorrection.generate(fullContext);
@@ -501,7 +503,7 @@ export class HumanizationOrchestrator {
       comfortLevel >= globalConfig.comfortThresholds.allowDisfluency
     ) {
       const baseProbability = globalConfig.probabilities.disfluency;
-      const shouldTry = Math.random() < baseProbability + 0.5;
+      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:disfluency`, baseProbability + 0.5);
 
       if (shouldTry) {
         const disfluency = this.engines.disfluency.generate(fullContext);
@@ -541,7 +543,7 @@ export class HumanizationOrchestrator {
       globalConfig.features.catchingYourself
     ) {
       const baseProbability = globalConfig.probabilities.catchingYourself;
-      const shouldTry = Math.random() < baseProbability + 0.5;
+      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:catchingYourself`, baseProbability + 0.5);
 
       if (shouldTry) {
         // Update catching yourself state

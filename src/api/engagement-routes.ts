@@ -118,8 +118,8 @@ export async function handleEngagementRoutes(
   // Store userId in request for handlers to use
   // This normalizes Firebase UID vs device ID for downstream handlers
   if (auth) {
-    // If we have Firebase auth, set the X-User-Id header so handlers use Firebase UID
-    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
+    // SECURITY: Set x-firebase-uid for handlers (preferred over x-user-id)
+    (req.headers as Record<string, string | string[] | undefined>)['x-firebase-uid'] = auth.userId;
   }
 
   // Delegate to modular route handlers

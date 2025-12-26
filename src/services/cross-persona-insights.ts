@@ -920,7 +920,13 @@ function normalizePersonaId(personaId: string): InsightSource {
 // These exports support existing code that was expecting different function names
 // ============================================================================
 
-export type PersonaId = InsightSource | 'alex' | 'jack';
+export type PersonaId =
+  | InsightSource
+  | 'alex-chen'
+  | 'nayan-patel'
+  | 'maya-santos'
+  | 'peter-john'
+  | 'jordan-taylor';
 
 /**
  * Record an insight (legacy API - flexible arguments)

@@ -98,25 +98,58 @@ public class EmotionalSoundEngine: ObservableObject {
         guard isEnabled, isEngineRunning else { return }
 
         switch type {
+        // Recognition & Connection
         case .recognition:
             // Rising tone (C5 → E5) - 80ms
             playTone(startHz: 523, endHz: 659, duration: 0.08, amplitude: 0.12)
 
+        case .memorySpark:
+            // Memory sparkle (high shimmer) - 100ms
+            playTone(startHz: 1047, endHz: 1319, duration: 0.10, amplitude: 0.12)
+
+        case .insider:
+            // Knowing tone (gentle rise) - 90ms
+            playTone(startHz: 440, endHz: 523, duration: 0.09, amplitude: 0.10)
+
+        // Concern & Care
         case .concern:
             // Falling tone (E5 → C5) - 60ms, softer
             playTone(startHz: 659, endHz: 523, duration: 0.06, amplitude: 0.08)
+
+        case .protective:
+            // Gentle enveloping (warm low) - 70ms
+            playTone(startHz: 330, endHz: 294, duration: 0.07, amplitude: 0.08)
+
+        // Interest & Engagement
+        case .interest:
+            // Curious chirp (E5 → G5) - 70ms
+            playTone(startHz: 659, endHz: 784, duration: 0.07, amplitude: 0.10)
+
+        case .curiosityPeak:
+            // Quick bright chirp - 50ms (fastest!)
+            playTone(startHz: 784, endHz: 880, duration: 0.05, amplitude: 0.10)
 
         case .delight:
             // Sparkle (G5 → C6) - 100ms
             playTone(startHz: 784, endHz: 1047, duration: 0.10, amplitude: 0.15)
 
+        // Understanding
+        case .epiphany:
+            // "Aha!" bright burst - 60ms
+            playTone(startHz: 880, endHz: 1175, duration: 0.06, amplitude: 0.14)
+
+        case .connection:
+            // Mutual understanding (warm harmonic) - 80ms
+            playTone(startHz: 392, endHz: 523, duration: 0.08, amplitude: 0.11)
+
+        // Warmth
         case .warmth:
-            // Warm pad (C4) - 120ms
+            // Warm pad (C4) - 120ms (warmest)
             playTone(startHz: 262, endHz: 262, duration: 0.12, amplitude: 0.10)
 
-        case .interest:
-            // Curious chirp (E5 → G5) - 70ms
-            playTone(startHz: 659, endHz: 784, duration: 0.07, amplitude: 0.10)
+        case .affection:
+            // Gentle caring tone - 80ms
+            playTone(startHz: 330, endHz: 349, duration: 0.08, amplitude: 0.09)
         }
     }
 

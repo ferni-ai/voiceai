@@ -112,12 +112,13 @@ struct OnboardingView: View {
             // Microphone icon
             ZStack {
                 Circle()
-                    .fill(Color(hex: "4a6741").opacity(0.2))
+                    .fill(FerniColors.ferni.primary.opacity(0.2))
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "mic.fill")
                     .font(.system(size: 48, weight: .medium))
-                    .foregroundColor(Color(hex: "4a6741"))
+                    // Use theme-aware text color for WCAG AA contrast
+                    .foregroundColor(FerniColors.ferni.text)
             }
 
             VStack(spacing: 12) {
@@ -155,12 +156,13 @@ struct OnboardingView: View {
             // Ready icon
             ZStack {
                 Circle()
-                    .fill(Color(hex: "4a6741").opacity(0.2))
+                    .fill(FerniColors.ferni.primary.opacity(0.2))
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "checkmark")
                     .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(Color(hex: "4a6741"))
+                    // Use theme-aware text color for WCAG AA contrast
+                    .foregroundColor(FerniColors.ferni.text)
             }
 
             VStack(spacing: 12) {

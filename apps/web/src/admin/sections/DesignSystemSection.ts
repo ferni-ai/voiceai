@@ -23,7 +23,7 @@ const log = createLogger('DesignSystemSection');
 /**
  * Render the design system section
  */
-export async function render(): Promise<string> {
+export function render(): string {
   log.debug('Rendering design system section');
 
   return `

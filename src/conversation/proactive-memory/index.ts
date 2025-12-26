@@ -151,7 +151,7 @@ export class ProactiveMemoryEngine {
   addMemory(
     memory: Omit<StoredMemory, 'id' | 'mentionedAt' | 'surfaced' | 'surfaceCount' | 'sessionId'>
   ): void {
-    const id = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = `mem_${Date.now()}_${this.memories.length.toString(36)}`;
 
     this.memories.push({
       ...memory,

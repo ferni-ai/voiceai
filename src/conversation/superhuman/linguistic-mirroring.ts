@@ -16,6 +16,7 @@
  * @module @ferni/superhuman/linguistic-mirroring
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
 
@@ -508,7 +509,7 @@ export class LinguisticMirroringEngine {
       ];
 
       for (const [pattern, replacement] of casualizations) {
-        if (pattern.test(result) && Math.random() < 0.5) {
+        if (pattern.test(result) && seededChance(`${Date.now()}:512`, 0.5)) {
           const original = result;
           result = result.replace(pattern, replacement);
           if (result !== original) {
@@ -551,12 +552,11 @@ export class LinguisticMirroringEngine {
 
   private addComfortFillers(text: string): { text: string; applications: MirroringApplication[] } {
     // Only if user uses fillers and we have samples
-    if (this.profile.comfortFillers.length === 0 || Math.random() > 0.2) {
+    if (this.profile.comfortFillers.length === 0 || !seededChance(`${Date.now()}:1`, 0.2)) {
       return { text, applications: [] };
     }
 
-    const filler =
-      this.profile.comfortFillers[Math.floor(Math.random() * this.profile.comfortFillers.length)];
+    const filler = seededPick(`${Date.now()}:filler`, this.profile.comfortFillers) ?? this.profile.comfortFillers[0];
 
     // Don't double up fillers
     if (text.toLowerCase().includes(filler)) {

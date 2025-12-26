@@ -337,6 +337,20 @@ export async function safeGenerateReply(
     sessionId,
   } = options;
 
+  // SAFEGUARD 0 (new): Check if session is closing - abort immediately
+  // This prevents wasted time trying to speak on a draining session
+  if (sessionId) {
+    const { isSessionClosing } = await import('./session-closing-tracker.js');
+    if (isSessionClosing(sessionId)) {
+      logger.debug({ context, sessionId }, '🚪 Session is closing - skipping generateReply');
+      return {
+        success: false,
+        usedFallback: false,
+        error: 'Session is closing',
+      };
+    }
+  }
+
   // SAFEGUARD 1: Check circuit breaker
   const circuitResult = checkCircuitBreaker(session, fallbackMessage, context, sessionId);
   if (circuitResult) return circuitResult;

@@ -5,6 +5,7 @@
  */
 
 export * from './audio.service.js';
+export * from './procedural-sounds.service.js';
 export * from './connection.service.js';
 export * from './delight.service.js';
 export * from './engagement-demo-data.js';

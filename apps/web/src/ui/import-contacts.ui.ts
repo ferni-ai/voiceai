@@ -107,8 +107,9 @@ function injectStyles(): void {
     .ic-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(20px);
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
     
     .ic-modal {
@@ -116,14 +117,23 @@ function injectStyles(): void {
       width: 90%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
-      background: var(--color-background-elevated, #faf6f0);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
       border-radius: var(--radius-2xl, 1rem);
-      box-shadow: var(--shadow-2xl);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       overflow: hidden;
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .ic-modal {
+        background: var(--color-background-elevated, #faf6f0);
+      }
     }
     
     .ic-overlay.open .ic-modal {
@@ -401,13 +411,17 @@ function injectStyles(): void {
     }
     
     .ic-btn-secondary {
-      background: transparent;
-      border: 1px solid var(--color-border, rgba(0,0,0,0.2));
+      background: var(--tonal-surface-2);
+      border: none;
       color: var(--color-text-secondary, #70605a);
     }
-    
+
     .ic-btn-secondary:hover {
-      background: var(--color-background-hover, #f5f1e8);
+      background: var(--tonal-surface-3);
+    }
+
+    .ic-btn-secondary:active {
+      background: var(--tonal-surface-active);
     }
     
     .ic-btn-primary {
@@ -553,9 +567,9 @@ function bindEvents(): void {
     btn.addEventListener('click', () => {
       const source = btn.getAttribute('data-source') as 'google' | 'csv' | 'vcard';
       state.source = source;
-      
+
       if (source === 'google') {
-        startGoogleImport();
+        void startGoogleImport();
       } else {
         render();
       }
@@ -579,7 +593,7 @@ function bindEvents(): void {
       dropZone.classList.remove('drag-over');
       const files = (e as DragEvent).dataTransfer?.files;
       if (files && files.length > 0) {
-        handleFileUpload(files[0]);
+        void handleFileUpload(files[0]);
       }
     });
   }
@@ -591,7 +605,7 @@ function bindEvents(): void {
     browseBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
       if (fileInput.files && fileInput.files.length > 0) {
-        handleFileUpload(fileInput.files[0]);
+        void handleFileUpload(fileInput.files[0]);
       }
     });
   }

@@ -42,7 +42,7 @@ import {
   textUser,
   getUserContactInfo,
   setUserContactInfo,
-} from '../../proactive-outreach.js';
+} from '../proactive/outreach/index.js';
 import {
   getPendingReminders,
   cancelReminder,
@@ -420,7 +420,7 @@ If multiple items exist, asks which one to cancel.`,
 
         // If only one item, cancel it
         if (pending.length === 1) {
-          const cancelled = cancelReminder(pending[0].id);
+          const cancelled = await cancelReminder(pending[0].id);
           if (cancelled) {
             return `Cancelled: "${pending[0].message.slice(0, 50)}..."`;
           }
@@ -432,7 +432,7 @@ If multiple items exist, asks which one to cancel.`,
           const num = parseInt(params.which);
           if (!isNaN(num) && num >= 1 && num <= pending.length) {
             const item = pending[num - 1];
-            const cancelled = cancelReminder(item.id);
+            const cancelled = await cancelReminder(item.id);
             if (cancelled) {
               return `Cancelled #${num}: "${item.message.slice(0, 50)}..."`;
             }
@@ -445,7 +445,7 @@ If multiple items exist, asks which one to cancel.`,
               r.deliveryMethod.includes(params.which!.toLowerCase())
           );
           if (match) {
-            const cancelled = cancelReminder(match.id);
+            const cancelled = await cancelReminder(match.id);
             if (cancelled) {
               return `Cancelled: "${match.message.slice(0, 50)}..."`;
             }

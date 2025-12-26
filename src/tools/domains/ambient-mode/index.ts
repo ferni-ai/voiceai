@@ -20,6 +20,10 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
+// Superhuman services for "Better Than Human" awareness
+import { buildSeasonalContext } from '../../../services/superhuman/seasonal-awareness.js';
+import { buildEnergyWaveContext } from '../../../services/superhuman/energy-wave-mapping.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -306,6 +310,127 @@ const toggleAmbientModeDef: ToolDefinition = {
 };
 
 // ============================================================================
+// SUPERHUMAN AWARENESS TOOLS
+// ============================================================================
+
+const getSeasonalAwarenessDef: ToolDefinition = {
+  id: 'getSeasonalAwareness',
+  name: 'Get Seasonal Awareness',
+  description: 'Get superhuman awareness of seasonal patterns, anniversaries, and cyclical life events',
+  domain: 'awareness',
+  tags: ['awareness', 'seasonal', 'better-than-human', 'cycles'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getSeasonalAwareness'),
+      parameters: z.object({}),
+      execute: async () => {
+        try {
+          const seasonalContext = await buildSeasonalContext(ctx.userId);
+
+          if (!seasonalContext || seasonalContext === '') {
+            return "I'm still learning your seasonal patterns. As we talk through different times of year, I'll remember what comes up for you.";
+          }
+
+          log.info({ userId: ctx.userId }, 'Seasonal awareness retrieved');
+
+          return `**Seasonal Awareness**\n\n${seasonalContext}\n\nThis is "Better Than Human" memory—I notice the rhythms of your year that even you might not see.`;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId }, 'Get seasonal awareness failed');
+          return "I couldn't access seasonal patterns right now.";
+        }
+      },
+    });
+  },
+};
+
+const getEnergyWaveAwarenessDef: ToolDefinition = {
+  id: 'getEnergyWaveAwareness',
+  name: 'Get Energy Wave Awareness',
+  description: 'Get superhuman awareness of energy patterns throughout the day and week',
+  domain: 'awareness',
+  tags: ['awareness', 'energy', 'better-than-human', 'patterns'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getEnergyWaveAwareness'),
+      parameters: z.object({}),
+      execute: async () => {
+        try {
+          const energyContext = await buildEnergyWaveContext(ctx.userId);
+
+          if (!energyContext || energyContext === '') {
+            return "I'm still mapping your energy patterns. As we talk at different times, I'll learn when you're at your best and when you need gentler support.";
+          }
+
+          log.info({ userId: ctx.userId }, 'Energy wave awareness retrieved');
+
+          return `**Energy Awareness**\n\n${energyContext}\n\nA human friend might not notice when you're depleted. I do.`;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId }, 'Get energy wave awareness failed');
+          return "I couldn't access energy patterns right now.";
+        }
+      },
+    });
+  },
+};
+
+const getFullAmbientIntelligenceDef: ToolDefinition = {
+  id: 'getFullAmbientIntelligence',
+  name: 'Get Full Ambient Intelligence',
+  description: 'Get comprehensive ambient awareness: location, time, energy, and seasonal patterns',
+  domain: 'awareness',
+  tags: ['awareness', 'ambient', 'better-than-human', 'comprehensive'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getFullAmbientIntelligence'),
+      parameters: z.object({}),
+      execute: async () => {
+        try {
+          const { ambientMode } = await import('../../../services/ambient-mode/index.js');
+
+          // Gather all awareness in parallel
+          const [ambientContext, seasonalContext, energyContext] = await Promise.all([
+            ambientMode.buildContext(ctx.userId).catch(() => null),
+            buildSeasonalContext(ctx.userId).catch(() => ''),
+            buildEnergyWaveContext(ctx.userId).catch(() => ''),
+          ]);
+
+          const sections: string[] = [];
+
+          if (ambientContext?.hasAmbientData) {
+            sections.push(`**Right Now:**`);
+            if (ambientContext.locationAwareness) sections.push(ambientContext.locationAwareness);
+            if (ambientContext.timeAwareness) sections.push(ambientContext.timeAwareness);
+            if (ambientContext.activityAwareness) sections.push(ambientContext.activityAwareness);
+          }
+
+          if (energyContext) {
+            sections.push(`\n**Energy:**\n${energyContext}`);
+          }
+
+          if (seasonalContext) {
+            sections.push(`\n**Seasonal:**\n${seasonalContext}`);
+          }
+
+          if (sections.length === 0) {
+            return "I don't have ambient intelligence data yet. Enable ambient mode and talk to me at different times—I'll learn your patterns.";
+          }
+
+          log.info({ userId: ctx.userId }, 'Full ambient intelligence retrieved');
+
+          return `**Full Ambient Intelligence**\n\n${sections.join('\n')}\n\n---\n\nThis is superhuman awareness. No human friend could hold all this context at once.`;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId }, 'Get full ambient intelligence failed');
+          return "I couldn't gather full ambient intelligence right now.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN EXPORT
 // ============================================================================
 
@@ -315,6 +440,10 @@ const ambientModeTools: ToolDefinition[] = [
   setQuietHoursDef,
   getAmbientPreferencesDef,
   toggleAmbientModeDef,
+  // Superhuman awareness tools
+  getSeasonalAwarenessDef,
+  getEnergyWaveAwarenessDef,
+  getFullAmbientIntelligenceDef,
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(

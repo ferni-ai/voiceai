@@ -79,7 +79,7 @@ export async function fetchWarnings(): Promise<string[]> {
       throw new Error(`HTTP ${response.status}`);
     }
     const data = await response.json();
-    return data.warnings || [];
+    return data.warnings ?? [];
   } catch {
     return [];
   }
@@ -435,16 +435,18 @@ export function setupEvents(): void {
   const container = document.getElementById('builder-metrics-container');
 
   if (refreshBtn && container) {
-    refreshBtn.addEventListener('click', async () => {
-      refreshBtn.classList.add('spinning');
-      const data = await fetchBuilderMetrics();
-      container.innerHTML = renderContent(data);
-      refreshBtn.classList.remove('spinning');
+    refreshBtn.addEventListener('click', () => {
+      void (async () => {
+        refreshBtn.classList.add('spinning');
+        const data = await fetchBuilderMetrics();
+        container.innerHTML = renderContent(data);
+        refreshBtn.classList.remove('spinning');
+      })();
     });
   }
 
   // Initial load
-  fetchBuilderMetrics().then((data) => {
+  void fetchBuilderMetrics().then((data) => {
     if (container) {
       container.innerHTML = renderContent(data);
     }

@@ -34,6 +34,18 @@ export const saveContactTool: SemanticToolDefinition = {
       'create a contact',
       'remember this person',
       'add them to my contacts',
+      // Family/relationship number patterns
+      "my mom's number is",
+      "my dad's number is",
+      "my sister's number is",
+      "my brother's number is",
+      "my wife's number is",
+      "my husband's number is",
+      "mom's phone number",
+      "dad's phone number",
+      "save my mom's number",
+      "save my dad's number",
+      "remember my mom's number",
     ],
     patterns: [
       /^(?:add|save|create)\s+(?:a\s+)?(?:new\s+)?contact/i,
@@ -41,6 +53,14 @@ export const saveContactTool: SemanticToolDefinition = {
       /^(?:remember|save)\s+(?:this\s+)?person/i,
       /^add\s+(?:them|him|her)\s+to\s+(?:my\s+)?contacts/i,
       /^(?:new\s+)?contact\s+for\s+(.+)/i,
+      // "my [relationship]'s number/phone is [number]"
+      /^my\s+(\w+(?:'s)?)\s+(?:phone\s+)?number\s+is\s+(.+)/i,
+      // "[relationship]'s number is [number]" (e.g., "mom's number is 555-1234")
+      /^(\w+)(?:'s)?\s+(?:phone\s+)?number\s+is\s+(.+)/i,
+      // "save/remember my [relationship]'s number"
+      /^(?:save|remember)\s+(?:my\s+)?(\w+)(?:'s)?\s+(?:phone\s+)?number/i,
+      // "my [relationship] is [number]" (informal)
+      /^my\s+(\w+)(?:'s)?\s+(?:phone|number|cell)\s+is\s+(.+)/i,
     ],
     keywords: [
       { word: 'add', weight: 0.8 },
@@ -49,6 +69,17 @@ export const saveContactTool: SemanticToolDefinition = {
       { word: 'new', weight: 0.6 },
       { word: 'create', weight: 0.7 },
       { word: 'person', weight: 0.5 },
+      // Family/relationship keywords
+      { word: 'mom', weight: 0.9 },
+      { word: 'dad', weight: 0.9 },
+      { word: 'mother', weight: 0.9 },
+      { word: 'father', weight: 0.9 },
+      { word: 'sister', weight: 0.9 },
+      { word: 'brother', weight: 0.9 },
+      { word: 'wife', weight: 0.9 },
+      { word: 'husband', weight: 0.9 },
+      { word: 'number', weight: 0.7 },
+      { word: 'phone', weight: 0.7 },
     ],
     antiKeywords: ['call', 'text', 'email', 'message', 'what', 'who', 'list', 'show'],
   },
@@ -60,6 +91,11 @@ export const saveContactTool: SemanticToolDefinition = {
     'Add them to my contacts',
     "Remember this person - it's my neighbor Tom",
     'New contact: Jane Doe, jane@email.com',
+    // Family number examples
+    "My mom's number is 555-123-4567",
+    "My dad's phone number is 555-987-6543",
+    "Save my sister's number: 555-111-2222",
+    "Mom's number is 555-333-4444",
   ],
 
   counterExamples: [
@@ -74,14 +110,34 @@ export const saveContactTool: SemanticToolDefinition = {
     {
       name: 'name',
       type: 'string',
-      description: 'Name of the contact',
+      description: 'Name of the contact (can be a relationship like "mom" or a proper name)',
       required: true,
       extractionPatterns: [
         /add\s+(.+?)\s+(?:to|as)/i,
         /save\s+(.+?)\s+(?:to|as)/i,
         /contact\s+(?:for|named?)\s+(.+)/i,
+        // Extract relationship from "my [relationship]'s number is" patterns
+        /^my\s+(\w+?)(?:'s)?\s+(?:phone\s+)?number\s+is/i,
+        /^(\w+?)(?:'s)?\s+(?:phone\s+)?number\s+is/i,
+        /^(?:save|remember)\s+(?:my\s+)?(\w+?)(?:'s)?\s+(?:phone\s+)?number/i,
       ],
       entityType: 'person',
+    },
+    {
+      name: 'phone',
+      type: 'string',
+      description: 'Phone number',
+      required: false,
+      extractionPatterns: [
+        // "number is 555-123-4567"
+        /number\s+is\s+([0-9\-\(\)\s\+\.]+)/i,
+        // "phone is 555-123-4567"  
+        /phone\s+is\s+([0-9\-\(\)\s\+\.]+)/i,
+        // ": 555-123-4567" (after colon)
+        /:\s*([0-9\-\(\)\s\+\.]+)/i,
+        // Standalone phone number at end
+        /\s([0-9]{3}[\-\.\s]?[0-9]{3}[\-\.\s]?[0-9]{4})$/i,
+      ],
     },
     {
       name: 'relationship',
@@ -89,7 +145,11 @@ export const saveContactTool: SemanticToolDefinition = {
       description: 'Relationship type',
       required: false,
       enumValues: ['family', 'friend', 'colleague', 'acquaintance', 'professional', 'other'],
-      extractionPatterns: [/(?:my|as\s+(?:a|my))\s+(friend|colleague|family|boss|coworker)/i],
+      extractionPatterns: [
+        /(?:my|as\s+(?:a|my))\s+(friend|colleague|family|boss|coworker)/i,
+        // Auto-detect family relationships
+        /\b(mom|dad|mother|father|sister|brother|wife|husband|aunt|uncle|grandma|grandpa|grandmother|grandfather)\b/i,
+      ],
     },
   ],
 

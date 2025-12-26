@@ -20,12 +20,10 @@ import { soundUI } from './sound.ui.js';
 import {
   type CustomAgent,
   listCustomAgents,
-  createCustomAgent,
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import {
-  isCaptureEnabled,
   enableJournalCapture,
   disableJournalCapture,
   loadCaptureSettings,
@@ -107,23 +105,39 @@ const STYLES = `
   .digital-twin-modal__backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .digital-twin-modal__backdrop {
+      background: rgba(44, 37, 32, 0.85);
+    }
   }
 
   .digital-twin-modal__container {
     position: relative;
     width: min(90vw, 640px);
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transform: scale(0.95) translateY(10px);
     transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .digital-twin-modal__container {
+      background: var(--color-background-elevated, #fffdfb);
+      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+    }
   }
 
   .digital-twin-modal.open .digital-twin-modal__container {
@@ -1077,7 +1091,7 @@ async function handleClick(e: Event): Promise<void> {
   }
 
   // Toggle auto-capture
-  const toggleCapture = target.closest('[data-action="toggle-capture"]') as HTMLInputElement | null;
+  const toggleCapture = target.closest<HTMLInputElement>('[data-action="toggle-capture"]');
   if (toggleCapture) {
     const isEnabled = toggleCapture.checked;
     if (isEnabled) {
@@ -1091,7 +1105,7 @@ async function handleClick(e: Event): Promise<void> {
   }
 
   // Open existing twin's journal
-  const twinCard = target.closest('[data-twin-id]') as HTMLElement | null;
+  const twinCard = target.closest<HTMLElement>('[data-twin-id]');
   if (twinCard) {
     const twinId = twinCard.dataset.twinId;
     if (twinId) {

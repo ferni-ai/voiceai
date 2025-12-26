@@ -69,16 +69,13 @@ export const MARKDOWN_WRAPPED_JSON_PATTERN = /```(?:json)?\s*\n?\s*(\{[\s\S]*?\}
  * - function-calling-base.md or function-calling-specialty.md
  */
 export const REGISTERED_TOOLS = [
-  // Music
+  // Music (unified API - use musicControl for pause/resume/stop/skip/volume)
   'playMusic',
   'musicControl',
   'musicInfo',
   'searchAppleMusic',
-  'skipMusic',
-  'nextSong',
-  'pauseMusic',
-  'resumeMusic',
-  'stopMusic',
+  // Note: Legacy names (skipMusic, nextSong, pauseMusic, resumeMusic, stopMusic) 
+  // are handled by music-executor.ts for backward compatibility but not advertised here
 
   // Memory (SUPERHUMAN - semantic embeddings + temporal awareness)
   'rememberAboutUser',
@@ -98,7 +95,6 @@ export const REGISTERED_TOOLS = [
 
   // Information
   'getWeather',
-  'getAppleWeather',
   'getNews',
   'getCurrentTime',
 
@@ -145,6 +141,9 @@ export const REGISTERED_TOOLS = [
   'readSMS',
   'checkNewMessages',
   'searchMessages',
+
+  // Telephony (phone calls)
+  'callOnBehalf',  // Call someone on behalf of the user (mom, doctor, restaurant)
 
   // Wellness
   'getCrisisResources',

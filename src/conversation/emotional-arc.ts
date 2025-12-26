@@ -11,6 +11,7 @@
  * - Empathy calibration (match intensity to user's emotional state)
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
@@ -386,7 +387,7 @@ export class EmotionalArcTracker {
         "That's a shift in tone—tell me more.",
         "Sounds like there's good news here.",
       ];
-      return phrases[Math.floor(Math.random() * phrases.length)];
+      return seededPick(`${Date.now()}:390`, phrases) ?? phrases[0];
     }
 
     // Declining mood
@@ -396,7 +397,7 @@ export class EmotionalArcTracker {
         "Oh... that's a lot to carry.",
         "I'm sensing something shifted there.",
       ];
-      return phrases[Math.floor(Math.random() * phrases.length)];
+      return seededPick(`${Date.now()}:400`, phrases) ?? phrases[0];
     }
 
     // Sudden increase in arousal
@@ -406,7 +407,7 @@ export class EmotionalArcTracker {
         "Yes, I'm listening carefully.",
         'Tell me more about that.',
       ];
-      return phrases[Math.floor(Math.random() * phrases.length)];
+      return seededPick(`${Date.now()}:410`, phrases) ?? phrases[0];
     }
 
     return null;

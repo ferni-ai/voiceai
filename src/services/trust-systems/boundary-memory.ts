@@ -479,10 +479,250 @@ export function importBoundaries(profile: BoundaryProfile): void {
 }
 
 // ============================================================================
+// PROTECTIVE MEMORY ENHANCEMENTS
+// "Better Than Human" capability for remembering what NOT to bring up
+// ============================================================================
+
+/**
+ * Premature advice tracking - remembering when advice wasn't welcome.
+ * "Your friend forgets you asked them not to give advice. Ferni remembers forever."
+ */
+export interface PrematureAdviceRecord {
+  id: string;
+  advice: string;
+  context: string;
+  topic: string;
+  userReaction: 'defensive' | 'dismissed' | 'overwhelmed' | 'accepted';
+  timestamp: Date;
+  waitUntil: 'they_bring_it_up' | 'milestone' | 'crisis_passes' | 'never';
+  canRetryAfter?: Date;
+}
+
+/**
+ * Boundary softening - detecting when a hard boundary may be relaxing.
+ */
+export interface BoundarySoftening {
+  boundaryId: string;
+  topic: string;
+  signs: Array<{
+    timestamp: Date;
+    indicator: string;
+    confidenceOfSoftening: number;
+  }>;
+  readyToReapproach: boolean;
+  suggestedApproach?: string;
+}
+
+// In-memory stores for protective memory
+const prematureAdviceRecords = new Map<string, PrematureAdviceRecord[]>();
+const boundarySoftenings = new Map<string, BoundarySoftening[]>();
+
+/**
+ * Record when advice was given at the wrong time.
+ */
+export function recordPrematureAdvice(
+  userId: string,
+  advice: string,
+  topic: string,
+  reaction: PrematureAdviceRecord['userReaction']
+): void {
+  let records = prematureAdviceRecords.get(userId);
+  if (!records) {
+    records = [];
+    prematureAdviceRecords.set(userId, records);
+  }
+
+  const record: PrematureAdviceRecord = {
+    id: `advice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    advice,
+    context: topic,
+    topic,
+    userReaction: reaction,
+    timestamp: new Date(),
+    waitUntil: reaction === 'defensive' || reaction === 'overwhelmed' 
+      ? 'they_bring_it_up' 
+      : 'milestone',
+    canRetryAfter: reaction === 'dismissed' 
+      ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 2 weeks
+      : undefined,
+  };
+
+  records.push(record);
+
+  // Keep last 20 records
+  if (records.length > 20) {
+    records.shift();
+  }
+
+  log.info({ userId, topic, reaction }, '📝 Recorded premature advice');
+}
+
+/**
+ * Check if we should avoid giving advice about a topic.
+ */
+export function shouldAvoidAdviceAbout(userId: string, topic: string): {
+  shouldAvoid: boolean;
+  reason?: string;
+  waitUntil?: string;
+} {
+  const records = prematureAdviceRecords.get(userId);
+  if (!records) return { shouldAvoid: false };
+
+  const lowerTopic = topic.toLowerCase();
+  const relevantRecord = records.find(
+    (r) => r.topic.toLowerCase().includes(lowerTopic) || lowerTopic.includes(r.topic.toLowerCase())
+  );
+
+  if (!relevantRecord) return { shouldAvoid: false };
+
+  // Check if waiting period has passed
+  if (relevantRecord.canRetryAfter && new Date() > relevantRecord.canRetryAfter) {
+    return { shouldAvoid: false };
+  }
+
+  // Still need to wait
+  return {
+    shouldAvoid: true,
+    reason: `Advice about "${relevantRecord.topic}" wasn't welcome last time (${relevantRecord.userReaction})`,
+    waitUntil: relevantRecord.waitUntil,
+  };
+}
+
+/**
+ * Get all premature advice records for context.
+ */
+export function getPrematureAdviceRecords(userId: string): PrematureAdviceRecord[] {
+  return prematureAdviceRecords.get(userId) || [];
+}
+
+/**
+ * Detect signs that a boundary may be softening.
+ */
+export function detectBoundarySoftening(
+  userId: string,
+  topic: string,
+  indicator: string
+): BoundarySoftening | null {
+  const profile = boundaryProfiles.get(userId);
+  if (!profile) return null;
+
+  const lowerTopic = topic.toLowerCase();
+  const boundary = profile.boundaries.find(
+    (b) => b.topic.toLowerCase() === lowerTopic || 
+           b.relatedTerms.some((t) => lowerTopic.includes(t))
+  );
+
+  if (!boundary) return null;
+
+  let softenings = boundarySoftenings.get(userId);
+  if (!softenings) {
+    softenings = [];
+    boundarySoftenings.set(userId, softenings);
+  }
+
+  let softening = softenings.find((s) => s.boundaryId === boundary.id);
+
+  if (!softening) {
+    softening = {
+      boundaryId: boundary.id,
+      topic: boundary.topic,
+      signs: [],
+      readyToReapproach: false,
+    };
+    softenings.push(softening);
+  }
+
+  // Add this sign
+  softening.signs.push({
+    timestamp: new Date(),
+    indicator,
+    confidenceOfSoftening: 0.3, // Base confidence per sign
+  });
+
+  // Calculate if ready to reapproach (3+ signs = ready)
+  if (softening.signs.length >= 3) {
+    softening.readyToReapproach = true;
+    softening.suggestedApproach = 
+      `They've shown signs of being more open to discussing ${boundary.topic}. ` +
+      `If relevant, you might gently check if they want to revisit this.`;
+  }
+
+  log.debug({ userId, topic, signCount: softening.signs.length }, 'Boundary softening detected');
+
+  return softening;
+}
+
+/**
+ * Check if a boundary is showing signs of softening.
+ */
+export function getBoundarySoftening(userId: string, topic: string): BoundarySoftening | null {
+  const softenings = boundarySoftenings.get(userId);
+  if (!softenings) return null;
+
+  const lowerTopic = topic.toLowerCase();
+  return softenings.find(
+    (s) => s.topic.toLowerCase() === lowerTopic || lowerTopic.includes(s.topic.toLowerCase())
+  ) || null;
+}
+
+/**
+ * Build protective memory context for LLM injection.
+ */
+export function buildProtectiveMemoryContext(userId: string): string {
+  const sections: string[] = ['[PROTECTIVE MEMORY]'];
+
+  // Get boundaries
+  const boundaries = getActiveBoundaries(userId);
+  if (boundaries.length > 0) {
+    sections.push('Topics to avoid:');
+    for (const boundary of boundaries.filter((b) => !b.userReopened).slice(0, 5)) {
+      const strength = boundary.strength === 'absolute' ? '🚫' : boundary.strength === 'strong' ? '⚠️' : '💡';
+      sections.push(`${strength} ${boundary.topic} (${boundary.type})`);
+    }
+    sections.push('');
+  }
+
+  // Get premature advice records
+  const adviceRecords = getPrematureAdviceRecords(userId);
+  const activeAdviceWarnings = adviceRecords.filter(
+    (r) => r.waitUntil !== 'never' && (!r.canRetryAfter || new Date() < r.canRetryAfter)
+  );
+
+  if (activeAdviceWarnings.length > 0) {
+    sections.push('Advice to hold back on:');
+    for (const record of activeAdviceWarnings.slice(0, 3)) {
+      sections.push(`- ${record.topic}: Wait until ${record.waitUntil.replace(/_/g, ' ')}`);
+    }
+    sections.push('');
+  }
+
+  // Get boundary softenings
+  const softenings = boundarySoftenings.get(userId) || [];
+  const readyToReapproach = softenings.filter((s) => s.readyToReapproach);
+
+  if (readyToReapproach.length > 0) {
+    sections.push('Topics that may be reopening:');
+    for (const softening of readyToReapproach) {
+      sections.push(`- ${softening.topic}: ${softening.suggestedApproach}`);
+    }
+  }
+
+  if (sections.length === 1) {
+    return ''; // No protective memory to share
+  }
+
+  sections.push('');
+  sections.push('Your friend forgets what not to bring up. You remember forever.');
+
+  return sections.join('\n');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
+  // Original exports
   detectNewBoundary,
   checkBoundary,
   isTopicOffLimits,
@@ -493,4 +733,11 @@ export default {
   getProbingDepth,
   exportBoundaries,
   importBoundaries,
+  // Protective Memory enhancements
+  recordPrematureAdvice,
+  shouldAvoidAdviceAbout,
+  getPrematureAdviceRecords,
+  detectBoundarySoftening,
+  getBoundarySoftening,
+  buildProtectiveMemoryContext,
 };

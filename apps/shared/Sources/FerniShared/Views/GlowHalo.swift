@@ -15,6 +15,10 @@ public struct GlowHalo: View {
     public let size: CGFloat
     public let isActive: Bool
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Continuous animation - NEVER restarts
     @State private var time: Double = 0
     @State private var isTimerRunning = false
@@ -56,8 +60,8 @@ public struct GlowHalo: View {
     // MARK: - Outer Glow
 
     private var outerGlow: some View {
-        // 8-second slow breathing cycle
-        let breathPhase = sin(time * .pi * 2 / PixarTiming.haloOuterCycle)
+        // 8-second slow breathing cycle (static when reduceMotion)
+        let breathPhase = reduceMotion ? 0.0 : sin(time * .pi * 2 / PixarTiming.haloOuterCycle)
         let scale = 1.0 + breathPhase * 0.05  // 1.0 - 1.05 range
         let opacity = (0.15 + breathPhase * 0.05) * Double(activeIntensity)
 
@@ -83,38 +87,45 @@ public struct GlowHalo: View {
     /// The signature "lub-dub" heartbeat pattern - makes the avatar feel alive!
     /// Pattern: rest → lub (beat 1) → settle → dub (beat 2) → rest
     private var heartbeatRing: some View {
-        // 1.8 second heartbeat cycle (like a real resting heart rate ~66 BPM)
-        let cycleTime = 1.8
-        let phase = (time.truncatingRemainder(dividingBy: cycleTime)) / cycleTime
-
-        // Create lub-dub pattern with precise timing
+        // Static state when reduceMotion is enabled
         let scale: CGFloat
         let opacity: Double
 
-        if phase < 0.1 {
-            // Rest → Lub (first beat)
-            let t = phase / 0.1
-            scale = 1.0 + t * 0.12  // 1.0 → 1.12
-            opacity = 0.75 + t * 0.25  // 0.75 → 1.0
-        } else if phase < 0.2 {
-            // Lub → Quick settle
-            let t = (phase - 0.1) / 0.1
-            scale = 1.12 - t * 0.10  // 1.12 → 1.02
-            opacity = 1.0 - t * 0.1  // 1.0 → 0.9
-        } else if phase < 0.3 {
-            // Settle → Dub (second beat)
-            let t = (phase - 0.2) / 0.1
-            scale = 1.02 + t * 0.06  // 1.02 → 1.08
-            opacity = 0.9 + t * 0.1  // 0.9 → 1.0
-        } else if phase < 0.5 {
-            // Dub → Return to rest
-            let t = (phase - 0.3) / 0.2
-            scale = 1.08 - t * 0.08  // 1.08 → 1.0
-            opacity = 1.0 - t * 0.25  // 1.0 → 0.75
-        } else {
-            // Rest (longer pause between heartbeats)
+        if reduceMotion {
+            // Static resting state
             scale = 1.0
             opacity = 0.75
+        } else {
+            // 1.8 second heartbeat cycle (like a real resting heart rate ~66 BPM)
+            let cycleTime = 1.8
+            let phase = (time.truncatingRemainder(dividingBy: cycleTime)) / cycleTime
+
+            // Create lub-dub pattern with precise timing
+            if phase < 0.1 {
+                // Rest → Lub (first beat)
+                let t = phase / 0.1
+                scale = 1.0 + t * 0.12  // 1.0 → 1.12
+                opacity = 0.75 + t * 0.25  // 0.75 → 1.0
+            } else if phase < 0.2 {
+                // Lub → Quick settle
+                let t = (phase - 0.1) / 0.1
+                scale = 1.12 - t * 0.10  // 1.12 → 1.02
+                opacity = 1.0 - t * 0.1  // 1.0 → 0.9
+            } else if phase < 0.3 {
+                // Settle → Dub (second beat)
+                let t = (phase - 0.2) / 0.1
+                scale = 1.02 + t * 0.06  // 1.02 → 1.08
+                opacity = 0.9 + t * 0.1  // 0.9 → 1.0
+            } else if phase < 0.5 {
+                // Dub → Return to rest
+                let t = (phase - 0.3) / 0.2
+                scale = 1.08 - t * 0.08  // 1.08 → 1.0
+                opacity = 1.0 - t * 0.25  // 1.0 → 0.75
+            } else {
+                // Rest (longer pause between heartbeats)
+                scale = 1.0
+                opacity = 0.75
+            }
         }
 
         // More intense when connected
@@ -132,8 +143,8 @@ public struct GlowHalo: View {
     // MARK: - Inner Ring
 
     private var innerRing: some View {
-        // 5-second breathing synced with avatar
-        let breathPhase = sin(time * .pi * 2 / PixarTiming.haloInnerCycle)
+        // 5-second breathing synced with avatar (static when reduceMotion)
+        let breathPhase = reduceMotion ? 0.0 : sin(time * .pi * 2 / PixarTiming.haloInnerCycle)
         let scale = 1.0 + breathPhase * 0.03  // 1.0 - 1.03 range
         let baseOpacity = isActive ? 0.35 : 0.15
         let opacity = baseOpacity + breathPhase * 0.1
@@ -149,20 +160,28 @@ public struct GlowHalo: View {
 
     // MARK: - Pulse Ring
 
+    @ViewBuilder
     private var pulseRing: some View {
-        // Expanding pulse that loops when active
-        let pulsePhase = (time / PixarTiming.haloPulseExpand).truncatingRemainder(dividingBy: 1.0)
-        let scale = 1.1 + pulsePhase * 0.7  // 1.1 - 1.8 expansion
-        let opacity = (1.0 - pulsePhase) * 0.5 * Double(activeIntensity)
+        // Hide expanding pulse when reduceMotion is enabled (continuous motion)
+        if reduceMotion {
+            Circle()
+                .stroke(Color.clear, lineWidth: 0)
+                .frame(width: size * 1.0, height: size * 1.0)
+        } else {
+            // Expanding pulse that loops when active
+            let pulsePhase = (time / PixarTiming.haloPulseExpand).truncatingRemainder(dividingBy: 1.0)
+            let scale = 1.1 + pulsePhase * 0.7  // 1.1 - 1.8 expansion
+            let opacity = (1.0 - pulsePhase) * 0.5 * Double(activeIntensity)
 
-        return Circle()
-            .stroke(
-                persona.glowColor.opacity(opacity),
-                lineWidth: 3
-            )
-            .frame(width: size * 1.0, height: size * 1.0)
-            .scaleEffect(scale)
-            .opacity(activeIntensity > 0.5 ? 1 : 0)  // Only show when active
+            Circle()
+                .stroke(
+                    persona.glowColor.opacity(opacity),
+                    lineWidth: 3
+                )
+                .frame(width: size * 1.0, height: size * 1.0)
+                .scaleEffect(scale)
+                .opacity(activeIntensity > 0.5 ? 1 : 0)  // Only show when active
+        }
     }
 
     // MARK: - Continuous Animation
@@ -173,6 +192,12 @@ public struct GlowHalo: View {
 
         // Set initial intensity
         activeIntensity = isActive ? 1.0 : 0.0
+
+        // Respect reduce motion preference - skip continuous animation
+        if reduceMotion {
+            // Static state - no animation timer needed
+            return
+        }
 
         // 60fps timer that NEVER restarts
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in

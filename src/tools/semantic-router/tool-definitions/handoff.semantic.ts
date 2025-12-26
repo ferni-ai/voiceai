@@ -248,7 +248,355 @@ export const habitHelpTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
+// RESEARCH-BASED IMPLICIT HANDOFF (PETER)
+// ============================================================================
+
+export const researchHelpTool: SemanticToolDefinition = {
+  id: 'handoff_peter_implicit',
+  name: 'Research Help (Peter)',
+  description: 'User wants help with research, learning, or deep-diving into topics - suggest Peter',
+  shortDescription: 'get research help from Peter',
+  category: 'handoff',
+
+  triggers: {
+    phrases: [
+      'help with research',
+      'deep dive into',
+      'learn about',
+      'understand how',
+      'find out about',
+      'look into',
+      'need to research',
+    ],
+    patterns: [
+      /\b(?:research|learn\s+about|understand|deep\s+dive|look\s+into)\s+(.+)/i,
+      /\b(?:how|why)\s+(?:does|do|did)\s+(.+)\s+(?:work|happen)/i,
+      /\b(?:find|figure)\s+out\s+(?:about\s+)?(.+)/i,
+    ],
+    keywords: [
+      { word: 'research', weight: 1.0 },
+      { word: 'learn', weight: 0.7 },
+      { word: 'understand', weight: 0.6 },
+      { word: 'curious', weight: 0.7 },
+      { word: 'deep dive', weight: 0.9 },
+      { word: 'explore', weight: 0.6 },
+      { word: 'data', weight: 0.5 },
+      { word: 'analysis', weight: 0.6 },
+    ],
+  },
+
+  examples: [
+    'I want to research this topic',
+    'help me understand how this works',
+    'I need to deep dive into investing',
+    "I'm curious about the stock market",
+    'can you help me learn about AI',
+    'I want to look into nutrition science',
+  ],
+
+  arguments: [
+    {
+      name: 'targetPersona',
+      type: 'string',
+      description: 'Always Peter for research help',
+      required: true,
+      defaultValue: 'peter',
+    },
+    {
+      name: 'topic',
+      type: 'string',
+      description: 'The research topic',
+      required: false,
+      extractionPatterns: [
+        /(?:research|learn\s+about|understand|deep\s+dive\s+into|look\s+into)\s+(.+?)(?:\s+for|$)/i,
+      ],
+    },
+  ],
+
+  execute: async (args): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      data: { targetPersona: 'peter', topic: args.topic },
+      naturalResponse:
+        "That's right up Peter's alley - he loves going deep on topics. Let me connect you with him.",
+      speakImmediately: true,
+      sideEffects: ['persona_handoff_suggested'],
+    };
+  },
+
+  priority: 80,
+  tags: ['navigation', 'persona', 'research'],
+};
+
+// ============================================================================
+// COMMUNICATION-BASED IMPLICIT HANDOFF (ALEX)
+// ============================================================================
+
+export const communicationHelpTool: SemanticToolDefinition = {
+  id: 'handoff_alex_implicit',
+  name: 'Communication Help (Alex)',
+  description:
+    'User wants help with communication, difficult conversations, or message crafting - suggest Alex',
+  shortDescription: 'get communication help from Alex',
+  category: 'handoff',
+
+  triggers: {
+    phrases: [
+      'difficult conversation',
+      'how to tell',
+      'how to say',
+      'need to confront',
+      'set boundaries',
+      'write an email',
+      'draft a message',
+      'communicate better',
+    ],
+    patterns: [
+      /\bhow\s+(?:do\s+i|to|should\s+i)\s+(?:tell|say|ask|confront)\s+(.+)/i,
+      /\b(?:difficult|hard|tough)\s+conversation/i,
+      /\b(?:write|draft|compose)\s+(?:an?\s+)?(?:email|message|text|letter)/i,
+      /\b(?:set|establish|maintain)\s+(?:a\s+)?boundar(?:y|ies)/i,
+    ],
+    keywords: [
+      { word: 'conversation', weight: 0.8 },
+      { word: 'communicate', weight: 0.9 },
+      { word: 'boundaries', weight: 1.0 },
+      { word: 'confront', weight: 0.9 },
+      { word: 'email', weight: 0.7 },
+      { word: 'message', weight: 0.6 },
+      { word: 'tell them', weight: 0.8 },
+      { word: 'conflict', weight: 0.8 },
+    ],
+  },
+
+  examples: [
+    'I need to have a difficult conversation with my boss',
+    "how do I tell my friend I'm upset",
+    'help me set boundaries with my family',
+    'I need to write an email to my landlord',
+    'how should I bring up this issue',
+    'I want to communicate better with my partner',
+  ],
+
+  arguments: [
+    {
+      name: 'targetPersona',
+      type: 'string',
+      description: 'Always Alex for communication help',
+      required: true,
+      defaultValue: 'alex',
+    },
+    {
+      name: 'topic',
+      type: 'string',
+      description: 'The communication challenge',
+      required: false,
+      extractionPatterns: [
+        /(?:tell|say\s+to|confront|talk\s+to)\s+(?:my\s+)?(\w+)\s+(?:about|that)/i,
+        /(?:email|message|text)\s+(?:to\s+)?(?:my\s+)?(\w+)/i,
+      ],
+    },
+  ],
+
+  execute: async (args): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      data: { targetPersona: 'alex', topic: args.topic },
+      naturalResponse:
+        "Alex is fantastic at navigating these kinds of conversations. Let me connect you.",
+      speakImmediately: true,
+      sideEffects: ['persona_handoff_suggested'],
+    };
+  },
+
+  priority: 80,
+  tags: ['navigation', 'persona', 'communication'],
+};
+
+// ============================================================================
+// PLANNING-BASED IMPLICIT HANDOFF (JORDAN)
+// ============================================================================
+
+export const planningHelpTool: SemanticToolDefinition = {
+  id: 'handoff_jordan_implicit',
+  name: 'Planning Help (Jordan)',
+  description: 'User wants help with events, planning, travel, or milestones - suggest Jordan',
+  shortDescription: 'get planning help from Jordan',
+  category: 'handoff',
+
+  triggers: {
+    phrases: [
+      'plan an event',
+      'plan a trip',
+      'plan a party',
+      'organize an event',
+      'wedding planning',
+      'birthday party',
+      'vacation planning',
+      'milestone planning',
+    ],
+    patterns: [
+      /\b(?:plan|organize|arrange)\s+(?:an?\s+)?(?:event|party|trip|vacation|wedding|celebration)/i,
+      /\b(?:birthday|anniversary|graduation|retirement)\s+(?:party|celebration|event)/i,
+      /\b(?:travel|trip|vacation)\s+(?:planning|to\s+\w+)/i,
+    ],
+    keywords: [
+      { word: 'plan', weight: 0.8 },
+      { word: 'event', weight: 0.9 },
+      { word: 'party', weight: 0.8 },
+      { word: 'trip', weight: 0.7 },
+      { word: 'vacation', weight: 0.8 },
+      { word: 'wedding', weight: 1.0 },
+      { word: 'birthday', weight: 0.7 },
+      { word: 'celebration', weight: 0.8 },
+      { word: 'milestone', weight: 0.7 },
+    ],
+  },
+
+  examples: [
+    "I'm planning a birthday party",
+    'help me plan my vacation',
+    "I need to organize a friend's wedding shower",
+    "I'm planning a trip to Europe",
+    'help me plan a celebration',
+    "it's my anniversary next month",
+  ],
+
+  arguments: [
+    {
+      name: 'targetPersona',
+      type: 'string',
+      description: 'Always Jordan for planning help',
+      required: true,
+      defaultValue: 'jordan',
+    },
+    {
+      name: 'eventType',
+      type: 'string',
+      description: 'The type of event or plan',
+      required: false,
+      extractionPatterns: [
+        /(?:plan(?:ning)?|organize)\s+(?:an?\s+)?(.+?)(?:\s+for|$)/i,
+        /\b(wedding|birthday|trip|vacation|party|celebration|anniversary)\b/i,
+      ],
+    },
+  ],
+
+  execute: async (args): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      data: { targetPersona: 'jordan', eventType: args.eventType },
+      naturalResponse:
+        'Jordan is amazing at making moments special. Let me connect you with her.',
+      speakImmediately: true,
+      sideEffects: ['persona_handoff_suggested'],
+    };
+  },
+
+  priority: 80,
+  tags: ['navigation', 'persona', 'planning'],
+};
+
+// ============================================================================
+// WISDOM-BASED IMPLICIT HANDOFF (NAYAN)
+// ============================================================================
+
+export const wisdomHelpTool: SemanticToolDefinition = {
+  id: 'handoff_nayan_implicit',
+  name: 'Wisdom & Philosophy Help (Nayan)',
+  description:
+    'User wants help with deep questions, meaning, philosophy, or long-term perspective - suggest Nayan',
+  shortDescription: 'get wisdom and perspective from Nayan',
+  category: 'handoff',
+
+  triggers: {
+    phrases: [
+      'meaning of life',
+      'purpose in life',
+      'existential question',
+      'feeling lost',
+      'who am I',
+      'what matters',
+      'big picture',
+      'long-term thinking',
+      'life philosophy',
+    ],
+    patterns: [
+      /\bwhat(?:'s|\s+is)\s+(?:the\s+)?(?:point|purpose|meaning)\s+(?:of|in)\s+(?:life|all\s+this)/i,
+      /\b(?:feeling|feel)\s+(?:lost|stuck|empty|meaningless)/i,
+      /\bwho\s+am\s+i/i,
+      /\bwhat\s+(?:really\s+)?matters(?:\s+in\s+life)?/i,
+      /\b(?:big|bigger)\s+picture/i,
+    ],
+    keywords: [
+      { word: 'meaning', weight: 1.0 },
+      { word: 'purpose', weight: 1.0 },
+      { word: 'wisdom', weight: 0.9 },
+      { word: 'philosophy', weight: 0.9 },
+      { word: 'existential', weight: 1.0 },
+      { word: 'spiritual', weight: 0.8 },
+      { word: 'lost', weight: 0.6 },
+      { word: 'perspective', weight: 0.7 },
+      { word: 'mortality', weight: 0.9 },
+      { word: 'legacy', weight: 0.8 },
+    ],
+  },
+
+  examples: [
+    "what's the meaning of life",
+    "I'm feeling lost in life",
+    'I need some perspective',
+    'what really matters in the end',
+    "I'm having an existential crisis",
+    'I want to talk about my legacy',
+    'help me see the big picture',
+    "I don't know what my purpose is",
+  ],
+
+  arguments: [
+    {
+      name: 'targetPersona',
+      type: 'string',
+      description: 'Always Nayan for wisdom and philosophy',
+      required: true,
+      defaultValue: 'nayan',
+    },
+    {
+      name: 'topic',
+      type: 'string',
+      description: 'The philosophical or existential topic',
+      required: false,
+      extractionPatterns: [
+        /(?:meaning|purpose|point)\s+(?:of|in)\s+(.+)/i,
+        /\bfeeling\s+(.+?)(?:\s+in\s+life|$)/i,
+      ],
+    },
+  ],
+
+  execute: async (args): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      data: { targetPersona: 'nayan', topic: args.topic },
+      naturalResponse:
+        'Nayan has a way of seeing the deeper patterns. Let me connect you with him.',
+      speakImmediately: true,
+      sideEffects: ['persona_handoff_suggested'],
+    };
+  },
+
+  priority: 80,
+  tags: ['navigation', 'persona', 'wisdom', 'philosophy'],
+};
+
+// ============================================================================
 // EXPORT ALL HANDOFF TOOLS
 // ============================================================================
 
-export const handoffTools: SemanticToolDefinition[] = [handoffTool, habitHelpTool];
+export const handoffTools: SemanticToolDefinition[] = [
+  handoffTool,
+  habitHelpTool,
+  researchHelpTool,
+  communicationHelpTool,
+  planningHelpTool,
+  wisdomHelpTool,
+];

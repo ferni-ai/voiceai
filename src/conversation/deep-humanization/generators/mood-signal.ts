@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/mood-signal
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -52,7 +53,7 @@ export async function generateMoodSignal(
 ): Promise<GeneratorResult> {
   const probability = HUMANIZATION_CONFIG.probabilities.moodDrift;
 
-  if (Math.random() > probability) {
+  if (!seededChance(`${Date.now()}:1`, probability)) {
     return null;
   }
 
@@ -77,12 +78,12 @@ export async function generateMoodSignal(
   }
 
   // Sometimes add engagement signal
-  if (mood.engagement > 0.7 && Math.random() > 0.6) {
+  if (mood.engagement > 0.7 && !seededChance(`${Date.now()}:2`, 0.6)) {
     const engagementKey = mood.engagement > 0.8 ? 'high' : 'medium';
     signals = [...signals, ...ENGAGEMENT_SIGNALS[engagementKey]];
   }
 
-  const content = signals[Math.floor(Math.random() * signals.length)];
+  const content = seededPick(`${Date.now()}:86`, signals) ?? signals[0];
 
   return {
     type: 'mood_signal',

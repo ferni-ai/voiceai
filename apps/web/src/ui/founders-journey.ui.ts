@@ -18,7 +18,7 @@
  * 5. The Founders Wall - Community of believers
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { roadmapService, STAGE_INFO } from '../services/roadmap.service.js';
 import {
@@ -32,9 +32,6 @@ import {
   TIER_COLORS,
   BADGE_INFO,
   type Founder,
-  type FounderStats,
-  type FounderStory,
-  type CommunityMilestone,
   type PersonalImpact,
 } from '../services/founders.service.js';
 import { appState } from '../state/app.state.js';
@@ -47,18 +44,20 @@ import { injectFoundersJourneyStyles } from './founders-journey/styles.js';
 import type { JourneyMilestone, SectionType, CachedFoundersData } from './founders-journey/types.js';
 
 const log = createLogger('FoundersJourney');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // NOTE: ICONS are imported from ./founders-journey/icons.js
 // NOTE: Types are imported from ./founders-journey/types.js
 // NOTE: Styles are imported from ./founders-journey/styles.js
+
+// Styles are injected via injectFoundersJourneyStyles function
+let _styleElement: HTMLStyleElement | null = null;
 
 // ============================================================================
 // STATE
 // ============================================================================
 
 let overlay: HTMLElement | null = null;
-let styleElement: HTMLStyleElement | null = null;
 let activeSection: SectionType = 'vision';
 let previouslyFocusedElement: HTMLElement | null = null;
 let currentStoryIndex = 0;
@@ -182,7 +181,7 @@ export async function openFoundersJourney(): Promise<void> {
   });
 }
 
-export function closeFoundersJourney(): void {
+function closeFoundersJourney(): void {
   if (!overlay) return;
 
   overlay.classList.remove('founders-journey--open');
@@ -198,11 +197,13 @@ export function closeFoundersJourney(): void {
       overlay?.remove();
       overlay = null;
       restoreFocus();
-      clearAllTimeouts();
+      _clearAllTimeouts();
     },
     prefersReducedMotion() ? 0 : DURATION.SLOW
   );
 }
+
+export { closeFoundersJourney };
 
 // ============================================================================
 // CREATE OVERLAY
@@ -904,7 +905,7 @@ function cleanupOrphanedElements(): void {
 // ============================================================================
 
 function injectStyles(): void {
-  styleElement = injectFoundersJourneyStyles();
+  _styleElement = injectFoundersJourneyStyles();
 }
 
 // ============================================================================

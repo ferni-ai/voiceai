@@ -81,6 +81,7 @@ export interface SettingsMenuUICallbacks {
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
+  onYourYearClick?: () => void;
   onFutureInsightsClick?: () => void;
   onShareFerniClick?: () => void;
   onAccentSettingsClick?: () => void;
@@ -709,6 +710,7 @@ class SettingsMenuUI {
                   expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
+            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
             ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
@@ -957,6 +959,7 @@ class SettingsMenuUI {
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
       'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
+      'your-year': { icon: ICONS.sparkles, label: t('menu.items.yourYear') || 'Your Year with Ferni' },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
       predictions: { icon: ICONS.target, label: t('menu.items.predictionAccuracy') },
@@ -1246,6 +1249,9 @@ class SettingsMenuUI {
         break;
       case 'your-journey':
         this.callbacks.onYourJourneyClick?.();
+        break;
+      case 'your-year':
+        this.callbacks.onYourYearClick?.();
         break;
       case 'future-insights':
         this.callbacks.onFutureInsightsClick?.();
@@ -1892,7 +1898,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item--pinned:hover {
-        border-color: var(--persona-primary);
+        border-color: var(--persona-text);
       }
 
       .settings-menu__unpin-btn {

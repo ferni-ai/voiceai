@@ -182,6 +182,40 @@ export interface SuperhumanCapabilities {
   milestones: string;
   /** Seasonal awareness */
   seasonal: string;
+
+  // NEW "Better Than Human" V1 capabilities (Dec 2025)
+  /** Silence Interpreter - Classifies silence types, learns comfort thresholds */
+  silence?: string;
+  /** Contradiction Comfort - Validates mixed emotions, normalizes complexity */
+  contradiction?: string;
+  /** Perfect Timing Intelligence - Learns optimal timing for topics */
+  timing?: string;
+  /** Pattern Mirror - Tracks energizing/draining topics, word-voice mismatches */
+  patterns?: string;
+  /** Future Self Letters - Generates letters from user's future self */
+  futureSelf?: string;
+
+  // NEW "Better Than Human" V2 capabilities (Dec 2025)
+  /** Voice Biomarkers - Wellness detection from voice patterns */
+  voiceBiomarkers?: string;
+  /** Mood Calendar - Predict emotional patterns */
+  moodCalendar?: string;
+  /** Social Battery - Know when they're "peopled out" */
+  socialBattery?: string;
+  /** Conflict Resolution Memory - What works in conflicts */
+  conflictResolution?: string;
+  /** Protective Silence - Topics to avoid */
+  protectiveSilence?: string;
+  /** Calendar Prep Coaching - Proactive event prep */
+  calendarPrep?: string;
+  /** Energy Wave Mapping - Optimal conversation times */
+  energyWave?: string;
+  /** Emotional Vocabulary - Name feelings precisely */
+  emotionalVocabulary?: string;
+  /** Recovery Time Tracking - Post-event recovery needs */
+  recoveryTracking?: string;
+  /** Inside Joke Memory - Shared history callbacks */
+  insideJokes?: string;
 }
 
 // ============================================================================

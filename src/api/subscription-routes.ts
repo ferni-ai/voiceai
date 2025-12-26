@@ -81,7 +81,7 @@ type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
 async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   // Admin users can access other users' data
-  const requestedUserId = ctx.query.userId || ctx.headers['x-user-id'];
+  const requestedUserId = ctx.query.userId;
   const userId =
     ctx.isAdmin && requestedUserId
       ? String(requestedUserId)
@@ -120,7 +120,7 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
  */
 async function checkCanStart(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId || ctx.headers['x-user-id'];
+  const requestedUserId = ctx.query.userId;
   const userId =
     ctx.isAdmin && requestedUserId
       ? String(requestedUserId)
@@ -498,7 +498,7 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
  */
 async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  const requestedUserId = ctx.query.userId;
   const userId =
     ctx.isAdmin && requestedUserId
       ? String(requestedUserId)
@@ -642,7 +642,8 @@ async function recordTrialTimeEndpoint(ctx: RequestContext): Promise<ResponseCon
  */
 async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseContext> {
   const sessionId = ctx.query.session_id;
-  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
+  const userId = ctx.authUserId || ctx.query.userId;
 
   if (!sessionId) {
     return {

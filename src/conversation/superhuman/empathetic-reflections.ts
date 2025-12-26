@@ -15,6 +15,7 @@
  * @module @ferni/superhuman/empathetic-reflections
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import {
   generateContent,
   getContentWithFallback,
@@ -304,7 +305,7 @@ function selectIntensity(
 function selectUnusedReflection(options: string[], state: SessionReflectionState): string | null {
   const unused = options.filter((o) => !state.reflectionsUsed.includes(o));
   if (unused.length === 0) return null;
-  return unused[Math.floor(Math.random() * unused.length)];
+  return seededPick(`${Date.now()}:308`, unused) ?? unused[0];
 }
 
 /**
@@ -330,7 +331,7 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
 
   // Don't repeat same type twice in a row
   const availableTypes = types.filter((t) => t !== state.lastReflectionType);
-  const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+  const selectedType = seededPick(`${Date.now()}:334`, availableTypes) ?? availableTypes[0];
 
   // Try LLM-generated reflection first (from cache)
   const llmContext: ContentContext = {
@@ -395,7 +396,7 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
         Object.keys(NEEDS_MAP).find((key) => context.emotion.toLowerCase().includes(key)) ||
         'neutral';
       const needs = NEEDS_MAP[emotionKey] || ['to be heard'];
-      const need = needs[Math.floor(Math.random() * needs.length)];
+      const need = seededPick(`${Date.now()}:399`, needs) ?? needs[0];
       const template = selectUnusedReflection(NEED_REFLECTIONS, state);
       if (template) {
         reflection = template.replace('{need}', need);
@@ -450,7 +451,7 @@ export async function generateReflectionAsync(
 
   const types: ReflectionType[] = ['feeling', 'validation', 'experience', 'need', 'strength'];
   const availableTypes = types.filter((t) => t !== state.lastReflectionType);
-  const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+  const selectedType = seededPick(`${Date.now()}:454`, availableTypes) ?? availableTypes[0];
 
   // Try LLM generation (waits for result)
   const llmContext: ContentContext = {

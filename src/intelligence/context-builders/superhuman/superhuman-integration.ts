@@ -57,39 +57,101 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
       'network',
       'milestones',
       'seasonal',
+      // BTH V1 capabilities - Ferni gets all of them
+      'silence',
+      'contradiction',
+      'timing',
+      'patterns',
+      'futureSelf',
+      // BTH V2 capabilities - Ferni gets all of them
+      'voiceBiomarkers',
+      'moodCalendar',
+      'socialBattery',
+      'conflictResolution',
+      'protectiveSilence',
+      'calendarPrep',
+      'energyWave',
+      'emotionalVocabulary',
+      'recoveryTracking',
+      'insideJokes',
     ],
-    priorityOrder: ['crisis', 'commitments', 'capacity', 'predictions', 'milestones'],
-    maxTokens: 800,
+    priorityOrder: [
+      'crisis', 'protectiveSilence', 'recoveryTracking', 'voiceBiomarkers',
+      'silence', 'contradiction', 'socialBattery', 'moodCalendar',
+      'commitments', 'capacity', 'predictions', 'milestones', 'insideJokes',
+    ],
+    maxTokens: 1200, // Increased for V2 capabilities
   },
   peter: {
     // Peter focuses on patterns, predictions, and values (analytical)
-    capabilities: ['predictions', 'values', 'commitments', 'capacity', 'seasonal'],
-    priorityOrder: ['predictions', 'values', 'commitments'],
-    maxTokens: 500,
+    // + Pattern Mirror for research patterns, Mood Calendar for data patterns
+    capabilities: [
+      'predictions', 'values', 'commitments', 'capacity', 'seasonal', 'patterns',
+      // V2: Mood patterns, energy patterns for analytical insights
+      'moodCalendar', 'energyWave',
+    ],
+    priorityOrder: ['predictions', 'patterns', 'moodCalendar', 'energyWave', 'values', 'commitments'],
+    maxTokens: 700,
   },
   maya: {
     // Maya focuses on habits, capacity, commitments, predictions
-    capabilities: ['commitments', 'predictions', 'capacity', 'seasonal', 'values'],
-    priorityOrder: ['commitments', 'capacity', 'predictions'],
-    maxTokens: 500,
+    // + Timing for habit timing, Patterns for habit patterns
+    // + V2: Social battery (introvert/extrovert), mood calendar, recovery tracking
+    capabilities: [
+      'commitments', 'predictions', 'capacity', 'seasonal', 'values', 'timing', 'patterns',
+      // V2: Social battery for energy management, mood for habit correlation
+      'socialBattery', 'moodCalendar', 'recoveryTracking', 'energyWave',
+    ],
+    priorityOrder: [
+      'socialBattery', 'recoveryTracking', 'commitments', 'timing',
+      'capacity', 'energyWave', 'moodCalendar', 'patterns', 'predictions',
+    ],
+    maxTokens: 800,
   },
   jordan: {
     // Jordan focuses on dreams, milestones, narrative, seasonal
-    capabilities: ['dreams', 'milestones', 'narrative', 'seasonal', 'commitments'],
-    priorityOrder: ['dreams', 'milestones', 'seasonal'],
-    maxTokens: 500,
+    // + Future Self for goal-setting, Timing for milestone planning
+    // + V2: Calendar prep for event planning, energy wave for optimal scheduling
+    capabilities: [
+      'dreams', 'milestones', 'narrative', 'seasonal', 'commitments', 'futureSelf', 'timing',
+      // V2: Calendar prep for proactive coaching, energy wave for timing
+      'calendarPrep', 'energyWave', 'recoveryTracking',
+    ],
+    priorityOrder: [
+      'calendarPrep', 'dreams', 'futureSelf', 'milestones',
+      'recoveryTracking', 'timing', 'energyWave', 'seasonal',
+    ],
+    maxTokens: 800,
   },
   alex: {
     // Alex focuses on network, commitments, capacity
-    capabilities: ['network', 'commitments', 'capacity', 'seasonal'],
-    priorityOrder: ['network', 'commitments', 'capacity'],
-    maxTokens: 400,
+    // + Timing for communication timing
+    // + V2: Conflict resolution for relationship management, social battery
+    capabilities: [
+      'network', 'commitments', 'capacity', 'seasonal', 'timing',
+      // V2: Conflict resolution, social battery, protective silence
+      'conflictResolution', 'socialBattery', 'protectiveSilence', 'energyWave',
+    ],
+    priorityOrder: [
+      'conflictResolution', 'protectiveSilence', 'network',
+      'timing', 'socialBattery', 'commitments', 'capacity',
+    ],
+    maxTokens: 700,
   },
   nayan: {
     // Nayan focuses on narrative, values, dreams, seasonal (wisdom)
-    capabilities: ['narrative', 'values', 'dreams', 'seasonal', 'milestones'],
-    priorityOrder: ['narrative', 'values', 'dreams'],
-    maxTokens: 600,
+    // + Silence for contemplative space, Contradiction for existential tensions, Future Self for legacy
+    // + V2: Emotional vocabulary (deeper EQ), protective silence (boundaries), inside jokes (connection)
+    capabilities: [
+      'narrative', 'values', 'dreams', 'seasonal', 'milestones', 'silence', 'contradiction', 'futureSelf',
+      // V2: Emotional vocabulary for wisdom, protective silence for boundaries, inside jokes for depth
+      'emotionalVocabulary', 'protectiveSilence', 'insideJokes', 'recoveryTracking',
+    ],
+    priorityOrder: [
+      'protectiveSilence', 'silence', 'contradiction', 'emotionalVocabulary',
+      'recoveryTracking', 'narrative', 'futureSelf', 'values', 'insideJokes', 'dreams',
+    ],
+    maxTokens: 900,
   },
 };
 
@@ -131,7 +193,8 @@ const CACHE_TTL = {
 } as const;
 
 // Map capabilities to their cache tier
-const CAPABILITY_TIERS: Record<keyof SuperhumanCapabilities, keyof Omit<TieredCache, 'full'>> = {
+// Note: New BTH capabilities are optional (string | undefined) so we use Partial
+const CAPABILITY_TIERS: Partial<Record<keyof SuperhumanCapabilities, keyof Omit<TieredCache, 'full'>>> = {
   seasonal: 'stable',
   narrative: 'stable',
   values: 'stable',
@@ -142,6 +205,23 @@ const CAPABILITY_TIERS: Record<keyof SuperhumanCapabilities, keyof Omit<TieredCa
   predictions: 'fresh',
   capacity: 'fresh',
   crisis: 'fresh',
+  // BTH V1 capabilities (Dec 2025)
+  silence: 'fresh', // Real-time silence analysis
+  contradiction: 'fresh', // Real-time emotion detection
+  timing: 'normal', // Timing patterns change moderately
+  patterns: 'normal', // Topic patterns change moderately
+  futureSelf: 'stable', // Letters don't change often
+  // BTH V2 capabilities (Dec 2025)
+  voiceBiomarkers: 'fresh', // Real-time voice analysis
+  moodCalendar: 'normal', // Mood patterns change moderately
+  socialBattery: 'fresh', // Changes with each interaction
+  conflictResolution: 'normal', // Historical patterns
+  protectiveSilence: 'stable', // Boundaries change slowly
+  calendarPrep: 'fresh', // Changes based on upcoming events
+  energyWave: 'normal', // Energy patterns change moderately
+  emotionalVocabulary: 'normal', // Vocabulary evolves moderately
+  recoveryTracking: 'fresh', // Recovery state changes
+  insideJokes: 'stable', // Shared history is stable
 };
 
 function getCacheKey(userId: string, capability?: string): string {
@@ -149,7 +229,7 @@ function getCacheKey(userId: string, capability?: string): string {
 }
 
 function getTieredValue(userId: string, capability: keyof SuperhumanCapabilities): string | null {
-  const tier = CAPABILITY_TIERS[capability];
+  const tier = CAPABILITY_TIERS[capability] ?? 'normal';
   const cacheMap = tieredCache[tier];
   const key = getCacheKey(userId, capability);
   const cached = cacheMap.get(key);
@@ -172,7 +252,7 @@ function setTieredValue(
   capability: keyof SuperhumanCapabilities,
   value: string
 ): void {
-  const tier = CAPABILITY_TIERS[capability];
+  const tier = CAPABILITY_TIERS[capability] ?? 'normal';
   const cacheMap = tieredCache[tier];
   const key = getCacheKey(userId, capability);
   cacheMap.set(key, { value, timestamp: Date.now() });
@@ -236,12 +316,18 @@ export async function getSuperhuman(
   options?: {
     forceRefresh?: boolean;
     crisisSignal?: string;
+    // V3 Semantic Intelligence - current conversation context
+    currentTranscript?: string;
+    currentTopics?: string[];
+    currentEmotion?: string;
+    currentMentionedPerson?: string;
   }
 ): Promise<string> {
   const startTime = Date.now();
 
-  // Check cache first
-  if (!options?.forceRefresh) {
+  // Check cache first (skip if we have current context - need fresh semantic intelligence)
+  const hasCurrentContext = options?.currentTranscript || options?.currentTopics || options?.currentEmotion;
+  if (!options?.forceRefresh && !hasCurrentContext) {
     const cached = getCachedContext(userId);
     if (cached) {
       const duration = Date.now() - startTime;
@@ -269,6 +355,11 @@ export async function getSuperhuman(
       crisisSignal: options?.crisisSignal
         ? { type: 'text', signal: options.crisisSignal }
         : undefined,
+      // V3 Semantic Intelligence - pass current conversation context
+      currentTranscript: options?.currentTranscript,
+      currentTopics: options?.currentTopics,
+      currentEmotion: options?.currentEmotion,
+      currentMentionedPerson: options?.currentMentionedPerson,
     });
 
     // Cache the full context

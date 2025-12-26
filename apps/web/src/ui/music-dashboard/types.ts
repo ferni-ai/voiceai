@@ -144,7 +144,7 @@ export interface MusicSources {
 }
 
 export interface MusicalYouProfile {
-  dna: unknown | null;
+  dna: unknown;
   coachingMessage: string | null;
   timeMachine: TimeMachineEntry[];
   dailyChallenge: DailyChallenge;

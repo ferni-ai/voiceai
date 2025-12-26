@@ -18,6 +18,10 @@ public struct VoiceOrb: View {
     public let isActive: Bool      // Only changes on connect/disconnect - NOT on listening/speaking!
     public let size: CGFloat
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Continuous animation driver - runs FOREVER, never restarts
     @State private var time: Double = 0
     @State private var isTimerRunning = false
@@ -156,6 +160,9 @@ public struct VoiceOrb: View {
 
         // Set initial intensity based on current state
         activeIntensity = isActive ? 1.0 : 0.0
+
+        // Skip continuous 60fps animation when reduce motion is enabled
+        guard !reduceMotion else { return }
 
         // Timer runs at 60fps, NEVER restarts
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in

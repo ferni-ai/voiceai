@@ -77,7 +77,7 @@ interface AppleHealthSettingsCallbacks {
 let container: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: AppleHealthSettingsCallbacks = {};
-let isLoading = false;
+let _isLoading = false;
 
 // ============================================================================
 // SAFE ICON CREATION
@@ -715,7 +715,7 @@ function renderConnectedState(status: AppleHealthStatus, summary: AppleHealthSum
   statusText.appendChild(
     createElement('span', {
       className: 'apple-health-settings__device-name',
-      textContent: status.deviceName || 'iPhone',
+      textContent: status.deviceName ?? 'iPhone',
     })
   );
   statusText.appendChild(
@@ -733,7 +733,7 @@ function renderConnectedState(status: AppleHealthStatus, summary: AppleHealthSum
   });
   const refreshIcon = createIcon('refresh');
   if (refreshIcon) refreshBtn.appendChild(refreshIcon);
-  refreshBtn.addEventListener('click', handleRefresh);
+  refreshBtn.addEventListener('click', () => { void handleRefresh(); });
   statusBar.appendChild(refreshBtn);
 
   content.appendChild(statusBar);
@@ -1081,7 +1081,7 @@ async function handleRefresh(): Promise<void> {
 async function handleDisconnect(): Promise<void> {
   if (!confirm('Disconnect Apple Health?')) return;
 
-  isLoading = true;
+  _isLoading = true;
   renderLoading();
 
   try {
@@ -1093,12 +1093,12 @@ async function handleDisconnect(): Promise<void> {
     toast.error("Couldn't disconnect. Try again?");
     await loadStatus();
   } finally {
-    isLoading = false;
+    _isLoading = false;
   }
 }
 
 async function loadStatus(): Promise<void> {
-  isLoading = true;
+  _isLoading = true;
   renderLoading();
 
   try {
@@ -1108,7 +1108,7 @@ async function loadStatus(): Promise<void> {
     ]);
 
     if (!statusResponse.ok) {
-      throw new Error(statusResponse.error || 'Failed to load status');
+      throw new Error(statusResponse.error ?? 'Failed to load status');
     }
 
     const status = statusResponse.data;
@@ -1120,7 +1120,7 @@ async function loadStatus(): Promise<void> {
   } catch {
     renderNotConnected();
   } finally {
-    isLoading = false;
+    _isLoading = false;
   }
 }
 

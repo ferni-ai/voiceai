@@ -23,17 +23,15 @@
  * @see BETTER-THAN-HUMAN.md - Superhuman emotional presence
  */
 
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
-import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { soundUI } from './sound.ui.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 import { haptics } from '../utils/haptics.js';
 
 const log = createLogger('WinterSolstice');
 
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 const toSeconds = (ms: number) => ms / 1000;
 
 // ============================================================================
@@ -508,7 +506,6 @@ class WinterSolsticeMomentUI {
     if (!svg) return;
 
     // Get elements
-    const skyLayer = svg.querySelector('.sky-layer');
     const auroraLayer = svg.querySelector('.aurora-layer');
     const starsLayer = svg.querySelector('.stars-layer');
     const constellationLayer = svg.querySelector('.constellation-layer');
@@ -569,7 +566,7 @@ class WinterSolsticeMomentUI {
       )
       // Stars twinkle on one by one
       .to(starsLayer?.querySelectorAll('.solstice-star') || [], {
-        opacity: (i) => 0.3 + Math.random() * 0.7,
+        opacity: () => 0.3 + Math.random() * 0.7,
         scale: 1,
         duration: toSeconds(DURATION.SLOW),
         stagger: { amount: 1.5, from: 'random' },
@@ -677,7 +674,7 @@ class WinterSolsticeMomentUI {
       })
       // Mountains shift slightly (parallax depth)
       .to(mountainLayers, {
-        y: (i) => -10 - i * 5,
+        y: (_i, target) => -10 - Array.from(mountainLayers).indexOf(target) * 5,
         duration: toSeconds(DURATION.DRAMATIC),
         ease: 'power1.out',
         stagger: 0.1,
@@ -716,7 +713,7 @@ class WinterSolsticeMomentUI {
     // ========================================
     // CONTINUOUS: SNOW FALLING
     // ========================================
-    snowParticles.forEach((particle, i) => {
+    snowParticles.forEach((particle, _i) => {
       const duration = 8 + Math.random() * 4;
       const delay = Math.random() * 4;
 
@@ -734,7 +731,7 @@ class WinterSolsticeMomentUI {
     });
 
     // Star twinkling
-    ambientStars.forEach((_, i) => {
+    ambientStars.forEach((_star, i) => {
       const star = starsLayer?.children[i] as SVGElement;
       if (!star) return;
 
@@ -862,7 +859,6 @@ class WinterSolsticeMomentUI {
    * Cleanup
    */
   private cleanup(): void {
-    clearAllTimeouts();
     this.masterTimeline?.kill();
     this.masterTimeline = null;
     this.container?.remove();

@@ -15,7 +15,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { SemanticRouter, createSemanticRouter, routeUserInput } from './router.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
-import { allToolDefinitions } from './tool-definitions/index.js';
+import { getAvailableToolDefinitions } from './tool-definitions/index.js';
 import { mergeLocaleIntoTools } from './i18n/index.js';
 import type { ToolDomain } from '../registry/types.js';
 
@@ -68,16 +68,20 @@ export const semanticRouter = {
 
     log.info('🔄 [compat] Initializing semantic router via compatibility layer');
 
+    // CAPABILITY FILTERING: Only register tools whose backing services are configured
+    // This prevents hallucination by ensuring we don't route to unavailable tools
+    const availableTools = getAvailableToolDefinitions();
+
     // IMPORTANT: ALWAYS merge locale triggers into tool definitions
     // This adds patterns like "check the weather" from en.json
     // We always re-register to ensure locale is merged, even if tools were
     // registered elsewhere without locale (registry.registerMany overwrites)
     const registry = getToolRegistry();
-    const localizedTools = await mergeLocaleIntoTools(allToolDefinitions);
+    const localizedTools = await mergeLocaleIntoTools(availableTools);
     registry.registerMany(localizedTools);
     log.info(
       { toolCount: localizedTools.length, registrySize: registry.size },
-      '🌐 [compat] Locale triggers merged into tool definitions'
+      '🌐 [compat] Locale triggers merged into tool definitions (capability filtered)'
     );
 
     const router = getRouter();

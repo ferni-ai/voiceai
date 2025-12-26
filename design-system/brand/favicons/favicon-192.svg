@@ -1,51 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <!-- 
-    Ferni Favicon 192x192 - Three Stones (PWA)
-    High-resolution with full detail and subtle animations
-  -->
-  
+  <!-- Ferni Orb Favicon 192x192 (PWA) -->
   <defs>
-    <!-- Stone body gradient -->
-    <radialGradient id="stoneGrad192" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
+    <!-- Main orb gradient -->
+    <linearGradient id="orbGrad192" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#5a7a52"/>
+      <stop offset="50%" stop-color="#4a6741"/>
       <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    
-    <!-- Outer glow -->
-    <filter id="glow192" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </linearGradient>
+
+    <!-- Soft outer glow -->
+    <filter id="outerGlow192" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feFlood flood-color="#4a6741" flood-opacity="0.25"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
-    
-    <!-- Catchlight shine -->
-    <radialGradient id="catchlight192" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
+
+    <!-- Highlight gradient -->
+    <radialGradient id="highlightGrad192" cx="50%" cy="25%" r="45%" fx="50%" fy="20%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.35"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </radialGradient>
+
+    <!-- Border gradient -->
+    <linearGradient id="borderGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8aa880"/>
+      <stop offset="50%" stop-color="#6a8a62"/>
+      <stop offset="100%" stop-color="#5a7a52"/>
+    </linearGradient>
   </defs>
-  
-  <!-- Background with rounded corners (iOS style) -->
-  <rect width="192" height="192" rx="38" fill="#F5F1E8"/>
-  
-  <!-- Outer glow ring -->
-  <circle cx="96" cy="96" r="76" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.25"/>
-  
-  <!-- Outer Stone: Body -->
-  <circle cx="96" cy="96" r="68" fill="url(#stoneGrad192)" filter="url(#glow192)"/>
-  
-  <!-- Middle Stone: Eye White -->
-  <circle cx="96" cy="96" r="28" fill="white"/>
-  
-  <!-- Iris -->
-  <circle cx="96" cy="96" r="18" fill="#5a8060"/>
-  
-  <!-- Inner Stone: Pupil -->
-  <circle cx="96" cy="96" r="9" fill="#2c2520"/>
-  
-  <!-- Catchlight (life spark) - larger, more visible -->
-  <circle cx="90" cy="90" r="4" fill="url(#catchlight192)"/>
-  
-  <!-- Secondary catchlight (smaller) -->
-  <circle cx="102" cy="100" r="1.5" fill="white" opacity="0.4"/>
+
+  <!-- Outer ring/border -->
+  <circle cx="96" cy="96" r="90" fill="none" stroke="url(#borderGrad192)" stroke-width="4.5" opacity="0.6"/>
+
+  <!-- Main orb with glow -->
+  <circle cx="96" cy="96" r="75" fill="url(#orbGrad192)" filter="url(#outerGlow192)"/>
+
+  <!-- Highlight ellipse -->
+  <ellipse cx="96" cy="68" rx="38" ry="22" fill="url(#highlightGrad192)"/>
+
+  <!-- FE text -->
+  <text x="96" y="110"
+        font-family="system-ui, -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif"
+        font-size="52"
+        font-weight="700"
+        fill="white"
+        text-anchor="middle"
+        letter-spacing="-2">FE</text>
 </svg>

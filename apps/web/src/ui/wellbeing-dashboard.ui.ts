@@ -104,8 +104,8 @@ const styles = `
   .wellbeing-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
   
   .wellbeing-modal {
@@ -113,15 +113,27 @@ const styles = `
     width: 95%;
     max-width: clamp(504px, 90vw, 720px);
     max-height: 90vh;
-    background: var(--color-background-elevated);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl);
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: scale(0.95);
     transition: transform var(--duration-slow, 300ms) var(--ease-spring);
   }
+  
+  
+    @supports not (backdrop-filter: blur(24px)) {
+      .wellbeing-modal {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+    }
   
   .wellbeing-modal-overlay.visible .wellbeing-modal {
     transform: scale(1);
@@ -139,7 +151,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -249,7 +261,7 @@ const styles = `
   }
   
   .wellbeing-score-trend--improving {
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
   
   .wellbeing-score-trend--stable {
@@ -257,7 +269,7 @@ const styles = `
   }
   
   .wellbeing-score-trend--declining {
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
   
   /* Dimension Cards */
@@ -308,7 +320,7 @@ const styles = `
   
   .wellbeing-dimension-card__trend--up {
     background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
   
   .wellbeing-dimension-card__trend--stable {
@@ -318,7 +330,7 @@ const styles = `
   
   .wellbeing-dimension-card__trend--down {
     background: var(--color-maya-tint, rgba(166, 122, 106, 0.1));
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
   
   .wellbeing-dimension-card__sparkline {
@@ -415,7 +427,7 @@ const styles = `
     display: inline-flex;
     width: 16px;
     height: 16px;
-    color: var(--persona-primary);
+    color: var(--persona-text);
   }
 
   .wellbeing-achievement__icon svg {
@@ -460,11 +472,11 @@ const styles = `
   }
   
   .wellbeing-prediction__factor-title--risk {
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
   
   .wellbeing-prediction__factor-title--protective {
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
   
   .wellbeing-prediction__factor-list {
@@ -491,7 +503,7 @@ const styles = `
     width: 40px;
     height: 40px;
     border: 4px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
-    border-top-color: var(--color-ferni);
+    border-top-color: var(--color-ferni-text);
     border-radius: 50%;
     animation: wellbeing-spin var(--duration-entrance, 1000ms) linear infinite;
   }
@@ -668,7 +680,7 @@ const styles = `
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-4, 16px);
     text-align: center;
   }
@@ -859,7 +871,7 @@ const styles = `
   }
   
   .wellbeing-empty__vision strong {
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     font-weight: 600;
   }
   
@@ -925,7 +937,7 @@ const styles = `
   
   .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     border: 1px solid var(--color-ferni);
     margin-top: var(--space-4, 16px);
   }

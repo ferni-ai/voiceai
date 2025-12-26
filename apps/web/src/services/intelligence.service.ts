@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../utils/logger';
-import { getUserId } from './firebase-auth.service';
+import { getFirebaseUid } from './firebase-auth.service';
 
 const log = createLogger('IntelligenceService');
 
@@ -83,7 +83,7 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T | null> {
-  const userId = getUserId();
+  const userId = getFirebaseUid();
 
   if (!userId) {
     log.warn('No user ID available for intelligence API');

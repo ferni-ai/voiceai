@@ -16,6 +16,8 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
+import { seededChance, seededPick } from '../utils/rng.js';
+
 import { CallbackGenerator } from './callbacks.js';
 import { ContradictionDetector } from './contradiction-detection.js';
 import { QuotedMemoryEngine } from './quoted-memory.js';
@@ -201,41 +203,43 @@ export class ConversationalMemoryEngine {
 
     const m = this.callbacks.getMultiplier();
 
+    const seed = `callback:${currentTopic}:${currentTurn}`;
+
     // Strategy 1: Return to an unresolved thread
     const unresolvedThread = this.threadTracker.findForCallback(currentTopic, currentTurn);
-    if (unresolvedThread && Math.random() < 0.3 * m) {
+    if (unresolvedThread && seededChance(`${seed}:thread`, 0.3 * m)) {
       this.threadTracker.markMentioned(unresolvedThread.topic, currentTurn);
       this.callbacks.recordCallback(currentTurn);
-      return this.callbacks.createThreadCallback(unresolvedThread);
+      return this.callbacks.createThreadCallback(unresolvedThread, `${seed}:thread`);
     }
 
     // Strategy 2: Reference a related statement
     const relatedStatement = this.userStatements.find(
       (s) => s.topic === currentTopic && currentTurn - s.turn > 2 && s.importance > 0.5
     );
-    if (relatedStatement && Math.random() < 0.25 * m) {
+    if (relatedStatement && seededChance(`${seed}:statement`, 0.25 * m)) {
       this.callbacks.recordCallback(currentTurn);
-      return this.callbacks.createStatementCallback(relatedStatement);
+      return this.callbacks.createStatementCallback(relatedStatement, `${seed}:statement`);
     }
 
     // Strategy 3: Follow up on commitments
     const unfulfilledCommitment = this.commitments.find(
       (c) => !c.fulfilled && currentTurn - c.turn > 4
     );
-    if (unfulfilledCommitment && Math.random() < 0.2 * m) {
+    if (unfulfilledCommitment && seededChance(`${seed}:commitment`, 0.2 * m)) {
       this.callbacks.recordCallback(currentTurn);
-      return this.callbacks.createCommitmentCallback(unfulfilledCommitment);
+      return this.callbacks.createCommitmentCallback(unfulfilledCommitment, `${seed}:commitment`);
     }
 
     // Strategy 4: Echo a notable quote
-    if (this.notableQuotes.length > 0 && Math.random() < 0.1 * m) {
-      const quote = this.notableQuotes[Math.floor(Math.random() * this.notableQuotes.length)];
+    if (this.notableQuotes.length > 0 && seededChance(`${seed}:quote`, 0.1 * m)) {
+      const quote = seededPick(`${seed}:quotePick`, this.notableQuotes) ?? this.notableQuotes[0];
       this.callbacks.recordCallback(currentTurn);
       return this.callbacks.createQuoteCallback(quote);
     }
 
     // Strategy 5: Hyper-specific quoted memory callback
-    if (this.quotedMemory.hasMemories() && Math.random() < 0.25 * m) {
+    if (this.quotedMemory.hasMemories() && seededChance(`${seed}:quotedMemory`, 0.25 * m)) {
       const callback = this.quotedMemory.getCallback(currentTurn);
       if (callback) {
         this.callbacks.recordCallback(currentTurn);

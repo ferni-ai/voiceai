@@ -88,12 +88,24 @@ describe('Active Learning Integration', () => {
             {
               toolId: 'info_time',
               confidence: 0.9,
-              layerScores: { pattern: 0.9, keyword: 0.7, embedding: 0.6 },
+              layerScores: { pattern: 0.9, keyword: 0.7, embedding: 0.6, context: 0, history: 0, holistic: 0 },
               extractedArgs: {},
+              matchedBy: ['pattern'],
+              missingArgs: [],
+              matchReason: 'test match',
             },
           ],
-          action: { type: 'hint' },
-          latencyMs: 15,
+          action: { type: 'hint', toolId: 'info_time', confidence: 0.9 },
+          intent: { category: 'information', confidence: 0.9, mood: 'statement', urgency: 'normal' },
+          metadata: {
+            totalTimeMs: 15,
+            layerTimesMs: { pattern: 5, keyword: 3, embedding: 4, context: 2, history: 1, holistic: 0 },
+            toolsConsidered: 1,
+            inputText: 'what time is it',
+            normalizedText: 'what time is it',
+            contextUsed: [],
+            routerVersion: '1.0.0',
+          },
         },
       });
 
@@ -143,12 +155,24 @@ describe('Active Learning Integration', () => {
             {
               toolId: 'spotify_play',
               confidence: 0.7,
-              layerScores: { pattern: 0.5, keyword: 0.8, embedding: 0.6 },
+              layerScores: { pattern: 0.5, keyword: 0.8, embedding: 0.6, context: 0, history: 0, holistic: 0 },
               extractedArgs: { query: 'something relaxing' },
+              matchedBy: ['keyword'],
+              missingArgs: [],
+              matchReason: 'test match',
             },
           ],
-          action: { type: 'hint' },
-          latencyMs: 12,
+          action: { type: 'hint', toolId: 'spotify_play', confidence: 0.7 },
+          intent: { category: 'entertainment', confidence: 0.7, mood: 'request', urgency: 'normal' },
+          metadata: {
+            totalTimeMs: 12,
+            layerTimesMs: { pattern: 3, keyword: 4, embedding: 3, context: 1, history: 1, holistic: 0 },
+            toolsConsidered: 1,
+            inputText: 'play something relaxing',
+            normalizedText: 'play something relaxing',
+            contextUsed: [],
+            routerVersion: '1.0.0',
+          },
         },
       });
 
@@ -223,6 +247,7 @@ describe('Active Learning Integration', () => {
     });
   });
 });
+
 
 
 

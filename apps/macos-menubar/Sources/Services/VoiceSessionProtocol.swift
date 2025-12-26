@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FerniShared
 
 // MARK: - Transcription Entry
 
@@ -26,6 +27,11 @@ class VoiceManager: ObservableObject {
     // MARK: - Published State
 
     @Published private(set) var state: VoiceState = .disconnected
+
+    /// Better Than Human engine for superhuman EQ
+    @Published private(set) var betterThanHumanState: BetterThanHumanState?
+    private let betterThanHumanEngine = BetterThanHumanEngine()
+
     @Published var currentPersonaId: String = "ferni" {
         didSet {
             if _sessionInitialized {
@@ -89,6 +95,62 @@ class VoiceManager: ObservableObject {
 
     init() {
         // Session bindings are set up lazily when session is first accessed
+        // Initialize BetterThanHumanState from engine
+        betterThanHumanState = betterThanHumanEngine.currentState
+    }
+
+    // MARK: - Better Than Human API
+
+    /// Trigger micro-expression (e.g., voice recognition, memory spark)
+    func triggerMicroExpression(_ type: MicroExpressionType) {
+        betterThanHumanEngine.triggerMicroExpression(type)
+        betterThanHumanState = betterThanHumanEngine.currentState
+    }
+
+    /// Signal concern level
+    func signalConcern(level: ConcernLevel) {
+        betterThanHumanEngine.signalConcern(level: level)
+        betterThanHumanState = betterThanHumanEngine.currentState
+    }
+
+    /// Set whether user is speaking (activates active listening)
+    func setUserSpeaking(_ speaking: Bool) {
+        betterThanHumanEngine.isUserSpeaking = speaking
+        betterThanHumanState = betterThanHumanEngine.currentState
+    }
+
+    /// Process partial transcript for emotion anticipation
+    func processPartialTranscript(_ text: String, tone: VoiceTone? = nil) {
+        betterThanHumanEngine.processPartialTranscript(text, tone: tone)
+        betterThanHumanState = betterThanHumanEngine.currentState
+    }
+
+    // MARK: - Better Than Human Lifecycle
+
+    /// Handle voice state changes for BetterThanHumanEngine lifecycle
+    private func handleStateChange(from previousState: VoiceState, to newState: VoiceState) {
+        // Connection established
+        if !previousState.isActive && newState.isActive {
+            betterThanHumanEngine.onConnectionEstablished()
+            betterThanHumanState = betterThanHumanEngine.currentState
+        }
+
+        // Connection ended
+        if previousState.isActive && !newState.isActive {
+            betterThanHumanEngine.onConnectionEnded()
+            betterThanHumanState = betterThanHumanEngine.currentState
+        }
+
+        // Update speaking state for active listening
+        switch newState {
+        case .listening:
+            betterThanHumanEngine.isUserSpeaking = true
+        case .speaking, .thinking, .connected:
+            betterThanHumanEngine.isUserSpeaking = false
+        default:
+            break
+        }
+        betterThanHumanState = betterThanHumanEngine.currentState
     }
 
     /// Set up bindings to session
@@ -98,15 +160,26 @@ class VoiceManager: ObservableObject {
         session.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newState in
-                self?.state = newState
-                self?.updateWidgetState()
+                guard let self = self else { return }
+                let previousState = self.state
+                self.state = newState
+                self.updateWidgetState()
+
+                // Wire BetterThanHumanEngine lifecycle
+                self.handleStateChange(from: previousState, to: newState)
             }
             .store(in: &cancellables)
 
         session.$audioLevels
             .receive(on: DispatchQueue.main)
             .sink { [weak self] levels in
-                self?.audioLevels = levels
+                guard let self = self else { return }
+                self.audioLevels = levels
+
+                // Feed audio level to breath sync
+                let avgLevel = levels.reduce(0, +) / Float(max(levels.count, 1))
+                self.betterThanHumanEngine.audioLevel = avgLevel
+                self.betterThanHumanState = self.betterThanHumanEngine.currentState
             }
             .store(in: &cancellables)
 

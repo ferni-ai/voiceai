@@ -200,7 +200,7 @@ class GroupCoachingUI {
     if (this.isVisible) {
       this.hide();
     } else {
-      this.show();
+      void this.show();
     }
   }
 
@@ -443,7 +443,7 @@ class GroupCoachingUI {
     this.bindCloseButton();
     this.wrapper.querySelector('.group-coaching__retry')?.addEventListener('click', () => {
       this.renderLoading();
-      this.loadSessions();
+      void this.loadSessions();
     });
   }
 
@@ -464,7 +464,7 @@ class GroupCoachingUI {
       if (link) {
         const sessionId = link.split('/').pop();
         if (sessionId) {
-          this.joinSession(sessionId);
+          void this.joinSession(sessionId);
         }
       }
     });
@@ -1126,7 +1126,7 @@ export function getGroupCoachingUI(): GroupCoachingUI {
 }
 
 export function showGroupCoaching(): void {
-  getGroupCoachingUI().show();
+  void getGroupCoachingUI().show();
 }
 
 export function hideGroupCoaching(): void {

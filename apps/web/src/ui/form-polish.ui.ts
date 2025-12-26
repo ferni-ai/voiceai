@@ -93,7 +93,7 @@ const FORM_POLISH_STYLES = `
   top: 12px;
   transform: translateY(0);
   font-size: var(--text-xs);
-  color: var(--persona-primary);
+  color: var(--persona-text);
   background: linear-gradient(to bottom, 
     transparent 0%, 
     transparent 45%, 
@@ -105,7 +105,7 @@ const FORM_POLISH_STYLES = `
 /* Focus state */
 .form-field__input:focus {
   outline: none;
-  border-color: var(--persona-primary);
+  border-color: var(--persona-text);
   background: var(--color-background-elevated);
   box-shadow: 
     0 0 0 3px var(--persona-tint),
@@ -113,7 +113,7 @@ const FORM_POLISH_STYLES = `
 }
 
 .form-field__input:focus + .form-field__label {
-  color: var(--persona-primary);
+  color: var(--persona-text);
 }
 
 /* Hover state */
@@ -347,7 +347,7 @@ function injectStyles(): void {
  * @param input The input element to enhance.
  * @param config Configuration options.
  */
-export function enhanceFormField(input: HTMLInputElement | HTMLTextAreaElement, config: FormFieldConfig = {}): void {
+export function enhanceFormField(input: HTMLInputElement | HTMLTextAreaElement, _config: FormFieldConfig = {}): void {
   injectStyles();
 
   const wrapper = input.closest('.form-field');

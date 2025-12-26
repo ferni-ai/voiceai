@@ -205,6 +205,100 @@
     "glass": "12px"
   },
 
+  "glassShadow": {
+    "_description": "Shadows for glass surfaces - creates depth without heaviness",
+    "_philosophy": "Glass shadows should be diffuse and subtle, suggesting floating surfaces",
+
+    "ultraThin": {
+      "shadow": "0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)",
+      "inset": "inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+      "_usage": "Subtle list items"
+    },
+    "thin": {
+      "shadow": "0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.04)",
+      "inset": "inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+      "_usage": "Cards"
+    },
+    "regular": {
+      "shadow": "0 4px 6px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06)",
+      "inset": "inset 0 1px 1px rgba(255, 255, 255, 0.10)",
+      "_usage": "Default glass surfaces"
+    },
+    "thick": {
+      "shadow": "0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08)",
+      "inset": "inset 0 1px 2px rgba(255, 255, 255, 0.12)",
+      "_usage": "Modals"
+    },
+    "ultraThick": {
+      "shadow": "0 16px 24px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(0, 0, 0, 0.10)",
+      "inset": "inset 0 2px 4px rgba(255, 255, 255, 0.14)",
+      "_usage": "System dialogs"
+    }
+  },
+
+  "glassEffects": {
+    "_description": "Complete glass effect presets combining blur, background, border, and shadow",
+
+    "card": {
+      "blur": "8px",
+      "background": "var(--glass-thin-background)",
+      "border": "1px solid var(--glass-thin-border)",
+      "shadow": "var(--glass-shadow-thin)",
+      "borderRadius": "var(--radius-lg)"
+    },
+    "modal": {
+      "blur": "24px",
+      "background": "var(--glass-thick-background)",
+      "border": "1px solid var(--glass-thick-border)",
+      "shadow": "var(--glass-shadow-thick)",
+      "borderRadius": "var(--radius-xl)"
+    },
+    "popover": {
+      "blur": "16px",
+      "background": "var(--glass-regular-background)",
+      "border": "1px solid var(--glass-regular-border)",
+      "shadow": "var(--glass-shadow-regular)",
+      "borderRadius": "var(--radius-lg)"
+    },
+    "tooltip": {
+      "blur": "12px",
+      "background": "var(--glass-thin-background)",
+      "border": "1px solid var(--glass-thin-border)",
+      "shadow": "var(--glass-shadow-thin)",
+      "borderRadius": "var(--radius-md)"
+    },
+    "sheet": {
+      "blur": "40px",
+      "background": "var(--glass-ultra-thick-background)",
+      "border": "1px solid var(--glass-ultra-thick-border)",
+      "shadow": "var(--glass-shadow-ultra-thick)",
+      "borderRadius": "var(--radius-2xl) var(--radius-2xl) 0 0"
+    }
+  },
+
+  "tonalEffects": {
+    "_description": "Tonal surface effects for Material-style components",
+
+    "button": {
+      "default": "var(--tonal-surface-3)",
+      "hover": "var(--tonal-surface-hover)",
+      "active": "var(--tonal-surface-active)",
+      "borderRadius": "var(--radius-full)"
+    },
+    "chip": {
+      "default": "var(--tonal-surface-2)",
+      "hover": "var(--tonal-surface-3)",
+      "active": "var(--tonal-surface-hover)",
+      "borderRadius": "var(--radius-full)"
+    },
+    "listItem": {
+      "default": "transparent",
+      "hover": "var(--tonal-surface-1)",
+      "active": "var(--tonal-surface-2)",
+      "borderRadius": "var(--radius-md)"
+    }
+  },
+
   "masks": {
     "fadeBottom": "linear-gradient(to bottom, black 80%, transparent 100%)",
     "fadeTop": "linear-gradient(to top, black 80%, transparent 100%)",

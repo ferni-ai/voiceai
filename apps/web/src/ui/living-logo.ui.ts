@@ -24,7 +24,7 @@ import { EASING, prefersReducedMotion } from '../config/animation-constants.js';
 const log = createLogger('LivingLogo');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES

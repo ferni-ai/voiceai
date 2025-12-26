@@ -357,6 +357,83 @@ export async function preloadPrompts(): Promise<void> {
 }
 
 // ============================================================================
+// MODEL-LEVEL BASE INSTRUCTIONS
+// ============================================================================
+
+/**
+ * Model-level base instructions cache.
+ * These are foundational rules baked into the RealtimeModel at connection time.
+ */
+let modelBaseInstructionsCache: string | null = null;
+
+/**
+ * Load model-level base instructions.
+ *
+ * These are foundational rules that should be active from the very first moment
+ * of connection (before agent-level instructions are sent).
+ *
+ * Includes:
+ * - Platform context (Ferni team)
+ * - Critical tool calling format (JSON)
+ * - Honesty rules
+ * - Voice output guidance
+ * - Safety boundaries
+ */
+export async function loadModelBaseInstructions(): Promise<string> {
+  // Return cached if available
+  if (modelBaseInstructionsCache) {
+    return modelBaseInstructionsCache;
+  }
+
+  try {
+    const fs = await import('fs/promises');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    // Load from shared bundles directory
+    const basePath = join(__dirname, '../../personas/bundles/shared/model-base-instructions.md');
+    const content = await fs.readFile(basePath, 'utf-8');
+
+    // Cache it
+    modelBaseInstructionsCache = content;
+    log.info(
+      { length: content.length, estimatedTokens: Math.round(content.length / 4) },
+      'Loaded model-level base instructions'
+    );
+
+    return content;
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to load model-base-instructions, using fallback');
+
+    // Fallback: minimal critical instructions
+    const fallback = `You are part of Ferni, a voice-first life coaching platform.
+
+When user requests a tool action, output ONLY raw JSON:
+{"fn":"toolName","args":{...}}
+
+NO speech before or after JSON. Just JSON and stop.
+
+For normal conversation, speak naturally with no JSON.
+
+Never claim capabilities you don't have. Be honest.`;
+
+    modelBaseInstructionsCache = fallback;
+    return fallback;
+  }
+}
+
+/**
+ * Get model base instructions synchronously (from cache).
+ * Call loadModelBaseInstructions() first to populate cache.
+ */
+export function getModelBaseInstructionsCached(): string | null {
+  return modelBaseInstructionsCache;
+}
+
+// ============================================================================
 // RE-EXPORTS FOR COMPATIBILITY
 // ============================================================================
 

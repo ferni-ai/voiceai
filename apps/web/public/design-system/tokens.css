@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-24T15:26:52.000Z
+ * Build: 2025-12-26T01:01:27.094Z
  */
 
 /* ========================================
@@ -17,6 +17,44 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
+  --color-glass-_description: Apple visionOS-inspired glass system for modals and overlays;
+  --color-glass-_philosophy: Deep frosted glass creates spatial depth and premium feel;
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
+  --color-glass-ultra-thin-_usage: Subtle background separation;
+  --color-glass-thin-background: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(255, 255, 255, 0.06);
+  --color-glass-thin-_usage: Cards, list items;
+  --color-glass-regular-background: rgba(255, 255, 255, 0.08);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(255, 255, 255, 0.10);
+  --color-glass-regular-_usage: Default glass surfaces;
+  --color-glass-thick-background: rgba(255, 255, 255, 0.12);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(255, 255, 255, 0.14);
+  --color-glass-thick-_usage: Modals, popovers;
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
+  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
+  --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
+  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
+  --color-tonal-_description: Material-inspired tonal surfaces for cards and buttons;
+  --color-tonal-_philosophy: Warm, approachable surfaces with subtle elevation;
+  --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
+  --color-tonal-surface1-_usage: Lowest elevation - background cards;
+  --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
+  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
+  --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
+  --color-tonal-surface3-_usage: High elevation - buttons, chips;
+  --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
+  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
+  --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
+  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
   --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
@@ -75,6 +113,44 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
+  --color-glass-_description: Apple visionOS-inspired glass system for modals and overlays;
+  --color-glass-_philosophy: Deep frosted glass creates spatial depth and premium feel;
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
+  --color-glass-ultra-thin-_usage: Subtle background separation;
+  --color-glass-thin-background: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(255, 255, 255, 0.06);
+  --color-glass-thin-_usage: Cards, list items;
+  --color-glass-regular-background: rgba(255, 255, 255, 0.08);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(255, 255, 255, 0.10);
+  --color-glass-regular-_usage: Default glass surfaces;
+  --color-glass-thick-background: rgba(255, 255, 255, 0.12);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(255, 255, 255, 0.14);
+  --color-glass-thick-_usage: Modals, popovers;
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
+  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
+  --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
+  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
+  --color-tonal-_description: Material-inspired tonal surfaces for cards and buttons;
+  --color-tonal-_philosophy: Warm, approachable surfaces with subtle elevation;
+  --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
+  --color-tonal-surface1-_usage: Lowest elevation - background cards;
+  --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
+  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
+  --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
+  --color-tonal-surface3-_usage: High elevation - buttons, chips;
+  --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
+  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
+  --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
+  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
   --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
@@ -129,6 +205,44 @@
   --color-background-elevated: #fffdfb;
   --color-background-glass: rgba(139, 119, 91, 0.03);
   --color-background-overlay: rgba(250, 248, 245, 0.95);
+  --color-glass-_description: Apple visionOS-inspired glass system for light mode;
+  --color-glass-_philosophy: Frosted glass creates spatial depth while maintaining warmth;
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.50);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(44, 37, 32, 0.04);
+  --color-glass-ultra-thin-_usage: Subtle background separation;
+  --color-glass-thin-background: rgba(255, 255, 255, 0.60);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(44, 37, 32, 0.06);
+  --color-glass-thin-_usage: Cards, list items;
+  --color-glass-regular-background: rgba(255, 255, 255, 0.70);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(44, 37, 32, 0.08);
+  --color-glass-regular-_usage: Default glass surfaces;
+  --color-glass-thick-background: rgba(255, 255, 255, 0.80);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(44, 37, 32, 0.10);
+  --color-glass-thick-_usage: Modals, popovers;
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.90);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(44, 37, 32, 0.12);
+  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
+  --color-glass-chromatic-background: rgba(61, 90, 69, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(61, 90, 69, 0.12);
+  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
+  --color-tonal-_description: Material-inspired tonal surfaces for light mode;
+  --color-tonal-_philosophy: Subtle elevation through warm tints;
+  --color-tonal-surface1-background: rgba(44, 37, 32, 0.02);
+  --color-tonal-surface1-_usage: Lowest elevation - background cards;
+  --color-tonal-surface2-background: rgba(44, 37, 32, 0.04);
+  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
+  --color-tonal-surface3-background: rgba(44, 37, 32, 0.06);
+  --color-tonal-surface3-_usage: High elevation - buttons, chips;
+  --color-tonal-surface-hover-background: rgba(44, 37, 32, 0.08);
+  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
+  --color-tonal-surface-active-background: rgba(44, 37, 32, 0.12);
+  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
   --color-text-_wcag: All colors tested against #faf8f5 primary background for WCAG AA;
   --color-text-primary: #2c2520;
   --color-text-secondary: #5c544a;
@@ -180,6 +294,15 @@
 
 /* Persona: _description */
 [data-persona="_description"] {
+  --persona-primary: undefined;
+  --persona-secondary: undefined;
+  --persona-text: #ffffff;
+  --persona-glow: undefined;
+  --persona-tint: undefined;
+}
+
+/* Persona: _textOnDarkNote */
+[data-persona="_text-on-dark-note"] {
   --persona-primary: undefined;
   --persona-secondary: undefined;
   --persona-text: #ffffff;

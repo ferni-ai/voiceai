@@ -10,6 +10,7 @@
  * - Turn-taking optimization
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -428,7 +429,7 @@ export class ResponseDynamicsEngine {
             `On the topic of ${toTopic}...`,
             `About ${toTopic}...`,
           ];
-          return phrases[Math.floor(Math.random() * phrases.length)];
+          return seededPick(`${Date.now()}:432`, phrases) ?? phrases[0];
         }
         return '';
 
@@ -439,7 +440,7 @@ export class ResponseDynamicsEngine {
           'I understand.',
           'Got it.',
         ];
-        return ackPhrases[Math.floor(Math.random() * ackPhrases.length)];
+        return seededPick(`${Date.now()}:443`, ackPhrases) ?? ackPhrases[0];
       }
 
       case 'redirect': {
@@ -448,7 +449,7 @@ export class ResponseDynamicsEngine {
           'On a different note...',
           'Changing gears a bit...',
         ];
-        return redirectPhrases[Math.floor(Math.random() * redirectPhrases.length)];
+        return seededPick(`${Date.now()}:452`, redirectPhrases) ?? redirectPhrases[0];
       }
 
       case 'callback':
@@ -459,7 +460,7 @@ export class ResponseDynamicsEngine {
             `Remember when we talked about ${toTopic}?`,
             `Earlier you mentioned ${toTopic}...`,
           ];
-          return callbackPhrases[Math.floor(Math.random() * callbackPhrases.length)];
+          return seededPick(`${Date.now()}:463`, callbackPhrases) ?? callbackPhrases[0];
         }
         return 'Going back to what you mentioned earlier...';
 

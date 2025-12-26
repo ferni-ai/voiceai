@@ -908,6 +908,30 @@ async function applyDynamicSpeedControl(
     const emotionalArc = getEmotionalArcTracker();
     const personaProfile = getPersonaSpeedProfile(persona.id);
 
+    // ================================================================
+    // "BETTER THAN HUMAN" - Real-time Prosody Integration
+    // These values are set by audio-processor.ts DURING user speech,
+    // giving us insight into their emotional state before they finish.
+    // ================================================================
+    const realtimeProsody = (
+      userData as UserData & {
+        realtimeProsody?: {
+          pitchTrend: 'rising' | 'falling' | 'stable';
+          energyVariance: number;
+        };
+      }
+    ).realtimeProsody;
+
+    // Anticipatory prosody from the anticipation pipeline (transcript-handler)
+    const anticipatedProsody = (
+      userData as UserData & {
+        anticipatedProsody?: {
+          speedMultiplier: number;
+          volumeMultiplier: number;
+        };
+      }
+    ).anticipatedProsody;
+
     // Derive emotional intensity
     const arcData = emotionalArc.getArc();
     const tremorIntensity = listeningResult?.audio?.tremor?.intensity;
@@ -919,10 +943,19 @@ async function applyDynamicSpeedControl(
           : tremorIntensity === 'subtle'
             ? 0.3
             : 0;
+
+    // Real-time prosody signals boost emotional intensity detection
+    // Falling pitch + high energy variance suggests distress
+    const prosodyDistressScore =
+      realtimeProsody?.pitchTrend === 'falling' && (realtimeProsody?.energyVariance ?? 0) > 3
+        ? 0.4
+        : 0;
+
     const emotionalIntensity = Math.max(
       Math.abs(arcData.currentValence || 0),
       arcData.currentArousal || 0,
-      tremorScore
+      tremorScore,
+      prosodyDistressScore
     );
 
     // Derive content complexity
@@ -949,6 +982,20 @@ async function applyDynamicSpeedControl(
       isQuestion: text.includes('?'),
     });
 
+    // Apply anticipatory prosody adjustment if available
+    // The anticipation pipeline may have pre-computed ideal speed based on
+    // predicted user intent (celebration → faster, emotional share → slower)
+    let finalBaseSpeed = personaSpeed.speed;
+    if (anticipatedProsody?.speedMultiplier) {
+      // Blend the anticipated speed with persona speed (60% anticipation, 40% persona)
+      finalBaseSpeed = personaSpeed.speed * 0.4 + anticipatedProsody.speedMultiplier * 0.6;
+      diag.debug('🔮 Anticipatory prosody applied to base speed', {
+        personaSpeed: personaSpeed.speed.toFixed(2),
+        anticipatedSpeed: anticipatedProsody.speedMultiplier.toFixed(2),
+        blendedSpeed: finalBaseSpeed.toFixed(2),
+      });
+    }
+
     const speedResult = applyDynamicSpeed(text, {
       sessionId,
       personaId: persona.id,
@@ -956,7 +1003,7 @@ async function applyDynamicSpeedControl(
       listeningResult: listeningResult || undefined,
       topicWeight,
       turnNumber: userData.turnCount || 0,
-      baseSpeed: personaSpeed.speed,
+      baseSpeed: finalBaseSpeed,
     });
 
     if (speedResult.wasAdjusted) {
@@ -964,6 +1011,9 @@ async function applyDynamicSpeedControl(
         speed: speedResult.speedResult.speedMultiplier,
         personaBase: personaProfile.baseSpeed,
         personaAdjusted: personaSpeed.speed.toFixed(2),
+        finalBase: finalBaseSpeed.toFixed(2),
+        hadAnticipation: !!anticipatedProsody,
+        hadRealtimeProsody: !!realtimeProsody,
         reason: speedResult.speedResult.reason,
       });
       return { text: speedResult.ssmlText, wasApplied: true };

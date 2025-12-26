@@ -17,6 +17,7 @@
  * @module @ferni/humanization/session-dynamics
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'SessionDynamics' });
@@ -384,12 +385,12 @@ export class SessionDynamicsEngine {
     // Extended phase or high turn count
     if (this.state.phase === 'extended' || this.state.turnCount > 45) {
       // Only suggest occasionally
-      return Math.random() < 0.15;
+      return seededChance(`${Date.now()}:388`, 0.15);
     }
 
     // Long session time
     if (this.state.sessionMinutes > 40) {
-      return Math.random() < 0.1;
+      return seededChance(`${Date.now()}:393`, 0.1);
     }
 
     return false;
@@ -410,7 +411,7 @@ export class SessionDynamicsEngine {
       'Want to start winding down, or is there something else you want to explore?',
     ];
 
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:414`, phrases) ?? phrases[0];
   }
 
   /**

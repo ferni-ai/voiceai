@@ -13,7 +13,6 @@
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/toast.ui.js';
-import { t } from '../i18n/index.js';
 
 const log = createLogger('FoundersService');
 
@@ -308,7 +307,7 @@ export async function fetchPersonalImpact(userId: string): Promise<PersonalImpac
 // MILESTONE CELEBRATIONS
 // ============================================================================
 
-let shownMilestoneIds = new Set<string>();
+const shownMilestoneIds = new Set<string>();
 
 export async function checkForNewMilestones(): Promise<void> {
   // Throttle checks to every 5 minutes

@@ -27,7 +27,7 @@ import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.u
 import { toast } from './toast.ui.js';
 
 const log = createLogger('SupportFerniUI');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, brand compliant)
@@ -78,7 +78,7 @@ const ICONS = {
 
 let overlay: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
-let isLoading = false;
+let _isLoading = false;
 let selectedTipAmount = 0;
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -171,7 +171,7 @@ export async function openSupportFerni(): Promise<void> {
   });
 }
 
-export function closeSupportFerni(): void {
+function closeSupportFerni(): void {
   if (!overlay) return;
 
   overlay.classList.remove('support-ferni-overlay--open');
@@ -185,6 +185,8 @@ export function closeSupportFerni(): void {
     prefersReducedMotion() ? 0 : DURATION.SLOW
   );
 }
+
+export { closeSupportFerni };
 
 // ============================================================================
 // CREATE OVERLAY
@@ -323,20 +325,20 @@ function renderCostTransparency(): string {
           ${t('support.costTransparency.intro')}
         </p>
         <div class="support-ferni-cost-items">
-          <div class="support-ferni-cost-item">
-            <span class="support-ferni-cost-label">${t('support.costTransparency.aiThinking')}</span>
+          <div class="support-ferni-cost-item" style="animation-delay: 0ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.thinking')}</span>
             <span class="support-ferni-cost-value">~$0.03</span>
           </div>
-          <div class="support-ferni-cost-item">
-            <span class="support-ferni-cost-label">${t('support.costTransparency.voiceSynthesis')}</span>
+          <div class="support-ferni-cost-item" style="animation-delay: 80ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.voice')}</span>
             <span class="support-ferni-cost-value">~$0.02</span>
           </div>
-          <div class="support-ferni-cost-item">
+          <div class="support-ferni-cost-item" style="animation-delay: 160ms">
             <span class="support-ferni-cost-label">${t('support.costTransparency.infrastructure')}</span>
             <span class="support-ferni-cost-value">~$0.01</span>
           </div>
-          <div class="support-ferni-cost-item support-ferni-cost-total">
-            <span class="support-ferni-cost-label">${t('support.costTransparency.totalPerConversation')}</span>
+          <div class="support-ferni-cost-item support-ferni-cost-total" style="animation-delay: 280ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.total')}</span>
             <span class="support-ferni-cost-value">~$0.06</span>
           </div>
         </div>
@@ -357,9 +359,8 @@ function renderUpgradeOptions(currentTier: string): string {
       <div class="support-ferni-tiers">
         ${upgradeTiers
           .map(
-            (tier) => `
-          <button aria-label="Confirm" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--popular' : ''}" data-upgrade-tier="${tier.id}">
-            ${tier.id === 'friend' ? '<span class="support-ferni-popular-badge">Most Chosen</span>' : ''}
+            (tier, index) => `
+          <button aria-label="Choose ${tier.name}" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--highlighted' : ''}" data-upgrade-tier="${tier.id}" style="animation-delay: ${index * 100}ms">
             <div class="support-ferni-tier-header">
               <span class="support-ferni-tier-name">${tier.name}</span>
               <span class="support-ferni-tier-price">${tier.price}</span>
@@ -475,7 +476,7 @@ async function handleUpgrade(tier: string): Promise<void> {
     return;
   }
 
-  isLoading = true;
+  _isLoading = true;
   updateLoadingState(true);
 
   try {
@@ -502,7 +503,7 @@ async function handleUpgrade(tier: string): Promise<void> {
     log.error('Upgrade failed:', error);
     toast.error("Hmm, that didn't work. Try again?");
   } finally {
-    isLoading = false;
+    _isLoading = false;
     updateLoadingState(false);
   }
 }
@@ -516,7 +517,7 @@ async function handlePlantSeed(): Promise<void> {
     return;
   }
 
-  isLoading = true;
+  _isLoading = true;
   updateLoadingState(true);
 
   try {
@@ -542,7 +543,7 @@ async function handlePlantSeed(): Promise<void> {
     log.error('Plant seed failed:', error);
     toast.error("Hmm, that didn't work. Try again?");
   } finally {
-    isLoading = false;
+    _isLoading = false;
     updateLoadingState(false);
   }
 }
@@ -588,6 +589,41 @@ function injectStyles(): void {
   styleElement = document.createElement('style');
   styleElement.id = 'support-ferni-styles';
   styleElement.textContent = `
+    /* Keyframes - Pixar-inspired animations */
+    @keyframes support-ferni-card-enter {
+      0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(12px);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.02) translateY(-4px);
+      }
+      100% {
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes support-ferni-item-reveal {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes support-ferni-icon-breathe {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.03);
+      }
+    }
+
     /* Overlay */
     .support-ferni-overlay {
       position: fixed;
@@ -599,7 +635,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       opacity: 0;
       pointer-events: none;
-      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
+      transition: opacity ${DURATION.MODERATE}ms ${EASING.GENTLE};
     }
 
     .support-ferni-overlay--open {
@@ -610,22 +646,52 @@ function injectStyles(): void {
     .support-ferni-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.55);
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
-    /* Card */
+    /* Card with Pixar-inspired entry */
     .support-ferni-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(364px, 90vw, 520px);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
       padding: var(--space-8, 32px);
+      transform: scale(0.94) translateY(12px);
+      opacity: 0;
+    }
+
+    
+    @supports not (backdrop-filter: blur(24px)) {
+      .support-ferni-card {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+    }
+
+    .support-ferni-overlay--open .support-ferni-card {
+      animation: support-ferni-card-enter 500ms ${EASING.SPRING} forwards;
+    }
+
+    /* Subtle paper texture overlay */
+    .support-ferni-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.018;
+      mix-blend-mode: overlay;
+      pointer-events: none;
     }
 
     .support-ferni-close {
@@ -674,6 +740,7 @@ function injectStyles(): void {
       background: linear-gradient(135deg, var(--persona-tint), transparent);
       border-radius: var(--radius-full);
       color: var(--persona-primary, #4a6741);
+      animation: support-ferni-icon-breathe 4s ease-in-out infinite;
     }
 
     .support-ferni-icon svg {
@@ -683,12 +750,12 @@ function injectStyles(): void {
 
     .support-ferni-eyebrow {
       display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
       color: var(--persona-primary, #4a6741);
       margin-bottom: var(--space-2, 8px);
+      opacity: 0.85;
     }
 
     .support-ferni-title {
@@ -697,13 +764,14 @@ function injectStyles(): void {
       font-weight: 700;
       color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
+      letter-spacing: -0.01em;
     }
 
     .support-ferni-subtitle {
       font-size: 1rem;
       color: var(--color-text-secondary);
       margin: 0;
-      line-height: 1.5;
+      line-height: 1.65;
     }
 
     /* Sections */
@@ -725,7 +793,7 @@ function injectStyles(): void {
     .support-ferni-tip-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .support-ferni-tip-icon svg {
@@ -787,12 +855,20 @@ function injectStyles(): void {
       border-radius: var(--radius-xl, 16px);
       cursor: pointer;
       text-align: left;
+      opacity: 0;
+      animation: support-ferni-item-reveal 400ms ${EASING.GENTLE} forwards;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .support-ferni-tier-card:hover {
       border-color: var(--persona-primary);
       background: var(--color-background-elevated);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.1);
+    }
+
+    .support-ferni-tier-card:active {
+      transform: scale(0.98) translateY(0);
     }
 
     .support-ferni-tier-card:focus {
@@ -800,23 +876,15 @@ function injectStyles(): void {
       box-shadow: 0 0 0 3px var(--persona-tint);
     }
 
-    .support-ferni-tier-card--popular {
-      border-color: var(--persona-primary);
-      background: linear-gradient(135deg, var(--persona-tint), transparent);
+    /* Highlighted tier - subtle emphasis without badge */
+    .support-ferni-tier-card--highlighted {
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.03));
+      border-color: rgba(74, 103, 65, 0.15);
     }
 
-    .support-ferni-popular-badge {
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: var(--space-1, 4px) var(--space-3, 12px);
-      background: var(--persona-primary);
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      border-radius: var(--radius-full);
-      white-space: nowrap;
+    .support-ferni-tier-card--highlighted:hover {
+      border-color: var(--persona-primary);
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.08));
     }
 
     .support-ferni-tier-header {
@@ -836,7 +904,7 @@ function injectStyles(): void {
     .support-ferni-tier-price {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .support-ferni-tier-features {
@@ -859,7 +927,7 @@ function injectStyles(): void {
     .support-ferni-tier-features svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       flex-shrink: 0;
     }
 
@@ -916,7 +984,7 @@ function injectStyles(): void {
     .support-ferni-cost-transparency .support-ferni-section-title svg {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .support-ferni-cost-intro {
@@ -937,29 +1005,27 @@ function injectStyles(): void {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: var(--space-2, 8px) 0;
-      border-bottom: 1px solid var(--color-border-subtle);
-    }
-
-    .support-ferni-cost-item:last-child {
-      border-bottom: none;
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: var(--color-background-elevated);
+      border-radius: var(--radius-md, 8px);
+      opacity: 0;
+      animation: support-ferni-item-reveal 350ms ${EASING.GENTLE} forwards;
     }
 
     .support-ferni-cost-label {
-      font-size: 0.875rem;
+      font-size: 0.9rem;
       color: var(--color-text-secondary);
     }
 
     .support-ferni-cost-value {
       font-family: var(--font-mono, monospace);
-      font-size: 0.875rem;
+      font-size: 0.9rem;
       font-weight: 600;
       color: var(--color-text-primary);
     }
 
     .support-ferni-cost-total {
-      border-top: 2px solid var(--persona-primary);
-      padding-top: var(--space-3, 12px);
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.05));
       margin-top: var(--space-2, 8px);
     }
 
@@ -971,14 +1037,14 @@ function injectStyles(): void {
     .support-ferni-cost-total .support-ferni-cost-value {
       color: var(--persona-primary);
       font-size: 1rem;
+      font-weight: 700;
     }
 
     .support-ferni-cost-note {
       font-size: 0.8125rem;
       color: var(--color-text-muted);
-      line-height: 1.5;
-      margin: 0;
-      font-style: italic;
+      line-height: 1.6;
+      margin: var(--space-3, 12px) 0 0;
     }
 
     /* Tip Section */
@@ -1005,12 +1071,17 @@ function injectStyles(): void {
       border: 2px solid transparent;
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
     .support-ferni-tip-btn:hover {
       background: var(--color-background-elevated);
       border-color: var(--persona-primary);
+      transform: translateY(-2px);
+    }
+
+    .support-ferni-tip-btn:active {
+      transform: scale(0.96) translateY(0);
     }
 
     .support-ferni-tip-btn:focus {
@@ -1074,15 +1145,22 @@ function injectStyles(): void {
       background: var(--persona-primary);
       color: white;
       border: none;
-      border-radius: var(--radius-lg, 12px);
+      border-radius: var(--radius-full, 100px);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
     .support-ferni-plant-btn:hover:not(:disabled) {
       background: var(--persona-secondary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(74, 103, 65, 0.25);
+    }
+
+    .support-ferni-plant-btn:active:not(:disabled) {
+      transform: scale(0.97) translateY(0);
+      box-shadow: 0 2px 8px rgba(74, 103, 65, 0.2);
     }
 
     .support-ferni-plant-btn:focus {
@@ -1098,6 +1176,11 @@ function injectStyles(): void {
     .support-ferni-plant-btn svg {
       width: 20px;
       height: 20px;
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .support-ferni-plant-btn:hover:not(:disabled) svg {
+      transform: rotate(-10deg) scale(1.1);
     }
 
     /* Billing Link */
@@ -1149,20 +1232,25 @@ function injectStyles(): void {
       width: 100%;
       padding: var(--space-4, 16px);
       margin-bottom: var(--space-6, 24px);
-      background: linear-gradient(135deg, var(--persona-tint), transparent);
-      border: 2px solid var(--persona-primary);
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.06), transparent);
+      border: 1.5px solid rgba(74, 103, 65, 0.2);
       border-radius: var(--radius-xl, 16px);
       font-size: 0.9375rem;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--persona-primary);
       cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
     .support-ferni-journey-btn:hover {
       background: var(--persona-tint);
+      border-color: var(--persona-primary);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.15);
+      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.12);
+    }
+
+    .support-ferni-journey-btn:active {
+      transform: scale(0.98) translateY(0);
     }
 
     .support-ferni-journey-btn:focus {
@@ -1173,6 +1261,11 @@ function injectStyles(): void {
     .support-ferni-journey-btn svg {
       width: 20px;
       height: 20px;
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .support-ferni-journey-btn:hover svg:last-child {
+      transform: translateX(3px);
     }
 
     .support-ferni-journey-btn svg:last-child {
@@ -1206,13 +1299,23 @@ function injectStyles(): void {
       to { transform: rotate(360deg); }
     }
 
-    /* Reduced motion */
+    /* Reduced motion - disable all animations for accessibility */
     @media (prefers-reduced-motion: reduce) {
-      .support-ferni-overlay {
-        transition: opacity 0ms;
+      .support-ferni-overlay,
+      .support-ferni-card,
+      .support-ferni-tier-card,
+      .support-ferni-cost-item,
+      .support-ferni-tip-btn,
+      .support-ferni-plant-btn,
+      .support-ferni-journey-btn {
+        animation: none !important;
+        transition: opacity 0ms, background 0ms, border-color 0ms !important;
+        transform: none !important;
+        opacity: 1 !important;
       }
-      .support-ferni-spinner {
-        animation: none;
+      .support-ferni-spinner,
+      .support-ferni-icon {
+        animation: none !important;
       }
     }
 

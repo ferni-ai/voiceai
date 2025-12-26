@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiPost, apiDelete, apiGet, getUserId } from '../utils/api.js';
+import { apiPost, apiDelete, getUserId } from '../utils/api.js';
 import type { CustomRitual } from '../ui/ritual-builder.ui.js';
 
 const log = createLogger('Rituals');

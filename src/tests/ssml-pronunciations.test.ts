@@ -483,17 +483,14 @@ describe('SSML Pronunciation Dictionary', () => {
       ).toBe(true);
       // Grand Tetons plural
       expect(
-        containsTextIgnoringSsml(
-          tagTextWithSsml('Hiking in the Grand Tetons'),
-          'Grand TEE-tonz'
-        )
+        containsTextIgnoringSsml(tagTextWithSsml('Hiking in the Grand Tetons'), 'Grand TEE-tonz')
       ).toBe(true);
     });
 
     it('should pronounce Wyoming cities correctly', () => {
-      expect(
-        containsTextIgnoringSsml(tagTextWithSsml('Cheyenne is the capital'), 'shy-ANN')
-      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Cheyenne is the capital'), 'shy-ANN')).toBe(
+        true
+      );
       expect(
         containsTextIgnoringSsml(tagTextWithSsml('University of Laramie'), 'LAIR-uh-mee')
       ).toBe(true);
@@ -531,16 +528,14 @@ describe('SSML Pronunciation Dictionary', () => {
     it('should pronounce Arizona/New Mexico places correctly', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Downtown Tucson'), 'TOO-sawn')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Visit Sedona'), 'seh-DOH-nuh')).toBe(true);
-      expect(
-        containsTextIgnoringSsml(tagTextWithSsml('Santa Fe culture'), 'SAN-tuh fay')
-      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Santa Fe culture'), 'SAN-tuh fay')).toBe(
+        true
+      );
       expect(containsTextIgnoringSsml(tagTextWithSsml('Taos art'), 'towse')).toBe(true);
     });
 
     it('should pronounce Nevada correctly', () => {
-      expect(
-        containsTextIgnoringSsml(tagTextWithSsml('Nevada desert'), 'neh-VAD-uh')
-      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Nevada desert'), 'neh-VAD-uh')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Lake Tahoe'), 'TAH-ho')).toBe(true);
     });
   });
@@ -595,14 +590,22 @@ describe('SSML Pronunciation Dictionary', () => {
   describe('Mindfulness & Meditation Terms', () => {
     it('should pronounce Sanskrit yoga terms correctly', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Say namaste'), 'nah-mah-STAY')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Practice pranayama'), 'prah-nah-YAH-muh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Balance your chakras'), 'CHAH-kruh')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Practice pranayama'), 'prah-nah-YAH-muh')
+      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Balance your chakras'), 'CHAH-kruh')).toBe(
+        true
+      );
       expect(containsTextIgnoringSsml(tagTextWithSsml('Use a mantra'), 'MAN-truh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('End in savasana'), 'shah-VAH-suh-nuh')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('End in savasana'), 'shah-VAH-suh-nuh')).toBe(
+        true
+      );
     });
 
     it('should pronounce Ayurvedic terms correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Ayurveda principles'), 'ah-yur-VAY-duh')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Ayurveda principles'), 'ah-yur-VAY-duh')
+      ).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Your dosha type'), 'DOH-shuh')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Vata constitution'), 'VAH-tuh')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Pitta imbalance'), 'PIT-tuh')).toBe(true);
@@ -611,15 +614,23 @@ describe('SSML Pronunciation Dictionary', () => {
 
     it('should pronounce Buddhist terms correctly', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Practice metta'), 'MET-tah')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Vipassana retreat'), 'vih-PAH-suh-nuh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Dukkha is suffering'), 'DOO-kuh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Reaching nirvana'), 'nir-VAH-nuh')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Vipassana retreat'), 'vih-PAH-suh-nuh')
+      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Dukkha is suffering'), 'DOO-kuh')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Reaching nirvana'), 'nir-VAH-nuh')).toBe(
+        true
+      );
     });
 
     it('should pronounce Chinese/Zen terms correctly', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Cultivate qi'), 'chee')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Practice tai chi'), 'tie chee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Feng shui your home'), 'fung SHWAY')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Feng shui your home'), 'fung SHWAY')).toBe(
+        true
+      );
       expect(containsTextIgnoringSsml(tagTextWithSsml('Follow the tao'), 'dow')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Zen meditation'), 'zen')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Practice zazen'), 'ZAH-zen')).toBe(true);
@@ -632,28 +643,51 @@ describe('SSML Pronunciation Dictionary', () => {
   describe('Coaching & Psychology Terms', () => {
     it('should pronounce personality assessments correctly', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Take the MBTI'), 'M B T I')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Enneagram type'), 'EN-ee-uh-gram')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Enneagram type'), 'EN-ee-uh-gram')).toBe(
+        true
+      );
       expect(containsTextIgnoringSsml(tagTextWithSsml('DiSC profile'), 'disk')).toBe(true);
     });
 
     it('should pronounce Four Tendencies terms correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Gretchen Rubin framework'), 'GRETCH-en ROO-bin')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Gretchen Rubin framework'), 'GRETCH-en ROO-bin')
+      ).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('An Obliger type'), 'oh-BLY-jer')).toBe(true);
     });
 
     it('should pronounce neuroscience terms correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Your amygdala responds'), 'uh-MIG-duh-luh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Neuroplasticity shows'), 'noor-oh-plas-TIS-ih-tee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Cortisol levels'), 'KOR-tih-sol')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Release dopamine'), 'DOH-puh-meen')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Your amygdala responds'), 'uh-MIG-duh-luh')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(
+          tagTextWithSsml('Neuroplasticity shows'),
+          'noor-oh-plas-TIS-ih-tee'
+        )
+      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Cortisol levels'), 'KOR-tih-sol')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Release dopamine'), 'DOH-puh-meen')).toBe(
+        true
+      );
     });
 
     it('should pronounce Stoic philosophy terms correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Practice amor fati'), 'ah-MOR FAH-tee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Memento mori reminder'), 'meh-MEN-toh MORE-ee')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Practice amor fati'), 'ah-MOR FAH-tee')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Memento mori reminder'), 'meh-MEN-toh MORE-ee')
+      ).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Seneca taught'), 'SEN-ih-kuh')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Marcus Aurelius wrote'), 'MAR-kus aw-REE-lee-us')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Find eudaimonia'), 'yoo-dy-MOH-nee-uh')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Marcus Aurelius wrote'), 'MAR-kus aw-REE-lee-us')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Find eudaimonia'), 'yoo-dy-MOH-nee-uh')
+      ).toBe(true);
     });
   });
 
@@ -667,19 +701,37 @@ describe('SSML Pronunciation Dictionary', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('A deep chasm'), 'KAZ-um')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Made a debut'), 'day-BYOO')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('Debris everywhere'), 'duh-BREE')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('The epitome of'), 'ih-PIT-uh-mee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Hyperbole aside'), 'hy-PER-buh-lee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Mischievous kids'), 'MIS-chih-vus')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The epitome of'), 'ih-PIT-uh-mee')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Hyperbole aside'), 'hy-PER-buh-lee')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Mischievous kids'), 'MIS-chih-vus')).toBe(
+        true
+      );
     });
 
     it('should pronounce emotional/coaching words correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Build resilience'), 'rih-ZIL-yuns')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Embrace vulnerability'), 'vul-ner-uh-BIL-ih-tee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Practice authenticity'), 'aw-then-TIS-ih-tee')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Find equanimity'), 'ee-kwuh-NIM-ih-tee')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Build resilience'), 'rih-ZIL-yuns')).toBe(
+        true
+      );
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Embrace vulnerability'), 'vul-ner-uh-BIL-ih-tee')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Practice authenticity'), 'aw-then-TIS-ih-tee')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Find equanimity'), 'ee-kwuh-NIM-ih-tee')
+      ).toBe(true);
       // Self-compassion uses the self-compassion pattern which produces Self-kum-PASH-un
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Self-compassion matters'), 'Self-kum-PASH-un')).toBe(true);
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Show perseverance'), 'per-suh-VEER-uns')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Self-compassion matters'), 'Self-kum-PASH-un')
+      ).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Show perseverance'), 'per-suh-VEER-uns')
+      ).toBe(true);
     });
   });
 

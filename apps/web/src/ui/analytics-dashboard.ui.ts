@@ -21,7 +21,7 @@ import { playMicroExpression } from './better-than-human.ui.js';
 // ============================================================================
 
 // Track setTimeout calls for memory leak prevention
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 export interface StreakTrend {
   date: string;
@@ -405,7 +405,7 @@ class AnalyticsDashboardUI {
 
     return `
       <div class="analytics__card">
-        <div class="analytics__card-icon">${icons[icon] || ''}</div>
+        <div class="analytics__card-icon">${icons[icon] ?? ''}</div>
         <div class="analytics__card-value">${value}</div>
         <div class="analytics__card-label">${label}</div>
       </div>
@@ -438,9 +438,9 @@ class AnalyticsDashboardUI {
       <div class="analytics__mood-chart">
         ${recent
           .map((t, i) => {
-            const value = MOOD_VALUES[t.mood] || 3;
+            const value = MOOD_VALUES[t.mood] ?? 3;
             const height = (value / maxValue) * 100;
-            const color = MOOD_COLORS[t.mood] || 'var(--color-text-muted)';
+            const color = MOOD_COLORS[t.mood] ?? 'var(--color-text-muted)';
             const day = new Date(t.date)
               .toLocaleDateString('en-US', { weekday: 'short' })
               .slice(0, 1);
@@ -640,7 +640,7 @@ class AnalyticsDashboardUI {
     return `<ul class="analytics__insights-list">${items.join('')}</ul>`;
   }
 
-  private renderGrowthSection(summary: GrowthSummary, insights?: GrowthInsight[]): string {
+  private renderGrowthSection(summary: GrowthSummary, _insights?: GrowthInsight[]): string {
     const growthIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>`;

@@ -16,6 +16,7 @@
  * @module @ferni/micro-affirmations
  */
 
+import { seededChance, seededIndex, seededPick } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'MicroAffirmations' });
@@ -549,7 +550,7 @@ export class MicroAffirmationEngine {
 
     // Calculate if we should affirm based on density target
     const probability = this.calculateAffirmProbability(turnsSinceLast);
-    const shouldAffirm = Math.random() < probability;
+    const shouldAffirm = seededChance(`${Date.now()}:1`, probability);
 
     if (!shouldAffirm) {
       this.consecutiveAffirmations = 0;
@@ -606,7 +607,7 @@ export class MicroAffirmationEngine {
     );
 
     if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return seededPick(`${Date.now()}:610`, candidates) ?? candidates[0];
   }
 
   /**
@@ -702,7 +703,7 @@ export class MicroAffirmationEngine {
 
     // Pick from top candidates
     const topCandidates = candidates.slice(0, Math.min(5, candidates.length));
-    return topCandidates[Math.floor(Math.random() * topCandidates.length)];
+    return seededPick(`${Date.now()}:706`, topCandidates) ?? topCandidates[0];
   }
 }
 

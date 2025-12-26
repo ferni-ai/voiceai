@@ -35,6 +35,20 @@
                ReferencedContainer = "container:FerniVoice.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "08F33F2F7B01D0368EE3975D"
+               BuildableName = "FerniWidgets.appex"
+               BlueprintName = "FerniWidgets"
+               ReferencedContainer = "container:FerniVoice.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

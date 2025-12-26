@@ -209,83 +209,120 @@ final class SplashColorConfigTests: XCTestCase {
     }
 }
 
-// MARK: - Eye Openness Calculation Tests
+// MARK: - Eye Animation Tests
 
-/// The eyeOpenness is calculated as max(0.1, 1.0 - blinkProgress).
-/// We test this mathematical logic.
+/// Tests for the two-eye magical animation system.
+/// The new system uses two solid opaque oval eyes that blink and look around.
 
-final class EyeOpennessCalculationTests: XCTestCase {
+final class TwoEyeAnimationTests: XCTestCase {
 
-    func testMinimumEyeOpennessFormula() {
-        // Formula: max(0.1, 1.0 - blinkProgress)
-        // When blinkProgress = 0: max(0.1, 1.0) = 1.0
-        let result = max(0.1, 1.0 - 0.0)
-        XCTAssertEqual(result, 1.0)
+    func testEyeOpennessFormula() {
+        // Formula: eyeHeight * verticalStretch * eyeOpenness
+        // When eyeOpenness = 1 (fully open)
+        let eyeHeight: CGFloat = 54.4  // 160 * 0.34
+        let verticalStretch: CGFloat = 1.0
+        let eyeOpenness: CGFloat = 1.0
+
+        let result = eyeHeight * verticalStretch * eyeOpenness
+        XCTAssertEqual(result, 54.4)
     }
 
-    func testFullyClosedEyeFormula() {
-        // When blinkProgress = 1: max(0.1, 0.0) = 0.1
-        let result = max(0.1, 1.0 - 1.0)
-        XCTAssertEqual(result, 0.1)
+    func testEyeClosedHeight() {
+        // When eyeOpenness = 0.1 (nearly closed)
+        let eyeHeight: CGFloat = 54.4
+        let eyeOpenness: CGFloat = 0.1
+
+        let result = eyeHeight * eyeOpenness
+        XCTAssertEqual(result, 5.44, accuracy: 0.01)
     }
 
-    func testHalfClosedEyeFormula() {
-        // When blinkProgress = 0.5: max(0.1, 0.5) = 0.5
-        let result = max(0.1, 1.0 - 0.5)
-        XCTAssertEqual(result, 0.5)
+    func testEyeSpacing() {
+        // Eye spacing = eyeSize * 0.15
+        let eyeSize: CGFloat = 160
+        let spacing = eyeSize * 0.15
+        XCTAssertEqual(spacing, 24)
     }
 
-    func testNearlyClosedEyeFormula() {
-        // When blinkProgress = 0.95: max(0.1, 0.05) = 0.1 (clamped)
-        let result = max(0.1, 1.0 - 0.95)
-        XCTAssertEqual(result, 0.1)
+    func testEyeWidth() {
+        // Eye width = eyeSize * 0.28
+        let eyeSize: CGFloat = 160
+        let width = eyeSize * 0.28
+        XCTAssertEqual(width, 44.8, accuracy: 0.001)
     }
 
-    func testEyeOpennessNeverBelowMinimum() {
-        // Even with extreme values, should never go below 0.1
-        for blinkValue in stride(from: 0.0, through: 2.0, by: 0.1) {
-            let result = max(0.1, 1.0 - blinkValue)
-            XCTAssertGreaterThanOrEqual(result, 0.1)
-        }
+    func testLookDirectionRange() {
+        // Look movement = eyeSize * 0.06 for X, * 0.03 for Y
+        let eyeSize: CGFloat = 160
+        let lookX = eyeSize * 0.06
+        let lookY = eyeSize * 0.03
+
+        XCTAssertEqual(lookX, 9.6)
+        XCTAssertEqual(lookY, 4.8)
     }
 }
 
 // MARK: - Animation Timing Constants Tests
 
-/// Tests that document the expected animation timing.
+/// Tests that document the expected 7-phase animation timing.
+/// The new magical splash has these phases:
+/// 1. Anticipation (0-400ms) - glow builds
+/// 2. Awakening (400-1000ms) - eyes slowly open
+/// 3. Discovery (1000-1800ms) - eyes look around curiously
+/// 4. Recognition (1800-2200ms) - eyes focus on user with sparkle
+/// 5. Identity (2200-2600ms) - initials fade in
+/// 6. Greeting (2600-3200ms) - text appears
+/// 7. Complete (3400ms+) - gentle blink, then done
 
 final class SplashAnimationTimingTests: XCTestCase {
 
-    func testPhase1Timing() {
-        // Phase 1: Eye appears (0-600ms)
-        let phase1Duration = 0.6
-        XCTAssertEqual(phase1Duration, 0.6)
+    func testPhase1AnticipationTiming() {
+        // Phase 1: Anticipation - glow builds (0-400ms)
+        let phase1End = 0.4
+        XCTAssertEqual(phase1End, 0.4)
     }
 
-    func testPhase2Timing() {
-        // Phase 2: Eye wakes up (600-1600ms)
-        let phase2Start = 0.6
-        let phase2Duration = 1.0
-        XCTAssertEqual(phase2Start, 0.6)
-        XCTAssertEqual(phase2Duration, 1.0)
+    func testPhase2AwakeningTiming() {
+        // Phase 2: Eyes slowly open (400-1000ms)
+        let phase2Start = 0.4
+        let phase2Duration = 0.6
+        XCTAssertEqual(phase2Start, 0.4)
+        XCTAssertEqual(phase2Duration, 0.6)
     }
 
-    func testPhase3Timing() {
-        // Phase 3: Tagline appears (1600-2200ms)
-        let phase3Start = 1.6
-        XCTAssertEqual(phase3Start, 1.6)
+    func testPhase3DiscoveryTiming() {
+        // Phase 3: Eyes look around curiously (1000-1800ms)
+        let phase3Start = 1.0
+        XCTAssertEqual(phase3Start, 1.0)
     }
 
-    func testPhase4CompletionTiming() {
-        // Phase 4: Complete (2500ms+)
-        let completionStart = 2.5
-        XCTAssertEqual(completionStart, 2.5)
+    func testPhase4RecognitionTiming() {
+        // Phase 4: Eyes focus on user (1800-2200ms)
+        let phase4Start = 1.8
+        XCTAssertEqual(phase4Start, 1.8)
+    }
+
+    func testPhase5IdentityTiming() {
+        // Phase 5: Initials appear (2200-2600ms)
+        let phase5Start = 2.2
+        XCTAssertEqual(phase5Start, 2.2)
+    }
+
+    func testPhase6GreetingTiming() {
+        // Phase 6: Greeting text appears (2600-3200ms)
+        let phase6Start = 2.6
+        XCTAssertEqual(phase6Start, 2.6)
+    }
+
+    func testPhase7CompleteTiming() {
+        // Phase 7: Complete with farewell blink (3400ms+)
+        let phase7Start = 3.4
+        XCTAssertEqual(phase7Start, 3.4)
     }
 
     func testTotalAnimationDuration() {
-        // Total duration before completion callback: 3000ms
-        let totalDuration = 2.5 + 0.5 // completion delay after phase 4
-        XCTAssertEqual(totalDuration, 3.0)
+        // Total duration before completion callback: ~3800ms
+        let totalDuration = 3.4 + 0.4 // completion delay after farewell blink
+        XCTAssertEqual(totalDuration, 3.8)
     }
 }
 
@@ -318,37 +355,47 @@ final class BlinkAnimationTests: XCTestCase {
     }
 }
 
-// MARK: - Pupil Movement Tests
+// MARK: - Eye Look Direction Tests
 
-final class PupilMovementTests: XCTestCase {
+/// Tests for the curious looking behavior during discovery phase.
+/// Both eyes move together as a synchronized pair.
 
-    func testPupilLookRightPosition() {
-        // Look right: CGPoint(x: 0.6, y: -0.2)
-        let lookRight = CGPoint(x: 0.6, y: -0.2)
-        XCTAssertEqual(lookRight.x, 0.6)
-        XCTAssertEqual(lookRight.y, -0.2)
+final class EyeLookDirectionTests: XCTestCase {
+
+    func testCuriousLookRightPosition() {
+        // Look right with slight upward tilt (curious)
+        let lookRight = CGPoint(x: 0.8, y: -0.3)
+        XCTAssertEqual(lookRight.x, 0.8)
+        XCTAssertEqual(lookRight.y, -0.3)
     }
 
-    func testPupilLookLeftPosition() {
-        // Look left: CGPoint(x: -0.5, y: 0.1)
-        let lookLeft = CGPoint(x: -0.5, y: 0.1)
-        XCTAssertEqual(lookLeft.x, -0.5)
+    func testCuriousLookLeftPosition() {
+        // Look left with slight downward tilt
+        let lookLeft = CGPoint(x: -0.7, y: 0.1)
+        XCTAssertEqual(lookLeft.x, -0.7)
         XCTAssertEqual(lookLeft.y, 0.1)
     }
 
-    func testPupilCenterPosition() {
-        // Center: .zero
+    func testCenterFocusPosition() {
+        // Focus on user: center position
         let center = CGPoint.zero
         XCTAssertEqual(center.x, 0)
         XCTAssertEqual(center.y, 0)
     }
 
-    func testLookAroundSequenceTiming() {
-        // Look right → 400ms → Look left → 400ms → Center
-        let rightToLeft = 0.4
-        let leftToCenter = 0.4
-        XCTAssertEqual(rightToLeft, 0.4)
-        XCTAssertEqual(leftToCenter, 0.4)
+    func testDiscoveryPhaseTiming() {
+        // Discovery phase: 1000-1800ms
+        // Look right at 1000ms, look left at ~1350ms
+        let discoveryStart = 1.0
+        let lookRightDuration = 0.35
+        XCTAssertEqual(discoveryStart, 1.0)
+        XCTAssertEqual(lookRightDuration, 0.35)
+    }
+
+    func testRecognitionCenterTiming() {
+        // Recognition phase: eyes center on user at 1800ms
+        let recognitionStart = 1.8
+        XCTAssertEqual(recognitionStart, 1.8)
     }
 }
 
@@ -393,33 +440,39 @@ final class ReducedMotionSupportTests: XCTestCase {
 final class SplashConstantsTests: XCTestCase {
 
     func testEyeSize() {
-        // Eye size should be 120 points
-        let eyeSize: CGFloat = 120
-        XCTAssertEqual(eyeSize, 120)
+        // Eye size for splash is 160 points (larger for impact)
+        let eyeSize: CGFloat = 160
+        XCTAssertEqual(eyeSize, 160)
     }
 
     func testGlowRadius() {
-        // Ambient glow extends to 200 points
-        let glowRadius: CGFloat = 200
-        XCTAssertEqual(glowRadius, 200)
+        // Ambient glow extends to 250 points
+        let glowRadius: CGFloat = 250
+        XCTAssertEqual(glowRadius, 250)
     }
 
     func testInitialEyeScale() {
-        // Eye starts at 0.3 scale
-        let initialScale: CGFloat = 0.3
-        XCTAssertEqual(initialScale, 0.3)
+        // Eye starts at 0.6 scale
+        let initialScale: CGFloat = 0.6
+        XCTAssertEqual(initialScale, 0.6)
     }
 
-    func testInitialPupilDilation() {
-        // Pupil starts at 0.3 dilation
-        let initialDilation: CGFloat = 0.3
-        XCTAssertEqual(initialDilation, 0.3)
+    func testInitialEyeOpenness() {
+        // Eyes start closed (eyeOpenness = 0)
+        let initialOpenness: CGFloat = 0
+        XCTAssertEqual(initialOpenness, 0)
     }
 
-    func testTaglineInitialOffset() {
-        // Tagline starts 20 points below final position
-        let initialOffset: CGFloat = 20
-        XCTAssertEqual(initialOffset, 20)
+    func testInitialVerticalStretch() {
+        // Eyes start squashed (verticalStretch = 0.3)
+        let initialStretch: CGFloat = 0.3
+        XCTAssertEqual(initialStretch, 0.3)
+    }
+
+    func testGreetingInitialOffset() {
+        // Greeting starts 15 points below final position
+        let initialOffset: CGFloat = 15
+        XCTAssertEqual(initialOffset, 15)
     }
 }
 
@@ -428,9 +481,9 @@ final class SplashConstantsTests: XCTestCase {
 final class BackgroundColorsTests: XCTestCase {
 
     func testBackgroundGradientColors() {
-        // Background uses dark gradient
-        let topColor = Color(hexString: "0a0a12")
-        let midColor = Color(hexString: "12121a")
+        // Background uses deep dark gradient
+        let topColor = Color(hexString: "08080f")
+        let midColor = Color(hexString: "0f0f18")
         let bottomColor = Color(hexString: "0a0a12")
 
         XCTAssertNotNil(topColor)
@@ -438,12 +491,25 @@ final class BackgroundColorsTests: XCTestCase {
         XCTAssertNotNil(bottomColor)
     }
 
-    func testPupilColors() {
-        // Pupil uses near-black gradient
-        let pupilCenter = Color(hexString: "1a1a1a")
-        let pupilEdge = Color(hexString: "0a0a0a")
+    func testEyeGlowColor() {
+        // Eye glow uses white with opacity
+        // Main eye is solid white with gradient
+        let eyeTop = Color.white
+        let eyeBottom = Color.white.opacity(0.95)
 
-        XCTAssertNotNil(pupilCenter)
-        XCTAssertNotNil(pupilEdge)
+        XCTAssertNotNil(eyeTop)
+        XCTAssertNotNil(eyeBottom)
+    }
+
+    func testAmbientGlowColor() {
+        // Warm glow for recognition phase
+        let warmGlow = Color(hexString: "c4a265")
+        XCTAssertNotNil(warmGlow)
+    }
+
+    func testFerniGreenDefault() {
+        // Default persona color is Ferni green
+        let ferniGreen = Color(hexString: "4a6741")
+        XCTAssertNotNil(ferniGreen)
     }
 }

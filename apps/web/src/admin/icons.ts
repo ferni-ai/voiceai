@@ -272,14 +272,14 @@ export type IconName = keyof typeof ICONS;
  * Get an icon by name
  */
 export function getIcon(name: IconName): string {
-  return ICONS[name] || ICON_INFO;
+  return ICONS[name] ?? ICON_INFO;
 }
 
 /**
  * Render an icon with custom class
  */
 export function icon(name: IconName, className?: string): string {
-  const svg = ICONS[name] || ICON_INFO;
+  const svg = ICONS[name] ?? ICON_INFO;
   if (className) {
     return svg.replace('<svg ', `<svg class="${className}" `);
   }

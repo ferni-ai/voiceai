@@ -53,18 +53,23 @@ export const DEFAULT_CONFIG = getDefaultConfig();
 
 /**
  * Check if semantic routing is enabled globally
+ * 
+ * DISABLED BY DEFAULT (Dec 2024): Semantic routing has too many false positives
+ * (e.g., "bluegrass" → trauma support because "blue" is in sadness vocabulary).
+ * JSON function calling workaround is more reliable. Re-enable with:
+ *   SEMANTIC_ROUTING_ENABLED=true
  */
 export function isSemanticRoutingEnabled(): boolean {
-  // Default to true - semantic routing is the primary path
+  // Default to FALSE - JSON workaround is more reliable
   const envValue = process.env.SEMANTIC_ROUTING_ENABLED;
 
-  // If not set, enable by default
+  // If not set, DISABLE by default
   if (envValue === undefined) {
-    return true;
+    return false;
   }
 
-  // Explicit false disables
-  return envValue !== 'false' && envValue !== '0';
+  // Explicit true enables
+  return envValue === 'true' || envValue === '1';
 }
 
 /**

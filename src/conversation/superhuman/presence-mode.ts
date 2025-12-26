@@ -17,6 +17,7 @@
  * @module @ferni/superhuman/presence-mode
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'PresenceMode' });
@@ -315,5 +316,5 @@ export function shouldAvoidAdvice(context: PresenceContext): boolean {
 export function getPresencePhrase(level: PresenceLevel): string {
   const openers = PRESENCE_OPENERS[level];
   if (openers.length === 0) return '';
-  return openers[Math.floor(Math.random() * openers.length)];
+  return seededPick(`${Date.now()}:319`, openers) ?? openers[0];
 }

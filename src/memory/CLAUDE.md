@@ -35,7 +35,15 @@ memory/
 │   ├── profile-indexers.ts       # Profile data indexers
 │   └── human-memory-indexers.ts  # Human-centric memory indexers
 ├── firestore-store.ts            # Firestore document storage
-├── firestore-vector-store.ts     # Vector embeddings in Firestore
+├── firestore-vector-store.ts     # Re-exports from modular firestore-vector-store/
+├── firestore-vector-store/       # Vector embeddings in Firestore (modular)
+│   ├── index.ts                  # Re-exports + singleton
+│   ├── types.ts                  # Interfaces, configs, constants
+│   ├── helpers.ts                # Embedding extraction, filter matching
+│   ├── fallback-cache.ts         # In-memory fallback when Firestore unavailable
+│   ├── recovery.ts               # Auto-recovery and cache migration
+│   ├── core.ts                   # Main FirestoreVectorStore class
+│   └── CLAUDE.md                 # Module documentation
 ├── firestore-memory-persistence.ts # Memory persistence helpers
 ├── firestore-converters-integration.ts # Type converters
 ├── embeddings.ts                 # Embedding generation (OpenAI)
@@ -56,6 +64,40 @@ memory/
 ├── store-factory.ts              # Store factory (Firestore/Postgres/in-memory)
 └── index.ts                      # Main exports
 ```
+
+---
+
+## System Health Monitoring
+
+**Function:** `getMemorySystemHealth()`
+
+Returns unified health status for all memory subsystems:
+
+```typescript
+import { getMemorySystemHealth, type MemorySystemHealth } from './memory/index.js';
+
+const health = await getMemorySystemHealth();
+// Returns:
+// {
+//   overall: 'healthy' | 'degraded' | 'unhealthy',
+//   initialized: boolean,
+//   stores: {
+//     primary: { healthy: boolean, type: StoreType, details?: string },
+//     vector: { healthy: boolean, usingFallback: boolean, cacheSize: number, details?: string },
+//     redis: { enabled: boolean, healthy: boolean, details?: string }
+//   },
+//   embedding: {
+//     provider: string,
+//     dimensions: number,
+//     dimensionMatch: boolean  // true if provider dimensions match vector store config
+//   }
+// }
+```
+
+**Health States:**
+- `healthy`: All systems operational
+- `degraded`: Operating in fallback mode (e.g., in-memory cache instead of Firestore)
+- `unhealthy`: Critical failure, memory system not initialized
 
 ---
 

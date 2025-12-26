@@ -94,14 +94,15 @@ export async function initializeIntelligentRouter(
       parameters: [] as Array<{ name: string; type: string; required: boolean; description: string }>,
     }));
 
-    // Set up LLM provider
+    // Set up LLM provider - prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
     let llmProvider;
-    if (config.useGemini && process.env.GOOGLE_API_KEY) {
-      llmProvider = createGeminiProvider(process.env.GOOGLE_API_KEY);
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (config.useGemini && geminiKey) {
+      llmProvider = createGeminiProvider(geminiKey);
     } else if (config.useOpenAI && process.env.OPENAI_API_KEY) {
       llmProvider = createOpenAIProvider(process.env.OPENAI_API_KEY);
-    } else if (process.env.GOOGLE_API_KEY) {
-      llmProvider = createGeminiProvider(process.env.GOOGLE_API_KEY);
+    } else if (geminiKey) {
+      llmProvider = createGeminiProvider(geminiKey);
     }
 
     // Set up bandit persistence
@@ -146,6 +147,9 @@ export async function initializeIntelligentRouter(
 
 /**
  * Create Firestore persistence for bandit optimizer
+ * 
+ * NOTE: Arms contain ToolArm objects with contextWeights as Map<string, number>.
+ * Firestore only accepts plain objects, so we must convert all Maps.
  */
 async function createBanditFirestorePersistence() {
   try {
@@ -154,9 +158,44 @@ async function createBanditFirestorePersistence() {
 
     return {
       save: async (arms: Map<string, unknown>) => {
-        const data = Object.fromEntries(arms);
+        // Convert Map to plain object, handling nested Maps in ToolArm.contextWeights
+        const plainArms: Record<string, unknown> = {};
+        
+        for (const [armId, arm] of arms) {
+          const armObj = arm as Record<string, unknown>;
+          
+          // Convert contextWeights Map to plain object
+          let contextWeightsPlain: Record<string, number> = {};
+          const cw = armObj.contextWeights;
+          if (cw) {
+            if (cw instanceof Map) {
+              contextWeightsPlain = Object.fromEntries(cw);
+            } else if (typeof cw === 'object' && cw !== null) {
+              // Already object-like, copy properties
+              for (const [k, v] of Object.entries(cw as Record<string, unknown>)) {
+                if (typeof v === 'number') {
+                  contextWeightsPlain[k] = v;
+                }
+              }
+            }
+          }
+          
+          // Build plain object for Firestore
+          plainArms[armId] = {
+            toolId: armObj.toolId,
+            successes: armObj.successes,
+            failures: armObj.failures,
+            attempts: armObj.attempts,
+            averageReward: armObj.averageReward,
+            lastUpdated: armObj.lastUpdated instanceof Date 
+              ? armObj.lastUpdated.toISOString() 
+              : armObj.lastUpdated || new Date().toISOString(),
+            contextWeights: contextWeightsPlain,
+          };
+        }
+        
         await db.collection('system_cache').doc('bandit_arms').set({
-          arms: data,
+          arms: plainArms,
           updatedAt: new Date(),
         });
         log.debug({ armCount: arms.size }, 'Bandit arms saved to Firestore');
@@ -438,6 +477,7 @@ function createRouteResultFromDecision(decision: RoutingDecision): SemanticRoute
             embedding: decision.confidence,
             context: 0,
             history: 0,
+            holistic: 0,
           },
           extractedArgs: decision.args,
           missingArgs: [],
@@ -493,6 +533,7 @@ function createRouteResultFromDecision(decision: RoutingDecision): SemanticRoute
         embedding: decision.timing.semanticRouter || 0,
         context: decision.timing.banditOptimizer || 0,
         history: 0,
+        holistic: 0,
       },
       toolsConsidered: 0,
       inputText: '',

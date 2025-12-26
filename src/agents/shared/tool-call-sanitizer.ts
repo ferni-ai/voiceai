@@ -379,7 +379,6 @@ const TOOL_NAME_PATTERNS = [
   'getWeather',
   'get weather',
   'getWeatherForecast',
-  'getAppleWeather',
   'searchNews',
   'search news',
   'getNews',
@@ -510,6 +509,38 @@ const TOOL_NAME_PATTERNS = [
   'when they respond',
   'When they respond',
 
+  // Unified outreach (Better than Human - auto-selects channel)
+  'reachOut',
+  'reach out',
+  'Reach out',
+  'reaching out',
+  'Reaching out',
+  
+  // Telephony tools (phone calls)
+  'makePhoneCall',
+  'make phone call',
+  'Make phone call',
+  'callContact',
+  'call contact',
+  'Call contact',
+  'callUser',
+  'call user',
+  // Conversational calls (Ferni has real 1:1 conversations)
+  'callAndConverse',
+  'call and converse',
+  'Call and converse',
+  'haveFerniCall',
+  'have ferni call',
+  'Have ferni call',
+  'callForConversation',
+  'call for conversation',
+  'Call for conversation',
+  'talkTo',
+  'talk to',
+  'Talk to',
+  'haveConversationWith',
+  'have conversation with',
+
   // Communication tools
   'sendMessage',
   'send message',
@@ -625,6 +656,14 @@ const TOOL_NAME_PATTERNS = [
   'check new messages',
   'searchMessages',
   'search messages',
+
+  // Telephony tools (phone calls)
+  'callOnBehalf',
+  'call on behalf',
+  'calling on behalf',
+  'makeCall',
+  'make call',
+  'making call',
 
   // Scheduling tools (scheduled messages, calls, emails)
   'scheduleMessage',
@@ -1178,6 +1217,82 @@ interface ToolExecutionResult {
   speakDirectly?: boolean;
   /** If true, execution was skipped because semantic router already handled this tool */
   skippedDueToDedupe?: boolean;
+  /** If true, execution was blocked because user was asking a question, not making a request */
+  blockedDueToQuestion?: boolean;
+}
+
+// ============================================================================
+// HIGH-RISK TOOL PROTECTION
+// ============================================================================
+
+/**
+ * Tools that should NOT execute when the user is asking a question.
+ * These are high-risk actions that could have unintended consequences.
+ */
+const HIGH_RISK_TOOLS = new Set([
+  'makephonecall',
+  'callandconverse',
+  'callonbehalf',
+  'calluser',
+  'callcontact',
+  'schedulecall',
+  'sendtext',
+  'sendsms',
+  'sendmessage',
+  'sendemail',
+  'paybill',
+  'transfermoney',
+  'schedulemessage',
+  'sendemailnow',
+  'sendtextnow',
+]);
+
+/**
+ * Patterns that indicate the user is asking a QUESTION about a past action,
+ * not requesting a new action. These should block high-risk tool execution.
+ */
+const QUESTION_PATTERNS = [
+  // "Did you X?" questions
+  /^(?:did|have|has|had)\s+(?:you|ferni)\s+(?:already\s+)?(?:call|text|email|message|send|pay)/i,
+  // "Was it X?" questions  
+  /^(?:was|were|is)\s+(?:that|it|the)\s+(?:call|text|email|message|payment)/i,
+  // Questions about what happened
+  /(?:what|who|when|where|how)\s+did\s+(?:you|ferni)\s+(?:call|text|email|message|send)/i,
+  // Questioning a recent action
+  /(?:you\s+)?(?:already|just)\s+(?:called|texted|emailed|messaged|sent|paid)\s*\??/i,
+  // "Did you X my Y?" pattern (e.g., "did you call my mom?")
+  /did\s+you\s+(?:call|text|email|contact|message|reach)\s+(?:my|the)\s+/i,
+];
+
+/**
+ * Check if text appears to be a question about a past action.
+ * Used to prevent accidental tool execution when user asks "did you call my mom?"
+ */
+function isQuestionAboutPastAction(text: string): boolean {
+  if (!text) return false;
+  
+  const normalized = text.trim().toLowerCase();
+  
+  // Ends with question mark - strong signal
+  const hasQuestionMark = normalized.endsWith('?');
+  
+  // Check against question patterns
+  for (const pattern of QUESTION_PATTERNS) {
+    if (pattern.test(normalized)) {
+      return true;
+    }
+  }
+  
+  // Additional heuristic: starts with question words + "you" near "call/text/etc"
+  if (hasQuestionMark) {
+    const hasQuestionWord = /^(?:did|have|has|was|were|what|who|when|where|how|why)\b/.test(normalized);
+    const hasActionWord = /\b(?:call|text|email|message|send|pay|contact)\b/.test(normalized);
+    if (hasQuestionWord && hasActionWord) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -1194,9 +1309,46 @@ async function executeJsonFunctionCall(
   call: JsonFunctionCall,
   sessionId?: string,
   userId?: string,
-  personaId?: string
+  personaId?: string,
+  originalTranscript?: string
 ): Promise<ToolExecutionResult | null> {
   try {
+    // 🛡️ HIGH-RISK TOOL PROTECTION: Block execution if user was asking a question
+    // Prevents "did you call my mom?" from triggering an actual phone call
+    const toolNameLower = call.fn.toLowerCase();
+    if (HIGH_RISK_TOOLS.has(toolNameLower)) {
+      // Check if we have transcript context suggesting this was a question
+      if (originalTranscript && isQuestionAboutPastAction(originalTranscript)) {
+        log.warn(
+          { fn: call.fn, transcript: originalTranscript.slice(0, 100), sessionId },
+          '🛡️ HIGH-RISK TOOL BLOCKED: User appears to be asking a question, not making a request'
+        );
+        return {
+          success: false,
+          fn: call.fn,
+          result: "I think you're asking about something I did - let me clarify what happened.",
+          error: 'Blocked: User was asking a question, not making a request',
+          blockedDueToQuestion: true,
+        };
+      }
+      
+      // Also check the args for question patterns (LLM sometimes puts transcript there)
+      const argsText = JSON.stringify(call.args);
+      if (isQuestionAboutPastAction(argsText)) {
+        log.warn(
+          { fn: call.fn, args: call.args, sessionId },
+          '🛡️ HIGH-RISK TOOL BLOCKED: Args suggest this was a question'
+        );
+        return {
+          success: false,
+          fn: call.fn,
+          result: "I think you're asking about something - what would you like to know?",
+          error: 'Blocked: Args contain question pattern',
+          blockedDueToQuestion: true,
+        };
+      }
+    }
+
     // 🚫 DEDUPLICATION CHECK: Skip if semantic router already executed this tool
     // This prevents the race condition where:
     // 1. Semantic router executes tool (bypassLLM=true)
@@ -2401,6 +2553,44 @@ export function createSanitizerWithMusicFallback(
           jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
           executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
             .then(async (execResult) => {
+              // ========================================
+              // HANDOFF TOOLS: Special handling
+              // Handoffs are handled by the executor which emits voiceSwitch events.
+              // The greeting is spoken by the handoff handler, not here.
+              // ========================================
+              const isHandoffTool = jsonCall.fn.toLowerCase().startsWith('handoffto');
+              const handoffResult = execResult as { handoffComplete?: boolean; action?: string; error?: string } | null;
+              
+              if (isHandoffTool) {
+                if (handoffResult?.handoffComplete) {
+                  log.info(
+                    { fn: jsonCall.fn, target: (execResult as { target?: string })?.target },
+                    '🎭 Handoff complete - greeting spoken by handler, skipping sanitizer speech'
+                  );
+                  return; // Don't speak - handoff handler already spoke the greeting
+                }
+                
+                // Handoff failed - speak error message if available
+                if (!execResult?.success && handoffResult?.error) {
+                  log.warn(
+                    { fn: jsonCall.fn, error: handoffResult.error },
+                    '⚠️ Handoff failed - speaking error message'
+                  );
+                  if (session) {
+                    try {
+                      session.say(handoffResult.error, { allowInterruptions: true });
+                    } catch {
+                      /* ignore speech errors */
+                    }
+                  }
+                  return;
+                }
+                
+                // Handoff in progress or unknown state - don't interfere
+                log.debug({ fn: jsonCall.fn, execResult }, '🔄 Handoff result (no additional action needed)');
+                return;
+              }
+              
               if (execResult?.success && execResult.result) {
                 const resultText =
                   typeof execResult.result === 'string'
@@ -2499,6 +2689,8 @@ export function createSanitizerWithMusicFallback(
                       timeoutMs: isMusicTool ? 6000 : 5000,
                       // Fallback message if LLM response times out - keep it natural, not robotic
                       fallbackMessage: isMusicTool ? "Here's some music for you." : 'Got it!',
+                      // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
+                      sessionId,
                     });
                     log.info(
                       { fn: jsonCall.fn, isMusicTool },
@@ -2682,6 +2874,8 @@ export function createSanitizerWithMusicFallback(
                     timeoutMs: isMusicTool ? 6000 : 5000,
                     // Fallback message if LLM response times out - keep it natural, not robotic
                     fallbackMessage: isMusicTool ? "Here's some music for you." : 'Got it!',
+                    // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
+                    sessionId,
                   });
                   log.info(
                     { fn: jsonCall.fn, isMusicTool },
@@ -2735,16 +2929,22 @@ export function createSanitizerWithMusicFallback(
       }
 
       // Check if this looks like a continuation of JSON/markdown (contains fn, args, query patterns)
+      // 🐛 FIX: Original regex /^[a-zA-Z]*["']?[:,}\]{"'`]/ incorrectly matched contractions
+      // like "I'm", "What's", "I've" because the apostrophe was in the final char class.
+      // Now we only match actual JSON-like patterns (key": or key':)
       const looksLikeJsonContinuation =
-        /^[a-zA-Z]*["']?[:,}\]{"'`]/.test(trimmed) ||
+        /^[a-zA-Z]+["']\s*:/.test(trimmed) || // key": or key':
+        /^[:,}\]{"`:}]/.test(trimmed) || // starts with JSON punctuation
         trimmed.includes('"args"') ||
         trimmed.includes('"query"') ||
         trimmed.includes('"fn"') ||
         trimmed.includes('```') ||
         trimmed.includes('}}');
 
-      // Catch JSON/markdown continuation chunks
-      if (looksLikeJsonContinuation && buffer.length < 80) {
+      // Catch JSON/markdown continuation chunks - but not normal speech with contractions
+      const hasContraction = /\b(I'm|I've|I'll|I'd|you're|you've|you'll|we're|we've|they're|it's|that's|what's|there's|here's|let's|won't|can't|don't|doesn't|didn't|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't)\b/i.test(trimmed);
+      
+      if (looksLikeJsonContinuation && buffer.length < 80 && !hasContraction) {
         log.debug(
           { preview: buffer.slice(0, 40) },
           '🗑️ Suppressing JSON/markdown continuation chunk'
@@ -2853,6 +3053,8 @@ export function createSanitizerWithMusicFallback(
                       instructions,
                       allowInterruptions: true,
                       context: `last-chance-tool-${lastChanceJson.fn}`,
+                      // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
+                      sessionId,
                     });
                   } catch (speakErr) {
                     log.warn({ error: String(speakErr) }, 'Last-chance tool result speak failed');
@@ -2939,7 +3141,18 @@ export function createSanitizerWithMusicFallback(
       // 🎯 POST-LLM SEMANTIC ROUTING FALLBACK (Dec 2024)
       // If no JSON tool was executed during this stream, run semantic routing
       // on the accumulated text as a safety net for when Gemini forgets JSON format.
-      if (!jsonToolExecuted && accumulatedTextForSemanticFallback.trim().length > 10) {
+      // 
+      // ⚠️ DISABLED (Dec 25, 2024): This was routing LLM OUTPUT text (not user input),
+      // causing false tool executions when LLM says things like "the call is in progress".
+      // The fallback was triggering telephony_call, learning_explain etc on conversational text.
+      // 
+      // To re-enable, we need to:
+      // 1. Only route on actual user INTENT, not LLM response text
+      // 2. Add anti-patterns for conversational phrases like "call is", "is in progress"
+      // 3. Or use the accumulatedText from USER input, not LLM output
+      const ENABLE_POST_LLM_FALLBACK = false;
+      
+      if (ENABLE_POST_LLM_FALLBACK && !jsonToolExecuted && accumulatedTextForSemanticFallback.trim().length > 10) {
         const textToRoute = accumulatedTextForSemanticFallback.trim();
         log.info(
           { textLength: textToRoute.length, preview: textToRoute.slice(0, 100) },
@@ -2981,22 +3194,25 @@ export function createSanitizerWithMusicFallback(
 
               if (hasDomainMapping(topMatch.toolId)) {
                 const execResult = await executeDomainTool(topMatch.toolId, routingResult.extractedArgs || {}, {
-                  userId: toolContext?.userId,
-                  sessionId,
-                  personaId: toolContext?.personaId,
+                  userId: toolContext?.userId || 'unknown',
+                  sessionId: sessionId || 'unknown',
+                  personaId: toolContext?.personaId || 'ferni',
+                  conversationHistory: toolContext?.conversationHistory || [],
+                  services: toolContext?.services || undefined,
                 });
 
                 if (execResult.success) {
+                  const resultData = execResult.naturalResponse || execResult.data;
                   log.info(
-                    { toolId: topMatch.toolId, result: String(execResult.result).slice(0, 100) },
+                    { toolId: topMatch.toolId, result: String(resultData).slice(0, 100) },
                     '✅ POST-LLM SEMANTIC FALLBACK: Tool executed successfully'
                   );
 
                   // Speak the result if we have a session
-                  if (session?.generateReply && execResult.result) {
-                    const resultText = typeof execResult.result === 'string' 
-                      ? execResult.result 
-                      : JSON.stringify(execResult.result);
+                  if (session?.generateReply && resultData) {
+                    const resultText = typeof resultData === 'string'
+                      ? resultData
+                      : JSON.stringify(resultData);
                     
                     session.generateReply({
                       instructions: `I just executed ${topMatch.toolId} for the user. Briefly acknowledge: "${resultText.slice(0, 200)}"`,

@@ -11,55 +11,56 @@
 
 // Stub for @ferni/capacitor-purchases
 export const FerniPurchases = {
-  initialize: async () => ({ success: false, error: 'Not available on web' }),
-  getProducts: async (_options: { productIds: string[] }) => ({ products: [] }),
-  purchase: async (_options: { productId: string }) => ({ success: false, error: 'Not available on web' }),
-  restorePurchases: async () => ({ success: false, transactions: [] }),
-  getActiveSubscriptions: async () => ({ subscriptions: [] }),
+  initialize: () => Promise.resolve({ success: false, error: 'Not available on web' }),
+  getProducts: (_options: { productIds: string[] }) => Promise.resolve({ products: [] }),
+  purchase: (_options: { productId: string }) => Promise.resolve({ success: false, error: 'Not available on web' }),
+  restorePurchases: () => Promise.resolve({ success: false, transactions: [] }),
+  getActiveSubscriptions: () => Promise.resolve({ subscriptions: [] }),
 };
 
 // Stub for @capacitor/browser
 export const Browser = {
-  open: async (_options: { url: string }) => {
+  open: (_options: { url: string }) => {
     // On web, just open in new tab
     if (typeof window !== 'undefined') {
       window.open(_options.url, '_blank');
     }
+    return Promise.resolve();
   },
-  close: async () => {},
-  addListener: () => ({ remove: async () => {} }),
+  close: () => Promise.resolve(),
+  addListener: () => ({ remove: () => Promise.resolve() }),
 };
 
 // Stub for @capacitor/push-notifications
 export const PushNotifications = {
-  requestPermissions: async () => ({ receive: 'granted' as const }),
-  register: async () => {},
+  requestPermissions: () => Promise.resolve({ receive: 'granted' as const }),
+  register: () => Promise.resolve(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addListener: (_event: string, _callback: (data: any) => void) => ({ remove: async () => {} }),
-  removeAllListeners: async () => {},
-  getDeliveredNotifications: async () => ({ notifications: [] }),
-  removeDeliveredNotifications: async () => {},
-  removeAllDeliveredNotifications: async () => {},
-  createChannel: async () => {},
-  deleteChannel: async () => {},
-  listChannels: async () => ({ channels: [] }),
-  checkPermissions: async () => ({ receive: 'granted' as const }),
+  addListener: (_event: string, _callback: (data: any) => void) => ({ remove: () => Promise.resolve() }),
+  removeAllListeners: () => Promise.resolve(),
+  getDeliveredNotifications: () => Promise.resolve({ notifications: [] }),
+  removeDeliveredNotifications: () => Promise.resolve(),
+  removeAllDeliveredNotifications: () => Promise.resolve(),
+  createChannel: () => Promise.resolve(),
+  deleteChannel: () => Promise.resolve(),
+  listChannels: () => Promise.resolve({ channels: [] }),
+  checkPermissions: () => Promise.resolve({ receive: 'granted' as const }),
 };
 
 // Stub for @capacitor/local-notifications
 export const LocalNotifications = {
-  schedule: async (_options: unknown) => ({ notifications: [] }),
-  getPending: async () => ({ notifications: [] }),
-  cancel: async (_options: unknown) => {},
-  registerActionTypes: async () => {},
-  addListener: (_event: string, _callback: (data: unknown) => void) => ({ remove: async () => {} }),
-  removeAllListeners: async () => {},
-  areEnabled: async () => ({ value: false }),
-  requestPermissions: async () => ({ display: 'granted' as const }),
-  checkPermissions: async () => ({ display: 'granted' as const }),
-  createChannel: async () => {},
-  deleteChannel: async () => {},
-  listChannels: async () => ({ channels: [] }),
+  schedule: (_options: unknown) => Promise.resolve({ notifications: [] }),
+  getPending: () => Promise.resolve({ notifications: [] }),
+  cancel: (_options: unknown) => Promise.resolve(),
+  registerActionTypes: () => Promise.resolve(),
+  addListener: (_event: string, _callback: (data: unknown) => void) => ({ remove: () => Promise.resolve() }),
+  removeAllListeners: () => Promise.resolve(),
+  areEnabled: () => Promise.resolve({ value: false }),
+  requestPermissions: () => Promise.resolve({ display: 'granted' as const }),
+  checkPermissions: () => Promise.resolve({ display: 'granted' as const }),
+  createChannel: () => Promise.resolve(),
+  deleteChannel: () => Promise.resolve(),
+  listChannels: () => Promise.resolve({ channels: [] }),
 };
 
 // Stub for @capacitor/core
@@ -71,12 +72,12 @@ export const Capacitor = {
 
 // Stub for @capacitor/haptics
 export const Haptics = {
-  impact: async () => {},
-  notification: async () => {},
-  vibrate: async () => {},
-  selectionStart: async () => {},
-  selectionChanged: async () => {},
-  selectionEnd: async () => {},
+  impact: () => Promise.resolve(),
+  notification: () => Promise.resolve(),
+  vibrate: () => Promise.resolve(),
+  selectionStart: () => Promise.resolve(),
+  selectionChanged: () => Promise.resolve(),
+  selectionEnd: () => Promise.resolve(),
 };
 
 export default { FerniPurchases, Browser, PushNotifications, LocalNotifications, Capacitor, Haptics };

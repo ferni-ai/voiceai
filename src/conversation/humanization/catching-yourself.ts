@@ -17,6 +17,7 @@
  * @module @ferni/humanization/catching-yourself
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { HumanizationContext, HumanizationDecision, HumanizationInjection } from './types.js';
 
@@ -139,7 +140,7 @@ const CATCHING_YOURSELF_TRIGGERS: CatchingYourselfTrigger[] = [
       return (
         (context.relationshipStage === 'friend' ||
           context.relationshipStage === 'trusted_advisor') &&
-        Math.random() < 0.05
+        seededChance(`${Date.now()}:143`, 0.05)
       );
     },
     responses: [
@@ -351,7 +352,7 @@ export class CatchingYourselfEngine {
       }
 
       // Trigger fired! Choose response
-      const index = Math.floor(Math.random() * trigger.responses.length);
+      const index = seededIndex(`${Date.now()}:1`, trigger.responses.length);
       const response = trigger.responses[index];
       const ssml = trigger.ssmlResponses[index];
 
@@ -401,7 +402,7 @@ export class CatchingYourselfEngine {
     if (catching.placement === 'closing') {
       // Add a transition
       const transitions = [' ', ' ...', '—'];
-      const transition = transitions[Math.floor(Math.random() * transitions.length)];
+      const transition = seededPick(`${Date.now()}:405`, transitions) ?? transitions[0];
 
       return {
         text: `${response}${transition}${catching.content}`,

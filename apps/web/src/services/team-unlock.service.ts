@@ -207,7 +207,7 @@ let bypassMode: null | 'all' | TeamMemberId[] = null;
 /**
  * Track if we've synced with backend at least once
  */
-let hasSyncedWithBackend = false;
+let _hasSyncedWithBackend = false;
 
 // ============================================================================
 // PERSISTENCE HELPERS
@@ -323,7 +323,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
       subscriptionTier = data.tier;
     }
 
-    hasSyncedWithBackend = true;
+    _hasSyncedWithBackend = true;
 
     // Update local state if backend has different data
     void updateUnlockState();

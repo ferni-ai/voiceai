@@ -16,6 +16,7 @@
  * @module @ferni/hope-injection
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getContentWithFallback, type ContentContext } from '../services/llm-dynamic-content.js';
 import { createLogger } from '../utils/safe-logger.js';
 
@@ -480,7 +481,7 @@ export class HopeInjectionEngine {
       `What about ${anchor.content}? That sounded good when you mentioned it.`,
     ];
 
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:484`, templates) ?? templates[0];
   }
 
   /**
@@ -620,7 +621,7 @@ export class HopeInjectionEngine {
       }
       return {
         type,
-        phrase: generalPhrases[Math.floor(Math.random() * generalPhrases.length)],
+        phrase: seededPick(`${Date.now()}:624`, generalPhrases) ?? generalPhrases[0],
         placement: 'suffix',
         confidence: 0.5,
       };
@@ -628,7 +629,7 @@ export class HopeInjectionEngine {
 
     return {
       type,
-      phrase: phrases[Math.floor(Math.random() * phrases.length)],
+      phrase: seededPick(`${Date.now()}:632`, phrases) ?? phrases[0],
       placement: 'suffix',
       confidence: 0.7,
     };

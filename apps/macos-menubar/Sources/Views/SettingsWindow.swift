@@ -510,7 +510,8 @@ struct PersonaCard: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(persona.primaryColor.opacity(0.2)))
-                    .foregroundColor(persona.primaryColor)
+                    // Use textColorOnDark for WCAG AA contrast on dark backgrounds
+                    .foregroundColor(persona.textColorOnDark)
             } else {
                 Button("Set Default") {
                     onSetDefault()

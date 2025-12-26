@@ -104,7 +104,7 @@ export function closeGiftSeeds(): void {
   if (!isOpen || !modal) return;
 
   soundUI.play('click');
-  animateOut(modal).then(() => {
+  void animateOut(modal).then(() => {
     modal?.remove();
     modal = null;
     isOpen = false;
@@ -142,7 +142,7 @@ function createModal(): void {
   document.addEventListener('keydown', handleEscape);
 
   document.body.appendChild(modal);
-  animateIn(modal);
+  void animateIn(modal);
 }
 
 function renderModalContent(): void {
@@ -414,19 +414,29 @@ function injectStyles(): void {
     .gift-seeds-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--color-utility-backdrop);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .gift-seeds-content {
       position: relative;
-      background: var(--color-background-elevated, #faf8f5);
-      border-radius: var(--radius-2xl, 20px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .gift-seeds-content {
+        background: var(--color-background-elevated, #faf8f5);
+      }
     }
 
     .gift-seeds-close {

@@ -374,13 +374,17 @@ function injectStyles(): void {
     }
     
     .br-btn-secondary {
-      background: transparent;
-      border: 1px solid var(--color-border, rgba(0,0,0,0.2));
+      background: var(--tonal-surface-2);
+      border: none;
       color: var(--color-text-secondary, #70605a);
     }
-    
+
     .br-btn-secondary:hover {
-      background: var(--color-background-hover, #f5f1e8);
+      background: var(--tonal-surface-3);
+    }
+
+    .br-btn-secondary:active {
+      background: var(--tonal-surface-active);
     }
     
     .br-btn-primary {
@@ -525,7 +529,7 @@ function renderUpcomingDate(date: UpcomingDate): string {
   
   const typeLabel = date.dateType === 'birthday' ? 'Birthday' :
                     date.dateType === 'anniversary' ? 'Anniversary' :
-                    date.label || 'Special date';
+                    date.label ?? 'Special date';
   
   const countdownClass = date.daysUntil === 0 ? 'today' :
                          date.daysUntil <= 3 ? 'soon' : '';

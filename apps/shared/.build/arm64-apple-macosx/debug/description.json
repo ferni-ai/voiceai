@@ -72,6 +72,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift"
         },
         {
@@ -101,6 +113,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift"
         },
         {
           "kind" : "file",
@@ -150,6 +166,9 @@
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarPersonality.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniColors.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlassStyle.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/TonalStyle.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o",
@@ -158,6 +177,7 @@
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalPixarEyes.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarEyes.swift.o",
@@ -268,6 +288,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniColors.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlassStyle.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/TonalStyle.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/Color+Hex.swift.o"
         },
         {
@@ -297,6 +329,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalPixarEyes.swift.o"
         },
         {
           "kind" : "file",
@@ -340,6 +376,9 @@
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift",
@@ -348,6 +387,7 @@
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift",
@@ -486,6 +526,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/GlowHaloTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalPixarEyesTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift"
         },
         {
@@ -498,7 +546,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarEyesTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarVoiceOrbTests.swift"
         },
         {
           "kind" : "file",
@@ -530,10 +586,14 @@
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/GlowHaloTests.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalPixarEyesTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarEyesTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarVoiceOrbTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.swift.o",
         "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.swift.o"
       ],
@@ -615,6 +675,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/GlowHaloTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalPixarEyesTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swift.o"
         },
         {
@@ -627,7 +695,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarEyesTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarVoiceOrbTests.swift.o"
         },
         {
           "kind" : "file",
@@ -649,10 +725,14 @@
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/EmotionalSoundEngineTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniActivityAttributesTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniSharedTests.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/GlowHaloTests.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalPixarEyesTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/OnboardingJourneyViewTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PersonaTests.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarEyesTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift",
+        "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarVoiceOrbTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/RelationshipArcServiceTests.swift",
         "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/StageProgressViewTests.swift"
       ],
@@ -682,6 +762,9 @@
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift",
@@ -690,6 +773,7 @@
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift",
@@ -832,10 +916,14 @@
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/EmotionalSoundEngineTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniActivityAttributesTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniSharedTests.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/GlowHaloTests.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalPixarEyesTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/OnboardingJourneyViewTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PersonaTests.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarEyesTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift",
+      "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarVoiceOrbTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/RelationshipArcServiceTests.swift",
       "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/StageProgressViewTests.swift",
       "-I",
@@ -983,6 +1071,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift"
         },
         {
@@ -1012,6 +1112,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift"
         },
         {
           "kind" : "file",
@@ -1103,6 +1207,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniColors.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o"
         },
         {
@@ -1111,7 +1219,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlassStyle.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalPixarEyes.swift.o"
         },
         {
           "kind" : "file",
@@ -1155,6 +1271,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/TonalStyle.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.swift.o"
         },
         {
@@ -1187,6 +1307,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/GlowHaloTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalPixarEyesTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swift.o"
         },
         {
@@ -1199,7 +1327,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarEyesTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarVoiceOrbTests.swift.o"
         },
         {
           "kind" : "file",
@@ -1241,6 +1377,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/GlowHaloTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalPixarEyesTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift"
         },
         {
@@ -1253,7 +1397,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarEyesTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarVoiceOrbTests.swift"
         },
         {
           "kind" : "file",

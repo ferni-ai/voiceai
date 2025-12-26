@@ -47,19 +47,21 @@ export const LATENCY_TARGETS = {
  * Filler injection strategy
  *
  * UPDATED Dec 2024: More aggressive filler for conversational feel
+ * UPDATED Dec 25 2024: Further lowered thresholds for "Better than Human"
+ * Research: Human turn-taking gaps are 200-500ms, anything >1s feels slow
  */
 export const FILLER_STRATEGY = {
   /** Never inject filler below this latency */
-  MIN_LATENCY_FOR_FILLER: 1000, // Was 1500 - consider filler earlier
+  MIN_LATENCY_FOR_FILLER: 800, // Was 1000 - consider filler even earlier
 
   /** Always inject filler above this latency */
-  GUARANTEED_FILLER_LATENCY: 2000, // Was 3000 - always filler if this slow
+  GUARANTEED_FILLER_LATENCY: 1500, // Was 2000 - always filler if this slow
 
   /** Buffer time to add to average latency for filler timing */
-  FILLER_BUFFER_MS: 400, // Was 500 - tighter buffer
+  FILLER_BUFFER_MS: 300, // Was 400 - tighter buffer for faster response
 
   /** Minimum time between fillers */
-  FILLER_COOLDOWN_MS: 8000, // Was 10000 - allow slightly more frequent
+  FILLER_COOLDOWN_MS: 6000, // Was 8000 - allow more frequent (but not spammy)
 } as const;
 
 // ============================================================================

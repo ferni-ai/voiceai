@@ -28,6 +28,7 @@
  * @see unified-integration.ts for the new unified POST-LLM API
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled

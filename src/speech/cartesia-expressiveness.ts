@@ -14,7 +14,8 @@
  * speed, volume, and natural expressions that make them sound distinctly human.
  */
 
-import { getEmotionProfile, type PersonaEmotionProfile } from './voice-manager/config.js';
+// Import from standalone emotion-profiles to avoid circular deps
+import { getEmotionProfile, type PersonaEmotionProfile } from './emotion-profiles.js';
 
 // ============================================================================
 // EMOTION MAPPINGS

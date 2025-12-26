@@ -235,7 +235,7 @@ describe('Conversation Cost UI', () => {
     });
 
     it('should hide cost card when Support Ferni clicked', async () => {
-      const { showConversationCost, hide } = await import('../ui/conversation-cost.ui.js');
+      const { showConversationCost } = await import('../ui/conversation-cost.ui.js');
 
       await showConversationCost();
       vi.advanceTimersByTime(100);

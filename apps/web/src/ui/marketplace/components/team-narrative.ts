@@ -15,7 +15,7 @@ import {
   rosterPreferences,
   type TeamMemberId as RosterTeamMemberId,
 } from '../../../services/roster-preferences.service.js';
-import { getPersonaGradient, getPersonaGlow, ICONS } from '../constants.js';
+import { getPersonaGradient, getPersonaGlow } from '../constants.js';
 
 /**
  * Get avatar style for a persona using CSS variables

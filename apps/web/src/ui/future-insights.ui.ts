@@ -253,7 +253,7 @@ export function closeFutureInsights(): void {
   }
 
   soundUI.play('click');
-  animateOut(modal).then(() => {
+  void animateOut(modal).then(() => {
     modal?.remove();
     modal = null;
     isOpen = false;
@@ -354,7 +354,7 @@ function createModal(): void {
   setupEventListeners();
 
   document.body.appendChild(modal);
-  animateIn(modal);
+  void animateIn(modal);
 }
 
 function renderTimelineNode(horizon: TimeHorizon, index: number): string {

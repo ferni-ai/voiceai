@@ -28,32 +28,12 @@ const MAX_TOTAL_REQUESTS_PER_WINDOW = 500; // 500 total requests per minute
 // TYPES
 // ============================================================================
 
-// Core agent IDs - Multiple ID formats supported for flexibility
-// - Frontend IDs: jack-b, comm-specialist, spend-save, event-planner
-// - Canonical/Bundle IDs: ferni, alex-chen, maya-santos, jordan-taylor
-// - Short IDs: alex, maya, jordan
-export type AgentId =
-  // Jordan (Life Planning)
-  | 'jordan'
-  | 'jordan-taylor' // Canonical ID
-  | 'event-planner' // Frontend ID
-  // Maya (Financial Habits)
-  | 'maya'
-  | 'maya-santos' // Canonical ID
-  | 'spend-save' // Frontend ID
-  // Alex (Communication)
-  | 'alex'
-  | 'alex-chen' // Canonical ID
-  | 'comm-specialist' // Frontend ID
-  // Peter John (Research Coach)
-  | 'peter'
-  | 'peter-john' // Canonical ID
-  // Nayan (Lifetime Advisor/Sage)
-  | 'nayan'
-  | 'nayan-patel' // Canonical ID
-  // Ferni (Life Coach - coordinator)
-  | 'jack-b' // Frontend ID (legacy)
-  | 'ferni'; // Canonical ID
+// Re-export AgentId from types layer for backward compatibility
+// New code should import from '../types/agent-ids.js'
+export type { AgentId } from '../types/agent-ids.js';
+
+// Import for use within this module
+import type { AgentId } from '../types/agent-ids.js';
 
 export interface AgentMessage {
   id: string;

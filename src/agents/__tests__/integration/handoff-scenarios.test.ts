@@ -665,7 +665,7 @@ describe('Emotion Preservation Through TTS Cache', () => {
 
     // Simulate emotional analysis result setting currentEmotion
     const emotionalAnalysis = emotionalStates.anxious;
-    (userData as Record<string, unknown>).currentEmotion = emotionalAnalysis.primary;
+    (userData as unknown as Record<string, unknown>).currentEmotion = emotionalAnalysis.primary;
 
     expect(userData.currentEmotion).toBe('anxious');
 

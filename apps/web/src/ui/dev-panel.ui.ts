@@ -2437,7 +2437,7 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', () => {
       const morph = (btn as HTMLElement).dataset.morph;
       if (morph) {
-        triggerFerniMorph(morph);
+        void triggerFerniMorph(morph);
       }
     });
   });
@@ -3011,7 +3011,7 @@ function createPanel(): HTMLElement {
   container.querySelectorAll('[data-outreach]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const outreach = (btn as HTMLElement).dataset.outreach;
-      handleOutreachAction(outreach!);
+      void handleOutreachAction(outreach!);
     });
   });
 
@@ -3121,7 +3121,7 @@ function handleAction(action: string): void {
       updateWhitelistInput();
       break;
     case 'open-evalops':
-      openEvalOpsDashboard();
+      void openEvalOpsDashboard();
       break;
   }
 }
@@ -3392,7 +3392,7 @@ function handleFTUEAction(action: string): void {
 }
 
 function triggerLimitModal(): void {
-  import('./subscription.ui.js').then(({ showLimitReachedModal }) => {
+  void import('./subscription.ui.js').then(({ showLimitReachedModal }) => {
     showLimitReachedModal(
       "We've used up our time this month. I'd love to keep talking...",
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -3401,7 +3401,7 @@ function triggerLimitModal(): void {
 }
 
 function triggerUpgradeModal(): void {
-  import('./subscription.ui.js').then(({ showUpgradeModal }) => {
+  void import('./subscription.ui.js').then(({ showUpgradeModal }) => {
     showUpgradeModal("Let's go deeper together.");
   });
 }
@@ -4077,7 +4077,7 @@ function triggerMusicAction(action: string): void {
 
     case 'our-song':
       // ${ICONS.heart} Test "Our Song" - shared musical memory with heart indicator
-      testOurSong();
+      void testOurSong();
       break;
   }
 }
@@ -4477,8 +4477,8 @@ async function triggerWinterSolstice(): Promise<void> {
 
 function triggerWrapUp(sentiment: string): void {
   // Import dynamically to avoid circular deps
-  import('../state/app.state.js').then(({ setWrappingUp }) => {
-    import('../app/data-message-handlers.js').then(({ handleWrapUp }) => {
+  void import('../state/app.state.js').then(({ setWrappingUp }) => {
+    void import('../app/data-message-handlers.js').then(({ handleWrapUp }) => {
       if (sentiment === 'reset') {
         // Reset wrap-up state
         setWrappingUp(false);

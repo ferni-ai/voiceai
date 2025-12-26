@@ -1,0 +1,4 @@
+module GoogleUtilities_Environment {
+umbrella "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/Environment/Public"
+export *
+}

@@ -35,7 +35,6 @@ import {
   clearCache,
 } from './data.js';
 import {
-  renderLoading,
   renderSkeleton,
   renderError,
   renderContent,
@@ -164,7 +163,7 @@ function handleOnlineStatusChange(): void {
 
 function handleContentClick(e: Event): void {
   const target = e.target as HTMLElement;
-  const actionEl = target.closest('[data-action]') as HTMLElement | null;
+  const actionEl = target.closest('[data-action]');
   const action = actionEl?.getAttribute('data-action');
 
   if (action === 'retry') {
@@ -172,7 +171,7 @@ function handleContentClick(e: Event): void {
   } else if (action === 'load-more') {
     loadMoreTimeline();
   } else if (action === 'filter') {
-    const filter = actionEl?.dataset.filter as TrustJourneyState['timelineFilter'];
+    const filter = (actionEl as HTMLElement | null)?.dataset.filter as TrustJourneyState['timelineFilter'];
     if (filter) {
       setTimelineFilter(filter);
     }

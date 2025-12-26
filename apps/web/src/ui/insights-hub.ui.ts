@@ -19,6 +19,25 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet, getUserId } from '../utils/api.js';
+import {
+  createLifeSeasonsElement,
+  createConversationRiverElement,
+  createMirrorElement,
+  createEnergyFlowElement,
+  createGrowthRingsElement,
+  createValuesAlignmentElement,
+  createUnfinishedStoriesElement,
+  createRippleEffectsElement,
+  injectStorytellingVisualizationStyles,
+  type LifeSeasonsData,
+  type ConversationRiverData,
+  type MirrorData,
+  type EnergyFlowData,
+  type GrowthRingsData,
+  type ValuesAlignmentData,
+  type UnfinishedStoriesData,
+  type RippleEffectsData,
+} from './storytelling-visualizations.js';
 
 const log = createLogger('InsightsHub');
 
@@ -26,7 +45,7 @@ const log = createLogger('InsightsHub');
 // TYPES
 // ============================================================================
 
-type InsightTab = 'journey' | 'analytics' | 'predictions' | 'wellbeing' | 'team' | 'context';
+type InsightTab = 'journey' | 'analytics' | 'predictions' | 'wellbeing' | 'team' | 'context' | 'stories';
 
 interface InsightsHubCallbacks {
   onClose?: () => void;
@@ -136,6 +155,18 @@ interface TeamInsightsData {
   };
 }
 
+// Stories tab data - aggregates data for storytelling visualizations
+interface StoriesData {
+  lifeSeasons: LifeSeasonsData | null;
+  conversationRiver: ConversationRiverData | null;
+  mirror: MirrorData | null;
+  energyFlow: EnergyFlowData | null;
+  growthRings: GrowthRingsData | null;
+  valuesAlignment: ValuesAlignmentData | null;
+  unfinishedStories: UnfinishedStoriesData | null;
+  rippleEffects: RippleEffectsData | null;
+}
+
 // Tab data cache
 interface TabDataCache {
   journey?: JourneyData;
@@ -144,6 +175,7 @@ interface TabDataCache {
   wellbeing?: WellbeingData;
   team?: TeamInsightsData;
   context?: Record<string, unknown>;
+  stories?: StoriesData;
 }
 
 // ============================================================================
@@ -158,6 +190,8 @@ const ICONS = {
   wellbeing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
   context: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12-8.58 3.91a2 2 0 0 1-1.66 0L2.18 12"/><path d="m22 17-8.58 3.91a2 2 0 0 1-1.66 0L2.18 17"/></svg>',
+  // Stories icon - represents narrative/book for storytelling visualizations
+  stories: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>',
 };
 
 // ============================================================================
@@ -262,6 +296,7 @@ class InsightsHubUI {
       { id: 'wellbeing', icon: ICONS.wellbeing, label: 'Wellbeing' },
       { id: 'team', icon: ICONS.team, label: 'Team' },
       { id: 'context', icon: ICONS.context, label: 'World' },
+      { id: 'stories', icon: ICONS.stories, label: 'Stories' },
     ];
 
     return tabs
@@ -317,6 +352,9 @@ class InsightsHubUI {
           break;
         case 'context':
           await this.loadContextData();
+          break;
+        case 'stories':
+          await this.loadStoriesData();
           break;
       }
     } catch (err) {
@@ -379,6 +417,125 @@ class InsightsHubUI {
     }
   }
 
+  private async loadStoriesData(): Promise<void> {
+    // Stories data comes from aggregating other sources
+    // In a real implementation, this would call a dedicated API
+    // For now, we generate sample data to demonstrate the visualizations
+    const now = new Date();
+    const month = now.getMonth();
+
+    // Determine current season
+    let currentSeason: 'spring' | 'summer' | 'autumn' | 'winter';
+    if (month >= 2 && month <= 4) currentSeason = 'spring';
+    else if (month >= 5 && month <= 7) currentSeason = 'summer';
+    else if (month >= 8 && month <= 10) currentSeason = 'autumn';
+    else currentSeason = 'winter';
+
+    this.dataCache.stories = {
+      lifeSeasons: {
+        currentSeason,
+        seasonStrength: 0.75,
+        primaryEnergy: 'growth',
+        seasonInsight: currentSeason === 'winter'
+          ? 'This is a time for rest and reflection. Your energy has naturally turned inward.'
+          : currentSeason === 'spring'
+          ? 'New beginnings are emerging. Your energy is shifting toward growth and renewal.'
+          : currentSeason === 'summer'
+          ? 'Your energy is at its peak. This is a time for action and expansion.'
+          : 'A natural time for harvest and letting go. Integration is happening.',
+      },
+      conversationRiver: {
+        timeRange: 'month',
+        topics: [
+          { name: 'Work', mentions: 45, trend: 'rising', color: 'var(--persona-alex)' },
+          { name: 'Family', mentions: 32, trend: 'stable', color: 'var(--persona-ferni)' },
+          { name: 'Health', mentions: 28, trend: 'rising', color: 'var(--persona-maya)' },
+          { name: 'Goals', mentions: 22, trend: 'falling', color: 'var(--persona-jordan)' },
+          { name: 'Finances', mentions: 15, trend: 'stable', color: 'var(--persona-peter)' },
+        ],
+        dominantTheme: 'Work has been taking center stage, but Health is rising as a priority',
+      },
+      mirror: {
+        surfaceInsights: [
+          { text: 'You mentioned feeling tired 8 times this week', type: 'observation' },
+          { text: 'Most conversations happen between 9-11pm', type: 'pattern' },
+        ],
+        deeperInsights: [
+          { text: 'The tiredness seems connected to boundary-setting challenges at work', type: 'connection' },
+          { text: 'Late-night conversations suggest processing needs that aren\'t being met during the day', type: 'meaning' },
+        ],
+        reflectionPrompt: 'What would it look like to create space for yourself during daylight hours?',
+      },
+      energyFlow: {
+        sources: [
+          { name: 'Morning routine', energy: 25 },
+          { name: 'Deep work', energy: 35 },
+          { name: 'Exercise', energy: 20 },
+          { name: 'Social time', energy: 20 },
+        ],
+        drains: [
+          { name: 'Meetings', energy: 30 },
+          { name: 'Commute', energy: 20 },
+          { name: 'Email', energy: 25 },
+          { name: 'Decisions', energy: 25 },
+        ],
+        netEnergy: -5,
+        insight: 'Your energy balance is slightly negative. Consider protecting your morning routine more.',
+      },
+      growthRings: {
+        rings: [
+          { year: 2022, theme: 'Foundation', keyMoment: 'Started daily journaling', growth: 0.6 },
+          { year: 2023, theme: 'Discovery', keyMoment: 'Career transition', growth: 0.8 },
+          { year: 2024, theme: 'Integration', keyMoment: 'Work-life balance focus', growth: 0.7 },
+        ],
+        currentRingProgress: 0.95,
+        emergingTheme: 'Mastery',
+      },
+      valuesAlignment: {
+        values: [
+          { name: 'Family', stated: 95, lived: 75 },
+          { name: 'Health', stated: 85, lived: 60 },
+          { name: 'Growth', stated: 80, lived: 85 },
+          { name: 'Creativity', stated: 70, lived: 40 },
+          { name: 'Connection', stated: 90, lived: 70 },
+        ],
+        biggestGap: { value: 'Creativity', gap: 30 },
+        mostAligned: { value: 'Growth', alignment: 95 },
+      },
+      unfinishedStories: {
+        stories: [
+          { title: 'Learning Spanish', startedDaysAgo: 120, lastMentionedDaysAgo: 45, status: 'paused', emotion: 'wistful' },
+          { title: 'Starting a side project', startedDaysAgo: 90, lastMentionedDaysAgo: 30, status: 'active', emotion: 'excited' },
+          { title: 'Reconnecting with old friend', startedDaysAgo: 60, lastMentionedDaysAgo: 14, status: 'active', emotion: 'hopeful' },
+        ],
+        longestOpen: 'Learning Spanish',
+        readyToClose: 'The Spanish learning might need a decision: commit or release with intention.',
+      },
+      rippleEffects: {
+        actions: [
+          {
+            action: 'Started morning meditation',
+            ripples: [
+              'Better focus at work',
+              'Less reactive in conflicts',
+              'Sleeping better'
+            ],
+            magnitude: 'high'
+          },
+          {
+            action: 'Said no to extra project',
+            ripples: [
+              'More time with family',
+              'Finished book'
+            ],
+            magnitude: 'medium'
+          },
+        ],
+        strongestRipple: 'Morning meditation has created the most positive cascading effects',
+      },
+    };
+  }
+
   // ==========================================================================
   // CONTENT RENDERING
   // ==========================================================================
@@ -416,6 +573,10 @@ class InsightsHubUI {
         title: t('menu.items.lifeContext'),
         description: 'The full picture of your life. Work, relationships, health, and more.',
       },
+      stories: {
+        title: 'Your Story',
+        description: 'What you notice, what I notice. Transforming metrics into meaning.',
+      },
     };
 
     const content = descriptions[tab];
@@ -449,6 +610,8 @@ class InsightsHubUI {
         return this.renderTeamContent();
       case 'context':
         return this.renderContextContent();
+      case 'stories':
+        return this.renderStoriesContent();
       default:
         return this.renderEmptyState('No data available');
     }
@@ -657,7 +820,7 @@ class InsightsHubUI {
 
   private renderPredictionsContent(): string {
     const data = this.dataCache.predictions;
-    if (!data || !data.insights?.length) {
+    if (!data?.insights?.length) {
       return this.renderEmptyState('As I get to know you better, I\'ll share predictions here');
     }
 
@@ -768,7 +931,7 @@ class InsightsHubUI {
 
   private renderTeamContent(): string {
     const data = this.dataCache.team;
-    if (!data || !data.insights?.length) {
+    if (!data?.insights?.length) {
       return this.renderEmptyState('The team is still getting to know you. Check back soon!');
     }
 
@@ -828,9 +991,9 @@ class InsightsHubUI {
     const sections: string[] = [];
 
     if (typeof data === 'object') {
-      const profile = data as Record<string, unknown>;
-      
-      if (profile.totalRitualDays) {
+      const profile = data;
+
+      if (typeof profile.totalRitualDays === 'number') {
         sections.push(`
           <div class="insights-card">
             <div class="insights-card__content">
@@ -871,6 +1034,118 @@ class InsightsHubUI {
         </div>
       </div>
     `;
+  }
+
+  private renderStoriesContent(): string {
+    const data = this.dataCache.stories;
+    if (!data) {
+      return this.renderEmptyState('Keep talking with me. Your story will unfold here.');
+    }
+
+    // Inject storytelling visualization styles
+    injectStorytellingVisualizationStyles();
+
+    // Create the container with a placeholder for DOM-based visualizations
+    const html = `
+      <div class="insights-hub-panel insights-hub-panel--stories" data-panel="stories">
+        <div class="insights-hub-panel-header">
+          <h3>Your Story</h3>
+          <p>What you notice, what I notice. Transforming metrics into meaning.</p>
+        </div>
+        <div class="insights-hub-panel-body insights-hub-stories-body">
+          <div class="stories-section stories-section--two-pattern">
+            <div class="stories-section__header">
+              <span class="stories-section__eyebrow">THE TWO-PATTERN</span>
+              <h4>Surface / Deeper</h4>
+            </div>
+            <p class="stories-section__intro">Every insight has two layers. What the data shows, and what it means.</p>
+          </div>
+          <div id="stories-visualizations-container"></div>
+        </div>
+      </div>
+    `;
+
+    // After the HTML is rendered, populate with DOM elements
+    setTimeout(() => this.populateStoriesVisualizations(), 0);
+
+    return html;
+  }
+
+  private populateStoriesVisualizations(): void {
+    const container = this.container?.querySelector('#stories-visualizations-container');
+    if (!container || !this.dataCache.stories) return;
+
+    const data = this.dataCache.stories;
+
+    // Create visualization sections
+    const sections: HTMLElement[] = [];
+
+    // 1. Life Seasons
+    if (data.lifeSeasons) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createLifeSeasonsElement(data.lifeSeasons));
+      sections.push(section);
+    }
+
+    // 2. Conversation River
+    if (data.conversationRiver) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createConversationRiverElement(data.conversationRiver));
+      sections.push(section);
+    }
+
+    // 3. The Mirror
+    if (data.mirror) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createMirrorElement(data.mirror));
+      sections.push(section);
+    }
+
+    // 4. Energy Flow
+    if (data.energyFlow) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createEnergyFlowElement(data.energyFlow));
+      sections.push(section);
+    }
+
+    // 5. Growth Rings
+    if (data.growthRings) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createGrowthRingsElement(data.growthRings));
+      sections.push(section);
+    }
+
+    // 6. Values Alignment
+    if (data.valuesAlignment) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createValuesAlignmentElement(data.valuesAlignment));
+      sections.push(section);
+    }
+
+    // 7. Unfinished Stories
+    if (data.unfinishedStories) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createUnfinishedStoriesElement(data.unfinishedStories));
+      sections.push(section);
+    }
+
+    // 8. Ripple Effects
+    if (data.rippleEffects) {
+      const section = document.createElement('div');
+      section.className = 'stories-viz-section';
+      section.appendChild(createRippleEffectsElement(data.rippleEffects));
+      sections.push(section);
+    }
+
+    // Append all sections
+    sections.forEach(section => container.appendChild(section));
   }
 
   private renderEmptyState(message: string): string {
@@ -1661,6 +1936,87 @@ const styles = `
   margin-bottom: var(--space-2, 8px);
   font-size: 0.9rem;
   color: var(--color-text-secondary, #5c544a);
+}
+
+/* Stories tab */
+.insights-hub-panel--stories .insights-hub-stories-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 24px);
+}
+
+.stories-section {
+  margin-bottom: var(--space-4, 16px);
+}
+
+.stories-section--two-pattern {
+  text-align: center;
+  padding: var(--space-4, 16px);
+  background: linear-gradient(135deg,
+    var(--color-background-secondary, rgba(44, 37, 32, 0.02)),
+    var(--color-background-tertiary, rgba(44, 37, 32, 0.04))
+  );
+  border-radius: var(--radius-xl, 16px);
+}
+
+.stories-section__header {
+  margin-bottom: var(--space-2, 8px);
+}
+
+.stories-section__eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-accent, #3D5A45);
+  display: block;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.stories-section__header h4 {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2C2520);
+  margin: 0;
+}
+
+.stories-section__intro {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9a8f85);
+  line-height: 1.5;
+  margin: 0;
+}
+
+#stories-visualizations-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.stories-viz-section {
+  animation: stories-fade-in 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+.stories-viz-section:nth-child(1) { animation-delay: 0.05s; }
+.stories-viz-section:nth-child(2) { animation-delay: 0.1s; }
+.stories-viz-section:nth-child(3) { animation-delay: 0.15s; }
+.stories-viz-section:nth-child(4) { animation-delay: 0.2s; }
+.stories-viz-section:nth-child(5) { animation-delay: 0.25s; }
+.stories-viz-section:nth-child(6) { animation-delay: 0.3s; }
+.stories-viz-section:nth-child(7) { animation-delay: 0.35s; }
+.stories-viz-section:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes stories-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Mobile adjustments */

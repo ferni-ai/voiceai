@@ -23,7 +23,7 @@ import { ferniExpressions } from './ferni-expressions.ui.js';
 const log = createLogger('PersonaMagic');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -89,7 +89,7 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
   
   isTransitioning = true;
   
-  const { fromId, toId, banter, playSound = true } = options;
+  const { fromId, toId, banter: _banter, playSound = true } = options;
   const reducedMotion = prefersReducedMotion();
   
   log.info('Handoff:', { from: fromId, to: toId });
@@ -183,16 +183,16 @@ async function playHandoffSound(personaId: string): Promise<void> {
 /**
  * Brief celebration (for milestones)
  */
-export async function celebrationBurst(): Promise<void> {
+export async function celebrationBurst(_persona?: unknown): Promise<void> {
   // Trigger delighted expression with sparkle
   ferniExpressions.delight();
   ferniExpressions.warmthSparkle();
-  
+
   if (prefersReducedMotion()) return;
-  
+
   const avatar = document.querySelector('#coachAvatar, .avatar-container') as HTMLElement;
   if (!avatar) return;
-  
+
   await animate(avatar, [
     { transform: 'scale(1)' },
     { transform: 'scale(1.06)', offset: 0.3 },

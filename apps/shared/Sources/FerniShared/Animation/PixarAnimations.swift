@@ -139,17 +139,31 @@ public enum EmotionHint: String, Equatable {
     case encouraging
     case calm
 
+    // Extended emotions for richer expression
+    case connected      // Deep connection moment
+    case celebrating    // Achievement/milestone
+    case listening      // Active listening
+    case greeting       // Hello/welcome back
+    case energized      // Motivated, ready to go
+    case peaceful       // Calm, zen moment
+    case remembering    // Recognizing/recalling
+    case vibing         // Enjoying music/moment
+
     /// Lamp animation to trigger for this emotion
     public var lampAnimation: LampAnimation {
         switch self {
         case .neutral: return .none
         case .happy: return .bounce
-        case .excited: return .multiBounce
+        case .excited, .celebrating: return .multiBounce
         case .curious: return .tiltRight
         case .thinking: return .tiltLeft
-        case .empathetic: return .nod
-        case .encouraging: return .perkUp
-        case .calm: return .none
+        case .empathetic, .connected: return .nod
+        case .encouraging, .energized: return .perkUp
+        case .calm, .peaceful: return .none
+        case .listening: return .none
+        case .greeting: return .bounce
+        case .remembering: return .nod
+        case .vibing: return .bounce
         }
     }
 
@@ -158,12 +172,38 @@ public enum EmotionHint: String, Equatable {
         switch self {
         case .neutral: return .none
         case .happy: return .warmthBloom
-        case .excited: return .memorySpark
+        case .excited, .celebrating: return .memorySpark
         case .curious: return .shimmerIntensify
         case .thinking: return .none
-        case .empathetic: return .warmthGlow
-        case .encouraging: return .warmthBloom
-        case .calm: return .none
+        case .empathetic, .connected: return .warmthGlow
+        case .encouraging, .energized: return .warmthBloom
+        case .calm, .peaceful: return .none
+        case .listening: return .none
+        case .greeting: return .warmthBloom
+        case .remembering: return .memorySpark
+        case .vibing: return .shimmerIntensify
+        }
+    }
+
+    /// Symbolic expression to show for this emotion
+    public var symbolicExpression: SymbolicExpression {
+        switch self {
+        case .neutral: return .none
+        case .happy: return .sparkle
+        case .excited: return .star
+        case .curious: return .curious
+        case .thinking: return .thinking
+        case .empathetic: return .heart
+        case .encouraging: return .bolt
+        case .calm: return .peace
+        case .connected: return .heart
+        case .celebrating: return .confetti
+        case .listening: return .listening
+        case .greeting: return .wave
+        case .energized: return .flame
+        case .peaceful: return .moon
+        case .remembering: return .heartSpark
+        case .vibing: return .music
         }
     }
 }

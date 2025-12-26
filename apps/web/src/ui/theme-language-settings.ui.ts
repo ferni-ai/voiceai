@@ -11,7 +11,7 @@
  * - Accessible keyboard navigation
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { t, getLocale, setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '../i18n/index.js';
 import { getTheme, setTheme, THEMES, type ThemeName } from '../theme/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -69,7 +69,7 @@ function injectStyles(): void {
     .theme-language-settings__backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-blur, rgba(44, 37, 32, 0.4));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
     }
@@ -81,11 +81,23 @@ function injectStyles(): void {
       max-width: 480px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--color-background-elevated, #fffdfb);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.95) translateY(10px);
       transition: transform var(--duration-normal, 200ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+    }
+
+    
+    @supports not (backdrop-filter: blur(24px)) {
+      .theme-language-settings__panel {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
     }
 
     .theme-language-settings--visible .theme-language-settings__panel {
@@ -513,13 +525,15 @@ function bindEvents(): void {
 
   // Language selection
   container.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const locale = (btn as HTMLElement).dataset.locale as SupportedLocale;
-      if (locale) {
-        log.info(`Language changing to ${locale}`);
-        // This will reload the page
-        await setLocale(locale);
-      }
+    btn.addEventListener('click', () => {
+      void (async () => {
+        const locale = (btn as HTMLElement).dataset.locale as SupportedLocale;
+        if (locale) {
+          log.info(`Language changing to ${locale}`);
+          // This will reload the page
+          await setLocale(locale);
+        }
+      })();
     });
   });
 

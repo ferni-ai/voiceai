@@ -29,7 +29,7 @@ import {
   scheduleCall,
   getUserContactInfo,
   setUserContactInfo,
-} from '../tools/proactive-outreach.js';
+} from './outreach/user-contact.js';
 import { AgentRole } from '../personas/index.js';
 
 // ============================================================================
@@ -401,7 +401,8 @@ export function getOutreachMemoryStats(): {
 // ============================================================================
 
 const DEFAULT_PREFERENCES: UserOutreachPreferences = {
-  enabled: true,
+  // OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
+  enabled: false,
   preferredMethod: 'sms',
   preferredTimes: {
     morning: true,
@@ -945,7 +946,7 @@ export async function executeOutreach(
   }
 
   // Execute immediately (using the proactive outreach functions)
-  const { textUser, emailUser, callUser } = await import('../tools/proactive-outreach.js');
+  const { textUser, emailUser, callUser } = await import('../tools/domains/proactive/outreach/index.js');
 
   let result;
   switch (method) {

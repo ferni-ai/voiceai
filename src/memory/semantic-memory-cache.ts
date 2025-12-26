@@ -145,7 +145,10 @@ export async function findSimilarCached<T>(
   try {
     queryEmbedding = await embed(query);
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to generate query embedding for cache lookup');
+    log.warn(
+      { error: String(error), userId },
+      'Failed to generate query embedding for cache lookup'
+    );
     stats.misses++;
     return { hit: false };
   }
@@ -350,10 +353,7 @@ export function clearAllSemanticCaches(): void {
  * Invalidate cache entries matching a pattern
  * Use when memory is updated and cached queries may be stale
  */
-export function invalidateSemanticCache(
-  userId: string,
-  pattern?: string | RegExp
-): number {
+export function invalidateSemanticCache(userId: string, pattern?: string | RegExp): number {
   const userCache = userCaches.get(userId);
   if (!userCache) return 0;
 

@@ -17,7 +17,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet, getApiHeaders } from '../utils/api.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('ConversationCostUI');
 
@@ -214,7 +214,7 @@ const ICON_HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="1
 /**
  * Get a friendly label for tip tier (plant a seed metaphor) with Lucide icons
  */
-function getTipLabel(tier: 'small' | 'medium' | 'large'): string {
+function _getTipLabel(tier: 'small' | 'medium' | 'large'): string {
   if (tier === 'small') return `${ICON_SPROUT} Seedling`;
   if (tier === 'medium') return `${ICON_FLOWER} Sapling`;
   return `${ICON_TREE} Tree`;

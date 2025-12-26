@@ -16,7 +16,6 @@
  * - APPEAL: Curious, engaged expression
  */
 
-import { t } from '../i18n/index.js';
 import { normalizeAgentId } from '../config/personas.js';
 import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
@@ -25,7 +24,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('ThinkingUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE

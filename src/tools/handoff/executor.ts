@@ -286,6 +286,19 @@ export async function executeHandoff(
   reason: string,
   options: ExecuteHandoffOptions = {}
 ): Promise<HandoffResult> {
+  const executionStart = Date.now();
+  getLogger().info(
+    {
+      targetAgentId,
+      reason,
+      sessionId: options.sessionId,
+      hasUserProfile: !!options.userProfile,
+      subscriptionTier: options.subscriptionTier,
+      recentMessageCount: options.recentMessages?.length || 0,
+    },
+    '🔧 [TOOL] executeHandoff() ENTRY'
+  );
+
   // FIX: Use session-scoped state when sessionId is provided to prevent
   // concurrent session interference. Fall back to global state for backwards compatibility.
   const { sessionId } = options;
@@ -469,6 +482,7 @@ export async function executeHandoff(
     previousAgentId: previousAgent,
   });
 
+  const emitTime = Date.now();
   getLogger().info(
     {
       targetId: canonicalTargetId,
@@ -476,8 +490,9 @@ export async function executeHandoff(
       personaId: eventData.persona?.id,
       previousAgentId: eventData.previousAgentId,
       listenerCount: handoffEvents.listenerCount('voiceSwitch'),
+      elapsedSinceEntry: emitTime - executionStart,
     },
-    '📡 Emitting voiceSwitch event'
+    '📡 [TOOL] Emitting voiceSwitch event - waiting for handler...'
   );
 
   // FIX: Wait for handler to complete before returning to LLM
@@ -608,6 +623,21 @@ export async function executeHandoff(
   // 1. The handoff state WAS updated (currentAgent changed)
   // 2. The voiceSwitch event WAS emitted
   // The handler result indicates whether greeting/instructions were applied
+  const totalDurationMs = Date.now() - executionStart;
+  getLogger().info(
+    {
+      targetId: canonicalTargetId,
+      from: previousAgent,
+      to: targetAgentName,
+      success: true,
+      greetingSpoken: handlerResult.greetingSpoken,
+      instructionsUpdated: handlerResult.instructionsUpdated,
+      handlerError: handlerResult.error,
+      totalDurationMs,
+    },
+    '🔧 [TOOL] executeHandoff() EXIT - returning to LLM'
+  );
+
   return {
     success: true,
     targetAgent: canonicalTargetId,

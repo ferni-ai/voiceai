@@ -157,7 +157,7 @@ export async function getBillingPortalUrl(
   userId: string,
   returnUrl: string = window.location.href
 ): Promise<string | null> {
-  const result = await openBillingPortal(userId, {
+  await openBillingPortal(userId, {
     returnUrl,
     openInNewTab: false,
     showErrorToast: false,

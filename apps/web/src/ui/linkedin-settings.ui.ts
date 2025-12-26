@@ -14,7 +14,6 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { toast } from './toast.ui.js';
 import { t } from '../i18n/index.js';
 import {
   getLinkedInStatus,

@@ -11,7 +11,7 @@
  * PERSISTENCE: Calendar events and reminder logs are persisted to Firestore.
  */
 
-import { canReachUser, scheduleText } from '../../tools/proactive-outreach.js';
+import { canReachUser, scheduleText } from '../../tools/domains/proactive/outreach/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { canSendOutreach, getPreferences } from '../outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';

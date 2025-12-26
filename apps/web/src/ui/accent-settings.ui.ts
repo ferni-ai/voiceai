@@ -21,7 +21,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 const log = createLogger('AccentSettingsUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -181,8 +181,9 @@ function injectStyles(): void {
     .accent-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .accent-settings-modal {
@@ -191,11 +192,21 @@ function injectStyles(): void {
       max-width: clamp(294px, 90vw, 420px);
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      /* Glass modal styling */
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .accent-settings-modal {
+        background: var(--color-background-elevated, #FFFDFB);
+      }
     }
 
     .accent-settings-overlay.open .accent-settings-modal {
@@ -627,7 +638,7 @@ function render(): void {
               ? `
             <div class="accent-detected-badge">
               ${ICONS.sparkle}
-              <span>We detected you might prefer ${ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.label || 'American English'}</span>
+              <span>We detected you might prefer ${ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.label ?? 'American English'}</span>
             </div>
           `
               : ''
@@ -716,7 +727,7 @@ function bindEvents(): void {
 
   // Save button
   const saveBtn = modalContainer.querySelector('.accent-save-btn');
-  saveBtn?.addEventListener('click', savePreference);
+  saveBtn?.addEventListener('click', () => { void savePreference(); });
 
   // Escape key
   document.addEventListener('keydown', handleKeyDown);
@@ -740,8 +751,8 @@ async function loadCurrentPreference(): Promise<void> {
     const response = await apiGet<{ accent?: EnglishAccent; autoDetected?: boolean }>('/api/user/accent');
 
     if (response.ok && response.data) {
-      state.currentAccent = response.data.accent || 'american';
-      state.detectedAccent = response.data.accent || 'american';
+      state.currentAccent = response.data.accent ?? 'american';
+      state.detectedAccent = response.data.accent ?? 'american';
       state.autoDetected = response.data.autoDetected ?? true;
       log.debug('Loaded accent preference:', response.data);
     }
@@ -768,7 +779,7 @@ async function savePreference(): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(response.data?.error || response.error || 'Failed to save preference');
+      throw new Error(response.data?.error ?? response.error ?? 'Failed to save preference');
     }
 
     log.info('Accent preference saved:', state.currentAccent);

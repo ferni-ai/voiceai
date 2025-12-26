@@ -35,9 +35,9 @@ const STYLES = `
   .mentor-teachings-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
 
   .mentor-teachings-modal {
@@ -45,21 +45,30 @@ const STYLES = `
     width: 100%;
     max-width: clamp(420px, 90vw, 600px);
     max-height: 85vh;
-    background: var(--color-background-elevated);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-2xl);
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transform: scale(0.95);
     opacity: 0;
-    transition: transform ${DURATION.SLOW}ms ${EASING.SPRING}, 
+    transition: transform ${DURATION.SLOW}ms ${EASING.SPRING},
                 opacity ${DURATION.SLOW}ms ${EASING.GENTLE};
   }
 
   .mentor-teachings-modal.visible {
     transform: scale(1);
     opacity: 1;
+  }
+
+  @supports not (backdrop-filter: blur(24px)) {
+    .mentor-teachings-modal {
+      background: var(--color-background-elevated, #faf6f0);
+    }
   }
 
   .mentor-teachings-header {
@@ -349,7 +358,7 @@ const STYLES = `
 function render(): string {
   if (!currentAgent) return '';
 
-  const principles = (currentAgent.personality?.values || []) as string[];
+  const principles = (currentAgent.personality?.values || []);
   const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
   const personality = currentAgent.personality as unknown as Record<string, unknown>;
   const teachingStyle = (personality?.communicationStyle || {}) as Record<string, unknown>;
@@ -588,10 +597,10 @@ function attachListeners(): void {
   document.addEventListener('keydown', escHandler);
 
   // Add principle button
-  teachingsModal.querySelector('[data-action="add-principle"]')?.addEventListener('click', handleAddPrinciple);
+  teachingsModal.querySelector('[data-action="add-principle"]')?.addEventListener('click', () => { void handleAddPrinciple(); });
 
   // Add quote button
-  teachingsModal.querySelector('[data-action="add-quote"]')?.addEventListener('click', handleAddQuote);
+  teachingsModal.querySelector('[data-action="add-quote"]')?.addEventListener('click', () => { void handleAddQuote(); });
 
   // Edit/Delete principle buttons
   teachingsModal.querySelectorAll('[data-action="edit-principle"]').forEach(btn => {
@@ -631,7 +640,7 @@ async function handleAddPrinciple(): Promise<void> {
   if (!principle || !currentAgent) return;
 
   try {
-    const currentPrinciples = (currentAgent.personality?.values || []) as string[];
+    const currentPrinciples = (currentAgent.personality?.values || []);
     const updates = {
       personality: {
         ...currentAgent.personality,
@@ -682,7 +691,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
   const { toast } = await import('./toast.ui.js');
   if (!currentAgent) return;
 
-  const principles = (currentAgent.personality?.values || []) as string[];
+  const principles = (currentAgent.personality?.values || []);
   const item = principles[index];
   if (!item) return;
 
@@ -711,7 +720,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
   if (!confirm('Delete this principle?')) return;
 
   try {
-    const principles = (currentAgent.personality?.values || []) as string[];
+    const principles = (currentAgent.personality?.values || []);
     const updatedPrinciples = principles.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {

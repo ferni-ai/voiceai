@@ -10,6 +10,7 @@
  * @module @ferni/superhuman/meta-relationship
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanContentSync, getMetaRelationshipPhrase } from './content-loader.js';
 import type {
@@ -217,7 +218,7 @@ export class MetaRelationshipEngine {
     const content = getBetterThanHumanContentSync(this.personaId);
 
     // Check for trust observation (after vulnerability)
-    if (context.wasVulnerable && this.sessionCount > 5 && Math.random() < 0.15) {
+    if (context.wasVulnerable && this.sessionCount > 5 && seededChance(`${Date.now()}:221`, 0.15)) {
       this.lastMetaCommentTurn = context.turnCount;
       const phrase =
         getMetaRelationshipPhrase(content, 'trust_observation') ||
@@ -233,7 +234,7 @@ export class MetaRelationshipEngine {
     if (
       this.sessionCount > 15 &&
       this.currentStage !== 'new_acquaintance' &&
-      Math.random() < 0.05
+      seededChance(`${Date.now()}:237`, 0.05)
     ) {
       this.lastMetaCommentTurn = context.turnCount;
       const phrase =
@@ -247,7 +248,7 @@ export class MetaRelationshipEngine {
     }
 
     // Relationship naming (deep relationships only)
-    if (this.currentStage === 'old_friend' && Math.random() < 0.03) {
+    if (this.currentStage === 'old_friend' && seededChance(`${Date.now()}:251`, 0.03)) {
       this.lastMetaCommentTurn = context.turnCount;
       const phrase =
         getMetaRelationshipPhrase(content, 'connection') ||
@@ -310,7 +311,7 @@ export class MetaRelationshipEngine {
   }
 
   private selectRandom<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return seededPick(`${Date.now()}:314`, arr) ?? arr[0];
   }
 
   // ==========================================================================
@@ -399,7 +400,7 @@ export class SomaticPresenceEngine {
 
     // Check probability
     const probability = this.getProbability(cueType, context);
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return { shouldEmit: false };
     }
 
@@ -441,7 +442,7 @@ export class SomaticPresenceEngine {
     }
 
     // Interesting content → focus
-    if (context.turnCount > 3 && Math.random() < 0.3) {
+    if (context.turnCount > 3 && seededChance(`${Date.now()}:445`, 0.3)) {
       return 'focus';
     }
 
@@ -490,7 +491,7 @@ export class SomaticPresenceEngine {
   }
 
   private selectRandom<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return seededPick(`${Date.now()}:494`, arr) ?? arr[0];
   }
 
   /**

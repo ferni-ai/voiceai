@@ -16,6 +16,7 @@
  * @module @ferni/superhuman/anticipatory-presence
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   AnticipationResult,
@@ -252,7 +253,7 @@ export class AnticipatoryPresenceEngine {
     if (context.turnCount < 3 || context.sessionCount < 5) return null;
 
     // 10% chance
-    if (Math.random() > 0.1) return null;
+    if (!seededChance(`${Date.now()}:1`, 0.1)) return null;
 
     // Check if we have topic associations
     if (context.currentTopic) {
@@ -272,7 +273,7 @@ export class AnticipatoryPresenceEngine {
       'I had a thought about you today.',
     ];
 
-    return generic[Math.floor(Math.random() * generic.length)];
+    return seededPick(`${Date.now()}:276`, generic) ?? generic[0];
   }
 
   // ==========================================================================
@@ -489,7 +490,7 @@ export class AnticipatoryPresenceEngine {
   }
 
   private selectPhrase(phrases: string[]): string {
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:493`, phrases) ?? phrases[0];
   }
 
   // ==========================================================================

@@ -121,7 +121,7 @@ describe('Support Ferni UI', () => {
     });
 
     it('should close on backdrop click', async () => {
-      const { openSupportFerni, closeSupportFerni } = await import('../ui/support-ferni.ui.js');
+      const { openSupportFerni } = await import('../ui/support-ferni.ui.js');
 
       await openSupportFerni();
       const backdrop = document.querySelector('.support-ferni-backdrop');
@@ -381,7 +381,7 @@ describe('Support Ferni UI', () => {
 
       await openSupportFerni();
 
-      const manageSection = document.querySelector('.support-ferni-manage');
+      const _manageSection = document.querySelector('.support-ferni-manage');
       // Note: This test may need adjustment based on actual rendering
     });
 
@@ -397,7 +397,7 @@ describe('Support Ferni UI', () => {
       await openSupportFerni();
 
       // Should have billing button
-      const billingBtn = findBillingButton();
+      const _billingBtn = findBillingButton();
       // Note: Visibility depends on tier
     });
   });
@@ -460,7 +460,7 @@ describe('Support Ferni UI', () => {
       // Wait for animation and focus
       await new Promise((r) => setTimeout(r, 100));
 
-      const closeBtn = findCloseButton();
+      const _closeBtn = findCloseButton();
       // Focus might be set - this depends on implementation
     });
   });
@@ -511,9 +511,10 @@ describe('Support Ferni UI', () => {
     });
 
     it('should not duplicate styles on multiple opens', async () => {
-      const { openSupportFerni, closeSupportFerni } = await import('../ui/support-ferni.ui.js');
+      const { openSupportFerni } = await import('../ui/support-ferni.ui.js');
 
       await openSupportFerni();
+      const { closeSupportFerni } = await import('../ui/support-ferni.ui.js');
       closeSupportFerni();
 
       await new Promise((r) => setTimeout(r, 350));

@@ -14,7 +14,7 @@
  * @module loading-orchestrator.service
  */
 
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants';
+import { DURATION, EASING } from '../config/animation-constants';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('LoadingOrchestrator');

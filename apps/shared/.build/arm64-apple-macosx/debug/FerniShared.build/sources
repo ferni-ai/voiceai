@@ -9,6 +9,9 @@
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift
+/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift
+/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift
+/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift
@@ -17,6 +20,7 @@
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift
+/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift
 /Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift

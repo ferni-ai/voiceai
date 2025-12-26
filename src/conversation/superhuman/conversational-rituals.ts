@@ -14,6 +14,7 @@
  * @module @ferni/superhuman/conversational-rituals
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'ConversationalRituals' });
@@ -255,7 +256,7 @@ function initializePotentialRituals(): Ritual[] {
     for (const template of templates) {
       potentials.push({
         ...template,
-        id: `ritual_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: `ritual_${Date.now()}_${Date.now().toString(36).slice(-7)}`,
         performedCount: 0,
         lastPerformed: null,
       });
@@ -372,7 +373,7 @@ export function suggestRitual(
   const potentialMatches = state.potentialRituals.filter((r) => r.type === targetType);
   if (potentialMatches.length > 0) {
     // Pick random one to test
-    const ritual = potentialMatches[Math.floor(Math.random() * potentialMatches.length)];
+    const ritual = seededPick(`${Date.now()}:376`, potentialMatches) ?? potentialMatches[0];
     return {
       ritual,
       prompt: generateRitualPrompt(ritual, false),
@@ -391,14 +392,14 @@ function generateRitualPrompt(ritual: Ritual, isEstablished: boolean): string {
       `Time for ${ritual.name.toLowerCase()}?`,
       `Let's do our thing: ${ritual.ferniPart}`,
     ];
-    return establishedIntros[Math.floor(Math.random() * establishedIntros.length)];
+    return seededPick(`${Date.now()}:395`, establishedIntros) ?? establishedIntros[0];
   } else {
     const newIntros = [
       `Want to try something? ${ritual.ferniPart}`,
       `Here's an idea: ${ritual.ferniPart}`,
       ritual.ferniPart,
     ];
-    return newIntros[Math.floor(Math.random() * newIntros.length)];
+    return seededPick(`${Date.now()}:402`, newIntros) ?? newIntros[0];
   }
 }
 
@@ -454,7 +455,7 @@ export function createCustomRitual(
   const state = getOrCreateState(userId);
 
   const newRitual: Ritual = {
-    id: `ritual_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    id: `ritual_${Date.now()}_${Date.now().toString(36).slice(-7)}`,
     name: ritual.name,
     ferniPart: ritual.ferniPart,
     userPart: ritual.userPart,

@@ -1,8 +1,8 @@
 /**
- * Concierge Domain Tools
+ * Concierge Domain Tools - Business & Vendor Outreach
  *
- * AI-powered outreach on behalf of users - making calls, sending emails,
- * and texting businesses to get quotes, make reservations, and schedule appointments.
+ * AI-powered outreach to BUSINESSES on behalf of users - calling hotels,
+ * restaurants, service providers to get quotes, make reservations, and schedule appointments.
  *
  * DOMAIN: concierge
  * TOOLS:
@@ -13,6 +13,11 @@
  *   checkConciergeStatus - Check status of an outreach request
  *
  * "Better Than Human" - doing what no friend has time to do consistently.
+ *
+ * RELATED DOMAINS (distinct functionality):
+ *   - communication/outreach/ - User → Personal Contact (mom, friends) - emotional/personalized
+ *   - proactive/outreach/ - Agent → User (reminders, check-ins) - accountability
+ *   - concierge/ - Agent → Business (hotels, plumbers) - transactional
  *
  * USAGE:
  *   "Find me hotels in Miami next weekend and get the best rates"
@@ -34,6 +39,9 @@ import {
   PhoneCaller,
   type ConciergeRequirements,
 } from '../../../services/concierge/index.js';
+
+// Superhuman calendar prep service
+import { buildCalendarPrepContext } from '../../../services/superhuman/calendar-prep-coaching.js';
 
 const log = getLogger();
 
@@ -489,6 +497,128 @@ function getStatusEmoji(status: string): string {
 }
 
 // ============================================================================
+// CALENDAR PREP CONCIERGE - "Better Than Human"
+// ============================================================================
+
+const prepareForUpcomingEventDef: ToolDefinition = {
+  id: 'prepareForUpcomingEvent',
+  name: 'Prepare for Upcoming Event',
+  description: 'Get superhuman preparation support for upcoming calendar events',
+  domain: 'concierge',
+  tags: ['concierge', 'calendar', 'prep', 'better-than-human'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description:
+        'Get comprehensive preparation for an upcoming calendar event - context about attendees, suggested talking points, travel considerations, and more.',
+      parameters: z.object({
+        eventTitle: z.string().describe('Title of the event to prepare for'),
+        eventDate: z.string().describe('When the event is (YYYY-MM-DD format)'),
+        eventType: z
+          .enum(['meeting', 'dinner', 'appointment', 'travel', 'personal', 'other'])
+          .describe('Type of event'),
+        attendees: z.array(z.string()).optional().describe('Names of people involved'),
+      }),
+      execute: async ({ eventTitle, eventDate, eventType, attendees }) => {
+        try {
+          log.info(
+            { userId: ctx.userId, eventTitle, eventDate },
+            'Preparing for upcoming event'
+          );
+
+          // Build event context for prep
+          const eventDateTimestamp = new Date(eventDate).getTime();
+          const upcomingEvent = {
+            id: `prep-${Date.now()}`,
+            title: eventTitle,
+            startTime: eventDateTimestamp,
+            endTime: eventDateTimestamp + 3600000, // 1 hour default
+            attendees: attendees || [],
+          };
+
+          const prepContext = await buildCalendarPrepContext(ctx.userId, [upcomingEvent]);
+
+          if (!prepContext || prepContext === '') {
+            let response = `**Preparing for: ${eventTitle}**\n\n`;
+            response += `**When:** ${eventDate}\n`;
+            response += `**Type:** ${eventType}\n`;
+            if (attendees?.length) {
+              response += `**With:** ${attendees.join(', ')}\n`;
+            }
+            response += `\n---\n\n`;
+            response += `I don't have deep context yet, but here's a basic prep checklist:\n`;
+            response += `- Confirm the time and location\n`;
+            response += `- Review any materials or agenda\n`;
+            response += `- Prepare questions you want to ask\n`;
+            response += `- Consider what you want to achieve\n\n`;
+            response += `Would you like me to help with anything specific?`;
+
+            return response;
+          }
+
+          let response = `**Event Preparation: ${eventTitle}**\n\n`;
+          response += prepContext;
+          response += `\n\n---\n\n`;
+          response += `*This is "Better Than Human" prep—no human assistant could synthesize all this context for you.*`;
+
+          return response;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId, eventTitle }, 'Event prep failed');
+          return `I couldn't fully prepare for ${eventTitle}, but I'm here to help with specifics.`;
+        }
+      },
+    });
+  },
+};
+
+const proactiveConciergeCheckInDef: ToolDefinition = {
+  id: 'proactiveConciergeCheckIn',
+  name: 'Proactive Concierge Check-In',
+  description: 'Review upcoming schedule and proactively offer concierge assistance',
+  domain: 'concierge',
+  tags: ['concierge', 'proactive', 'calendar', 'better-than-human'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description:
+        'Proactively review what\'s coming up and identify where concierge services could help.',
+      parameters: z.object({}),
+      execute: async () => {
+        try {
+          // Get upcoming events context
+          const prepContext = await buildCalendarPrepContext(ctx.userId, []);
+
+          let response = `**Proactive Concierge Check-In**\n\n`;
+
+          if (!prepContext || prepContext === '') {
+            response += `I don't have calendar access yet, but here's how I can help:\n\n`;
+            response += `- **Reservations:** I can call restaurants to book tables\n`;
+            response += `- **Appointments:** I can schedule healthcare visits\n`;
+            response += `- **Travel:** I can get hotel quotes and compare rates\n`;
+            response += `- **Services:** I can get quotes from plumbers, cleaners, etc.\n\n`;
+            response += `What's coming up that I can help with?`;
+          } else {
+            response += prepContext;
+            response += `\n\n---\n\n`;
+            response += `Based on what's coming up, would you like me to:\n`;
+            response += `- Make any reservations?\n`;
+            response += `- Schedule related appointments?\n`;
+            response += `- Get quotes for anything?\n`;
+          }
+
+          log.info({ userId: ctx.userId }, 'Proactive concierge check-in');
+
+          return response;
+        } catch (error) {
+          log.error({ error: String(error), userId: ctx.userId }, 'Proactive check-in failed');
+          return "I couldn't review your upcoming schedule, but I'm here to help with any concierge tasks.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // EXPORT
 // ============================================================================
 
@@ -498,6 +628,9 @@ const conciergeTools: ToolDefinition[] = [
   scheduleAppointmentDef,
   getServiceQuotesDef,
   checkConciergeStatusDef,
+  // Calendar prep concierge
+  prepareForUpcomingEventDef,
+  proactiveConciergeCheckInDef,
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(

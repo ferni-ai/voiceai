@@ -25,7 +25,7 @@ import { openReferral } from './referral.ui.js';
 const log = createLogger('SeedsDisplay');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -383,7 +383,7 @@ export function renderSeedsSettingsCard(): string {
 
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
-          <span style="color: var(--persona-primary)">${ICONS.seed}</span>
+          <span style="color: var(--persona-text)">${ICONS.seed}</span>
           <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
         </div>
         <span class="seeds-settings-info">seeds to share</span>

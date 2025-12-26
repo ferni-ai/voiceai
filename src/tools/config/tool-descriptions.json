@@ -3792,6 +3792,50 @@
       "description": "Set a simple timer. Use when someone asks: - \"Set a timer for 5 minutes\" - \"Timer for 30 seconds\" - \"Remind me in 10 minutes\".",
       "file": "src/tools/domains/simple-utilities/timer-tools.ts"
     },
+    "whatCanYouDo": {
+      "description": "Explain what I can help with. Use when user asks: \"What can you do?\", \"Help\", \"What are your capabilities?\", \"What can I ask you?\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "quickCapture": {
+      "description": "Capture a thought and auto-route it (task, reminder, note, or memory). Use when user says: \"Remember this\", \"Quick note\", \"I need to\", \"Don't let me forget\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "recentContext": {
+      "description": "Recall what we talked about recently. Use when user asks: \"What were we talking about?\", \"What did we discuss?\", \"Remind me what I told you\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "setPreference": {
+      "description": "Remember user preferences (units, nickname, etc). Use when user says: \"Call me [name]\", \"I prefer Celsius\", \"Use 24-hour time\", \"Remember that I like\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "getPreferences": {
+      "description": "Show saved user preferences. Use when user asks: \"What are my preferences?\", \"What do you know about me?\", \"What have I set?\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "tellJoke": {
+      "description": "Tell a joke. Use when user says: \"Tell me a joke\", \"Make me laugh\", \"Say something funny\", \"I need a laugh\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "getFunFact": {
+      "description": "Share an interesting fun fact. Use when user asks: \"Tell me a fun fact\", \"Did you know\", \"Give me some trivia\", \"Something interesting\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "tellMiniStory": {
+      "description": "Tell a short lighthearted story. Use when user asks: \"Tell me a story\", \"I want a story\", \"Entertain me\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "windDown": {
+      "description": "Evening wind-down ritual. Use when user says: \"Help me wind down\", \"I can't sleep\", \"Bedtime routine\", \"End of day ritual\", \"Good night\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
+    "bedtimeCheckIn": {
+      "description": "Quick bedtime check-in. Use when user says: \"Bedtime\", \"Going to sleep\", \"Ready for bed\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
+    "sleepAffirmation": {
+      "description": "Calming affirmation for sleep. Use when user says: \"I can't fall asleep\", \"Help me relax\", \"Calm me down for bed\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
     "setWorkBoundary": {
       "description": "Help user establish and maintain healthy work boundaries.",
       "file": "src/tools/domains/career/index.ts"

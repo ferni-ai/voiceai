@@ -13,6 +13,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerCircuitBreakerCallback } from '../../utils/circuit-breaker.js';
 
 const log = getLogger();
 
@@ -562,3 +563,13 @@ export class ResilienceMetricsService {
 // ============================================================================
 
 export const resilienceMetrics = new ResilienceMetricsService();
+
+// ============================================================================
+// CIRCUIT BREAKER INTEGRATION
+// ============================================================================
+
+// Register callback to receive circuit breaker state changes from utils layer
+// This follows proper architecture: services layer registers with utils layer
+registerCircuitBreakerCallback((name, state, failures, successes, reason) => {
+  resilienceMetrics.recordCircuitBreakerEvent(name, state, failures, successes, reason);
+});

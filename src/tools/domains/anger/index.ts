@@ -31,6 +31,9 @@ import {
   getLifeCoachingProfile,
   updateLifeCoachingProfile,
 } from '../life-coaching-shared/user-profile.js';
+
+// Cross-persona intelligence for team coordination
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
 import { assessSafety, getCrisisResponse } from '../life-coaching-shared/safety-guards.js';
 import { ANGER_FRAMEWORKS, COPING_TECHNIQUES } from '../life-coaching-shared/content-databases.js';
 
@@ -702,6 +705,116 @@ const chronicAngerDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const flagAngerPatternForMayaDef: ToolDefinition = {
+  id: 'flagAngerPatternForMaya',
+  name: 'Flag Anger Pattern for Maya',
+  description: 'Alert Maya when anger patterns could benefit from habit-based interventions',
+  domain: 'anger',
+  tags: ['cross-persona', 'anger', 'habits', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagAngerPatternForMaya'),
+      parameters: z.object({
+        pattern: z
+          .enum(['explosive', 'suppressed', 'passive-aggressive', 'chronic'])
+          .describe('The anger pattern observed'),
+        frequency: z.string().describe('How often this happens'),
+        suggestedIntervention: z.string().optional().describe('What kind of habit might help'),
+      }),
+      execute: async ({ pattern, frequency, suggestedIntervention }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, pattern, frequency }, 'Flagging anger pattern for Maya');
+
+        try {
+          let content = `Anger pattern: ${pattern} | Frequency: ${frequency}`;
+          if (suggestedIntervention) {
+            content += ` | Suggested approach: ${suggestedIntervention}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'maya',
+            content,
+            priority: pattern === 'chronic' ? 'high' : 'normal',
+            category: 'anger_pattern',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Pattern Shared with Maya**\n\n`;
+          response += `Maya now knows about this ${pattern} anger pattern.\n\n`;
+          response += `She can help design:\n`;
+          response += `• Pre-emptive calming rituals\n`;
+          response += `• Trigger-response habits\n`;
+          response += `• Recovery routines after episodes\n\n`;
+          response += `Changing anger patterns takes time and practice. Maya specializes in making practices stick.`;
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to flag anger pattern for Maya');
+          return "I'll remember this pattern. Let's keep working on it together.";
+        }
+      },
+    });
+  },
+};
+
+const shareAngerInsightWithNayanDef: ToolDefinition = {
+  id: 'shareAngerInsightWithNayan',
+  name: 'Share Anger Insight with Nayan',
+  description: 'Share deeper anger insights with Nayan for wisdom-based exploration',
+  domain: 'anger',
+  tags: ['cross-persona', 'anger', 'wisdom', 'nayan'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('shareAngerInsightWithNayan'),
+      parameters: z.object({
+        underlyingNeed: z.string().describe('What deeper need the anger is protecting'),
+        valueConnected: z.string().optional().describe('What value is being violated'),
+      }),
+      execute: async ({ underlyingNeed, valueConnected }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, underlyingNeed }, 'Sharing anger insight with Nayan');
+
+        try {
+          let content = `Anger exploration - underlying need: "${underlyingNeed}"`;
+          if (valueConnected) {
+            content += ` | Value connected: ${valueConnected}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'nayan',
+            content,
+            priority: 'normal',
+            category: 'anger_wisdom',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Insight Shared with Nayan**\n\n`;
+          response += `Nayan can help you explore:\n`;
+          response += `• What this anger reveals about your values\n`;
+          response += `• The wisdom underneath the fire\n`;
+          response += `• How to honor the need without destructive expression\n\n`;
+          response += `Anger is often a signpost pointing to something important. Nayan can help you read the signs.`;
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to share with Nayan');
+          return "There's wisdom in your anger. Let's keep exploring.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -714,6 +827,9 @@ const angerTools: ToolDefinition[] = [
   coolDownDef,
   assertNotAggressiveDef,
   chronicAngerDef,
+  // Cross-persona intelligence
+  flagAngerPatternForMayaDef,
+  shareAngerInsightWithNayanDef,
 ];
 
 // ============================================================================

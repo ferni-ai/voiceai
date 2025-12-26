@@ -109,6 +109,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'team-gossip': () => import('../superhuman/team-gossip.js'), // Cross-persona references and banter
 
   // CONTEXT (in awareness/)
+  'outbound-call-context': () => import('../outbound-call-context.js'), // On-behalf call awareness
   'tool-capabilities': () => import('../tool-capabilities.js'),
   'dynamic-tool-guidance': () => import('../dynamic-tool-guidance.js'),
   'tool-timing-context': () => import('../tool-timing-context.js'), // Tool execution timing for natural framing

@@ -4,8 +4,16 @@
  * Export all semantic tool definitions from this file.
  * These definitions enable pre-LLM routing for common commands.
  *
+ * IMPORTANT: Tools are filtered based on capability availability.
+ * Unconfigured services (e.g., Twilio, Spotify) will have their tools excluded.
+ *
  * @module tools/semantic-router/tool-definitions
  */
+
+import { isToolAvailable, logCapabilityStatus } from '../capability-checker.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'semantic-router:tool-definitions' });
 
 // ============================================================================
 // EXPORTS - All semantic tool definitions
@@ -365,6 +373,42 @@ export {
   searchVoiceMemosTool,
 } from './voice-memos.semantic.js';
 
+// Essentials (capabilities, quick capture, preferences)
+export {
+  essentialsTools,
+  whatCanYouDoTool,
+  quickCaptureTool,
+  recentContextTool,
+  setPreferenceTool,
+} from './essentials.semantic.js';
+
+// Humor (jokes, fun facts, stories)
+export {
+  humorTools,
+  tellJokeTool,
+  funFactTool,
+  miniStoryTool,
+} from './humor.semantic.js';
+
+// Wind-Down (evening routines, bedtime)
+export {
+  winddownTools,
+  windDownTool,
+  bedtimeCheckInTool,
+  sleepAffirmationTool,
+} from './winddown.semantic.js';
+
+// Cross-domain Shortcuts (convenience delegates)
+export {
+  shortcutsTools,
+  quickAlarmTool,
+  quickTimerTool,
+  quickWeatherTool,
+  quickMusicTool,
+  quickCalendarTool,
+  quickSmartHomeTool,
+} from './shortcuts.semantic.js';
+
 // ============================================================================
 // PHASE 2: SAFETY-CRITICAL (Anger, Trauma, Burnout)
 // ============================================================================
@@ -547,6 +591,10 @@ import { trafficTools } from './traffic.semantic.js';
 import { smsTools } from './sms.semantic.js';
 import { voiceMemosTools } from './voice-memos.semantic.js';
 import { schedulingTools } from './scheduling.semantic.js';
+import { essentialsTools } from './essentials.semantic.js';
+import { humorTools } from './humor.semantic.js';
+import { winddownTools } from './winddown.semantic.js';
+import { shortcutsTools } from './shortcuts.semantic.js';
 
 // Phase 2: Safety-Critical
 import { angerTools } from './anger.semantic.js';
@@ -571,7 +619,7 @@ import { groupConversationTools } from './group-conversation.semantic.js';
  * All registered semantic tool definitions
  *
  * These tools are candidates for pre-LLM routing.
- * Total: ~153 tools across 32 categories
+ * Total: ~265 tools across 32+ categories (as of Dec 2025)
  *
  * IMPORTANT: Crisis and safety-critical tools are listed first for priority routing
  */
@@ -638,6 +686,10 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
   ...smsTools, // 3 tools: read, check new, search messages
   ...voiceMemosTools, // 5 tools: save, list, recall, delete, search memos
   ...schedulingTools, // 7 tools: schedule text, call, email, send now, list, cancel, save contact
+  ...essentialsTools, // 4 tools: what can you do, quick capture, recent context, preferences
+  ...humorTools, // 3 tools: jokes, fun facts, mini stories
+  ...winddownTools, // 3 tools: wind down, bedtime check-in, sleep affirmation
+  ...shortcutsTools, // 6 tools: quick alarm, timer, weather, music, calendar, smart home
 
   // Phase 2: Safety-Critical (Emotional Regulation)
   ...angerTools, // 8 tools: validate, physical release, cool down, action, journaling, triggers, communication, history
@@ -724,6 +776,10 @@ export const toolsByCategory: Record<string, SemanticToolDefinition[]> = {
   sms: smsTools,
   'voice-memos': voiceMemosTools,
   scheduling: schedulingTools,
+  essentials: essentialsTools,
+  humor: humorTools,
+  winddown: winddownTools,
+  shortcuts: shortcutsTools,
 
   // Phase 2: Safety-Critical (Emotional Regulation)
   anger: angerTools,
@@ -773,4 +829,56 @@ export function getHighPriorityTools(): SemanticToolDefinition[] {
     ...weatherTools,
     ...calendarTools,
   ];
+}
+
+// ============================================================================
+// CAPABILITY-FILTERED TOOLS
+// ============================================================================
+
+/**
+ * Get all tool definitions filtered by capability availability.
+ *
+ * Tools whose backing services are not configured will be excluded.
+ * This prevents the semantic router from matching tools that can't be executed.
+ *
+ * @returns Tool definitions that can actually be used
+ */
+export function getAvailableToolDefinitions(): SemanticToolDefinition[] {
+  // Log capability status on first call
+  logCapabilityStatus();
+
+  const availableTools = allToolDefinitions.filter((tool) => {
+    const available = isToolAvailable(tool.id);
+    if (!available) {
+      log.debug({ toolId: tool.id }, 'Tool excluded - capability not configured');
+    }
+    return available;
+  });
+
+  log.info(
+    {
+      totalTools: allToolDefinitions.length,
+      availableTools: availableTools.length,
+      excludedTools: allToolDefinitions.length - availableTools.length,
+    },
+    'Filtered tools by capability availability'
+  );
+
+  return availableTools;
+}
+
+/**
+ * Get tools by category, filtered by capability availability
+ */
+export function getAvailableToolsByCategory(): Record<string, SemanticToolDefinition[]> {
+  const result: Record<string, SemanticToolDefinition[]> = {};
+
+  for (const [category, tools] of Object.entries(toolsByCategory)) {
+    const availableTools = tools.filter((tool) => isToolAvailable(tool.id));
+    if (availableTools.length > 0) {
+      result[category] = availableTools;
+    }
+  }
+
+  return result;
 }

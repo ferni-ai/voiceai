@@ -27,7 +27,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('FerniFundUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // GARDEN API
@@ -474,7 +474,7 @@ export function close(): void {
  */
 export function showThankYou(impact: { conversationsSponsored: number; message: string }): void {
   if (!container) {
-    createModal().then((el) => {
+    void createModal().then((el) => {
       container = el;
       showThankYouContent(impact);
     });

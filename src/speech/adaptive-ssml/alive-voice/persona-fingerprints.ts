@@ -11,6 +11,12 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  getEnergyMatchedPacing,
+  getLateNightPacing,
+  selectLaughterResponseSync,
+} from '../../humanization/behavior-loader.js';
+import type { BehaviorSelectionContext } from '../../humanization/types.js';
 import { getEmotionProfile } from '../../voice-manager/config.js';
 import {
   applyPersonaSpeechTraitsSync,
@@ -385,9 +391,10 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
  * Apply persona-specific voice fingerprint.
  * Makes each agent sound distinctly themselves.
  *
- * This function applies two layers of persona-specific processing:
- * 1. Basic fingerprint (speed, emotion, special patterns)
- * 2. Detailed speech traits (catchphrases, vocabulary, cadence)
+ * This function applies multiple layers of persona-specific processing:
+ * 1. Detailed speech traits (catchphrases, vocabulary, cadence)
+ * 2. Basic fingerprint (speed, emotion, special patterns)
+ * 3. Contextual modifiers (late night, energy matching, laughter)
  */
 export function applyPersonaFingerprint(text: string, context: AliveVoiceContext): string {
   const personaId = context.personaId || 'ferni';
@@ -407,18 +414,67 @@ export function applyPersonaFingerprint(text: string, context: AliveVoiceContext
       emotion,
       baseSpeed: fingerprint.baseSpeed,
       laughterCount,
+      turnNumber: context.turnCount,
+      randomSeed: context.randomSeed,
     });
 
     log.debug({ personaId }, 'Applied detailed persona speech traits');
   }
 
   // =========================================================================
-  // LAYER 2: Apply basic fingerprint (speed, emotion, patterns)
+  // LAYER 2: Calculate contextual speed modifier
+  // Combines base speed + late night + energy matching
+  // =========================================================================
+  let speedModifier = fingerprint.baseSpeed;
+
+  // Late night pacing (11pm - 5am) - slower, more deliberate
+  if (context.isLateNight) {
+    const lateNightPacing = getLateNightPacing(personaId);
+    if (lateNightPacing) {
+      speedModifier *= lateNightPacing.speedMultiplier;
+      log.debug({ personaId, multiplier: lateNightPacing.speedMultiplier }, 'Applied late night pacing');
+    }
+  }
+
+  // Energy matching - mirror user's energy level
+  if (context.userEnergy && context.userEnergy !== 'neutral') {
+    const energyPacing = getEnergyMatchedPacing(personaId, context.userEnergy);
+    if (energyPacing) {
+      speedModifier *= energyPacing.speedMultiplier;
+      log.debug(
+        { personaId, energy: context.userEnergy, multiplier: energyPacing.speedMultiplier },
+        'Applied energy matching'
+      );
+    }
+  }
+
+  // =========================================================================
+  // LAYER 3: Apply laughter contagion if user laughed
+  // =========================================================================
+  if (context.userJustLaughed && context.enableLaughter !== false) {
+    const laughterContext: BehaviorSelectionContext & { userLaughed?: boolean } = {
+      personaId,
+      emotional: {},
+      content: {},
+      turnNumber: context.turnCount,
+      randomSeed: context.randomSeed,
+      userLaughed: true,
+    };
+    const laughterBehavior = selectLaughterResponseSync(personaId, laughterContext);
+    if (laughterBehavior && !result.toLowerCase().includes(laughterBehavior.phrase.toLowerCase())) {
+      // Add laughter at start with appropriate pause
+      result = `${laughterBehavior.phrase} <break time="150ms"/> ${result}`;
+      log.debug({ personaId, laughter: laughterBehavior.phrase }, 'Added laughter contagion');
+    }
+  }
+
+  // =========================================================================
+  // LAYER 4: Apply basic fingerprint (speed, emotion, patterns)
   // =========================================================================
 
-  // Apply base speed if no speed tag exists
+  // Apply calculated speed if no speed tag exists
   if (!result.includes('<speed ratio=')) {
-    result = `<speed ratio="${fingerprint.baseSpeed.toFixed(2)}"/>${result}`;
+    result = `<speed ratio="${speedModifier.toFixed(2)}"/>${result}`;
   }
 
   // Apply default emotion if no emotion tag exists
@@ -449,10 +505,11 @@ export function applyPersonaFingerprint(text: string, context: AliveVoiceContext
     }
   }
 
-  // Randomly add thinking sounds at the start
+  // Randomly add thinking sounds at the start (if not already added via humanization)
   if (
     Math.random() < fingerprint.thinkingSoundProbability &&
     !result.startsWith('<emotion') && // Don't double-add if we already added emotion
+    !result.match(/^(Hmm|Well|Um|Ah|Let me|You know)/i) && // Don't add if humanization already did
     context.turnCount &&
     context.turnCount > 1 // Not on first turn
   ) {

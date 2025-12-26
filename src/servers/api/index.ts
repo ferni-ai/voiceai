@@ -6,6 +6,7 @@
 
 import 'dotenv/config';
 import http from 'http';
+import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'APIServer' });
@@ -69,6 +70,13 @@ import {
   loadRegisteredUsers as loadApplePollingUsers,
   stopPolling as shutdownApplePolling,
 } from '../../services/calendar/polling/apple-polling.js';
+
+// Proactive outreach scheduler ("Better Than Human" - thinking of you moments)
+import {
+  startScheduler as startProactiveScheduler,
+  stopScheduler as stopProactiveScheduler,
+  loadPendingOutreach,
+} from '../../services/outreach/proactive-scheduler.js';
 import { renewExpiringChannels as startGoogleWebhookRenewal } from '../../services/calendar/webhooks/google-webhook.js';
 import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '../../services/calendar/webhooks/outlook-webhook.js';
 
@@ -97,6 +105,7 @@ import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
+import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
 import { handleLifeContextRoutes } from '../../api/life-context-routes.js';
@@ -160,7 +169,8 @@ import {
   shutdownLifeContextWebSocket,
 } from '../../services/life-context-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
-import { handleCustomAgentRoutes } from '../../api/custom-agent.routes.js';
+// SECURITY: Uses new modular version with Firebase auth (no x-user-id)
+import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
@@ -309,7 +319,8 @@ const server = http.createServer(async (req, res) => {
 
   // 🧠 Intelligent routing dashboard & control routes
   if (pathname.startsWith('/api/intelligent-routing')) {
-    if (await handleIntelligentRoutingRoutes(req, res, pathname, parsedUrl)) return;
+    // Cast URL to expected type - the handler doesn't use parsed query features
+    if (await handleIntelligentRoutingRoutes(req, res, pathname, parsedUrl as unknown as UrlWithParsedQuery)) return;
   }
 
   // ============================================================================
@@ -754,6 +765,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Year in review ("Your Year with Ferni") routes
+    if (pathname.startsWith('/api/year-in-review')) {
+      const handled = await handleYearInReviewRoutes(req, res, { pathname, query: Object.fromEntries(new URLSearchParams(parsedUrl.search || "")) });
+      if (handled) return;
+    }
+
     // LLM content routes (metrics, cache stats, prewarm)
     if (pathname.startsWith('/api/llm-content')) {
       const handled = await handleLLMContentRoutes(req, res, pathname);
@@ -1147,6 +1164,15 @@ server.listen(PORT, '0.0.0.0', async () => {
   } catch (error) {
     log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
   }
+
+  // Start proactive outreach scheduler ("Better Than Human" - thinking of you moments)
+  try {
+    await loadPendingOutreach();
+    startProactiveScheduler();
+    log.info('💭 Proactive outreach scheduler started');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Proactive scheduler failed to start (non-blocking)');
+  }
 });
 
 // ============================================================================
@@ -1168,6 +1194,9 @@ async function gracefulShutdown(): Promise<void> {
   // Shutdown WebSocket servers first
   shutdownInsightsWebSocket();
   shutdownLifeContextWebSocket();
+
+  // Stop proactive scheduler
+  stopProactiveScheduler();
 
   // Shutdown all services in parallel
   try {

@@ -426,18 +426,50 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
   },
 
   // ==========================================================================
-  // 📱 TELEPHONY (3 tools)
+  // 📱 TELEPHONY (5 tools)
   // ==========================================================================
+  
+  // Simple business calls (voicemail, quick calls) - uses TwiML voicemail
   telephony_call: {
-    domainToolId: 'initiateCall',
-    transformArgs: (args) => ({ contact: args.contact, reason: args.reason }),
+    domainToolId: 'makePhoneCall',
+    transformArgs: (args) => ({
+      contact: args.contact,
+      phoneNumber: args.phoneNumber,
+      message: args.message || 'This is a message from Ferni.',
+    }),
   },
+  
+  // Personal/conversational calls (family, friends) - Ferni has real conversation
+  telephony_converse: {
+    domainToolId: 'callAndConverse',
+    transformArgs: (args) => ({
+      contact: args.contact,
+      purpose: args.purpose || 'check in',
+      tone: args.tone || 'warm',
+    }),
+  },
+  
+  // Autonomous calls for tasks (appointments, reservations, etc.)
+  telephony_call_on_behalf: {
+    domainToolId: 'callOnBehalf',
+    transformArgs: (args) => ({
+      contact: args.contact,
+      objective: args.purpose,
+      callType: args.callType || 'business',
+      preferredTime: args.preferredTime,
+    }),
+  },
+  
+  // Request a callback from a business
   telephony_callback: {
     domainToolId: 'scheduleCallback',
-    transformArgs: (args) => ({ contact: args.contact, when: args.when }),
+    transformArgs: (args) => ({ contact: args.business || args.contact, when: args.preferredTime }),
   },
+  
+  // Check voicemail
   telephony_voicemail: {
     domainToolId: 'checkVoicemail',
+    transformArgs: (args) => ({ action: args.action, from: args.from }),
   },
 
   // ==========================================================================
@@ -912,7 +944,8 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
   },
   learning_explain: {
     domainToolId: 'explainConcept',
-    transformArgs: (args) => ({ concept: args.concept, level: args.level }),
+    // Semantic tool extracts 'topic', domain tool expects 'concept'
+    transformArgs: (args) => ({ concept: args.topic || args.concept, level: args.level }),
   },
 
   // ==========================================================================

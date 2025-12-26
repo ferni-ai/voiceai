@@ -9,7 +9,6 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { apiFetch } from '../utils/api-helpers.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './toast.ui.js';
 import { openReferral } from './referral.ui.js';
@@ -119,7 +118,7 @@ export function closeGardenDashboard(): void {
   if (!isOpen || !modal) return;
 
   soundUI.play('click');
-  animateOut(modal).then(() => {
+  void animateOut(modal).then(() => {
     modal?.remove();
     modal = null;
     isOpen = false;
@@ -157,7 +156,7 @@ function createModal(): void {
   document.addEventListener('keydown', handleEscape);
 
   document.body.appendChild(modal);
-  animateIn(modal);
+  void animateIn(modal);
 }
 
 function renderModalContent(): void {
@@ -383,21 +382,37 @@ function injectStyles(): void {
     .garden-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .garden-backdrop {
+        background: rgba(44, 37, 32, 0.85);
+      }
     }
 
     .garden-content {
       position: relative;
-      background: var(--color-background-elevated);
-      border-radius: var(--radius-2xl, 20px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1));
       max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       max-height: 90vh;
       overflow-y: auto;
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .garden-content {
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+      }
     }
 
     .garden-close {
@@ -450,7 +465,7 @@ function injectStyles(): void {
 
     .garden-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--persona-primary);
+      color: var(--persona-text);
       font-weight: 500;
       margin: 0;
     }
@@ -481,7 +496,7 @@ function injectStyles(): void {
     }
 
     .garden-stat--highlight .garden-stat-value {
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .garden-stat-label {
@@ -502,7 +517,7 @@ function injectStyles(): void {
     }
 
     .garden-earned-icon {
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .garden-earned-text {
@@ -553,7 +568,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .garden-tier-name {
@@ -586,7 +601,7 @@ function injectStyles(): void {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
       font-family: var(--font-mono, monospace);
-      color: var(--persona-primary);
+      color: var(--persona-text);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -604,7 +619,7 @@ function injectStyles(): void {
 
     .garden-link-copy:hover {
       background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .garden-actions {

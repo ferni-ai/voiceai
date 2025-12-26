@@ -23,6 +23,7 @@ import {
   type ThinkingOfYouOutreach,
   type UserOutreachContext,
 } from './thinking-of-you.js';
+import { deliverOutreach } from './delivery/index.js';
 
 const log = createLogger({ module: 'OutreachOrchestrator' });
 
@@ -530,6 +531,54 @@ let instance: OutreachOrchestrator | null = null;
 export function getOutreachOrchestrator(): OutreachOrchestrator {
   if (!instance) {
     instance = new OutreachOrchestrator();
+
+    // ==========================================================================
+    // 🔗 CONNECT TO DELIVERY SYSTEM
+    // This is the critical bridge that makes "Thinking of You" actually execute!
+    // When the orchestrator decides it's time to reach out, we deliver the message.
+    // ==========================================================================
+    instance.on('outreach:ready', async (event: OutreachEvent) => {
+      log.info(
+        {
+          type: event.type,
+          userId: event.userId,
+          channel: event.channel,
+          personaId: event.personaId,
+        },
+        '💌 Executing outreach delivery'
+      );
+
+      try {
+        const result = await deliverOutreach({
+          userId: event.userId,
+          channel: event.channel === 'voice_message' ? 'push' : event.channel, // Map voice_message to push
+          message: event.message,
+          personaId: event.personaId,
+          outreachId: event.metadata?.triggerId as string | undefined,
+        });
+
+        if (result.success) {
+          log.info(
+            { userId: event.userId, channel: event.channel, messageId: result.messageId },
+            '✅ Outreach delivered successfully'
+          );
+          // Update telemetry
+          instance?.recordDeliverySuccess();
+        } else {
+          log.warn(
+            { userId: event.userId, channel: event.channel, error: result.error },
+            '⚠️ Outreach delivery failed'
+          );
+        }
+      } catch (error) {
+        log.error(
+          { userId: event.userId, channel: event.channel, error: String(error) },
+          '❌ Outreach delivery error'
+        );
+      }
+    });
+
+    log.info('📤 OutreachOrchestrator initialized with delivery listener');
   }
   return instance;
 }

@@ -28,7 +28,7 @@ import { teaserPreview } from './teaser-preview.ui.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('InsightsView');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -1125,7 +1125,7 @@ export class InsightsView {
   }
 
   destroy(): void {
-    clearAllTimeouts();
+    _clearAllTimeouts();
 
     if (this.container) {
       this.container.remove();

@@ -17,6 +17,7 @@
  * @module @ferni/temporal-context
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'TemporalContext' });
@@ -385,7 +386,7 @@ export class TemporalContextEngine {
 
     // Fallback to template
     const closings = CLOSINGS[state.timeOfDay];
-    return closings[Math.floor(Math.random() * closings.length)];
+    return seededPick(`${Date.now()}:389`, closings) ?? closings[0];
   }
 
   /**
@@ -598,7 +599,7 @@ export class TemporalContextEngine {
 
   private getGreeting(state: TemporalState): string {
     const greetings = GREETINGS[state.timeOfDay];
-    return greetings[Math.floor(Math.random() * greetings.length)];
+    return seededPick(`${Date.now()}:602`, greetings) ?? greetings[0];
   }
 
   private getContextualCheckIn(state: TemporalState): string | null {
@@ -608,7 +609,7 @@ export class TemporalContextEngine {
     const timePhrases = dayPhrases[state.timeOfDay];
     if (!timePhrases || timePhrases.length === 0) return null;
 
-    return timePhrases[Math.floor(Math.random() * timePhrases.length)];
+    return seededPick(`${Date.now()}:612`, timePhrases) ?? timePhrases[0];
   }
 
   private getToneAdjustment(state: TemporalState): string {
@@ -666,7 +667,7 @@ export class TemporalContextEngine {
         continue; // Too far out
       }
 
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = seededPick(`${Date.now()}:670`, templates) ?? templates[0];
       event.followedUp = true;
 
       return template.replace('{event}', event.description).replace('{timeframe}', timeframe);

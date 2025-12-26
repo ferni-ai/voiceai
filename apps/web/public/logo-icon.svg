@@ -1,40 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Ferni Three Stones Logo - 64x64 -->
+  <!-- Ferni Logo Icon - 64x64 -->
   <defs>
-    <radialGradient id="stoneGrad64" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    <radialGradient id="catchlightGrad64" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glowFilter64" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    <linearGradient id="logoGrad64" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
   </defs>
-
-  <!-- Background -->
-  <rect width="64" height="64" rx="12" fill="#F5F1E8"/>
   
-  <circle cx="32" cy="32" r="24.147200000000005" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.25"/>
-  <!-- Outer Stone: Body -->
-  <circle cx="32" cy="32" r="21.952" fill="url(#stoneGrad64)" filter="url(#glowFilter64)"/>
-
-  <!-- Middle Stone: Eye White -->
-  <circle cx="32" cy="32" r="9.00032" fill="white"/>
-
-  <!-- Iris -->
-  <circle cx="32" cy="32" r="5.992896000000001" fill="#5a8060"/>
-
-  <!-- Inner Stone: Pupil -->
-  <circle cx="32" cy="32" r="2.9854720000000006" fill="#2c2520"/>
-
-  <!-- Catchlight (life spark) -->
-  <circle cx="28.48768" cy="28.48768" r="1.2073600000000002" fill="url(#catchlightGrad64)"/>
+  <!-- Outer presence ring -->
+  <circle cx="32" cy="32" r="29" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.35"/>
   
-  <!-- Secondary catchlight -->
-  <circle cx="33.75616" cy="33.404928" r="0.4829440000000001" fill="white" opacity="0.4"/>
+  <!-- Main avatar circle -->
+  <circle cx="32" cy="32" r="25" fill="url(#logoGrad64)"/>
+  
+  <!-- FE Text -->
+  <text 
+    x="32" 
+    y="32" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+    font-size="19"
+    font-weight="800"
+    fill="white"
+    letter-spacing="-0.5">
+    <tspan dy="1">FE</tspan>
+  </text>
+  
+  <!-- Shine overlay - ABOVE text -->
+  <ellipse cx="25" cy="22" rx="13" ry="6.5" fill="white" opacity="0.15"/>
 </svg>

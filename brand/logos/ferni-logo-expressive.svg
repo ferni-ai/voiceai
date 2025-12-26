@@ -1,221 +1,52 @@
-<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="ferni-logo">
-  <!-- 
-    Ferni Logo - Expressive (Simple Line Mouth)
-    
-    Default: Three zen stones (eye centered, mouth hidden)
-    Animated: Eye rises, simple line mouth drops down
-    
-    Expression Classes:
-    - (none): Zen stones, peaceful - no mouth
-    - .happy: Eye rises, gentle smile curve
-    - .excited: Eye bounces up, big smile
-    - .curious: Eye tilts, small smile
-    - .sad: Eye softens, gentle frown
-    - .surprised: Eye pops up, small "o" line
-    - .thinking: Eye wanders, no mouth
-    - .chuckle: Eye squints, wobbly smile
-    - .speaking: Eye rises, animated mouth line
-    - .listening: Eye pulses, no mouth
-  -->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="expOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="expShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="expGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
   
   <style>
-    .ferni-logo {
-      --duration-fast: 200ms;
-      --duration-normal: 400ms;
-      --duration-slow: 600ms;
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
-      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      --ease-organic: cubic-bezier(0.25, 0.1, 0.25, 1);
-    }
-    
-    /* Eye group - moves up to reveal mouth */
-    .eye-group {
-      transform-origin: 50px 50px;
-      transition: transform var(--duration-normal) var(--ease-spring);
-    }
-    
-    .eye-white {
-      transform-origin: 50px 50px;
-      transition: transform var(--duration-normal) var(--ease-gentle);
-    }
-    
-    .pupil-group {
-      transform-origin: 50px 50px;
-      transition: transform var(--duration-fast) var(--ease-gentle);
-    }
-    
-    /* Mouth - simple line, hidden by default */
-    .mouth {
-      stroke: white;
-      stroke-width: 4;
-      stroke-linecap: round;
-      fill: none;
-      opacity: 0;
-      transform: translateY(-15px);
-      transform-origin: 50px 68px;
-      transition: 
-        opacity var(--duration-normal) var(--ease-gentle),
-        transform var(--duration-normal) var(--ease-spring),
-        d var(--duration-normal) var(--ease-gentle);
-    }
-    
-    /* ========== HAPPY ========== */
-    .ferni-logo.happy .eye-group { transform: translateY(-12px); }
-    .ferni-logo.happy .eye-white { transform: scaleY(0.92); }
-    .ferni-logo.happy .mouth {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    
-    /* ========== EXCITED ========== */
-    .ferni-logo.excited .eye-group {
-      transform: translateY(-14px) scale(1.05);
-      animation: excited-bounce var(--duration-slow) var(--ease-spring);
-    }
-    .ferni-logo.excited .eye-white { transform: scaleY(0.88); }
-    .ferni-logo.excited .mouth {
-      opacity: 1;
-      transform: translateY(0) scaleX(1.2);
-    }
-    
-    @keyframes excited-bounce {
-      0% { transform: translateY(0) scale(1); }
-      25% { transform: translateY(-18px) scale(1.1); }
-      50% { transform: translateY(-12px) scale(1.03); }
-      75% { transform: translateY(-15px) scale(1.06); }
-      100% { transform: translateY(-14px) scale(1.05); }
-    }
-    
-    /* ========== CURIOUS ========== */
-    .ferni-logo.curious .eye-group { transform: translateY(-8px) translateX(-3px) rotate(-3deg); }
-    .ferni-logo.curious .pupil-group { transform: translateX(4px) translateY(-3px); }
-    .ferni-logo.curious .mouth {
-      opacity: 0.7;
-      transform: translateY(0) scale(0.7) translateX(3px);
-    }
-    
-    /* ========== SAD ========== */
-    .ferni-logo.sad .eye-group { transform: translateY(-6px); }
-    .ferni-logo.sad .eye-white { transform: scaleY(0.85) scaleX(0.98); }
-    .ferni-logo.sad .mouth {
-      opacity: 1;
-      transform: translateY(2px) scaleY(-1);
-    }
-    
-    /* ========== SURPRISED ========== */
-    .ferni-logo.surprised .eye-group {
-      transform: translateY(-16px) scale(1.12);
-      animation: surprise-pop 300ms var(--ease-bounce);
-    }
-    .ferni-logo.surprised .eye-white { transform: scaleY(1.08) scaleX(1.05); }
-    .ferni-logo.surprised .mouth {
-      opacity: 1;
-      transform: translateY(3px) scaleY(0.3) scaleX(0.5);
-    }
-    
-    @keyframes surprise-pop {
-      0% { transform: translateY(0) scale(1); }
-      40% { transform: translateY(-20px) scale(1.18); }
-      100% { transform: translateY(-16px) scale(1.12); }
-    }
-    
-    /* ========== THINKING ========== */
-    .ferni-logo.thinking .eye-group {
-      animation: thinking-wander 3000ms var(--ease-organic) infinite;
-    }
-    .ferni-logo.thinking .pupil-group {
-      animation: thinking-look 3000ms var(--ease-organic) infinite;
-    }
-    
-    @keyframes thinking-wander {
-      0%, 100% { transform: translateY(-3px) translateX(3px); }
-      25% { transform: translateY(-5px) translateX(-4px) rotate(-2deg); }
-      50% { transform: translateY(-2px) translateX(4px) rotate(1deg); }
-      75% { transform: translateY(-4px) translateX(-2px) rotate(-1deg); }
-    }
-    
-    @keyframes thinking-look {
-      0%, 100% { transform: translateX(2px) translateY(-1px); }
-      25% { transform: translateX(-3px) translateY(1px); }
-      50% { transform: translateX(3px) translateY(-2px); }
-      75% { transform: translateX(-2px) translateY(0px); }
-    }
-    
-    /* ========== CHUCKLE ========== */
-    .ferni-logo.chuckle .eye-group {
-      transform: translateY(-10px);
-      animation: chuckle-shake var(--duration-slow) var(--ease-spring);
-    }
-    .ferni-logo.chuckle .eye-white { transform: scaleY(0.7); }
-    .ferni-logo.chuckle .mouth {
-      opacity: 1;
-      transform: translateY(0);
-      animation: chuckle-wobble var(--duration-slow) var(--ease-spring);
-    }
-    
-    @keyframes chuckle-shake {
-      0%, 100% { transform: translateY(-10px) rotate(0deg); }
-      20% { transform: translateY(-11px) rotate(-3deg); }
-      40% { transform: translateY(-9px) rotate(2deg); }
-      60% { transform: translateY(-10.5px) rotate(-2deg); }
-      80% { transform: translateY(-9.5px) rotate(1deg); }
-    }
-    
-    @keyframes chuckle-wobble {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      20% { transform: translateY(-1px) rotate(-4deg); }
-      40% { transform: translateY(1px) rotate(3deg); }
-      60% { transform: translateY(-0.5px) rotate(-2deg); }
-      80% { transform: translateY(0.5px) rotate(1deg); }
-    }
-    
-    /* ========== SPEAKING ========== */
-    .ferni-logo.speaking .eye-group { transform: translateY(-8px); }
-    .ferni-logo.speaking .mouth {
-      opacity: 1;
-      transform: translateY(0);
-      animation: speaking-mouth 400ms var(--ease-gentle) infinite;
-    }
-    
-    @keyframes speaking-mouth {
-      0%, 100% { transform: translateY(0) scaleY(1); }
-      50% { transform: translateY(1px) scaleY(0.6); }
-    }
-    
-    /* ========== LISTENING ========== */
-    .ferni-logo.listening .eye-group {
-      transform: translateY(-2px);
-      animation: listening-pulse 2000ms var(--ease-organic) infinite;
-    }
-    .ferni-logo.listening .pupil-group {
-      animation: listening-focus 2000ms var(--ease-gentle) infinite;
-    }
-    
-    @keyframes listening-pulse {
-      0%, 100% { transform: translateY(-2px) scale(1); }
-      50% { transform: translateY(-3px) scale(1.02); }
-    }
-    
-    @keyframes listening-focus {
+    @keyframes breathe {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(0.95); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.6; }
+    }
+    .exp-body { animation: breathe 3s ease-in-out infinite; transform-origin: center; }
+    .exp-shine { animation: shimmer 2s ease-in-out infinite; }
+    .exp-ring { animation: pulse 4s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .exp-body, .exp-shine, .exp-ring { animation: none; }
     }
   </style>
   
-  <!-- Body (outer stone) -->
-  <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+  <circle class="exp-ring" cx="50" cy="50" r="46" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35" filter="url(#expGlow)"/>
   
-  <!-- Eye Group -->
-  <g class="eye-group">
-    <ellipse class="eye-white" cx="50" cy="50" rx="18" ry="18" fill="white"/>
-    <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-    <g class="pupil-group">
-      <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-      <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-    </g>
+  <g class="exp-body">
+    <circle cx="50" cy="50" r="40" fill="url(#expOrb)"/>
+    <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+      font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+      font-size="30" font-weight="800" fill="white" letter-spacing="-1">
+      <tspan dy="2">FE</tspan>
+    </text>
+    <circle class="exp-shine" cx="50" cy="50" r="40" fill="url(#expShine)"/>
   </g>
-  
-  <!-- Simple Line Mouth (hidden by default) -->
-  <path class="mouth" d="M 35 68 Q 50 78 65 68"/>
 </svg>

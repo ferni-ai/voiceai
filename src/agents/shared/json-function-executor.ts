@@ -36,6 +36,7 @@ import {
 } from './performance/tool-response-cache.js';
 import { executeWithReliability } from './tool-execution-reliability.js';
 import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
+import { recordAction } from './action-history.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -283,6 +284,13 @@ export async function executeJsonFunction(
     // Telemetry: Log successful execution
     logJsonExecuted(sessionId, fn, true, executionResult.durationMs);
 
+    // Action History: Record for honest capability responses
+    // (e.g., when user asks "did you call my mom?")
+    if (sessionId) {
+      const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+      recordAction(sessionId, fn, args, true, resultStr?.slice(0, 200));
+    }
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   } catch (err) {
@@ -299,6 +307,11 @@ export async function executeJsonFunction(
 
     // Telemetry: Log failed execution
     logJsonExecuted(sessionId, fn, false, durationMs, String(err));
+
+    // Action History: Record failed attempt for honest capability responses
+    if (sessionId) {
+      recordAction(sessionId, fn, args, false, `Failed: ${String(err).slice(0, 100)}`);
+    }
 
     ctx.onToolComplete?.(executionResult);
     return executionResult;
@@ -382,163 +395,9 @@ async function routeToTool(
   }
 
   // ========================================
-  // LEGACY TOOL ROUTING (will be migrated to modular executors)
+  // LEGACY TOOL ROUTING
+  // Note: Music tools are now handled by modular executor (music-executor.ts)
   // ========================================
-
-  // ========================================
-  // MUSIC TOOLS (Primary use case) - NOW HANDLED BY MODULAR EXECUTOR
-  // ========================================
-  if (fnLower === 'playmusic') {
-    try {
-      const { playMusicUnified } = await import('../../tools/domains/entertainment/music.js');
-      const query = (args.query as string) || 'music';
-      log.info({ query }, '🎵 Playing music');
-      return await playMusicUnified(query);
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Music playback failed');
-      return "I couldn't play music right now. Try again in a moment?";
-    }
-  }
-
-  if (fnLower === 'musiccontrol') {
-    try {
-      // Music control actions - use the real music player
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      const action = (args.action as string)?.toLowerCase();
-
-      log.info({ action }, '🎵 Music control requested');
-
-      switch (action) {
-        case 'pause':
-          musicPlayer.pause();
-          return 'Music paused.';
-        case 'resume':
-        case 'play':
-          await musicPlayer.resume();
-          return 'Resuming the music.';
-        case 'stop':
-          musicPlayer.stop();
-          return 'Music stopped.';
-        case 'skip':
-        case 'next':
-          musicPlayer.skip();
-          return 'Skipping to the next track.';
-        case 'volume': {
-          const level = args.level as number;
-          if (level !== undefined) {
-            musicPlayer.setVolume(level / 100);
-            return `Volume set to ${level} percent.`;
-          }
-          return 'Please specify a volume level.';
-        }
-        default:
-          return `I'm not sure how to ${action} the music. Try pause, play, stop, skip, or volume.`;
-      }
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Music control failed');
-      return "I couldn't control the music right now. Try again?";
-    }
-  }
-
-  if (fnLower === 'musicinfo') {
-    try {
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      const action = (args.action as string)?.toLowerCase();
-
-      if (action === 'playing' || !action) {
-        const state = musicPlayer.getState();
-        if (state.currentTrack) {
-          return `Now playing "${state.currentTrack.name}" by ${state.currentTrack.artist}.`;
-        }
-        return 'Nothing is playing right now.';
-      }
-
-      if (action === 'suggest') {
-        const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
-        const mood = args.mood as string;
-        if (mood) {
-          return await suggestAndPlayMusic(mood);
-        }
-        return 'What kind of mood are you in? I can suggest something fitting.';
-      }
-
-      return 'What would you like to know about the music?';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Music info failed');
-      return "I couldn't get music info right now.";
-    }
-  }
-
-  if (fnLower === 'suggestmusic') {
-    try {
-      const { suggestAndPlayMusic } = await import('../../tools/domains/entertainment/music.js');
-      const mood = args.mood as string;
-
-      if (mood) {
-        log.info({ mood }, '🎵 Suggesting music for mood');
-        return await suggestAndPlayMusic(mood);
-      }
-      return 'What mood are you in? I can suggest something fitting.';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Music suggestion failed');
-      return "I couldn't suggest music right now. What are you in the mood for?";
-    }
-  }
-
-  // Legacy music tool name aliases (route to musicControl)
-  if (fnLower === 'pausemusic' || fnLower === 'pausecallmusic') {
-    try {
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      log.info({ fn }, '🎵 Legacy pause tool - routing to musicControl');
-      musicPlayer.pause();
-      return 'Music paused.';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Pause music failed');
-      return "I couldn't pause the music.";
-    }
-  }
-
-  if (fnLower === 'stopmusic' || fnLower === 'stopcallmusic') {
-    try {
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      log.info({ fn }, '🎵 Legacy stop tool - routing to musicControl');
-      musicPlayer.stop();
-      return 'Music stopped.';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Stop music failed');
-      return "I couldn't stop the music.";
-    }
-  }
-
-  if (fnLower === 'resumemusic' || fnLower === 'resumecallmusic') {
-    try {
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      log.info({ fn }, '🎵 Legacy resume tool - routing to musicControl');
-      await musicPlayer.resume();
-      return 'Resuming the music.';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Resume music failed');
-      return "I couldn't resume the music.";
-    }
-  }
-
-  if (fnLower === 'skipmusic' || fnLower === 'nextsong' || fnLower === 'skipsong') {
-    try {
-      const { getMusicPlayer } = await import('../../audio/music-player.js');
-      const musicPlayer = getMusicPlayer();
-      log.info({ fn }, '🎵 Legacy skip tool - routing to musicControl');
-      musicPlayer.skip();
-      return 'Skipping to the next track.';
-    } catch (err) {
-      log.error({ error: String(err), fn }, '🎵 Skip music failed');
-      return "I couldn't skip the track.";
-    }
-  }
 
   // ========================================
   // MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall)
@@ -1130,21 +989,69 @@ async function routeToTool(
     const target = fnLower.replace('handoffto', '');
     const reason = (args.reason as string) || 'User requested handoff';
 
-    log.info({ target, reason }, '🤝 Handoff requested');
+    log.info({ target, reason, sessionId: ctx.sessionId }, '🤝 Handoff requested via JSON tool');
 
+    // If a custom handler is provided, use it (for specific integrations)
     if (ctx.onHandoff) {
       await ctx.onHandoff(target, reason);
-      return { success: true, target, reason };
+      return { success: true, target, reason, action: 'handoff' };
     }
 
-    // Emit event for handoff
-    return {
-      success: true,
-      target,
-      reason,
-      action: 'handoff',
-      note: 'Handoff event emitted - requires session handler',
-    };
+    // CRITICAL FIX: Actually execute the handoff via the proper executor
+    // This emits the voiceSwitch event which triggers voice/LLM switch
+    try {
+      const { executeHandoff } = await import('../../tools/handoff/executor.js');
+      
+      log.info(
+        { target, reason, sessionId: ctx.sessionId },
+        '🎭 Executing handoff via executor (will emit voiceSwitch event)'
+      );
+      
+      const result = await executeHandoff(target, reason, {
+        sessionId: ctx.sessionId,
+        // Pass through context for proper handoff
+      });
+      
+      if (result.success) {
+        log.info(
+          { target, greeting: result.greeting?.slice(0, 50), sessionId: ctx.sessionId },
+          '✅ Handoff executed successfully'
+        );
+        return {
+          success: true,
+          target,
+          reason,
+          action: 'handoff',
+          greeting: result.greeting,
+          // Tell sanitizer not to speak - greeting already spoken by handler
+          handoffComplete: true,
+        };
+      } else {
+        log.warn(
+          { target, error: result.error, sessionId: ctx.sessionId },
+          '⚠️ Handoff failed'
+        );
+        return {
+          success: false,
+          target,
+          reason,
+          action: 'handoff',
+          error: result.error,
+        };
+      }
+    } catch (err) {
+      log.error(
+        { target, reason, error: String(err), sessionId: ctx.sessionId },
+        '❌ Failed to execute handoff'
+      );
+      // Return a speakable error message
+      return {
+        success: false,
+        target,
+        reason,
+        error: `Couldn't connect you with ${target}. Let me try again in a moment.`,
+      };
+    }
   }
 
   // ========================================

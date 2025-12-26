@@ -16,7 +16,6 @@ import {
   type WellbeingTrend,
   type WellbeingAlert,
   type AlertType,
-  type TrendDirection,
 } from '../types.js';
 
 describe('WellbeingTracking', () => {
@@ -172,6 +171,7 @@ describe('WellbeingTracking', () => {
           signal: 'User said "I feel great today"',
           value: 0.8,
           confidence: 0.7,
+          source: 'text',
         };
 
         expect(signal.dimension).toBe('mood');
@@ -185,8 +185,24 @@ describe('WellbeingTracking', () => {
             signal: 'test signal',
             value: 0.5,
             confidence: 0.5,
+            source: 'text',
           };
           expect(signal.dimension).toBe(dim);
+        });
+      });
+
+      it('should support all signal sources', () => {
+        const sources: WellbeingSignal['source'][] = ['text', 'voice', 'pattern', 'explicit'];
+
+        sources.forEach((source) => {
+          const signal: WellbeingSignal = {
+            dimension: 'mood',
+            signal: 'test',
+            value: 0.5,
+            confidence: 0.5,
+            source,
+          };
+          expect(signal.source).toBe(source);
         });
       });
     });
@@ -195,111 +211,132 @@ describe('WellbeingTracking', () => {
       it('should create valid profile', () => {
         const profile: WellbeingProfile = {
           userId: 'user-123',
-          baseline: {
+          current: null,
+          recentAverage: { mood: 0.6, energy: 0.5 },
+          personalBaseline: {
             mood: 0.6,
-            moodStability: 0.7,
             energy: 0.5,
-            motivation: 0.6,
-            worry: 0.3,
-            physicalTension: 0.2,
-            loneliness: 0.3,
-            socialSatisfaction: 0.7,
-            meaningfulness: 0.7,
-            hopefulness: 0.6,
-            sleepQuality: 0.6,
-            selfCareLevel: 0.5,
           },
-          current: {
-            mood: 0.5,
-            energy: 0.4,
+          baselineConfidence: 0.8,
+          baselineSnapshots: 10,
+          weeklyTrend: {
+            period: 'week',
+            direction: 'stable',
+            magnitude: 0.1,
+            confidence: 0.7,
+            byDimension: {},
+            observations: [],
           },
-          trends: {},
+          monthlyTrend: {
+            period: 'month',
+            direction: 'improving',
+            magnitude: 0.2,
+            confidence: 0.8,
+            byDimension: {},
+            observations: [],
+          },
+          temporalPatterns: [],
+          triggerPatterns: [],
+          alerts: [],
+          createdAt: new Date(),
           lastUpdated: new Date(),
-          snapshotCount: 10,
+          totalSnapshots: 10,
         };
 
         expect(profile.userId).toBe('user-123');
-        expect(profile.snapshotCount).toBe(10);
+        expect(profile.totalSnapshots).toBe(10);
       });
 
-      it('should support partial current dimensions', () => {
-        const profile: WellbeingProfile = {
+      it('should support current snapshot or null', () => {
+        const profileWithSnapshot: WellbeingProfile = {
           userId: 'user',
-          baseline: {
-            mood: 0.5,
-            moodStability: 0.5,
-            energy: 0.5,
-            motivation: 0.5,
-            worry: 0.5,
-            physicalTension: 0.5,
-            loneliness: 0.5,
-            socialSatisfaction: 0.5,
-            meaningfulness: 0.5,
-            hopefulness: 0.5,
-            sleepQuality: 0.5,
-            selfCareLevel: 0.5,
+          current: {
+            id: 'snap-1',
+            userId: 'user',
+            timestamp: new Date(),
+            source: 'detected',
+            dimensions: { mood: 0.5 },
+            confidence: { mood: 0.8 },
+            signals: [],
           },
-          current: { mood: 0.3 }, // Only mood measured recently
-          trends: {},
+          recentAverage: {},
+          personalBaseline: {},
+          baselineConfidence: 0.5,
+          baselineSnapshots: 5,
+          weeklyTrend: {
+            period: 'week',
+            direction: 'stable',
+            magnitude: 0,
+            confidence: 0.5,
+            byDimension: {},
+            observations: [],
+          },
+          monthlyTrend: {
+            period: 'month',
+            direction: 'stable',
+            magnitude: 0,
+            confidence: 0.5,
+            byDimension: {},
+            observations: [],
+          },
+          temporalPatterns: [],
+          triggerPatterns: [],
+          alerts: [],
+          createdAt: new Date(),
           lastUpdated: new Date(),
-          snapshotCount: 1,
+          totalSnapshots: 1,
         };
 
-        expect(profile.current.mood).toBe(0.3);
-        expect(profile.current.energy).toBeUndefined();
+        expect(profileWithSnapshot.current?.dimensions.mood).toBe(0.5);
       });
     });
 
     describe('WellbeingTrend interface', () => {
       it('should create valid trend', () => {
         const trend: WellbeingTrend = {
-          dimension: 'mood',
+          period: 'week',
           direction: 'improving',
           magnitude: 0.15,
           confidence: 0.8,
-          period: 7,
-          significance: 'meaningful',
+          byDimension: {
+            mood: { direction: 'improving', change: 0.1 },
+          },
+          observations: ['Mood has been improving this week'],
         };
 
-        expect(trend.dimension).toBe('mood');
+        expect(trend.period).toBe('week');
         expect(trend.direction).toBe('improving');
-        expect(trend.significance).toBe('meaningful');
       });
 
       it('should support all trend directions', () => {
-        const directions: TrendDirection[] = ['improving', 'declining', 'stable', 'volatile'];
+        const directions: WellbeingTrend['direction'][] = ['improving', 'declining', 'stable'];
 
         directions.forEach((dir) => {
           const trend: WellbeingTrend = {
-            dimension: 'energy',
+            period: 'week',
             direction: dir,
             magnitude: 0.1,
             confidence: 0.7,
-            period: 7,
-            significance: 'notable',
+            byDimension: {},
+            observations: [],
           };
           expect(trend.direction).toBe(dir);
         });
       });
 
-      it('should support all significance levels', () => {
-        const levels: WellbeingTrend['significance'][] = [
-          'minimal',
-          'notable',
-          'meaningful',
-          'significant',
-        ];
+      it('should support all period types', () => {
+        const periods: WellbeingTrend['period'][] = ['week', 'month', 'quarter'];
 
-        levels.forEach((sig) => {
+        periods.forEach((period) => {
           const trend: WellbeingTrend = {
-            dimension: 'motivation',
+            period,
             direction: 'stable',
             magnitude: 0.1,
             confidence: 0.7,
-            period: 7,
-            significance: sig,
+            byDimension: {},
+            observations: [],
           };
-          expect(trend.significance).toBe(sig);
+          expect(trend.period).toBe(period);
         });
       });
     });
@@ -309,78 +346,104 @@ describe('WellbeingTracking', () => {
         const alert: WellbeingAlert = {
           id: 'alert-123',
           userId: 'user-456',
-          type: 'decline',
-          severity: 'moderate',
-          dimension: 'mood',
-          message: 'Your mood has been declining over the past week',
           createdAt: new Date(),
-          acknowledged: false,
+          type: 'significant_decline',
+          severity: 'concern',
+          message: 'Your mood has been declining over the past week',
+          signals: [],
+          recommendations: [],
+          status: 'active',
         };
 
-        expect(alert.type).toBe('decline');
-        expect(alert.severity).toBe('moderate');
-        expect(alert.acknowledged).toBe(false);
+        expect(alert.type).toBe('significant_decline');
+        expect(alert.severity).toBe('concern');
+        expect(alert.status).toBe('active');
       });
 
       it('should support all alert types', () => {
         const types: AlertType[] = [
-          'decline',
-          'volatility',
-          'threshold',
-          'pattern',
-          'crisis',
-          'progress',
+          'depression_risk',
+          'anxiety_spike',
+          'burnout_trajectory',
+          'isolation_pattern',
+          'sleep_deterioration',
+          'motivation_collapse',
+          'significant_decline',
+          'crisis_indicators',
         ];
 
         types.forEach((type) => {
           const alert: WellbeingAlert = {
             id: 'test',
             userId: 'user',
-            type,
-            severity: 'low',
-            dimension: 'energy',
-            message: 'Test alert',
             createdAt: new Date(),
-            acknowledged: false,
+            type,
+            severity: 'watch',
+            message: 'Test alert',
+            signals: [],
+            recommendations: [],
+            status: 'active',
           };
           expect(alert.type).toBe(type);
         });
       });
 
       it('should support all severity levels', () => {
-        const severities: WellbeingAlert['severity'][] = ['low', 'moderate', 'high', 'critical'];
+        const severities: WellbeingAlert['severity'][] = ['watch', 'concern', 'urgent'];
 
         severities.forEach((severity) => {
           const alert: WellbeingAlert = {
             id: 'test',
             userId: 'user',
-            type: 'pattern',
-            severity,
-            dimension: 'worry',
-            message: 'Test alert',
             createdAt: new Date(),
-            acknowledged: false,
+            type: 'significant_decline',
+            severity,
+            message: 'Test alert',
+            signals: [],
+            recommendations: [],
+            status: 'active',
           };
           expect(alert.severity).toBe(severity);
         });
       });
 
-      it('should allow optional suggestion and data', () => {
+      it('should support all status values', () => {
+        const statuses: WellbeingAlert['status'][] = ['active', 'acknowledged', 'resolved', 'dismissed'];
+
+        statuses.forEach((status) => {
+          const alert: WellbeingAlert = {
+            id: 'test',
+            userId: 'user',
+            createdAt: new Date(),
+            type: 'anxiety_spike',
+            severity: 'concern',
+            message: 'Test alert',
+            signals: [],
+            recommendations: [],
+            status,
+          };
+          expect(alert.status).toBe(status);
+        });
+      });
+
+      it('should allow recommendations', () => {
         const alert: WellbeingAlert = {
           id: 'test',
           userId: 'user',
-          type: 'decline',
-          severity: 'moderate',
-          dimension: 'sleepQuality',
-          message: 'Sleep quality declining',
-          suggestion: 'Consider setting a consistent bedtime',
-          data: { averageDrop: 0.2, daysTracked: 7 },
           createdAt: new Date(),
-          acknowledged: false,
+          type: 'sleep_deterioration',
+          severity: 'concern',
+          message: 'Sleep quality declining',
+          signals: [],
+          recommendations: [
+            { target: 'user', action: 'Consider setting a consistent bedtime', priority: 'medium' },
+            { target: 'ferni', action: 'Check in about sleep habits', priority: 'high' },
+          ],
+          status: 'active',
         };
 
-        expect(alert.suggestion).toBe('Consider setting a consistent bedtime');
-        expect(alert.data?.averageDrop).toBe(0.2);
+        expect(alert.recommendations).toHaveLength(2);
+        expect(alert.recommendations[0].action).toBe('Consider setting a consistent bedtime');
       });
     });
   });
@@ -413,7 +476,7 @@ describe('WellbeingTracking', () => {
 
       // All dimensions except mood should be 0-1
       const otherDimensions = Object.entries(dimensions).filter(([key]) => key !== 'mood');
-      otherDimensions.forEach(([key, value]) => {
+      otherDimensions.forEach(([, value]) => {
         expect(value).toBeGreaterThanOrEqual(0);
         expect(value).toBeLessThanOrEqual(1);
       });
@@ -463,18 +526,18 @@ describe('WellbeingTracking', () => {
   });
 
   describe('Alert thresholds', () => {
-    it('should trigger low severity for small drops', () => {
+    it('should trigger watch severity for small drops', () => {
       const baseline = 0.6;
       const current = 0.5;
       const drop = baseline - current;
 
       // Use toBeCloseTo for floating point comparison
       expect(drop).toBeCloseTo(0.1, 10);
-      // Small drops are low severity
+      // Small drops are watch severity
       expect(drop).toBeLessThan(0.2);
     });
 
-    it('should trigger moderate severity for medium drops', () => {
+    it('should trigger concern severity for medium drops', () => {
       const baseline = 0.7;
       const current = 0.45;
       const drop = baseline - current;
@@ -485,7 +548,7 @@ describe('WellbeingTracking', () => {
       expect(drop).toBeLessThan(0.4);
     });
 
-    it('should trigger high severity for large drops', () => {
+    it('should trigger urgent severity for large drops', () => {
       const baseline = 0.8;
       const current = 0.3;
       const drop = baseline - current;

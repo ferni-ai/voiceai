@@ -255,14 +255,16 @@ export function validateBatchDocuments<T>(
  * ```typescript
  * import { validateForFirestore } from './firestore-converters-integration.js';
  * import { UserProfileSchema } from '../types/user-profile.js';
+ * import { getLogger } from '../utils/safe-logger.js';
  *
+ * const log = getLogger();
  * const userData = { name: 'Test', age: 25 };
  * const validation = validateForFirestore(userData, UserProfileSchema);
  *
  * if (validation.valid) {
  *   await docRef.set(validation.data);
  * } else {
- *   console.error('Validation errors:', validation.errors);
+ *   log.error({ errors: validation.errors }, 'Validation failed');
  * }
  * ```
  */

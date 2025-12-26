@@ -38,14 +38,14 @@ export {
   LIFE_STAGES,
   createHabitCoachingTools,
 } from '../habit-coaching.js';
-export { createProactiveCoachingTools } from '../proactive-coaching.js';
+export { createProactiveCoachingTools } from '../domains/proactive/coaching/index.js';
 
 // ============================================================================
 // GAMIFICATION DOMAIN
 // ============================================================================
 
 export { createGamificationToolsV2 } from '../domains/habits/gamification-v2.js';
-export { BADGE_DEFINITIONS, TITLE_PROGRESSION } from '../gamification.js';
+export { BADGE_DEFINITIONS, TITLE_PROGRESSION } from '../domains/habits/gamification-constants.js';
 
 // ============================================================================
 // NOTIFICATIONS & EVENTS
@@ -139,4 +139,4 @@ export {
   createMayaMemoryTools,
   createMemoryManagementTools,
   createPeterMemoryTools,
-} from '../persona-memory-tools.js';
+} from '../domains/memory/persona-tools.js';

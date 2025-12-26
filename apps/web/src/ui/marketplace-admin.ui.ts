@@ -29,7 +29,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('MarketplaceAdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -710,7 +710,7 @@ function injectStyles(): void {
 
     .admin-tab--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .admin-tab svg {
@@ -797,7 +797,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-lg);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .item-icon.agent {
@@ -892,9 +892,14 @@ function injectStyles(): void {
     .tag {
       font-size: 0.75rem;
       padding: var(--space-1, 4px) var(--space-2, 8px);
-      background: var(--color-background-tertiary);
+      background: var(--tonal-surface-2);
       color: var(--color-text-secondary);
       border-radius: var(--radius-full);
+      transition: background 0.15s ease-out;
+    }
+
+    .tag:hover {
+      background: var(--tonal-surface-3);
     }
 
     .item-actions, .review-actions {

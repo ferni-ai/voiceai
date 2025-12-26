@@ -10,6 +10,10 @@ import SwiftUI
 public struct AvatarLamp: ViewModifier {
     public let isActive: Bool
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Continuous timer for breathing
     @State private var time: Double = 0
     @State private var isTimerRunning = false
@@ -55,6 +59,9 @@ public struct AvatarLamp: ViewModifier {
         isTimerRunning = true
 
         activeIntensity = isActive ? 1.0 : 0.0
+
+        // Skip continuous 60fps animation when reduce motion is enabled
+        guard !reduceMotion else { return }
 
         // 60fps continuous timer
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in

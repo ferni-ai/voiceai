@@ -10,6 +10,7 @@
  * @module conversation/superhuman/micro-celebrations
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -377,7 +378,7 @@ export function detectMicroWin(message: string): MicroWin | null {
         const celebration =
           llmContent.source === 'llm' && llmContent.content
             ? llmContent.content
-            : celebrations[Math.floor(Math.random() * celebrations.length)];
+            : seededPick(`${Date.now()}:381`, celebrations) ?? celebrations[0];
 
         const win: MicroWin = {
           type: winType,
@@ -385,8 +386,8 @@ export function detectMicroWin(message: string): MicroWin | null {
           trigger: match[0],
           celebration,
           followUp:
-            Math.random() > 0.5
-              ? followUps[Math.floor(Math.random() * followUps.length)]
+            !seededChance(`${Date.now()}:1`, 0.5)
+              ? seededPick(`${Date.now()}:390`, followUps) ?? followUps[0]
               : undefined,
         };
 

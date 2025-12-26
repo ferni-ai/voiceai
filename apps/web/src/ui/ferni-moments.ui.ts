@@ -39,7 +39,7 @@ import { morphIconToText, morphTextToIcon, setExpression } from './ferni-express
 const log = createLogger('FerniMoments');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // GSAP helper - convert ms to seconds
 const toSeconds = (ms: number) => ms / 1000;
@@ -598,7 +598,7 @@ function playIconMoment(momentContainer: HTMLElement, config: MomentConfig): voi
 
   // For single centered icons, use the dramatic morph system
   if (isSingleCenteredIcon) {
-    playDramaticIconMoment(iconSvg, config);
+    void playDramaticIconMoment(iconSvg, config);
     return;
   }
 

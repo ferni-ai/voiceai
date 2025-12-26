@@ -412,9 +412,9 @@ class WearableSettingsUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -430,10 +430,14 @@ class WearableSettingsUI {
         max-width: clamp(336px, 90vw, 480px);
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-xl, 1.5rem);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
         transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }

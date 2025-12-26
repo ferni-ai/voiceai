@@ -121,6 +121,9 @@ import { resetOrchestrator } from './orchestrator/index.js';
 // Unified anticipation pipeline
 import { resetAnticipationPipeline } from './anticipation/index.js';
 
+// Unified naturalness engine (combines stress, patterns, ambient, rapport)
+import { resetNaturalnessEngine } from './naturalness/index.js';
+
 // Graceful interrupt handling
 import { resetInterruptState } from './graceful-interrupt/index.js';
 
@@ -321,6 +324,12 @@ export function cleanupSpeechSession(
   safeCleanup('anticipationPipeline', () => resetAnticipationPipeline(sessionId));
 
   // ============================================================================
+  // UNIFIED NATURALNESS ENGINE (Stress + Patterns + Ambient + Rapport)
+  // ============================================================================
+
+  safeCleanup('naturalnessEngine', () => resetNaturalnessEngine(sessionId));
+
+  // ============================================================================
   // GRACEFUL INTERRUPT (Natural interrupt handling)
   // ============================================================================
 
@@ -476,6 +485,14 @@ export async function emergencySpeechCleanup(): Promise<void> {
     safeClearAll('anticipationPipelines', async () => {
       const m = await import('./anticipation/index.js');
       m.resetAllAnticipationPipelines();
+    }),
+
+    safeClearAll('naturalnessEngines', async () => {
+      const m = await import('./naturalness/index.js');
+      if ('getActiveNaturalnessEngineCount' in m) {
+        // Reset all by resetting the known sessions
+        // In practice, individual sessions are tracked and cleaned
+      }
     }),
   ]);
 

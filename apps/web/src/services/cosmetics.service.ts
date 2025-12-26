@@ -612,7 +612,7 @@ function applySkinConfig(config: Record<string, string>): void {
     } else {
       root.style.setProperty('--skin-primary', config.primaryColor);
       // Also set with alpha for glow effects
-      const glowColor = config.glowColor || `${config.primaryColor}50`;
+      const glowColor = config.glowColor ?? `${config.primaryColor}50`;
       root.style.setProperty('--skin-glow', glowColor);
     }
   }

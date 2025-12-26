@@ -22,6 +22,8 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
+import { detectHeavyContentKeywords as detectHeavyContent } from './utils/detection.js';
+
 const log = getLogger().child({ module: 'adaptive-endpointing' });
 
 // ============================================================================
@@ -116,53 +118,6 @@ const ADJUSTMENTS = {
   // Utterance type
   incompleteUtterance: { minAdd: 300, maxAdd: 500 },
 };
-
-/** Keywords that suggest heavy content needing more processing time */
-const HEAVY_CONTENT_KEYWORDS = [
-  // Emotional
-  'suicide',
-  'kill',
-  'die',
-  'death',
-  'dying',
-  'dead',
-  'abuse',
-  'abused',
-  'trauma',
-  'traumatic',
-  'depressed',
-  'depression',
-  'hopeless',
-  'worthless',
-  'panic',
-  'terrified',
-  'devastated',
-
-  // Life events
-  'divorce',
-  'cancer',
-  'diagnosed',
-  'terminal',
-  'fired',
-  'bankrupt',
-  'homeless',
-  'miscarriage',
-  'stillborn',
-
-  // Relationship
-  'cheated',
-  'affair',
-  'betrayed',
-  'estranged',
-  'disowned',
-
-  // Disclosure
-  'never told anyone',
-  'first time saying',
-  'secret',
-  'ashamed',
-  'embarrassed to admit',
-];
 
 /** Signals that suggest incomplete thought */
 const INCOMPLETE_SIGNALS = [
@@ -300,21 +255,8 @@ export function calculateEndpointingDelay(
   };
 }
 
-/**
- * Detect heavy content in user speech.
- */
-export function detectHeavyContent(text: string): string[] {
-  const found: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  for (const keyword of HEAVY_CONTENT_KEYWORDS) {
-    if (lowerText.includes(keyword.toLowerCase())) {
-      found.push(keyword);
-    }
-  }
-
-  return found;
-}
+// Re-export for backwards compatibility
+export { detectHeavyContentKeywords as detectHeavyContent } from './utils/detection.js';
 
 /**
  * Estimate sentence completeness from text.

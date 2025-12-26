@@ -22,7 +22,7 @@ const log = createLogger({ module: 'HandoffIntelligence' });
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'maya' | 'alex' | 'peter' | 'jack' | 'jordan' | 'nayan';
+export type PersonaId = 'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel';
 
 export interface HandoffCandidate {
   personaId: PersonaId;
@@ -79,8 +79,8 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
     warmIntros: ["I'm here for you"],
     description: 'Your main life coach and emotional anchor',
   },
-  maya: {
-    id: 'maya',
+  'maya-santos': {
+    id: 'maya-santos',
     name: 'Maya',
     specializations: ['habits', 'routines', 'productivity', 'behavioral change', 'daily rituals'],
     keywords: [
@@ -103,8 +103,8 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
     ],
     description: 'Habit architect and routine designer',
   },
-  alex: {
-    id: 'alex',
+  'alex-chen': {
+    id: 'alex-chen',
     name: 'Alex',
     specializations: [
       'communication',
@@ -132,8 +132,8 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
     ],
     description: 'Communication coach and conversation architect',
   },
-  peter: {
-    id: 'peter',
+  'peter-john': {
+    id: 'peter-john',
     name: 'Peter',
     specializations: ['research', 'learning', 'curiosity', 'deep dives', 'knowledge building'],
     keywords: [
@@ -154,31 +154,8 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
     ],
     description: 'Knowledge explorer and research companion',
   },
-  jack: {
-    id: 'jack',
-    name: 'Jack',
-    specializations: ['finance', 'investing', 'money wisdom', 'long-term thinking', 'patience'],
-    keywords: [
-      'money',
-      'invest',
-      'save',
-      'retire',
-      'financial',
-      'budget',
-      'stock',
-      'market',
-      'wealth',
-      'compound',
-    ],
-    warmIntros: [
-      "Jack has decades of wisdom about money. He's gentle about it too.",
-      "For financial stuff, Jack's perspective is invaluable. Interested?",
-      "Jack doesn't give financial advice, but his wisdom runs deep.",
-    ],
-    description: 'Financial wisdom keeper (inspired by Bogle)',
-  },
-  jordan: {
-    id: 'jordan',
+  'jordan-taylor': {
+    id: 'jordan-taylor',
     name: 'Jordan',
     specializations: ['events', 'planning', 'special dates', 'travel', 'life milestones'],
     keywords: [
@@ -200,10 +177,10 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
     ],
     description: 'Event architect and milestone celebrator',
   },
-  nayan: {
-    id: 'nayan',
+  'nayan-patel': {
+    id: 'nayan-patel',
     name: 'Nayan',
-    specializations: ['wisdom', 'philosophy', 'deep questions', 'meaning', 'spiritual'],
+    specializations: ['wisdom', 'philosophy', 'deep questions', 'meaning', 'spiritual', 'long-term thinking', 'patience'],
     keywords: [
       'meaning',
       'purpose',
@@ -214,12 +191,16 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'death',
       'why',
       'existential',
+      'long-term',
+      'patience',
+      'perspective',
     ],
     warmIntros: [
       'Nayan has a way of seeing the deeper patterns. Premium access only, but worth it.',
       'For the big questions, Nayan is our wisest voice.',
+      "When you need perspective on life's big questions, Nayan is who you want.",
     ],
-    description: 'Sage and wisdom keeper (premium)',
+    description: 'Sage and wisdom keeper - where inner peace meets long-term thinking (premium)',
   },
 };
 
@@ -371,7 +352,7 @@ export function recordHandoff(
  */
 export function getUnmetTeamMembers(userId: string): PersonaId[] {
   const experience = getOrCreateExperience(userId);
-  const allPersonas: PersonaId[] = ['maya', 'alex', 'peter', 'jack', 'jordan'];
+  const allPersonas: PersonaId[] = ['maya-santos', 'alex-chen', 'peter-john', 'jordan-taylor', 'nayan-patel'];
 
   return allPersonas.filter((p) => !experience.metPersonas.includes(p));
 }
@@ -428,8 +409,8 @@ export function buildHandoffContext(userId: string, currentPersona: PersonaId): 
   lines.push('• Maya: habits, routines, productivity');
   lines.push('• Alex: communication, boundaries, difficult conversations');
   lines.push('• Peter: research, learning, deep dives');
-  lines.push('• Jack: financial wisdom, long-term thinking');
   lines.push('• Jordan: events, planning, milestones');
+  lines.push('• Nayan: wisdom, philosophy, long-term thinking (premium)');
 
   return lines.join('\n');
 }

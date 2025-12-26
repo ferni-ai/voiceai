@@ -129,7 +129,24 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
     let targetPersonaId = 'unknown';
 
     try {
-      log.info({ data: JSON.stringify(data).slice(0, 200) }, '🔄 voiceSwitch event received');
+      log.info(
+        {
+          sessionId,
+          eventType: 'voiceSwitch',
+          dataPreview: JSON.stringify(data).slice(0, 300),
+          hasPersona: 'persona' in data && !!data.persona,
+          hasNewAgent: 'newAgent' in data,
+        },
+        '📥 [EVENT-HANDLER] voiceSwitch event RECEIVED'
+      );
+
+      // CRITICAL: Check if session is closing before attempting handoff
+      // This prevents "AgentSession is closing" errors and timeouts
+      const { isSessionClosing } = await import('../session-closing-tracker.js');
+      if (isSessionClosing(sessionId)) {
+        log.warn({ sessionId }, '⚠️ [EVENT-HANDLER] Aborting handoff - session is closing');
+        throw new Error('Session is closing - handoff aborted');
+      }
 
       // Extract target persona ID from event data
       if ('persona' in data && data.persona) {
@@ -144,11 +161,17 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
         throw new Error('No target persona in voiceSwitch event');
       }
 
+      log.info(
+        { sessionId, targetPersonaId },
+        '🎯 [EVENT-HANDLER] Target persona extracted'
+      );
+
       diag.entry(`🔄 voiceSwitch: Switching to ${targetPersonaId}`);
 
       // Get adapter (should exist from above)
       const currentAdapter = getSessionAdapter(sessionId);
       if (!currentAdapter) {
+        log.error({ sessionId }, '❌ [EVENT-HANDLER] CoordinatorAdapter not found!');
         throw new Error('CoordinatorAdapter not available');
       }
 
@@ -156,8 +179,14 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
       const greeting = 'greeting' in data ? data.greeting : undefined;
       const reason = greeting || 'LLM requested handoff';
 
+      log.info(
+        { sessionId, targetPersonaId, reason, fastMode: false, source: 'llm' },
+        '🔄 [EVENT-HANDLER] Calling adapter.executeHandoff()...'
+      );
+
       // LLM-initiated = FULL BANTER (not fast mode)
       // The LLM is making a conversational transfer, so allow natural goodbye/hello
+      const adapterStart = Date.now();
       const result = await currentAdapter.executeHandoff(targetPersonaId, reason, {
         userProfile: services.userProfile,
         subscriptionTier:
@@ -166,6 +195,18 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
         source: 'llm',
       });
 
+      log.info(
+        {
+          sessionId,
+          targetPersonaId,
+          success: result.success,
+          error: result.error,
+          traceId: result.traceId,
+          adapterDurationMs: Date.now() - adapterStart,
+        },
+        '🔄 [EVENT-HANDLER] adapter.executeHandoff() returned'
+      );
+
       if (!result.success) {
         throw new Error(result.error || 'Handoff failed');
       }
@@ -173,11 +214,15 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
       const duration = Date.now() - startTime;
       log.info(
         { targetPersonaId, durationMs: duration, traceId: result.traceId },
-        '✅ voiceSwitch complete'
+        '✅ [EVENT-HANDLER] voiceSwitch COMPLETE'
       );
 
       // Emit completion event (for executor.ts to know we're done)
       // CRITICAL: Field names MUST match what executor.ts expects
+      log.info(
+        { targetPersonaId, duration },
+        '📤 [EVENT-HANDLER] Emitting handoffHandlerComplete event'
+      );
       handoffEvents.emit('handoffHandlerComplete', {
         targetId: targetPersonaId, // executor.ts expects 'targetId', not 'targetPersonaId'
         success: true,

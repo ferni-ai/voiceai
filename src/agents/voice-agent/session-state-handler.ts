@@ -51,6 +51,8 @@ import type { UserData } from '../shared/types.js';
 import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Better Than Human - Silence Interpreter integration
+import { processSilenceWithInterpreter } from '../integrations/better-than-human-integration.js';
 
 // ============================================================================
 // TYPES
@@ -144,6 +146,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // Timer tracking for cleanup (prevents memory leaks on disconnect)
   let earlyAckTimer: ReturnType<typeof setTimeout> | null = null;
   let earlyAckCleanupTimer: ReturnType<typeof setTimeout> | null = null;
+  // Track event handler reference to prevent MaxListenersExceededWarning
+  // (new handler was being added on each user stop without removing previous)
+  let earlyAckAgentStateHandler: ((event: { newState: string }) => void) | null = null;
   let liveBackchannelInterval: ReturnType<typeof setInterval> | null = null;
   let liveBackchannelFailsafeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -346,11 +351,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       if (result.shouldTrigger) {
         // FIX: Use safeGenerateReply - don't await, fire and forget for backchannels
         // Backchannels should be quick acknowledgments, not blocking operations
+        // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
         void safeGenerateReply(session, {
           instructions: result.instructions,
           allowInterruptions: true,
           waitForPlayout: false, // Don't wait - backchannels are non-blocking
           context: 'backchannel',
+          sessionId,
         });
 
         const backchannelFiredAt = Date.now();
@@ -653,6 +660,22 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // Clear idle timeout - user is active
       clearIdleTimeout();
 
+      // Clear early-ack timer - user is speaking again
+      // This prevents "conversation_already_has_active_response" errors from OpenAI
+      // when the early-ack fires while a response is already in progress
+      if (earlyAckTimer) {
+        clearTimeout(earlyAckTimer);
+        earlyAckTimer = null;
+      }
+      if (earlyAckCleanupTimer) {
+        clearTimeout(earlyAckCleanupTimer);
+        earlyAckCleanupTimer = null;
+      }
+      if (earlyAckAgentStateHandler) {
+        session.off(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
+        earlyAckAgentStateHandler = null;
+      }
+
       // Stop ambient music when user starts speaking
       stopAmbientMusic();
       conversationManager.handleUserStartedSpeaking();
@@ -753,7 +776,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // DEAD AIR FIX: Early silence detection
       const userStoppedAt = Date.now();
 
-      // Clear any existing early ack timers before creating new ones
+      // Clear any existing early ack timers and handlers before creating new ones
+      // This prevents MaxListenersExceededWarning memory leak
       if (earlyAckTimer) {
         clearTimeout(earlyAckTimer);
         earlyAckTimer = null;
@@ -761,6 +785,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       if (earlyAckCleanupTimer) {
         clearTimeout(earlyAckCleanupTimer);
         earlyAckCleanupTimer = null;
+      }
+      if (earlyAckAgentStateHandler) {
+        session.off(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
+        earlyAckAgentStateHandler = null;
       }
 
       earlyAckTimer = setTimeout(() => {
@@ -820,18 +848,25 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         }
       };
 
-      const agentStateHandler = (agentEvent: { newState: string }) => {
+      // Store handler reference so we can remove it on next user stop
+      earlyAckAgentStateHandler = (agentEvent: { newState: string }) => {
         if (agentEvent.newState === 'speaking') {
           cleanupEarlyAck();
-          session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+          if (earlyAckAgentStateHandler) {
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
+            earlyAckAgentStateHandler = null;
+          }
         }
       };
-      session.on(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+      session.on(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
 
       // Clean up after 10 seconds regardless (prevents memory leaks)
       earlyAckCleanupTimer = setTimeout(() => {
         cleanupEarlyAck();
-        session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+        if (earlyAckAgentStateHandler) {
+          session.off(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
+          earlyAckAgentStateHandler = null;
+        }
         earlyAckCleanupTimer = null;
       }, 10000);
 
@@ -889,6 +924,46 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             confidence: silenceAnalysis.confidence,
             suggestedResponse: silenceAnalysis.suggestedResponse,
           });
+
+          // 🌟 Better Than Human: Silence Interpreter - learns comfort thresholds
+          try {
+            const bthSilenceAnalysis = processSilenceWithInterpreter(
+              {
+                durationMs: silenceDurationMs,
+                precedingTopic: silenceContext.topicsDiscussed.slice(-1)[0],
+                precedingEmotion: userData.lastEmotionAnalysis?.primary,
+                precedingUserMessage: silenceContext.lastUserMessage,
+                voiceMarkersBefore: {
+                  // Map prosody features to VoiceMarkers format
+                  breathPattern: 'normal', // Estimated from energy/rate
+                  microSounds: [], // Would need raw audio analysis
+                  energyJustBefore: userData.voiceEmotion?.prosody?.energyMean ?? 0.5,
+                  emotionJustBefore: userData.lastEmotionAnalysis?.primary,
+                },
+                conversationPhase:
+                  (userData.turnCount ?? 0) < 3
+                    ? 'opening'
+                    : (userData.turnCount ?? 0) > 20
+                      ? 'closing'
+                      : silenceContext.recentEmotionalTone === 'heavy'
+                        ? 'deep'
+                        : 'middle',
+              },
+              {
+                userId,
+                sessionId,
+                personaId: sessionPersona.id,
+                turnCount: userData.turnCount || 0,
+              }
+            );
+
+            if (bthSilenceAnalysis) {
+              // Store enhanced analysis for context building
+              (userData as Record<string, unknown>).betterThanHumanSilence = bthSilenceAnalysis;
+            }
+          } catch (bthErr) {
+            getLogger().debug({ error: bthErr }, 'Better Than Human silence analysis failed');
+          }
         } catch (silenceErr) {
           getLogger().debug({ error: silenceErr }, 'Silence analysis failed');
         }
@@ -1020,11 +1095,14 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             // FIX: Use safeGenerateReply to prevent native mutex crash
             // The SDK's generateReply can timeout and trigger a native crash
             // in @livekit/rtc-node when cleanup races with the mutex
+            // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
+            // (prevents errors after handoff when old session is draining)
             const result = await safeGenerateReply(session, {
               instructions: silenceInstructions.instructions,
               allowInterruptions: silenceInstructions.allowInterruptions,
               fallbackMessage: silenceInstructions.fallback,
               context: `silence-${silenceInstructions.type}`,
+              sessionId,
             });
 
             if (result.success) {

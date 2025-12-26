@@ -3,9 +3,13 @@
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/EmotionalSoundEngineTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniActivityAttributesTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/FerniSharedTests.swift
+/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/GlowHaloTests.swift
+/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalPixarEyesTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/MagicalSplashViewTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/OnboardingJourneyViewTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PersonaTests.swift
+/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarEyesTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarPersonalityTests.swift
+/Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/PixarVoiceOrbTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/RelationshipArcServiceTests.swift
 /Users/sethford/Documents/voiceai/apps/shared/Tests/FerniSharedTests/StageProgressViewTests.swift

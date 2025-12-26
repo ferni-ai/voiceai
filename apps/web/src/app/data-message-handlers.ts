@@ -313,6 +313,12 @@ export function handleDataMessage(message: DataMessage): void {
       handlePartialTranscript(message as PartialTranscriptEvent);
       break;
 
+    case 'avatar_cue':
+      // 🔮 BETTER THAN HUMAN: Avatar cues from anticipatory trigger engine
+      // Shows empathy BEFORE user finishes speaking - "reading the future"
+      handleAvatarCue(message as AvatarCueEvent);
+      break;
+
     case 'trust_signal':
       // 💚 Trust Signal: "Ferni noticed..." UI cards from backend trust systems
       handleTrustSignal(message as TrustSignalEvent);
@@ -483,6 +489,86 @@ interface VoiceProsodyEvent extends DataMessage {
   speechRate?: number;
   voiceQuality?: number;
   breathiness?: number;
+}
+
+// ============================================================================
+// AVATAR CUE HANDLER - Anticipatory Emotional Intelligence
+// ============================================================================
+
+/**
+ * Avatar cue event from anticipatory trigger engine
+ *
+ * Sent when the Speech Orchestrator predicts emotion BEFORE the user finishes
+ * speaking. This is the "reading the future" capability.
+ */
+interface AvatarCueEvent extends DataMessage {
+  type: 'avatar_cue';
+  /** Always 'anticipatory_response' from anticipation engine */
+  anticipatoryType: 'anticipatory_response';
+  /** Expression to show: soften, concern, warmth, excitement, attentive, neutral */
+  expression: 'soften' | 'concern' | 'warmth' | 'excitement' | 'attentive' | 'neutral';
+  /** Gesture hint: micro-nod, lean-in, open-hands, gentle-smile, none */
+  gesture: 'micro-nod' | 'lean-in' | 'open-hands' | 'gentle-smile' | 'none';
+  /** Eye contact mode */
+  eyeContact: 'maintain' | 'soften' | 'give-space';
+  /** What the engine predicted (for debugging/analytics) */
+  anticipatedOutcome?: string;
+}
+
+/**
+ * Handle avatar cue from anticipatory trigger engine
+ *
+ * BETTER THAN HUMAN: This is the "reading the future" capability - showing
+ * empathy BEFORE the user finishes speaking. Maps backend cues to frontend
+ * micro-expressions for subliminal trust building.
+ */
+function handleAvatarCue(event: AvatarCueEvent): void {
+  log.info('🔮 Avatar cue received (anticipatory)', {
+    expression: event.expression,
+    gesture: event.gesture,
+    anticipatedOutcome: event.anticipatedOutcome,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  // Map backend expressions to frontend micro-expressions
+  switch (event.expression) {
+    case 'concern':
+      playMicroExpression('concern_flash');
+      break;
+    case 'warmth':
+      playMicroExpression('warmth_pulse');
+      break;
+    case 'soften':
+      playMicroExpression('warmth_pulse'); // soften maps to warmth
+      break;
+    case 'excitement':
+      playMicroExpression('interest_flash');
+      break;
+    case 'attentive':
+      playMicroExpression('protective'); // attentive = protective presence
+      break;
+    case 'neutral':
+      playMicroExpression('noticing'); // subtle acknowledgment
+      break;
+  }
+
+  // Handle gestures - these enhance the expression
+  if (event.gesture === 'lean-in') {
+    playMicroExpression('curious_lean');
+  } else if (event.gesture === 'gentle-smile') {
+    playMicroExpression('warmth_pulse');
+  } else if (event.gesture === 'micro-nod') {
+    // Micro-nods handled by active listening system
+    ferni.onUserSpeechPause(200); // Simulates pause that triggers nod
+  }
+
+  // Track for analytics (anticipation worked!)
+  log.debug('🔮 Anticipatory avatar cue triggered', {
+    expression: event.expression,
+    gesture: event.gesture,
+    outcome: event.anticipatedOutcome,
+  });
 }
 
 /**

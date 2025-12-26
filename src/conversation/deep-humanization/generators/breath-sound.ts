@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/breath-sound
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -40,7 +41,7 @@ export async function generateBreathSound(
 ): Promise<GeneratorResult> {
   const probability = HUMANIZATION_CONFIG.probabilities.breathSound;
 
-  if (Math.random() > probability) {
+  if (!seededChance(`${Date.now()}:1`, probability)) {
     return null;
   }
 
@@ -59,7 +60,7 @@ export async function generateBreathSound(
   }
 
   const sounds = BREATH_SOUNDS[type];
-  const content = sounds[Math.floor(Math.random() * sounds.length)];
+  const content = seededPick(`${Date.now()}:63`, sounds) ?? sounds[0];
 
   return {
     type: 'breath_sound',

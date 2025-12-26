@@ -813,7 +813,7 @@ export class CreativeYouDashboard {
           }
           .episode-duration {
             font-size: var(--text-sm);
-            color: var(--persona-primary);
+            color: var(--persona-text);
             text-align: center;
             margin: 0 0 var(--space-4);
           }
@@ -1021,7 +1021,7 @@ export class CreativeYouDashboard {
           font-size: var(--text-2xs);
           text-transform: uppercase;
           letter-spacing: var(--tracking-wider);
-          color: var(--persona-primary);
+          color: var(--persona-text);
           margin-bottom: var(--space-1);
           display: block;
         }
@@ -1247,7 +1247,7 @@ export class CreativeYouDashboard {
         font-weight: var(--font-weight-semibold);
         letter-spacing: var(--tracking-widest);
         text-transform: uppercase;
-        color: var(--persona-primary);
+        color: var(--persona-text);
         margin-bottom: var(--space-1);
         display: block;
       }
@@ -1416,7 +1416,7 @@ export class CreativeYouDashboard {
       .pick-icon-container svg {
         width: 32px;
         height: 32px;
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       .pick-info {
@@ -1453,7 +1453,7 @@ export class CreativeYouDashboard {
         align-items: center;
         gap: var(--space-1-5);
         font-size: var(--text-2xs);
-        color: var(--persona-primary);
+        color: var(--persona-text);
         margin: 0 0 var(--space-2) 0;
         padding: var(--space-1-5) var(--space-2);
         background: var(--persona-primary-subtle, rgba(74, 103, 65, 0.08));
@@ -1561,7 +1561,7 @@ export class CreativeYouDashboard {
         display: block;
         font-size: var(--text-xl);
         font-weight: var(--font-weight-bold);
-        color: var(--persona-primary);
+        color: var(--persona-text);
       }
 
       .dna-stats .stat-label {
@@ -1636,7 +1636,7 @@ export class CreativeYouDashboard {
       }
 
       .track-card:hover {
-        border-color: var(--persona-primary);
+        border-color: var(--persona-text);
       }
 
       .track-info h4 {

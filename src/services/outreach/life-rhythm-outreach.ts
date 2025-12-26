@@ -54,7 +54,8 @@ const DEFAULT_CONFIG: LifeRhythmOutreachConfig = {
   minConfidence: 0.6,
   minHoursBetweenOutreach: 24,
   maxPerDay: 1,
-  enabled: true,
+  // OPT-OUT BY DEFAULT: Users must explicitly enable life rhythm outreach
+  enabled: false,
 };
 
 // Track last outreach times per user

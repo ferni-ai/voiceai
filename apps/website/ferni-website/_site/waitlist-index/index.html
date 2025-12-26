@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni - Coming Soon | Ferni</title>
+  <meta name="description" content="Join the waitlist for Ferni, your AI life coach who truly listens. Six specialists, one conversation.">
+
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  
+  <link rel="icon" href="/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4a6741">
+
+  
+  <link rel="stylesheet" href="/css/_tokens.css">
+  <link rel="stylesheet" href="/css/waitlist.css?v=20251225">
+
+  
+  <meta property="og:title" content="Ferni - Coming Soon | Ferni">
+  <meta property="og:description" content="Join the waitlist for Ferni, your AI life coach who truly listens. Six specialists, one conversation.">
+  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta property="og:url" content="https://ferni.ai/waitlist-index/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ferni">
+
+  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ferniAI">
+  <meta name="twitter:title" content="Ferni - Coming Soon | Ferni">
+  <meta name="twitter:description" content="Join the waitlist for Ferni, your AI life coach who truly listens. Six specialists, one conversation.">
+  <meta name="twitter:image" content="https://ferni.ai/images/og-image.jpg">
+
+  
+  <link rel="canonical" href="https://ferni.ai/waitlist-index/">
+  <meta name="robots" content="index, follow">
+</head>
+<body class="invite-only-page">
+
+  
+  <header class="invite-header">
+    <a href="/" class="invite-logo" aria-label="Ferni Home">
+      <svg viewBox="0 0 32 32" width="40" height="40" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="var(--color-ferni)"/>
+        <text x="16" y="21" text-anchor="middle" fill="white" font-size="14" font-weight="600" font-family="Plus Jakarta Sans, sans-serif">f</text>
+      </svg>
+      <span class="invite-logo-text">Ferni</span>
+    </a>
+  </header>
+
+  
+  <main class="invite-main">
+    
+
+
+<section class="waitlist" id="waitlist">
+  
+  <div class="waitlist__content" id="waitlistContent">
+
+    
+    <div class="waitlist__avatar" aria-hidden="true">
+      <div class="avatar-glow"></div>
+      <div class="avatar-orb">
+        <div class="avatar-pulse"></div>
+      </div>
+    </div>
+
+    
+    <h1 class="waitlist__headline">
+      Something special is coming.
+    </h1>
+
+    
+    <p class="waitlist__subhead">
+      Join the waitlist to be first when Ferni opens its doors.
+    </p>
+
+    
+    <form class="waitlist__form" id="waitlistForm" novalidate>
+      <div class="waitlist__field">
+        <input
+          type="email"
+          id="waitlistEmail"
+          name="email"
+          required
+          autocomplete="email"
+          placeholder="Your email"
+          aria-label="Email address"
+          aria-describedby="emailError"
+        >
+        <span class="waitlist__error" id="emailError" role="alert" aria-live="polite"></span>
+      </div>
+
+      
+      <div class="waitlist__honeypot" aria-hidden="true" tabindex="-1">
+        <input type="text" name="website" autocomplete="off" tabindex="-1">
+      </div>
+
+      <button type="submit" class="waitlist__submit" id="waitlistSubmit">
+        <span class="waitlist__submit-text">Join the waitlist</span>
+        <span class="waitlist__submit-loading" aria-hidden="true">
+          <svg class="waitlist__spinner" viewBox="0 0 24 24" width="20" height="20">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <svg class="waitlist__submit-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </form>
+
+    
+    <p class="waitlist__note">
+      We'll only email you when it's time. No spam, ever.
+    </p>
+  </div>
+
+  
+  <div class="waitlist__success" id="waitlistSuccess" hidden>
+    
+    <div class="waitlist__success-icon">
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="var(--color-success)" stroke-opacity="0.2"/>
+        <polyline points="8 12 11 15 16 9" stroke="var(--color-success)"/>
+      </svg>
+    </div>
+
+    
+    <h2 class="waitlist__success-headline">
+      You're on the list!
+    </h2>
+    <p class="waitlist__success-message">
+      We'll reach out soon. Until then, take care of yourself.
+    </p>
+
+    
+    <canvas id="confettiCanvas" class="waitlist__confetti" aria-hidden="true"></canvas>
+  </div>
+</section>
+
+
+  </main>
+
+  
+  <footer class="invite-footer">
+    <p>&copy; 2025 Ferni. Made with care.</p>
+  </footer>
+
+  
+  <script src="/js/waitlist.js?v=20251225"></script>
+</body>
+</html>

@@ -12,7 +12,8 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { trapFocus } from '../utils/accessibility.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+// Animation constants imported but not currently used - DURATION will be used for transitions
+import '../config/animation-constants.js';
 
 const log = createLogger('ConversationMemory');
 
@@ -113,23 +114,34 @@ const styles = `
   .memory-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.4);
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
-  
+
   .memory-modal {
     position: relative;
     width: 95%;
     max-width: clamp(448px, 90vw, 640px);
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl);
+    /* Glass modal styling */
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: scale(0.95);
     transition: transform var(--duration-slow, 300ms) var(--ease-spring);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .memory-modal {
+      background: var(--color-background-elevated, #fffdfb);
+    }
   }
   
   .memory-modal-overlay.visible .memory-modal {
@@ -1096,7 +1108,7 @@ function renderContent(tab: string): void {
  * Render error state
  */
 function renderErrorState(): string {
-  const errorKey = errorMessage || 'generic';
+  const _errorKey = errorMessage || 'generic';
   const title = t(`memoryBrowser.error.title`);
   const message = t(`memoryBrowser.error.message`);
   

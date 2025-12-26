@@ -132,14 +132,17 @@ export class RedisCache {
       // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;
 
+      let redisClient: InstanceType<typeof Redis>;
+
       if (this.config.url) {
-        this.client = new Redis(this.config.url, {
+        redisClient = new Redis(this.config.url, {
           keyPrefix: this.config.keyPrefix,
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
-        }) as unknown as RedisClient;
+          lazyConnect: true, // Don't connect immediately, we'll test connection manually
+        });
       } else {
-        this.client = new Redis({
+        redisClient = new Redis({
           host: this.config.host,
           port: this.config.port,
           password: this.config.password,
@@ -147,10 +150,21 @@ export class RedisCache {
           keyPrefix: this.config.keyPrefix,
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
-        }) as unknown as RedisClient;
+          lazyConnect: true, // Don't connect immediately, we'll test connection manually
+        });
       }
 
-      // Test connection
+      // CRITICAL: Add error handler to prevent "Unhandled error event" crashes
+      // This is required by ioredis when Redis is not available locally
+      redisClient.on('error', (error) => {
+        // Only log once per error type to avoid log spam
+        getLogger().debug({ error: String(error) }, 'Redis connection error (non-blocking)');
+      });
+
+      this.client = redisClient as unknown as RedisClient;
+
+      // Test connection - will throw if Redis unavailable
+      await redisClient.connect();
       await this.client.ping();
 
       this.initialized = true;

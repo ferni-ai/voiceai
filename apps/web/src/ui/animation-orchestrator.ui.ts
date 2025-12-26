@@ -32,7 +32,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('AnimationOrch');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -201,7 +201,7 @@ export function animatePersonaTransition(
           { transform: 'scale(1) rotate(0deg)', opacity: 1 },
         ], {
           duration: DURATION.MODERATE * (toProfile?.timingMultiplier || 1),
-          easing: getEasing(toProfile?.easingPreference || 'playful'),
+          easing: getEasing(toProfile?.easingPreference ?? 'playful'),
           fill: 'forwards',
         });
 
@@ -328,7 +328,7 @@ export function playCharacterReaction(
 
     const animation = element.animate(keyframes, {
       duration: baseDuration * timingMultiplier,
-      easing: getEasing(profile?.easingPreference || 'playful'),
+      easing: getEasing(profile?.easingPreference ?? 'playful'),
       fill: 'forwards',
     });
 
@@ -436,7 +436,7 @@ export function createRipple(
     top: ${y - rect.top - size / 2}px;
     width: ${size}px;
     height: ${size}px;
-    background: ${color || 'var(--persona-glow, rgba(74, 103, 65, 0.3))'};
+    background: ${color ?? 'var(--persona-glow, rgba(74, 103, 65, 0.3))'};
     border-radius: 50%;
     pointer-events: none;
     transform: scale(0);

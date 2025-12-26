@@ -176,7 +176,9 @@ function injectStyles(): void {
     .oura-settings__backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-modal, rgba(44, 37, 32, 0.4));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .oura-settings__panel {
@@ -184,9 +186,12 @@ function injectStyles(): void {
       width: 90%;
       max-width: 420px;
       max-height: 85vh;
-      background: var(--color-background-elevated, #fffdfb);
-      border-radius: var(--radius-xl, 1rem);
-      box-shadow: var(--shadow-2xl);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
@@ -196,6 +201,12 @@ function injectStyles(): void {
 
     .oura-settings--visible .oura-settings__panel {
       transform: scale(1);
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .oura-settings__panel {
+        background: var(--color-background-elevated, #faf6f0);
+      }
     }
 
     .oura-settings__header {
@@ -572,7 +583,7 @@ function renderConnectState(): void {
   if (linkIcon) connectBtn.appendChild(linkIcon);
   connectBtn.appendChild(createElement('span', { textContent: 'Connect Oura' }));
   connectBtn.disabled = isLoading;
-  connectBtn.addEventListener('click', handleConnect);
+  connectBtn.addEventListener('click', () => { void handleConnect(); });
   connectDiv.appendChild(connectBtn);
 
   content.appendChild(connectDiv);

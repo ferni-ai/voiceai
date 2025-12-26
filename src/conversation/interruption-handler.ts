@@ -5,6 +5,7 @@
  * to make Jack feel responsive and natural.
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 import type { AudioFrame } from '@livekit/rtc-node';
@@ -79,7 +80,7 @@ export class InterruptionHandler {
         '<break time="350ms"/><volume ratio="0.6"/><speed ratio="0.9"/>Yes, what\'s on your mind?',
         '<break time="400ms"/><volume ratio="0.65"/>Mm-hmm, go on.',
       ];
-      return yieldingPhrases[Math.floor(Math.random() * yieldingPhrases.length)];
+      return seededPick(`${Date.now()}:83`, yieldingPhrases) ?? yieldingPhrases[0];
     }
 
     // Standard recovery phrases with SSML for soft, natural delivery
@@ -95,7 +96,7 @@ export class InterruptionHandler {
       '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Mm-hmm.',
     ];
 
-    return recoveries[Math.floor(Math.random() * recoveries.length)];
+    return seededPick(`${Date.now()}:99`, recoveries) ?? recoveries[0];
   }
 
   /**
@@ -151,7 +152,7 @@ export class InterruptionHandler {
       return this.getRecoveryPhrase();
     }
 
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:155`, phrases) ?? phrases[0];
   }
 
   /**

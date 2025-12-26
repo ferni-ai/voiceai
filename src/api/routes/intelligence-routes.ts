@@ -12,6 +12,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, getUserId } from '../helpers.js';
+import { requireAuth } from '../auth-middleware.js';
 
 const log = createLogger({ module: 'intelligence-routes' });
 
@@ -197,11 +198,10 @@ async function handleGetSuggestions(
  */
 async function handleEmotionBoost(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
-    if (!userId) {
-      sendError(res, 'User ID required', 401);
-      return true;
-    }
+    // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+    const auth = await requireAuth(req, res);
+    if (!auth) return true; // 401 already sent
+    const { userId } = auth;
 
     const body = await parseBody<{ voiceEmotion?: VoiceEmotionInput }>(req);
     const voiceEmotion = body.voiceEmotion;
@@ -245,11 +245,10 @@ async function handleRecordOutreachResponse(
   res: ServerResponse
 ): Promise<boolean> {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
-    if (!userId) {
-      sendError(res, 'User ID required', 401);
-      return true;
-    }
+    // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+    const auth = await requireAuth(req, res);
+    if (!auth) return true; // 401 already sent
+    const { userId } = auth;
 
     const body = await parseBody<{ responded?: boolean }>(req);
     const responded = body.responded;
@@ -281,11 +280,10 @@ async function handleRecordOutreachResponse(
  */
 async function handleTriggerOutreach(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
-    if (!userId) {
-      sendError(res, 'User ID required', 401);
-      return true;
-    }
+    // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+    const auth = await requireAuth(req, res);
+    if (!auth) return true; // 401 already sent
+    const { userId } = auth;
 
     const { getUnifiedIntelligence } = await import('../../tools/intelligence/index.js');
     const intelligence = getUnifiedIntelligence();
@@ -359,19 +357,16 @@ async function handleGetMetrics(_req: IncomingMessage, res: ServerResponse): Pro
  */
 async function handleUserCorrection(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   try {
+    // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+    const auth = await requireAuth(req, res);
+    if (!auth) return true; // 401 already sent
+    const { userId } = auth;
+
     const body = await parseBody<{
-      userId?: string;
       inputText: string;
       wrongTool: string | null;
       correctTool: string;
     }>(req);
-
-    // Get userId from body since we don't have parsedUrl here
-    const userId = body.userId || (req.headers['x-user-id'] as string);
-    if (!userId) {
-      sendError(res, 'User ID required', 401);
-      return true;
-    }
 
     if (!body.inputText || !body.correctTool) {
       sendError(res, 'inputText and correctTool required', 400);

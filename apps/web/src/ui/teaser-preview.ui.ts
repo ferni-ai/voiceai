@@ -343,8 +343,8 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
           <svg viewBox="0 0 300 120" class="teaser-chart">
             <defs>
               <linearGradient id="growthGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color: var(--persona-primary); stop-opacity: 0.3"/>
-                <stop offset="100%" style="stop-color: var(--persona-primary); stop-opacity: 0"/>
+                <stop offset="0%" style="stop-color: var(--persona-text); stop-opacity: 0.3"/>
+                <stop offset="100%" style="stop-color: var(--persona-text); stop-opacity: 0"/>
               </linearGradient>
             </defs>
             <path d="M0,100 Q50,95 75,80 T150,60 T225,40 T300,30" fill="none" 

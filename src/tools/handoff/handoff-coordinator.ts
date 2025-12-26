@@ -157,6 +157,10 @@ export interface BanterContext {
   isFirstMeeting: boolean;
   /** Whether the user initiated this handoff */
   isUserInitiated: boolean;
+  /** The persona we're switching FROM (needed for arriving welcome banter lookup) */
+  previousAgent: string;
+  /** The persona we're switching TO */
+  targetAgent: string;
 }
 
 /**
@@ -453,6 +457,8 @@ export class HandoffCoordinator {
         cognitiveContext: request.cognitiveContext,
         isFirstMeeting: !this.stateManager.hasMetPersona(canonicalId),
         isUserInitiated: request.source === 'user',
+        previousAgent, // CRITICAL: Needed for arriving welcome banter lookup
+        targetAgent: canonicalId, // The persona we're switching TO
       };
 
       // ====================================================================

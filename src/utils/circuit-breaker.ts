@@ -13,7 +13,47 @@
  */
 
 import { getLogger } from './safe-logger.js';
-import { resilienceMetrics } from '../services/observability/resilience-metrics.js';
+
+// ============================================================================
+// STATE CHANGE CALLBACK (Dependency Injection for metrics)
+// ============================================================================
+
+/**
+ * Callback type for circuit breaker state changes.
+ * Services layer can register a callback to receive state change events.
+ */
+export type CircuitBreakerStateCallback = (
+  name: string,
+  state: CircuitState,
+  failures: number,
+  successes: number,
+  reason?: string
+) => void;
+
+let stateChangeCallback: CircuitBreakerStateCallback | null = null;
+
+/**
+ * Register a callback to be notified of circuit breaker state changes.
+ * This allows the services layer to hook into state changes for metrics.
+ *
+ * @example
+ * // In services/observability/resilience-metrics.ts:
+ * import { registerCircuitBreakerCallback } from '../../utils/circuit-breaker.js';
+ *
+ * registerCircuitBreakerCallback((name, state, failures, successes, reason) => {
+ *   resilienceMetrics.recordCircuitBreakerEvent(name, state, failures, successes, reason);
+ * });
+ */
+export function registerCircuitBreakerCallback(callback: CircuitBreakerStateCallback): void {
+  stateChangeCallback = callback;
+}
+
+/**
+ * Clear the registered callback (for testing).
+ */
+export function clearCircuitBreakerCallback(): void {
+  stateChangeCallback = null;
+}
 
 // ============================================================================
 // TYPES
@@ -159,14 +199,8 @@ export class CircuitBreaker {
         this.successes = 0;
         getLogger().info({ name: this.name }, 'Circuit breaker CLOSED (service recovered)');
 
-        // Report state change to resilience metrics
-        resilienceMetrics.recordCircuitBreakerEvent(
-          this.name,
-          'closed',
-          this.failures,
-          this.successes,
-          undefined
-        );
+        // Report state change via callback (if registered)
+        stateChangeCallback?.(this.name, 'closed', this.failures, this.successes, undefined);
       }
     } else {
       // Reset failure count on success in closed state
@@ -189,8 +223,8 @@ export class CircuitBreaker {
         'Circuit breaker OPEN (half-open test failed)'
       );
 
-      // Report state change to resilience metrics
-      resilienceMetrics.recordCircuitBreakerEvent(
+      // Report state change via callback (if registered)
+      stateChangeCallback?.(
         this.name,
         'open',
         this.failures,
@@ -205,8 +239,8 @@ export class CircuitBreaker {
         'Circuit breaker OPEN (failure threshold reached)'
       );
 
-      // Report state change to resilience metrics
-      resilienceMetrics.recordCircuitBreakerEvent(
+      // Report state change via callback (if registered)
+      stateChangeCallback?.(
         this.name,
         'open',
         this.failures,

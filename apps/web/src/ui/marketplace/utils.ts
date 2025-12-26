@@ -15,7 +15,7 @@ import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
 /**
  * Create tracked timeouts to prevent memory leaks
  */
-export const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+export const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // DEBOUNCE

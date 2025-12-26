@@ -108,9 +108,10 @@ registerInterval(
   60000
 );
 
-// Default preferences
+// Default preferences - OPT-OUT BY DEFAULT
+// Users must explicitly enable proactive outreach
 const DEFAULT_PREFERENCES: OutreachPreferences = {
-  enabled: true,
+  enabled: false,
   maxPerDay: 2,
   maxPerWeek: 5,
   preferredMethod: 'any',

@@ -9,7 +9,7 @@
 
 import { JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
 import type { Job } from '@livekit/protocol';
-import { Room, RoomEvent } from '@livekit/rtc-node';
+import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
@@ -98,11 +98,60 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   const closeEvent = new EventEmitter();
   let connected = false;
   let shutdown = false;
+  let reconnectCount = 0;
+  let lastQuality: string | undefined;
 
+  // === CONNECTION STABILITY MONITORING ===
+
+  // Track disconnection
   room.on(RoomEvent.Disconnected, () => {
     if (!shutdown) {
-      log('Room disconnected', { jobId });
+      log('Room disconnected', { jobId, reconnectCount });
       closeEvent.emit('close', false);
+    }
+  });
+
+  // Track reconnection attempts - critical for debugging drops
+  room.on(RoomEvent.Reconnecting, () => {
+    reconnectCount++;
+    log('🔄 Room reconnecting', { jobId, attempt: reconnectCount });
+  });
+
+  room.on(RoomEvent.Reconnected, () => {
+    log('✅ Room reconnected', { jobId, totalReconnects: reconnectCount });
+  });
+
+  // Track connection quality changes - early warning for drops
+  room.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+    const qualityStr = String(quality);
+    if (qualityStr !== lastQuality) {
+      lastQuality = qualityStr;
+      if (qualityStr === 'poor' || qualityStr === 'lost') {
+        log('⚠️ Connection quality degraded', { jobId, quality: qualityStr, participant: participant?.identity });
+      }
+    }
+  });
+
+  // Track audio subscription failures - can cause mic drops
+  room.on(RoomEvent.TrackSubscriptionFailed, (trackSid, participant, reason) => {
+    log('❌ Track subscription failed', {
+      jobId,
+      trackSid,
+      participant: participant?.identity,
+      reason,
+    });
+  });
+
+  // Track mute state changes - helps debug audio issues
+  room.on(RoomEvent.TrackMuted, (publication, participant) => {
+    if (publication.kind === TrackKind.KIND_AUDIO) {
+      log('🔇 Audio track muted', { jobId, participant: participant?.identity, trackSid: publication.sid });
+    }
+  });
+
+  room.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+    if (publication.kind === TrackKind.KIND_AUDIO) {
+      log('🔊 Audio track unmuted', { jobId, participant: participant?.identity, trackSid: publication.sid });
     }
   });
 

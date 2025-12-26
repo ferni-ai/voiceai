@@ -503,8 +503,10 @@ export function initializeLLMFallback(
 
   if (provider) {
     llmFallbackInstance.setLLMProvider(provider);
-  } else if (process.env.GOOGLE_API_KEY) {
-    llmFallbackInstance.setLLMProvider(createGeminiProvider(process.env.GOOGLE_API_KEY));
+  } else if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+    // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    llmFallbackInstance.setLLMProvider(createGeminiProvider(geminiKey!));
   } else if (process.env.OPENAI_API_KEY) {
     llmFallbackInstance.setLLMProvider(createOpenAIProvider(process.env.OPENAI_API_KEY));
   }

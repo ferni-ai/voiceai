@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { addSeeds, getSeedBalance } from './cosmetics.service.js';
+import { addSeeds } from './cosmetics.service.js';
 
 const log = createLogger('ReferralService');
 

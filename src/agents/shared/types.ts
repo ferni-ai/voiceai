@@ -126,6 +126,8 @@ export interface UserData {
   hasOfferedToPause?: boolean;
   /** Ambient acknowledgment phrase to inject into next response */
   pendingAmbientAcknowledgment?: string | null;
+  /** Data capture acknowledgment to inject (e.g., "I saved Mom's number") */
+  dataCaptureAcknowledgment?: string;
 
   // Conversation context for humanization
   lastUserMessage?: string;
@@ -319,6 +321,14 @@ export interface UserData {
 
   /** When user's last conversation was (for briefing calculation) */
   lastConversationDate?: string;
+
+  // ============================================================
+  // BETTER THAN HUMAN: Calendar Awareness
+  // Loaded asynchronously at session start - provides meeting context
+  // ============================================================
+
+  /** Calendar awareness context loaded at session start */
+  calendarAwareness?: string;
 
   // ============================================================
   // macOS NATIVE APP CONTEXT

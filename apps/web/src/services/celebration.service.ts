@@ -72,7 +72,7 @@ export async function celebrate(type: CelebrationType): Promise<void> {
   log.debug('Celebration triggered:', type);
   
   // Get the element to animate (avatar or container)
-  const element = avatarElement || document.querySelector('.avatar-container') as HTMLElement;
+  const element = avatarElement ?? document.querySelector('.avatar-container') as HTMLElement;
   if (!element) {
     log.warn('No element found for celebration animation');
     return;

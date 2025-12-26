@@ -1,136 +1,30 @@
 /**
  * Tool Optimization System
  *
- * Unified exports for the automated tool optimization infrastructure.
- * This system continuously learns from user interactions and optimizes
- * the tool ecosystem automatically.
+ * Data-driven tool optimization infrastructure:
+ * - Pattern Analysis: User interaction patterns, co-occurrence, journeys
+ * - Feedback Collection: Implicit and explicit tool feedback
+ * - Recommendation Engine: Data-driven tool improvement recommendations
+ * - Auto Optimizer: Automatic tool optimization based on usage patterns
  *
- * Components:
- * - Feedback Collection: Capture explicit and implicit user feedback
- * - Pattern Analysis: Discover usage patterns and opportunities
- * - Recommendations: Generate data-driven improvement suggestions
- * - Auto-Optimization: Continuous improvement loop with A/B testing
+ * These are infrastructure services, not domain tools.
  */
 
-// =============================================================================
-// FEEDBACK COLLECTION
-// =============================================================================
+// Re-export everything from the optimization modules
+export * from './pattern-analyzer.js';
+export * from './feedback-collector.js';
+export * from './recommendation-engine.js';
+export * from './auto-optimizer.js';
 
-export {
-  feedbackCollector,
-  FeedbackCollector,
-  type FeedbackRecord,
-  type FeedbackSummary,
-  type FeedbackType,
-  type ConversationContext,
-} from '../feedback-collector.js';
+// Default exports for convenience
+import { patternAnalyzer } from './pattern-analyzer.js';
+import { feedbackCollector } from './feedback-collector.js';
+import { recommendationEngine } from './recommendation-engine.js';
+import { autoOptimizer } from './auto-optimizer.js';
 
-// =============================================================================
-// PATTERN ANALYSIS
-// =============================================================================
-
-export {
+export default {
   patternAnalyzer,
-  PatternAnalyzer,
-  type ToolCoOccurrence,
-  type ToolSequence,
-  type UserJourney,
-  type GapAnalysis,
-  type ConsolidationOpportunity,
-  type UserSegment,
-  type SessionData,
-} from '../pattern-analyzer.js';
-
-// =============================================================================
-// RECOMMENDATION ENGINE
-// =============================================================================
-
-export {
+  feedbackCollector,
   recommendationEngine,
-  RecommendationEngine,
-  type Recommendation,
-  type RecommendationType,
-  type Evidence,
-  type ImpactAssessment,
-  type ImplementationGuide,
-} from '../recommendation-engine.js';
-
-// =============================================================================
-// AUTO OPTIMIZER
-// =============================================================================
-
-export {
   autoOptimizer,
-  AutoToolOptimizer,
-  type OptimizerConfig,
-  type OptimizationReport,
-  type OptimizationCycle,
-} from '../auto-optimizer.js';
-
-// =============================================================================
-// CONVENIENCE FUNCTIONS
-// =============================================================================
-
-/**
- * Initialize the full optimization system
- */
-export async function initializeOptimizationSystem(config?: {
-  enableAutoRecommendations?: boolean;
-  enableAutoExperiments?: boolean;
-  enableAutoImplementation?: boolean;
-  analysisIntervalMs?: number;
-}): Promise<void> {
-  const { autoOptimizer } = await import('../auto-optimizer.js');
-
-  if (config) {
-    // Create new instance with config would go here
-    // For now, just start with defaults
-  }
-
-  autoOptimizer.start();
-}
-
-/**
- * Shutdown the optimization system gracefully
- */
-export async function shutdownOptimizationSystem(): Promise<void> {
-  const { autoOptimizer } = await import('../auto-optimizer.js');
-  const { feedbackCollector } = await import('../feedback-collector.js');
-
-  autoOptimizer.stop();
-  await feedbackCollector.flush();
-}
-
-/**
- * Quick helper to record a user interaction
- */
-export function recordInteraction(
-  message: string,
-  context: {
-    userId: string;
-    sessionId: string;
-    agentId: string;
-    turnNumber: number;
-    recentTools: string[];
-    lastToolResult?: string;
-  },
-  lastToolId?: string
-): void {
-  void import('../auto-optimizer.js').then(({ autoOptimizer }) => {
-    autoOptimizer.processUserMessage(message, context, lastToolId);
-  });
-}
-
-/**
- * Quick helper to record tool execution
- */
-export function recordToolExecution(
-  sessionId: string,
-  toolId: string,
-  success: boolean,
-  latencyMs: number
-): void {
-  void import('../auto-optimizer.js').then(({ autoOptimizer }) => {
-    autoOptimizer.recordToolExecution(sessionId, toolId, success, latencyMs);
-  });
-}
+};

@@ -944,6 +944,47 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni disk setup-cron',
     ],
   },
+  // ============================================================================
+  // CUSTOM AGENT & SITE COMMANDS - Build and deploy custom agents
+  // ============================================================================
+  auth: {
+    name: 'Auth',
+    description: 'Authenticate with Ferni',
+    icon: '🔐',
+    script: 'apps/cli/src/commands/auth/auth-login.ts',
+    subcommands: ['login', 'logout', 'status'],
+    examples: ['ferni auth login', 'ferni auth status', 'ferni auth logout'],
+  },
+  agent: {
+    name: 'Agent',
+    description: 'Create & manage custom agents',
+    icon: '🤖',
+    handler: handleAgent,
+    subcommands: ['create', 'list', 'show', 'voice', 'memory', 'test', 'deploy', 'delete'],
+    examples: [
+      'ferni agent create',
+      'ferni agent create --template legacy',
+      'ferni agent list',
+      'ferni agent voice upload <id> <file>',
+      'ferni agent memory add <id>',
+      'ferni agent test <id>',
+      'ferni agent deploy <id>',
+    ],
+  },
+  site: {
+    name: 'Site',
+    description: 'Generate & deploy agent websites',
+    icon: '🌐',
+    handler: handleSite,
+    subcommands: ['create', 'preview', 'deploy', 'status'],
+    examples: [
+      'ferni site create --agent <id>',
+      'ferni site create --agent <id> --template memorial',
+      'ferni site preview',
+      'ferni site deploy',
+      'ferni site deploy --ferni',
+    ],
+  },
 };
 
 // ============================================================================
@@ -1017,6 +1058,76 @@ async function handleAgents(args: string[]): Promise<void> {
   // For all other subcommands, delegate to agent-manager.ts
   const agentManagerScript = join(PROJECT_ROOT, 'src', 'cli', 'agent-manager.ts');
   runCommand(agentManagerScript, args);
+}
+
+// ============================================================================
+// CUSTOM AGENT COMMAND (ferni agent - for user-created agents)
+// ============================================================================
+
+async function handleAgent(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  const subcommandArgs = args.slice(1);
+
+  // Route to appropriate script based on subcommand
+  const scriptMap: Record<string, string> = {
+    create: 'apps/cli/src/commands/agent/agent-create.ts',
+    list: 'apps/cli/src/commands/agent/agent-list.ts',
+    show: 'apps/cli/src/commands/agent/agent-show.ts',
+    voice: 'apps/cli/src/commands/agent/agent-voice.ts',
+    memory: 'apps/cli/src/commands/agent/agent-memory.ts',
+    test: 'apps/cli/src/commands/agent/agent-test.ts',
+    deploy: 'apps/cli/src/commands/agent/agent-deploy.ts',
+    delete: 'apps/cli/src/commands/agent/agent-delete.ts',
+  };
+
+  const script = scriptMap[subcommand];
+  if (!script) {
+    log.error(messages.unknownCommand(subcommand));
+    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
+    console.log(`\n  Examples:`);
+    console.log(`    ferni agent create                    Create new agent`);
+    console.log(`    ferni agent create --template legacy  From template`);
+    console.log(`    ferni agent list                      List your agents`);
+    console.log(`    ferni agent voice upload <id> <file>  Upload voice`);
+    console.log(`    ferni agent memory add <id>           Add memory`);
+    console.log(`    ferni agent test <id>                 Test agent`);
+    console.log(`    ferni agent deploy <id>               Deploy agent`);
+    return;
+  }
+
+  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
+}
+
+// ============================================================================
+// SITE COMMAND (ferni site - for agent website generation/deployment)
+// ============================================================================
+
+async function handleSite(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'help';
+  const subcommandArgs = args.slice(1);
+
+  // Route to appropriate script based on subcommand
+  const scriptMap: Record<string, string> = {
+    create: 'apps/cli/src/commands/site/site-create.ts',
+    preview: 'apps/cli/src/commands/site/site-preview.ts',
+    deploy: 'apps/cli/src/commands/site/site-deploy.ts',
+    status: 'apps/cli/src/commands/site/site-status.ts',
+  };
+
+  const script = scriptMap[subcommand];
+  if (!script) {
+    log.error(messages.unknownCommand(subcommand));
+    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
+    console.log(`\n  Examples:`);
+    console.log(`    ferni site create --agent <id>          Generate from template`);
+    console.log(`    ferni site create --agent <id> --template memorial`);
+    console.log(`    ferni site preview                      Local preview`);
+    console.log(`    ferni site deploy                       Deploy to Firebase`);
+    console.log(`    ferni site deploy --ferni               Deploy to ferni.ai`);
+    return;
+  }
+
+  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
 }
 
 // ============================================================================
@@ -8085,6 +8196,7 @@ ${colors.bold}What would you like to do?${colors.reset}
     'release',
     'migrate',
     'deps',
+    'auth',
   ];
   const opsCommands = [
     'status',
@@ -8101,6 +8213,8 @@ ${colors.bold}What would you like to do?${colors.reset}
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'];
   const agentCommands = [
     'agents',
+    'agent',
+    'site',
     'personas',
     'tools',
     'voices',
@@ -8345,6 +8459,7 @@ ${colors.bold}Commands:${colors.reset}
       'release',
       'migrate',
       'deps',
+      'auth',
     ],
     Operations: [
       'status',
@@ -8361,6 +8476,8 @@ ${colors.bold}Commands:${colors.reset}
     'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
     'Agents & Quality': [
       'agents',
+      'agent',
+      'site',
       'personas',
       'tools',
       'voices',

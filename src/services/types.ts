@@ -32,7 +32,7 @@ import type { InsightGenerationResult } from '../intelligence/proactive-insight-
 import type { FirestoreVectorStore } from '../memory/firestore-vector-store.js';
 import type { ConversationHistoryTracker, MemoryStore, VectorStore } from '../memory/index.js';
 import type { SpeechContext } from '../speech/index.js';
-import type { HandoffState } from '../tools/handoff-state.js';
+import type { HandoffState } from './handoff/handoff-state.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { HumanizingStateUpdate } from './humanizing-state.js';
 

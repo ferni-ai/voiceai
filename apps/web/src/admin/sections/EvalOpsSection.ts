@@ -462,12 +462,12 @@ async function fetchEvalMetrics(): Promise<EvalMetrics> {
     });
     if (response.ok) {
       const data = await response.json();
-      const metrics = data.metrics || data;
+      const metrics = data.metrics ?? data;
       return {
-        totalEvaluations: metrics.totalEvaluations || 0,
-        passRate: Math.round(metrics.averageScore || 0),
-        flaggedResponses: metrics.flaggedResponses || 0,
-        avgVoiceConsistency: Math.round(metrics.averageScore || 0),
+        totalEvaluations: metrics.totalEvaluations ?? 0,
+        passRate: Math.round(metrics.averageScore ?? 0),
+        flaggedResponses: metrics.flaggedResponses ?? 0,
+        avgVoiceConsistency: Math.round(metrics.averageScore ?? 0),
         lastRunTime: metrics.lastEvaluationTime
           ? formatTimeAgo(new Date(metrics.lastEvaluationTime))
           : 'Never run',
@@ -505,13 +505,13 @@ async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      const evaluations = data.evaluations || [];
+      const evaluations = data.evaluations ?? [];
       return evaluations.map((e: Record<string, unknown>) => ({
-        id: e.id || `eval-${Math.random().toString(36).slice(2)}`,
-        personaId: e.personaId || 'unknown',
-        dimension: e.lowestDimension || 'Quality',
-        score: e.lowestScore || e.overallScore || 0,
-        reason: e.details || 'Flagged for review',
+        id: e.id ?? `eval-${Math.random().toString(36).slice(2)}`,
+        personaId: e.personaId ?? 'unknown',
+        dimension: e.lowestDimension ?? 'Quality',
+        score: e.lowestScore ?? e.overallScore ?? 0,
+        reason: e.details ?? 'Flagged for review',
         timestamp: e.timestamp ? formatTimeAgo(new Date(e.timestamp as string)) : 'recently',
       }));
     }
@@ -531,7 +531,7 @@ async function fetchDimensionAverages(): Promise<DimensionAverages> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.dimensions || {
+      return data.dimensions ?? {
         personaVoice: 0,
         emotionalIntelligence: 0,
         helpfulness: 0,

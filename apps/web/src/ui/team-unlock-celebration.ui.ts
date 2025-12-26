@@ -23,7 +23,7 @@ import { playTeamUnlock } from './sound.ui.js';
 const log = createLogger('TeamUnlockCelebration');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, brand compliant)

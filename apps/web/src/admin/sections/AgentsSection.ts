@@ -341,7 +341,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
       </div>
       <div class="agent-info">
         <div class="agent-name">${agent.name}</div>
-        <div class="agent-subtitle">${agent.subtitle || agent.roleId}</div>
+        <div class="agent-subtitle">${agent.subtitle ?? agent.roleId}</div>
       </div>
       <div class="agent-actions" role="button" tabindex="0">
         <button class="agent-action-btn" data-action="edit" data-agent-id="${agent.id}" aria-label="Edit ${agent.name}">

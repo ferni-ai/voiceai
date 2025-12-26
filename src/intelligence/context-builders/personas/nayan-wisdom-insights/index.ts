@@ -197,7 +197,16 @@ async function buildNayanWisdomInsightsContext(
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
 
     // Get superhuman context (narrative, values, dreams, seasonal)
-    const superhumanContext = await getSuperhuman(userId, 'nayan');
+    // V3 Semantic Intelligence needs current conversation context
+    const personMatch = input.userText?.match(
+      /\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i
+    );
+    const superhumanContext = await getSuperhuman(userId, 'nayan', {
+      currentTranscript: input.userText,
+      currentTopics: input.analysis?.topics?.detected,
+      currentEmotion: input.analysis?.emotion?.primary,
+      currentMentionedPerson: personMatch?.[1],
+    });
     if (superhumanContext) {
       briefingLines.push('\n' + superhumanContext);
     }

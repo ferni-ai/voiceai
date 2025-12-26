@@ -21,6 +21,8 @@ import {
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { seededPick } from './utils/rng.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -313,7 +315,7 @@ function generateFirstMeetingOpener(
   };
 
   const greetings = timeGreetings[time] || timeGreetings.afternoon;
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`time:${time}:${Date.now()}`, greetings) ?? greetings[0];
 
   return {
     greeting,
@@ -337,7 +339,7 @@ function generateReturningRecentOpener(
     `<break time="200ms"/>Oh! <break time="150ms"/>${nameStr}<break time="100ms"/>Good to see you again so soon.`,
   ];
 
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`${Date.now()}:342`, greetings) ?? greetings[0];
 
   return {
     greeting,
@@ -366,14 +368,14 @@ function generateReturningFamiliarOpener(
       `<break time="200ms"/>Hey ${userName}! <break time="150ms"/>How've you been since ${timeRef}?`,
       `<emotion value="affectionate"/><break time="200ms"/>${userName}, <break time="150ms"/>welcome back! <break time="100ms"/>How are things?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:371`, greetings) ?? greetings[0];
   } else {
     const greetings = [
       `<emotion value="happy"/><break time="200ms"/>Hey! <break time="150ms"/>Good to see you again.`,
       `<break time="200ms"/>Welcome back! <break time="150ms"/>How've you been?`,
       `<emotion value="affectionate"/><break time="200ms"/>There you are! <break time="150ms"/>How are things?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:378`, greetings) ?? greetings[0];
   }
 
   return {
@@ -403,13 +405,13 @@ function generateReconnectOpener(
       `<break time="200ms"/>Well! <break time="150ms"/>${userName}! <break time="100ms"/>I was hoping you'd come back.`,
       `<emotion value="affectionate"/><break time="200ms"/>${userName}, <break time="150ms"/>so good to hear from you again. <break time="100ms"/>What's new?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:408`, greetings) ?? greetings[0];
   } else {
     const greetings = [
       `<emotion value="happy"/><break time="200ms"/>Hey! <break time="150ms"/>It's been a while. <break time="100ms"/>How have you been?`,
       `<break time="200ms"/>Well, well! <break time="150ms"/>Good to see you again. <break time="100ms"/>What brings you back?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:414`, greetings) ?? greetings[0];
   }
 
   return {
@@ -476,7 +478,7 @@ function generateThreadContinuityOpener(
     `<emotion value="happy"/><break time="200ms"/>Hey! <break time="150ms"/>Before we start—<break time="100ms"/>what happened with ${question}?`,
   ];
 
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`${Date.now()}:481`, greetings) ?? greetings[0];
 
   return {
     greeting,
@@ -502,31 +504,31 @@ function generateTimeAwareOpener(
       `<volume ratio="0.75"/><break time="200ms"/>Early bird${nameStr}. <break time="150ms"/>I respect that.`,
       `<volume ratio="0.75"/><break time="200ms"/>Up before the world${nameStr}? <break time="150ms"/>What's on your mind?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:507`, greetings) ?? greetings[0];
   } else if (time === 'late_night') {
     const greetings = [
       `<volume ratio="0.75"/><break time="200ms"/>Burning the midnight oil${nameStr}? <break time="150ms"/>I'm here.`,
       `<volume ratio="0.75"/><break time="200ms"/>Late night${nameStr}. <break time="150ms"/>Can't sleep, or just thinking?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:513`, greetings) ?? greetings[0];
   } else if (day === 'weekend') {
     const greetings = [
       `<emotion value="happy"/><break time="200ms"/>Weekend${nameStr}! <break time="150ms"/>Taking time for yourself?`,
       `<break time="200ms"/>Ah, the weekend${nameStr}. <break time="150ms"/>What's going on?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:519`, greetings) ?? greetings[0];
   } else if (day === 'monday') {
     const greetings = [
       `<break time="200ms"/>Monday${nameStr}! <break time="150ms"/>Starting the week right.`,
       `<emotion value="affectionate"/><break time="200ms"/>Monday${nameStr}. <break time="150ms"/>How's the week starting?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:525`, greetings) ?? greetings[0];
   } else if (day === 'friday') {
     const greetings = [
       `<emotion value="happy"/><break time="200ms"/>Friday${nameStr}! <break time="150ms"/>Almost made it through the week.`,
       `<break time="200ms"/>Friday${nameStr}. <break time="150ms"/>Any big plans?`,
     ];
-    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    greeting = seededPick(`${Date.now()}:531`, greetings) ?? greetings[0];
   } else {
     greeting = `<break time="200ms"/>Hey${nameStr}! <break time="150ms"/>What's going on?`;
   }
@@ -563,7 +565,7 @@ function generateSeasonalOpener(
   };
 
   const greetings = seasonalGreetings[season];
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`${Date.now()}:568`, greetings) ?? greetings[0];
 
   return {
     greeting,
@@ -586,7 +588,7 @@ function generateCalendarAwareOpener(
     `<break time="200ms"/>${nameStr}Welcome! <break time="150ms"/>With ${event} approaching, <break time="100ms"/>what's on your mind?`,
   ];
 
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`${Date.now()}:591`, greetings) ?? greetings[0];
 
   return {
     greeting,
@@ -649,7 +651,7 @@ function generateIntentionFollowupOpener(
     ];
   }
 
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const greeting = seededPick(`${Date.now()}:654`, greetings) ?? greetings[0];
 
   return {
     greeting,

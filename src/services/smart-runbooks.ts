@@ -178,9 +178,10 @@ let genAI: GoogleGenerativeAI | null = null;
 async function initializeGemini(): Promise<void> {
   if (genAI) return;
 
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY required for Smart Runbooks');
+    throw new Error('GEMINI_API_KEY or GOOGLE_API_KEY required for Smart Runbooks');
   }
 
   const { GoogleGenerativeAI } = await import('@google/generative-ai');

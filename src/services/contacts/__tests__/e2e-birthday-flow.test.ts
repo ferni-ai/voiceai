@@ -105,10 +105,8 @@ describe('E2E: Birthday Message Flow', () => {
     if (momBirthdayNudge) {
       expect(momBirthdayNudge.daysAway).toBe(3);
       expect(nudgeContext.summary).toContain('Mom');
-    } else {
-      // Log for debugging but don't fail - caching issues in tests are acceptable
-      console.log('Note: Birthday nudge not found - this may be due to test environment caching');
     }
+    // Note: Birthday nudge may not be found due to test environment caching - acceptable
 
     // =========================================================================
     // STEP 3: Verify nudges are formatted for Ferni's context
@@ -209,16 +207,10 @@ describe('E2E: Birthday Message Flow', () => {
     expect(giftSuggestions.length).toBeGreaterThan(0);
 
     // =========================================================================
-    // E2E FLOW COMPLETE
+    // E2E FLOW COMPLETE - All assertions passed
+    // Contact: Mom, Birthday: 3 days away
+    // Message generated, Gift suggestions available
     // =========================================================================
-    console.log('\n============================================');
-    console.log('E2E Birthday Flow - COMPLETE');
-    console.log('============================================');
-    console.log(`Contact: ${mom.name}`);
-    console.log(`Birthday: ${monthDay} (in 3 days)`);
-    console.log(`Message: "${message.slice(0, 50)}..."`);
-    console.log(`Gift suggestions: ${giftSuggestions.length}`);
-    console.log('============================================\n');
   });
 
   it('should create family group for batch messages', async () => {
@@ -260,12 +252,8 @@ describe('E2E: Birthday Message Flow', () => {
     expect(familyGroup.members).toHaveLength(3);
     expect(familyGroup.name).toBe('Family');
 
-    console.log('\n============================================');
-    console.log('Family Group Created - COMPLETE');
-    console.log('============================================');
-    console.log(`Group: ${familyGroup.name}`);
-    console.log(`Members: ${familyGroup.members.length}`);
-    console.log('============================================\n');
+    // Family Group Created - COMPLETE
+    // Group: Family, Members: 3
   });
 
   it('should detect overdue frequent contacts for proactive check-ins', async () => {
@@ -311,16 +299,8 @@ describe('E2E: Birthday Message Flow', () => {
         nudgeContext.summary.includes('Best Friend')
     ).toBe(true);
 
-    console.log('\n============================================');
-    console.log('Overdue Contact Detection - COMPLETE');
-    console.log('============================================');
-    console.log(`Detected: ${overdue.length} overdue frequent contacts`);
-    if (bestieOverdue) {
-      console.log(
-        `  - ${bestieOverdue.contactName}: ${bestieOverdue.daysSinceLastContact} days since contact`
-      );
-    }
-    console.log('============================================\n');
+    // Overdue Contact Detection - COMPLETE
+    // Detected overdue frequent contacts (including Best Friend if present)
   });
 });
 
@@ -366,7 +346,7 @@ describe('Better Than Human Capabilities', () => {
       const totalDates = contacts.reduce((sum, c) => sum + (c.importantDates?.length || 0), 0);
 
       expect(totalDates).toBe(5);
-      console.log('Perfect Memory: Remembered all 5 important dates across 3 contacts');
+      // Perfect Memory: Remembered all 5 important dates across 3 contacts
     });
   });
 
@@ -395,8 +375,7 @@ describe('Better Than Human Capabilities', () => {
 
       expect(birthdayNudge).toBeDefined();
       expect(birthdayNudge?.daysAway).toBe(5); // Notified 5 days early
-
-      console.log('Proactive Outreach: Detected birthday 5 days in advance');
+      // Proactive Outreach: Detected birthday 5 days in advance
     });
   });
 
@@ -421,8 +400,7 @@ describe('Better Than Human Capabilities', () => {
         const html = template(testParams);
         expect(emojiRegex.test(html)).toBe(false);
       }
-
-      console.log('Brand Compliance: All email templates are emoji-free');
+      // Brand Compliance: All email templates are emoji-free
     });
   });
 });

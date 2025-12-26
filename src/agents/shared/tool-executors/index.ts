@@ -26,6 +26,7 @@ import { habitsExecutor } from './habits-executor.js';
 import { homeExecutor } from './home-executor.js';
 import { schedulingExecutor } from './scheduling-executor.js';
 import { conciergeExecutor } from './concierge-executor.js';
+import { telephonyExecutor } from './telephony-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -47,6 +48,7 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   homeExecutor,
   schedulingExecutor,
   conciergeExecutor,
+  telephonyExecutor,
   // TODO: Add more executors:
   // - handoffExecutor
   // - engagementExecutor
@@ -156,3 +158,4 @@ export { habitsExecutor } from './habits-executor.js';
 export { homeExecutor } from './home-executor.js';
 export { schedulingExecutor } from './scheduling-executor.js';
 export { conciergeExecutor } from './concierge-executor.js';
+export { telephonyExecutor } from './telephony-executor.js';

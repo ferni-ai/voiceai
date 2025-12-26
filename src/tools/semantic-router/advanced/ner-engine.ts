@@ -48,6 +48,18 @@ type CompromiseStatic = {
   plugin: (plugin: unknown) => void;
 };
 
+/**
+ * Type interfaces for dynamically imported modules.
+ * These describe the expected shape of ES module exports.
+ */
+interface CompromiseModuleShape {
+  default: CompromiseStatic;
+}
+
+interface CompromisePluginModuleShape {
+  default: unknown;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -125,16 +137,14 @@ export async function initializeNER(): Promise<void> {
 
   try {
     // Dynamic import of compromise and plugins
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const compromiseModule = (await import('compromise')) as any;
-    nlp = compromiseModule.default as CompromiseStatic;
+    const compromiseModule = (await import('compromise')) as unknown as CompromiseModuleShape;
+    nlp = compromiseModule.default;
 
     // Try to load plugins (optional enhancements)
     // NOTE: These plugins may fail in production due to ESM/CJS issues
     // with transitive dependencies like suffix-thumb. This is non-fatal.
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const datesModule = (await import('compromise-dates')) as any;
+      const datesModule = (await import('compromise-dates')) as unknown as CompromisePluginModuleShape;
       nlpDates = datesModule.default;
       if (nlpDates) {
         nlp!.plugin(nlpDates);
@@ -149,8 +159,7 @@ export async function initializeNER(): Promise<void> {
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const numbersModule = (await import('compromise-numbers')) as any;
+      const numbersModule = (await import('compromise-numbers')) as unknown as CompromisePluginModuleShape;
       nlpNumbers = numbersModule.default;
       if (nlpNumbers) {
         nlp!.plugin(nlpNumbers);

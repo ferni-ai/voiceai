@@ -26,16 +26,20 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { 
-  relationshipStageService, 
+import {
+  relationshipStageService,
   getTranslatedStageName,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+import {
+  enhanceProgressIndicatorWithNarrative,
+  injectStorytellingStyles,
+} from './visualization-storytelling.js';
 
 const log = createLogger('ProgressIndicator');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style SVG)
@@ -101,9 +105,10 @@ let updateInterval: ReturnType<typeof setInterval> | null = null;
  */
 export function initProgressIndicator(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
+  injectStorytellingStyles(); // Enhanced narrative styles
   createIndicator();
   
   // Subscribe to stage changes
@@ -215,20 +220,22 @@ export function collapse(): void {
 
 function updateIndicator(): void {
   if (!indicator) return;
-  
+
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
   const stageName = getTranslatedStageName(stage);
   const stageDesc = STAGE_DESCRIPTIONS[stage];
-  
+
   const progressPercent = Math.round(progress.progress * 100);
   const isMaxStage = progress.nextStage === null;
-  
+
   if (isExpanded) {
     renderExpanded(stage, stageName, stageDesc, metrics, progress, progressPercent, isMaxStage);
   } else {
     renderCollapsed(stageName, progressPercent, isMaxStage);
+    // Enhance with narrative storytelling (replaces raw % with meaningful narrative)
+    enhanceProgressIndicatorWithNarrative(indicator, stage, progressPercent, metrics.daysSinceFirstMeeting);
   }
 }
 
@@ -484,7 +491,15 @@ function injectStyles(): void {
       font-size: var(--text-xs, 12px);
       color: var(--color-text-muted, #756A5E);
     }
-    
+
+    .progress-narrative {
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: var(--text-xs, 12px);
+      color: var(--persona-primary, #4a6741);
+      font-style: italic;
+      cursor: help;
+    }
+
     .progress-expand-icon {
       color: var(--color-text-muted, #756A5E);
       opacity: 0.5;

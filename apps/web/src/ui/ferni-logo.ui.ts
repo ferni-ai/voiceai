@@ -1,8 +1,8 @@
 /**
- * Ferni Logo Component - Three Stones with Expressive Animations
+ * Ferni Logo Component - FE Text Avatar with Expressive Animations
  * 
  * A reusable animated logo component that can express emotions
- * through eye movement and simple line mouth reveals.
+ * through subtle animations and expression classes.
  * 
  * @example
  * // Create logo
@@ -27,16 +27,16 @@ const log = createLogger('FerniLogo');
 // ============================================================================
 
 export type LogoExpression = 
-  | 'zen'       // Default - no mouth, centered eye
-  | 'happy'     // Eye up, smile
-  | 'excited'   // Bouncy eye, wide smile
-  | 'curious'   // Tilted eye, small smile
-  | 'sad'       // Soft eye, frown
-  | 'surprised' // Wide eye, small o
-  | 'thinking'  // Wandering eye, no mouth
-  | 'chuckle'   // Squinty eye, wobbly smile
-  | 'speaking'  // Animated mouth
-  | 'listening'; // Gentle pulse
+  | 'zen'       // Default - calm, centered
+  | 'happy'     // Slight bounce, warmth
+  | 'excited'   // More bounce, glow
+  | 'curious'   // Subtle tilt
+  | 'sad'       // Slightly dimmed
+  | 'surprised' // Scale pop
+  | 'thinking'  // Gentle pulse
+  | 'chuckle'   // Wobble
+  | 'speaking'  // Active glow
+  | 'listening'; // Subtle pulse
 
 export interface FerniLogoOptions {
   /** Size in pixels (width and height) */
@@ -49,6 +49,8 @@ export interface FerniLogoOptions {
   simplified?: boolean;
   /** Custom class name */
   className?: string;
+  /** Include heart badge */
+  showBadge?: boolean;
 }
 
 export interface FerniLogoInstance {
@@ -69,11 +71,12 @@ export interface FerniLogoInstance {
 // ============================================================================
 
 const LOGO_COLORS = {
-  outer: '#4a6741',      // Sage green
-  iris: '#5a8060',       // Light sage
-  pupil: '#2c2520',      // Dark ink
+  primary: '#4a6741',      // Sage green
+  secondary: '#3d5a35',    // Darker sage
+  badge: '#5a8060',        // Light sage for badge
   white: '#ffffff',
-  catchlight: 'rgba(255, 255, 255, 0.9)',
+  cream: '#F5F1E8',        // Paper cream background
+  ring: 'rgba(74, 103, 65, 0.35)', // Ring color
 };
 
 // ============================================================================
@@ -90,6 +93,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
     animated = true,
     simplified = size < 32,
     className = '',
+    showBadge = false,
   } = options;
 
   let currentExpression: LogoExpression = expression;
@@ -97,7 +101,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
 
   // Create SVG element
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('viewBox', showBadge ? '0 0 120 120' : '0 0 100 100');
   svg.setAttribute('width', String(size));
   svg.setAttribute('height', String(size));
   svg.setAttribute('class', `ferni-logo ${className}`.trim());
@@ -109,53 +113,116 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
   style.textContent = getLogoStyles(animated);
   svg.appendChild(style);
 
-  // Outer stone (body)
-  const outer = createCircle(50, 50, 45, LOGO_COLORS.outer);
-  svg.appendChild(outer);
+  // Define gradients
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `
+    <linearGradient id="logoGrad-${size}" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="${LOGO_COLORS.secondary}"/>
+      <stop offset="100%" stop-color="${LOGO_COLORS.primary}"/>
+    </linearGradient>
+    ${showBadge ? `
+    <linearGradient id="badgeGrad-${size}" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="${LOGO_COLORS.secondary}"/>
+      <stop offset="100%" stop-color="${LOGO_COLORS.badge}"/>
+    </linearGradient>
+    <filter id="badgeShadow-${size}" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#2c2520" flood-opacity="0.2"/>
+    </filter>
+    ` : ''}
+  `;
+  svg.appendChild(defs);
 
-  // Eye group (for animations)
-  const eyeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  eyeGroup.setAttribute('class', 'eye-group');
-
-  // Eye white
-  const eyeWhite = createCircle(50, 50, 18, LOGO_COLORS.white);
-  eyeWhite.setAttribute('class', 'eye-white');
-  eyeGroup.appendChild(eyeWhite);
-
-  // Iris (skip for simplified)
+  // Outer presence ring
   if (!simplified) {
-    const iris = createCircle(50, 50, 12, LOGO_COLORS.iris);
-    eyeGroup.appendChild(iris);
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('class', 'presence-ring');
+    ring.setAttribute('cx', '50');
+    ring.setAttribute('cy', '50');
+    ring.setAttribute('r', '46');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', LOGO_COLORS.primary);
+    ring.setAttribute('stroke-width', size > 64 ? '2' : '1');
+    ring.setAttribute('opacity', '0.35');
+    svg.appendChild(ring);
   }
 
-  // Pupil group (for look direction)
-  const pupilGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  pupilGroup.setAttribute('class', 'pupil-group');
+  // Avatar group (for animations)
+  const avatarGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  avatarGroup.setAttribute('class', 'avatar-group');
 
-  // Pupil
-  const pupil = createCircle(50, 50, simplified ? 8 : 6, LOGO_COLORS.pupil);
-  pupilGroup.appendChild(pupil);
+  // Main avatar circle
+  const avatar = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  avatar.setAttribute('class', 'avatar-body');
+  avatar.setAttribute('cx', '50');
+  avatar.setAttribute('cy', '50');
+  avatar.setAttribute('r', '40');
+  avatar.setAttribute('fill', `url(#logoGrad-${size})`);
+  avatarGroup.appendChild(avatar);
 
-  // Catchlight (skip for simplified)
+  // FE Text
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('class', 'fe-text');
+  text.setAttribute('x', '50');
+  text.setAttribute('y', '50');
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('dominant-baseline', 'central');
+  text.setAttribute('font-family', "'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif");
+  text.setAttribute('font-weight', '800');
+  text.setAttribute('fill', LOGO_COLORS.white);
+  
+  // Scale font size based on logo size
+  const fontSize = simplified ? Math.max(size * 0.5, 8) : Math.round(size * 0.6);
+  text.setAttribute('font-size', String(Math.min(fontSize, 30)));
+  text.setAttribute('letter-spacing', '-1');
+  
+  const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+  tspan.setAttribute('dy', '2');
+  tspan.textContent = 'FE';
+  text.appendChild(tspan);
+  avatarGroup.appendChild(text);
+
+  // Shine overlay (above text for 3D effect)
   if (!simplified) {
-    const catchlight = createCircle(47, 47, 2, LOGO_COLORS.white);
-    catchlight.setAttribute('opacity', '0.9');
-    pupilGroup.appendChild(catchlight);
+    const shine = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    shine.setAttribute('class', 'shine');
+    shine.setAttribute('cx', '39');
+    shine.setAttribute('cy', '34');
+    shine.setAttribute('rx', '20');
+    shine.setAttribute('ry', '10');
+    shine.setAttribute('fill', LOGO_COLORS.white);
+    shine.setAttribute('opacity', '0.15');
+    avatarGroup.appendChild(shine);
   }
 
-  eyeGroup.appendChild(pupilGroup);
-  svg.appendChild(eyeGroup);
+  svg.appendChild(avatarGroup);
 
-  // Mouth (hidden by default)
-  if (animated) {
-    const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    mouth.setAttribute('class', 'mouth');
-    mouth.setAttribute('d', 'M 35 68 Q 50 78 65 68');
-    mouth.setAttribute('stroke', LOGO_COLORS.white);
-    mouth.setAttribute('stroke-width', '4');
-    mouth.setAttribute('stroke-linecap', 'round');
-    mouth.setAttribute('fill', 'none');
-    svg.appendChild(mouth);
+  // Heart badge (optional)
+  if (showBadge) {
+    const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    badgeGroup.setAttribute('class', 'badge-group');
+    
+    // Badge circle
+    const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    badge.setAttribute('cx', '95');
+    badge.setAttribute('cy', '95');
+    badge.setAttribute('r', '18');
+    badge.setAttribute('fill', `url(#badgeGrad-${size})`);
+    badge.setAttribute('stroke', '#FFFDFB');
+    badge.setAttribute('stroke-width', '3');
+    badge.setAttribute('filter', `url(#badgeShadow-${size})`);
+    badgeGroup.appendChild(badge);
+    
+    // Heart icon
+    const heart = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    heart.setAttribute('d', 'M95 89c0-2.2-1.8-4-4-4s-4 1.8-4 4c0 4 7.5 9.5 7.5 9.5s7.5-5.5 7.5-9.5c0-2.2-1.8-4-4-4s-4 1.8-4 4z');
+    heart.setAttribute('fill', 'none');
+    heart.setAttribute('stroke', LOGO_COLORS.white);
+    heart.setAttribute('stroke-width', '1.5');
+    heart.setAttribute('stroke-linecap', 'round');
+    heart.setAttribute('stroke-linejoin', 'round');
+    badgeGroup.appendChild(heart);
+    
+    svg.appendChild(badgeGroup);
   }
 
   // Apply initial expression
@@ -239,15 +306,6 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
 // HELPERS
 // ============================================================================
 
-function createCircle(cx: number, cy: number, r: number, fill: string): SVGCircleElement {
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('cx', String(cx));
-  circle.setAttribute('cy', String(cy));
-  circle.setAttribute('r', String(r));
-  circle.setAttribute('fill', fill);
-  return circle;
-}
-
 function getLogoStyles(animated: boolean): string {
   if (!animated) return '';
   
@@ -260,81 +318,77 @@ function getLogoStyles(animated: boolean): string {
       --ease-gentle: ${EASING.GENTLE};
     }
     
-    .eye-group {
+    .avatar-group {
       transform-origin: 50px 50px;
       transition: transform var(--duration-normal) var(--ease-spring);
     }
     
-    .eye-white {
+    .avatar-body {
       transform-origin: 50px 50px;
       transition: transform var(--duration-normal) var(--ease-gentle);
     }
     
-    .pupil-group {
+    .fe-text {
       transform-origin: 50px 50px;
       transition: transform var(--duration-fast) var(--ease-gentle);
     }
     
-    .mouth {
-      opacity: 0;
-      transform-origin: 50px 68px;
+    .shine {
+      opacity: 0.15;
+      transition: opacity var(--duration-normal) var(--ease-gentle);
+    }
+    
+    .presence-ring {
+      transform-origin: 50px 50px;
       transition: 
         opacity var(--duration-normal) var(--ease-gentle),
         transform var(--duration-normal) var(--ease-spring);
     }
     
     /* Happy */
-    .ferni-logo.happy .eye-group { transform: translateY(-12px); }
-    .ferni-logo.happy .eye-white { transform: scaleY(0.92); }
-    .ferni-logo.happy .mouth { opacity: 1; }
+    .ferni-logo.happy .avatar-group { transform: translateY(-2px) scale(1.02); }
+    .ferni-logo.happy .presence-ring { opacity: 0.5; }
+    .ferni-logo.happy .shine { opacity: 0.25; }
     
     /* Excited */
-    .ferni-logo.excited .eye-group { transform: translateY(-14px) scale(1.05); }
-    .ferni-logo.excited .eye-white { transform: scaleY(0.88); }
-    .ferni-logo.excited .mouth { opacity: 1; transform: scaleX(1.2); }
+    .ferni-logo.excited .avatar-group { transform: scale(1.05); }
+    .ferni-logo.excited .presence-ring { opacity: 0.6; transform: scale(1.05); }
+    .ferni-logo.excited .shine { opacity: 0.3; }
     
     /* Curious */
-    .ferni-logo.curious .eye-group { transform: translateY(-8px) translateX(-3px) rotate(-3deg); }
-    .ferni-logo.curious .pupil-group { transform: translateX(4px) translateY(-3px); }
-    .ferni-logo.curious .mouth { opacity: 0.7; transform: scale(0.7) translateX(3px); }
+    .ferni-logo.curious .avatar-group { transform: translateX(-2px) rotate(-3deg); }
+    .ferni-logo.curious .presence-ring { transform: rotate(-3deg); }
     
     /* Sad */
-    .ferni-logo.sad .eye-group { transform: translateY(-6px); }
-    .ferni-logo.sad .eye-white { transform: scaleY(0.85); }
-    .ferni-logo.sad .mouth { opacity: 1; transform: scaleY(-1) translateY(-8px); }
+    .ferni-logo.sad .avatar-group { transform: translateY(2px) scale(0.98); }
+    .ferni-logo.sad .presence-ring { opacity: 0.2; }
+    .ferni-logo.sad .shine { opacity: 0.08; }
     
     /* Surprised */
-    .ferni-logo.surprised .eye-group { transform: translateY(-16px) scale(1.12); }
-    .ferni-logo.surprised .eye-white { transform: scaleY(1.08) scaleX(1.05); }
-    .ferni-logo.surprised .mouth { opacity: 1; transform: scale(0.4); }
+    .ferni-logo.surprised .avatar-group { transform: scale(1.08); }
+    .ferni-logo.surprised .presence-ring { transform: scale(1.1); opacity: 0.6; }
+    .ferni-logo.surprised .shine { opacity: 0.35; }
     
     /* Thinking */
-    .ferni-logo.thinking .eye-group {
-      animation: thinking-wander 3000ms ease-in-out infinite;
+    .ferni-logo.thinking .avatar-group {
+      animation: thinking-pulse 2000ms ease-in-out infinite;
     }
-    .ferni-logo.thinking .pupil-group {
-      animation: thinking-look 3000ms ease-in-out infinite;
-    }
-    
-    @keyframes thinking-wander {
-      0%, 100% { transform: translateY(-3px) translateX(3px); }
-      25% { transform: translateY(-5px) translateX(-4px) rotate(-2deg); }
-      50% { transform: translateY(-2px) translateX(4px) rotate(1deg); }
-      75% { transform: translateY(-4px) translateX(-2px) rotate(-1deg); }
+    .ferni-logo.thinking .presence-ring {
+      animation: thinking-ring 2000ms ease-in-out infinite;
     }
     
-    @keyframes thinking-look {
-      0%, 100% { transform: translateX(2px) translateY(-1px); }
-      25% { transform: translateX(-3px) translateY(1px); }
-      50% { transform: translateX(3px) translateY(-2px); }
-      75% { transform: translateX(-2px) translateY(0px); }
+    @keyframes thinking-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02) translateX(1px); }
+    }
+    
+    @keyframes thinking-ring {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.5; }
     }
     
     /* Chuckle */
-    .ferni-logo.chuckle .eye-group { transform: translateY(-10px); }
-    .ferni-logo.chuckle .eye-white { transform: scaleY(0.7); }
-    .ferni-logo.chuckle .mouth {
-      opacity: 1;
+    .ferni-logo.chuckle .avatar-group {
       animation: chuckle-wobble 600ms var(--ease-spring);
     }
     
@@ -347,34 +401,40 @@ function getLogoStyles(animated: boolean): string {
     }
     
     /* Speaking */
-    .ferni-logo.speaking .eye-group { transform: translateY(-8px); }
-    .ferni-logo.speaking .mouth {
-      opacity: 1;
-      animation: speaking-mouth 400ms ease-in-out infinite;
+    .ferni-logo.speaking .avatar-group { transform: translateY(-1px); }
+    .ferni-logo.speaking .presence-ring {
+      animation: speaking-glow 800ms ease-in-out infinite;
+    }
+    .ferni-logo.speaking .shine {
+      animation: speaking-shine 800ms ease-in-out infinite;
     }
     
-    @keyframes speaking-mouth {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.5); }
+    @keyframes speaking-glow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.02); }
+    }
+    
+    @keyframes speaking-shine {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.25; }
     }
     
     /* Listening */
-    .ferni-logo.listening .eye-group {
-      transform: translateY(-2px);
-      animation: listening-pulse 2000ms ease-in-out infinite;
+    .ferni-logo.listening .avatar-group {
+      animation: listening-pulse 2500ms ease-in-out infinite;
     }
-    .ferni-logo.listening .pupil-group {
-      animation: listening-focus 2000ms ease-in-out infinite;
+    .ferni-logo.listening .presence-ring {
+      animation: listening-ring 2500ms ease-in-out infinite;
     }
     
     @keyframes listening-pulse {
-      0%, 100% { transform: translateY(-2px) scale(1); }
-      50% { transform: translateY(-3px) scale(1.02); }
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); }
     }
     
-    @keyframes listening-focus {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(0.95); }
+    @keyframes listening-ring {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.45; }
     }
   `;
 }
@@ -394,22 +454,41 @@ export function getFerniLogoSVG(options: {
   size?: number; 
   color?: string;
   simplified?: boolean;
+  showRing?: boolean;
 } = {}): string {
   const { 
     size = 48, 
-    color = LOGO_COLORS.outer,
-    simplified = size < 32 
+    color = LOGO_COLORS.primary,
+    simplified = size < 32,
+    showRing = !simplified
   } = options;
   
-  const irisColor = simplified ? '' : `<circle cx="50" cy="50" r="12" fill="${LOGO_COLORS.iris}"/>`;
-  const catchlight = simplified ? '' : `<circle cx="47" cy="47" r="2" fill="${LOGO_COLORS.white}" opacity="0.9"/>`;
+  const fontSize = simplified ? Math.max(size * 0.4, 6) : Math.round(size * 0.5);
+  const ring = showRing ? `<circle cx="50" cy="50" r="46" fill="none" stroke="${LOGO_COLORS.primary}" stroke-width="1" opacity="0.35"/>` : '';
+  const shine = simplified ? '' : `<ellipse cx="39" cy="34" rx="20" ry="10" fill="${LOGO_COLORS.white}" opacity="0.15"/>`;
   
   return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${t('accessibility.ferniLogo')}" class="avatar-logo-svg">
-    <circle class="stone-outer" cx="50" cy="50" r="45" fill="${color}"/>
-    <circle class="stone-eye-white" cx="50" cy="50" r="18" fill="${LOGO_COLORS.white}"/>
-    ${irisColor}
-    <circle class="stone-pupil" cx="50" cy="50" r="${simplified ? 8 : 6}" fill="${LOGO_COLORS.pupil}"/>
-    ${catchlight}
+    <defs>
+      <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="${LOGO_COLORS.secondary}"/>
+        <stop offset="100%" stop-color="${color}"/>
+      </linearGradient>
+    </defs>
+    ${ring}
+    <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#logoGrad)"/>
+    <text 
+      x="50" 
+      y="50" 
+      text-anchor="middle" 
+      dominant-baseline="central"
+      font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+      font-size="${Math.min(fontSize, 30)}"
+      font-weight="800"
+      fill="${LOGO_COLORS.white}"
+      letter-spacing="-1">
+      <tspan dy="2">FE</tspan>
+    </text>
+    ${shine}
   </svg>`;
 }
 
@@ -425,12 +504,14 @@ export function createLogoAvatar(options: {
   color?: string;
   className?: string;
   animated?: boolean;
+  showBadge?: boolean;
 } = {}): HTMLDivElement {
   const { 
     size = 48, 
-    color = LOGO_COLORS.outer,
+    color = LOGO_COLORS.primary,
     className = '',
-    animated = false
+    animated = false,
+    showBadge = false
   } = options;
   
   const avatar = document.createElement('div');
@@ -439,25 +520,19 @@ export function createLogoAvatar(options: {
     width: ${size}px;
     height: ${size}px;
     border-radius: 50%;
-    background: ${color};
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
   `;
   
   if (animated) {
-    const logo = createFerniLogo({ size, animated: true });
+    const logo = createFerniLogo({ size, animated: true, showBadge });
     avatar.appendChild(logo.element);
     // Store reference for cleanup
     (avatar as HTMLDivElement & { _logoInstance: FerniLogoInstance })._logoInstance = logo;
   } else {
-    avatar.innerHTML = getFerniLogoSVG({ size: size - 4, color: 'transparent' });
-    // Make the SVG fill the space
-    const svg = avatar.querySelector('svg');
-    if (svg) {
-      svg.style.cssText = 'width: 100%; height: 100%;';
-    }
+    avatar.innerHTML = getFerniLogoSVG({ size, color, showRing: size >= 48 });
   }
   
   return avatar;
@@ -480,4 +555,3 @@ export const AVATAR_SIZES = {
 // ============================================================================
 
 export default createFerniLogo;
-

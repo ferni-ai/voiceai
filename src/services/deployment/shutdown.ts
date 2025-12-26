@@ -110,7 +110,7 @@ export async function shutdownServices(): Promise<void> {
 
   // Shutdown auto-optimizer
   try {
-    const { autoOptimizer } = await import('../../tools/auto-optimizer.js');
+    const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
     autoOptimizer.stop();
     getLogger().info('🤖 Auto-optimizer stopped');
   } catch (error) {

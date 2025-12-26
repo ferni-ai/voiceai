@@ -1,34 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- 
-    Ferni Favicon 32x32 - Three Stones
-    Standard favicon with full detail
-  -->
-  
-  <!-- Background with rounded corners -->
-  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
-  
-  <!-- Subtle outer glow -->
-  <circle cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.3"/>
-  
-  <!-- Outer Stone: Body - with subtle gradient -->
+  <!-- Ferni Orb Favicon 32x32 -->
   <defs>
-    <radialGradient id="stoneGrad32" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
+    <linearGradient id="orbGrad32" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#5a7a52"/>
+      <stop offset="50%" stop-color="#4a6741"/>
       <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
+    </linearGradient>
+    <linearGradient id="borderGrad32" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8aa880"/>
+      <stop offset="100%" stop-color="#6a8a62"/>
+    </linearGradient>
   </defs>
-  <circle cx="16" cy="16" r="11" fill="url(#stoneGrad32)"/>
-  
-  <!-- Middle Stone: Eye White -->
-  <circle cx="16" cy="16" r="4.5" fill="white"/>
-  
-  <!-- Iris -->
-  <circle cx="16" cy="16" r="3" fill="#5a8060"/>
-  
-  <!-- Inner Stone: Pupil -->
-  <circle cx="16" cy="16" r="1.5" fill="#2c2520"/>
-  
-  <!-- Catchlight (life spark) -->
-  <circle cx="14.8" cy="14.8" r="0.6" fill="white" opacity="0.9"/>
+  <!-- Outer ring -->
+  <circle cx="16" cy="16" r="14.5" fill="none" stroke="url(#borderGrad32)" stroke-width="1" opacity="0.5"/>
+  <!-- Main orb -->
+  <circle cx="16" cy="16" r="12" fill="url(#orbGrad32)"/>
+  <!-- Highlight -->
+  <ellipse cx="16" cy="11" rx="6" ry="3.5" fill="white" opacity="0.25"/>
+  <!-- FE text -->
+  <text x="16" y="20"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="11"
+        font-weight="700"
+        fill="white"
+        text-anchor="middle">FE</text>
 </svg>

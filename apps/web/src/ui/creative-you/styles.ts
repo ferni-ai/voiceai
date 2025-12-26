@@ -83,7 +83,7 @@ export function getCreativeYouStyles(): string {
       font-weight: var(--font-weight-semibold);
       letter-spacing: var(--tracking-widest);
       text-transform: uppercase;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       margin-bottom: var(--space-1);
       display: block;
     }
@@ -259,7 +259,7 @@ export function getCreativeYouStyles(): string {
     .pick-icon-container svg {
       width: 32px;
       height: 32px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .pick-info {
@@ -296,7 +296,7 @@ export function getCreativeYouStyles(): string {
       align-items: center;
       gap: var(--space-1-5);
       font-size: var(--text-2xs);
-      color: var(--persona-primary);
+      color: var(--persona-text);
       margin: 0 0 var(--space-2) 0;
       padding: var(--space-1-5) var(--space-2);
       background: var(--persona-primary-subtle, rgba(74, 103, 65, 0.08));
@@ -407,7 +407,7 @@ export function getCreativeYouStyles(): string {
       display: block;
       font-size: var(--text-xl);
       font-weight: var(--font-weight-bold);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .dna-stats .stat-label {
@@ -485,7 +485,7 @@ export function getCreativeYouStyles(): string {
     }
 
     .track-card:hover {
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .track-info h4 {

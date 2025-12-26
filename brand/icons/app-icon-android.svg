@@ -1,23 +1,35 @@
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Android Adaptive Icon - Foreground -->
   <defs>
-    <linearGradient id="androidGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
+    <linearGradient id="androidOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
     </linearGradient>
+    <linearGradient id="androidShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="androidBadge" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="androidShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#2c2520" flood-opacity="0.25"/>
+    </filter>
   </defs>
   
-  <!-- Transparent background for adaptive icon -->
-  <rect width="512" height="512" fill="transparent"/>
+  <rect width="512" height="512" rx="96" fill="#F5F1E8"/>
   
-  <!-- Icon shape (centered for safe zone) -->
-  <rect x="72" y="72" width="368" height="368" rx="80" fill="url(#androidGradient)"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#4a6741" stroke-width="4" opacity="0.35"/>
+  <circle cx="256" cy="256" r="175" fill="url(#androidOrb)"/>
+  <circle cx="256" cy="256" r="175" fill="url(#androidShine)"/>
   
-  <!-- FE Monogram -->
-  <text x="256" y="300" 
-        font-family="'Plus Jakarta Sans', 'Roboto', sans-serif" 
-        font-size="180" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle">FE</text>
+  <text x="256" y="256" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="128" font-weight="800" fill="white" letter-spacing="-4">
+    <tspan dy="8">FE</tspan>
+  </text>
+  
+  <circle cx="396" cy="396" r="48" fill="url(#androidBadge)" stroke="#FFFDFB" stroke-width="8" filter="url(#androidShadow)"/>
+  <path d="M396 382c0-6.6-5.4-12-12-12s-12 5.4-12 12c0 12 22 28 22 28s22-16 22-28c0-6.6-5.4-12-12-12s-12 5.4-12 12z"
+    fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

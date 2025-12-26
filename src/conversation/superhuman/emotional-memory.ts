@@ -25,6 +25,7 @@
  * USER emotion tracking (intelligence/emotional-memory.ts).
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanContentSync, getEmotionalBondPhrase } from './content-loader.js';
 import type {
@@ -256,7 +257,7 @@ export class EmotionalMemoryEngine {
       emotion,
       trigger,
       topic,
-      intensity: 0.7 + Math.random() * 0.3, // 0.7-1.0
+      intensity: 0.7 + seededFloat(`${Date.now()}:4`) * 0.3, // 0.7-1.0
     };
 
     this.bond.memorableEmotions.push(snapshot);
@@ -358,7 +359,7 @@ export class EmotionalMemoryEngine {
     if (stage === 'new_acquaintance') return null;
 
     // 30% chance to add warmth to greeting
-    if (Math.random() > 0.3) return null;
+    if (!seededChance(`${Date.now()}:1`, 0.3)) return null;
 
     const modifiers = {
       getting_to_know: [
@@ -377,7 +378,7 @@ export class EmotionalMemoryEngine {
     const options = modifiers[stage];
     if (!options) return null;
 
-    return options[Math.floor(Math.random() * options.length)];
+    return seededPick(`${Date.now()}:381`, options) ?? options[0];
   }
 
   /**
@@ -387,7 +388,7 @@ export class EmotionalMemoryEngine {
     if (this.bond.memorableEmotions.length === 0) return null;
 
     // 15% chance to reference a past emotional moment
-    if (Math.random() > 0.15) return null;
+    if (!seededChance(`${Date.now()}:2`, 0.15)) return null;
 
     // Find a relevant memory
     let relevantMemory: EmotionalSnapshot | null = null;
@@ -404,7 +405,7 @@ export class EmotionalMemoryEngine {
     if (!relevantMemory) {
       const highIntensity = this.bond.memorableEmotions.filter((m) => m.intensity > 0.8);
       if (highIntensity.length > 0) {
-        relevantMemory = highIntensity[Math.floor(Math.random() * highIntensity.length)];
+        relevantMemory = seededPick(`${Date.now()}:408`, highIntensity) ?? highIntensity[0];
       }
     }
 
@@ -430,7 +431,7 @@ export class EmotionalMemoryEngine {
       `You know what I remember? ${relevantMemory.trigger}.`,
     ];
 
-    return callbacks[Math.floor(Math.random() * callbacks.length)];
+    return seededPick(`${Date.now()}:434`, callbacks) ?? callbacks[0];
   }
 
   // ==========================================================================
@@ -631,7 +632,7 @@ export class EmotionalMemoryEngine {
     // Select based on weights
     for (const entry of Array.from(weights.entries())) {
       const [type, weight] = entry;
-      if (Math.random() < weight) {
+      if (seededChance(`${Date.now()}:3`, weight)) {
         return type;
       }
     }
@@ -643,7 +644,7 @@ export class EmotionalMemoryEngine {
     const unused = phrases.filter((p) => !this.phrasesUsedThisSession.has(p));
     if (unused.length === 0) return null;
 
-    let selected = unused[Math.floor(Math.random() * unused.length)];
+    let selected = seededPick(`${Date.now()}:647`, unused) ?? unused[0];
 
     // Replace {topic} placeholder if present
     if (selected.includes('{topic}') && topic) {
@@ -652,7 +653,7 @@ export class EmotionalMemoryEngine {
       // Skip phrases with topic placeholder if no topic provided
       const withoutTopic = unused.filter((p) => !p.includes('{topic}'));
       if (withoutTopic.length === 0) return null;
-      selected = withoutTopic[Math.floor(Math.random() * withoutTopic.length)];
+      selected = seededPick(`${Date.now()}:656`, withoutTopic) ?? withoutTopic[0];
     }
 
     return selected;

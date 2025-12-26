@@ -17,6 +17,7 @@
  * @module @ferni/conversational-repair
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 
@@ -385,7 +386,7 @@ export class ConversationalRepairEngine {
       'Am I on the right track?',
       "Is that what you're getting at?",
     ];
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:389`, phrases) ?? phrases[0];
   }
 
   /**
@@ -481,7 +482,7 @@ export class ConversationalRepairEngine {
   private getRepairStrategy(miscue: MiscueSignal): RepairStrategy {
     const type = miscue.type as keyof typeof REPAIR_PHRASES;
     const phrases = REPAIR_PHRASES[type] || REPAIR_PHRASES.general;
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const phrase = seededPick(`${Date.now()}:485`, phrases) ?? phrases[0];
 
     let strategyType: RepairStrategy['type'] = 'acknowledge';
     let followUp: string | null = null;
@@ -491,7 +492,7 @@ export class ConversationalRepairEngine {
       case 'misunderstanding':
         strategyType = 'clarify';
         followUp =
-          CLARIFICATION_QUESTIONS[Math.floor(Math.random() * CLARIFICATION_QUESTIONS.length)];
+          seededPick(`${Date.now()}:495`, CLARIFICATION_QUESTIONS) ?? CLARIFICATION_QUESTIONS[0];
         awaitResponse = true;
         break;
 

@@ -434,8 +434,26 @@ function createDefaultCalibration(): CalibrationData {
 // FIRESTORE PERSISTENCE
 // ============================================================================
 
+/**
+ * Minimal interface for Firestore operations needed by this module.
+ * Avoids importing full Firestore types while maintaining type safety.
+ */
+interface FirestoreMinimal {
+  collection(name: string): {
+    doc(id: string): {
+      get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>;
+      set(data: Record<string, unknown>): Promise<void>;
+      collection(name: string): {
+        doc(id: string): {
+          set(data: Record<string, unknown>): Promise<void>;
+        };
+      };
+    };
+  };
+}
+
 // Use the existing Firestore persistence module
-async function getFirestoreInstance(): Promise<unknown | null> {
+async function getFirestoreInstance(): Promise<FirestoreMinimal | null> {
   try {
     // Use the existing firestore-persistence module
     const { getFirestore, initializeFirestorePersistence } =
@@ -444,7 +462,7 @@ async function getFirestoreInstance(): Promise<unknown | null> {
     // Initialize if not already
     await initializeFirestorePersistence();
 
-    return getFirestore();
+    return getFirestore() as FirestoreMinimal;
   } catch {
     // Firestore not available - that's OK, we'll use in-memory storage
     log.debug('Firestore not available, using in-memory storage');
@@ -453,12 +471,11 @@ async function getFirestoreInstance(): Promise<unknown | null> {
 }
 
 async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
-  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
+  const db = await getFirestoreInstance();
   if (!db) return;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
+    await db
       .collection('semantic_routing_feedback')
       .doc(feedback.id)
       .set({
@@ -471,12 +488,11 @@ async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
 }
 
 async function persistCorrection(correction: UserCorrection): Promise<void> {
-  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
+  const db = await getFirestoreInstance();
   if (!db) return;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
+    await db
       .collection('semantic_routing_corrections')
       .doc(correction.userId)
       .collection('corrections')
@@ -491,12 +507,11 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
 }
 
 async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
-  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
+  const db = await getFirestoreInstance();
   if (!db) return;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
+    await db
       .collection('semantic_routing_vocabulary')
       .doc(vocab.userId)
       .set({
@@ -513,32 +528,34 @@ async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
 }
 
 async function loadVocabulary(userId: string): Promise<UserVocabulary | undefined> {
-  const db = (await getFirestoreInstance()) as { collection: (name: string) => unknown } | null;
+  const db = await getFirestoreInstance();
   if (!db) return undefined;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = await (db as any).collection('semantic_routing_vocabulary').doc(userId).get();
+    const doc = await db.collection('semantic_routing_vocabulary').doc(userId).get();
     if (!doc.exists) return undefined;
 
-    const data = doc.data()!;
+    const data = doc.data();
+    if (!data) return undefined;
+
     return {
-      ...data,
-      updatedAt: new Date(data.updatedAt),
-      phrases: data.phrases.map(
-        (p: {
-          phrase: string;
-          toolId: string;
-          confidence: number;
-          usageCount: number;
-          lastUsed: string;
-          source: 'explicit' | 'implicit';
-        }) => ({
-          ...p,
-          lastUsed: new Date(p.lastUsed),
-        })
-      ),
-    } as UserVocabulary;
+      userId: String(data.userId ?? userId),
+      updatedAt: new Date(String(data.updatedAt)),
+      phrases: Array.isArray(data.phrases)
+        ? data.phrases.map(
+            (p: Record<string, unknown>) => ({
+              phrase: String(p.phrase ?? ''),
+              toolId: String(p.toolId ?? ''),
+              confidence: Number(p.confidence ?? 0),
+              usageCount: Number(p.usageCount ?? 0),
+              lastUsed: new Date(String(p.lastUsed)),
+              source: (p.source === 'explicit' ? 'explicit' : 'implicit') as 'explicit' | 'implicit',
+            })
+          )
+        : [],
+      toolPreferences: (data.toolPreferences as Record<string, { boost: number; usageCount: number }>) ?? {},
+      timePatterns: (data.timePatterns as Record<string, { toolId: string; timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'; dayOfWeek?: number; probability: number }>) ?? {},
+    };
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to load vocabulary');
     return undefined;

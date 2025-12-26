@@ -12,6 +12,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
 import type { UserData } from '../shared/types.js';
+import type { HolisticContextSummary } from '../../tools/semantic-router/types.js';
 
 // Re-export for convenience
 export type MessageAnalysis = ConversationAnalysis;
@@ -257,6 +258,13 @@ export interface SemanticRoutingResult {
     | 'json_fallback' // Fell back to JSON workaround
     | 'disabled' // Semantic routing disabled
     | 'error'; // Routing error
+
+  /**
+   * 🧠 Holistic NLU context from semantic routing.
+   * Contains relationship detection, emotional state, urgency, and crisis signals.
+   * Can be used to enhance crisis detection or personalize responses.
+   */
+  holisticContext?: HolisticContextSummary;
 }
 
 /**

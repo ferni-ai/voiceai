@@ -4,6 +4,25 @@ This directory contains shared content that applies to ALL personas.
 
 ## Files
 
+### `model-base-instructions.md` ⭐ NEW
+
+**Foundational rules baked into RealtimeModel at connection time.**
+
+This file is loaded and passed to the Gemini RealtimeModel constructor, ensuring
+these critical rules are active from the VERY FIRST MOMENT of connection (before
+the full persona prompt is sent via LiveKit's updateInstructions).
+
+Contains:
+- Platform context (Ferni team overview)
+- Critical JSON tool calling format (`{"fn":"...","args":{}}`)
+- Honesty rules (never claim capabilities you don't have)
+- Voice output guidance
+- Safety boundaries
+
+**Architecture:**
+- **Model-level** (this file): Foundational rules active immediately
+- **Agent-level** (full persona prompt): Detailed identity, tools, personality
+
 ### `safety-disclaimer.md`
 
 **Critical legal/safety guardrails for all personas.**
@@ -41,16 +60,34 @@ Voice output rules for Cartesia Sonic-3 TTS. Contains:
 
 ## Architecture
 
+### Two-Level Instruction Architecture
+
 ```
-prompt-loader.ts automatically assembles:
-┌─────────────────────────────────────┐
-│  shared/safety-disclaimer.md       │  ← Legal/safety guardrails (FIRST)
-├─────────────────────────────────────┤
-│  shared/function-calling-base.md   │  ← Common rules + shared tools
-├─────────────────────────────────────┤
-│  {persona}/function-calling-       │  ← Persona-specific tools
-│  specialty.md                      │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                     MODEL LEVEL (RealtimeModel)                      │
+│        Active from VERY FIRST MOMENT of connection                   │
+├─────────────────────────────────────────────────────────────────────┤
+│  shared/model-base-instructions.md                                  │
+│    • Platform context (Ferni team)                                  │
+│    • Critical JSON tool calling format                               │
+│    • Honesty rules                                                   │
+│    • Voice output guidance                                           │
+│    • Safety boundaries                                               │
+└─────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                     AGENT LEVEL (via updateInstructions)             │
+│        Full persona prompt sent after session starts                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  shared/safety-disclaimer.md       │  ← Legal/safety guardrails     │
+├─────────────────────────────────────┤                                │
+│  shared/function-calling-base.md   │  ← Common rules + shared tools │
+├─────────────────────────────────────┤                                │
+│  {persona}/function-calling-       │  ← Persona-specific tools      │
+│  specialty.md                      │                                │
+├─────────────────────────────────────┤                                │
+│  {persona}/identity/system-prompt  │  ← Persona identity            │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 The loader tries the new pattern first, falls back to legacy `function-calling.md` if needed.

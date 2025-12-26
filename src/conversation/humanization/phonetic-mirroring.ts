@@ -16,6 +16,7 @@
  * @module @ferni/humanization/phonetic-mirroring
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'PhoneticMirroring' });
@@ -279,7 +280,7 @@ export class PhoneticMirroringEngine {
     if (this.config.mirrorReductions && this.profile.usesReductions) {
       for (const reduction of this.profile.detectedReductions) {
         const pattern = REDUCTION_PATTERNS[reduction];
-        if (pattern && Math.random() < this.config.mirroringStrength) {
+        if (pattern && seededChance(`${Date.now()}:1`, this.config.mirroringStrength)) {
           // Replace formal with casual
           const before = result;
           result = result.replace(new RegExp(`\\b${pattern.formal}\\b`, 'gi'), pattern.casual);
@@ -294,7 +295,7 @@ export class PhoneticMirroringEngine {
     if (this.config.mirrorRegional && this.profile.regionalMarkers.length > 0) {
       for (const marker of this.profile.regionalMarkers) {
         const pattern = REGIONAL_MARKERS[marker];
-        if (pattern && Math.random() < this.config.mirroringStrength) {
+        if (pattern && seededChance(`${Date.now()}:2`, this.config.mirroringStrength)) {
           // Replace alternatives with the user's marker
           for (const alt of pattern.alternatives) {
             const before = result;
@@ -315,7 +316,7 @@ export class PhoneticMirroringEngine {
     if (
       this.config.mirrorTagQuestions &&
       this.profile.usesTagQuestions &&
-      Math.random() < this.config.mirroringStrength * 0.3
+      seededChance(`${Date.now()}:3`, this.config.mirroringStrength * 0.3)
     ) {
       // Only add to statements (end with period)
       if (result.trim().endsWith('.')) {

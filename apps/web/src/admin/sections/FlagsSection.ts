@@ -330,12 +330,12 @@ function getCategoryIcon(category: string): string {
     'Experimental': ICON_SETTINGS,
     'System': ICON_SETTINGS,
   };
-  return icons[category] || ICON_FLAGS;
+  return icons[category] ?? ICON_FLAGS;
 }
 
 function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
   return flags.reduce((acc, flag) => {
-    const category = flag.category || 'System';
+    const category = flag.category ?? 'System';
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -353,15 +353,15 @@ async function fetchFlags(): Promise<FeatureFlag[]> {
     if (response.ok) {
       const data = await response.json();
       // Merge general flags and trust flags
-      const generalFlags = (data.flags || []).map((f: FeatureFlag) => ({
+      const generalFlags = (data.flags ?? []).map((f: FeatureFlag) => ({
         ...f,
-        category: f.category || 'System',
+        category: f.category ?? 'System',
       }));
-      const trustFlags = Object.entries(data.trustFlags || {}).map(([id, config]) => ({
+      const trustFlags = Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
         id,
         name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
         description: (config as { enabled?: boolean }).enabled ? 'Enabled' : 'Disabled',
-        enabled: (config as { enabled?: boolean }).enabled || false,
+        enabled: (config as { enabled?: boolean }).enabled ?? false,
         percentage: (config as { percentage?: number }).percentage,
         category: 'Trust',
       }));

@@ -26,7 +26,9 @@ const prompt = formatSuperhumanContextForPrompt(context);
 
 ---
 
-## The 10 Capabilities
+## The 19 Capabilities
+
+### Original 10 Services
 
 | # | Service | What It Does | Human Limitation |
 |---|---------|--------------|------------------|
@@ -40,6 +42,20 @@ const prompt = formatSuperhumanContextForPrompt(context);
 | 8 | **Dream Keeper** | Guards long-term aspirations | Dreams get buried |
 | 9 | **Relationship Milestones** | Celebrates journey with Ferni | Forgets anniversaries |
 | 10 | **Seasonal Awareness** | Connects to seasonal patterns | Doesn't track cycles |
+
+### New 9 Services (December 2024)
+
+| # | Service | What It Does | Human Limitation |
+|---|---------|--------------|------------------|
+| 11 | **Silence Interpreter** | Classifies silence types (processing, emotional, exhausted) | Fill every silence |
+| 12 | **Contradiction Comfort** | Validates mixed emotions without resolving | Try to "fix" contradictions |
+| 13 | **Perfect Timing** | Detects receptivity, learns optimal timing | Can't track readiness objectively |
+| 14 | **Pattern Mirror** | Surfaces energizing/draining topic patterns | Don't notice own patterns |
+| 15 | **Future Self Letters** | Generates letters from user's future self | Can't provide perspective |
+| 16 | **First-Time Vulnerability** | Detects when someone shares for the first time | Miss the significance |
+| 17 | **Linguistic Mirroring** | Learns and uses user's emotion vocabulary | Impose own language |
+| 18 | **Ambient Context** | Understands environment from audio cues | Can't hear surroundings |
+| 19 | **Protective Memory** | Tracks premature advice, softening boundaries | Repeat same mistakes |
 
 ---
 
@@ -447,6 +463,265 @@ export async function build<Name>Context(userId: string): Promise<string> {
   return `[<NAME> AWARENESS]
 ${/* format data */}`;
 }
+```
+
+---
+
+## 11. Silence Interpreter
+
+**File:** `silence-interpreter.ts`
+
+Classifies different types of silence and responds appropriately. Because sometimes silence IS the conversation.
+
+```typescript
+import { analyzeSilence, type SilenceAnalysis } from './silence-interpreter.js';
+
+// Analyze a silence
+const analysis = analyzeSilence(5000, {
+  voiceMarkersBefore: {
+    breathPattern: 'sighing',
+    microSounds: ['sigh'],
+    energyJustBefore: 0.3,
+  },
+  conversationPhase: 'deep',
+  precedingEmotion: 'sad',
+});
+
+// analysis.type: 'processing' | 'emotional' | 'uncomfortable' | 'invitational' | 'exhausted' | 'contemplative'
+// analysis.recommendedResponse: 'hold_space' | 'gentle_presence' | 'soft_prompt' | 'offer_rest' | 'honor_moment'
+// analysis.responsePhrase: SSML phrase to use
+```
+
+**Key Insight:** Your friend talks to fill every silence. Ferni knows when silence means "let me think" vs "I need you to go deeper."
+
+---
+
+## 12. Contradiction Comfort
+
+**File:** `contradiction-comfort.ts`
+
+Holds space for contradictory emotions without trying to fix them.
+
+```typescript
+import { detectContradiction } from './contradiction-comfort.js';
+
+const result = detectContradiction(
+  "I'm excited about the new job but also really scared",
+  ['excited'],
+  'job change'
+);
+
+if (result?.detected) {
+  // result.emotions: ['excited', 'scared']
+  // result.validationPhrase: "You can be excited AND scared. Both are true."
+}
+```
+
+**Key Insight:** Friends try to resolve contradictions. Ferni holds space for both truths.
+
+---
+
+## 13. Perfect Timing Intelligence
+
+**File:** `perfect-timing.ts`
+
+Detects receptivity and learns optimal timing for different topics.
+
+```typescript
+import { detectReceptivity, isGoodTimeFor } from './perfect-timing.js';
+
+// At conversation start
+const receptivity = detectReceptivity({
+  energy: 0.7,
+  stressLevel: 0.2,
+  greetingTone: 'warm',
+});
+// receptivity.score: 0-1
+// receptivity.recommendations.canRaiseSensitiveTopics: boolean
+
+// Check timing for topic type
+const timing = isGoodTimeFor(userId, 'deep');
+// timing.isGood: boolean
+// timing.reason: "This is typically a good time for deep conversations"
+```
+
+**Key Insight:** Humans can't track when someone is most receptive. Ferni learns patterns.
+
+---
+
+## 14. Pattern Mirror
+
+**File:** `pattern-mirror.ts`
+
+Surfaces patterns the user may not notice about themselves.
+
+```typescript
+import { recordTopicEnergy, getPatternToSurface } from './pattern-mirror.js';
+
+// Record energy when discussing topics
+recordTopicEnergy(userId, {
+  topic: 'work',
+  voiceEnergy: 0.8,
+  baselineEnergy: 0.5,
+  sentiment: 'positive',
+});
+
+// Get patterns to potentially surface
+const insight = getPatternToSurface(userId);
+// insight.type: 'energizing_topic' | 'draining_topic' | 'fading_interest' | 'word_voice_mismatch'
+// insight.insight: "I've noticed you light up when talking about design..."
+```
+
+**Key Insight:** We don't notice our own patterns. Ferni reflects them back gently.
+
+---
+
+## 15. Future Self Letters
+
+**File:** `future-self.ts`
+
+Generates letters from the user's future self for perspective.
+
+```typescript
+import { generateFutureSelfLetter } from './future-self.js';
+
+const letter = await generateFutureSelfLetter(userId, {
+  currentChallenge: 'starting a new business',
+  desiredOutcome: 'successful launch',
+  timeframe: '1 year',
+  tone: 'optimistic', // or 'compassionate', 'honest', 'cautionary'
+});
+
+// letter.content: "Dear Present Me, I know it feels scary right now..."
+```
+
+**Key Insight:** Humans can't travel back to reassure their past selves. Ferni can generate that perspective.
+
+---
+
+## 16. First-Time Vulnerability
+
+**File:** `first-time-vulnerability.ts` (in trust-systems/)
+
+Detects when someone shares something for the first time.
+
+```typescript
+import { detectFirstTimeVulnerability } from './first-time-vulnerability.js';
+
+const result = detectFirstTimeVulnerability(
+  userId,
+  "I've never told anyone this, but I struggle with anxiety"
+);
+
+if (result?.detected) {
+  // result.markers.text: ['first_time_declaration', 'hesitation']
+  // result.vulnerabilityLevel: 0-5
+  // result.suggestedAcknowledgment: "Thank you for trusting me with that."
+}
+```
+
+**Key Insight:** Most people miss when someone shares something for the first time. Ferni honors these moments.
+
+---
+
+## 17. Linguistic Mirroring
+
+**File:** `linguistic-mirroring.ts` (in trust-systems/)
+
+Learns and uses the user's own emotion vocabulary.
+
+```typescript
+import { recordLinguisticPatterns, buildLinguisticContext } from './linguistic-mirroring.js';
+
+// Record patterns from user messages
+recordLinguisticPatterns(userId, "I'm feeling kinda overwhelmed", {
+  emotion: 'overwhelmed',
+});
+
+// Build context for LLM
+const context = buildLinguisticContext(userId);
+// "[LINGUISTIC PROFILE]
+// User says 'kinda' frequently, prefers informal tone
+// Emotion vocabulary: 'overwhelmed' for stress, 'bummed' for sad
+// Avoid: clinical/formal terms"
+```
+
+**Key Insight:** Friends impose their own language. Ferni speaks the user's emotional dialect.
+
+---
+
+## 18. Ambient Context Detection
+
+**File:** `ambient-context.ts` (in trust-systems/)
+
+Understands the user's environment from audio cues.
+
+```typescript
+import { analyzeAmbientAudio } from './ambient-context.js';
+
+const context = analyzeAmbientAudio({
+  backgroundNoiseLevel: 0.5,
+  speechToNoiseRatio: 0.5,
+  frequencySpread: 0.5,
+  multipleVoices: true,
+});
+
+// context.environment: 'quiet' | 'noisy' | 'office' | 'outdoor' | 'public'
+// context.privacyConcern: true (others might hear)
+// context.suggestions: ['Avoid sensitive topics unless they initiate']
+```
+
+**Key Insight:** We can't hear what's happening around them. Ferni can adapt to their environment.
+
+---
+
+## 19. Protective Memory
+
+**File:** `boundary-memory.ts` (in trust-systems/, enhanced)
+
+Remembers when advice was premature and when boundaries are softening.
+
+```typescript
+import { trackPrematureAdvice, detectSofteningBoundary } from './boundary-memory.js';
+
+// After advice that landed wrong
+trackPrematureAdvice(userId, {
+  topic: 'career change',
+  adviceGiven: 'Have you considered freelancing?',
+  userReaction: 'retreated',
+});
+
+// Check if boundary is softening
+const softening = detectSofteningBoundary(userId, 'family');
+// softening.isSoftening: true
+// softening.signals: ['mentioned topic 3x this week', 'longer discussions']
+```
+
+**Key Insight:** Friends repeat the same mistakes. Ferni learns what doesn't help and waits for readiness.
+
+---
+
+## Voice Pipeline Integration
+
+The new services are integrated into the voice pipeline:
+
+```typescript
+import { betterThanHumanIntegration } from './agents/integrations/better-than-human-integration.js';
+
+// At session start - load profiles
+await betterThanHumanIntegration.loadProfiles(userId);
+
+// On silence detection
+const silenceAnalysis = betterThanHumanIntegration.processSilence(silenceInput, sessionContext);
+
+// On voice prosody analysis
+betterThanHumanIntegration.processVoiceProsody(voiceInput, sessionContext, currentTopic);
+
+// On transcript processing
+const bthResult = await betterThanHumanIntegration.processTranscript(transcriptInput, sessionContext);
+
+// Build combined context for LLM
+const bthContext = await betterThanHumanIntegration.buildContext(userId);
 ```
 
 ---

@@ -22,7 +22,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('ValueCaptureUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -138,17 +138,21 @@ const styles = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
 }
 
 .value-capture-card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 24px);
+  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+  border-radius: var(--radius-xl, 20px);
   padding: var(--space-8, 32px);
   max-width: clamp(294px, 90vw, 420px);
   width: calc(100% - 32px);
-  box-shadow: var(--shadow-2xl);
+  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
   transform: scale(0.9);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   overflow: hidden;

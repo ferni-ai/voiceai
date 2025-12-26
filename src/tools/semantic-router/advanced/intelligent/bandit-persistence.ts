@@ -63,16 +63,58 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
           const armsObj: Record<string, unknown> = {};
 
           for (const [id, arm] of arms) {
-            armsObj[id] = {
-              toolId: arm.toolId,
-              successes: arm.successes,
-              failures: arm.failures,
-              attempts: arm.attempts,
-              averageReward: arm.averageReward,
-              lastUpdated: arm.lastUpdated?.toISOString() || new Date().toISOString(),
-              // Convert Map to object for storage
-              contextWeights: Object.fromEntries(arm.contextWeights || new Map()),
-            };
+            // Safely convert contextWeights to plain object for Firestore
+            // Firestore rejects non-plain objects (Maps, custom classes, etc.)
+            let contextWeightsObj: Record<string, number> = {};
+            
+            try {
+              if (arm.contextWeights) {
+                if (arm.contextWeights instanceof Map) {
+                  // Map → plain object via Object.fromEntries
+                  for (const [k, v] of arm.contextWeights.entries()) {
+                    if (typeof k === 'string' && typeof v === 'number') {
+                      contextWeightsObj[k] = v;
+                    }
+                  }
+                } else if (typeof arm.contextWeights === 'object' && arm.contextWeights !== null) {
+                  // Object-like but might not be plain - extract key-value pairs safely
+                  const weightObj = arm.contextWeights as unknown as Record<string, unknown>;
+                  
+                  // Check if it's a Map-like object with entries() method
+                  if (typeof (weightObj as { entries?: unknown }).entries === 'function') {
+                    const entriesFn = (weightObj as { entries: () => Iterable<[string, number]> }).entries;
+                    for (const [k, v] of entriesFn.call(weightObj)) {
+                      if (typeof k === 'string' && typeof v === 'number') {
+                        contextWeightsObj[k] = v;
+                      }
+                    }
+                  } else {
+                    // Plain-ish object - copy own enumerable properties
+                    for (const key of Object.keys(weightObj)) {
+                      const val = weightObj[key];
+                      if (typeof val === 'number') {
+                        contextWeightsObj[key] = val;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (conversionErr) {
+              // If conversion fails, just use empty object
+              log.warn({ armId: id, error: String(conversionErr) }, 'Failed to convert contextWeights');
+              contextWeightsObj = {};
+            }
+
+            // Build a completely plain object for Firestore
+            armsObj[id] = Object.assign(Object.create(null), {
+              toolId: String(arm.toolId || id),
+              successes: Number(arm.successes) || 0,
+              failures: Number(arm.failures) || 0,
+              attempts: Number(arm.attempts) || 0,
+              averageReward: Number(arm.averageReward) || 0.5,
+              lastUpdated: arm.lastUpdated?.toISOString?.() || new Date().toISOString(),
+              contextWeights: Object.assign(Object.create(null), contextWeightsObj),
+            });
           }
 
           await db.collection('system_cache').doc('bandit_arms').set(

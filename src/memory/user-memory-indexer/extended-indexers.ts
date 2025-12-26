@@ -13,7 +13,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { generateDocId, type AnyVectorStore, type VectorDocument } from './types.js';
 import type { JournalEntry, CustomAgent } from '../../types/custom-agent.js';
-import type { EnhancedContact } from '../../services/contacts/types.js';
+import type { EnhancedContact } from '../../types/contacts.js';
 import type { EnhancedHabit } from '../../tools/habit-coaching/types.js';
 
 const log = getLogger().child({ module: 'ExtendedIndexers' });

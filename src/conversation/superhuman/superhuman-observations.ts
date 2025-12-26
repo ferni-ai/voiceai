@@ -16,6 +16,7 @@
  * @module @ferni/superhuman/superhuman-observations
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ObservationResult, ObservationType, SuperhumanObservation } from './types.js';
 
@@ -305,7 +306,7 @@ export class SuperhumanObservationsEngine {
           ? 0.05
           : 0.03;
 
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return { shouldSurface: false };
     }
 
@@ -350,7 +351,7 @@ export class SuperhumanObservationsEngine {
 
     if (candidates.length === 0) return null;
 
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return seededPick(`${Date.now()}:354`, candidates) ?? candidates[0];
   }
 
   // ==========================================================================

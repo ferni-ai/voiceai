@@ -282,7 +282,7 @@ export async function initAdminPortal(): Promise<void> {
   injectAdminPortalStyles();
 
   // Render initial UI
-  const container = document.getElementById('app') || document.body;
+  const container = document.getElementById('app') ?? document.body;
   container.innerHTML = renderPortal();
 
   // Attach event listeners

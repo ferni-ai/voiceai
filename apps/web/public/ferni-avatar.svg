@@ -1,40 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Ferni Three Stones Logo - 200x200 -->
+  <!-- Ferni Avatar - 200x200 - Official Brand Icon -->
   <defs>
-    <radialGradient id="stoneGrad200" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    <radialGradient id="catchlightGrad200" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glowFilter200" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <linearGradient id="avatarGrad200" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="badgeGrad200" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="shadow200" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#2c2520" flood-opacity="0.2"/>
     </filter>
   </defs>
 
-  <!-- Background -->
-  <rect width="200" height="200" fill="transparent"/>
+  <!-- Outer presence ring -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35"/>
   
-  <circle cx="100" cy="100" r="75.46000000000002" fill="none" stroke="#4a6741" stroke-width="0.6" opacity="0.25"/>
-  <!-- Outer Stone: Body -->
-  <circle cx="100" cy="100" r="68.60000000000001" fill="url(#stoneGrad200)" filter="url(#glowFilter200)"/>
-
-  <!-- Middle Stone: Eye White -->
-  <circle cx="100" cy="100" r="28.126" fill="white"/>
-
-  <!-- Iris -->
-  <circle cx="100" cy="100" r="18.727800000000002" fill="#5a8060"/>
-
-  <!-- Inner Stone: Pupil -->
-  <circle cx="100" cy="100" r="9.329600000000001" fill="#2c2520"/>
-
-  <!-- Catchlight (life spark) -->
-  <circle cx="89.024" cy="89.024" r="3.7730000000000006" fill="url(#catchlightGrad200)"/>
+  <!-- Main avatar circle -->
+  <circle cx="100" cy="100" r="80" fill="url(#avatarGrad200)"/>
   
-  <!-- Secondary catchlight -->
-  <circle cx="105.488" cy="104.3904" r="1.5092000000000003" fill="white" opacity="0.4"/>
+  <!-- FE Text -->
+  <text 
+    x="100" 
+    y="100" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+    font-size="58"
+    font-weight="800"
+    fill="white"
+    letter-spacing="-2">
+    <tspan dy="4">FE</tspan>
+  </text>
+  
+  <!-- Shine overlay - ABOVE text -->
+  <ellipse cx="78" cy="68" rx="40" ry="20" fill="white" opacity="0.15"/>
+  
+  <!-- Heart badge -->
+  <circle cx="160" cy="160" r="22" fill="url(#badgeGrad200)" stroke="#FFFDFB" stroke-width="4" filter="url(#shadow200)"/>
+  
+  <!-- Heart icon - centered -->
+  <path 
+    d="M160 153c0-2.8-2.3-5-5-5s-5 2.2-5 5c0 5 9 12 9 12s9-7 9-12c0-2.8-2.3-5-5-5s-5 2.2-5 5z"
+    fill="none"
+    stroke="white"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

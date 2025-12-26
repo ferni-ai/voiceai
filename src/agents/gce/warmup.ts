@@ -30,6 +30,7 @@ export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
  * Warm up resources for faster session starts.
  *
  * Pre-loads:
+ * - GLOBAL SERVICES (Firestore, memory system) ← CRITICAL for fast first session!
  * - TTS engine (Cartesia)
  * - Persona cache
  * - Tool orchestrator
@@ -47,6 +48,22 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
   const vadLoaded = false;
 
   try {
+    // ⚡ CRITICAL: Initialize global services FIRST (blocking)
+    // This is the single biggest contributor to slow first-session join times.
+    // Firestore connections, memory system, collective learning, etc. must be ready
+    // BEFORE a job comes in, or the user waits 2-5 seconds for Ferni to join.
+    try {
+      const globalServicesStart = Date.now();
+      const { initializeServices } = await import('../../services/global-services.js');
+      await initializeServices(false); // Skip persona indexing (done separately)
+      log('✅ Global services initialized (Firestore, memory system)', {
+        durationMs: Date.now() - globalServicesStart,
+      });
+    } catch (e) {
+      log('⚠️ Global services init failed', { error: String(e) });
+      // Continue anyway - will retry on first session
+    }
+
     const tasks: Array<Promise<void>> = [];
 
     // ⚡ REMOVED: VAD preloading - Gemini Realtime handles turn detection

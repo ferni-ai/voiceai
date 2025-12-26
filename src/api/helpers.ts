@@ -227,19 +227,26 @@ export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): Va
 /**
  * Get user ID from request with proper validation.
  *
- * Checks query params, headers, and dev mode. Returns null if not found
- * (callers must handle missing userId appropriately).
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id.
+ * Checks in order: Firebase UID, query params, legacy header, dev mode.
  *
  * @param req - Incoming HTTP request
  * @param parsedUrl - Parsed URL with searchParams
  * @returns User ID or null if not provided
  */
 export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
+  // SECURITY: Prioritize Firebase auth (set by auth-middleware)
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
+
+  // Query params (for backwards compatibility)
   const fromQuery = parsedUrl.searchParams.get('userId');
   if (fromQuery) return fromQuery;
 
-  const fromHeader = req.headers['x-user-id'];
-  if (typeof fromHeader === 'string' && fromHeader) return fromHeader;
+  // Legacy header (deprecated - will be removed in future version)
+  // TODO: Remove x-user-id support after migration period
+  const fromLegacyHeader = req.headers['x-user-id'];
+  if (typeof fromLegacyHeader === 'string' && fromLegacyHeader) return fromLegacyHeader;
 
   // Dev mode bypass - allows testing without authentication
   // SECURITY: Only works in development environment

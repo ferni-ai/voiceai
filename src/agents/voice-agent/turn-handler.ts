@@ -82,6 +82,7 @@ import {
   processSemanticIntelligence,
   type TurnSemanticData,
 } from '../../services/superhuman/semantic-intelligence/integration.js';
+import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -1146,6 +1147,9 @@ IMPORTANT:
     if (services.userId) {
       // voiceEmotion is at the TurnHandlerContext level, not in userData
       const voiceEmotionResult = ctx.voiceEmotion;
+      // V3.1: Use enhanced person extraction for better NER-like detection
+      const mentionedPerson = getPrimaryPersonName(userText);
+      
       const semanticData: TurnSemanticData = {
         userId: services.userId,
         sessionId: services.sessionId,
@@ -1166,6 +1170,7 @@ IMPORTANT:
         turnsSinceStart: turnNumber,
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage,
+        mentionedPerson, // V3.1: Enhanced person extraction
       };
 
       // Fire-and-forget to not block turn completion

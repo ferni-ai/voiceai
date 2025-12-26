@@ -1,21 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- 
-    Ferni Favicon 16x16 - Three Stones
-    Optimized for tiny display - simplified to essential shapes
-  -->
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fav16Orb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="fav16Shine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
   
-  <!-- Background with rounded corners -->
-  <rect width="16" height="16" rx="3" fill="#F5F1E8"/>
-  
-  <!-- Outer Stone: Body -->
-  <circle cx="8" cy="8" r="6" fill="#4a6741"/>
-  
-  <!-- Middle Stone: Eye White -->
-  <circle cx="8" cy="8" r="2.5" fill="white"/>
-  
-  <!-- Inner Stone: Pupil (simplified - no iris at this size) -->
-  <circle cx="8" cy="8" r="1.2" fill="#2c2520"/>
-  
-  <!-- Catchlight (life spark) -->
-  <circle cx="7.3" cy="7.3" r="0.4" fill="white" opacity="0.9"/>
+  <circle cx="8" cy="8" r="8" fill="url(#fav16Orb)"/>
+  <circle cx="8" cy="8" r="8" fill="url(#fav16Shine)"/>
+  <text x="8" y="8" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="6" font-weight="900" fill="white">
+    <tspan dy="0.5">FE</tspan>
+  </text>
 </svg>

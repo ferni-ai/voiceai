@@ -19,7 +19,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('NotifySettings');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -130,7 +130,7 @@ class NotificationSettingsUI {
     if (!this.panel) return;
     this.panel.classList.remove('notif-settings--visible');
     this.currentTab = 'settings'; // Reset to default
-    clearAllTimeouts();
+    _clearAllTimeouts();
     this.callbacks.onClose?.();
   }
 
@@ -708,8 +708,9 @@ class NotificationSettingsUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -721,10 +722,12 @@ class NotificationSettingsUI {
         width: 100%;
         max-width: clamp(360px, 90vw, 520px);
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-xl, 1.5rem);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -733,6 +736,12 @@ class NotificationSettingsUI {
       }
 
       .notif-settings--visible .notif-settings__card { transform: scale(1); }
+
+      @supports not (backdrop-filter: blur(24px)) {
+        .notif-settings__card {
+          background: var(--color-background-elevated, #faf6f0);
+        }
+      }
 
       .notif-settings__header {
         display: flex;
@@ -1347,7 +1356,7 @@ class NotificationSettingsUI {
     this.styleElement?.remove();
     this.panel = null;
     this.styleElement = null;
-    clearAllTimeouts();
+    _clearAllTimeouts();
   }
 }
 

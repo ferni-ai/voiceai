@@ -11,6 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
 import { sendError, sendJsonResponse, parseRequestBody } from './helpers.js';
+import { requireAuth, type AuthContext } from './auth-middleware.js';
 
 const log = createLogger({ module: 'WidgetRoutes' });
 
@@ -299,11 +300,10 @@ async function handleCreateSession(req: IncomingMessage, res: ServerResponse): P
  * Registers a new widget (requires authentication)
  */
 async function handleRegisterWidget(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const body = await parseRequestBody<{
     displayName: string;
@@ -361,11 +361,10 @@ async function handleRegisterWidget(req: IncomingMessage, res: ServerResponse): 
  * Lists all widgets for the authenticated user
  */
 async function handleListWidgets(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const userWidgets: WidgetConfig[] = [];
   for (const config of widgetConfigs.values()) {
@@ -398,11 +397,10 @@ async function handleDeleteWidget(
   res: ServerResponse,
   widgetId: string
 ): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const config = widgetConfigs.get(widgetId);
   if (!config) {

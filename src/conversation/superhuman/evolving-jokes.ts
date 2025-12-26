@@ -15,6 +15,7 @@
  * @module @ferni/superhuman/evolving-jokes
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { EvolvingJoke, JokeCallbackResult } from './types.js';
 
@@ -118,7 +119,7 @@ export class EvolvingJokesEngine {
    * Create a new evolving joke from a seed
    */
   createJoke(seed: string, type: string, topic?: string): EvolvingJoke {
-    const id = `joke_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = `joke_${Date.now()}_${Date.now().toString(36).slice(-6)}`;
 
     // Generate initial callback phrase based on type
     const initialPhrase = this.generateInitialPhrase(seed, type);
@@ -177,7 +178,7 @@ export class EvolvingJokesEngine {
 
     // Probability based on relationship depth
     const probability = Math.min(0.15, 0.05 + context.sessionCount * 0.01);
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return { shouldCallback: false, shouldEvolve: false };
     }
 
@@ -306,7 +307,7 @@ export class EvolvingJokesEngine {
     };
 
     const typeTemplates = templates[type] || templates.quotable;
-    return typeTemplates[Math.floor(Math.random() * typeTemplates.length)];
+    return seededPick(`${Date.now()}:310`, typeTemplates) ?? typeTemplates[0];
   }
 
   private generateEstablishedPhrase(joke: EvolvingJoke): string {
@@ -316,7 +317,7 @@ export class EvolvingJokesEngine {
       `"${joke.seed}"—we've been here before.`,
       `The "${joke.seed}" returns.`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:320`, templates) ?? templates[0];
   }
 
   private generateLegacyPhrase(joke: EvolvingJoke): string {
@@ -326,7 +327,7 @@ export class EvolvingJokesEngine {
       `Our "${joke.seed}" is basically a veteran at this point.`,
       `"${joke.seed}"—one of my favorite things about us.`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:330`, templates) ?? templates[0];
   }
 
   private getNewJokeCallback(joke: EvolvingJoke): string {
@@ -334,7 +335,7 @@ export class EvolvingJokesEngine {
       `Wait, is this "${joke.seed}" again?`,
       `"${joke.seed}"—I'm starting to recognize this one.`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:338`, templates) ?? templates[0];
   }
 
   private getEstablishedJokeCallback(joke: EvolvingJoke): string {
@@ -343,7 +344,7 @@ export class EvolvingJokesEngine {
       `There's our "${joke.seed}" again.`,
       `"${joke.seed}" says hello.`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:347`, templates) ?? templates[0];
   }
 
   private getLegacyJokeCallback(joke: EvolvingJoke): string {
@@ -352,7 +353,7 @@ export class EvolvingJokesEngine {
       `Classic "${joke.seed}." Some things become tradition.`,
       `"${joke.seed}"—how far we've come with this one.`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:356`, templates) ?? templates[0];
   }
 
   // ==========================================================================
@@ -399,7 +400,7 @@ export class EvolvingJokesEngine {
       }
     }
 
-    return weighted[Math.floor(Math.random() * weighted.length)];
+    return seededPick(`${Date.now()}:403`, weighted) ?? weighted[0];
   }
 
   // ==========================================================================

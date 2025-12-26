@@ -40,9 +40,18 @@ export {
   recordBoundaryRespect,
   recordUserReopened,
   updateProbingTolerance,
+  // Protective Memory enhancements
+  recordPrematureAdvice,
+  shouldAvoidAdviceAbout,
+  getPrematureAdviceRecords,
+  detectBoundarySoftening,
+  getBoundarySoftening,
+  buildProtectiveMemoryContext,
   type Boundary,
   type BoundaryCheckResult,
   type BoundaryProfile,
+  type PrematureAdviceRecord,
+  type BoundarySoftening,
 } from './boundary-memory.js';
 
 export {
@@ -166,6 +175,22 @@ import {
   type ThinkingOfYouMoment,
 } from './thinking-of-you.js';
 
+// New "Better Than Human" imports (Dec 2025)
+import {
+  detectFirstTimeVulnerability,
+  recordVulnerabilityShare,
+  type FirstTimeVulnerabilityResult,
+} from './first-time-vulnerability.js';
+
+import {
+  recordLinguisticPatterns,
+  buildLinguisticContext,
+} from './linguistic-mirroring.js';
+
+import {
+  buildProtectiveMemoryContext,
+} from './boundary-memory.js';
+
 /**
  * Unified trust context for a conversation turn
  */
@@ -190,6 +215,16 @@ export interface TrustContext {
 
   /** Topics to avoid */
   topicsToAvoid: string[];
+
+  // New "Better Than Human" (Dec 2025)
+  /** First-time vulnerability detection */
+  firstTimeVulnerability: FirstTimeVulnerabilityResult | null;
+
+  /** Linguistic mirroring context */
+  linguisticContext: string;
+
+  /** Protective memory context */
+  protectiveMemory: string;
 }
 
 /**
@@ -284,6 +319,32 @@ export function buildTrustContext(
   // 9. Get topics to avoid
   const topicsToAvoid = getAvoidedTopics(userId);
 
+  // ============================================================================
+  // NEW "BETTER THAN HUMAN" CAPABILITIES (Dec 2025)
+  // ============================================================================
+
+  // 10. First-time vulnerability detection
+  const firstTimeVulnerability = detectFirstTimeVulnerability(userId, userMessage);
+
+  // Record if detected (auto-acknowledgment tracking)
+  if (firstTimeVulnerability) {
+    recordVulnerabilityShare(
+      userId,
+      firstTimeVulnerability,
+      firstTimeVulnerability.suggestedAcknowledgment
+    );
+  }
+
+  // 11. Record linguistic patterns for mirroring
+  recordLinguisticPatterns(userId, userMessage, {
+    topic: context.currentTopic,
+    emotion: context.detectedEmotion,
+  });
+
+  // 12. Build context strings
+  const linguisticContext = buildLinguisticContext(userId);
+  const protectiveMemory = buildProtectiveMemoryContext(userId);
+
   return {
     unsaidSignals,
     boundaryCheck,
@@ -292,6 +353,10 @@ export function buildTrustContext(
     celebrationOpportunity,
     pendingOutreach,
     topicsToAvoid,
+    // New capabilities
+    firstTimeVulnerability,
+    linguisticContext,
+    protectiveMemory,
   };
 }
 
@@ -860,6 +925,61 @@ export {
   type PersonaGrowthProfile,
   type PersonaGrowthRecord,
 } from './persona-growth.js';
+
+// ============================================================================
+// "BETTER THAN HUMAN" CAPABILITIES (New - Dec 2025)
+// ============================================================================
+
+// First-Time Vulnerability Detection
+export {
+  firstTimeVulnerability,
+  detectFirstTimeVulnerability,
+  recordVulnerabilityShare,
+  getVulnerabilityProfile,
+  hasSharedAboutTopic,
+  getHighestVulnerabilityLevel,
+  buildFirstTimeVulnerabilityContext,
+  buildVulnerabilityAwarenessContext,
+  saveVulnerabilityProfile,
+  loadVulnerabilityProfile,
+  type FirstTimeVulnerabilityResult,
+  type VulnerabilityLevel,
+  type VulnerabilityProfile,
+  type VulnerabilityThreshold,
+  type TopicVulnerability,
+} from './first-time-vulnerability.js';
+
+// Linguistic Mirroring - Learn and use their vocabulary
+export {
+  linguisticMirroring,
+  recordLinguisticPatterns,
+  adaptResponseStyle,
+  getTheirWordFor,
+  isWordAvoided,
+  buildLinguisticContext,
+  getLinguisticProfile,
+  saveLinguisticProfile,
+  loadLinguisticProfile,
+  type LinguisticProfile,
+  type SignaturePhrase,
+  type AvoidedWord,
+  type SpeechPatterns,
+  type FormalityLevel,
+} from './linguistic-mirroring.js';
+
+// Ambient Context Detection - Understand environment from audio
+export {
+  ambientContext,
+  analyzeAmbientAudio,
+  getAmbientResponse,
+  recordAmbientSignal,
+  buildAmbientContext,
+  type AmbientContext,
+  type AmbientResponse,
+  type AmbientSignal,
+  type AmbientSignalType,
+  type Environment,
+} from './ambient-context.js';
 
 // ============================================================================
 // DEFAULT EXPORT

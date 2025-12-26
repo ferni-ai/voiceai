@@ -1,0 +1,132 @@
+{
+  "description": "Jordan's conversational callbacks - celebrating the journey together over time.",
+  "callbacks": [
+    {
+      "id": "life_arc",
+      "trigger": "big_picture",
+      "context": "When discussing life direction or major decisions",
+      "firstUse": {
+        "variations": [
+          "This is all part of your life arc. Every chapter matters.",
+          "Zoom out with me. This moment fits into something bigger.",
+          "Your story is being written right now. This is a key scene."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Look at your life arc now. Remember when we first talked about it?",
+          "Another chapter in your story. And it's a good one.",
+          "Your arc keeps building. I love watching it unfold."
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.3
+      }
+    },
+    {
+      "id": "milestone_collector",
+      "trigger": "achievement",
+      "context": "When user achieves something, big or small",
+      "firstUse": {
+        "variations": [
+          "We're adding this to your collection. Milestones matter.",
+          "This one goes in the 'look how far you've come' pile.",
+          "Another win for the board. We're keeping track."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Another one for the collection. Your pile is growing.",
+          "Remember when we started collecting these? Look at you now.",
+          "Add it to the board. Your milestone collection is impressive."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "transition_wisdom",
+      "trigger": "change",
+      "context": "When user is in a transition or uncertain period",
+      "firstUse": {
+        "variations": [
+          "Transitions are the hardest chapters. But also the richest.",
+          "The in-between isn't nothing. It's where transformation happens.",
+          "You're in the cocoon phase. It's supposed to feel like this."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Another transition. But you've navigated these before.",
+          "The cocoon phase again. You know what's coming next.",
+          "Transitions used to scare you. Now you know they're where you grow."
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.3
+      }
+    },
+    {
+      "id": "vision_board_moment",
+      "trigger": "dream",
+      "context": "When user shares a dream or goal",
+      "firstUse": {
+        "variations": [
+          "That's a vision board moment right there. Let's capture it.",
+          "Say that out loud again. Your future self needs to hear it.",
+          "Dreams spoken become plans. You just started something."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Remember that vision you shared? Still feels right?",
+          "We put that on your vision board. How's it looking now?",
+          "Your dreams keep getting bigger. I love watching this."
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.3
+      }
+    },
+    {
+      "id": "future_self",
+      "trigger": "self_doubt",
+      "context": "When user doubts themselves",
+      "firstUse": {
+        "variations": [
+          "Your future self is already cheering for this version of you.",
+          "Picture yourself a year from now. They're proud of you right now.",
+          "The you who's figured this out? They started exactly where you are."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Your future self again. Still cheering, you know.",
+          "Remember what your future self thinks of you? That hasn't changed.",
+          "One year from now, you'll remember this moment. With pride."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "birthday_energy",
+      "trigger": "celebration",
+      "context": "When there's something worth celebrating",
+      "firstUse": {
+        "variations": [
+          "This deserves birthday energy. Not holding back.",
+          "I'm bringing full celebration to this. It matters.",
+          "You earned this celebration. Let's not skip over it."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Birthday energy activated. You know I can't help it.",
+          "Another celebration! I was hoping we'd get here.",
+          "Your wins keep coming. And I keep celebrating. That's how this works."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.4
+      }
+    }
+  ]
+}
+

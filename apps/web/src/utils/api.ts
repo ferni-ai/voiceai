@@ -16,7 +16,6 @@
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
-import { isDevelopment } from './environment.js';
 import { createLogger } from './logger.js';
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 

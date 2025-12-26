@@ -20,13 +20,17 @@
  *
  * @module services/contacts
  *
- * PERSISTENCE: Uses Firestore with in-memory caching for fast access.
+ * PERSISTENCE:
+ * - Production: Firestore with in-memory caching
+ * - Development: Local JSON file fallback at .ferni/contacts.json
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground } from '../utils/background-task.js';
 import { getConfig } from '../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // ============================================================================
 // TYPES
@@ -92,17 +96,79 @@ export interface ContactSearchResult {
 }
 
 // ============================================================================
-// FIRESTORE SETUP
+// PERSISTENCE SETUP
 // ============================================================================
 
 let db: FirestoreType | null = null;
 const CONTACTS_COLLECTION = 'user_contacts';
+
+// Local file fallback for development
+const LOCAL_CONTACTS_DIR = '.ferni';
+const LOCAL_CONTACTS_FILE = 'contacts.json';
+
+/**
+ * Get the path to local contacts file
+ */
+function getLocalContactsPath(): string {
+  return path.join(process.cwd(), LOCAL_CONTACTS_DIR, LOCAL_CONTACTS_FILE);
+}
+
+/**
+ * Ensure local contacts directory exists
+ */
+function ensureLocalDir(): void {
+  const dir = path.join(process.cwd(), LOCAL_CONTACTS_DIR);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+/**
+ * Load contacts from local JSON file (development fallback)
+ */
+function loadLocalContacts(): Map<string, Contact> {
+  const filePath = getLocalContactsPath();
+  if (!fs.existsSync(filePath)) {
+    return new Map();
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const contacts = new Map<string, Contact>();
+    for (const [id, contact] of Object.entries(data)) {
+      contacts.set(id, contact as Contact);
+    }
+    return contacts;
+  } catch (err) {
+    getLogger().warn({ err }, 'Failed to load local contacts file');
+    return new Map();
+  }
+}
+
+/**
+ * Save contacts to local JSON file (development fallback)
+ */
+function saveLocalContacts(contacts: Map<string, Contact>): void {
+  try {
+    ensureLocalDir();
+    const data: Record<string, Contact> = {};
+    for (const [id, contact] of contacts) {
+      data[id] = contact;
+    }
+    fs.writeFileSync(getLocalContactsPath(), JSON.stringify(data, null, 2));
+    getLogger().debug({ count: contacts.size }, '💾 Contacts saved to local file');
+  } catch (err) {
+    getLogger().warn({ err }, 'Failed to save local contacts file');
+  }
+}
+
+let useLocalFallback = false;
 
 /**
  * Initialize Firestore connection
  */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (useLocalFallback) return null;
 
   try {
     const { Firestore } = await import('@google-cloud/firestore');
@@ -113,26 +179,29 @@ async function getFirestore(): Promise<FirestoreType | null> {
     getLogger().info('Contacts service Firestore initialized');
     return db;
   } catch (error) {
-    getLogger().warn({ error }, 'Firestore not available for contacts, using in-memory only');
+    getLogger().info({ error }, '📁 Firestore not available, using local JSON file for contacts');
+    useLocalFallback = true;
     return null;
   }
 }
 
 // ============================================================================
-// IN-MEMORY CACHE (with Firestore sync)
+// IN-MEMORY CACHE (with Firestore or local file sync)
 // ============================================================================
 
 const contactsStore = new Map<string, Contact>();
-const loadedUsers = new Set<string>(); // Track which users have been loaded from Firestore
+const loadedUsers = new Set<string>(); // Track which users have been loaded from persistence
+let localContactsLoaded = false;
 
 /**
- * Ensure contacts are loaded from Firestore for a user
+ * Ensure contacts are loaded from persistence for a user
  */
 async function ensureContactsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   const firestore = await getFirestore();
   if (firestore) {
+    // Load from Firestore
     try {
       const snapshot = await firestore
         .collection(CONTACTS_COLLECTION)
@@ -158,26 +227,52 @@ async function ensureContactsLoaded(userId: string): Promise<void> {
     } catch (err) {
       getLogger().warn({ err, userId }, 'Failed to load contacts from Firestore');
     }
+  } else if (!localContactsLoaded) {
+    // Load from local file fallback (development)
+    const loaded = loadLocalContacts();
+    for (const [id, contact] of loaded) {
+      contactsStore.set(id, contact);
+    }
+    localContactsLoaded = true;
+    getLogger().info({ count: loaded.size }, '📁 Loaded contacts from local file');
   }
-  loadedUsers.add(userId); // Mark as loaded even if Firestore unavailable
+  loadedUsers.add(userId); // Mark as loaded even if persistence unavailable
 }
 
 /**
- * Persist a contact to Firestore
+ * Remove undefined values from an object (Firestore doesn't accept undefined)
+ */
+function stripUndefined<T extends object>(obj: T): T {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as T;
+}
+
+/**
+ * Persist a contact to storage (Firestore or local file)
  */
 async function persistContact(contact: Contact): Promise<void> {
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(CONTACTS_COLLECTION).doc(contact.id).set(contact, { merge: true });
+      // Strip undefined values before saving - Firestore doesn't accept undefined
+      const cleanContact = stripUndefined(contact);
+      await firestore.collection(CONTACTS_COLLECTION).doc(contact.id).set(cleanContact, { merge: true });
     } catch (err) {
       getLogger().warn({ err, contactId: contact.id }, 'Failed to persist contact to Firestore');
     }
+  } else {
+    // Save to local file (development fallback)
+    saveLocalContacts(contactsStore);
   }
 }
 
 /**
- * Delete a contact from Firestore
+ * Delete a contact from storage
  */
 async function deleteContactFromFirestore(contactId: string): Promise<void> {
   const firestore = await getFirestore();
@@ -187,6 +282,9 @@ async function deleteContactFromFirestore(contactId: string): Promise<void> {
     } catch (err) {
       getLogger().warn({ err, contactId }, 'Failed to delete contact from Firestore');
     }
+  } else {
+    // Save to local file (development fallback) - the contact was already removed from contactsStore
+    saveLocalContacts(contactsStore);
   }
 }
 

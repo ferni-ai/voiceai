@@ -332,7 +332,7 @@ function describeCommunicationStyle(personality: Record<string, unknown>): strin
 function addTwinWelcome(): void {
   if (!twinContext) return;
 
-  const { profile, recentJournals, currentMood } = twinContext;
+  const { profile, recentJournals, currentMood: _currentMood } = twinContext;
 
   // Build a personalized welcome using the profile
   let welcome = '';
@@ -665,7 +665,7 @@ function getTwinStyles(): string {
     .twin-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
       backdrop-filter: blur(8px);
     }
     

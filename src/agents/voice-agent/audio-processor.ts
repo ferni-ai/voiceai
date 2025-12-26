@@ -15,8 +15,9 @@ import { getDJBooth } from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import { getEmotionalArcTracker } from '../../conversation/index.js';
-import { getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody.js';
+import { getSessionAudioProsodyAnalyzer, getRealTimeAnalyzer } from '../../speech/audio-prosody.js';
 import { getBreathPauseDetector } from '../../speech/live-backchanneling/index.js';
+import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import { getEmotionModulation } from '../../speech/emotion-matching.js';
 import {
   startEmotionStream,
@@ -33,6 +34,8 @@ import { getSpeakerChangeDetector } from '../../services/voice/voice-speaker-cha
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
 import type { UserData } from '../shared/types.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
+// Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
+import { processVoiceProsody, processAmbientSignals } from '../integrations/better-than-human-integration.js';
 
 // ============================================================================
 // TYPES
@@ -72,9 +75,12 @@ export async function processAudioStream(
 
   const reader = audio.getReader();
 
-  // Session-scoped prosody analyzer
+  // Session-scoped prosody analyzer (batch - analyzes at utterance end)
   let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
   let prosodySessionId: string | null = null;
+
+  // Real-time prosody analyzer (streaming - analyzes each chunk for anticipation)
+  let realTimeAnalyzer: ReturnType<typeof getRealTimeAnalyzer> | null = null;
 
   // Gemini multimodal emotion analysis
   const geminiEmotionEnabled = isExperimentalEnabled('geminiEmotionAnalysis');
@@ -93,8 +99,49 @@ export async function processAudioStream(
           prosodyAnalyzer = getSessionAudioProsodyAnalyzer(prosodySessionId);
         }
 
-        // Process frame for prosody
+        // Process frame for prosody (batch analyzer)
         prosodyAnalyzer?.processAudioFrame(frame);
+
+        // =========================================================================
+        // BETTER THAN HUMAN: Real-time prosody for anticipation
+        // Process each audio chunk to detect emotional signals DURING speech
+        // =========================================================================
+        if (isOrchestratorEnabled() && sessionId) {
+          if (!realTimeAnalyzer) {
+            realTimeAnalyzer = getRealTimeAnalyzer(sessionId);
+          }
+
+          // Convert Int16Array to Float32Array for real-time analyzer
+          const float32Samples = new Float32Array(frame.data.length);
+          for (let i = 0; i < frame.data.length; i++) {
+            float32Samples[i] = frame.data[i] / 32768.0;
+          }
+
+          // Process chunk and get partial prosody features
+          const partialProsody = realTimeAnalyzer.processChunk(float32Samples);
+          if (partialProsody) {
+            // Feed partial prosody to anticipation pipeline if speech detected
+            if (partialProsody.isSpeech && userData) {
+              try {
+                // Store for transcript-handler to use with text
+                // The transcript-handler will combine this with partial transcript
+                // to make anticipation decisions (intent + emotion prediction)
+                (userData as UserData & { realtimeProsody?: typeof partialProsody }).realtimeProsody =
+                  partialProsody;
+
+                // If user is showing distress signals (high energy variance, falling pitch)
+                // This enables immediate concern detection before speech ends
+                if (partialProsody.energyVariance > 5 && partialProsody.pitchTrend === 'falling') {
+                  (
+                    userData as UserData & { anticipatedDistress?: boolean }
+                  ).anticipatedDistress = true;
+                }
+              } catch {
+                // Non-critical, anticipation is enhancement only
+              }
+            }
+          }
+        }
 
         // Initialize Gemini emotion stream
         if (geminiEmotionEnabled && !geminiEmotionStream && sessionId) {
@@ -235,6 +282,32 @@ async function processVoiceEmotion(
     void recordEmotionForIntelligence(userId, sessionId, voiceEmotion, logger);
   }
 
+  // 🌟 Better Than Human: Perfect Timing & Pattern Mirror integration
+  // Tracks timing receptivity and topic energy patterns
+  if (userId && voiceEmotion.confidence > 0.4) {
+    try {
+      processVoiceProsody(
+        {
+          energy: voiceEmotion.prosody?.energyMean ?? voiceEmotion.arousal ?? 0.5,
+          stressLevel: voiceEmotion.stressLevel ?? 0.5,
+          arousal: voiceEmotion.arousal,
+          valence: voiceEmotion.valence,
+          speechRate: voiceEmotion.prosody?.speechRate,
+          pitchVariance: voiceEmotion.prosody?.pitchVariance,
+        },
+        {
+          userId,
+          sessionId,
+          personaId: userData?.bundleRuntimeState?.currentMode || 'ferni',
+          turnCount: userData?.turnCount || 0,
+        },
+        userData?.lastTopic
+      );
+    } catch (e) {
+      logger.debug({ error: e }, 'Better Than Human prosody failed (non-critical)');
+    }
+  }
+
   // Send updates to frontend
   if (voiceEmotion.confidence > 0.5) {
     await sendEmotionUpdates(voiceEmotion, sessionId, sendDataMessage, logger);
@@ -319,6 +392,19 @@ async function processAmbientAwareness(
       const ambient = ambientService.getAnalysis();
       userData.ambientEnvironment = ambient.environment;
       userData.ambientNoiseLevel = ambient.noiseLevel;
+
+      // 🌟 Better Than Human: Process ambient for privacy/environment detection
+      const bthAmbientContext = processAmbientSignals({
+        backgroundNoiseLevel: ambient.noiseLevel,
+        speechToNoiseRatio: ambient.confidence,
+        frequencySpread: 0.5, // Estimated from noise level
+        rhythmicPatterns: ambient.environment === 'coffee_shop',
+        multipleVoices: ambient.environment === 'coffee_shop' || ambient.environment === 'office',
+        outdoorIndicators: ambient.environment === 'outdoors',
+      });
+
+      // Store enhanced ambient context
+      (userData as Record<string, unknown>).betterThanHumanAmbient = bthAmbientContext;
 
       // Offer to pause in noisy environments
       if (

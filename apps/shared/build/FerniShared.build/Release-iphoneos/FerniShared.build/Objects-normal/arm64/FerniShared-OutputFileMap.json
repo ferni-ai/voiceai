@@ -1,0 +1,166 @@
+{
+  "" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary.dia",
+    "emit-module-dependencies" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary-emit-module.dia",
+    "pch" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniShared-primary.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarLamp.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarLamp.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarLamp.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarLamp.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/AvatarSoul.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarSoul.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarSoul.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/AvatarSoul.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Animation/PixarAnimations.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarAnimations.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarAnimations.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarAnimations.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/ActiveListening.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ActiveListening.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ActiveListening.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ActiveListening.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/Anticipation.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Anticipation.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Anticipation.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Anticipation.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BetterThanHumanEngine.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BetterThanHumanEngine.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BetterThanHumanEngine.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BetterThanHumanEngine.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/BreathSync.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BreathSync.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BreathSync.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/BreathSync.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EasterEggTriggers.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EasterEggTriggers.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EasterEggTriggers.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EasterEggTriggers.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalHaptics.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalHaptics.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalHaptics.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalHaptics.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/EmotionalSoundEngine.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalSoundEngine.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalSoundEngine.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/EmotionalSoundEngine.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/MicroExpressions.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MicroExpressions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MicroExpressions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MicroExpressions.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/BetterThanHuman/PixarPersonality.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarPersonality.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarPersonality.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarPersonality.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/FerniColors.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniColors.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniColors.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniColors.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/GlassStyle.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlassStyle.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlassStyle.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlassStyle.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Design/TonalStyle.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/TonalStyle.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/TonalStyle.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/TonalStyle.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Extensions/Color+Hex.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Color+Hex.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Color+Hex.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Color+Hex.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniActivityAttributes.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniActivityAttributes.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniActivityAttributes.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniActivityAttributes.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniDynamicIslandViews.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniDynamicIslandViews.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniDynamicIslandViews.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniDynamicIslandViews.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/LiveActivity/FerniLiveActivityManager.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniLiveActivityManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniLiveActivityManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/FerniLiveActivityManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/Persona.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Persona.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Persona.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/Persona.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Models/VoiceState.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceState.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceState.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceState.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Services/RelationshipArcService.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/RelationshipArcService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/RelationshipArcService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/RelationshipArcService.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/ConnectionHeart.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ConnectionHeart.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ConnectionHeart.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/ConnectionHeart.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/GlowHalo.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlowHalo.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlowHalo.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/GlowHalo.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalPixarEyes.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalPixarEyes.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalPixarEyes.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalPixarEyes.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/MagicalSplashView.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalSplashView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalSplashView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/MagicalSplashView.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/OnboardingJourneyView.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/OnboardingJourneyView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/OnboardingJourneyView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/OnboardingJourneyView.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarEyes.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarEyes.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarEyes.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarEyes.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/PixarVoiceOrb.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarVoiceOrb.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarVoiceOrb.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/PixarVoiceOrb.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/StageProgressView.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/StageProgressView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/StageProgressView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/StageProgressView.o"
+  },
+  "/Users/sethford/Documents/voiceai/apps/shared/Sources/FerniShared/Views/VoiceOrb.swift" : {
+    "index-unit-output-path" : "/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceOrb.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceOrb.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/shared/build/FerniShared.build/Release-iphoneos/FerniShared.build/Objects-normal/arm64/VoiceOrb.o"
+  }
+}

@@ -87,76 +87,8 @@ export function lazyService<T>(
   };
 }
 
-/**
- * Lazy services registry for heavy/rarely-used services
- *
- * These services are loaded on-demand instead of at startup:
- * - Landing Intelligence (Gemini-powered, only used for marketing)
- * - Scientific Knowledge (large knowledge base)
- * - Predictive Insights (ML models)
- * - Wisdom Synthesis (complex aggregation)
- */
-export const lazyServices = {
-  /**
-   * Landing page optimization with Gemini
-   * Only used when someone visits the marketing site
-   */
-  landingIntelligence: lazyService(
-    async () => import('../services/landing-intelligence/index.js'),
-    {
-      name: 'landing-intelligence',
-      preloadDelay: 30000,
-    }
-  ),
+// NOTE: The lazyServices registry has been moved to src/services/lazy-registry.ts
+// to follow proper architecture (business logic belongs in services layer).
+// Use: services/lazy-registry.ts → lazyServices
 
-  /**
-   * Scientific knowledge base
-   * Only used for research-related queries
-   */
-  scientificKnowledge: lazyService(
-    async () => import('../services/scientific-knowledge/index.js'),
-    {
-      name: 'scientific-knowledge',
-    }
-  ),
-
-  /**
-   * Predictive insights engine
-   * Only used for analytics dashboards
-   */
-  predictiveInsights: lazyService(async () => import('../services/predictive-insights/index.js'), {
-    name: 'predictive-insights',
-  }),
-
-  /**
-   * Wisdom synthesis service
-   * Only used for wisdom aggregation jobs
-   */
-  wisdomSynthesis: lazyService(async () => import('../services/wisdom-synthesis/index.js'), {
-    name: 'wisdom-synthesis',
-  }),
-
-  /**
-   * Behavioral economics patterns
-   * Only used for nudge recommendations
-   */
-  behavioralEconomics: lazyService(
-    async () => import('../services/behavioral-economics/index.js'),
-    {
-      name: 'behavioral-economics',
-    }
-  ),
-
-  /**
-   * Somatic intelligence (body awareness)
-   * Only used for wellness coaching
-   */
-  somaticIntelligence: lazyService(
-    async () => import('../services/somatic-intelligence/index.js'),
-    {
-      name: 'somatic-intelligence',
-    }
-  ),
-};
-
-export type LazyServices = typeof lazyServices;
+export type { LazyServiceOptions };

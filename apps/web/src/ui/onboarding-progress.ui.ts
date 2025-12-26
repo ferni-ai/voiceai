@@ -174,24 +174,34 @@ const styles = `
 .onboarding-progress-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--backdrop-heavy, rgba(44, 37, 32, 0.5));
-  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
 }
 
 .onboarding-progress-card {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 24px);
+  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
   width: 100%;
   max-width: 380px;
   padding: var(--space-xl, 42px) var(--space-lg, 26px);
-  box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
 }
 
 .onboarding-progress-modal.open .onboarding-progress-card {
   transform: scale(1);
+}
+
+@supports not (backdrop-filter: blur(24px)) {
+  .onboarding-progress-card {
+    background: var(--color-background-elevated, #faf6f0);
+  }
 }
 
 .onboarding-progress-header {
@@ -754,7 +764,7 @@ function celebrateMilestoneReached(milestone: MilestoneInfo): void {
   if (celebratedDays.has(milestone.day)) return;
   celebratedDays.add(milestone.day);
 
-  toast.success(milestone.description, { duration: 4000 });
+  toast.success(milestone.description);
 
   log.info({ day: milestone.day, title: milestone.title }, 'Celebrated milestone');
 }

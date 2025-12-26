@@ -76,10 +76,11 @@ export {
   getPersonaAppropriateEmotion,
   getRandomPersonaEmotion,
   isEmotionInPersonaRange,
-  type PersonaEmotionProfile,
 } from '../cartesia-expressiveness.js';
 
-export { getEmotionProfile, PERSONA_EMOTION_PROFILES } from '../voice-manager/config.js';
+// Emotion profiles - from standalone file to avoid circular deps
+// PersonaEmotionProfile type is canonical here (cartesia-expressiveness re-exports it)
+export { getEmotionProfile, PERSONA_EMOTION_PROFILES, type PersonaEmotionProfile } from '../emotion-profiles.js';
 
 // ============================================================================
 // DEFAULT EXPORT (For backwards compatibility)
@@ -92,7 +93,7 @@ import {
   getPersonaAppropriateEmotion,
   getRandomPersonaEmotion,
 } from '../cartesia-expressiveness.js';
-import { getEmotionProfile, PERSONA_EMOTION_PROFILES } from '../voice-manager/config.js';
+import { getEmotionProfile, PERSONA_EMOTION_PROFILES } from '../emotion-profiles.js';
 import { getEmotionTransition, mapContextToEmotion } from './emotions.js';
 import { injectNaturalFillers } from './fillers.js';
 import { humanizeText } from './pipeline.js';

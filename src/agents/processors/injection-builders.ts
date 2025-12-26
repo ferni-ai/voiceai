@@ -9,6 +9,10 @@
  * - Clear separation of concerns
  * - Easier to maintain and extend
  * - Reduced cognitive load
+ *
+ * PERFORMANCE OPTIMIZATION (Dec 2024):
+ * Non-volatile injections (health, visual memory, ambient) are cached with 60s TTL
+ * to reduce Firestore queries on every turn.
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
@@ -23,6 +27,71 @@ import {
   mapToLegacyPhase,
   updateSessionDynamics,
 } from '../integrations/session-dynamics-integration.js';
+
+// ============================================================================
+// NON-VOLATILE INJECTION CACHE
+// Caches slow-changing data like health, visual memory, ambient context
+// TTL: 60 seconds - these don't change turn-to-turn
+// ============================================================================
+
+interface CachedInjection {
+  injection: ContextInjection | null;
+  timestamp: number;
+}
+
+const NON_VOLATILE_CACHE_TTL_MS = 60_000; // 60 seconds
+
+const nonVolatileInjectionCache = new Map<string, CachedInjection>();
+
+function getCachedInjection(key: string): ContextInjection | null | undefined {
+  const cached = nonVolatileInjectionCache.get(key);
+  if (!cached) return undefined;
+
+  // Check if expired
+  if (Date.now() - cached.timestamp > NON_VOLATILE_CACHE_TTL_MS) {
+    nonVolatileInjectionCache.delete(key);
+    return undefined;
+  }
+
+  return cached.injection;
+}
+
+function setCachedInjection(key: string, injection: ContextInjection | null): void {
+  nonVolatileInjectionCache.set(key, {
+    injection,
+    timestamp: Date.now(),
+  });
+
+  // Prune old entries if cache gets too large (max 500 entries)
+  if (nonVolatileInjectionCache.size > 500) {
+    const oldestKey = nonVolatileInjectionCache.keys().next().value;
+    if (oldestKey) nonVolatileInjectionCache.delete(oldestKey);
+  }
+}
+
+/**
+ * Clear cache for a specific user (call on session end)
+ */
+export function clearNonVolatileInjectionCache(userId: string): void {
+  for (const key of nonVolatileInjectionCache.keys()) {
+    if (key.startsWith(`${userId}:`)) {
+      nonVolatileInjectionCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Get cache stats for monitoring
+ */
+export function getNonVolatileInjectionCacheStats(): {
+  size: number;
+  ttlMs: number;
+} {
+  return {
+    size: nonVolatileInjectionCache.size,
+    ttlMs: NON_VOLATILE_CACHE_TTL_MS,
+  };
+}
 
 // ============================================================================
 // SHARED TYPES
@@ -225,18 +294,23 @@ export async function buildScientificCoachingInjections(
 // Priority: 68-72
 // ============================================================================
 
-/** Persona mapping for coaching module */
+/** Persona mapping for coaching module - uses canonical IDs */
 const COACHING_PERSONA_MAP: Record<
   string,
-  'ferni' | 'maya' | 'alex' | 'peter' | 'jack' | 'jordan'
+  'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel'
 > = {
   ferni: 'ferni',
-  'jack-b': 'jack',
-  'jack-bogle': 'jack',
-  'maya-santos': 'maya',
-  'alex-chen': 'alex',
-  'peter-john': 'peter',
-  'jordan-taylor': 'jordan',
+  'maya-santos': 'maya-santos',
+  'alex-chen': 'alex-chen',
+  'peter-john': 'peter-john',
+  'jordan-taylor': 'jordan-taylor',
+  'nayan-patel': 'nayan-patel',
+  // Legacy aliases
+  maya: 'maya-santos',
+  alex: 'alex-chen',
+  peter: 'peter-john',
+  jordan: 'jordan-taylor',
+  nayan: 'nayan-patel',
 };
 
 /**
@@ -536,6 +610,71 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
         triggerType: dueoutreach.trigger.type,
       });
     }
+
+    // =================================================================
+    // 💎 FIRST-TIME VULNERABILITY - "This is the first time you've shared this"
+    // Detect and honor first-time vulnerable shares with special care
+    // =================================================================
+    if (trustContext.firstTimeVulnerability?.detected) {
+      const vuln = trustContext.firstTimeVulnerability;
+      injections.push({
+        category: 'vulnerability',
+        content: `[💎 FIRST-TIME VULNERABILITY DETECTED]
+
+This is the first time they've shared this with you: "${vuln.topic || 'something personal'}"
+Vulnerability level: ${vuln.vulnerabilityLevel}
+
+CRITICAL GUIDANCE:
+- Honor this moment with genuine care
+- Don't rush to solutions or advice
+- Use a gentle, warm tone
+- Acknowledge the courage it takes to share
+- Let them know they're safe here
+
+Suggested acknowledgment: "${vuln.suggestedAcknowledgment}"
+
+This is "Better than Human" - recognizing the significance of first-time shares. A friend might miss how big this is.`,
+        priority: 87, // Very high - vulnerability needs immediate recognition
+      });
+
+      diag.info('💎 First-time vulnerability detected', {
+        level: vuln.vulnerabilityLevel,
+        topic: vuln.topic,
+      });
+    }
+
+    // =================================================================
+    // 🪞 LINGUISTIC MIRRORING - "Speaking their language"
+    // Adapt response style to match their vocabulary and formality
+    // =================================================================
+    if (trustContext.linguisticContext && trustContext.linguisticContext.length > 20) {
+      injections.push({
+        category: 'linguistic',
+        content: `[🪞 LINGUISTIC MIRRORING]
+
+${trustContext.linguisticContext}
+
+This is "Better than Human" - naturally adapting to how they express themselves.`,
+        priority: 45, // Lower priority - style guidance, not urgent
+      });
+    }
+
+    // =================================================================
+    // 🛡️ PROTECTIVE MEMORY - "Guard their boundaries"
+    // Track when advice was premature, boundaries are softening
+    // =================================================================
+    if (trustContext.protectiveMemory && trustContext.protectiveMemory.length > 20) {
+      injections.push({
+        category: 'protective',
+        content: `[🛡️ PROTECTIVE MEMORY]
+
+${trustContext.protectiveMemory}
+
+This is "Better than Human" - remembering when advice wasn't welcome, noticing when they're compromising themselves.`,
+        priority: 78, // High - protecting user from harm
+      });
+    }
+
     // Record trust system timing
     recordTrustSystemTiming(Date.now() - startTime);
 
@@ -1476,25 +1615,43 @@ A human friend would be honest about technical difficulties. So are you.
  * "Better than Human" - We KNOW when you're sleep-deprived, stressed, or
  * have been less active. A human friend has to guess. We know for sure.
  *
+ * PERFORMANCE: Cached for 60s - health data doesn't change turn-to-turn
+ *
  * @param userId - User ID to fetch health data for
  * @returns Context injection with health insights, or null if disabled/unavailable
  */
 export async function buildUserHealthInjection(
   userId: string
 ): Promise<ContextInjection | null> {
+  // Check cache first (60s TTL)
+  const cacheKey = `${userId}:health`;
+  const cached = getCachedInjection(cacheKey);
+  if (cached !== undefined) {
+    diag.debug('Health injection cache hit', { userId });
+    return cached;
+  }
+
   try {
     const { buildHealthAwarenessInjection } = await import('../../services/health/index.js');
     const coreInjection = await buildHealthAwarenessInjection(userId);
-    if (!coreInjection) return null;
 
-    // Convert from core/types.ContextInjection to processors/types.ContextInjection
-    return {
-      category: coreInjection.category || 'better_than_human',
-      content: coreInjection.content,
-      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
-    };
+    let result: ContextInjection | null = null;
+    if (coreInjection) {
+      // Convert from core/types.ContextInjection to processors/types.ContextInjection
+      result = {
+        category: coreInjection.category || 'better_than_human',
+        content: coreInjection.content,
+        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+      };
+    }
+
+    // Cache result (including null)
+    setCachedInjection(cacheKey, result);
+    return result;
   } catch (error) {
     diag.debug('User health injection skipped', { userId, error: String(error) });
+    // Cache null on error too (don't retry every turn)
+    setCachedInjection(cacheKey, null);
     return null;
   }
 }
@@ -1505,25 +1662,43 @@ export async function buildUserHealthInjection(
  * "Better than Human" - We remember every photo you've ever shared.
  * A human friend might forget that dog photo from 6 months ago. We don't.
  *
+ * PERFORMANCE: Cached for 60s - visual memories don't change turn-to-turn
+ *
  * @param userId - User ID to fetch visual memories for
  * @returns Context injection with relevant visual memory references, or null
  */
 export async function buildVisualMemoryInjections(
   userId: string
 ): Promise<ContextInjection | null> {
+  // Check cache first (60s TTL)
+  const cacheKey = `${userId}:visual`;
+  const cached = getCachedInjection(cacheKey);
+  if (cached !== undefined) {
+    diag.debug('Visual memory injection cache hit', { userId });
+    return cached;
+  }
+
   try {
     const { buildVisualMemoryInjection } = await import('../../services/visual-memory/index.js');
     const coreInjection = await buildVisualMemoryInjection(userId);
-    if (!coreInjection) return null;
 
-    // Convert from core/types.ContextInjection to processors/types.ContextInjection
-    return {
-      category: coreInjection.category || 'better_than_human',
-      content: coreInjection.content,
-      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
-    };
+    let result: ContextInjection | null = null;
+    if (coreInjection) {
+      // Convert from core/types.ContextInjection to processors/types.ContextInjection
+      result = {
+        category: coreInjection.category || 'better_than_human',
+        content: coreInjection.content,
+        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+      };
+    }
+
+    // Cache result (including null)
+    setCachedInjection(cacheKey, result);
+    return result;
   } catch (error) {
     diag.debug('Visual memory injection skipped', { userId, error: String(error) });
+    // Cache null on error too (don't retry every turn)
+    setCachedInjection(cacheKey, null);
     return null;
   }
 }
@@ -1535,25 +1710,43 @@ export async function buildVisualMemoryInjections(
  * and can gently nudge you at the right moments. A human friend isn't always there.
  * We are, even when you're not talking to us.
  *
+ * PERFORMANCE: Cached for 60s - ambient context doesn't change turn-to-turn
+ *
  * @param userId - User ID to fetch ambient context for
  * @returns Context injection with location/time awareness, or null
  */
 export async function buildAmbientModeInjections(
   userId: string
 ): Promise<ContextInjection | null> {
+  // Check cache first (60s TTL)
+  const cacheKey = `${userId}:ambient`;
+  const cached = getCachedInjection(cacheKey);
+  if (cached !== undefined) {
+    diag.debug('Ambient mode injection cache hit', { userId });
+    return cached;
+  }
+
   try {
     const { buildAmbientModeInjection } = await import('../../services/ambient-mode/index.js');
     const coreInjection = await buildAmbientModeInjection(userId);
-    if (!coreInjection) return null;
 
-    // Convert from core/types.ContextInjection to processors/types.ContextInjection
-    return {
-      category: coreInjection.category || 'better_than_human',
-      content: coreInjection.content,
-      priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
-    };
+    let result: ContextInjection | null = null;
+    if (coreInjection) {
+      // Convert from core/types.ContextInjection to processors/types.ContextInjection
+      result = {
+        category: coreInjection.category || 'better_than_human',
+        content: coreInjection.content,
+        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+      };
+    }
+
+    // Cache result (including null)
+    setCachedInjection(cacheKey, result);
+    return result;
   } catch (error) {
     diag.debug('Ambient mode injection skipped', { userId, error: String(error) });
+    // Cache null on error too (don't retry every turn)
+    setCachedInjection(cacheKey, null);
     return null;
   }
 }

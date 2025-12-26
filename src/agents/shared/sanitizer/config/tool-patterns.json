@@ -1,0 +1,480 @@
+{
+  "$schema": "./tool-patterns.schema.json",
+  "_comment": "Tool patterns for detecting function call leakage in LLM output. Extracted from tool-call-sanitizer.ts",
+  "_lastUpdated": "2024-12-25",
+  
+  "domains": {
+    "speech": {
+      "description": "Speak pseudo-tool (dynamic silence responses)",
+      "patterns": ["speak", "say", "dynamicResponse"]
+    },
+    
+    "music": {
+      "description": "Music playback and control tools",
+      "patterns": [
+        "playMusic", "play music", "Playing music", "playing music",
+        "searchMusic", "search music", "Searching music", "searching music",
+        "musicControl", "music control", "musicInfo", "music info",
+        "searchAppleMusic", "pauseMusic", "pause music", "Pausing music",
+        "resumeMusic", "resume music", "stopMusic", "stop music",
+        "skipMusic", "skip music", "nextSong", "next song",
+        "skipSong", "skip song", "whatsPlaying", "whats playing"
+      ]
+    },
+    
+    "memory": {
+      "description": "Memory and recall tools",
+      "patterns": [
+        "rememberAboutUser", "remember about user", "rememberName",
+        "recallFromMemory", "recall from memory", "forgetMemory",
+        "updateMemory", "getRelationshipSummary", "get relationship summary",
+        "reinforceMemory", "reinforce memory"
+      ]
+    },
+    
+    "information": {
+      "description": "Weather, news, time, market tools",
+      "patterns": [
+        "getWeather", "get weather", "getWeatherForecast",
+        "searchNews", "search news", "getNews",
+        "getCurrentTime", "get current time", "getMarketSummary"
+      ]
+    },
+    
+    "handoff": {
+      "description": "Persona handoff tools",
+      "patterns": [
+        "handoffTo", "handoff to", "transferTo", "transfer to",
+        "handoffToMaya", "handoffToAlex", "handoffToPeter",
+        "handoffToJordan", "handoffToNayan", "handoffToFerni"
+      ]
+    },
+    
+    "crisis": {
+      "description": "Crisis/Wellness tools (CRITICAL - must not leak)",
+      "critical": true,
+      "patterns": [
+        "getCrisisResources", "get crisis resources",
+        "groundingExercise", "grounding exercise",
+        "performBreathingExercise", "breathing exercise",
+        "getEmergencyServices", "getCrisisHotlines",
+        "logMood", "getMoodHistory"
+      ]
+    },
+    
+    "habits": {
+      "description": "Habit and productivity tools",
+      "patterns": [
+        "addHabit", "add habit", "createHabit", "trackHabit",
+        "logHabitCompletion", "completeHabit", "skipHabit",
+        "deleteHabit", "updateHabit", "getHabits",
+        "getHabitStats", "getHabitStreak",
+        "setTimer", "set timer", "getTimer", "cancelTimer",
+        "addTask", "getTasks", "completeTask"
+      ]
+    },
+    
+    "notes": {
+      "description": "Notes and journal tools",
+      "patterns": ["saveNote", "getNotes", "journal"]
+    },
+    
+    "calendar": {
+      "description": "Calendar and scheduling tools",
+      "patterns": [
+        "scheduleEvent", "schedule event", "scheduleReminder",
+        "getCalendarToday", "createCalendarEvent", "createAppointment",
+        "manageAppointment", "getEvents", "cancelEvent",
+        "updateEvent", "addGuests"
+      ]
+    },
+    
+    "scheduling": {
+      "description": "SMS, calls, emails scheduling",
+      "patterns": [
+        "scheduleMessage", "schedule message", "Schedule message",
+        "scheduleText", "schedule text", "Schedule text",
+        "scheduleCall", "schedule call", "Schedule call",
+        "scheduleEmail", "schedule email", "Schedule email",
+        "sendMessageNow", "send message now",
+        "sendTextNow", "send text now",
+        "listScheduled", "list scheduled", "getScheduled", "get scheduled",
+        "cancelScheduled", "cancel scheduled",
+        "cancelReminder", "cancel reminder",
+        "saveContactInfo", "save contact info",
+        "saveContact", "save contact", "addContact", "add contact"
+      ]
+    },
+    
+    "optimalTiming": {
+      "description": "ML-based optimal timing tools",
+      "patterns": [
+        "getOptimalSendTime", "get optimal send time", "Get optimal send time",
+        "optimal send time", "best time to reach", "Best time to reach",
+        "bestTimeToReach", "when to reach", "When to reach",
+        "scheduleAtBestTime", "schedule at best time", "Schedule at best time",
+        "schedule at optimal time", "Schedule at optimal time",
+        "text at best time", "Text at best time",
+        "send at best time", "Send at best time",
+        "email at best time", "Email at best time",
+        "call at best time", "Call at best time",
+        "optimal timing", "Optimal timing",
+        "when they respond", "When they respond"
+      ]
+    },
+    
+    "communication": {
+      "description": "Message sending tools",
+      "patterns": [
+        "sendMessage", "send message", "Send message",
+        "sendText", "send text", "Send text",
+        "sendSMS", "send SMS", "Send SMS", "text message",
+        "sendEmail", "send email", "Send email",
+        "sendVoiceMessage", "send voice message", "Send voice message",
+        "voice message", "draftMessage", "analyzeMessage"
+      ]
+    },
+    
+    "finance": {
+      "description": "Finance and budget tools",
+      "patterns": [
+        "getQuote", "getMarketStatus", "getBudgetSummary",
+        "trackExpense", "payBill", "addBill", "getBills", "calculateTip"
+      ]
+    },
+    
+    "goals": {
+      "description": "Goal and planning tools",
+      "patterns": [
+        "addGoal", "updateGoal", "getGoals", "addGoalMilestone",
+        "setFinancialGoal", "lifePortfolioReview", "predictionMarket"
+      ]
+    },
+    
+    "shopping": {
+      "description": "Shopping and package tools",
+      "patterns": ["shoppingList", "trackPackage", "getPackages"]
+    },
+    
+    "travel": {
+      "description": "Travel booking tools",
+      "patterns": ["searchFlights", "searchHotels", "planTrip"]
+    },
+    
+    "medication": {
+      "description": "Medication management tools",
+      "patterns": ["manageMedication", "medicationSchedule"]
+    },
+    
+    "smartHome": {
+      "description": "Smart home control tools",
+      "patterns": [
+        "controlLight", "setThermostat", "activateScene",
+        "controlLock", "getHomeStatus"
+      ]
+    },
+    
+    "games": {
+      "description": "Game and engagement tools",
+      "patterns": [
+        "startGame", "submitGameAnswer", "getGameHint",
+        "skipGameRound", "endGame", "getGameStatus", "suggestGame",
+        "startTextGame", "makeTextGameMove", "getTextGameBoard", "endTextGame",
+        "inboxZeroChallenge", "sundayPrepGame",
+        "compoundInterestGame", "paradoxOfTheDay", "questionBeneath"
+      ]
+    },
+    
+    "presence": {
+      "description": "Presence and mode tools",
+      "patterns": ["shiftMode", "processing", "holdSpace", "wrapUpConversation"]
+    },
+    
+    "conversation": {
+      "description": "Conversation management tools",
+      "patterns": ["noteEmotionalState", "shareStory", "endConversation", "gracefulExit"]
+    },
+    
+    "cameo": {
+      "description": "Team cameo tools",
+      "patterns": ["inviteCameo", "completeCameo"]
+    },
+    
+    "voiceMemos": {
+      "description": "Voice memo tools",
+      "patterns": [
+        "saveVoiceMemo", "save voice memo",
+        "listVoiceMemos", "list voice memos",
+        "recallVoiceMemo", "recall voice memo",
+        "deleteVoiceMemo", "delete voice memo",
+        "searchVoiceMemos", "search voice memos"
+      ]
+    },
+    
+    "sms": {
+      "description": "SMS reading tools",
+      "patterns": [
+        "readSMS", "read SMS", "read sms",
+        "checkNewMessages", "check new messages",
+        "searchMessages", "search messages"
+      ]
+    },
+    
+    "concierge": {
+      "description": "AI-powered outreach tools",
+      "patterns": [
+        "requestHotelQuotes", "request hotel quotes", "Request hotel quotes",
+        "hotel quotes", "Hotel quotes", "get hotel rates", "Get hotel rates",
+        "find hotels", "Find hotels",
+        "makeRestaurantReservation", "make restaurant reservation",
+        "Make restaurant reservation", "restaurant reservation",
+        "Restaurant reservation", "book a table", "Book a table",
+        "make a reservation", "Make a reservation",
+        "scheduleHealthcareAppointment", "schedule healthcare appointment",
+        "Schedule healthcare appointment", "healthcare appointment",
+        "Healthcare appointment", "schedule dentist", "Schedule dentist",
+        "schedule doctor", "Schedule doctor",
+        "find a doctor", "Find a doctor", "find a dentist", "Find a dentist",
+        "getServiceQuotes", "get service quotes", "Get service quotes",
+        "service quotes", "Service quotes",
+        "find a plumber", "Find a plumber",
+        "find an electrician", "Find an electrician",
+        "get quotes", "Get quotes",
+        "checkConciergeStatus", "check concierge status",
+        "Check concierge status", "concierge status", "Concierge status",
+        "check on my request", "Check on my request",
+        "status of my reservation", "Status of my reservation"
+      ]
+    },
+    
+    "ambient": {
+      "description": "Ambient mode tools",
+      "patterns": [
+        "startAmbientMode", "start ambient mode", "ambient mode",
+        "enable ambient", "Enable ambient",
+        "background listening", "Background listening",
+        "always listening", "Always listening"
+      ]
+    },
+    
+    "emotionRegulation": {
+      "description": "Anger and emotion regulation tools",
+      "patterns": [
+        "processAnger", "process anger",
+        "anger management", "Anger management",
+        "I am angry", "I am frustrated",
+        "feeling angry", "Feeling angry",
+        "calm down", "Calm down"
+      ]
+    },
+    
+    "anxiety": {
+      "description": "Anxiety management tools",
+      "patterns": [
+        "manageAnxiety", "manage anxiety",
+        "anxiety relief", "Anxiety relief",
+        "feeling anxious", "Feeling anxious",
+        "panic attack", "Panic attack",
+        "anxious thoughts", "Anxious thoughts"
+      ]
+    },
+    
+    "boundaries": {
+      "description": "Boundary setting tools",
+      "patterns": [
+        "setBoundary", "set boundary",
+        "setting boundaries", "Setting boundaries",
+        "boundary check", "Boundary check",
+        "healthy boundaries", "Healthy boundaries"
+      ]
+    },
+    
+    "breathwork": {
+      "description": "Breathwork tools",
+      "patterns": [
+        "startBreathwork", "start breathwork",
+        "breathing exercise", "Breathing exercise",
+        "box breathing", "Box breathing",
+        "deep breathing", "Deep breathing",
+        "breath work", "Breath work"
+      ]
+    },
+    
+    "burnout": {
+      "description": "Burnout assessment tools",
+      "patterns": [
+        "assessBurnout", "assess burnout",
+        "burnout check", "Burnout check",
+        "feeling burned out", "Feeling burned out",
+        "exhausted", "Exhausted",
+        "overwhelmed", "Overwhelmed"
+      ]
+    },
+    
+    "coaching": {
+      "description": "Coaching and support tools",
+      "patterns": [
+        "getCoaching", "get coaching",
+        "coaching session", "Coaching session",
+        "life coaching", "Life coaching",
+        "support session", "Support session"
+      ]
+    },
+    
+    "dating": {
+      "description": "Dating advice tools",
+      "patterns": [
+        "datingAdvice", "dating advice",
+        "relationship advice", "Relationship advice",
+        "dating tips", "Dating tips",
+        "dating help", "Dating help"
+      ]
+    },
+    
+    "gratitude": {
+      "description": "Gratitude tools",
+      "patterns": [
+        "logGratitude", "log gratitude",
+        "gratitude journal", "Gratitude journal",
+        "grateful for", "Grateful for",
+        "thankful for", "Thankful for",
+        "gratitude practice", "Gratitude practice"
+      ]
+    },
+    
+    "grounding": {
+      "description": "Grounding exercise tools",
+      "patterns": [
+        "groundingExercise", "grounding exercise",
+        "5 4 3 2 1", "grounding technique", "Grounding technique",
+        "feel grounded", "Feel grounded",
+        "anchor myself", "Anchor myself"
+      ]
+    },
+    
+    "humanTransfer": {
+      "description": "Human transfer tools",
+      "patterns": [
+        "transferToHuman", "transfer to human",
+        "speak to a human", "Speak to a human",
+        "talk to a person", "Talk to a person",
+        "human support", "Human support",
+        "real person", "Real person"
+      ]
+    },
+    
+    "intimacy": {
+      "description": "Intimacy advice tools",
+      "patterns": [
+        "intimacyTips", "intimacy tips",
+        "intimacy advice", "Intimacy advice",
+        "relationship intimacy", "Relationship intimacy"
+      ]
+    },
+    
+    "lifePlanning": {
+      "description": "Life planning tools",
+      "patterns": [
+        "createLifePlan", "create life plan",
+        "life planning", "Life planning",
+        "life goals", "Life goals",
+        "future planning", "Future planning",
+        "five year plan", "Five year plan"
+      ]
+    },
+    
+    "mindfulness": {
+      "description": "Mindfulness tools",
+      "patterns": [
+        "startMindfulness", "start mindfulness",
+        "mindfulness exercise", "Mindfulness exercise",
+        "be present", "Be present",
+        "mindful moment", "Mindful moment",
+        "meditation", "Meditation"
+      ]
+    },
+    
+    "purpose": {
+      "description": "Purpose and meaning tools",
+      "patterns": [
+        "explorePurpose", "explore purpose",
+        "find my purpose", "Find my purpose",
+        "life purpose", "Life purpose",
+        "meaning of life", "Meaning of life",
+        "what is my purpose", "What is my purpose"
+      ]
+    },
+    
+    "sleep": {
+      "description": "Sleep improvement tools",
+      "patterns": [
+        "improveSleep", "improve sleep",
+        "sleep better", "Sleep better",
+        "sleep hygiene", "Sleep hygiene",
+        "insomnia", "Insomnia",
+        "cant sleep", "Can not sleep",
+        "trouble sleeping", "Trouble sleeping"
+      ]
+    },
+    
+    "stress": {
+      "description": "Stress management tools",
+      "patterns": [
+        "manageStress", "manage stress",
+        "stress relief", "Stress relief",
+        "feeling stressed", "Feeling stressed",
+        "under pressure", "Under pressure",
+        "stressed out", "Stressed out"
+      ]
+    },
+    
+    "trust": {
+      "description": "Trust building tools",
+      "patterns": [
+        "buildTrust", "build trust",
+        "trust issues", "Trust issues",
+        "trusting others", "Trusting others"
+      ]
+    },
+    
+    "visualMemory": {
+      "description": "Visual memory tools",
+      "patterns": [
+        "saveVisualMemory", "save visual memory",
+        "remember this image", "Remember this image",
+        "visual note", "Visual note",
+        "picture memory", "Picture memory"
+      ]
+    },
+    
+    "voiceLog": {
+      "description": "Voice log tools",
+      "patterns": [
+        "createVoiceLog", "create voice log",
+        "voice diary", "Voice diary",
+        "audio journal", "Audio journal",
+        "record my thoughts", "Record my thoughts"
+      ]
+    },
+    
+    "worldAwareness": {
+      "description": "World awareness tools",
+      "patterns": [
+        "getWorldContext", "get world context",
+        "world news", "World news",
+        "current events", "Current events",
+        "whats happening", "What is happening"
+      ]
+    }
+  },
+  
+  "paramPatterns": ["query", "Query", "search", "Search", "input", "Input", "text", "Text"],
+  
+  "teamMemberNames": ["maya", "alex", "peter", "jordan", "nayan"],
+  
+  "slowTools": [
+    "searchnews", "getnews", "getweather",
+    "getfinancialsnews", "getstocknews", "gettechnews", "getmarketsummary"
+  ]
+}
+

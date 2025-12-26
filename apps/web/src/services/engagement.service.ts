@@ -361,10 +361,10 @@ class EngagementService {
    * In the real implementation, this would send via LiveKit data message
    * which the backend would process.
    */
-  async submitPrediction(
+  submitPrediction(
     _userId: string,
     prediction: { category: string; question: string; userPrediction: number }
-  ): Promise<PredictionData | null> {
+  ): PredictionData | null {
     // Create a local prediction record
     // The backend will send the full record via LiveKit when it processes this
     const newPrediction: PredictionData = {

@@ -1,64 +1,35 @@
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni iOS/Android App Icon - 1024x1024 master -->
-  <!-- Brand Colors: Forest Green #3D5A45, Paper Cream #F5F1E8 -->
   <defs>
-    <!-- Main gradient - Forest Green -->
-    <linearGradient id="appGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="50%" stop-color="#3D5A45"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
+    <linearGradient id="icon1024Orb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
     </linearGradient>
-    
-    <!-- Background gradient - Warm cream -->
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F5F1E8"/>
-      <stop offset="100%" stop-color="#E8E0D5"/>
+    <linearGradient id="icon1024Shine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
     </linearGradient>
-    
-    <!-- Glow effect -->
-    <filter id="appGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="20" result="blur"/>
-      <feFlood flood-color="#3D5A45" flood-opacity="0.3"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <linearGradient id="icon1024Badge" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="icon1024Shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#2c2520" flood-opacity="0.25"/>
     </filter>
-    
-    <!-- Subtle shadow -->
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="24" flood-color="#2C2520" flood-opacity="0.15"/>
-    </filter>
-    
-    <!-- Inner highlight -->
-    <linearGradient id="appShine" x1="30%" y1="0%" x2="70%" y2="100%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
-      <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </linearGradient>
   </defs>
   
-  <!-- Background (iOS requires filled background) -->
-  <rect width="1024" height="1024" fill="url(#bgGradient)"/>
+  <rect width="1024" height="1024" rx="180" fill="#F5F1E8"/>
   
-  <!-- Subtle texture grain -->
-  <rect width="1024" height="1024" fill="url(#bgGradient)" opacity="0.5"/>
+  <circle cx="512" cy="512" r="400" fill="none" stroke="#4a6741" stroke-width="8" opacity="0.35"/>
+  <circle cx="512" cy="512" r="350" fill="url(#icon1024Orb)"/>
+  <circle cx="512" cy="512" r="350" fill="url(#icon1024Shine)"/>
   
-  <!-- Main rounded square with shadow -->
-  <rect x="112" y="112" width="800" height="800" rx="180" ry="180" 
-        fill="url(#appGradient)" filter="url(#shadow)"/>
+  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="256" font-weight="800" fill="white" letter-spacing="-8">
+    <tspan dy="16">FE</tspan>
+  </text>
   
-  <!-- Inner highlight -->
-  <rect x="112" y="112" width="800" height="800" rx="180" ry="180" 
-        fill="url(#appShine)" opacity="0.6"/>
-  
-  <!-- FE Monogram -->
-  <text x="512" y="580" 
-        font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" 
-        font-size="380" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle" 
-        letter-spacing="-0.02em">FE</text>
+  <circle cx="792" cy="792" r="96" fill="url(#icon1024Badge)" stroke="#FFFDFB" stroke-width="16" filter="url(#icon1024Shadow)"/>
+  <path d="M792 764c0-13.2-10.8-24-24-24s-24 10.8-24 24c0 24 44 56 44 56s44-32 44-56c0-13.2-10.8-24-24-24s-24 10.8-24 24z"
+    fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

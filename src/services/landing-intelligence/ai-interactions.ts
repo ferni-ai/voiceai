@@ -58,7 +58,8 @@ async function getGenAI(): Promise<any | null> {
   const loaded = await loadGeminiSDK();
   if (!loaded || !GoogleGenerativeAI) return null;
 
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) return null;
 
   return new GoogleGenerativeAI(apiKey);

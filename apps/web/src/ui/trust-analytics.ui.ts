@@ -110,8 +110,8 @@ const STYLES = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.5);
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
   }
 
   /* Modal Card */
@@ -120,9 +120,13 @@ const STYLES = `
     width: 100%;
     max-width: clamp(560px, 90vw, 800px);
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
     overflow: hidden;
     transform: scale(0.95);
     transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -589,7 +593,7 @@ class TrustAnalyticsUI {
     // Bind events
     this.overlay.querySelector('.trust-analytics-backdrop')?.addEventListener('click', () => this.hide());
     this.overlay.querySelector('[data-action="close"]')?.addEventListener('click', () => this.hide());
-    this.overlay.querySelector('[data-action="refresh"]')?.addEventListener('click', () => this.refresh());
+    this.overlay.querySelector('[data-action="refresh"]')?.addEventListener('click', () => { void this.refresh(); });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isVisible) {

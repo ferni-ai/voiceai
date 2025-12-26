@@ -34,7 +34,7 @@ const STAGGER_FAST = STAGGER.TIGHT;
 const log = createLogger('PublisherPortalUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -824,8 +824,9 @@ function injectStyles(): void {
     .publisher-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .publisher-panel {
@@ -833,7 +834,10 @@ function injectStyles(): void {
       width: 100%;
       max-width: min(900px, 100%);
       margin: 0 auto;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -842,9 +846,15 @@ function injectStyles(): void {
     @media (min-width: clamp(538px, 90vw, 768px)) {
       .publisher-panel {
         margin: var(--space-8, 32px) auto;
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl);
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         max-height: calc(100vh - 64px);
+      }
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .publisher-panel {
+        background: var(--color-background-elevated, #faf6f0);
       }
     }
 
@@ -930,7 +940,7 @@ function injectStyles(): void {
 
     .publisher-tab--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .publisher-tab:focus-visible {
@@ -1012,12 +1022,12 @@ function injectStyles(): void {
     }
 
     .publisher-item:hover {
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .publisher-item:focus-visible {
       outline: none;
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
       box-shadow: 0 0 0 3px var(--persona-tint);
     }
 
@@ -1030,7 +1040,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-lg);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .item-icon svg {
@@ -1226,7 +1236,7 @@ function injectStyles(): void {
 
     .period-button--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .analytics-grid {
@@ -1253,7 +1263,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-md);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .analytics-card-icon svg {
@@ -1328,7 +1338,7 @@ function injectStyles(): void {
     .form-input:focus,
     .form-textarea:focus {
       outline: none;
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .form-textarea {
@@ -1363,7 +1373,7 @@ function injectStyles(): void {
     .form-radio input {
       width: 18px;
       height: 18px;
-      accent-color: var(--persona-primary);
+      accent-color: var(--persona-text);
     }
 
     .radio-label {

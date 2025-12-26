@@ -11,6 +11,7 @@
  * - Signal when agent should keep responses brief
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -144,7 +145,7 @@ export class TurnTakingMonitor {
    * Get an invitation phrase to encourage user participation
    */
   getInvitation(): string {
-    const index = Math.floor(Math.random() * this.invitationPhrases.length);
+    const index = seededIndex(`${Date.now()}:1`, this.invitationPhrases.length);
     return this.invitationPhrases[index];
   }
 

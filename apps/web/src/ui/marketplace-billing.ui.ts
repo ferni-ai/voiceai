@@ -28,7 +28,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('BillingUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -708,7 +708,7 @@ function injectStyles(): void {
     .usage-card-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .usage-card-icon svg {

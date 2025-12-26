@@ -13,7 +13,7 @@
  * PERSISTENCE: Goals and streaks are persisted to Firestore.
  */
 
-import { canReachUser, scheduleEmail, scheduleText } from '../tools/proactive-outreach.js';
+import { canReachUser, scheduleEmail, scheduleText } from './outreach/user-contact.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';

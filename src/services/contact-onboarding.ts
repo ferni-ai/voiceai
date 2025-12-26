@@ -13,7 +13,7 @@ import {
   getUserContactInfo,
   setUserContactInfo,
   type UserContactInfo,
-} from '../tools/proactive-outreach.js';
+} from './outreach/user-contact.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { setPreferences } from './outreach-intelligence.js';
 

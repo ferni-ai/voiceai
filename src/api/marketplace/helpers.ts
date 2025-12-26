@@ -52,9 +52,15 @@ export function sendJson(res: ServerResponse, status: number, data: unknown): vo
 }
 
 /**
- * Get user ID from request headers (Firebase auth)
+ * Get user ID from request headers
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
  */
 export function getUserId(req: IncomingMessage): string | null {
+  // SECURITY: Prioritize Firebase auth
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
+
+  // Legacy header (deprecated)
   return (req.headers['x-user-id'] as string) || null;
 }
 

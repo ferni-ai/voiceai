@@ -648,8 +648,15 @@ class CognitiveInsightsUI {
       .cognitive-insights__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      }
+
+      @supports not (backdrop-filter: blur(1px)) {
+        .cognitive-insights__backdrop {
+          background: rgba(44, 37, 32, 0.85);
+        }
       }
 
       /* Card */
@@ -658,10 +665,12 @@ class CognitiveInsightsUI {
         width: 100%;
         max-width: clamp(308px, 90vw, 440px);
         max-height: 80vh;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow: var(--shadow-2xl);
-        border: 1px solid var(--color-border-subtle);
+        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+        backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -669,6 +678,13 @@ class CognitiveInsightsUI {
         opacity: 0;
         transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
                     opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      @supports not (backdrop-filter: blur(1px)) {
+        .cognitive-insights__card {
+          background: var(--color-background-elevated, #FFFDFB);
+          border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+        }
       }
 
       .cognitive-insights--visible .cognitive-insights__card {

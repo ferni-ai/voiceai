@@ -5,16 +5,18 @@
  * Receives Pub/Sub push messages and Cloud Scheduler invocations.
  *
  * Endpoints:
- * - GET  /health           - Health check
- * - POST /process-trigger  - Process single trigger (Pub/Sub push)
- * - POST /process-batch    - Process batch of pending (Cloud Scheduler)
- * - POST /test-trigger/:id - Manual trigger for testing
+ * - GET  /health              - Health check
+ * - POST /process-trigger     - Process single trigger (Pub/Sub push)
+ * - POST /process-batch       - Process batch of pending (Cloud Scheduler)
+ * - POST /jobs/daily-outreach - Daily outreach job (Cloud Scheduler, 10 AM)
+ * - POST /test-trigger/:id    - Manual trigger for testing
  */
 
 import admin from 'firebase-admin';
 import express from 'express';
 import { createLogger } from './logger.js';
 import { processPendingTriggers, processTrigger } from './outreach/processor.js';
+import { runDailyOutreachJob } from '../../../src/services/outreach/daily-outreach-job.js';
 import type { WorkerConfig } from './types.js';
 
 const log = createLogger('server');
@@ -96,6 +98,60 @@ app.post('/process-batch', async (req, res) => {
     });
   } catch (error) {
     log.error({ error }, 'Error processing batch');
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// Daily outreach job (Cloud Scheduler)
+// Called at 10 AM daily to evaluate users for proactive "Thinking of You" messages
+app.post('/jobs/daily-outreach', async (req, res) => {
+  try {
+    // Validate Cloud Scheduler header
+    const schedulerHeader = req.headers['x-cloudscheduler'] || req.headers['x-appengine-cron'];
+    const isScheduler = schedulerHeader === 'true';
+
+    // In production, require Cloud Scheduler header
+    if (process.env.NODE_ENV === 'production' && !isScheduler) {
+      log.warn({ headers: req.headers }, 'Unauthorized daily-outreach call');
+      res.status(403).json({ error: 'Forbidden: Cloud Scheduler header required' });
+      return;
+    }
+
+    log.info({ dryRun: config.dryRun }, '📬 Starting daily outreach job');
+
+    const result = await runDailyOutreachJob({
+      getUserProfiles: async () => {
+        // Fetch active users from Firestore
+        const snapshot = await db.collection('bogle_users')
+          .where('subscriptionTier', 'in', ['free', 'pro', 'team'])
+          .limit(1000) // Process up to 1000 users per run
+          .get();
+
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      },
+      dryRun: config.dryRun,
+      maxUsersPerRun: 500,
+    });
+
+    log.info(
+      {
+        usersEvaluated: result.usersEvaluated,
+        outreachSent: result.outreachSent,
+        durationMs: result.durationMs,
+        errors: result.errors.length,
+      },
+      '✅ Daily outreach job complete'
+    );
+
+    res.json({
+      status: 'complete',
+      ...result,
+    });
+  } catch (error) {
+    log.error({ error }, 'Error in daily outreach job');
     res.status(500).json({ error: 'Internal error' });
   }
 });

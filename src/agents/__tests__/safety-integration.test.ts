@@ -37,6 +37,10 @@ function createTestTrustContext(overrides: Partial<TrustContext> = {}): TrustCon
     celebrationOpportunity: null,
     pendingOutreach: [],
     topicsToAvoid: [],
+    // New "Better Than Human" fields (Dec 2025)
+    firstTimeVulnerability: null,
+    linguisticContext: '',
+    protectiveMemory: '',
     ...overrides,
   };
 }

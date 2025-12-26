@@ -23,6 +23,7 @@
  * @module @ferni/session-intelligence
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 import {
@@ -456,7 +457,7 @@ export class SessionIntelligenceOrchestrator {
       const phrases = validations[concern.primaryConcern || 'anxiety'] || validations.anxiety;
       mods.push({
         type: 'concern_validation',
-        content: phrases[Math.floor(Math.random() * phrases.length)],
+        content: seededPick(`${Date.now()}:460`, phrases) ?? phrases[0],
         placement: 'prefix',
         priority: concern.level === 'elevated' ? 0.95 : 0.7,
         reason: `${concern.level} ${concern.primaryConcern} detected`,

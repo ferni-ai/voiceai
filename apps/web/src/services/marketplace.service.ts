@@ -283,20 +283,20 @@ const FALLBACK_COLORS = { primary: '#4a6741', secondary: '#3d5a35' };
  */
 function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
   // Get colors from flat format, nested format, or defaults
-  const rawColors = raw.colors || raw.marketplace?.colors;
-  const colors = rawColors || DEFAULT_AGENT_COLORS[raw.id] || FALLBACK_COLORS;
-  const primaryColor = colors.primary || FALLBACK_COLORS.primary;
-  const secondaryColor = colors.secondary || FALLBACK_COLORS.secondary;
+  const rawColors = raw.colors ?? raw.marketplace?.colors;
+  const colors = rawColors ?? DEFAULT_AGENT_COLORS[raw.id] ?? FALLBACK_COLORS;
+  const primaryColor = colors.primary ?? FALLBACK_COLORS.primary;
+  const secondaryColor = colors.secondary ?? FALLBACK_COLORS.secondary;
 
   return {
     id: raw.id,
     name: raw.name,
-    display_name: raw.display_name || raw.name,
+    display_name: raw.display_name ?? raw.name,
     description: raw.description,
-    short_description: raw.short_description || raw.description.split('.')[0] + '.',
+    short_description: raw.short_description ?? raw.description.split('.')[0] + '.',
     category: raw.category,
-    tags: raw.tags || [],
-    icon: raw.icon || raw.marketplace?.icon || '🤖',
+    tags: raw.tags ?? [],
+    icon: raw.icon ?? raw.marketplace?.icon ?? '🤖',
     version: raw.version,
     author: raw.author,
     license: raw.license,
@@ -304,14 +304,14 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
       primary: primaryColor,
       secondary: secondaryColor,
       gradient:
-        ('gradient' in colors && colors.gradient) ||
+        ('gradient' in colors && colors.gradient) ??
         `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
-      glow: ('glow' in colors && colors.glow) || `rgba(${hexToRgb(primaryColor)}, 0.3)`,
+      glow: ('glow' in colors && colors.glow) ?? `rgba(${hexToRgb(primaryColor)}, 0.3)`,
     },
-    path: raw.path || `agents/${raw.id}`,
-    featured: raw.featured || raw.marketplace?.featured,
-    downloads: raw.downloads || raw.marketplace?.downloads,
-    rating: raw.rating || raw.marketplace?.rating,
+    path: raw.path ?? `agents/${raw.id}`,
+    featured: raw.featured ?? raw.marketplace?.featured,
+    downloads: raw.downloads ?? raw.marketplace?.downloads,
+    rating: raw.rating ?? raw.marketplace?.rating,
   };
 }
 
@@ -345,7 +345,7 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
       version: rawRegistry.version,
       updated_at: rawRegistry.updated_at,
       agents: rawRegistry.agents.map(normalizeAgent),
-      categories: rawRegistry.categories || [],
+      categories: rawRegistry.categories ?? [],
     };
     registryCacheTime = now;
 
@@ -540,7 +540,7 @@ export function getInstalledAgentIds(): Set<string> {
  */
 export function getInstalledAgent(agentId: string): InstalledAgent | null {
   const installed = loadInstalledAgents();
-  return installed.get(agentId) || null;
+  return installed.get(agentId) ?? null;
 }
 
 // ============================================================================
@@ -554,28 +554,28 @@ export function marketplaceAgentToPersonaConfig(
   agent: MarketplaceAgent,
   manifest: PersonaManifest | null
 ): PersonaConfig {
-  const colors = manifest?.marketplace?.colors || agent.colors;
+  const colors = manifest?.marketplace?.colors ?? agent.colors;
   const entrancePhrase =
-    manifest?.team?.handoff_phrases?.receive?.[0] || `${agent.name} here. How can I help?`;
+    manifest?.team?.handoff_phrases?.receive?.[0] ?? `${agent.name} here. How can I help?`;
 
   return {
     id: agent.id as PersonaId,
     name: agent.name,
     initials: agent.name.slice(0, 2).toUpperCase(),
-    subtitle: manifest?.role?.id?.replace(/-/g, ' ') || agent.category,
+    subtitle: manifest?.role?.id?.replace(/-/g, ' ') ?? agent.category,
     role: 'standalone', // Marketplace agents are standalone by default
     quotes: [], // Would need to fetch from knowledge files
     helperText: agent.short_description,
     themeClass: `persona-${agent.id}`,
     colors: {
-      primary: colors.primary || '#666666',
-      secondary: colors.secondary || '#444444',
-      glow: colors.glow || `rgba(${hexToRgb(colors.primary || '#666666')}, 0.3)`,
+      primary: colors.primary ?? '#666666',
+      secondary: colors.secondary ?? '#444444',
+      glow: colors.glow ?? `rgba(${hexToRgb(colors.primary ?? '#666666')}, 0.3)`,
       gradient:
-        colors.gradient ||
-        `linear-gradient(135deg, ${colors.secondary || '#444444'}, ${colors.primary || '#666666'})`,
+        colors.gradient ??
+        `linear-gradient(135deg, ${colors.secondary ?? '#444444'}, ${colors.primary ?? '#666666'})`,
     },
-    skills: (manifest?.role?.domains || agent.tags).slice(0, 4).map((d) => ({
+    skills: (manifest?.role?.domains ?? agent.tags).slice(0, 4).map((d) => ({
       icon: '',
       name: d.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
     })),

@@ -46,7 +46,7 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 let currentUserId: string | null = null;
 let currentAgentId: string | null = null;
 let isEnabled = false;
-let subscribers: JournalSyncCallback[] = [];
+const subscribers: JournalSyncCallback[] = [];
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let lastSyncTimestamp: number = 0;
 
@@ -381,4 +381,5 @@ export function getJournalSyncState(): {
     subscriberCount: subscribers.length,
   };
 }
+
 

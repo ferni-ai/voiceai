@@ -287,14 +287,43 @@ export class AgentOrchestrator {
     diag.entry(`🎭 Handoff starting: ${previousPersonaId} → ${request.targetPersonaId}`);
 
     try {
-      // Step 1: Let old agent say goodbye naturally
+      // ================================================================
+      // STEP 1: Let old agent say goodbye naturally
+      // ================================================================
+      const step1Start = Date.now();
+      log.info(
+        { from: previousPersonaId, to: request.targetPersonaId },
+        '🎭 [HANDOFF STEP 1/5] Starting goodbye speech...'
+      );
       await this.agentSaysGoodbye(currentAgent, request.targetPersonaId);
+      log.info(
+        { from: previousPersonaId, durationMs: Date.now() - step1Start },
+        '🎭 [HANDOFF STEP 1/5] ✅ Goodbye complete'
+      );
 
-      // Step 2: Close old agent
+      // ================================================================
+      // STEP 2: Close old agent
+      // ================================================================
+      const step2Start = Date.now();
+      log.info(
+        { agentId: currentAgent.id, personaId: previousPersonaId },
+        '🎭 [HANDOFF STEP 2/5] Closing old agent...'
+      );
       diag.entry(`🎭 Closing ${previousPersonaId}`);
       await this.removeAgent(currentAgent.id);
+      log.info(
+        { personaId: previousPersonaId, durationMs: Date.now() - step2Start },
+        '🎭 [HANDOFF STEP 2/5] ✅ Old agent closed'
+      );
 
-      // Step 3: Spawn new agent
+      // ================================================================
+      // STEP 3: Spawn new agent
+      // ================================================================
+      const step3Start = Date.now();
+      log.info(
+        { targetPersonaId: request.targetPersonaId, isHandoff: true },
+        '🎭 [HANDOFF STEP 3/5] Spawning new agent...'
+      );
       const newAgent = await this.spawnAgent(request.targetPersonaId, {
         room: this.room,
         userParticipant: this.userParticipant,
@@ -304,16 +333,61 @@ export class AgentOrchestrator {
         isHandoff: true,
         previousPersonaId,
       });
+      log.info(
+        {
+          newAgentId: newAgent.id,
+          personaId: request.targetPersonaId,
+          durationMs: Date.now() - step3Start,
+        },
+        '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
+      );
 
-      // Step 4: Switch active agent
+      // ================================================================
+      // STEP 4: Switch active agent
+      // ================================================================
+      const step4Start = Date.now();
+      log.info(
+        { newAgentId: newAgent.id },
+        '🎭 [HANDOFF STEP 4/5] Setting new agent as active...'
+      );
       this.setActiveAgent(newAgent.id);
+      log.info(
+        { activeAgentId: this.activeAgentId, durationMs: Date.now() - step4Start },
+        '🎭 [HANDOFF STEP 4/5] ✅ Active agent switched'
+      );
 
-      // Step 5: New agent greets naturally
+      // ================================================================
+      // STEP 5: New agent greets naturally
+      // ================================================================
+      const step5Start = Date.now();
+      log.info(
+        { personaId: request.targetPersonaId },
+        '🎭 [HANDOFF STEP 5/5] New agent greeting...'
+      );
       await this.agentGreets(newAgent, previousPersonaId, request);
+      log.info(
+        { personaId: request.targetPersonaId, durationMs: Date.now() - step5Start },
+        '🎭 [HANDOFF STEP 5/5] ✅ Greeting complete'
+      );
 
       diag.entry(`🎭 ${request.targetPersonaId} ready`);
 
       const durationMs = Date.now() - startTime;
+      log.info(
+        {
+          from: previousPersonaId,
+          to: request.targetPersonaId,
+          durationMs,
+          stepTimes: {
+            goodbye: Date.now() - step1Start,
+            close: step2Start - step1Start,
+            spawn: step3Start - step2Start,
+            activate: step4Start - step3Start,
+            greet: step5Start - step4Start,
+          },
+        },
+        '🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅'
+      );
       diag.entry(
         `🎭 Handoff complete: ${previousPersonaId} → ${request.targetPersonaId} (${durationMs}ms)`
       );
@@ -327,11 +401,23 @@ export class AgentOrchestrator {
         durationMs,
       };
     } catch (error) {
-      log.error({ error: String(error) }, '🎭 Handoff failed');
+      const durationMs = Date.now() - startTime;
+      log.error(
+        {
+          error: String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          from: previousPersonaId,
+          to: request.targetPersonaId,
+          durationMs,
+          agentsMapSize: this.agents.size,
+          agentIds: Array.from(this.agents.keys()),
+        },
+        '🎭 [HANDOFF] ❌❌❌ HANDOFF FAILED ❌❌❌'
+      );
       return {
         success: false,
         error: String(error),
-        durationMs: Date.now() - startTime,
+        durationMs,
       };
     } finally {
       this.handoffInProgress = false;
@@ -389,18 +475,39 @@ export class AgentOrchestrator {
     personaId: string,
     context: AgentCreationContext
   ): Promise<PersonaAgent> {
-    log.info({ personaId, isHandoff: context.isHandoff }, '🎭 Spawning new agent');
+    const startTime = Date.now();
+    log.info(
+      {
+        personaId,
+        isHandoff: context.isHandoff,
+        previousPersonaId: context.previousPersonaId,
+        hasConversationSummary: !!context.conversationSummary,
+        recentMessageCount: context.recentMessages?.length || 0,
+      },
+      '🎭 [spawnAgent] Starting agent creation...'
+    );
 
+    log.debug({ personaId }, '🎭 [spawnAgent] Calling createPersonaAgent factory...');
+    const factoryStart = Date.now();
     const agent = await this.createPersonaAgent(personaId, context);
+    log.info(
+      { personaId, factoryDurationMs: Date.now() - factoryStart },
+      '🎭 [spawnAgent] ✅ Factory returned agent'
+    );
 
     // Validate the agent was created with a valid ID
     if (!agent.id) {
       log.error(
-        { personaId, agent: JSON.stringify(agent) },
-        '🎭 CRITICAL: Agent created without ID'
+        { personaId, agentKeys: Object.keys(agent) },
+        '🎭 [spawnAgent] ❌ CRITICAL: Agent created without ID'
       );
       throw new Error(`Agent created for ${personaId} has no ID`);
     }
+
+    log.debug(
+      { personaId, agentId: agent.id },
+      '🎭 [spawnAgent] Adding agent to map...'
+    );
 
     // Add to map and verify
     this.agents.set(agent.id, agent);
@@ -408,7 +515,7 @@ export class AgentOrchestrator {
     if (!verifyAdded) {
       log.error(
         { personaId, agentId: agent.id, mapSize: this.agents.size },
-        '🎭 CRITICAL: Agent was set but cannot be retrieved from map'
+        '🎭 [spawnAgent] ❌ CRITICAL: Agent was set but cannot be retrieved from map'
       );
       throw new Error(`Failed to add agent ${agent.id} to map`);
     }
@@ -419,8 +526,9 @@ export class AgentOrchestrator {
         agentId: agent.id,
         agentsMapSize: this.agents.size,
         agentIds: Array.from(this.agents.keys()),
+        totalSpawnDurationMs: Date.now() - startTime,
       },
-      '🎭 Agent spawned and added to map'
+      '🎭 [spawnAgent] ✅ Agent spawned and added to map'
     );
 
     diag.entry(`🎭 Agent spawned: ${personaId} (${agent.id})`);
@@ -471,17 +579,43 @@ export class AgentOrchestrator {
    */
   private async removeAgent(agentId: string): Promise<void> {
     const agent = this.agents.get(agentId);
-    if (!agent) return;
+    if (!agent) {
+      log.warn({ agentId, agentsMapSize: this.agents.size }, '🎭 [removeAgent] Agent not found');
+      return;
+    }
 
-    log.info({ personaId: agent.personaId, agentId }, '🎭 Removing agent');
+    const startTime = Date.now();
+    log.info(
+      { personaId: agent.personaId, agentId, agentsMapSize: this.agents.size },
+      '🎭 [removeAgent] Starting cleanup...'
+    );
 
     try {
+      const cleanupStart = Date.now();
+      log.debug({ personaId: agent.personaId }, '🎭 [removeAgent] Calling agent.cleanup()...');
       await agent.cleanup();
+      log.info(
+        { personaId: agent.personaId, cleanupDurationMs: Date.now() - cleanupStart },
+        '🎭 [removeAgent] ✅ agent.cleanup() completed'
+      );
     } catch (err) {
-      log.warn({ error: String(err) }, 'Error during agent cleanup');
+      log.warn(
+        { error: String(err), stack: err instanceof Error ? err.stack : undefined },
+        '🎭 [removeAgent] ⚠️ Error during agent cleanup'
+      );
     }
 
     this.agents.delete(agentId);
+    log.info(
+      {
+        personaId: agent.personaId,
+        agentId,
+        newAgentsMapSize: this.agents.size,
+        remainingAgentIds: Array.from(this.agents.keys()),
+        totalDurationMs: Date.now() - startTime,
+      },
+      '🎭 [removeAgent] ✅ Agent removed from map'
+    );
   }
 
   /**
@@ -490,13 +624,35 @@ export class AgentOrchestrator {
   private async agentSaysGoodbye(agent: PersonaAgent, targetPersonaId: string): Promise<void> {
     const goodbye = this.getGoodbyePhrase(agent.personaId, targetPersonaId);
 
+    log.info(
+      {
+        from: agent.personaId,
+        to: targetPersonaId,
+        hasGoodbye: !!goodbye,
+        goodbyePreview: goodbye?.slice(0, 60),
+      },
+      '🎭 [GOODBYE] Preparing goodbye speech...'
+    );
+
     if (goodbye) {
       const duration = this.estimateSpeechDuration(goodbye);
       diag.entry(`🎭 ${agent.personaId} goodbye: "${goodbye.slice(0, 50)}..."`);
+      log.info(
+        { personaId: agent.personaId, estimatedDurationMs: duration },
+        '🎭 [GOODBYE] Speaking...'
+      );
 
       // Say goodbye naturally - no muting, let it flow
       agent.say(goodbye, { allowInterruptions: false });
       await this.waitForSpeechComplete(duration);
+
+      log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Wait complete');
+    } else {
+      // Even without banter, say a minimal goodbye
+      const fallback = `Let me get ${targetPersonaId.split('-')[0]} for you.`;
+      log.info({ personaId: agent.personaId, fallback }, '🎭 [GOODBYE] Using fallback');
+      agent.say(fallback, { allowInterruptions: false });
+      await this.waitForSpeechComplete(1500);
     }
   }
 
@@ -510,13 +666,35 @@ export class AgentOrchestrator {
   ): Promise<void> {
     const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
 
+    log.info(
+      {
+        to: agent.personaId,
+        from: previousPersonaId,
+        hasGreeting: !!greeting,
+        greetingPreview: greeting?.slice(0, 60),
+      },
+      '🎭 [GREETING] Preparing greeting speech...'
+    );
+
     if (greeting) {
       const duration = this.estimateSpeechDuration(greeting);
       diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
+      log.info(
+        { personaId: agent.personaId, estimatedDurationMs: duration },
+        '🎭 [GREETING] Speaking...'
+      );
 
       // Greet warmly - no muting, let it flow
       agent.say(greeting, { allowInterruptions: false });
       await this.waitForSpeechComplete(duration);
+
+      log.info({ personaId: agent.personaId }, '🎭 [GREETING] Wait complete');
+    } else {
+      // Even without banter, say a minimal greeting
+      const fallback = "Hey! What's up?";
+      log.info({ personaId: agent.personaId, fallback }, '🎭 [GREETING] Using fallback');
+      agent.say(fallback, { allowInterruptions: false });
+      await this.waitForSpeechComplete(1500);
     }
   }
 

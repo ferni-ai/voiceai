@@ -35,7 +35,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('FeatureHints');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -253,7 +253,7 @@ export function dismissHint(hintId: string): void {
   // Release modal coordinator lock
   modalCoordinator.release(`hint-${hintId}`);
 
-  animateOut(active.element).then(() => {
+  void animateOut(active.element).then(() => {
     active.element.remove();
 
     // Remove spotlight if any

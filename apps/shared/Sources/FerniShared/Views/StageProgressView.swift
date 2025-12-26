@@ -82,7 +82,7 @@ public struct StageProgressView: View {
 
     private var currentStageCard: some View {
         let stage = relationshipService.currentStage
-        let color = Color(hexString: stage.color) ?? .green
+        let color = Color(hexString: stage.color)
 
         return VStack(spacing: 16) {
             // Icon
@@ -260,7 +260,7 @@ private struct StageNode: View {
     let isLast: Bool
 
     private var stageColor: Color {
-        Color(hexString: stage.color) ?? .green
+        Color(hexString: stage.color)
     }
 
     var body: some View {
@@ -351,7 +351,7 @@ private struct MemoryCard: View {
     let onTap: () -> Void
 
     private var memoryColor: Color {
-        Color(hexString: memory.stage.color) ?? .green
+        Color(hexString: memory.stage.color)
     }
 
     var body: some View {

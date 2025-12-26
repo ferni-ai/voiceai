@@ -15,7 +15,7 @@
  * @module marketplace.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { t } from '../i18n/index.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
@@ -52,14 +52,12 @@ import { confirmDelete } from './confirm-modal.ui.js';
 import { openAgentEditor } from './custom-agent-editor.ui.js';
 
 // Import from modular structure
-import type { MarketplaceTab, CategoryId } from './marketplace/types.js';
 import {
   getCategoryLabel,
   getPersonaGradient,
   getPersonaGlow,
   getCategoryGradient,
   getCategoryGlow,
-  CATEGORY_LABELS,
 } from './marketplace/constants.js';
 import {
   getMarketplaceStyles,
@@ -67,7 +65,6 @@ import {
 } from './marketplace/styles/index.js';
 import {
   debounce,
-  announceToScreenReader,
   renderStars,
   formatReviewCount,
 } from './marketplace/utils.js';
@@ -75,7 +72,7 @@ import {
 const log = createLogger('Marketplace');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -707,11 +704,11 @@ async function renderCreationsTab(): Promise<void> {
 
   // Attach listeners for agent cards
   grid.querySelectorAll('.custom-agent-card').forEach(card => {
-    card.addEventListener('click', handleCustomAgentCardClick);
+    card.addEventListener('click', (e) => { void handleCustomAgentCardClick(e); });
   });
 
   grid.querySelectorAll('[data-action="delete-agent"]').forEach(btn => {
-    btn.addEventListener('click', handleDeleteAgentClick);
+    btn.addEventListener('click', (e) => { void handleDeleteAgentClick(e); });
   });
 
   // Journal button listeners for Digital Twin agents

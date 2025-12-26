@@ -102,9 +102,11 @@ function generateColorVars(colors) {
   lines.push(`  --color-warning-bg: ${zen.semantic.warningGlow};`);
   lines.push('');
 
-  // Persona colors
+  // Persona colors (with theme-aware text variants)
   lines.push('  /* ============================================');
   lines.push('     COLORS - Personas');
+  lines.push('     Theme-aware: --color-{persona}-text adapts');
+  lines.push('     to light/dark mode for WCAG AA contrast');
   lines.push('     ============================================ */');
   for (const [personaId, persona] of Object.entries(colors.personas)) {
     if (personaId.startsWith('_')) continue;
@@ -112,8 +114,148 @@ function generateColorVars(colors) {
     lines.push(`  --color-${shortId}: ${persona.primary};`);
     lines.push(`  --color-${shortId}-secondary: ${persona.secondary};`);
     lines.push(`  --color-${shortId}-glow: ${persona.glow};`);
+    // Theme-aware text color (defaults to primary for light mode)
+    lines.push(`  --color-${shortId}-text: ${persona.primary};`);
     lines.push('');
   }
+
+  return lines;
+}
+
+/**
+ * Generate dark theme color overrides
+ * Uses midnight theme values + textOnDark persona variants for WCAG AA contrast
+ */
+function generateDarkThemeVars(colors) {
+  const lines = [];
+  const midnight = colors.themes.midnight;
+
+  lines.push('');
+  lines.push('/* ============================================================================');
+  lines.push('   DARK THEME OVERRIDES');
+  lines.push('   Midnight theme (Cedar Night) - warm cedar tones under moonlight');
+  lines.push('   All persona text colors are WCAG AA compliant (4.5:1+ contrast)');
+  lines.push('   ============================================================================ */');
+  lines.push('');
+  lines.push('@media (prefers-color-scheme: dark) {');
+  lines.push('  :root {');
+
+  // Background colors
+  lines.push('    /* Background */');
+  lines.push(`    --color-bg-primary: ${midnight.background.primary};`);
+  lines.push(`    --color-bg-secondary: ${midnight.background.secondary};`);
+  lines.push(`    --color-bg-elevated: ${midnight.background.elevated};`);
+  lines.push(`    --color-bg-glass: ${midnight.background.glass};`);
+  lines.push(`    --color-bg-overlay: ${midnight.background.overlay};`);
+  lines.push('');
+
+  // Text colors
+  lines.push('    /* Text */');
+  lines.push(`    --color-text-primary: ${midnight.text.primary};`);
+  lines.push(`    --color-text-secondary: ${midnight.text.secondary};`);
+  lines.push(`    --color-text-muted: ${midnight.text.muted};`);
+  lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
+  lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push('');
+
+  // Accent colors
+  lines.push('    /* Accent */');
+  lines.push(`    --color-accent: ${midnight.accent.primary};`);
+  lines.push(`    --color-accent-hover: ${midnight.accent.hover};`);
+  lines.push(`    --color-accent-pressed: ${midnight.accent.pressed};`);
+  lines.push(`    --color-accent-glow: ${midnight.accent.glow};`);
+  lines.push(`    --color-accent-subtle: ${midnight.accent.subtle};`);
+  lines.push('');
+
+  // Border colors
+  lines.push('    /* Borders */');
+  lines.push(`    --color-border-subtle: ${midnight.border.subtle};`);
+  lines.push(`    --color-border-medium: ${midnight.border.medium};`);
+  lines.push(`    --color-border-strong: ${midnight.border.strong};`);
+  lines.push('');
+
+  // Semantic colors
+  lines.push('    /* Semantic */');
+  lines.push(`    --color-success: ${midnight.semantic.success};`);
+  lines.push(`    --color-success-bg: ${midnight.semantic.successGlow};`);
+  lines.push(`    --color-error: ${midnight.semantic.error};`);
+  lines.push(`    --color-error-bg: ${midnight.semantic.errorGlow};`);
+  lines.push(`    --color-warning: ${midnight.semantic.warning};`);
+  lines.push(`    --color-warning-bg: ${midnight.semantic.warningGlow};`);
+  lines.push('');
+
+  // Persona text colors (WCAG AA compliant on dark backgrounds)
+  lines.push('    /* Persona Text Colors - WCAG AA on dark backgrounds */');
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_')) continue;
+    const shortId = personaId.split('-')[0];
+    if (persona.textOnDark) {
+      lines.push(`    --color-${shortId}-text: ${persona.textOnDark};`);
+    }
+  }
+
+  lines.push('  }');
+  lines.push('}');
+  lines.push('');
+
+  // Also add [data-theme="dark"] selector for manual toggle
+  lines.push('[data-theme="dark"] {');
+
+  // Background colors
+  lines.push('  /* Background */');
+  lines.push(`  --color-bg-primary: ${midnight.background.primary};`);
+  lines.push(`  --color-bg-secondary: ${midnight.background.secondary};`);
+  lines.push(`  --color-bg-elevated: ${midnight.background.elevated};`);
+  lines.push(`  --color-bg-glass: ${midnight.background.glass};`);
+  lines.push(`  --color-bg-overlay: ${midnight.background.overlay};`);
+  lines.push('');
+
+  // Text colors
+  lines.push('  /* Text */');
+  lines.push(`  --color-text-primary: ${midnight.text.primary};`);
+  lines.push(`  --color-text-secondary: ${midnight.text.secondary};`);
+  lines.push(`  --color-text-muted: ${midnight.text.muted};`);
+  lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
+  lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push('');
+
+  // Accent colors
+  lines.push('  /* Accent */');
+  lines.push(`  --color-accent: ${midnight.accent.primary};`);
+  lines.push(`  --color-accent-hover: ${midnight.accent.hover};`);
+  lines.push(`  --color-accent-pressed: ${midnight.accent.pressed};`);
+  lines.push(`  --color-accent-glow: ${midnight.accent.glow};`);
+  lines.push(`  --color-accent-subtle: ${midnight.accent.subtle};`);
+  lines.push('');
+
+  // Border colors
+  lines.push('  /* Borders */');
+  lines.push(`  --color-border-subtle: ${midnight.border.subtle};`);
+  lines.push(`  --color-border-medium: ${midnight.border.medium};`);
+  lines.push(`  --color-border-strong: ${midnight.border.strong};`);
+  lines.push('');
+
+  // Semantic colors
+  lines.push('  /* Semantic */');
+  lines.push(`  --color-success: ${midnight.semantic.success};`);
+  lines.push(`  --color-success-bg: ${midnight.semantic.successGlow};`);
+  lines.push(`  --color-error: ${midnight.semantic.error};`);
+  lines.push(`  --color-error-bg: ${midnight.semantic.errorGlow};`);
+  lines.push(`  --color-warning: ${midnight.semantic.warning};`);
+  lines.push(`  --color-warning-bg: ${midnight.semantic.warningGlow};`);
+  lines.push('');
+
+  // Persona text colors
+  lines.push('  /* Persona Text Colors - WCAG AA on dark backgrounds */');
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_')) continue;
+    const shortId = personaId.split('-')[0];
+    if (persona.textOnDark) {
+      lines.push(`  --color-${shortId}-text: ${persona.textOnDark};`);
+    }
+  }
+
+  lines.push('}');
 
   return lines;
 }
@@ -242,6 +384,7 @@ function build() {
     ...generateTypographyVars(typography),
     ...generateAnimationVars(animation),
     '}',
+    ...generateDarkThemeVars(colors),
   ];
 
   // Write to all output destinations

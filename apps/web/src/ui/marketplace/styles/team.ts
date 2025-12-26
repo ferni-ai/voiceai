@@ -7,7 +7,7 @@
  * @module marketplace/styles/team
  */
 
-import { DURATION, EASING } from '../../../config/animation-constants.js';
+import { DURATION } from '../../../config/animation-constants.js';
 
 /**
  * Get team narrative styles
@@ -385,7 +385,7 @@ export function getTeamStyles(): string {
       background: var(--persona-primary);
       color: white;
       border-style: solid;
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
       transform: scale(1.05);
     }
 

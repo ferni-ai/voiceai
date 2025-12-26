@@ -45,7 +45,7 @@ import {
   isPersistenceAvailable,
 } from '../persistence/index.js';
 import { getToolRegistry } from '../registry.js';
-import { allToolDefinitions } from '../tool-definitions/index.js';
+import { allToolDefinitions, getAvailableToolDefinitions } from '../tool-definitions/index.js';
 import { initializeCache } from './redis-cache.js';
 
 // 🧠 Intelligent routing imports
@@ -127,12 +127,24 @@ async function doInitialize(): Promise<void> {
 
     const registry = getToolRegistry();
 
+    // CAPABILITY FILTERING: Only register tools whose backing services are configured
+    // This prevents hallucination by ensuring we don't route to unavailable tools
+    const availableTools = getAvailableToolDefinitions();
+    log.info(
+      {
+        totalDefined: allToolDefinitions.length,
+        available: availableTools.length,
+        excluded: allToolDefinitions.length - availableTools.length,
+      },
+      '🔧 Tools filtered by capability availability'
+    );
+
     // IMPORTANT: Merge locale triggers into tool definitions BEFORE registering
     // This adds patterns like "check the weather", "could you play", etc. from en.json
     // Without this, many natural phrases won't match!
-    const localizedTools = await mergeLocaleIntoTools(allToolDefinitions);
+    const localizedTools = await mergeLocaleIntoTools(availableTools);
     log.info(
-      { baseCount: allToolDefinitions.length, mergedCount: localizedTools.length },
+      { baseCount: availableTools.length, mergedCount: localizedTools.length },
       '🌐 Locale triggers merged into tool definitions'
     );
 
@@ -170,7 +182,8 @@ async function doInitialize(): Promise<void> {
 
         await initializeIntelligentRouter({
           enableBanditPersistence: true,
-          useGemini: !!process.env.GOOGLE_API_KEY,
+          // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
+          useGemini: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
         });
 
         // Warm intelligent router cache

@@ -25,7 +25,6 @@ import {
   getGardenStats,
   getTotalReferralSeeds,
   REFERRAL_SIGNUP_REWARD,
-  REFERRAL_NEW_USER_BONUS,
 } from '../services/referral.service.js';
 
 const log = createLogger('ReferralUI');
@@ -406,20 +405,30 @@ function injectStyles(): void {
     .referral-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .referral-content {
       position: relative;
-      background: var(--color-background-elevated, #faf8f5);
-      border-radius: var(--radius-2xl, 20px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       text-align: center;
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .referral-content {
+        background: var(--color-background-elevated, #faf8f5);
+        border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      }
     }
 
     .referral-close {

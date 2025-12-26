@@ -499,9 +499,7 @@ export async function warmCacheForSession(
 
   if (config.parallelWarming) {
     // Warm all queries in parallel
-    const results = await Promise.allSettled(
-      predictions.map((p) => warmQuery(userId, p))
-    );
+    const results = await Promise.allSettled(predictions.map(async (p) => warmQuery(userId, p)));
 
     results.forEach((result, i) => {
       if (result.status === 'fulfilled' && result.value) {
@@ -601,10 +599,7 @@ async function warmQuery(userId: string, prediction: PredictedQuery): Promise<bo
 
     return true;
   } catch (error) {
-    log.warn(
-      { error: String(error), userId, query: prediction.query },
-      'Failed to warm query'
-    );
+    log.warn({ error: String(error), userId, query: prediction.query }, 'Failed to warm query');
     return false;
   }
 }

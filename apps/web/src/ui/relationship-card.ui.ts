@@ -229,9 +229,9 @@ function injectStyles(): void {
     .relationship-card-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.5));
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .relationship-card {
@@ -239,14 +239,24 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       display: flex;
       flex-direction: column;
       overflow: hidden;
       transform: scale(0.96) translateY(8px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .relationship-card {
+        background: var(--color-background-elevated, #FFFDFB);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+      }
     }
 
     .relationship-card-overlay.open .relationship-card {
@@ -1763,7 +1773,7 @@ function handleAddAction(action: string | null): void {
           contactName: state.person.name,
           lastContact: lastContactDate,
           sharedInterests: state.person.interests,
-          onSelect: (starter) => {
+          onSelect: (_starter) => {
             // Copy the opener to clipboard (handled internally)
             // Could also open send message with the starter pre-filled
           },
@@ -1948,13 +1958,16 @@ async function loadRelationshipData(contactId: string): Promise<void> {
           relationship: mockPerson.relationship,
           email: mockPerson.email,
           phone: mockPerson.phone,
-          birthday: mockPerson.birthday,
           howWeMet: mockPerson.howWeMet,
           notes: mockPerson.notes,
           interests: mockPerson.interests,
-          relationshipStrength: mockPerson.relationshipStrength,
-          lastContact: mockPerson.lastContact,
-          importantDates: mockPerson.importantDates,
+          strengthScore: mockPerson.relationshipStrength,
+          lastInteraction: mockPerson.lastContact,
+          importantDates: mockPerson.importantDates?.map(d => ({
+            type: d.type,
+            date: d.date,
+            label: d.label,
+          })),
         };
         log.debug('Using mock person data');
       }
@@ -1973,7 +1986,8 @@ async function loadRelationshipData(contactId: string): Promise<void> {
       const mockInteractions = getMockInteractions(contactId);
       state.timeline = mockInteractions.map(item => ({
         ...item,
-        title: formatInteractionTitle(item as TimelineItem),
+        direction: 'outbound' as const,
+        title: item.summary || item.type,
       })) as TimelineItem[];
       log.debug('Using mock timeline data');
     }
@@ -2056,17 +2070,21 @@ async function loadRelationshipData(contactId: string): Promise<void> {
           relationship: mockPerson.relationship,
           email: mockPerson.email,
           phone: mockPerson.phone,
-          birthday: mockPerson.birthday,
           howWeMet: mockPerson.howWeMet,
           notes: mockPerson.notes,
           interests: mockPerson.interests,
-          relationshipStrength: mockPerson.relationshipStrength,
-          lastContact: mockPerson.lastContact,
-          importantDates: mockPerson.importantDates,
+          strengthScore: mockPerson.relationshipStrength,
+          lastInteraction: mockPerson.lastContact,
+          importantDates: mockPerson.importantDates?.map(d => ({
+            type: d.type,
+            date: d.date,
+            label: d.label,
+          })),
         };
         state.timeline = getMockInteractions(contactId).map(item => ({
           ...item,
-          title: formatInteractionTitle(item as TimelineItem),
+          direction: 'outbound' as const,
+          title: item.summary || item.type,
         })) as TimelineItem[];
         state.gifts = getMockGifts(contactId).map(g => ({
           ...g,

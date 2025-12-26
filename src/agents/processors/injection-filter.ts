@@ -25,8 +25,20 @@ import type { ContextInjection } from './types.js';
 
 /**
  * Categories that ALWAYS get through (non-negotiable)
+ *
+ * These are "Better than Human" capabilities that should NEVER be filtered:
+ * - safety/crisis: Life-safety
+ * - identity: Persona consistency
+ * - boundaries: Respecting user's sensitive topics (trust system)
+ * - unsaid: Detecting what user isn't saying (emotional mismatches, permission seeking)
  */
-const ESSENTIAL_CATEGORIES = new Set(['safety', 'crisis_response', 'identity']);
+const ESSENTIAL_CATEGORIES = new Set([
+  'safety',
+  'crisis_response',
+  'identity',
+  'boundaries', // Trust: Topics to avoid - critical for user safety/comfort
+  'unsaid', // Trust: Emotional mismatches, permission seeking - "Better than Human" listening
+]);
 
 /**
  * Categories that are NICE-TO-HAVE but can be dropped
@@ -45,14 +57,22 @@ const OPTIONAL_CATEGORIES = new Set([
 ]);
 
 /**
- * Maximum injections to allow per turn
+ * Maximum injections to allow per turn (default)
+ * LATENCY OPTIMIZATION: Reduced from 8 to 6 - fewer injections = faster LLM TTFT
  */
-const MAX_INJECTIONS = 8;
+const MAX_INJECTIONS = 6;
 
 /**
- * Maximum total characters for all injections
+ * Maximum total characters for all injections (default)
+ * LATENCY OPTIMIZATION: Reduced from 2000 to 1500 - smaller context = faster LLM TTFT
  */
-const MAX_TOTAL_CHARS = 2000;
+const MAX_TOTAL_CHARS = 1500;
+
+/**
+ * FAST MODE: For casual/simple exchanges - even more aggressive limits
+ */
+const FAST_MODE_MAX_INJECTIONS = 3;
+const FAST_MODE_MAX_CHARS = 600;
 
 // ============================================================================
 // CONVERSATION MODES
@@ -161,13 +181,27 @@ function getPriorityCategories(mode: ConversationMode): Set<string> {
         'humanizing',
         'response_length',
         'pacing',
+        // Trust system categories - critical for emotional conversations
+        'proactive_outreach', // "I've been thinking about you" moments
+        'celebration', // Small win celebrations
+        'growth', // Growth reflections
+        'callback', // Referencing past moments
       ]);
 
     case 'practical':
       return new Set(['context', 'tasks', 'response_length', 'coaching']);
 
     case 'deep':
-      return new Set(['coaching', 'context', 'humanizing', 'response_length']);
+      return new Set([
+        'coaching',
+        'context',
+        'humanizing',
+        'response_length',
+        // Trust system categories - valuable for deep conversations
+        'proactive_outreach',
+        'growth', // Reflect their evolution in deep talks
+        'callback', // Reference past conversations
+      ]);
 
     case 'casual':
       return new Set([
@@ -196,6 +230,10 @@ export interface FilterOptions {
 
 /**
  * Filter injections to only what's relevant for this turn
+ *
+ * LATENCY OPTIMIZATION (Dec 2024):
+ * - Uses "fast mode" for casual conversations with aggressive limits
+ * - Reduces context size to minimize LLM time-to-first-token
  */
 export function filterInjections(
   injections: ContextInjection[],
@@ -206,9 +244,6 @@ export function filterInjections(
     return injections;
   }
 
-  const maxInjections = options.maxInjections ?? MAX_INJECTIONS;
-  const maxChars = options.maxChars ?? MAX_TOTAL_CHARS;
-
   // Detect mode if not provided
   const mode =
     options.mode ??
@@ -217,6 +252,12 @@ export function filterInjections(
       options.emotionalIntensity,
       options.crisisDetected
     );
+
+  // LATENCY OPTIMIZATION: Use aggressive limits for casual/simple exchanges
+  // Casual conversations don't need heavy context - just respond naturally
+  const isFastMode = mode === 'casual';
+  const maxInjections = options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
+  const maxChars = options.maxChars ?? (isFastMode ? FAST_MODE_MAX_CHARS : MAX_TOTAL_CHARS);
 
   const priorityCategories = getPriorityCategories(mode);
   const filtered: ContextInjection[] = [];
@@ -261,8 +302,9 @@ export function filterInjections(
   // Log what we filtered
   if (process.env.DEBUG_INJECTIONS === 'true') {
     const removed = injections.length - filtered.length;
+    const fastModeStr = isFastMode ? ' [FAST MODE]' : '';
     process.stderr.write(
-      `[INJECTION FILTER] Mode: ${mode}, Kept: ${filtered.length}/${injections.length}, Removed: ${removed}\n`
+      `[INJECTION FILTER] Mode: ${mode}${fastModeStr}, Kept: ${filtered.length}/${injections.length}, Removed: ${removed}, Chars: ${totalChars}/${maxChars}\n`
     );
   }
 

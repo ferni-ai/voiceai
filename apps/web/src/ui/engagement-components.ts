@@ -739,18 +739,22 @@ export const SHARED_STYLES = `
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium, 500);
     color: var(--color-text-muted);
-    background: transparent;
+    background: var(--tonal-surface-2);
     border: none;
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: 
+    transition:
       color var(--duration-fast) var(--ease-gentle),
       background var(--duration-fast) var(--ease-gentle);
   }
 
   .engagement-btn-secondary:hover {
     color: var(--color-text-primary);
-    background: var(--color-background-secondary);
+    background: var(--tonal-surface-3);
+  }
+
+  .engagement-btn-secondary:active {
+    background: var(--tonal-surface-active);
   }
 
   /* -------------------------------------

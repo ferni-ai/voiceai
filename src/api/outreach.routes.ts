@@ -25,6 +25,9 @@ import {
   type OutreachTriggerType,
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
+import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
@@ -634,7 +637,7 @@ export async function handleOutreachRoutes(
         const { code, expiresAt } = await createVerificationCode(identifier, phone);
 
         // Send via Twilio
-        const { textUser } = await import('../tools/proactive-outreach.js');
+        const { textUser } = await import('../tools/domains/proactive/outreach/index.js');
         await textUser(
           phone,
           `Your Ferni code is ${code}. Just making sure it's really you! 💚`,
@@ -713,7 +716,7 @@ export async function handleOutreachRoutes(
       }
 
       // Import the outreach tools
-      const { setUserContactInfo } = await import('../tools/proactive-outreach.js');
+      const { setUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
 
       await setUserContactInfo(userId, { phone, email, preferredMethod, timezone });
 
@@ -746,7 +749,7 @@ export async function handleOutreachRoutes(
       }
 
       const { emailUser, textUser, getUserContactInfo } =
-        await import('../tools/proactive-outreach.js');
+        await import('../tools/domains/proactive/outreach/index.js');
 
       // Get user's contact info and preferences
       const contactInfo = await getUserContactInfo(authenticatedUserId);
@@ -801,7 +804,7 @@ Here's to many more.`;
         sequence?: 'day0' | 'day3' | 'week';
       };
 
-      const { emailUser, getUserContactInfo } = await import('../tools/proactive-outreach.js');
+      const { emailUser, getUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
 
       const contactInfo = await getUserContactInfo(authenticatedUserId);
 
@@ -883,7 +886,7 @@ Whenever you're ready.`,
         return true;
       }
 
-      const { textUser, getUserContactInfo } = await import('../tools/proactive-outreach.js');
+      const { textUser, getUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
 
       const contactInfo = await getUserContactInfo(authenticatedUserId);
 
@@ -928,7 +931,7 @@ Whenever you're ready.`,
       }
 
       // Import the outreach tools
-      const { textUser, emailUser, callUser } = await import('../tools/proactive-outreach.js');
+      const { textUser, emailUser, callUser } = await import('../tools/domains/proactive/outreach/index.js');
 
       let result: { success: boolean; error?: string };
       switch (channel) {
@@ -946,6 +949,76 @@ Whenever you're ready.`,
       }
 
       sendJsonResponse(res, result.success ? 200 : 400, result);
+      return true;
+    }
+
+    // ========================================================================
+    // SCHEDULER ENDPOINTS (Cloud Scheduler / Admin)
+    // ========================================================================
+
+    // POST /api/outreach/daily-job - Trigger daily outreach job (scheduler or admin)
+    if (route === '/daily-job' && method === 'POST') {
+      // Validate Cloud Scheduler header OR admin auth
+      const schedulerHeader = req.headers['x-cloudscheduler'] || req.headers['x-appengine-cron'];
+      const isScheduler = schedulerHeader === 'true';
+
+      // If not from scheduler, require admin auth
+      if (!isScheduler && !auth.isAdmin) {
+        sendJsonResponse(res, 403, {
+          success: false,
+          error: 'Requires Cloud Scheduler or admin access',
+        });
+        return true;
+      }
+
+      log.info({ isScheduler, userId: auth.userId }, '🌅 Daily outreach job triggered via API');
+
+      try {
+        // Helper to fetch user profiles from Firestore
+        const getUserProfiles = async (): Promise<UserProfile[]> => {
+          const db = getFirestoreDb();
+          if (!db) {
+            log.warn('Firestore not available, returning empty profiles');
+            return [];
+          }
+
+          const snapshot = await db.collection('bogle_users').limit(1000).get();
+          return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as UserProfile[];
+        };
+
+        const body = await parseRequestBody(req);
+        const { dryRun = false, maxUsersPerRun } = body as {
+          dryRun?: boolean;
+          maxUsersPerRun?: number;
+        };
+
+        const result = await runDailyOutreachJob({
+          getUserProfiles,
+          dryRun,
+          maxUsersPerRun,
+          delayBetweenUsersMs: 100, // Rate limit
+        });
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          result: {
+            usersEvaluated: result.usersEvaluated,
+            outreachSent: result.outreachSent,
+            byType: result.byType,
+            durationMs: result.durationMs,
+            errorCount: result.errors.length,
+          },
+        });
+      } catch (error) {
+        log.error({ error }, '❌ Daily outreach job failed');
+        sendJsonResponse(res, 500, {
+          success: false,
+          error: 'Daily outreach job failed',
+        });
+      }
       return true;
     }
 

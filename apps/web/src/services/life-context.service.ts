@@ -103,7 +103,7 @@ export function subscribeToLifeContext(listener: LifeContextListener): () => voi
   if (currentSnapshot) {
     listener({
       type: 'initial_state',
-      userId: currentUserId || undefined,
+      userId: currentUserId ?? undefined,
       snapshot: currentSnapshot,
       triggers: currentTriggers,
       timestamp: new Date().toISOString(),
@@ -225,7 +225,7 @@ export function connectToLifeContextStream(userId: string): void {
           log.debug('Life context update received', {
             loadScore: data.snapshot?.overallLoadScore,
             wellbeing: data.snapshot?.wellbeingScore,
-            triggers: data.triggers?.length || 0,
+            triggers: data.triggers?.length ?? 0,
           });
         }
       } catch (err) {
@@ -239,7 +239,7 @@ export function connectToLifeContextStream(userId: string): void {
 
     wsConnection.onclose = (event) => {
       log.info(
-        `Disconnected from life context WebSocket (code: ${event.code}, reason: ${event.reason || 'none'})`
+        `Disconnected from life context WebSocket (code: ${event.code}, reason: ${event.reason ?? 'none'})`
       );
       wsConnection = null;
 
@@ -310,11 +310,11 @@ export async function startLifeContextPolling(userId: string): Promise<void> {
       const response = await fetch(`/api/life-context?userId=${userId}`);
       if (!response.ok) return;
 
-      const data = await response.json();
+      const data = (await response.json()) as { snapshot?: unknown; triggers?: unknown[] };
 
       if (data.snapshot) {
         currentSnapshot = data.snapshot;
-        currentTriggers = data.triggers || [];
+        currentTriggers = data.triggers ?? [];
 
         notifyListeners({
           type: 'update',

@@ -28,6 +28,8 @@ import {
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
 import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
+// 🌊 Naturalness Engine - voice pattern persistence
+import { persistNaturalnessData } from '../../speech/naturalness/index.js';
 // FIX AUDIT: Merged handoff imports to avoid duplicate import warning
 import {
   cameoUnlockEvents,
@@ -56,8 +58,14 @@ import { clearSession as clearHumeSession } from '../../services/emotion-analysi
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
 import { awardSeedsForConversation } from '../../services/seed-economy.js';
 
+// Session closing tracker - prevents operations during shutdown
+import { markSessionClosing, clearSessionClosing } from '../shared/session-closing-tracker.js';
+
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
+
+// Action history cleanup - for honesty guardrail tracking
+import { clearSessionHistory } from '../shared/action-history.js';
 
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
@@ -183,6 +191,10 @@ export async function handleSessionCleanup(
   const { sessionId } = ctx;
   const cleanupStart = Date.now();
 
+  // CRITICAL: Mark session as closing IMMEDIATELY to prevent operations during shutdown
+  // This prevents race conditions like handoffs being attempted on draining sessions
+  markSessionClosing(sessionId);
+
   let timedOut = false;
   let success = true;
 
@@ -222,6 +234,9 @@ export async function handleSessionCleanup(
       9, // 9 cleanup groups total
       success ? 0 : 1
     );
+
+    // Clear session closing flag to prevent memory leak
+    clearSessionClosing(sessionId);
   }
 }
 
@@ -257,6 +272,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     if (cameoUnlockHandler) cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
     if (cameoCleanup) cameoCleanup();
     if (stopPeriodicSync) stopPeriodicSync();
+
+    // Clear action history (for honesty guardrail - prevents memory bloat)
+    clearSessionHistory(sessionId);
 
     // End conversation state (needed for data below)
     const finalConvState = endConversationState(sessionId);
@@ -326,6 +344,18 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         const saveResult = await saveHumanizationState(userId || 'anonymous', sessionId);
         if (saveResult.saved) {
           diag.session('🎭 Humanization state persisted', { items: saveResult.items });
+        }
+      })(),
+
+      // Naturalness Engine - persist learned voice patterns for next session
+      (async () => {
+        try {
+          await persistNaturalnessData(sessionId);
+          diag.session('🌊 Voice patterns persisted');
+        } catch (naturalnessErr) {
+          diag.warn('Voice pattern persistence failed (non-fatal)', {
+            error: String(naturalnessErr),
+          });
         }
       })(),
 

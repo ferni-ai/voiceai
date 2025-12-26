@@ -16,7 +16,7 @@ import { DURATION } from '../config/animation-constants.js';
 const log = createLogger('OutreachScheduleUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -113,8 +113,9 @@ const STYLES = `
 .outreach-schedule-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.5);
-  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
 }
 
 .outreach-schedule-modal {
@@ -122,9 +123,12 @@ const STYLES = `
   width: 90%;
   max-width: clamp(392px, 90vw, 560px);
   max-height: 80vh;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 20px);
-  box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
   display: flex;
   flex-direction: column;
   transform: scale(0.95);
@@ -133,6 +137,12 @@ const STYLES = `
 
 .outreach-schedule-overlay.open .outreach-schedule-modal {
   transform: scale(1);
+}
+
+@supports not (backdrop-filter: blur(24px)) {
+  .outreach-schedule-modal {
+    background: var(--color-background-elevated, #faf6f0);
+  }
 }
 
 .outreach-schedule-header {
@@ -642,7 +652,7 @@ async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
     const response = await fetch('/api/outreach/upcoming');
     if (!response.ok) throw new Error('Failed to fetch');
     const data = await response.json();
-    return data.upcoming || [];
+    return data.upcoming ?? [];
   } catch {
     // Return empty array - real data will appear when outreach is scheduled
     return [];
@@ -654,7 +664,7 @@ async function fetchOutreachHistory(): Promise<OutreachHistory[]> {
     const response = await fetch('/api/outreach/history?limit=20');
     if (!response.ok) throw new Error('Failed to fetch');
     const data = await response.json();
-    return data.history || [];
+    return data.history ?? [];
   } catch {
     // Return empty array - real history will appear after outreach is sent
     return [];
@@ -873,7 +883,7 @@ function getPersonaName(personaId: string): string {
     jordan: 'Jordan Taylor',
     nayan: 'Nayan Patel',
   };
-  return names[personaId] || 'Ferni';
+  return names[personaId] ?? 'Ferni';
 }
 
 function addPreviewStyles(): void {
@@ -896,19 +906,29 @@ function addPreviewStyles(): void {
     .outreach-preview-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
     .outreach-preview-modal {
       position: relative;
       width: 90%;
       max-width: clamp(294px, 90vw, 420px);
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       transform: scale(0.95);
       transition: transform 200ms ease;
     }
     .outreach-preview-overlay.open .outreach-preview-modal { transform: scale(1); }
+    @supports not (backdrop-filter: blur(24px)) {
+      .outreach-preview-modal {
+        background: var(--color-background-elevated, #faf6f0);
+      }
+    }
     .outreach-preview-header {
       display: flex;
       align-items: center;

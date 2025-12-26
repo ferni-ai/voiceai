@@ -15,16 +15,37 @@
  */
 
 import { voice } from '@livekit/agents';
-import type { AudioFrame } from '@livekit/rtc-node';
-import {
+import { AudioFrame } from '@livekit/rtc-node';
+import type {
   ReadableStream as NodeReadableStream,
   TransformStream as NodeTransformStream,
 } from 'node:stream/web';
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getTTSWithSpeculation, type TTSResult } from './speculative-tts.js';
+import { getTTSWithSpeculation } from './speculative-tts.js';
 
 const log = createLogger({ module: 'CacheAwareTTS' });
+
+/**
+ * Type interface for accessing the internal ttsNode method on voice.Agent.default.
+ * This method isn't exposed in the public LiveKit type definitions, but we need it
+ * to integrate with the TTS pipeline. The interface describes only what we use.
+ */
+interface VoiceAgentDefaultWithTTS {
+  ttsNode: (
+    agent: voice.Agent,
+    text: NodeReadableStream<string>,
+    modelSettings: voice.ModelSettings
+  ) => Promise<NodeReadableStream<AudioFrame> | null>;
+}
+
+/**
+ * Get the ttsNode function from voice.Agent.default with proper typing.
+ * Uses a type assertion to the known interface rather than `any`.
+ */
+function getDefaultTTSNode(): VoiceAgentDefaultWithTTS {
+  return voice.Agent.default as unknown as VoiceAgentDefaultWithTTS;
+}
 
 // ============================================================================
 // TYPES
@@ -104,28 +125,17 @@ export function resetCacheAwareTTSMetrics(): void {
  * The speculative TTS cache stores raw PCM at 24kHz, 16-bit, mono.
  * We need to convert this to the AudioFrame format expected by LiveKit.
  *
- * Note: We cast through 'unknown' because the LiveKit AudioFrame type
- * has internal properties (protoInfo) that aren't needed for audio playback.
+ * IMPORTANT: Must use the actual AudioFrame constructor, not plain objects,
+ * because the LiveKit SDK's captureFrame() method calls frame.protoInfo()
+ * which only exists on real AudioFrame instances.
  */
-function arrayBufferToAudioFrame(
-  buffer: ArrayBuffer,
-  sampleRate: number = 24000
-): AudioFrame {
+function arrayBufferToAudioFrame(buffer: ArrayBuffer, sampleRate = 24000): AudioFrame {
   // PCM is 16-bit signed integers, little-endian
-  const int16View = new Int16Array(buffer);
-  const samplesPerChannel = int16View.length;
+  const int16Data = new Int16Array(buffer);
+  const samplesPerChannel = int16Data.length;
 
-  // Convert to Uint8Array for AudioFrame data field
-  const data = new Uint8Array(buffer);
-
-  // Cast through unknown because AudioFrame has internal proto fields
-  // that we don't need to set for audio playback
-  return {
-    data,
-    sampleRate,
-    channels: 1, // Mono
-    samplesPerChannel,
-  } as unknown as AudioFrame;
+  // Use the real AudioFrame constructor (requires Int16Array)
+  return new AudioFrame(int16Data, sampleRate, 1, samplesPerChannel);
 }
 
 /**
@@ -133,11 +143,15 @@ function arrayBufferToAudioFrame(
  *
  * LiveKit expects audio frames of reasonable size (typically 20-100ms).
  * We split large cached audio into chunks for smooth streaming.
+ *
+ * IMPORTANT: Must use the actual AudioFrame constructor, not plain objects,
+ * because the LiveKit SDK's captureFrame() method calls frame.protoInfo()
+ * which only exists on real AudioFrame instances.
  */
 function* splitIntoFrames(
   buffer: ArrayBuffer,
-  sampleRate: number = 24000,
-  frameDurationMs: number = 20
+  sampleRate = 24000,
+  frameDurationMs = 20
 ): Generator<AudioFrame> {
   const bytesPerSample = 2; // 16-bit PCM
   const samplesPerFrame = Math.floor((sampleRate * frameDurationMs) / 1000);
@@ -147,14 +161,12 @@ function* splitIntoFrames(
   while (offset < buffer.byteLength) {
     const frameSize = Math.min(bytesPerFrame, buffer.byteLength - offset);
     const frameBuffer = buffer.slice(offset, offset + frameSize);
+    const samplesPerChannel = frameSize / bytesPerSample;
 
-    // Cast through unknown (see arrayBufferToAudioFrame comment)
-    yield {
-      data: new Uint8Array(frameBuffer),
-      sampleRate,
-      channels: 1,
-      samplesPerChannel: frameSize / bytesPerSample,
-    } as unknown as AudioFrame;
+    // Use the real AudioFrame constructor (requires Int16Array)
+    // Note: Use subarray on existing Int16Array for efficiency
+    const int16Data = new Int16Array(frameBuffer);
+    yield new AudioFrame(int16Data, sampleRate, 1, samplesPerChannel);
 
     offset += frameSize;
   }
@@ -253,8 +265,7 @@ export async function processTTSWithCache(
   metrics.cacheMisses++;
   missLatencies.push(missLatency);
   if (missLatencies.length > 100) missLatencies.shift();
-  metrics.avgCacheMissLatencyMs =
-    missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
+  metrics.avgCacheMissLatencyMs = missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
 
   log.debug(
     { text: text.slice(0, 30), emotion, sessionId, missLatencyMs: missLatency },
@@ -277,9 +288,7 @@ export async function processTTSWithCache(
  * 2. If yes, output cached audio frames immediately
  * 3. If no, buffer and pass to default TTS
  */
-export function createCacheAwareTransform(
-  config: CacheAwareTTSConfig
-): {
+export function createCacheAwareTransform(config: CacheAwareTTSConfig): {
   transform: NodeTransformStream<string, string>;
   getCachedAudio: () => ArrayBuffer | null;
 } {
@@ -309,7 +318,11 @@ export function createCacheAwareTransform(
             metrics.cacheHits++;
 
             log.debug(
-              { sentence: sentence.slice(0, 30), sessionId, audioBytes: cacheResult.audio.byteLength },
+              {
+                sentence: sentence.slice(0, 30),
+                sessionId,
+                audioBytes: cacheResult.audio.byteLength,
+              },
               '🎯 Sentence cache hit'
             );
 
@@ -324,7 +337,7 @@ export function createCacheAwareTransform(
 
         // Cache miss - pass sentence to default TTS
         metrics.cacheMisses++;
-        controller.enqueue(sentence + ' ');
+        controller.enqueue(`${sentence} `);
       }
     },
 
@@ -372,7 +385,9 @@ export function createCacheAwareTransform(
  * return cacheAwareTTS(agent, text, modelSettings);
  * ```
  */
-export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
+export function createCacheAwareTTSNode(
+  config: CacheAwareTTSConfig
+): (
   agent: voice.Agent,
   text: NodeReadableStream<string>,
   modelSettings: voice.ModelSettings
@@ -389,8 +404,7 @@ export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
 
     // If cache is disabled, pass through directly to default TTS
     if (!enableCache) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (voice.Agent.default as any).ttsNode(agent, text, modelSettings);
+      return getDefaultTTSNode().ttsNode(agent, text, modelSettings);
     }
 
     // =========================================================================
@@ -549,19 +563,67 @@ export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
         // Perfect - entire response was cached!
         const frames = [...splitIntoFrames(cacheHitAudio, sampleRate)];
 
+        // Track state for cleanup on cancel/interrupt
+        let cancelled = false;
+        let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+        let controllerRef: ReadableStreamDefaultController<AudioFrame> | null = null;
+
+        // Helper to safely check if controller is still usable
+        const isControllerActive = (): boolean => {
+          if (cancelled || !controllerRef) return false;
+          try {
+            // Check if controller's desired size is defined (undefined = closed)
+            return controllerRef.desiredSize !== null;
+          } catch {
+            return false;
+          }
+        };
+
         return new ReadableStream<AudioFrame>({
           start(controller) {
+            controllerRef = controller;
             let frameIndex = 0;
+
             const emitFrame = () => {
-              if (frameIndex < frames.length) {
-                controller.enqueue(frames[frameIndex]);
-                frameIndex++;
-                setTimeout(emitFrame, 8); // Slightly faster than before
-              } else {
-                controller.close();
+              // Wrap entire function in try/catch since setTimeout callbacks
+              // can throw uncaught exceptions
+              try {
+                // Guard against enqueueing to closed/cancelled controller
+                if (!isControllerActive()) {
+                  cancelled = true;
+                  if (pendingTimeout) {
+                    clearTimeout(pendingTimeout);
+                    pendingTimeout = null;
+                  }
+                  return;
+                }
+
+                if (frameIndex < frames.length) {
+                  controller.enqueue(frames[frameIndex]);
+                  frameIndex++;
+                  pendingTimeout = setTimeout(emitFrame, 8);
+                } else {
+                  controller.close();
+                }
+              } catch {
+                // Controller was closed (e.g., by interrupt) or other error - stop emitting
+                cancelled = true;
+                if (pendingTimeout) {
+                  clearTimeout(pendingTimeout);
+                  pendingTimeout = null;
+                }
               }
             };
             emitFrame();
+          },
+          cancel() {
+            // Stream was cancelled (e.g., user interrupted)
+            cancelled = true;
+            controllerRef = null;
+            if (pendingTimeout) {
+              clearTimeout(pendingTimeout);
+              pendingTimeout = null;
+            }
           },
         }) as NodeReadableStream<AudioFrame>;
       }
@@ -591,8 +653,7 @@ export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
         },
       }) as NodeReadableStream<string>;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (voice.Agent.default as any).ttsNode(agent, fullStream, modelSettings);
+      return getDefaultTTSNode().ttsNode(agent, fullStream, modelSettings);
     }
 
     // CACHE MISS - pass entire stream to default TTS
@@ -600,8 +661,7 @@ export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
     const missLatency = Date.now() - startTime;
     missLatencies.push(missLatency);
     if (missLatencies.length > 100) missLatencies.shift();
-    metrics.avgCacheMissLatencyMs =
-      missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
+    metrics.avgCacheMissLatencyMs = missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
 
     log.debug({ text: buffer.slice(0, 50), emotion, sessionId }, 'TTS cache miss - using Cartesia');
 
@@ -641,8 +701,7 @@ export function createCacheAwareTTSNode(config: CacheAwareTTSConfig): (
       },
     }) as NodeReadableStream<string>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (voice.Agent.default as any).ttsNode(agent, reconstructedStream, modelSettings);
+    return getDefaultTTSNode().ttsNode(agent, reconstructedStream, modelSettings);
   };
 }
 

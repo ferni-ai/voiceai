@@ -19,9 +19,11 @@
  * @example
  * const result = await embedSafe("hello");
  * if (result.ok) {
- *   console.log(result.value); // number[]
+ *   // result.value is number[]
+ *   processEmbedding(result.value);
  * } else {
- *   console.log(result.error); // MemoryError
+ *   // result.error is MemoryError
+ *   log.error({ error: result.error }, 'Embedding failed');
  * }
  */
 export type Result<T, E = MemoryError> = { ok: true; value: T } | { ok: false; error: E };

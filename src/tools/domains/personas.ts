@@ -33,7 +33,7 @@ export {
   createJordanMemoryTools,
   createAlexMemoryTools,
   createMemoryManagementTools,
-} from '../persona-memory-tools.js';
+} from './memory/persona-tools.js';
 
 // NOTE: Team handlers have been migrated to the team-handler-registry system.
 // See: src/services/team-handler-registry/

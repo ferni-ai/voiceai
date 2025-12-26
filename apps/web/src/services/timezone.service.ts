@@ -297,7 +297,7 @@ export function getFriendlyTimezoneName(): string {
     });
     const parts = formatter.formatToParts(new Date());
     const tzPart = parts.find((p) => p.type === 'timeZoneName');
-    return tzPart?.value || timezone;
+    return tzPart?.value ?? timezone;
   } catch {
     return timezone;
   }

@@ -35,7 +35,7 @@ async function getAvatarSoul() {
 const log = createLogger('AdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide SVG - 2px stroke, rounded corners)
@@ -640,7 +640,7 @@ function renderAgentDetail(agent: ApiAgent): string {
       </div>
       <div class="admin-form-group">
         <label>Subtitle</label>
-        <input type="text" value="${agent.subtitle || ''}" data-field="subtitle">
+        <input type="text" value="${agent.subtitle ?? ''}" data-field="subtitle">
       </div>
       <div class="admin-form-group">
         <label>Initials</label>
@@ -669,7 +669,7 @@ function renderAgentDetail(agent: ApiAgent): string {
       <h3>Voice</h3>
       <div class="admin-form-group">
         <label>Voice ID</label>
-        <input type="text" value="${agent.voiceId || ''}" data-field="voiceId" readonly>
+        <input type="text" value="${agent.voiceId ?? ''}" data-field="voiceId" readonly>
       </div>
       <button aria-label="Volume" class="admin-btn" data-action="preview-voice" data-agent-id="${agent.id}">
         🔊 Preview Voice
@@ -680,11 +680,11 @@ function renderAgentDetail(agent: ApiAgent): string {
       <h3>Team Configuration</h3>
       <div class="admin-form-group">
         <label>Role ID</label>
-        <input type="text" value="${agent.roleId || ''}" data-field="roleId">
+        <input type="text" value="${agent.roleId ?? ''}" data-field="roleId">
       </div>
       <div class="admin-form-group">
         <label>Entrance Phrase</label>
-        <textarea data-field="entrancePhrase">${agent.entrancePhrase || ''}</textarea>
+        <textarea data-field="entrancePhrase">${agent.entrancePhrase ?? ''}</textarea>
       </div>
     </div>
 
@@ -793,7 +793,7 @@ function updateSoulPreview(action: string, value: string): void {
           INTERESTED: '14px',
           CONNECTED: '16px',
         };
-        if (pupilStateEl) pupilStateEl.textContent = sizes[value] || '12px';
+        if (pupilStateEl) pupilStateEl.textContent = sizes[value] ?? '12px';
       }
       if (stateEl) stateEl.textContent = value.charAt(0) + value.slice(1).toLowerCase();
       break;
@@ -1067,7 +1067,7 @@ function handleDragStart(e: DragEvent): void {
   state.draggedAgent = state.agents.find((a) => a.id === agentId) || null;
 
   card.classList.add('dragging');
-  e.dataTransfer?.setData('text/plain', agentId || '');
+  e.dataTransfer?.setData('text/plain', agentId ?? '');
 }
 
 function handleDragOver(e: DragEvent): void {
@@ -1557,7 +1557,7 @@ export function injectAdminStyles(): void {
     .admin-template-icon {
       width: 32px;
       height: 32px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .admin-template-icon svg {
@@ -1583,7 +1583,7 @@ export function injectAdminStyles(): void {
       height: 20px;
       vertical-align: middle;
       margin-right: var(--space-2, 8px);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .admin-sparkles-icon svg {
@@ -1971,7 +1971,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-lab h2 {
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     /* Live Avatar Preview */
@@ -2148,7 +2148,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-preview-status .status-value {
-      color: var(--persona-primary);
+      color: var(--persona-text);
       font-weight: 600;
     }
 

@@ -1,0 +1,39 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full Ferni avatar with ring and heart badge -->
+  <defs>
+    <linearGradient id="avatarOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="avatarShine" x1="0%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="avatarBadge" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="avatarBadgeShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#2c2520" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="56" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.35"/>
+  
+  <!-- Main orb -->
+  <circle cx="60" cy="60" r="50" fill="url(#avatarOrb)"/>
+  <circle cx="60" cy="60" r="50" fill="url(#avatarShine)"/>
+  
+  <!-- FE Text -->
+  <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="36" font-weight="800" fill="white" letter-spacing="-1">
+    <tspan dy="2">FE</tspan>
+  </text>
+  
+  <!-- Heart badge -->
+  <circle cx="98" cy="98" r="14" fill="url(#avatarBadge)" stroke="#FFFDFB" stroke-width="3" filter="url(#avatarBadgeShadow)"/>
+  <path d="M98 93c0-2-1.6-3.6-3.6-3.6s-3.6 1.6-3.6 3.6c0 3.6 7 9 7 9s7-5.4 7-9c0-2-1.6-3.6-3.6-3.6s-3.6 1.6-3.6 3.6z"
+    fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

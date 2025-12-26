@@ -734,10 +734,10 @@ function attachListeners(): void {
   };
   document.addEventListener('keydown', escHandler);
 
-  characterModal.querySelector('[data-action="edit-backstory"]')?.addEventListener('click', handleEditBackstory);
-  characterModal.querySelector('[data-action="add-quirk"]')?.addEventListener('click', handleAddQuirk);
-  characterModal.querySelector('[data-action="add-catchphrase"]')?.addEventListener('click', handleAddCatchphrase);
-  characterModal.querySelector('[data-action="add-relationship"]')?.addEventListener('click', handleAddRelationship);
+  characterModal.querySelector('[data-action="edit-backstory"]')?.addEventListener('click', () => { void handleEditBackstory(); });
+  characterModal.querySelector('[data-action="add-quirk"]')?.addEventListener('click', () => { void handleAddQuirk(); });
+  characterModal.querySelector('[data-action="add-catchphrase"]')?.addEventListener('click', () => { void handleAddCatchphrase(); });
+  characterModal.querySelector('[data-action="add-relationship"]')?.addEventListener('click', () => { void handleAddRelationship(); });
 
   // Delete quirks
   characterModal.querySelectorAll('[data-action="delete-quirk"]').forEach(btn => {
@@ -827,7 +827,7 @@ async function handleAddCatchphrase(): Promise<void> {
   if (!catchphrase || !currentAgent) return;
 
   try {
-    const current = (currentAgent.behaviors?.catchphrases as string[]) || [];
+    const current = (currentAgent.behaviors?.catchphrases) || [];
     const updates = {
       behaviors: {
         ...currentAgent.behaviors,
@@ -895,7 +895,7 @@ async function handleEditCatchphrase(index: number): Promise<void> {
   const { toast } = await import('./toast.ui.js');
   if (!currentAgent) return;
 
-  const catchphrases = (currentAgent.behaviors?.catchphrases as string[]) || [];
+  const catchphrases = (currentAgent.behaviors?.catchphrases) || [];
   const item = catchphrases[index];
   if (!item) return;
 
@@ -924,7 +924,7 @@ async function handleDeleteCatchphrase(index: number): Promise<void> {
   if (!confirm('Delete this catchphrase?')) return;
 
   try {
-    const catchphrases = (currentAgent.behaviors?.catchphrases as string[]) || [];
+    const catchphrases = (currentAgent.behaviors?.catchphrases) || [];
     const updatedCatchphrases = catchphrases.filter((_, i) => i !== index);
 
     await updateCustomAgent(currentAgent.id, {

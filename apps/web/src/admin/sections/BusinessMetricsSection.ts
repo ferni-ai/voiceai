@@ -566,7 +566,7 @@ async function fetchConcurrent(): Promise<number> {
     const response = await fetch('/api/analytics/concurrent');
     if (!response.ok) return 0;
     const data = await response.json();
-    return data.concurrent || 0;
+    return data.concurrent ?? 0;
   } catch {
     return 0;
   }

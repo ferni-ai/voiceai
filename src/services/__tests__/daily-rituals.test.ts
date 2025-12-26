@@ -204,7 +204,7 @@ describe('DailyRituals', () => {
 
       it('should have weather responses for all types', () => {
         const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-        const weatherTypes = ['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'];
+        const weatherTypes = ['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'] as const;
 
         weatherTypes.forEach((weather) => {
           expect(prompts.weatherResponses[weather]).toBeDefined();
@@ -512,13 +512,14 @@ describe('DailyRituals', () => {
   });
 
   describe('Streak milestone celebrations', () => {
-    const milestones = [3, 7, 14, 21, 30, 66, 100];
+    const milestones = [3, 7, 14, 21, 30, 66, 100] as const;
 
-    it.each(milestones)('should have celebration for %d day streak', (days) => {
+    it.each([...milestones])('should have celebration for %d day streak', (days) => {
       const prompts = RITUAL_PROMPTS['ferni-sky-check'];
       // Not all milestones exist for all rituals, but ferni has most
-      if (prompts.streakCelebrations[days]) {
-        expect(prompts.streakCelebrations[days].length).toBeGreaterThan(0);
+      const milestone = days as keyof typeof prompts.streakCelebrations;
+      if (prompts.streakCelebrations[milestone]) {
+        expect(prompts.streakCelebrations[milestone].length).toBeGreaterThan(0);
       }
     });
   });

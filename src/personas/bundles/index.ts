@@ -62,6 +62,15 @@ let discoveryCache: {
   errors: string[];
 } | null = null;
 
+// FIX BUG #bundle-race: Promise lock to prevent concurrent discovery
+// When multiple callers invoke discoverAndLoadBundles() before cache is set,
+// they should wait for the first discovery to complete rather than all racing
+let discoveryInProgress: Promise<{
+  personas: PersonaConfig[];
+  bundles: LoadedPersonaBundle[];
+  errors: string[];
+}> | null = null;
+
 /**
  * Discover all bundles in search paths
  */
@@ -98,6 +107,7 @@ const BUNDLE_LOAD_CONCURRENCY = 10;
  * Load all discovered bundles and convert to PersonaConfig
  * Results are cached to prevent redundant loading on subsequent calls
  * FIX BUG #bundle-13: Load bundles in parallel batches for better performance
+ * FIX BUG #bundle-race: Use promise lock to prevent concurrent discovery race conditions
  */
 export async function discoverAndLoadBundles(): Promise<{
   personas: PersonaConfig[];
@@ -110,6 +120,33 @@ export async function discoverAndLoadBundles(): Promise<{
     return discoveryCache;
   }
 
+  // FIX BUG #bundle-race: If discovery is already in progress, wait for it
+  // This prevents multiple concurrent discoveries from racing
+  if (discoveryInProgress) {
+    getLogger().debug('Discovery already in progress, waiting...');
+    return discoveryInProgress;
+  }
+
+  // Start discovery and store the promise so other callers can wait
+  discoveryInProgress = performBundleDiscovery();
+
+  try {
+    const result = await discoveryInProgress;
+    return result;
+  } finally {
+    // Clear the in-progress promise once complete (success or failure)
+    discoveryInProgress = null;
+  }
+}
+
+/**
+ * Internal function that performs the actual bundle discovery
+ */
+async function performBundleDiscovery(): Promise<{
+  personas: PersonaConfig[];
+  bundles: LoadedPersonaBundle[];
+  errors: string[];
+}> {
   const startTime = Date.now();
   const bundleIds = await discoverBundles();
   const personas: PersonaConfig[] = [];
@@ -181,6 +218,8 @@ export async function loadBundleAsPersona(bundleId: string): Promise<PersonaConf
  * 1. Loading only the required persona synchronously
  * 2. Loading other personas in the background (non-blocking)
  *
+ * FIX BUG #bundle-race: Uses the same lock as discoverAndLoadBundles to prevent races
+ *
  * @param priorityBundleId - The bundle to load first (typically from PERSONA_ID env var)
  * @param loadOthersInBackground - Whether to load other bundles in background (default: true)
  */
@@ -199,6 +238,37 @@ export async function discoverAndLoadBundlesWithPriority(
     return discoveryCache;
   }
 
+  // FIX BUG #bundle-race: If discovery is already in progress, wait for it
+  if (discoveryInProgress) {
+    getLogger().debug('Discovery already in progress, waiting...');
+    const result = await discoveryInProgress;
+    return result;
+  }
+
+  // Start priority discovery and store the promise
+  discoveryInProgress = performPriorityBundleDiscovery(priorityBundleId, loadOthersInBackground);
+
+  try {
+    const result = await discoveryInProgress;
+    // Return with the backgroundLoadPromise if available (stored on result)
+    return result;
+  } finally {
+    discoveryInProgress = null;
+  }
+}
+
+/**
+ * Internal function that performs priority bundle discovery
+ */
+async function performPriorityBundleDiscovery(
+  priorityBundleId?: string,
+  loadOthersInBackground = true
+): Promise<{
+  personas: PersonaConfig[];
+  bundles: LoadedPersonaBundle[];
+  errors: string[];
+  backgroundLoadPromise?: Promise<void>;
+}> {
   const startTime = Date.now();
   const bundleIds = await discoverBundles();
   const personas: PersonaConfig[] = [];

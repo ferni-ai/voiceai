@@ -26,7 +26,7 @@ import { getPersonaColorConfig } from '../config/persona-colors.js';
 const log = createLogger('TeamIntro');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style SVG)

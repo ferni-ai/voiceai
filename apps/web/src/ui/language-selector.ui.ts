@@ -13,17 +13,16 @@ import {
   onLocaleChange,
   t,
   type SupportedLocale,
-  type LocaleInfo,
 } from '../i18n/index.js';
 
 // Track setTimeout calls for memory leak prevention
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-let selectorElement: HTMLElement | null = null;
+const _selectorElement: HTMLElement | null = null;
 let isOpen = false;
 
 // ============================================================================

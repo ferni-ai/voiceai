@@ -25,7 +25,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('TeamInsightsUI');
 
 // Track timeouts for cleanup
-const { clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -675,7 +675,7 @@ async function refreshInsights(): Promise<void> {
  * Show a notification for a high-priority insight
  */
 export function showInsightNotification(insight: TeamInsight): void {
-  const style = PERSONA_STYLES[insight.source] || PERSONA_STYLES.system;
+  const _style = PERSONA_STYLES[insight.source] || PERSONA_STYLES.system;
 
   // Add to state
   state.insights.unshift(insight);
@@ -755,7 +755,7 @@ function injectStyles(): void {
     .team-insights-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-medium, rgba(44, 37, 32, 0.4));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
       backdrop-filter: blur(20px);
     }
     
@@ -875,7 +875,7 @@ function injectStyles(): void {
       width: 32px;
       height: 32px;
       border: 3px solid var(--color-border-subtle);
-      border-top-color: var(--persona-primary);
+      border-top-color: var(--persona-text);
       border-radius: var(--radius-full);
       animation: spin 1s linear infinite;
       margin-bottom: var(--space-md);
@@ -1029,7 +1029,7 @@ function injectStyles(): void {
     .empty-icon {
       width: 48px;
       height: 48px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       margin-bottom: var(--space-md);
     }
     
@@ -1238,7 +1238,7 @@ export function disposeTeamInsightsUI(): void {
   stopPolling();
 
   // Clear any pending timeouts
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Remove panel
   panelElement?.remove();

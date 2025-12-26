@@ -646,7 +646,8 @@ class OutreachDecisionEngine extends EventEmitter {
   private createDefaultUserState(userId: string): UserOutreachState {
     return {
       userId,
-      outreachEnabled: true,
+      // OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
+      outreachEnabled: false,
       allowedChannels: ['email', 'sms'],
 
       preferences: {

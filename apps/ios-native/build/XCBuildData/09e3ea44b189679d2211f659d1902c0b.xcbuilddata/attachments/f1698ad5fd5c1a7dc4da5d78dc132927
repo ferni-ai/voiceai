@@ -1,0 +1,4 @@
+module GoogleUtilities_NSData {
+umbrella "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/NSData+zlib/Public"
+export *
+}

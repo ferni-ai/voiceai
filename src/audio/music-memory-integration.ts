@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import type { MusicSessionContext, MusicStartReason } from './music-session-context.js';
+import type { MusicSessionContext } from './music-session-context.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
 
 const log = createLogger({ module: 'MusicMemoryIntegration' });

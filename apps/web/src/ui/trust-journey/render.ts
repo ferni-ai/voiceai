@@ -9,7 +9,7 @@ import { STAGGER } from '../../config/animation-constants.js';
 import { ICONS } from './icons.js';
 import type { TrustJourneyData, TimelineItem, TrustJourneyState, TimelineFilterType } from './types.js';
 
-const TIMELINE_PAGE_SIZE = 10;
+export const TIMELINE_PAGE_SIZE = 10;
 
 const FILTER_OPTIONS: TimelineFilterType[] = ['all', 'growth', 'win', 'callback', 'boundary', 'outreach'];
 
@@ -45,7 +45,7 @@ export function renderSkeleton(): string {
 // ERROR STATES
 // ============================================================================
 
-export function renderError(errorType: string, onRetry: () => void): string {
+export function renderError(errorType: string, _onRetry: () => void): string {
   const errorConfig = getErrorConfig(errorType);
 
   return `
@@ -373,5 +373,4 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-export { TIMELINE_PAGE_SIZE };
 

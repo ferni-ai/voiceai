@@ -9,6 +9,7 @@
  * @module conversation/superhuman/natural-speech
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NaturalSpeech' });
@@ -179,7 +180,7 @@ export function getSpeechModification(
   }
 ): SpeechModification | null {
   // Check if we should add a modification at all
-  if (Math.random() > config.frequency) {
+  if (!seededChance(`${Date.now()}:1`, config.frequency)) {
     return null;
   }
 
@@ -201,15 +202,15 @@ export function getSpeechModification(
   const filtered = enabledTypes.filter((t) => weights[t] > 0);
   if (filtered.length === 0) return null;
 
-  // Weighted random selection
+  // Weighted random selection using seeded RNG
   const totalWeight = filtered.reduce((sum, t) => sum + weights[t], 0);
-  let random = Math.random() * totalWeight;
+  let random = seededFloat(`${Date.now()}:naturalSpeech`) * totalWeight;
 
   for (const type of filtered) {
     random -= weights[type];
     if (random <= 0) {
       const patterns = getPatternPool(type, style);
-      const insertion = patterns[Math.floor(Math.random() * patterns.length)];
+      const insertion = seededPick(`${Date.now()}:213`, patterns) ?? patterns[0];
 
       return {
         type,
@@ -281,7 +282,7 @@ export function addNaturalSpeech(
  */
 export function generateThinkingMoment(style: string = 'warm'): string {
   const patterns = THINKING_ALOUD[style] || THINKING_ALOUD['warm'];
-  return patterns[Math.floor(Math.random() * patterns.length)];
+  return seededPick(`${Date.now()}:285`, patterns) ?? patterns[0];
 }
 
 /**
@@ -289,7 +290,7 @@ export function generateThinkingMoment(style: string = 'warm'): string {
  */
 export function generateSelfCorrection(style: string = 'warm'): string {
   const patterns = SELF_CORRECTIONS[style] || SELF_CORRECTIONS['warm'];
-  return patterns[Math.floor(Math.random() * patterns.length)];
+  return seededPick(`${Date.now()}:293`, patterns) ?? patterns[0];
 }
 
 /**

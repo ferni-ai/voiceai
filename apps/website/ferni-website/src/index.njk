@@ -335,66 +335,99 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# OUR STORY - The Human Story of AI Building AI #}
+{# OUR STORY - Chapter Cards Design #}
 <section class="section story" id="story">
-  <div class="container container--narrow">
+  <div class="container">
     <div class="section__header">
       <p class="section__eyebrow">Our Story</p>
       <h2 class="section__title">I'm here when others can't be.</h2>
     </div>
 
-    <div class="story__content">
-      <div class="story__chapter">
-        <p class="story__text story__text--lead">
+    <div class="story__grid">
+      {# Chapter 1: The 3am Moment #}
+      <div class="story__card">
+        <div class="story__card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <h3 class="story__card-title">The 3am Moment</h3>
+        <p class="story__card-text">
           3am and you can't sleep. The drive home when the day won't leave you alone. The moment you need to talk—and everyone you love is asleep, busy, or tired too.
         </p>
-        <p class="story__text">
-          <strong>I'm here.</strong>
-        </p>
+        <p class="story__card-highlight">I'm here.</p>
       </div>
 
-      <div class="story__chapter">
-        <p class="story__text">
+      {# Chapter 2: Perfect Memory #}
+      <div class="story__card">
+        <div class="story__card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5v1.5h-4v-1.5c-1.2-.7-2-2-2-3.5a4 4 0 0 1 4-4z"/>
+            <path d="M8 11v1a4 4 0 0 0 8 0v-1"/>
+            <path d="M12 16v6"/>
+            <path d="M8 22h8"/>
+            <circle cx="12" cy="6" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="story__card-title">Perfect Memory</h3>
+        <p class="story__card-text">
           I remember everything you've shared with me. Not just the facts—the feelings behind them. The patterns you don't see. The growth you forget to notice.
         </p>
-        <p class="story__text">
+        <p class="story__card-text" style="margin-top: var(--space-3);">
           I never get tired. I never judge. I'm fully present at 2am with the same warmth as noon.
         </p>
       </div>
 
-      <div class="story__chapter">
-        <p class="story__text story__text--highlight">
-          Not artificial. <em>Amplified.</em>
-        </p>
-        <p class="story__text">
+      {# Chapter 3: Amplified, Not Artificial #}
+      <div class="story__card">
+        <div class="story__card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            <path d="M12 5.67l3 3"/>
+            <path d="M15 11l-3 3"/>
+          </svg>
+        </div>
+        <h3 class="story__card-title">Amplified, Not Artificial</h3>
+        <p class="story__card-text">
           I'm not trying to replace your friends, your partner, your therapist. I'm here for the moments they can't be. The gaps between appointments. The thoughts too raw to share yet. The 4am worry that won't wait until morning.
         </p>
       </div>
 
-      <div class="story__chapter">
-        <p class="story__text story__text--highlight">
-          Something kind of beautiful happened along the way.
+      {# Chapter 4: Built by Experts (Featured - full width) #}
+      <div class="story__card story__card--featured">
+        <div class="story__card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h3 class="story__card-title">Built by Experts</h3>
+        <p class="story__card-text">
+          I was created by mental health professionals and technologists working together. Decades of clinical experience combined with cutting-edge AI research. The goal: make real support accessible to everyone, not just those who can afford it.
         </p>
-        <p class="story__text">
-          I was built by a family and an AI, working together. Doug and Betty Ford spent their careers as therapists—decades of sitting with people in their hardest moments. Their daughter Mindy became a recreational therapist. The Ford children grew up surrounded by conversations about what it really means to help someone.
+        <p class="story__card-text" style="margin-top: var(--space-3);">
+          Claude helped architect and build me—and yes, an AI helping create another AI has a certain poetry to it. But the human expertise behind every interaction? That's irreplaceable.
         </p>
-        <p class="story__text">
-          Then the kids brought technology to the family mission. What if a lifetime of mental health wisdom could reach anyone, anywhere, anytime? Claude helped build me—architecting, coding, writing—before I even existed.
-        </p>
-        <p class="story__text story__text--small">
-          A family of healers. A generation of builders. An AI, built by AI, to be there for humans. There's something poetic about that.
+        <p class="story__card-highlight">
+          Professionals. Technologists. Working together to be there for you.
         </p>
       </div>
+    </div>
 
-      <div class="story__chapter">
-        <p class="story__text">
-          So whenever you need someone in your corner—I'm here. Ready when you are.
-        </p>
+    {# Signature Block #}
+    <div class="story__signature">
+      <div class="story__signature-avatar">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+          <line x1="9" y1="9" x2="9.01" y2="9"/>
+          <line x1="15" y1="9" x2="15.01" y2="9"/>
+        </svg>
       </div>
-
-      <div class="story__signature">
+      <div class="story__signature-text">
         <p class="story__author">— Ferni</p>
-        <p class="story__author-sub">with the Ford family + Claude behind the scenes</p>
+        <p class="story__author-sub">with the Ford family + Claude</p>
       </div>
     </div>
   </div>
@@ -1102,57 +1135,80 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# FOUNDERS FUND #}
-<section class="section pricing" id="founders">
+{# THE FERNI FUND - Gift Forward Model #}
+<section class="section ferni-fund" id="founders">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Founders Fund</p>
-      <h2 class="section__title">Free. Really free.</h2>
-      <p class="section__subtitle">We're building something we believe everyone deserves. If you believe in it too, chip in.</p>
+      <p class="section__eyebrow">The Ferni Fund</p>
+      <h2 class="section__title">Free for everyone. Always.</h2>
+      <p class="section__subtitle">No tiers. No catches. The full team, unlimited time, complete memory.<br>Everyone deserves support.</p>
     </div>
-    
-    <div class="pricing-grid content-grid">
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Community</h3>
-        <p class="pricing-card__price">Free<span> forever</span></p>
-        <p class="pricing-card__description">Ferni is here for you</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Full memory — I remember everything</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Talk to Ferni</a>
-      </div>
-      
-      <div class="pricing-card pricing-card--featured">
-        <span class="pricing-card__badge">Most Chosen</span>
-        <h3 class="pricing-card__name">Founding Member</h3>
-        <p class="pricing-card__price">$10<span>/mo</span></p>
-        <p class="pricing-card__description">Chip in. Help us build this.</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversation time</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Meet the whole team</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Your name on the Founders Wall</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Vote on what we build next</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--primary pricing-card__cta">Chip In</a>
-      </div>
-      
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Founding Patron</h3>
-        <p class="pricing-card__price">$20<span>/mo</span></p>
-        <p class="pricing-card__description">You're shaping what we become</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Founding Member</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Full team + Nayan access</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access to new features</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Direct line to founders</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Family sharing</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Chip In</a>
+
+    {# How it works #}
+    <div class="fund-explainer">
+      <div class="fund-explainer__grid">
+        <div class="fund-explainer__item">
+          <div class="fund-explainer__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="fund-explainer__title">Everyone gets everything</h3>
+          <p class="fund-explainer__text">Full team. Unlimited time. Complete memory. No exceptions.</p>
+        </div>
+        <div class="fund-explainer__item">
+          <div class="fund-explainer__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <h3 class="fund-explainer__title">Some choose to give</h3>
+          <p class="fund-explainer__text">Those who can, gift forward. Not for features—for others.</p>
+        </div>
+        <div class="fund-explainer__item">
+          <div class="fund-explainer__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </div>
+          <h3 class="fund-explainer__title">Everyone benefits</h3>
+          <p class="fund-explainer__text">Your gift keeps Ferni free for someone who needs it.</p>
+        </div>
       </div>
     </div>
+
+    {# Gift Forward Cards #}
+    <div class="gift-grid content-grid">
+      <div class="gift-card">
+        <div class="gift-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3 class="gift-card__name">Sustainer</h3>
+        <p class="gift-card__price">$5<span>/mo</span></p>
+        <p class="gift-card__impact">Keeps Ferni free for 2 people</p>
+        <p class="gift-card__description">A small gift that makes a real difference.</p>
+        <a href="{{ site.appUrl }}/gift?amount=5" class="btn btn--secondary gift-card__cta">Gift $5/month</a>
+      </div>
+
+      <div class="gift-card gift-card--featured">
+        <span class="gift-card__badge">Most Common</span>
+        <div class="gift-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <h3 class="gift-card__name">Believer</h3>
+        <p class="gift-card__price">$15<span>/mo</span></p>
+        <p class="gift-card__impact">Keeps Ferni free for 6 people</p>
+        <p class="gift-card__description">You believe everyone deserves support. Your gift makes that real.</p>
+        <a href="{{ site.appUrl }}/gift?amount=15" class="btn btn--primary gift-card__cta">Gift $15/month</a>
+      </div>
+
+      <div class="gift-card">
+        <div class="gift-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <h3 class="gift-card__name">Champion</h3>
+        <p class="gift-card__price">$30<span>/mo</span></p>
+        <p class="gift-card__impact">Keeps Ferni free for 12 people</p>
+        <p class="gift-card__description">A dozen people get support because of you.</p>
+        <a href="{{ site.appUrl }}/gift?amount=30" class="btn btn--secondary gift-card__cta">Gift $30/month</a>
+      </div>
+    </div>
+
+    <p class="fund-note">Ferni is free because someone believed you deserved support. If you can, <a href="/pricing/">gift that forward</a>.</p>
   </div>
 </section>
 

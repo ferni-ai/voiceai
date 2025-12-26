@@ -24,7 +24,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('EvalOpsDashboard');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -676,7 +676,7 @@ function attachListeners(): void {
 
   // Refresh button
   container.querySelector('.refresh-btn')?.addEventListener('click', () => {
-    fetchDashboardData();
+    void fetchDashboardData();
   });
 
   // Tab buttons
@@ -705,17 +705,17 @@ function attachContentListeners(): void {
     // Note: data-config attribute available for future per-key toggle handling
     if (el instanceof HTMLInputElement && el.type === 'checkbox') {
       el.addEventListener('change', () => {
-        toggleEvaluation(el.checked);
+        void toggleEvaluation(el.checked);
       });
     }
-    
+
     if (el instanceof HTMLInputElement && el.type === 'range') {
       el.addEventListener('input', () => {
         const rangeValue = el.parentElement?.querySelector('.range-value');
         if (rangeValue) rangeValue.textContent = `${el.value}%`;
       });
       el.addEventListener('change', () => {
-        updateSampleRate(parseInt(el.value, 10));
+        void updateSampleRate(parseInt(el.value, 10));
       });
     }
   });
@@ -736,7 +736,7 @@ function attachContentListeners(): void {
         case 'test-voice':
           if (personaId) {
             const testResponse = 'This is a test response to evaluate voice consistency.';
-            runQuickCheck(personaId, testResponse);
+            void runQuickCheck(personaId, testResponse);
           }
           break;
         case 'view-fingerprint':
@@ -785,10 +785,10 @@ export function showEvalOpsDashboard(): void {
   
   // Attach listeners
   attachListeners();
-  
+
   // Fetch data
-  fetchDashboardData();
-  
+  void fetchDashboardData();
+
   // Animate in
   requestAnimationFrame(() => {
     container?.classList.add('evalops-container--visible');

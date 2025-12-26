@@ -47,26 +47,37 @@ export {
 } from './types.js';
 
 // =============================================================================
-// CONSTANTS - All SSML-related constants
+// CONSTANTS - All SSML-related constants (from organized constants/ directory)
 // =============================================================================
 
+// Unicode markers
+export { FINANCIAL_END, FINANCIAL_START } from './constants.js';
+
+// Combined pronunciation dictionary (all categories)
+export { ALL_PRONUNCIATIONS, FINANCIAL_PRONUNCIATIONS } from './constants.js';
+
+// Emotion detection
+export { DEFAULT_EMOTION, EMOTION_KEYWORDS, INTENSITY_MODIFIERS } from './constants.js';
+
+// Pacing & volume
 export {
-  ACRONYM_PATTERN,
-  BREATH_POINTS,
-  CONTEMPLATIVE_PAUSE_PHRASES,
-  CONTRASTIVE_PATTERNS,
-  DISFLUENCY_PATTERNS,
-  // Emotion keywords
-  EMOTION_KEYWORDS,
-  // Volume/emphasis keywords
+  DEFAULT_SPEED,
+  DEFAULT_VOLUME,
   EMPHASIS_KEYWORDS,
   FAST_PACE_KEYWORDS,
-  FINANCIAL_END,
-  // Financial pronunciations
-  FINANCIAL_PRONUNCIATIONS,
-  FINANCIAL_START,
-  LAUGHTER_INVITATIONS,
-  // Vocal cue patterns
+  SLOW_PACE_KEYWORDS,
+  SPEED_ADJUSTMENTS,
+  VOLUME_ADJUSTMENTS,
+  WHISPER_KEYWORDS,
+} from './constants.js';
+
+// Vocal patterns (regex)
+export {
+  ACRONYM_PATTERNS,
+  BREATH_POINT_PATTERNS,
+  CONTEMPLATIVE_PATTERNS,
+  CONTRASTIVE_PATTERNS,
+  DISFLUENCY_PATTERNS,
   LAUGHTER_PATTERNS,
   LIST_PATTERNS,
   NUMBER_PATTERNS,
@@ -75,14 +86,33 @@ export {
   REPETITION_PATTERNS,
   SARCASTIC_PATTERNS,
   SIGH_PATTERNS,
-  // Pacing keywords
-  SLOW_PACE_KEYWORDS,
-  // Stage direction removal
+  THINKING_PATTERNS,
+  TRANSITION_PATTERNS,
+} from './constants.js';
+
+// Stage direction sanitization
+export {
+  LAUGHTER_CONVERSION_KEYWORDS,
   STAGE_DIRECTION_KEYWORDS,
-  // Speech flow patterns
-  THINKING_SOUNDS,
-  TRANSITION_PHRASES,
-  WHISPER_KEYWORDS,
+  STAGE_DIRECTION_PATTERNS,
+  UNSUPPORTED_NONVERBALS,
+} from './constants.js';
+
+// Domain-specific pronunciations (for direct access if needed)
+export {
+  CALENDAR_PRONUNCIATIONS,
+  COMMON_ABBREVIATIONS,
+  GEOGRAPHIC_PRONUNCIATIONS,
+  JAPANESE_PRONUNCIATIONS,
+  MENTAL_HEALTH_PRONUNCIATIONS,
+  MINDFULNESS_PRONUNCIATIONS,
+  MISPRONOUNCED_WORDS,
+  NATIVE_AMERICAN_PRONUNCIATIONS,
+  PERSONA_PRONUNCIATIONS,
+  TECH_PRONUNCIATIONS,
+  THOUGHT_LEADER_PRONUNCIATIONS,
+  WELLNESS_PRONUNCIATIONS,
+  ZEN_BUDDHIST_PRONUNCIATIONS,
 } from './constants.js';
 
 // =============================================================================
@@ -131,20 +161,6 @@ export {
   getCategoryStats,
   resetPronunciationCache,
 } from './pronunciation-processor.js';
-
-// =============================================================================
-// CARTESIA HELPERS - Cartesia-specific utilities
-// =============================================================================
-
-export {
-  breakTag as cartesiaBreakTag,
-  emotionTag as cartesiaEmotionTag,
-  speedTag as cartesiaSpeedTag,
-  spellTag as cartesiaSpellTag,
-  volumeTag as cartesiaVolumeTag,
-  clampSpeed as clampCartesiaSpeed,
-  clampVolume as clampCartesiaVolume,
-} from './cartesia.js';
 
 // =============================================================================
 // RE-EXPORT THINKING TIME TYPES

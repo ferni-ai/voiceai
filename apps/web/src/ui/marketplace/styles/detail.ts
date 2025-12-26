@@ -38,9 +38,9 @@ export function getDetailStyles(): string {
     .detail-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy);
-      backdrop-filter: blur(var(--glass-blur-heavy));
-      -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
 
     .detail-panel {
@@ -48,14 +48,23 @@ export function getDetailStyles(): string {
       width: 90%;
       max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
-      background: var(--color-bg-elevated);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
       border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-2xl);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       overflow: hidden;
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
       transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(24px)) {
+      .detail-panel {
+        background: var(--color-bg-elevated);
+      }
     }
 
     .marketplace-detail.open .detail-panel {
@@ -214,10 +223,15 @@ export function getDetailStyles(): string {
       font-family: var(--font-body);
       font-size: 0.75rem;
       color: var(--color-text-secondary);
-      background: var(--color-bg-secondary);
+      background: var(--tonal-surface-1);
       padding: 6px 12px;
       border-radius: 9999px;
-      border: 1px solid var(--color-border-subtle);
+      border: none;
+      transition: background var(--duration-fast) ease-out;
+    }
+
+    .detail-tag:hover {
+      background: var(--tonal-surface-2);
     }
 
     .detail-empty-reviews {

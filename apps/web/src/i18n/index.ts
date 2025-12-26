@@ -416,7 +416,34 @@ function interpolate(str: string, params?: TranslationParams): string {
  * t('hero.headline') // "Better than"
  * t('time.minutesAgo', { n: 5 }) // "5 minutes ago"
  */
-export function t(key: string, params?: TranslationParams): string {
+export function t(
+  key: string,
+  paramsOrFallback?: TranslationParams | string,
+  fallbackOrParams?: string | TranslationParams
+): string {
+  // Handle overloaded signatures:
+  // t(key)
+  // t(key, params)
+  // t(key, fallback)
+  // t(key, params, fallback)
+  // t(key, fallback, params) - legacy pattern used in codebase
+  let params: TranslationParams | undefined;
+  let fallback: string | undefined;
+
+  if (typeof paramsOrFallback === 'string') {
+    // t(key, 'fallback text') or t(key, 'fallback', { params })
+    fallback = paramsOrFallback;
+    if (typeof fallbackOrParams === 'object') {
+      params = fallbackOrParams;
+    }
+  } else if (typeof paramsOrFallback === 'object') {
+    // t(key, { params }) or t(key, { params }, 'fallback')
+    params = paramsOrFallback;
+    if (typeof fallbackOrParams === 'string') {
+      fallback = fallbackOrParams;
+    }
+  }
+
   // Try current locale
   const translations = loadedTranslations.get(currentLocale);
   if (translations) {
@@ -427,8 +454,8 @@ export function t(key: string, params?: TranslationParams): string {
   }
 
   // Try fallback chain
-  for (const fallback of FALLBACK_CHAIN[currentLocale] || []) {
-    const fallbackTranslations = loadedTranslations.get(fallback);
+  for (const localefall of FALLBACK_CHAIN[currentLocale] || []) {
+    const fallbackTranslations = loadedTranslations.get(localefall);
     if (fallbackTranslations) {
       const value = getNestedValue(fallbackTranslations, key);
       if (value) {
@@ -446,7 +473,10 @@ export function t(key: string, params?: TranslationParams): string {
     }
   }
 
-  // Return key if nothing found
+  // Return fallback text or key if nothing found
+  if (fallback) {
+    return fallback;
+  }
   log.warn(`Missing translation: ${key}`);
   return key;
 }

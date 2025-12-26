@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Storytelling Visualizations - Multi-Device Showcase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-accent: #3D5A45;
+      --color-accent-secondary: #4a6741;
+      --color-background: #fffdfb;
+      --color-background-elevated: #ffffff;
+      --color-background-secondary: rgba(44, 37, 32, 0.03);
+      --color-text-primary: #2C2520;
+      --color-text-secondary: #5c544a;
+      --color-text-muted: #9a8f85;
+      --color-border-subtle: rgba(44, 37, 32, 0.08);
+      --persona-ferni: #4a6741;
+      --persona-maya: #a67a6a;
+      --persona-peter: #3a6b73;
+      --persona-jordan: #c4856a;
+      --persona-alex: #5a6b8a;
+      --persona-nayan: #8a7a6a;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+      --showcase-bg: #0a0a0c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--showcase-bg);
+      color: #ffffff;
+      min-height: 100vh;
+      padding: var(--space-6);
+    }
+
+    .showcase-header {
+      text-align: center;
+      padding: var(--space-8) 0;
+      margin-bottom: var(--space-8);
+    }
+
+    .showcase-header h1 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--persona-maya) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--space-3);
+    }
+
+    .showcase-header p {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .device-selector {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-8);
+      flex-wrap: wrap;
+    }
+
+    .device-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-5);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+    }
+
+    .device-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .device-btn.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: white;
+    }
+
+    .device-btn svg { width: 28px; height: 28px; }
+
+    .devices-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: var(--space-8);
+      flex-wrap: wrap;
+      padding: var(--space-6) 0;
+    }
+
+    .device-frame {
+      position: relative;
+      background: #1a1a1e;
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .device-screen {
+      background: var(--color-background);
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .device-frame.watch { border-radius: 50%; padding: 8px; }
+    .device-frame.watch .device-screen {
+      width: 184px;
+      height: 224px;
+      border-radius: 92px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-3);
+    }
+    .device-frame.watch::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -18px;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 40px;
+      background: #2a2a2e;
+      border-radius: 4px;
+    }
+
+    .device-frame.iphone .device-screen {
+      width: 280px;
+      height: 560px;
+      padding: var(--space-4);
+      padding-top: 44px;
+    }
+    .device-frame.iphone::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 24px;
+      background: #1a1a1e;
+      border-radius: 12px;
+      z-index: 10;
+    }
+
+    .device-frame.android .device-screen {
+      width: 280px;
+      height: 560px;
+      padding: var(--space-4);
+      padding-top: 32px;
+    }
+    .device-frame.android::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: #0a0a0c;
+      border-radius: 50%;
+      z-index: 10;
+    }
+
+    .device-frame.web { border-radius: 12px; padding: 0; }
+    .device-frame.web .device-screen {
+      width: 600px;
+      height: 400px;
+      border-radius: 12px;
+      padding: var(--space-5);
+    }
+    .device-frame.web::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: #2a2a2e;
+      border-radius: 12px 12px 0 0;
+    }
+    .device-frame.web::after {
+      content: '● ● ●';
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: rgba(255, 255, 255, 0.3);
+    }
+    .device-frame.web .device-screen {
+      margin-top: 32px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .device-label {
+      text-align: center;
+      margin-top: var(--space-3);
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 500;
+    }
+
+    .viz-content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      overflow-y: auto;
+    }
+
+    .viz-header { text-align: center; }
+    .viz-header h3 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+    .viz-header p {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .watch .viz-content { text-align: center; }
+    .watch .viz-header h3 { font-size: 0.9rem; }
+    .watch .viz-header p { font-size: 0.65rem; }
+
+    .watch-ring {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .watch-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .watch-ring-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+    .watch-metric {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    .mobile-card {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin-bottom: var(--space-2);
+    }
+    .mobile-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+    }
+    .mobile-card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .mobile-card-badge {
+      font-size: 0.6rem;
+      font-weight: 600;
+      background: var(--color-accent);
+      color: white;
+      padding: 2px 6px;
+      border-radius: var(--radius-full);
+    }
+    .mobile-bar {
+      height: 6px;
+      background: rgba(44, 37, 32, 0.1);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    .mobile-bar-fill {
+      height: 100%;
+      background: var(--color-accent);
+      border-radius: var(--radius-full);
+      transition: width 0.5s ease;
+    }
+    .mobile-insight {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      line-height: 1.4;
+    }
+
+    .desktop-viz {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+      height: 100%;
+    }
+    .desktop-panel {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+    }
+    .desktop-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+    }
+    .desktop-panel-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .viz-selector {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .viz-chip {
+      padding: var(--space-2) var(--space-4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-full);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+    }
+    .viz-chip:hover { background: rgba(255, 255, 255, 0.08); }
+    .viz-chip.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: white;
+    }
+
+    .responsive-notes {
+      max-width: 800px;
+      margin: var(--space-8) auto;
+      padding: var(--space-6);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-xl);
+    }
+    .responsive-notes h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: var(--space-4);
+    }
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+    }
+    .note-item {
+      padding: var(--space-4);
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: var(--radius-md);
+    }
+    .note-item h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-bottom: var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .note-item p {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.5;
+    }
+
+    .device-wrapper { display: none; }
+    .device-wrapper.visible { display: block; }
+    .all-devices .device-wrapper { display: block; }
+
+    .full-span { grid-column: span 2; }
+    .border-left-accent { border-left: 3px solid var(--color-accent); }
+    .border-left-warning { border-left: 3px solid #b46e3c; }
+    .text-accent { color: var(--color-accent); }
+    .text-warning { color: #b46e3c; }
+    .text-center { text-align: center; }
+    .font-semibold { font-weight: 600; }
+    .italic { font-style: italic; }
+    .dashed-border { border: 1px dashed var(--color-accent); background: transparent; }
+  </style>
+</head>
+<body>
+  <header class="showcase-header">
+    <h1>Multi-Device Storytelling</h1>
+    <p>How Ferni's storytelling visualizations adapt across devices - from the glanceable simplicity of watchOS to the rich detail of desktop web.</p>
+  </header>
+
+  <div class="device-selector">
+    <button class="device-btn" data-device="all">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      All Devices
+    </button>
+    <button class="device-btn active" data-device="watch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="6" y="2" width="12" height="20" rx="4"/><line x1="12" y1="6" x2="12" y2="6.01"/>
+      </svg>
+      watchOS
+    </button>
+    <button class="device-btn" data-device="iphone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12" y2="18.01"/>
+      </svg>
+      iPhone
+    </button>
+    <button class="device-btn" data-device="android">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="5" r="1"/>
+      </svg>
+      Android
+    </button>
+    <button class="device-btn" data-device="web">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      Web
+    </button>
+  </div>
+
+  <div class="viz-selector">
+    <button class="viz-chip active" data-viz="seasons">Life Seasons</button>
+    <button class="viz-chip" data-viz="growth">Growth Rings</button>
+    <button class="viz-chip" data-viz="energy">Energy Flow</button>
+    <button class="viz-chip" data-viz="values">Values Alignment</button>
+    <button class="viz-chip" data-viz="mirror">The Mirror</button>
+  </div>
+
+  <div class="devices-container" id="devicesContainer">
+    <div class="device-wrapper visible" data-device="watch">
+      <div class="device-frame watch">
+        <div class="device-screen">
+          <div class="viz-content" id="watchContent"></div>
+        </div>
+      </div>
+      <div class="device-label">Apple Watch 45mm</div>
+    </div>
+
+    <div class="device-wrapper" data-device="iphone">
+      <div class="device-frame iphone">
+        <div class="device-screen">
+          <div class="viz-content" id="iphoneContent"></div>
+        </div>
+      </div>
+      <div class="device-label">iPhone 15 Pro</div>
+    </div>
+
+    <div class="device-wrapper" data-device="android">
+      <div class="device-frame android">
+        <div class="device-screen">
+          <div class="viz-content" id="androidContent"></div>
+        </div>
+      </div>
+      <div class="device-label">Pixel 8</div>
+    </div>
+
+    <div class="device-wrapper" data-device="web">
+      <div class="device-frame web">
+        <div class="device-screen">
+          <div class="viz-content" id="webContent"></div>
+        </div>
+      </div>
+      <div class="device-label">Desktop Browser</div>
+    </div>
+  </div>
+
+  <div class="responsive-notes">
+    <h2>Adaptive Design Philosophy</h2>
+    <div class="notes-grid">
+      <div class="note-item">
+        <h4>watchOS (Glanceable)</h4>
+        <p>Single-stat focus. Circular progress rings. Essential insight only. No scrolling. 2-second comprehension goal.</p>
+      </div>
+      <div class="note-item">
+        <h4>iPhone (Thumb-Friendly)</h4>
+        <p>Vertical card stack. Progress bars. Quick actions reachable by thumb. Swipeable insights.</p>
+      </div>
+      <div class="note-item">
+        <h4>Android (Material You)</h4>
+        <p>Similar to iOS but with Material Design 3 styling. Dynamic color theming. Bottom sheet navigation.</p>
+      </div>
+      <div class="note-item">
+        <h4>Web (Full Experience)</h4>
+        <p>Multi-column layouts. Rich visualizations. SVG charts. Hover interactions. Full narrative context.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Safe DOM helper functions
+    function createElement(tag, className, textContent) {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (textContent) el.textContent = textContent;
+      return el;
+    }
+
+    function createSvgElement(tag) {
+      return document.createElementNS('http://www.w3.org/2000/svg', tag);
+    }
+
+    // Build watch visualization for Life Seasons
+    function buildWatchSeasons(container) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      const h3 = createElement('h3', '', 'Winter');
+      const p = createElement('p', '', 'Rest & Reflection');
+      header.appendChild(h3);
+      header.appendChild(p);
+
+      const ring = createElement('div', 'watch-ring');
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 36 36');
+
+      const bgPath = createSvgElement('path');
+      bgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
+      bgPath.setAttribute('fill', 'none');
+      bgPath.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+      bgPath.setAttribute('stroke-width', '3');
+
+      const fgPath = createSvgElement('path');
+      fgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
+      fgPath.setAttribute('fill', 'none');
+      fgPath.setAttribute('stroke', '#3D5A45');
+      fgPath.setAttribute('stroke-width', '3');
+      fgPath.setAttribute('stroke-dasharray', '75, 100');
+
+      svg.appendChild(bgPath);
+      svg.appendChild(fgPath);
+      ring.appendChild(svg);
+
+      const value = createElement('span', 'watch-ring-value', '75%');
+      ring.appendChild(value);
+
+      const metric = createElement('div', 'watch-metric', 'Energy inward');
+
+      container.appendChild(header);
+      container.appendChild(ring);
+      container.appendChild(metric);
+    }
+
+    function buildIphoneSeasons(container) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Life Seasons'));
+      header.appendChild(createElement('p', '', 'Your natural rhythm'));
+      container.appendChild(header);
+
+      // Current season card
+      const card1 = createElement('div', 'mobile-card');
+      const cardHeader1 = createElement('div', 'mobile-card-header');
+      cardHeader1.appendChild(createElement('span', 'mobile-card-title', 'Current Season'));
+      cardHeader1.appendChild(createElement('span', 'mobile-card-badge', 'Winter'));
+      card1.appendChild(cardHeader1);
+
+      const bar = createElement('div', 'mobile-bar');
+      const barFill = createElement('div', 'mobile-bar-fill');
+      barFill.style.width = '75%';
+      bar.appendChild(barFill);
+      card1.appendChild(bar);
+
+      const insight1 = createElement('p', 'mobile-insight', 'This is a time for rest and reflection. Your energy has naturally turned inward.');
+      card1.appendChild(insight1);
+      container.appendChild(card1);
+
+      // Energy focus card
+      const card2 = createElement('div', 'mobile-card');
+      const cardHeader2 = createElement('div', 'mobile-card-header');
+      cardHeader2.appendChild(createElement('span', 'mobile-card-title', 'Energy Focus'));
+      card2.appendChild(cardHeader2);
+      card2.appendChild(createElement('p', 'mobile-insight', 'Restoration • Planning • Deep thinking'));
+      container.appendChild(card2);
+
+      // What I notice card
+      const card3 = createElement('div', 'mobile-card');
+      const cardHeader3 = createElement('div', 'mobile-card-header');
+      cardHeader3.appendChild(createElement('span', 'mobile-card-title', 'What I Notice'));
+      card3.appendChild(cardHeader3);
+      card3.appendChild(createElement('p', 'mobile-insight', 'Your conversation topics have shifted toward future planning and internal processing.'));
+      container.appendChild(card3);
+    }
+
+    function buildAndroidSeasons(container) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Life Seasons'));
+      header.appendChild(createElement('p', '', 'Your natural rhythm'));
+      container.appendChild(header);
+
+      const card1 = createElement('div', 'mobile-card border-left-accent');
+      const cardHeader1 = createElement('div', 'mobile-card-header');
+      cardHeader1.appendChild(createElement('span', 'mobile-card-title', 'Current Season'));
+      cardHeader1.appendChild(createElement('span', 'mobile-card-badge', 'Winter'));
+      card1.appendChild(cardHeader1);
+
+      const bar = createElement('div', 'mobile-bar');
+      bar.style.borderRadius = '0';
+      const barFill = createElement('div', 'mobile-bar-fill');
+      barFill.style.width = '75%';
+      barFill.style.borderRadius = '0';
+      bar.appendChild(barFill);
+      card1.appendChild(bar);
+      card1.appendChild(createElement('p', 'mobile-insight', 'This is a time for rest and reflection.'));
+      container.appendChild(card1);
+
+      const card2 = createElement('div', 'mobile-card');
+      card2.style.borderLeft = '3px solid var(--persona-maya)';
+      const cardHeader2 = createElement('div', 'mobile-card-header');
+      cardHeader2.appendChild(createElement('span', 'mobile-card-title', 'Energy Focus'));
+      card2.appendChild(cardHeader2);
+      card2.appendChild(createElement('p', 'mobile-insight', 'Restoration • Planning • Deep thinking'));
+      container.appendChild(card2);
+    }
+
+    function buildWebSeasons(container) {
+      container.replaceChildren();
+
+      const grid = createElement('div', 'desktop-viz');
+
+      // Panel 1 - Current Season
+      const panel1 = createElement('div', 'desktop-panel');
+      const panelHeader1 = createElement('div', 'desktop-panel-header');
+      panelHeader1.appendChild(createElement('span', 'desktop-panel-title', 'Current Season'));
+      panel1.appendChild(panelHeader1);
+
+      const flexContainer = createElement('div');
+      flexContainer.style.cssText = 'display: flex; align-items: center; gap: 16px;';
+
+      const ringOuter = createElement('div');
+      ringOuter.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--color-accent) 75%, rgba(44, 37, 32, 0.1) 0); display: flex; align-items: center; justify-content: center;';
+      const ringInner = createElement('div');
+      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent);';
+      ringInner.textContent = '75%';
+      ringOuter.appendChild(ringInner);
+      flexContainer.appendChild(ringOuter);
+
+      const textContainer = createElement('div');
+      const seasonLabel = createElement('div');
+      seasonLabel.style.cssText = 'font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;';
+      seasonLabel.textContent = 'Winter';
+      const seasonDesc = createElement('div');
+      seasonDesc.style.cssText = 'font-size: 0.8rem; color: var(--color-text-muted);';
+      seasonDesc.textContent = 'Rest & Reflection';
+      textContainer.appendChild(seasonLabel);
+      textContainer.appendChild(seasonDesc);
+      flexContainer.appendChild(textContainer);
+
+      panel1.appendChild(flexContainer);
+      grid.appendChild(panel1);
+
+      // Panel 2 - Energy Distribution
+      const panel2 = createElement('div', 'desktop-panel');
+      const panelHeader2 = createElement('div', 'desktop-panel-header');
+      panelHeader2.appendChild(createElement('span', 'desktop-panel-title', 'Energy Distribution'));
+      panel2.appendChild(panelHeader2);
+
+      const chart = createElement('div', 'mini-chart');
+      chart.style.cssText = 'height: 60px; display: flex; align-items: flex-end; gap: 4px;';
+      const barHeights = [30, 50, 80, 60, 40, 70];
+      barHeights.forEach(height => {
+        const bar = createElement('div');
+        bar.style.cssText = `flex: 1; height: ${height}%; background: var(--color-accent); border-radius: 2px; opacity: 0.6;`;
+        chart.appendChild(bar);
+      });
+      panel2.appendChild(chart);
+      grid.appendChild(panel2);
+
+      // Panel 3 - What I Notice (full width)
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const panelHeader3 = createElement('div', 'desktop-panel-header');
+      panelHeader3.appendChild(createElement('span', 'desktop-panel-title', 'What I Notice'));
+      panel3.appendChild(panelHeader3);
+
+      const insightText = createElement('p');
+      insightText.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6;';
+      insightText.textContent = 'This is a time for rest and reflection. Your energy has naturally turned inward. Your conversation topics have shifted toward future planning and internal processing. This aligns with the natural rhythm of winter - a time for restoration before the growth of spring.';
+      panel3.appendChild(insightText);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Visualization builders for other types
+    function buildWatchGrowth(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', '2024'));
+      header.appendChild(createElement('p', '', 'Integration'));
+      container.appendChild(header);
+
+      const ring = createElement('div', 'watch-ring');
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 36 36');
+
+      [8, 11, 14].forEach((r, i) => {
+        const circle = createSvgElement('circle');
+        circle.setAttribute('cx', '18');
+        circle.setAttribute('cy', '18');
+        circle.setAttribute('r', String(r));
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', i === 2 ? '#3D5A45' : 'rgba(61, 90, 69, ' + (0.2 + i * 0.1) + ')');
+        circle.setAttribute('stroke-width', '2');
+        if (i === 2) circle.setAttribute('stroke-dasharray', '85, 100');
+        svg.appendChild(circle);
+      });
+      ring.appendChild(svg);
+      ring.appendChild(createElement('span', 'watch-ring-value', '95%'));
+      container.appendChild(ring);
+      container.appendChild(createElement('div', 'watch-metric', 'Ring progress'));
+    }
+
+    function buildWatchEnergy(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Energy'));
+      header.appendChild(createElement('p', '', 'Balance'));
+      container.appendChild(header);
+
+      const ring = createElement('div', 'watch-ring');
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 36 36');
+
+      const path1 = createSvgElement('path');
+      path1.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831');
+      path1.setAttribute('fill', 'none');
+      path1.setAttribute('stroke', '#3D5A45');
+      path1.setAttribute('stroke-width', '3');
+      path1.setAttribute('stroke-dasharray', '48, 50');
+      svg.appendChild(path1);
+
+      const path2 = createSvgElement('path');
+      path2.setAttribute('d', 'M18 33.9155 a 15.9155 15.9155 0 0 1 0 -31.831');
+      path2.setAttribute('fill', 'none');
+      path2.setAttribute('stroke', '#b46e3c');
+      path2.setAttribute('stroke-width', '3');
+      path2.setAttribute('stroke-dasharray', '52, 50');
+      svg.appendChild(path2);
+
+      ring.appendChild(svg);
+      const value = createElement('span', 'watch-ring-value', '-5%');
+      value.style.fontSize = '1.2rem';
+      ring.appendChild(value);
+      container.appendChild(ring);
+      container.appendChild(createElement('div', 'watch-metric', 'Net energy'));
+    }
+
+    function buildWatchValues(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Values'));
+      header.appendChild(createElement('p', '', 'Alignment'));
+      container.appendChild(header);
+
+      const content = createElement('div');
+      content.style.cssText = 'text-align: center; margin: 12px 0;';
+
+      const gapLabel = createElement('div');
+      gapLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted); margin-bottom: 4px;';
+      gapLabel.textContent = 'Biggest gap';
+
+      const gapValue = createElement('div');
+      gapValue.style.cssText = 'font-size: 1rem; font-weight: 600; color: #b46e3c;';
+      gapValue.textContent = 'Creativity';
+
+      const gapPercent = createElement('div');
+      gapPercent.style.cssText = 'font-size: 0.8rem; color: var(--color-text-muted);';
+      gapPercent.textContent = '30% gap';
+
+      content.appendChild(gapLabel);
+      content.appendChild(gapValue);
+      content.appendChild(gapPercent);
+      container.appendChild(content);
+
+      const aligned = createElement('div');
+      aligned.style.cssText = 'font-size: 0.7rem; color: var(--color-accent); text-align: center;';
+      aligned.textContent = 'Growth: 95% aligned';
+      container.appendChild(aligned);
+    }
+
+    function buildWatchMirror(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Mirror'));
+      header.appendChild(createElement('p', '', 'Surface / Deeper'));
+      container.appendChild(header);
+
+      const label = createElement('div');
+      label.style.cssText = 'text-align: center; font-size: 0.7rem; color: var(--color-text-muted); margin: 8px 0;';
+      label.textContent = 'What you see';
+      container.appendChild(label);
+
+      const insight = createElement('div');
+      insight.style.cssText = 'text-align: center; font-size: 0.8rem; color: var(--color-text-primary); margin-bottom: 8px;';
+      insight.textContent = '"Tired" 8x this week';
+      container.appendChild(insight);
+
+      const tap = createElement('div');
+      tap.style.cssText = 'text-align: center; font-size: 0.7rem; color: var(--color-accent);';
+      tap.textContent = 'Tap to see deeper';
+      container.appendChild(tap);
+    }
+
+    // Mobile Mirror builders
+    function buildMobileMirror(container, isAndroid) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'The Mirror'));
+      header.appendChild(createElement('p', '', 'Surface / Deeper'));
+      container.appendChild(header);
+
+      // What you see (surface)
+      const card1 = createElement('div', 'mobile-card');
+      if (isAndroid) card1.style.borderLeft = '3px solid var(--color-accent)';
+      const cardHeader1 = createElement('div', 'mobile-card-header');
+      cardHeader1.appendChild(createElement('span', 'mobile-card-title', 'What you see'));
+      card1.appendChild(cardHeader1);
+      card1.appendChild(createElement('p', 'mobile-insight', '"Tired" mentioned 8× this week'));
+      container.appendChild(card1);
+
+      // What I notice (deeper)
+      const card2 = createElement('div', 'mobile-card');
+      if (isAndroid) card2.style.borderLeft = '3px solid var(--persona-maya)';
+      const cardHeader2 = createElement('div', 'mobile-card-header');
+      cardHeader2.appendChild(createElement('span', 'mobile-card-title', 'What I notice'));
+      card2.appendChild(cardHeader2);
+      card2.appendChild(createElement('p', 'mobile-insight', 'Energy low on days without morning routine. Sleep quality correlates with evening screen time.'));
+      container.appendChild(card2);
+
+      // The pattern
+      const card3 = createElement('div', 'mobile-card');
+      if (isAndroid) card3.style.borderLeft = '3px solid var(--persona-peter)';
+      const cardHeader3 = createElement('div', 'mobile-card-header');
+      cardHeader3.appendChild(createElement('span', 'mobile-card-title', 'The pattern'));
+      card3.appendChild(cardHeader3);
+      card3.appendChild(createElement('p', 'mobile-insight', 'Not tired from doing too much—tired from resisting what you know works.'));
+      container.appendChild(card3);
+    }
+
+    // Mobile Growth Rings builders
+    function buildMobileGrowth(container, isAndroid) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Growth Rings'));
+      header.appendChild(createElement('p', '', 'Your journey over time'));
+      container.appendChild(header);
+
+      const years = [
+        { year: '2024', theme: 'Integration', progress: 75 },
+        { year: '2023', theme: 'Discovery', progress: 100 },
+        { year: '2022', theme: 'Foundation', progress: 100 }
+      ];
+
+      years.forEach((y, i) => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = '3px solid var(--color-accent)';
+        card.style.opacity = i === 0 ? '1' : '0.7';
+
+        const cardHeader = createElement('div', 'mobile-card-header');
+        cardHeader.appendChild(createElement('span', 'mobile-card-title', y.year));
+        cardHeader.appendChild(createElement('span', 'mobile-card-badge', y.theme));
+        card.appendChild(cardHeader);
+
+        if (i === 0) {
+          const bar = createElement('div', 'mobile-bar');
+          if (isAndroid) bar.style.borderRadius = '0';
+          const barFill = createElement('div', 'mobile-bar-fill');
+          barFill.style.width = y.progress + '%';
+          if (isAndroid) barFill.style.borderRadius = '0';
+          bar.appendChild(barFill);
+          card.appendChild(bar);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    // Mobile Energy Flow builders
+    function buildMobileEnergy(container, isAndroid) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Energy Flow'));
+      header.appendChild(createElement('p', '', 'What gives and takes'));
+      container.appendChild(header);
+
+      // Energy givers
+      const card1 = createElement('div', 'mobile-card');
+      if (isAndroid) card1.style.borderLeft = '3px solid var(--color-accent)';
+      const cardHeader1 = createElement('div', 'mobile-card-header');
+      cardHeader1.appendChild(createElement('span', 'mobile-card-title', 'Gives energy'));
+      card1.appendChild(cardHeader1);
+      card1.appendChild(createElement('p', 'mobile-insight', 'Creative work • Deep conversations • Morning exercise'));
+      container.appendChild(card1);
+
+      // Energy drains
+      const card2 = createElement('div', 'mobile-card');
+      if (isAndroid) card2.style.borderLeft = '3px solid var(--persona-maya)';
+      const cardHeader2 = createElement('div', 'mobile-card-header');
+      cardHeader2.appendChild(createElement('span', 'mobile-card-title', 'Takes energy'));
+      card2.appendChild(cardHeader2);
+      card2.appendChild(createElement('p', 'mobile-insight', 'Back-to-back meetings • Email catchup • Context switching'));
+      container.appendChild(card2);
+
+      // Net flow
+      const card3 = createElement('div', 'mobile-card');
+      if (isAndroid) card3.style.borderLeft = '3px solid var(--persona-peter)';
+      const cardHeader3 = createElement('div', 'mobile-card-header');
+      cardHeader3.appendChild(createElement('span', 'mobile-card-title', 'This week'));
+      cardHeader3.appendChild(createElement('span', 'mobile-card-badge', '+15%'));
+      card3.appendChild(cardHeader3);
+      card3.appendChild(createElement('p', 'mobile-insight', 'Net positive. Protected focus time made the difference.'));
+      container.appendChild(card3);
+    }
+
+    // Mobile Values Alignment builders
+    function buildMobileValues(container, isAndroid) {
+      container.replaceChildren();
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Values Alignment'));
+      header.appendChild(createElement('p', '', 'Stated vs. Lived'));
+      container.appendChild(header);
+
+      const values = [
+        { name: 'Family', stated: 90, lived: 65, gap: -25 },
+        { name: 'Health', stated: 85, lived: 70, gap: -15 },
+        { name: 'Growth', stated: 80, lived: 85, gap: +5 }
+      ];
+
+      values.forEach(v => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = '3px solid ' + (v.gap >= 0 ? 'var(--color-accent)' : 'var(--persona-maya)');
+
+        const cardHeader = createElement('div', 'mobile-card-header');
+        cardHeader.appendChild(createElement('span', 'mobile-card-title', v.name));
+        const badge = createElement('span', 'mobile-card-badge');
+        badge.textContent = (v.gap > 0 ? '+' : '') + v.gap + '%';
+        badge.style.background = v.gap >= 0 ? 'var(--color-accent)' : 'var(--persona-maya)';
+        cardHeader.appendChild(badge);
+        card.appendChild(cardHeader);
+
+        const bar = createElement('div', 'mobile-bar');
+        if (isAndroid) bar.style.borderRadius = '0';
+        const barFill = createElement('div', 'mobile-bar-fill');
+        barFill.style.width = v.lived + '%';
+        barFill.style.background = v.gap >= 0 ? 'var(--color-accent)' : 'var(--persona-maya)';
+        if (isAndroid) barFill.style.borderRadius = '0';
+        bar.appendChild(barFill);
+        card.appendChild(bar);
+
+        container.appendChild(card);
+      });
+    }
+
+    // Generic mobile builder (fallback)
+    function buildMobile(container, device, viz) {
+      const isAndroid = device === 'android';
+      if (viz === 'mirror') return buildMobileMirror(container, isAndroid);
+      if (viz === 'growth') return buildMobileGrowth(container, isAndroid);
+      if (viz === 'energy') return buildMobileEnergy(container, isAndroid);
+      if (viz === 'values') return buildMobileValues(container, isAndroid);
+
+      // Fallback for any new viz types
+      container.replaceChildren();
+      const titles = {
+        seasons: ['Life Seasons', 'Your natural rhythm'],
+        growth: ['Growth Rings', 'Your journey over time'],
+        energy: ['Energy Flow', 'What gives and takes'],
+        values: ['Values Alignment', 'Stated vs. Lived'],
+        mirror: ['The Mirror', 'Surface / Deeper']
+      };
+
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', titles[viz] ? titles[viz][0] : viz));
+      header.appendChild(createElement('p', '', titles[viz] ? titles[viz][1] : ''));
+      container.appendChild(header);
+
+      const card = createElement('div', 'mobile-card');
+      if (isAndroid) card.style.borderLeft = '3px solid var(--color-accent)';
+      card.appendChild(createElement('p', 'mobile-insight', 'Visualization coming soon'));
+      container.appendChild(card);
+    }
+
+    // Web Mirror builder
+    function buildWebMirror(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // What you see panel
+      const panel1 = createElement('div', 'desktop-panel');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'What you see'));
+      panel1.appendChild(header1);
+      const surface = createElement('div');
+      surface.style.cssText = 'font-size: 1.5rem; color: var(--color-text-primary); margin: 12px 0;';
+      surface.textContent = '"Tired"';
+      panel1.appendChild(surface);
+      const count = createElement('div');
+      count.style.cssText = 'font-size: 0.85rem; color: var(--color-text-muted);';
+      count.textContent = 'mentioned 8× this week';
+      panel1.appendChild(count);
+      grid.appendChild(panel1);
+
+      // What I notice panel
+      const panel2 = createElement('div', 'desktop-panel');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'What I notice'));
+      panel2.appendChild(header2);
+      const insights = [
+        'Energy low on days without morning routine',
+        'Sleep quality correlates with screen time',
+        'Mood dips after back-to-back meetings'
+      ];
+      insights.forEach(i => {
+        const item = createElement('div');
+        item.style.cssText = 'font-size: 0.8rem; color: var(--color-text-secondary); padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
+        item.textContent = '• ' + i;
+        panel2.appendChild(item);
+      });
+      grid.appendChild(panel2);
+
+      // The pattern (full width)
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const header3 = createElement('div', 'desktop-panel-header');
+      header3.appendChild(createElement('span', 'desktop-panel-title', 'The pattern'));
+      panel3.appendChild(header3);
+      const pattern = createElement('p');
+      pattern.style.cssText = 'font-size: 0.95rem; color: var(--color-text-secondary); line-height: 1.6; font-style: italic;';
+      pattern.textContent = 'Not tired from doing too much—tired from resisting what you know works. Your energy isn\'t depleted by effort, but by the friction of fighting your own rhythms.';
+      panel3.appendChild(pattern);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Web Growth builder
+    function buildWebGrowth(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Current year panel
+      const panel1 = createElement('div', 'desktop-panel');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', '2024'));
+      panel1.appendChild(header1);
+
+      const ringOuter = createElement('div');
+      ringOuter.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--color-accent) 75%, rgba(44, 37, 32, 0.1) 0); display: flex; align-items: center; justify-content: center; margin: 12px auto;';
+      const ringInner = createElement('div');
+      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent);';
+      ringInner.textContent = '75%';
+      ringOuter.appendChild(ringInner);
+      panel1.appendChild(ringOuter);
+
+      const theme = createElement('div');
+      theme.style.cssText = 'text-align: center; font-size: 0.85rem; color: var(--color-text-secondary);';
+      theme.textContent = 'Year of Integration';
+      panel1.appendChild(theme);
+      grid.appendChild(panel1);
+
+      // History panel
+      const panel2 = createElement('div', 'desktop-panel');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'Your Journey'));
+      panel2.appendChild(header2);
+      const years = [
+        { year: '2023', theme: 'Discovery', color: 'var(--persona-maya)' },
+        { year: '2022', theme: 'Foundation', color: 'var(--persona-peter)' }
+      ];
+      years.forEach(y => {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
+        row.appendChild(createElement('span', '', y.year));
+        const badge = createElement('span');
+        badge.style.cssText = 'font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background: ' + y.color + '; color: white;';
+        badge.textContent = y.theme;
+        row.appendChild(badge);
+        panel2.appendChild(row);
+      });
+      grid.appendChild(panel2);
+
+      // Insight panel
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const header3 = createElement('div', 'desktop-panel-header');
+      header3.appendChild(createElement('span', 'desktop-panel-title', 'What the rings reveal'));
+      panel3.appendChild(header3);
+      const insight = createElement('p');
+      insight.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6;';
+      insight.textContent = 'Each year builds on the last. 2022 was about laying groundwork. 2023 brought new awareness. Now in 2024, you\'re weaving it all together. Three-quarters through integration—the hardest part is behind you.';
+      panel3.appendChild(insight);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Web Energy builder
+    function buildWebEnergy(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Gives energy
+      const panel1 = createElement('div', 'desktop-panel');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'Gives energy'));
+      panel1.appendChild(header1);
+      const givers = ['Creative work', 'Deep conversations', 'Morning exercise'];
+      givers.forEach(g => {
+        const item = createElement('div');
+        item.style.cssText = 'padding: 6px 0; font-size: 0.85rem; color: var(--color-accent);';
+        item.textContent = '+ ' + g;
+        panel1.appendChild(item);
+      });
+      grid.appendChild(panel1);
+
+      // Takes energy
+      const panel2 = createElement('div', 'desktop-panel');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'Takes energy'));
+      panel2.appendChild(header2);
+      const drains = ['Back-to-back meetings', 'Email catchup', 'Context switching'];
+      drains.forEach(d => {
+        const item = createElement('div');
+        item.style.cssText = 'padding: 6px 0; font-size: 0.85rem; color: var(--persona-maya);';
+        item.textContent = '- ' + d;
+        panel2.appendChild(item);
+      });
+      grid.appendChild(panel2);
+
+      // Net flow
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const header3 = createElement('div', 'desktop-panel-header');
+      header3.appendChild(createElement('span', 'desktop-panel-title', 'This week\'s flow'));
+      panel3.appendChild(header3);
+      const flow = createElement('div');
+      flow.style.cssText = 'display: flex; align-items: center; gap: 16px;';
+      const badge = createElement('span');
+      badge.style.cssText = 'font-size: 1.5rem; font-weight: 700; color: var(--color-accent);';
+      badge.textContent = '+15%';
+      flow.appendChild(badge);
+      const desc = createElement('span');
+      desc.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary);';
+      desc.textContent = 'Net positive. Protected focus time made the difference.';
+      flow.appendChild(desc);
+      panel3.appendChild(flow);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Web Values builder
+    function buildWebValues(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      const values = [
+        { name: 'Family', stated: 90, lived: 65 },
+        { name: 'Health', stated: 85, lived: 70 },
+        { name: 'Growth', stated: 80, lived: 85 }
+      ];
+
+      // Radar-style panel
+      const panel1 = createElement('div', 'desktop-panel');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'Values Radar'));
+      panel1.appendChild(header1);
+      values.forEach(v => {
+        const row = createElement('div');
+        row.style.cssText = 'margin: 8px 0;';
+        const label = createElement('div');
+        label.style.cssText = 'display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;';
+        label.appendChild(createElement('span', '', v.name));
+        const gap = v.lived - v.stated;
+        const gapSpan = createElement('span');
+        gapSpan.style.color = gap >= 0 ? 'var(--color-accent)' : 'var(--persona-maya)';
+        gapSpan.textContent = (gap > 0 ? '+' : '') + gap + '%';
+        label.appendChild(gapSpan);
+        row.appendChild(label);
+        const bar = createElement('div');
+        bar.style.cssText = 'height: 6px; background: var(--color-border-subtle); border-radius: 3px; overflow: hidden;';
+        const fill = createElement('div');
+        fill.style.cssText = 'height: 100%; background: ' + (gap >= 0 ? 'var(--color-accent)' : 'var(--persona-maya)') + '; width: ' + v.lived + '%;';
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        panel1.appendChild(row);
+      });
+      grid.appendChild(panel1);
+
+      // Gap analysis
+      const panel2 = createElement('div', 'desktop-panel');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'Gap Analysis'));
+      panel2.appendChild(header2);
+      const analysis = createElement('div');
+      analysis.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6;';
+      analysis.textContent = 'Family and Health show gaps between stated importance and lived reality. Growth is the one area where actions exceed intentions.';
+      panel2.appendChild(analysis);
+      grid.appendChild(panel2);
+
+      // Insight
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const header3 = createElement('div', 'desktop-panel-header');
+      header3.appendChild(createElement('span', 'desktop-panel-title', 'The invitation'));
+      panel3.appendChild(header3);
+      const insight = createElement('p');
+      insight.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6; font-style: italic;';
+      insight.textContent = 'You\'re great at growth—maybe because it feels productive. But the gaps in Family and Health aren\'t about time. They\'re about presence. Small moments matter more than big gestures.';
+      panel3.appendChild(insight);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Generic web builder (routes to specific builders)
+    function buildWeb(container, viz) {
+      if (viz === 'mirror') return buildWebMirror(container);
+      if (viz === 'growth') return buildWebGrowth(container);
+      if (viz === 'energy') return buildWebEnergy(container);
+      if (viz === 'values') return buildWebValues(container);
+
+      // Fallback
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+      const panel = createElement('div', 'desktop-panel full-span');
+      panel.appendChild(createElement('p', 'mobile-insight', 'Visualization coming soon'));
+      grid.appendChild(panel);
+      container.appendChild(grid);
+    }
+
+    // State
+    let currentDevice = 'watch';
+    let currentViz = 'seasons';
+
+    // Update content based on current state
+    function updateContent() {
+      const watchEl = document.getElementById('watchContent');
+      const iphoneEl = document.getElementById('iphoneContent');
+      const androidEl = document.getElementById('androidContent');
+      const webEl = document.getElementById('webContent');
+
+      // Build watch content
+      if (currentViz === 'seasons') buildWatchSeasons(watchEl);
+      else if (currentViz === 'growth') buildWatchGrowth(watchEl);
+      else if (currentViz === 'energy') buildWatchEnergy(watchEl);
+      else if (currentViz === 'values') buildWatchValues(watchEl);
+      else if (currentViz === 'mirror') buildWatchMirror(watchEl);
+
+      // Build iPhone content
+      if (currentViz === 'seasons') buildIphoneSeasons(iphoneEl);
+      else buildMobile(iphoneEl, 'iphone', currentViz);
+
+      // Build Android content
+      if (currentViz === 'seasons') buildAndroidSeasons(androidEl);
+      else buildMobile(androidEl, 'android', currentViz);
+
+      // Build Web content
+      if (currentViz === 'seasons') buildWebSeasons(webEl);
+      else buildWeb(webEl, currentViz);
+    }
+
+    // Event handlers
+    function showDevices(device) {
+      currentDevice = device;
+
+      document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.device === device);
+      });
+
+      const container = document.getElementById('devicesContainer');
+      if (device === 'all') {
+        container.classList.add('all-devices');
+        document.querySelectorAll('.device-wrapper').forEach(w => w.classList.add('visible'));
+      } else {
+        container.classList.remove('all-devices');
+        document.querySelectorAll('.device-wrapper').forEach(w => {
+          w.classList.toggle('visible', w.dataset.device === device);
+        });
+      }
+    }
+
+    function showViz(viz) {
+      currentViz = viz;
+
+      document.querySelectorAll('.viz-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.viz === viz);
+      });
+
+      updateContent();
+    }
+
+    // Initialize
+    document.querySelectorAll('.device-btn').forEach(btn => {
+      btn.addEventListener('click', () => showDevices(btn.dataset.device));
+    });
+
+    document.querySelectorAll('.viz-chip').forEach(chip => {
+      chip.addEventListener('click', () => showViz(chip.dataset.viz));
+    });
+
+    updateContent();
+  </script>
+</body>
+</html>

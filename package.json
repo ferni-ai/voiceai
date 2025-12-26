@@ -67,6 +67,9 @@
     "test:semantic-benchmark": "npx tsx src/tools/semantic-router/evaluation/benchmark-runner.ts",
     "test:semantic-benchmark:easy": "npx tsx src/tools/semantic-router/evaluation/benchmark-runner.ts --difficulty=easy",
     "test:semantic-benchmark:hard": "npx tsx src/tools/semantic-router/evaluation/benchmark-runner.ts --difficulty=hard",
+    "test:outreach": "vitest run src/tools/__tests__/outreach-synthetic-e2e.test.ts",
+    "test:outreach:llm": "npx tsx scripts/test-outreach-llm.ts",
+    "test:outreach:llm:verbose": "npx tsx scripts/test-outreach-llm.ts --verbose",
     "semantic:learn": "npx tsx -e \"import { runBatchLearning } from './src/tools/semantic-router/advanced/learning-loop.js'; runBatchLearning().then(console.log)\"",
     "test:gemini:run": "npx tsx src/tests/e2e/gemini-integration/runner.ts",
     "test:gemini:tools": "npx tsx src/tests/e2e/gemini-integration/runner.ts --category=tool_calling",
@@ -78,6 +81,12 @@
     "test:gemini:trace": "npx tsx src/tests/e2e/gemini-integration/smart-runner.ts --trace-tools --max 0",
     "test:gemini:report": "npx tsx src/tests/e2e/gemini-integration/smart-runner.ts --slow --category tool_calling",
     "test:bth": "npx tsx src/tests/e2e/better-than-human/runner.ts",
+    "test:bth:synthetic": "vitest run src/tests/better-than-human/synthetic-bth.test.ts",
+    "test:bth:llm": "npx tsx scripts/test-better-than-human.ts",
+    "test:bth:llm:verbose": "npx tsx scripts/test-better-than-human.ts --verbose",
+    "test:bth:data-capture": "npx tsx scripts/test-better-than-human.ts --system data-capture --verbose",
+    "test:bth:emotion": "npx tsx scripts/test-better-than-human.ts --system emotion --verbose",
+    "test:bth:reading-lines": "npx tsx scripts/test-better-than-human.ts --system reading-lines --verbose",
     "test:bth:critical": "npx tsx src/tests/e2e/better-than-human/runner.ts --critical",
     "test:bth:verbose": "npx tsx src/tests/e2e/better-than-human/runner.ts --verbose",
     "test:agents": "npx tsx src/cli/commands/test-agents.ts",
@@ -318,7 +327,7 @@
     "ci:cost-forecast": "npx tsx apps/cli/src/index.ts costs-ai forecast",
     "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
     "prepare": "husky || true",
-    "postinstall": "patch-package || true; bash scripts/apply-livekit-patch.sh || true"
+    "postinstall": "patch-package || true; bash scripts/apply-livekit-patch.sh || true; npx tsx apps/cli/src/commands/patch/livekit-timeout.ts || true"
   },
   "keywords": [
     "livekit",

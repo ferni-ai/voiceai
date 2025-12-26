@@ -8,9 +8,12 @@
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalHaptics.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/EmotionalSoundEngine.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniActivityAttributes.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniColors.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniDynamicIslandViews.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/FerniLiveActivityManager.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlassStyle.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/GlowHalo.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalPixarEyes.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MagicalSplashView.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/MicroExpressions.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/OnboardingJourneyView.swift.o
@@ -21,6 +24,7 @@
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/PixarVoiceOrb.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/RelationshipArcService.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/StageProgressView.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/TonalStyle.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceOrb.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniShared.build/VoiceState.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedPackageTests.build/runner.swift.o
@@ -29,9 +33,13 @@
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/EmotionalSoundEngineTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniActivityAttributesTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/FerniSharedTests.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/GlowHaloTests.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalPixarEyesTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/MagicalSplashViewTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/OnboardingJourneyViewTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PersonaTests.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarEyesTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarPersonalityTests.swift.o
+/Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/PixarVoiceOrbTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/RelationshipArcServiceTests.swift.o
 /Users/sethford/Documents/voiceai/apps/shared/.build/arm64-apple-macosx/debug/FerniSharedTests.build/StageProgressViewTests.swift.o

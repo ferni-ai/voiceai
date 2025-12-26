@@ -25,6 +25,9 @@ latest-logs.txt
 .plaid-tokens.json
 .forms.env
 
+# Local development data (contacts, etc.)
+.ferni/
+
 # Code Signing (NEVER commit these!)
 *.p12
 *.pfx

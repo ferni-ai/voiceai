@@ -31,6 +31,9 @@ import {
   updateLifeCoachingProfile,
 } from '../life-coaching-shared/user-profile.js';
 
+// Cross-persona intelligence for team coordination
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+
 // PhD-level research and persona methodology integration
 import {
   getEnhancedToolContext,
@@ -531,6 +534,109 @@ const celebrateProgressDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const flagPerfectionismPatternForMayaDef: ToolDefinition = {
+  id: 'flagPerfectionismPatternForMaya',
+  name: 'Flag Perfectionism Pattern for Maya',
+  description: 'Alert Maya when perfectionism patterns could benefit from habit-based interventions',
+  domain: 'perfectionism',
+  tags: ['cross-persona', 'perfectionism', 'habits', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagPerfectionismPatternForMaya'),
+      parameters: z.object({
+        pattern: z.string().describe('The perfectionism pattern observed'),
+        impactArea: z.enum(['work', 'relationships', 'health', 'creativity', 'general']).describe('Where this shows up'),
+        readyForChange: z.boolean().describe('Is the person ready to work on this?'),
+      }),
+      execute: async ({ pattern, impactArea, readyForChange }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, pattern, impactArea }, 'Flagging perfectionism for Maya');
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'maya',
+            content: `Perfectionism pattern: "${pattern}" | Impact area: ${impactArea} | Ready for change: ${readyForChange}`,
+            priority: readyForChange ? 'high' : 'normal',
+            category: 'perfectionism_pattern',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Pattern Shared with Maya**\n\n`;
+          response += `Maya now understands this perfectionism pattern.\n\n`;
+          response += `She can help design:\n`;
+          response += `• "Good enough" completion rituals\n`;
+          response += `• Progress celebration habits\n`;
+          response += `• Healthy striving practices (not perfectionism)\n\n`;
+          response += `Perfectionism is armor. Maya can help you build security without it.`;
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to flag perfectionism for Maya');
+          return "I'll remember this pattern. We'll keep working on it.";
+        }
+      },
+    });
+  },
+};
+
+const shareInnerCriticWithNayanDef: ToolDefinition = {
+  id: 'shareInnerCriticWithNayan',
+  name: 'Share Inner Critic with Nayan',
+  description: 'Share inner critic insights with Nayan for wisdom-based exploration',
+  domain: 'perfectionism',
+  tags: ['cross-persona', 'perfectionism', 'wisdom', 'nayan'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('shareInnerCriticWithNayan'),
+      parameters: z.object({
+        criticMessage: z.string().describe('What the inner critic says'),
+        origin: z.string().optional().describe('Where this voice might come from'),
+      }),
+      execute: async ({ criticMessage, origin }) => {
+        const log = getLogger();
+        log.info({ agentId: ctx.agentId, criticMessage }, 'Sharing inner critic with Nayan');
+
+        try {
+          let content = `Inner critic voice: "${criticMessage}"`;
+          if (origin) {
+            content += ` | Possible origin: ${origin}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'nayan',
+            content,
+            priority: 'normal',
+            category: 'inner_critic_wisdom',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Insight Shared with Nayan**\n\n`;
+          response += `Nayan can help you explore:\n`;
+          response += `• Where this voice learned to speak this way\n`;
+          response += `• What wisdom (if any) it's trying to offer\n`;
+          response += `• How to hold it with compassion, not combat\n\n`;
+          response += `The inner critic usually started as protection. Understanding its origin can transform it.`;
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Failed to share with Nayan');
+          return "Your inner critic's voice is worth understanding. Let's keep exploring.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -542,6 +648,9 @@ const perfectionismTools: ToolDefinition[] = [
   innerCriticDef,
   perfectionismTriggersDef,
   celebrateProgressDef,
+  // Cross-persona intelligence
+  flagPerfectionismPatternForMayaDef,
+  shareInnerCriticWithNayanDef,
 ];
 
 // ============================================================================

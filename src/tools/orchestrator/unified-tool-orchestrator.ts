@@ -656,6 +656,9 @@ export class UnifiedToolOrchestrator {
   private async getAlwaysAvailableTools(ctx: ToolContext): Promise<Record<string, Tool>> {
     const tools: Record<string, Tool> = {};
 
+    // DEBUG: Log alwaysDomains config
+    log.info({ alwaysDomains: this.config.alwaysDomains }, '📦 Always-available domains config');
+
     // Ensure always-available domains are loaded (should already be loaded at init)
     const domainsToLoad = this.config.alwaysDomains.filter((domain) => {
       const existing = toolRegistry.query({ domains: [domain] });
@@ -663,13 +666,18 @@ export class UnifiedToolOrchestrator {
     });
 
     if (domainsToLoad.length > 0) {
-      log.debug({ domains: domainsToLoad }, '🔄 Lazy loading always-available domains');
+      log.info({ domains: domainsToLoad }, '🔄 Lazy loading always-available domains');
       await loadToolDomainsLazy(domainsToLoad);
     }
 
     for (const domain of this.config.alwaysDomains) {
       const domainTools = toolRegistry.query({ domains: [domain] });
-      log.debug({ domain, toolCount: domainTools.length }, 'Querying always-available domain');
+      // DEBUG: Log ALL tool names for each domain
+      const toolNames = domainTools.map((t) => t.id);
+      log.info(
+        { domain, toolCount: domainTools.length, toolNames },
+        '📦 Querying always-available domain'
+      );
       for (const toolDef of domainTools) {
         try {
           tools[toolDef.id] = toolDef.create(ctx);
@@ -682,6 +690,7 @@ export class UnifiedToolOrchestrator {
       }
     }
 
+    log.info({ totalTools: Object.keys(tools).length, toolNames: Object.keys(tools) }, '📦 Total always-available tools');
     return tools;
   }
 

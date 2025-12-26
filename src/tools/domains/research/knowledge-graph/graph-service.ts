@@ -101,6 +101,11 @@ export class KnowledgeGraphService {
    * Search nodes by name, definition, or aliases.
    */
   searchNodes(query: string): KnowledgeNode[] {
+    // Guard against undefined/null queries (can happen when semantic router
+    // fails to extract args, e.g., "Honey, what's going on?" → learning_explain)
+    if (!query || typeof query !== 'string') {
+      return [];
+    }
     const lowerQuery = query.toLowerCase();
     const results: KnowledgeNode[] = [];
 

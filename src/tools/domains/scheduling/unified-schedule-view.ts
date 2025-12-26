@@ -17,7 +17,8 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getEventsForDay, getEventsForWeek, type CalendarEvent } from '../../../services/calendar/calendar-service.js';
 import { getPendingReminders, type ScheduledReminder } from '../../../services/scheduling/reminder-scheduler.js';
-import { getUserAppointments, type ScheduledAppointment } from '../../scheduling/appointment-core.js';
+import { getUserAppointments } from '../../scheduling/appointment-core.js';
+import type { ScheduledAppointment } from '../../scheduling/types.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { createDomainExport } from '../../registry/loader.js';
 

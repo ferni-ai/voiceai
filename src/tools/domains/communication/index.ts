@@ -1,48 +1,64 @@
 /**
- * Communication Domain Tools
+ * Communication Domain Tools - Rationalized Architecture
  *
- * Consolidated communication tools with proper routing:
- * - communication.ts: Base email, SMS, calendar integration
- * - communication-coaching.ts: Communication coaching and frameworks
- * - proactive-outreach.ts: Agent-initiated contact (texts, emails, calls)
- * - personalized-outreach-tools.ts: Batch personalized messaging, contact groups
+ * STRUCTURE:
+ * ├── outreach/                    # All reaching-out in ONE place
+ * │   ├── unified-outreach.ts      # THE tool: reachOut (call, text, email, conversation)
+ * │   ├── batch-outreach.ts        # Group & seasonal messaging
+ * │   └── message-crafting.ts      # LLM-powered personalization
+ * │
+ * ├── communication-coaching.ts    # Draft difficult messages, role-play (DISTINCT)
+ * ├── contact-relationship-tools.ts # Contact CRUD (DISTINCT)
+ * ├── gmail-tools.ts               # Gmail integration (DISTINCT)
+ * └── message-validation-tools.ts  # "Sleep on it" validation (DISTINCT)
  *
- * DOMAIN: communication
- * TOOLS:
- *   Core: sendMessage (email or SMS), scheduleReminder, scheduleEvent
+ * DEPRECATED (use outreach/ instead):
+ * - enhanced-outreach-tools.ts → outreach/unified-outreach.ts
+ * - personalized-outreach-tools.ts → outreach/batch-outreach.ts
+ * - communication-tools.ts → outreach/unified-outreach.ts
+ * - unified-outreach-tool.ts → outreach/unified-outreach.ts (moved)
+ *
+ * PRIMARY TOOLS:
+ *   reachOut         - THE way to reach any contact (auto-picks channel, timing, message)
+ *   previewBatch     - Preview personalized messages for groups
+ *   sendBatch        - Send batch messages after preview
+ *   getOutreachSuggestions - Who should you reach out to?
+ *
+ * DISTINCT TOOLS (kept separate):
  *   Coaching: draftMessage, rolePlayConversation, analyzeMessage, communicationStrategy
- *   Proactive: proactiveOutreach (save contact, send text/email, schedule reminder, call)
- *   Personalized: sendPersonalizedMessage, sendGroupMessage, getOutreachSuggestions, manageContactGroup
+ *   Gmail: readGmail, searchGmail, sendGmail
+ *   Contacts: addContact, updateContact, searchContacts
+ *   Validation: sleepOnIt, reviewAndSend
  */
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ExternalService, ToolContext, ToolDefinition } from '../../registry/types.js';
 
-// Stub options for internal tool routing (these calls don't use the actual context)
+// New rationalized outreach module
+import { getOutreachToolDefinitions } from './outreach/index.js';
+
+// Import distinct tool modules (kept separate)
+import { createCommunicationCoachingTools } from './communication-coaching.js';
+import { getGmailToolDefinitions } from './gmail-tools.js';
+import { getContactRelationshipToolDefinitions } from './contact-relationship-tools.js';
+import { getMessageValidationToolDefinitions } from './message-validation-tools.js';
+
+// Legacy tools - still used for scheduling (not part of outreach consolidation)
+import { createCommunicationTools } from './communication-tools.js';
+
+import { getToolDescription } from '../../utils/tool-descriptions.js';
+
+const log = createLogger({ module: 'communication-domain' });
+
+// Stub context for internal routing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
 
-// Import legacy tool creators
-import { createCommunicationCoachingTools } from './communication-coaching.js';
-import { createCommunicationTools } from '../../communication.js';
-import { proactiveOutreachTools } from '../../proactive-outreach.js';
-// Gmail tools
-import { getGmailToolDefinitions } from './gmail-tools.js';
-// Contact relationship tools
-import { getContactRelationshipToolDefinitions } from './contact-relationship-tools.js';
-// Message validation tools ("Sleep on it")
-import { getMessageValidationToolDefinitions } from './message-validation-tools.js';
-// Personalized outreach tools (batch messaging, groups, seasonal)
-import { getPersonalizedOutreachToolDefinitions } from './personalized-outreach-tools.js';
-// Enhanced outreach tools (voice messages, rich email, gifts, optimal timing)
-import { getEnhancedOutreachToolDefinitions } from './enhanced-outreach-tools.js';
-
-import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
-// LEGACY TOOL WRAPPER (for tools that don't need routing)
+// LEGACY TOOL WRAPPER
 // ============================================================================
 
 function wrapLegacyTool(
@@ -67,57 +83,13 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// COMMUNICATION TOOLS (Properly routed)
+// SCHEDULING TOOLS (Not part of outreach - keep separate)
 // ============================================================================
 
-function getCommunicationToolDefinitions(): ToolDefinition[] {
-  const log = getLogger();
+function getSchedulingToolDefinitions(): ToolDefinition[] {
   const legacyTools = createCommunicationTools();
 
   return [
-    {
-      id: 'sendMessage',
-      name: 'Send Message',
-      description:
-        'Send a message via email or SMS. Use email for formal/longer communications, SMS for quick texts and reminders.',
-      domain: 'communication',
-      tags: ['communication', 'email', 'sms', 'send', 'message'],
-      requiredServices: ['sendgrid', 'twilio'],
-      create: (_ctx: ToolContext) =>
-        llm.tool({
-          description: getToolDescription('sendMessage'),
-          parameters: z.object({
-            channel: z.enum(['email', 'sms']).describe('Communication channel'),
-            to: z.string().describe('Recipient email address or phone number'),
-            subject: z.string().optional().describe('Email subject (required for email)'),
-            message: z.string().describe('Message content'),
-          }),
-          execute: async (params) => {
-            log.info({ channel: params.channel, to: params.to }, '📧 Send message tool called');
-
-            try {
-              if (params.channel === 'email') {
-                return await legacyTools.sendEmail.execute(
-                  {
-                    to: params.to,
-                    subject: params.subject || 'Message from Ferni',
-                    body: params.message,
-                  },
-                  STUB_CONTEXT
-                );
-              } else {
-                return await legacyTools.sendSMS.execute(
-                  { to: params.to, message: params.message },
-                  STUB_CONTEXT
-                );
-              }
-            } catch (error) {
-              log.error({ channel: params.channel, error: String(error) }, '📧 Send message error');
-              return `I had trouble sending that ${params.channel}. ${String(error)}`;
-            }
-          },
-        }),
-    },
     {
       id: 'scheduleReminder',
       name: 'Schedule Reminder',
@@ -152,7 +124,6 @@ function getCommunicationToolDefinitions(): ToolDefinition[] {
                   STUB_CONTEXT
                 );
               } else {
-                // reminder or follow-up
                 return await legacyTools.scheduleReminder.execute(
                   {
                     reminderText: params.title,
@@ -174,11 +145,10 @@ function getCommunicationToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// COACHING TOOLS (Properly routed)
+// COACHING TOOLS
 // ============================================================================
 
 function getCoachingToolDefinitions(): ToolDefinition[] {
-  const log = getLogger();
   const legacyTools = createCommunicationCoachingTools();
 
   return [
@@ -212,13 +182,11 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
               .describe('Analysis mode'),
             message: z.string().describe('The message to analyze'),
             context: z.string().optional().describe('Context: who sent/receives it, situation'),
-            // For incoming analysis
             sender: z.string().optional().describe('Who sent this message (for incoming mode)'),
             userGoal: z
               .string()
               .optional()
               .describe('What outcome do you want from your response?'),
-            // For transform
             targetTone: z
               .enum([
                 'more_direct',
@@ -231,9 +199,7 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
               .optional()
               .describe('Target tone for transformation'),
             currentTone: z.string().optional().describe('Current tone description'),
-            // For tone check
             intendedTone: z.string().optional().describe('What tone are you going for?'),
-            // For review
             concern: z.string().optional().describe('Specific concern about the message'),
           }),
           execute: async (params) => {
@@ -322,39 +288,27 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// PROACTIVE OUTREACH TOOLS
-// ============================================================================
-
-function getProactiveOutreachToolDefinitions(): ToolDefinition[] {
-  return proactiveOutreachTools.map((tool) => ({
-    id: tool.name,
-    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-    description: tool.description,
-    domain: 'communication' as const,
-    tags: ['proactive', 'outreach', 'contact', 'reminder'],
-    requiredServices: ['twilio', 'sendgrid'] as ExternalService[],
-    create: (ctx: ToolContext) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-      execute: async (params: Record<string, unknown>) => tool.handler(params, ctx),
-    }),
-  }));
-}
-
-// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
 const communicationTools: ToolDefinition[] = [
-  ...getCommunicationToolDefinitions(),
-  ...getProactiveOutreachToolDefinitions(),
+  // PRIMARY: Unified outreach tools (reachOut, batch, suggestions)
+  ...getOutreachToolDefinitions(),
+
+  // Scheduling (distinct from outreach)
+  ...getSchedulingToolDefinitions(),
+
+  // Communication coaching (distinct)
   ...getCoachingToolDefinitions(),
+
+  // Gmail integration (distinct)
   ...getGmailToolDefinitions(),
+
+  // Contact management (distinct)
   ...getContactRelationshipToolDefinitions(),
+
+  // "Sleep on it" validation (distinct)
   ...getMessageValidationToolDefinitions(),
-  ...getPersonalizedOutreachToolDefinitions(),
-  ...getEnhancedOutreachToolDefinitions(),
 ];
 
 // ============================================================================
@@ -366,20 +320,29 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   communicationTools
 );
 
+// Export specific definition getters for testing/composition
 export {
+  getOutreachToolDefinitions,
+  getSchedulingToolDefinitions,
   getCoachingToolDefinitions,
-  getCommunicationToolDefinitions,
-  getProactiveOutreachToolDefinitions,
   getGmailToolDefinitions,
   getContactRelationshipToolDefinitions,
   getMessageValidationToolDefinitions,
-  getPersonalizedOutreachToolDefinitions,
-  getEnhancedOutreachToolDefinitions,
 };
 
-// Re-export legacy tool creators for direct use by persona agents
-// NOTE: communication-tools.js is the feature-rich version with real SendGrid/Twilio
-export { createCommunicationTools as createCommunicationSpecialistTools } from './communication-tools.js';
+// Re-export outreach utilities for direct use
+export {
+  createUnifiedOutreachTool,
+  getUnifiedOutreachDefinition,
+  craftPersonalizedMessage,
+  craftConversationOpener,
+  getBatchOutreachDefinitions,
+} from './outreach/index.js';
+
+// Re-export legacy tool creators for backward compatibility
 export { createCommunicationCoachingTools } from './communication-coaching.js';
+
+// Re-export from communication-tools.ts for legacy consumers
+export { createCommunicationTools as createCommunicationSpecialistTools, parseScheduleTime, createCommunicationTools } from './communication-tools.js';
 
 export default getToolDefinitions;

@@ -189,7 +189,7 @@ const CATEGORY_LABELS: Record<DashboardLink['category'], { label: string; icon: 
 /**
  * Render the more dashboards section
  */
-export async function render(): Promise<string> {
+export function render(): string {
   log.debug('Rendering more dashboards section');
 
   const categories = ['observability', 'analytics', 'voice', 'system', 'development'] as const;

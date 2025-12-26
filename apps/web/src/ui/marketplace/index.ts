@@ -77,7 +77,7 @@ export {
 // Re-export utilities
 export {
   trackedTimeout,
-  clearAllTimeouts,
+  _clearAllTimeouts,
   debounce,
   announceToScreenReader,
   renderStars,

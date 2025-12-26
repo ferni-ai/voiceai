@@ -13,6 +13,7 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerCognitiveMetricsBroadcast } from '../utils/cognitive-metrics.js';
 import type { ReasoningStyle } from '../personas/cognitive-types.js';
 
 // ============================================================================
@@ -389,5 +390,15 @@ export function broadcastMetrics(metrics: Omit<MetricsEvent, 'type' | 'timestamp
     timestamp: new Date(),
   });
 }
+
+// ============================================================================
+// REGISTER WITH UTILS LAYER
+// ============================================================================
+
+// Register callback to receive cognitive metrics broadcasts from utils layer
+// This follows proper architecture: services layer registers with utils layer
+registerCognitiveMetricsBroadcast((metrics) => {
+  broadcastMetrics(metrics);
+});
 
 export default cognitiveBroadcast;

@@ -79,6 +79,53 @@ export const HEAVY_CONTENT_PATTERNS = [
 ] as const;
 
 /**
+ * Keywords that suggest heavy content
+ * Used for detailed detection (returns which keywords were found)
+ */
+export const HEAVY_CONTENT_KEYWORDS = [
+  // Emotional/Crisis
+  'suicide',
+  'kill',
+  'die',
+  'death',
+  'dying',
+  'dead',
+  'abuse',
+  'abused',
+  'trauma',
+  'traumatic',
+  'depressed',
+  'depression',
+  'hopeless',
+  'worthless',
+  'panic',
+  'terrified',
+  'devastated',
+  // Life events
+  'divorce',
+  'cancer',
+  'diagnosed',
+  'terminal',
+  'fired',
+  'bankrupt',
+  'homeless',
+  'miscarriage',
+  'stillborn',
+  // Relationship
+  'cheated',
+  'affair',
+  'betrayed',
+  'estranged',
+  'disowned',
+  // Disclosure markers
+  'never told anyone',
+  'first time saying',
+  'secret',
+  'ashamed',
+  'embarrassed to admit',
+] as const;
+
+/**
  * Patterns indicating light/positive content
  */
 export const LIGHT_CONTENT_PATTERNS = [
@@ -415,6 +462,30 @@ export function detectHeavyContent(text: string): boolean {
 }
 
 /**
+ * Detect heavy content and return which keywords were found
+ * Useful when you need to know *what* was detected, not just *if*
+ *
+ * @param text - The text to analyze
+ * @returns Array of keywords found in the text
+ *
+ * @example
+ * detectHeavyContentKeywords("dealing with depression") // ['depression']
+ * detectHeavyContentKeywords("had a great day!") // []
+ */
+export function detectHeavyContentKeywords(text: string): string[] {
+  const found: string[] = [];
+  const lowerText = text.toLowerCase();
+
+  for (const keyword of HEAVY_CONTENT_KEYWORDS) {
+    if (lowerText.includes(keyword.toLowerCase())) {
+      found.push(keyword);
+    }
+  }
+
+  return found;
+}
+
+/**
  * Detect if user presented evidence or counter-argument
  */
 export function detectEvidence(userMessage: string): boolean {
@@ -591,6 +662,7 @@ export default {
   // Content detection
   detectEmotionalContent,
   detectHeavyContent,
+  detectHeavyContentKeywords,
   detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
@@ -609,6 +681,7 @@ export default {
   LOW_ENERGY_PATTERNS,
   EMOTIONAL_CONTENT_PATTERNS,
   HEAVY_CONTENT_PATTERNS,
+  HEAVY_CONTENT_KEYWORDS,
   LIGHT_CONTENT_PATTERNS,
   EVIDENCE_PATTERNS,
   BREAKTHROUGH_PATTERNS,

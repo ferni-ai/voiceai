@@ -220,15 +220,25 @@ export async function parseJsonBodySafe<T = unknown>(
 
 const healthRateLimits = new Map<string, { count: number; resetTime: number }>();
 
-// Cleanup old entries every minute
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, data] of Array.from(healthRateLimits.entries())) {
-    if (data.resetTime < now) {
-      healthRateLimits.delete(ip);
+// Cleanup interval ID for proper shutdown
+let healthRateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function startHealthRateLimitCleanup(): void {
+  if (healthRateLimitCleanupInterval) return; // Already running
+
+  // Cleanup old entries every minute
+  healthRateLimitCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, data] of Array.from(healthRateLimits.entries())) {
+      if (data.resetTime < now) {
+        healthRateLimits.delete(ip);
+      }
     }
-  }
-}, 60_000);
+  }, 60_000);
+}
+
+// Start cleanup automatically
+startHealthRateLimitCleanup();
 
 /**
  * Check if health endpoint request should be rate limited
@@ -669,4 +679,29 @@ export function handleSecurityMonitoring(
     })
   );
   return true;
+}
+
+// ============================================================================
+// CLEANUP (for testing and graceful shutdown)
+// ============================================================================
+
+/**
+ * Stop all DDoS protection intervals.
+ * Call this on graceful shutdown or in tests.
+ */
+export function stopDDoSProtection(): void {
+  if (healthRateLimitCleanupInterval) {
+    clearInterval(healthRateLimitCleanupInterval);
+    healthRateLimitCleanupInterval = null;
+  }
+  healthRateLimits.clear();
+  rateLimitEvents.length = 0;
+}
+
+/**
+ * Reset DDoS protection state (for testing).
+ */
+export function resetDDoSProtection(): void {
+  healthRateLimits.clear();
+  rateLimitEvents.length = 0;
 }

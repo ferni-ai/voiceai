@@ -20,6 +20,12 @@ import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { generateToolQuestions, type QuestionFocus } from '../../utils/dynamic-tool-questions.js';
+
+// Cross-persona intelligence imports
+import {
+  addCrossPersonaInsight,
+  getInsightsForPersona,
+} from '../../../services/cross-persona-insights.js';
 // ============================================================================
 // GRIEF PROCESSING TOOLS
 // ============================================================================
@@ -573,6 +579,156 @@ const companionInGriefDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const shareGriefInsightDef: ToolDefinition = {
+  id: 'shareGriefInsight',
+  name: 'Share Grief Insight',
+  description: 'Share grief-related insight with another team member',
+  domain: 'grief',
+  tags: ['cross-persona', 'grief', 'team'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('shareGriefInsight'),
+      parameters: z.object({
+        targetPersona: z
+          .enum(['nayan', 'jordan', 'maya', 'ferni', 'all'])
+          .describe('Who should know this'),
+        insightType: z
+          .enum(['transition', 'loss', 'identity-shift', 'anniversary', 'healing-progress'])
+          .describe('Type of grief insight'),
+        insight: z.string().describe('The grief-related insight'),
+        significance: z.string().describe('Why this matters'),
+      }),
+      execute: async ({ targetPersona, insightType, insight, significance }) => {
+        getLogger().info({ agentId: ctx.agentId, targetPersona, insightType }, 'Sharing grief insight');
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: targetPersona,
+            content: `Grief insight (${insightType}): ${insight} | Significance: ${significance}`,
+            priority: 'high',
+            category: 'grief_support',
+            proactive: true,
+            oneTime: false,
+          });
+
+          const targetName = targetPersona === 'all' ? 'the team' : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+
+          let response = `**Insight Shared with ${targetName}**\n\n`;
+          response += `I've shared what we've learned about your grief journey.\n\n`;
+
+          if (targetPersona === 'nayan') {
+            response += `Nayan can help with the deeper meaning-making and philosophical questions that often arise in grief.`;
+          } else if (targetPersona === 'jordan') {
+            response += `Jordan will understand the life transition aspect and can help with planning around what comes next.`;
+          } else if (targetPersona === 'maya') {
+            response += `Maya can help build gentle routines that support your healing without overwhelming you.`;
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to share grief insight');
+          return "I'll keep this in mind as we continue together.";
+        }
+      },
+    });
+  },
+};
+
+const getTeamGriefContextDef: ToolDefinition = {
+  id: 'getTeamGriefContext',
+  name: 'Get Team Context for Grief Support',
+  description: 'Get relevant insights from other team members for grief support',
+  domain: 'grief',
+  tags: ['cross-persona', 'grief', 'context'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getTeamGriefContext'),
+      parameters: z.object({}),
+      execute: async () => {
+        getLogger().info({ agentId: ctx.agentId }, 'Getting team context for grief');
+
+        try {
+          const insights = getInsightsForPersona(ctx.userId, 'ferni');
+
+          if (insights.length === 0) {
+            return "The team is ready to support you, but there's nothing specific to bring up right now. How can I help?";
+          }
+
+          let response = `**Team Context for Your Session**\n\n`;
+          response += `Before we continue, here's what the team has noticed:\n\n`;
+
+          for (const item of insights.slice(0, 3)) {
+            const sourceName = item.insight.sourcePersona.charAt(0).toUpperCase() + item.insight.sourcePersona.slice(1);
+            response += `• ${sourceName}: ${item.insight.summary}\n`;
+          }
+
+          response += `\nThis context helps me support you better. What feels most present for you today?`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to get team grief context');
+          return "Let's focus on what's present for you today.";
+        }
+      },
+    });
+  },
+};
+
+const flagTransitionForJordanDef: ToolDefinition = {
+  id: 'flagTransitionForJordan',
+  name: 'Flag Transition for Jordan',
+  description: 'Alert Jordan about a major life transition that needs goal/milestone support',
+  domain: 'grief',
+  tags: ['cross-persona', 'transition', 'jordan'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagTransitionForJordan'),
+      parameters: z.object({
+        transition: z.string().describe('What transition is happening'),
+        stage: z.enum(['beginning', 'middle', 'integrating']).describe('Stage of transition'),
+        needsPlanning: z.boolean().describe('Does this person need help planning the transition?'),
+      }),
+      execute: async ({ transition, stage, needsPlanning }) => {
+        getLogger().info({ agentId: ctx.agentId, transition, stage }, 'Flagging transition for Jordan');
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'jordan',
+            content: `Life transition in ${stage} stage: "${transition}" | Planning needed: ${needsPlanning}`,
+            priority: needsPlanning ? 'high' : 'normal',
+            category: 'life_transition',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Transition Noted for Jordan**\n\n`;
+          response += `I've let Jordan know about this transition you're navigating.\n\n`;
+
+          if (needsPlanning) {
+            response += `When you're ready to think about next steps, milestones, or planning, Jordan will have this context.`;
+          } else {
+            response += `Jordan understands what you're going through and can help when you need to think about what comes next.`;
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to flag transition for Jordan');
+          return "I'll remember this transition. We can think about planning when you're ready.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -591,6 +747,10 @@ const griefTools: ToolDefinition[] = [
   // Support
   validateGriefDef,
   companionInGriefDef,
+  // Cross-persona intelligence
+  shareGriefInsightDef,
+  getTeamGriefContextDef,
+  flagTransitionForJordanDef,
 ];
 
 // ============================================================================

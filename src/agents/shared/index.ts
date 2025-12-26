@@ -92,6 +92,7 @@ export {
 } from './handoff/index.js';
 
 // Cached Imports (performance optimization)
+// NOTE: getStartupFunctionsCached was removed - import startup directly from '../../startup.js' if needed
 export {
   getBehavioralContextBuilder,
   getEasterEggChecker,
@@ -101,17 +102,24 @@ export {
   getVoiceManagerCached,
   getMusicPlayerCached,
   getIdentifyFromMetadataCached,
-  getStartupFunctionsCached,
   isMusicEnabledCached,
   preloadCommonModules,
   resetCachedModules,
-} from './cached-imports.js';
+} from '../../services/cached-imports.js';
 
 // Early Logger (for pre-LiveKit initialization)
 export { earlyLog, DEBUG_STARTUP } from './early-logger.js';
 
 // Shutdown Handler
 export { gracefulShutdown, registerShutdownSignalHandlers } from './shutdown-handler.js';
+
+// Session Closing Tracker (prevents operations during shutdown)
+export {
+  markSessionClosing,
+  isSessionClosing,
+  clearSessionClosing,
+  getClosingSessionCount,
+} from './session-closing-tracker.js';
 
 // Helpers
 export { hasSsmlTags, sanitizeUserName } from './helpers.js';

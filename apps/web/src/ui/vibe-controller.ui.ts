@@ -45,10 +45,6 @@ function getUserPreferences(): UserPreferences {
   return { temperatureUnit: 'fahrenheit' };
 }
 
-function celsiusToFahrenheit(c: number): number {
-  return Math.round((c * 9) / 5 + 32);
-}
-
 function fahrenheitToCelsius(f: number): number {
   return Math.round(((f - 32) * 5) / 9);
 }
@@ -133,7 +129,7 @@ interface LoadingState {
   connectingThermostat: boolean;
 }
 
-let loadingState: LoadingState = {
+const loadingState: LoadingState = {
   fetchingState: false,
   activatingPreset: null,
   adjustingVolume: false,
@@ -321,7 +317,7 @@ function getActivityVibes(): VibePresetUI[] {
   return buildUIPresets().activity;
 }
 
-function getAllVibePresets(): VibePresetUI[] {
+function _getAllVibePresets(): VibePresetUI[] {
   const { primary, activity } = buildUIPresets();
   return [...primary, ...activity];
 }
@@ -334,7 +330,7 @@ let container: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let isVisible = false;
 let callbacks: VibeControllerCallbacks = {};
-let currentState: VibeState = {
+const currentState: VibeState = {
   activePreset: null,
   music: { playing: false, volume: 50 },
   lights: { connected: false, brightness: 50, colorTemp: 4000 },
@@ -451,7 +447,7 @@ function injectStyles(): void {
     .vibe-overlay {
       position: fixed;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -789,13 +785,17 @@ function injectStyles(): void {
     }
 
     .vibe-music__btn--secondary {
-      background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.08));
+      background: var(--tonal-surface-2);
       color: var(--color-text-secondary, #5C544A);
     }
 
     .vibe-music__btn--secondary:hover {
-      background: var(--color-bg-elevated, rgba(44, 37, 32, 0.12));
+      background: var(--tonal-surface-3);
       color: var(--color-text-primary, #2C2520);
+    }
+
+    .vibe-music__btn--secondary:active {
+      background: var(--tonal-surface-active);
     }
 
     .vibe-music__btn svg {
@@ -1179,7 +1179,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       z-index: var(--z-modal, 2100);
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.8));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
       backdrop-filter: blur(8px);
     }
 
@@ -1324,7 +1324,7 @@ function renderPresets(): HTMLElement {
 
     card.appendChild(createElement('span', { className: 'vibe-preset__name' }, [preset.name]));
 
-    card.addEventListener('click', () => activatePreset(preset));
+    card.addEventListener('click', () => { void activatePreset(preset); });
     primaryGrid.appendChild(card);
   }
   wrapper.appendChild(primaryGrid);
@@ -1363,7 +1363,7 @@ function renderPresets(): HTMLElement {
 
     card.appendChild(createElement('span', { className: 'vibe-activity__name' }, [preset.name]));
 
-    card.addEventListener('click', () => activatePreset(preset));
+    card.addEventListener('click', () => { void activatePreset(preset); });
     activityGrid.appendChild(card);
   }
   wrapper.appendChild(activityGrid);
@@ -1452,7 +1452,7 @@ function renderMusicSection(): HTMLElement {
     max: '100',
     value: String(currentState.music.volume),
     'aria-label': t('vibe.volume', 'Volume'),
-  }) as HTMLInputElement;
+  });
 
   const volumeValue = createElement('span', { className: 'vibe-control__value' }, [`${currentState.music.volume}%`]);
 
@@ -1582,7 +1582,7 @@ function renderLightsSection(): HTMLElement {
     max: '100',
     value: String(currentState.lights.brightness),
     'aria-label': t('vibe.lights.brightness', 'Brightness'),
-  }) as HTMLInputElement;
+  });
 
   const brightnessValue = createElement('span', { className: 'vibe-control__value' }, [`${currentState.lights.brightness}%`]);
 
@@ -1616,7 +1616,7 @@ function renderLightsSection(): HTMLElement {
     max: '6500',
     value: String(currentState.lights.colorTemp),
     'aria-label': t('vibe.lights.colorTemperature', 'Color temperature'),
-  }) as HTMLInputElement;
+  });
 
   const getWarmthLabel = (temp: number): string => {
     if (temp < 4000) return t('vibe.lights.warm', 'Warm');
@@ -1803,20 +1803,20 @@ async function fetchState(): Promise<void> {
   try {
     // Fetch music state
     const musicRes = await apiGet<{ playing: boolean; track?: string; artist?: string; volume: number }>('/api/spotify/status');
-    if (musicRes && typeof musicRes === 'object' && 'playing' in musicRes) {
-      currentState.music = { ...currentState.music, ...musicRes };
+    if (musicRes.ok && musicRes.data) {
+      currentState.music = { ...currentState.music, ...musicRes.data };
     }
 
     // Fetch lights state via vibe API
     const lightsRes = await apiGet<{ connected: boolean; brightness: number; colorTemp: number }>('/api/vibe/lights/status');
-    if (lightsRes && typeof lightsRes === 'object' && 'connected' in lightsRes) {
-      currentState.lights = { ...currentState.lights, ...lightsRes };
+    if (lightsRes.ok && lightsRes.data) {
+      currentState.lights = { ...currentState.lights, ...lightsRes.data };
     }
 
     // Fetch thermostat state
     const thermoRes = await apiGet<{ connected: boolean; current: number; target: number; mode: string }>('/api/ecobee/status');
-    if (thermoRes && typeof thermoRes === 'object' && 'connected' in thermoRes) {
-      currentState.temperature = { ...currentState.temperature, ...thermoRes };
+    if (thermoRes.ok && thermoRes.data) {
+      currentState.temperature = { ...currentState.temperature, ...thermoRes.data };
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to fetch vibe state:', error);
@@ -1838,19 +1838,19 @@ async function activatePreset(preset: VibePresetUI): Promise<void> {
       { presetId: preset.id }
     );
 
-    if (result?.success) {
+    if (result.ok && result.data?.success) {
       // Update local state based on what was applied
-      if (result.applied.lights && preset.lights) {
+      if (result.data.applied.lights && preset.lights) {
         currentState.lights = { ...currentState.lights, ...preset.lights };
       }
-      if (result.applied.temperature && preset.temperature) {
+      if (result.data.applied.temperature && preset.temperature) {
         currentState.temperature.target = preset.temperature.target;
       }
 
       toast.success(t('vibe.vibeSet', '{name} vibe set!', { name: preset.name }));
       callbacks.onVibeChanged?.(preset.id);
     } else {
-      toast.warning(result?.message || t('vibe.couldNotFullySet', "Couldn't fully set the vibe"));
+      toast.warning(result.data?.message || t('vibe.couldNotFullySet', "Couldn't fully set the vibe"));
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to activate preset:', error);
@@ -1963,9 +1963,9 @@ async function connectLightsViaHomeAssistant(): Promise<void> {
   try {
     // Start OAuth flow or show config dialog
     const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/lights/connect', { provider: 'home-assistant' });
-    if (result?.authUrl) {
-      window.open(result.authUrl, '_blank', 'width=600,height=700');
-    } else if (result?.success) {
+    if (result.ok && result.data?.authUrl) {
+      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
+    } else if (result.ok && result.data?.success) {
       toast.success(t('vibe.lightsConnected', 'Lights connected!'));
       currentState.lights.connected = true;
       showingLightsSetup = false;
@@ -1986,14 +1986,14 @@ async function connectLightsViaHue(): Promise<void> {
 
   try {
     const result = await apiPost<{ success: boolean; authUrl?: string; message?: string }>('/api/vibe/lights/connect', { provider: 'hue' });
-    if (result?.authUrl) {
-      window.open(result.authUrl, '_blank', 'width=600,height=700');
-    } else if (result?.success) {
+    if (result.ok && result.data?.authUrl) {
+      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
+    } else if (result.ok && result.data?.success) {
       toast.success(t('vibe.hueLightsConnected', 'Hue lights connected!'));
       currentState.lights.connected = true;
       showingLightsSetup = false;
     } else {
-      toast.info(result?.message || t('vibe.pressHueButton', 'Press the button on your Hue bridge, then try again'));
+      toast.info(result.data?.message || t('vibe.pressHueButton', 'Press the button on your Hue bridge, then try again'));
     }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to connect Hue:', error);
@@ -2020,21 +2020,21 @@ async function connectThermostatViaEcobee(): Promise<void> {
     loadingState.connectingThermostat = false;
     render();
 
-    if (result?.pin) {
+    if (result.ok && result.data?.pin) {
       // Show PIN to user with instructions
-      showEcobeePinDialog(result.pin, result.expiresInMinutes || 10);
+      showEcobeePinDialog(result.data.pin, result.data.expiresInMinutes || 10);
 
       // Poll for authorization
       const checkConnection = setInterval(async () => {
         const status = await apiGet<{ status: string }>('/api/ecobee/link/status');
-        if (status?.status === 'connected') {
+        if (status.ok && status.data?.status === 'connected') {
           clearInterval(checkConnection);
           hideEcobeePinDialog();
           toast.success(t('vibe.thermostatConnected', 'Thermostat connected!'));
           currentState.temperature.connected = true;
           showingThermostatSetup = false;
           render();
-        } else if (status?.status === 'expired') {
+        } else if (status.ok && status.data?.status === 'expired') {
           clearInterval(checkConnection);
           hideEcobeePinDialog();
           toast.warning(t('vibe.pinExpiredRetry', 'PIN expired. Try again?'));
@@ -2124,9 +2124,9 @@ async function connectThermostatViaNest(): Promise<void> {
 
   try {
     const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/thermostat/connect', { provider: 'nest' });
-    if (result?.authUrl) {
-      window.open(result.authUrl, '_blank', 'width=600,height=700');
-    } else if (result?.success) {
+    if (result.ok && result.data?.authUrl) {
+      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
+    } else if (result.ok && result.data?.success) {
       toast.success(t('vibe.nestConnected', 'Nest connected!'));
       currentState.temperature.connected = true;
       showingThermostatSetup = false;
@@ -2147,7 +2147,7 @@ async function connectThermostatViaHomeAssistant(): Promise<void> {
 
   try {
     const result = await apiPost<{ success: boolean }>('/api/vibe/thermostat/connect', { provider: 'home-assistant' });
-    if (result?.success) {
+    if (result.ok && result.data?.success) {
       toast.success(t('vibe.climateControlConnected', 'Climate control connected!'));
       currentState.temperature.connected = true;
       showingThermostatSetup = false;

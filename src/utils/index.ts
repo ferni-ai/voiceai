@@ -59,10 +59,17 @@ export {
 
 export {
   CircuitBreaker,
+  CircuitOpenError,
   getCircuitBreaker,
+  getAllCircuitBreakerStats,
   resetAllCircuitBreakers,
   withCircuitBreaker,
+  registerCircuitBreakerCallback,
+  clearCircuitBreakerCallback,
   type CircuitBreakerOptions,
+  type CircuitState,
+  type CircuitBreakerStats,
+  type CircuitBreakerStateCallback,
 } from './circuit-breaker.js';
 
 // ============================================================================
@@ -92,9 +99,137 @@ export { CleanupManager, addAutoCleanupListener, addOnceListener } from './clean
 export { cleanForFirestore, deepRemoveUndefined, removeUndefined } from './firestore-utils.js';
 
 // ============================================================================
-// DEFAULT EXPORT
+// SAFE FIRE AND FORGET
+// ============================================================================
+
+export {
+  safeFireAndForget,
+  fireAndForget,
+  createSafeFireAndForget,
+  batchFireAndForget,
+  getFireAndForgetMetrics,
+  resetFireAndForgetMetrics,
+  registerGlobalErrorHandlers,
+  type SafeFireAndForgetOptions,
+} from './safe-fire-and-forget.js';
+
+// ============================================================================
+// BACKGROUND TASKS
+// ============================================================================
+
+export {
+  runBackground,
+  runBackgroundWithTimeout,
+  runBackgroundBatch,
+  type BackgroundTaskContext,
+} from './background-task.js';
+
+// ============================================================================
+// SESSION REGISTRY
+// ============================================================================
+
+export {
+  createSessionRegistry,
+  registerGlobalRegistry,
+  resetSessionGlobally,
+  resetAllSessionsGlobally,
+  getGlobalRegistryStats,
+  type SessionRegistry,
+  type SessionRegistryOptions,
+} from './session-registry.js';
+
+// ============================================================================
+// INTERVAL MANAGER
+// ============================================================================
+
+export {
+  registerInterval,
+  clearNamedInterval,
+  clearAllIntervals,
+  getIntervalStats,
+  hasInterval,
+} from './interval-manager.js';
+
+// ============================================================================
+// LAZY SERVICE
+// ============================================================================
+
+export { lazyService, type LazyServiceOptions } from './lazy-service.js';
+// NOTE: lazyServices registry moved to services layer (see services/lazy-registry.ts)
+
+// ============================================================================
+// PERFORMANCE METRICS
+// ============================================================================
+
+export {
+  startTimer,
+  stopTimer,
+  recordSample,
+  timeAsync,
+  timeSync,
+  getMetricSummary,
+  getAllMetricSummaries,
+  getMetricSamples,
+  clearAllMetrics,
+  logMetricsSummary,
+  METRICS,
+  type MetricSample,
+  type MetricSummary,
+  type MetricName,
+} from './performance-metrics.js';
+
+// ============================================================================
+// COGNITIVE METRICS
+// ============================================================================
+
+export {
+  cognitiveMetrics,
+  timeCognitiveOperation,
+  timeCognitiveOperationSync,
+  recordTurnMetrics,
+  getCognitiveMetricsSummary,
+  maybeLogMetrics,
+  maybeBroadcastMetrics,
+  registerCognitiveMetricsBroadcast,
+  clearCognitiveMetricsBroadcast,
+  type CognitiveMetrics,
+  type CognitiveMetricsSummary,
+  type CognitiveMetricsBroadcastCallback,
+} from './cognitive-metrics.js';
+
+// ============================================================================
+// DDOS PROTECTION
+// ============================================================================
+
+export {
+  DDOS_CONFIG,
+  generateRequestId,
+  addRequestId,
+  hardenServer,
+  parseBodySafe,
+  parseJsonBodySafe,
+  isHealthRateLimited,
+  handleHealthEndpoint,
+  getClientIp,
+  createOAuthStateManager,
+  recordRateLimitEvent,
+  getRateLimitStats,
+  detectDDoSPattern,
+  registerDDoSAlertCallback,
+  checkAndAlertDDoS,
+  startDDoSMonitoring,
+  handleSecurityMonitoring,
+  type ParseBodyOptions,
+  type ParseBodyResult,
+} from './ddos-protection.js';
+
+// ============================================================================
+// DEFAULT EXPORTS
 // ============================================================================
 
 export { default as asyncUtils } from './async.js';
 export { default as metricsUtils } from './metrics.js';
 export { default as rateLimiterUtils } from './rate-limiter.js';
+export { default as circuitBreakerUtils } from './circuit-breaker.js';
+export { default as sessionRegistryUtils } from './session-registry.js';
+export { default as cognitiveMetricsUtils } from './cognitive-metrics.js';

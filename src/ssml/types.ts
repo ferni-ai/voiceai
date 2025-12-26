@@ -13,6 +13,15 @@
  */
 
 // =============================================================================
+// RE-EXPORT TYPES FROM SOURCE MODULES
+// =============================================================================
+
+// Re-export types from their canonical sources to avoid duplication
+export type { ThinkingContext, ThinkingInjection } from '../conversation/thinking-time-injector.js';
+
+export type { BreathGroupConfig, FillerConfig } from '../speech/advanced-humanization.js';
+
+// =============================================================================
 // PRONUNCIATION TYPES
 // =============================================================================
 
@@ -188,6 +197,10 @@ export function isCartesiaSupportedEmotion(emotion: string): boolean {
 // SSML TAG OPTION TYPES
 // =============================================================================
 
+// Import the actual types from source modules
+import type { BreathGroupConfig, FillerConfig } from '../speech/advanced-humanization.js';
+import type { ThinkingContext, ThinkingInjection } from '../conversation/thinking-time-injector.js';
+
 /**
  * Options for SSML tagging functions
  */
@@ -218,57 +231,6 @@ export interface SsmlTagOptions {
   thinkingContext?: ThinkingContext;
   /** Pre-calculated thinking injection */
   thinkingInjection?: ThinkingInjection;
-}
-
-/**
- * Configuration for filler injection
- * (imported from speech module but defined here for reference)
- */
-export interface FillerConfig {
-  /** Probability of injecting a filler (0-1) */
-  probability?: number;
-  /** Maximum fillers per response */
-  maxPerResponse?: number;
-  /** Persona-specific filler style */
-  personaStyle?: string;
-}
-
-/**
- * Configuration for breath group pacing
- */
-export interface BreathGroupConfig {
-  /** Short pause duration in ms */
-  shortPause?: number;
-  /** Medium pause duration in ms */
-  mediumPause?: number;
-  /** Long pause duration in ms */
-  longPause?: number;
-}
-
-/**
- * Context for thinking time calculation
- */
-export interface ThinkingContext {
-  /** Question complexity (0-1) */
-  complexity?: number;
-  /** Topic weight */
-  topicWeight?: 'light' | 'medium' | 'heavy';
-  /** Whether this is a new topic */
-  isNewTopic?: boolean;
-  /** Previous thinking pauses used */
-  previousPauses?: number;
-}
-
-/**
- * Calculated thinking injection
- */
-export interface ThinkingInjection {
-  /** Pause duration in ms */
-  pauseMs: number;
-  /** Thinking sound to use (e.g., "hmm", "well") */
-  sound?: string;
-  /** Position in text */
-  position: 'start' | 'middle' | 'end';
 }
 
 // =============================================================================

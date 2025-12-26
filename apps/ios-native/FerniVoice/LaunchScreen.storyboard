@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    LaunchScreen.storyboard
+
+    DESIGN INTENT: Seamless transition to MagicalSplashView's Luxo Jr. bounce entrance
+
+    The MagicalSplashView starts with:
+    - Character off-screen (characterOffset: 400, below visible area)
+    - Pure dark background matching splash gradient (#08080f → #0f0f18)
+    - Subtle center glow hint that builds anticipation
+
+    This creates the illusion that Ferni literally "bounces into" darkness,
+    just like Luxo Jr. jumping onto the Pixar logo!
+-->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <device id="retina6_12" orientation="portrait" appearance="dark"/>
     <dependencies>
@@ -16,19 +29,26 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="logo-image">
-                                <rect key="frame" x="136.5" y="366" width="120" height="120"/>
+                            <!-- Subtle center glow hint - matches MagicalSplashView's initial ambientGlow -->
+                            <!-- This creates anticipation: "something is about to appear here" -->
+                            <!-- Note: Launch screens can't have corner radius via runtime attributes, -->
+                            <!-- so the glow is subtle enough that square edges aren't noticeable -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="anticipation-glow">
+                                <rect key="frame" x="96.5" y="286" width="200" height="200"/>
+                                <color key="backgroundColor" red="0.29019607843" green="0.40392156863" blue="0.25490196078" alpha="0.05" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="120" id="logo-w"/>
-                                    <constraint firstAttribute="height" constant="120" id="logo-h"/>
+                                    <constraint firstAttribute="width" constant="200" id="glow-w"/>
+                                    <constraint firstAttribute="height" constant="200" id="glow-h"/>
                                 </constraints>
-                            </imageView>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <!-- Dark background matching MagicalSplashView: #08080f -->
+                        <color key="backgroundColor" red="0.03137254902" green="0.03137254902" blue="0.05882352941" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
-                            <constraint firstItem="logo-image" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="logo-cx"/>
-                            <constraint firstItem="logo-image" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="logo-cy"/>
+                            <constraint firstItem="anticipation-glow" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="glow-cx"/>
+                            <!-- Positioned slightly above center to match MagicalSplashView's glow offset -->
+                            <constraint firstItem="anticipation-glow" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-80" id="glow-cy"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -38,7 +58,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchLogo" width="60" height="60"/>
         <systemColor name="systemBackgroundColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

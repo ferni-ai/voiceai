@@ -63,10 +63,10 @@ const MODULE_LOADERS: Record<string, ModuleLoader> = {
   'services/voice-speaker-change': () => import('../../services/voice/voice-speaker-change.js'),
 
   // Tools
-  'tools/auto-optimizer': () => import('../../tools/auto-optimizer.js'),
+  'tools/auto-optimizer': () => import('../../tools/optimization/auto-optimizer.js'),
   'tools/dynamic-loader': () => import('../../tools/dynamic-loader.js'),
-  'tools/feedback-collector': () => import('../../tools/feedback-collector.js'),
-  'tools/pattern-analyzer': () => import('../../tools/pattern-analyzer.js'),
+  'tools/feedback-collector': () => import('../../tools/optimization/feedback-collector.js'),
+  'tools/pattern-analyzer': () => import('../../tools/optimization/pattern-analyzer.js'),
 
   // Audio
   'audio/index': () => import('../../audio/index.js'),

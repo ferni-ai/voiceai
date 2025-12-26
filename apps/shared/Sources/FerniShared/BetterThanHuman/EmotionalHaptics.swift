@@ -84,16 +84,41 @@ public class EmotionalHapticsEngine: ObservableObject {
     /// Play haptic for micro-expression
     public func playMicroExpression(_ type: MicroExpressionType) {
         switch type {
+        // Recognition & Connection
         case .recognition:
             playQuickFlutter(intensity: 0.25)
+        case .memorySpark:
+            playSparkle()  // Memory recognition gets sparkle
+            playWarmthPulse()  // Plus warmth
+        case .insider:
+            playQuickFlutter(intensity: 0.3)  // Knowing look
+
+        // Concern & Care
         case .concern:
             playSoftDoubleTap()
-        case .delight:
-            playSparkle()
-        case .warmth:
-            playWarmthPulse()
+        case .protective:
+            playGentleWave(duration: 0.3, intensity: 0.35)
+
+        // Interest & Engagement
         case .interest:
             playQuickFlutter(intensity: 0.3)
+        case .curiosityPeak:
+            playQuickFlutter(intensity: 0.35)  // More intense curiosity
+        case .delight:
+            playSparkle()
+
+        // Understanding
+        case .epiphany:
+            playSparkle()  // "Aha!" gets sparkle
+        case .connection:
+            playWarmthPulse()
+            playSubtleTap(intensity: 0.3)  // Mutual understanding tap
+
+        // Warmth
+        case .warmth:
+            playWarmthPulse()
+        case .affection:
+            playGentleWave(duration: 0.25, intensity: 0.3)
         }
     }
 

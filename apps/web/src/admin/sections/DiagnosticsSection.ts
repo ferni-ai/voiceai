@@ -430,7 +430,7 @@ async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.events || [];
+      return data.events ?? [];
     }
   } catch {
     // API unavailable - return empty array (not mock data)
@@ -448,7 +448,7 @@ async function fetchServiceHealth(): Promise<ServiceHealth[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.services || [];
+      return data.services ?? [];
     }
   } catch {
     // API unavailable - return empty array
@@ -462,7 +462,7 @@ function formatServiceDetail(service: ServiceHealth): string {
   if (service.latency !== undefined) {
     return `${service.latency}ms latency`;
   }
-  return service.details || service.status;
+  return service.details ?? service.status;
 }
 
 export default { render };

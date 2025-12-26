@@ -18,6 +18,7 @@
  * @module @ferni/humanization/cross-session-voice
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceSnapshot } from './voice-print.js';
 
@@ -559,7 +560,7 @@ export class CrossSessionVoiceEngine {
     priority: CrossSessionAcknowledgment['priority']
   ): CrossSessionAcknowledgment {
     const templates = CROSS_SESSION_ACKNOWLEDGMENTS[type];
-    const text = templates[Math.floor(Math.random() * templates.length)];
+    const text = seededPick(`${Date.now()}:563`, templates) ?? templates[0];
 
     return {
       text,
@@ -605,7 +606,7 @@ export class CrossSessionVoiceEngine {
         category = 'observation';
     }
 
-    const text = templates[Math.floor(Math.random() * templates.length)];
+    const text = seededPick(`${Date.now()}:609`, templates) ?? templates[0];
 
     return {
       text,

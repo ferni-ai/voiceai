@@ -33,6 +33,9 @@ import { ALL_TOOL_DOMAINS, type ToolDefinition, type ToolDomain } from './types.
 /**
  * Essential domains that are always loaded at startup.
  * These are needed for basic agent functionality.
+ * 
+ * NOTE: Without semantic router, Gemini needs tools available at session start.
+ * If a tool isn't here, Gemini won't know it can call it!
  */
 export const ESSENTIAL_DOMAINS: ToolDomain[] = [
   'memory', // Core memory operations
@@ -41,6 +44,8 @@ export const ESSENTIAL_DOMAINS: ToolDomain[] = [
   'simple-utilities', // Timers, conversions, etc.
   'entertainment', // Music - MUST be available immediately (users ask for music often!)
   'behavior', // Behavior control - modes, pacing, presence (core to how Ferni speaks)
+  'information', // News, weather, search - users ask constantly!
+  'communication', // Email, SMS, phone calls - core actions
 ];
 
 /**
@@ -48,9 +53,8 @@ export const ESSENTIAL_DOMAINS: ToolDomain[] = [
  * These are commonly used but can be slightly delayed.
  */
 export const HIGH_PRIORITY_DOMAINS: ToolDomain[] = [
-  'information', // News, weather, search
   'productivity', // Tasks, notes
-  // Note: 'entertainment' moved to ESSENTIAL_DOMAINS - music needs to be available immediately
+  // Note: 'entertainment', 'information', 'communication' moved to ESSENTIAL_DOMAINS
 ];
 
 /**

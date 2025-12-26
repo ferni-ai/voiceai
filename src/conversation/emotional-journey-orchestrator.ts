@@ -24,6 +24,7 @@
  * @module EmotionalJourneyOrchestrator
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'EmotionalJourney' });
@@ -172,7 +173,7 @@ function selectEmotionalMoment(
 
     case 'exploration':
       // Only delight if low distress and some rapport built
-      if (ctx.distressLevel < 0.3 && ctx.turnCount > 3 && Math.random() < 0.15) {
+      if (ctx.distressLevel < 0.3 && ctx.turnCount > 3 && seededChance(`${Date.now()}:176`, 0.15)) {
         return 'delightful_surprise';
       }
       return null;

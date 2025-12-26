@@ -148,10 +148,7 @@ function getHotTierIndexKey(userId: string): string {
 /**
  * Store a memory in hot tier (Redis)
  */
-export async function storeInHotTier(
-  userId: string,
-  memory: MemoryItem
-): Promise<boolean> {
+export async function storeInHotTier(userId: string, memory: MemoryItem): Promise<boolean> {
   if (!config.enabled) return false;
 
   const redis = getRedisCache();
@@ -196,10 +193,7 @@ export async function storeInHotTier(
 /**
  * Get a memory from hot tier (Redis)
  */
-export async function getFromHotTier(
-  userId: string,
-  memoryId: string
-): Promise<MemoryItem | null> {
+export async function getFromHotTier(userId: string, memoryId: string): Promise<MemoryItem | null> {
   if (!config.enabled) return null;
 
   const redis = getRedisCache();
@@ -233,10 +227,7 @@ export async function getFromHotTier(
 /**
  * Remove a memory from hot tier
  */
-export async function removeFromHotTier(
-  userId: string,
-  memoryId: string
-): Promise<boolean> {
+export async function removeFromHotTier(userId: string, memoryId: string): Promise<boolean> {
   if (!config.enabled) return false;
 
   const redis = getRedisCache();
@@ -274,10 +265,7 @@ export async function removeFromHotTier(
 /**
  * Record a memory access and potentially promote to hot tier
  */
-export async function recordMemoryAccess(
-  userId: string,
-  memory: MemoryItem
-): Promise<void> {
+export async function recordMemoryAccess(userId: string, memory: MemoryItem): Promise<void> {
   if (!config.enabled) return;
 
   const trackKey = `${userId}:${memory.id}`;
@@ -346,7 +334,10 @@ export async function runDemotionCheck(): Promise<{ demoted: number }> {
       if (success) {
         demoted++;
         stats.demotions++;
-        log.info({ userId: record.userId, memoryId: record.memoryId }, 'Demoted memory from hot tier');
+        log.info(
+          { userId: record.userId, memoryId: record.memoryId },
+          'Demoted memory from hot tier'
+        );
       }
     }
   }
@@ -392,10 +383,7 @@ export async function getMemoryTiered(
   if (warmResult) {
     // Record access for potential promotion
     await recordMemoryAccess(userId, warmResult);
-    log.debug(
-      { userId, memoryId, latencyMs: warmLatency },
-      'Warm tier fetch'
-    );
+    log.debug({ userId, memoryId, latencyMs: warmLatency }, 'Warm tier fetch');
     return warmResult;
   }
 

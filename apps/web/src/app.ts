@@ -79,6 +79,8 @@ import { initStatsUI, statsUI } from './ui/stats.ui.js';
 import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
 // 📱 Mobile Delights - Magical mobile interactions (tilt, tap-to-look, haptics, etc.)
 import { disposeMobileDelights, initMobileDelights } from './ui/mobile-delights.ui.js';
+// 📱 Mobile Bottom Sheet - Zen Mode settings access
+import { disposeMobileBottomSheet, initMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
@@ -100,6 +102,8 @@ import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
 import { initJournalCapture } from './services/journal-capture.service.js';
 // Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
+// CLI Authentication (for ferni auth login)
+import { initCLIAuth } from './ui/cli-auth.ui.js';
 // New Unified Admin Portal
 import { initAdminPortal } from './admin/index.js';
 // Engagement UI
@@ -160,7 +164,7 @@ import {
   initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
-import { initI18n, t } from './i18n/index.js';
+import { initI18n } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext, initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
@@ -200,6 +204,8 @@ import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 import { showGamePicker } from './ui/game-picker.ui.js';
 import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
+// Team Intro - Meet the team modal for mobile
+import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
 import {
@@ -254,7 +260,6 @@ import { initServiceHealthUI } from './ui/service-health.ui.js';
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
 import { futureInsightsUI } from './ui/future-insights.ui.js';
-import { teaserPreview } from './ui/teaser-preview.ui.js';
 import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
@@ -434,7 +439,7 @@ class VoiceAIApp {
     // Initialize crash reporter FIRST for comprehensive error capture
     try {
       const { initCrashReporter } = await import('./services/crash-reporter.service.js');
-      initCrashReporter();
+      void initCrashReporter();
     } catch (e) {
       log.warn('Failed to initialize crash reporter:', e);
     }
@@ -442,7 +447,7 @@ class VoiceAIApp {
     // Initialize disconnect diagnostics for detailed mic drop analysis
     try {
       const { initDisconnectDiagnostics, flushStoredDiagnostics } = await import('./services/disconnect-diagnostics.service.js');
-      initDisconnectDiagnostics();
+      void initDisconnectDiagnostics();
       // Flush any diagnostics stored from previous session
       void flushStoredDiagnostics();
     } catch (e) {
@@ -452,7 +457,7 @@ class VoiceAIApp {
     // Initialize offline service (service worker, sync queue)
     try {
       const { initOfflineService } = await import('./services/offline.service.js');
-      initOfflineService();
+      void initOfflineService();
     } catch (e) {
       log.warn('Failed to initialize offline service:', e);
     }
@@ -460,6 +465,12 @@ class VoiceAIApp {
     // Check for admin route
     if (window.location.pathname === '/admin') {
       void this.initializeAdmin();
+      return;
+    }
+
+    // Check for CLI authentication route
+    if (window.location.pathname === '/cli-auth') {
+      initCLIAuth();
       return;
     }
 
@@ -950,12 +961,12 @@ class VoiceAIApp {
     // Wire up theme toggle button
     const toggleBtn = document.getElementById('themeToggle');
     if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
+      this.addTrackedListener(toggleBtn, 'click', () => {
         toggleTheme();
       });
 
       // Add keyboard shortcut (T) for theme toggle
-      document.addEventListener('keydown', (e) => {
+      this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
         if (e.key === 't' || e.key === 'T') {
           // Don't toggle if user is typing in an input
           if (
@@ -965,7 +976,7 @@ class VoiceAIApp {
             toggleTheme();
           }
         }
-      });
+      }) as EventListener);
     }
 
     // Listen for theme changes (for analytics or other systems)
@@ -1154,6 +1165,9 @@ class VoiceAIApp {
         },
       })
     );
+    // 📱 Mobile Bottom Sheet - Zen mode settings access (swipe up for menu)
+    this.safeInit('MobileBottomSheet', () => initMobileBottomSheet());
+
     // Disabled: Eye peek-throughs removed - keeping just the zen blink
     // this.safeInit('FerniEye', () => initFerniEye());
     // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
@@ -1502,6 +1516,8 @@ class VoiceAIApp {
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
     this.safeInit('CameoRoster', () => initCameoRoster());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
+    // Team Intro - "Meet the Team" modal (used by mobile bottom sheet)
+    this.safeInit('TeamIntro', () => initTeamIntro());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
     this.safeInit('GroupConversationUI', () => initGroupConversationUI());
@@ -1511,8 +1527,8 @@ class VoiceAIApp {
     // Stage celebrations, trust signal cards, persona intros, feature hints, progress indicator
     this.safeInit('ProgressiveFeatures', () => {
       // Import dynamically to avoid circular deps
-      import('./services/progressive-features.service.js').then(({ initProgressiveFeatures }) => {
-        initProgressiveFeatures();
+      void import('./services/progressive-features.service.js').then(({ initProgressiveFeatures }) => {
+        void initProgressiveFeatures();
       });
     });
 
@@ -1625,8 +1641,15 @@ class VoiceAIApp {
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => {
           // Open enhanced insights hub with all journey views
-          import('./ui/insights-hub.ui.js').then(({ showInsightsHub }) => {
-            showInsightsHub();
+          void import('./ui/insights-hub.ui.js').then(({ showInsightsHub }) => {
+            void showInsightsHub();
+          });
+        },
+        onYourYearClick: () => {
+          // Open "Your Year with Ferni" visualization
+          import('./ui/your-year-with-ferni.ui.js').then(({ openYourYearWithFerni }) => {
+            const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+            openYourYearWithFerni(userId);
           });
         },
         onFutureInsightsClick: () => futureInsightsUI.open(),
@@ -1652,7 +1675,7 @@ class VoiceAIApp {
         },
         onCreativeYouClick: () => {
           const userId = appState.get('deviceId') || 'anonymous';
-          openCreativeYouDashboard(userId);
+          void openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
         onJournalClick: () => void openDigitalTwinUI(),
@@ -1663,16 +1686,16 @@ class VoiceAIApp {
         onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
         onAllConnectionsClick: () => {
           // Open the Connected Life panel (consolidates all integrations)
-          import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
-            showConnectedLife({
+          void import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
+            void showConnectedLife({
               onConnectAppleHealth: () => void showAppleHealthSettings(),
               onConnectOura: () => void showOuraSettings(),
               onConnectEightSleep: () => void showEightSleepSettings(),
               onConnectWearables: () => void showWearableSettings(),
               onConnectCalendar: () => void openCalendarSettings(),
               onConnectLinkedIn: () => {
-                initLinkedInSettings();
-                showLinkedInSettings();
+                void initLinkedInSettings();
+                void showLinkedInSettings();
               },
               onConnectSpotify: () => void triggerSpotifyLinkToggle(),
               onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
@@ -1726,24 +1749,32 @@ class VoiceAIApp {
     // 📬 Listen for push notification navigation events
     this.addTrackedListener(window, 'ferni:open-engagement', () => {
       // Open InsightsView ("What I'm Noticing") - the relationship-focused view
-      getInsightsView().show();
+      void getInsightsView().show();
     });
     this.addTrackedListener(window, 'ferni:open-predictions', () => {
-      getPredictionsUI().show();
+      void getPredictionsUI().show();
     });
     this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
-      showTeamHuddle();
+      void showTeamHuddle();
     });
     // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
     this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
       // Import dynamically to avoid circular deps
       void import('./ui/group-conversation.ui.js').then((m) => {
-        m.showTeamSelector(e.detail?.preselected);
+        void m.showTeamSelector(e.detail?.preselected);
       });
     }) as EventListener);
     this.addTrackedListener(window, 'ferni:add-call-participant', () => {
       void import('./ui/group-conversation.ui.js').then((m) => {
-        m.showAddParticipant();
+        void m.showAddParticipant({
+          onAdd: (phoneNumber, name, relationship) => {
+            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
+            // TODO: Implement actual participant addition via connection service
+          },
+          onCancel: () => {
+            log.debug('Add participant cancelled');
+          },
+        });
       });
     });
 
@@ -1797,10 +1828,27 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-daily-practice', () => {
       // Daily check-in - open the relationship-focused InsightsView
-      getInsightsView().show();
+      void getInsightsView().show();
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
       void marketplaceUI.open();
+    });
+
+    // 📱 Mobile Bottom Sheet - Quick action event handlers
+    this.addTrackedListener(window, 'ferni:open-settings', () => {
+      void getSettingsMenuUI().show();
+    });
+    this.addTrackedListener(window, 'ferni:open-team', () => {
+      void showTeamIntro();
+    });
+    this.addTrackedListener(window, 'ferni:open-music', () => {
+      void musicDashboard.show();
+    });
+    this.addTrackedListener(window, 'ferni:open-calendar', () => {
+      void showCalendarView();
+    });
+    this.addTrackedListener(window, 'ferni:open-people', () => {
+      openYourPeople();
     });
 
     // 🌱 Garden Widget - Plant seed flow integration
@@ -1941,10 +1989,10 @@ class VoiceAIApp {
     // Marketplace button - opens agent marketplace modal
     const marketplaceBtn = document.getElementById('marketplaceBtn');
     if (marketplaceBtn) {
-      marketplaceBtn.addEventListener('click', (e) => {
+      this.addTrackedListener(marketplaceBtn, 'click', ((e: MouseEvent) => {
         e.stopPropagation(); // Prevent team roster from handling this
         void marketplaceUI.open();
-      });
+      }) as EventListener);
     }
   }
 
@@ -2919,6 +2967,7 @@ class VoiceAIApp {
     // This prevents memory leaks from event listeners and timers
     disposeAmbientSounds();
     disposeMobileDelights();
+    disposeMobileBottomSheet();
     disposeFerniMoments();
     disposeConnectionHeart();
     disposeLogoExpressions();

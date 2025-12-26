@@ -202,7 +202,33 @@ export {
 // UNIFIED CONTEXT BUILDER
 // ============================================================================
 
+import { buildSilenceContext } from './silence-interpreter.js';
+import { buildContradictionAwarenessContext } from './contradiction-comfort.js';
+import { buildTimingContext, getTimingProfile, type ReceptivityScore } from './perfect-timing.js';
+import { buildPatternMirrorContext } from './pattern-mirror.js';
+import { buildFutureSelfContext, getRecentLetter } from './future-self.js';
+
+// V2 Better Than Human imports
+import { buildVoiceBiomarkersContext, type VoiceBiomarkers as CurrentVoiceBiomarkers } from './voice-biomarkers.js';
+import { buildMoodCalendarContext } from './mood-calendar.js';
+import { buildSocialBatteryContext } from './social-battery.js';
+import { buildConflictResolutionContext } from './conflict-resolution-memory.js';
+import { buildProtectiveSilenceContext } from './protective-silence.js';
+import { buildCalendarPrepContext, type CalendarEvent as PrepCalendarEvent } from './calendar-prep-coaching.js';
+import { buildEnergyWaveContext } from './energy-wave-mapping.js';
+import { buildVocabularyContext, buildVagueEmotionContext, detectVagueEmotions } from './emotional-vocabulary.js';
+import { buildRecoveryContext } from './recovery-tracking.js';
+import { buildInsideJokeContext } from './inside-joke-memory.js';
+
+// V3 Semantic Intelligence imports
+import {
+  buildSemanticIntelligenceContext,
+  formatSemanticIntelligenceContext,
+  type SemanticIntelligenceContext,
+} from './semantic-intelligence/index.js';
+
 export interface SuperhumanContext {
+  // Original 10 capabilities
   commitments: string;
   predictions: string;
   narrative: string;
@@ -213,6 +239,25 @@ export interface SuperhumanContext {
   dreams: string;
   milestones: string;
   seasonal: string;
+  // "Better Than Human" V1 (Dec 2025)
+  silence: string;
+  contradiction: string;
+  timing: string;
+  patterns: string;
+  futureSelf: string;
+  // "Better Than Human" V2 - 10 New Capabilities (Dec 2025)
+  voiceBiomarkers: string;
+  moodCalendar: string;
+  socialBattery: string;
+  conflictResolution: string;
+  protectiveSilence: string;
+  calendarPrep: string;
+  energyWave: string;
+  emotionalVocabulary: string;
+  recoveryTracking: string;
+  insideJokes: string;
+  // "Better Than Human" V3 - Semantic Intelligence (Dec 2025)
+  semanticIntelligence: string;
 }
 
 /**
@@ -230,9 +275,27 @@ export async function buildSuperhumanContext(
       vulnerableMoments?: number;
       breakthroughs?: number;
     };
+    currentReceptivity?: ReceptivityScore;
+    currentVoiceBiomarkers?: CurrentVoiceBiomarkers;
+    upcomingCalendarEvents?: PrepCalendarEvent[];
+    currentTranscript?: string;
+    currentMentionedPerson?: string;
+    // V3 Semantic Intelligence options
+    currentTopics?: string[];
+    currentEmotion?: string;
   }
 ): Promise<SuperhumanContext> {
-  const { crisisSignal, relationshipStats } = options || {};
+  const {
+    crisisSignal,
+    relationshipStats,
+    currentReceptivity,
+    currentVoiceBiomarkers,
+    upcomingCalendarEvents,
+    currentTranscript,
+    currentMentionedPerson,
+    currentTopics,
+    currentEmotion,
+  } = options || {};
 
   // Build all contexts in parallel
   const [
@@ -245,6 +308,22 @@ export async function buildSuperhumanContext(
     dreams,
     milestones,
     seasonal,
+    // V1 capabilities
+    silence,
+    contradiction,
+    futureSelfLetter,
+    // V2 "Better Than Human" capabilities
+    voiceBiomarkers,
+    moodCalendar,
+    socialBattery,
+    conflictResolution,
+    protectiveSilence,
+    calendarPrep,
+    energyWave,
+    emotionalVocabularyBase,
+    recoveryTracking,
+    insideJokes,
+    semanticIntelligenceCtx,
   ] = await Promise.all([
     buildCommitmentContext(userId),
     buildPredictiveContextString(userId),
@@ -255,7 +334,44 @@ export async function buildSuperhumanContext(
     buildDreamContext(userId),
     relationshipStats ? buildMilestoneContext(userId, relationshipStats) : Promise.resolve(''),
     buildSeasonalContext(userId),
+    // V1 capability builders
+    buildSilenceContext(userId),
+    buildContradictionAwarenessContext(userId),
+    getRecentLetter(userId),
+    // V2 "Better Than Human" capability builders
+    buildVoiceBiomarkersContext(userId, currentVoiceBiomarkers),
+    buildMoodCalendarContext(userId),
+    buildSocialBatteryContext(userId),
+    buildConflictResolutionContext(userId, currentMentionedPerson),
+    buildProtectiveSilenceContext(userId),
+    buildCalendarPrepContext(userId, upcomingCalendarEvents),
+    buildEnergyWaveContext(userId),
+    buildVocabularyContext(userId),
+    buildRecoveryContext(userId),
+    buildInsideJokeContext(userId, currentTranscript),
+    // V3 Semantic Intelligence
+    buildSemanticIntelligenceContext(userId, {
+      content: currentTranscript,
+      topics: currentTopics,
+      emotion: currentEmotion,
+      personMentioned: currentMentionedPerson,
+    }),
   ]);
+
+  // Synchronous builders (don't need await)
+  const timing = buildTimingContext(userId, currentReceptivity);
+  const patterns = buildPatternMirrorContext(userId);
+  const futureSelf = buildFutureSelfContext(futureSelfLetter);
+
+  // Detect vague emotions in current transcript
+  let emotionalVocabulary = emotionalVocabularyBase;
+  if (currentTranscript) {
+    const vagueEmotions = detectVagueEmotions(currentTranscript);
+    if (vagueEmotions.length > 0) {
+      const vagueContext = buildVagueEmotionContext(vagueEmotions);
+      emotionalVocabulary = vagueContext || emotionalVocabularyBase;
+    }
+  }
 
   // Check for crisis (from passed signal or detect from context)
   let crisis: string | null = null;
@@ -277,6 +393,25 @@ export async function buildSuperhumanContext(
     dreams,
     milestones,
     seasonal,
+    // V1 capabilities
+    silence,
+    contradiction,
+    timing,
+    patterns,
+    futureSelf,
+    // V2 "Better Than Human" capabilities
+    voiceBiomarkers,
+    moodCalendar,
+    socialBattery,
+    conflictResolution,
+    protectiveSilence,
+    calendarPrep,
+    energyWave,
+    emotionalVocabulary,
+    recoveryTracking,
+    insideJokes,
+    // V3 Semantic Intelligence
+    semanticIntelligence: formatSemanticIntelligenceContext(semanticIntelligenceCtx),
   };
 }
 
@@ -293,8 +428,8 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
     sections.push('\n---\n');
   }
 
-  // Core superhuman capabilities
-  const capabilities = [
+  // Core superhuman capabilities (original 10)
+  const coreCapabilities = [
     context.commitments,
     context.predictions,
     context.narrative,
@@ -306,12 +441,335 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
     context.milestones,
   ].filter((c) => c && c.length > 0);
 
-  if (capabilities.length > 0) {
+  // V1 "Better Than Human" capabilities
+  const betterThanHumanV1 = [
+    context.silence,
+    context.contradiction,
+    context.timing,
+    context.patterns,
+    context.futureSelf,
+  ].filter((c) => c && c.length > 0);
+
+  // V2 "Better Than Human" capabilities - 10 New!
+  const betterThanHumanV2 = [
+    context.voiceBiomarkers,
+    context.moodCalendar,
+    context.socialBattery,
+    context.conflictResolution,
+    context.protectiveSilence,
+    context.calendarPrep,
+    context.energyWave,
+    context.emotionalVocabulary,
+    context.recoveryTracking,
+    context.insideJokes,
+  ].filter((c) => c && c.length > 0);
+
+  if (coreCapabilities.length > 0 || betterThanHumanV1.length > 0 || betterThanHumanV2.length > 0) {
     sections.push('[SUPERHUMAN CAPABILITIES ACTIVE]');
     sections.push('You have access to capabilities no human friend has.');
     sections.push('Use them wisely. Be magical, not mechanical.\n');
-    sections.push(...capabilities);
+    sections.push(...coreCapabilities);
+
+    if (betterThanHumanV1.length > 0) {
+      sections.push('\n[BETTER THAN HUMAN V1 - Enhanced Awareness]\n');
+      sections.push(...betterThanHumanV1);
+    }
+
+    if (betterThanHumanV2.length > 0) {
+      sections.push('\n[BETTER THAN HUMAN V2 - Superhuman Capabilities]\n');
+      sections.push(...betterThanHumanV2);
+    }
+
+    // V3 Semantic Intelligence
+    if (context.semanticIntelligence && context.semanticIntelligence.length > 0) {
+      sections.push('\n[BETTER THAN HUMAN V3 - Semantic Intelligence]\n');
+      sections.push(context.semanticIntelligence);
+    }
   }
 
   return sections.join('\n');
 }
+
+// ============================================================================
+// "BETTER THAN HUMAN" CAPABILITIES (New - Dec 2025)
+// ============================================================================
+
+// Silence Interpreter - Understand different types of silence
+export {
+  silenceInterpreter,
+  analyzeSilence,
+  recordSilenceOutcome,
+  loadSilenceProfile,
+  updateBaselineTolerance,
+  buildSilenceGuidance,
+  buildSilenceContext,
+  shouldAnalyzeSilence,
+  getResponsePhrase,
+  type SilenceType,
+  type SilenceResponse,
+  type SilenceAnalysis,
+  type SilenceProfile,
+  type SilenceHistoryEntry,
+} from './silence-interpreter.js';
+
+// Contradiction Comfort - Hold space for opposing emotions
+export {
+  contradictionComfort,
+  detectContradiction,
+  recordContradiction,
+  loadContradictionProfile,
+  buildContradictionContext,
+  buildContradictionAwarenessContext,
+  getValidationPhrase,
+  areCommonlyCoexisting,
+  type ContradictionDetection,
+  type ContradictionProfile,
+  type ContradictionHistory,
+  type ContradictionPattern,
+} from './contradiction-comfort.js';
+
+// Perfect Timing Intelligence - Know when to surface topics
+export {
+  perfectTiming,
+  detectReceptivity,
+  recordTimingLearning,
+  queueTopicForRightMoment,
+  getTopicsForNow,
+  markTopicSurfaced,
+  isGoodTimeFor,
+  buildTimingContext,
+  loadTimingProfile,
+  getTimingProfile,
+  type ReceptivityScore,
+  type TimingIntelligence,
+  type QueuedTopic,
+  type TimeWindow as TimingWindow,
+  type ConversationType,
+  type CalendarPressure,
+  type GreetingTone,
+} from './perfect-timing.js';
+
+// Pattern Mirror - Surface patterns users can't see
+export {
+  patternMirror,
+  recordTopicEnergy,
+  recordWordVoiceMismatch,
+  recordCyclicalPattern,
+  getPatternToSurface,
+  markInsightSurfaced as markPatternInsightSurfaced,
+  buildPatternMirrorContext,
+  savePatternProfile,
+  loadPatternProfile,
+  getPatternProfile,
+  type TopicEnergy,
+  type CyclicalPattern,
+  type FadingTopic,
+  type WordVoiceMismatch,
+  type PatternInsight,
+  type PatternMirrorProfile,
+} from './pattern-mirror.js';
+
+// Future Self Letters - Project trajectory
+export {
+  futureSelf,
+  generateFutureSelfLetter,
+  getRecentLetter,
+  buildFutureSelfContext,
+  type FutureSelfLetter,
+  type FutureSelfContext,
+  type LetterTimeframe,
+  type PositivePattern,
+  type ConcerningPattern,
+} from './future-self.js';
+
+// ============================================================================
+// "BETTER THAN HUMAN" CAPABILITIES V2 (New - Dec 2025)
+// ============================================================================
+
+// Voice Biomarkers - Wellness detection from voice patterns
+export {
+  voiceBiomarkers,
+  analyzeVoiceBiomarkers,
+  storeBiomarkerReading,
+  loadBiomarkerReadings,
+  getBiomarkerTrends,
+  calculateStressTrajectory,
+  buildVoiceBiomarkersContext,
+  type VoiceBiomarkers,
+  type VoiceAnalysisInput,
+} from './voice-biomarkers.js';
+
+// Mood Calendar - Predict emotional patterns
+export {
+  moodCalendar,
+  recordMoodEntry,
+  loadMoodEntries,
+  detectMoodPatterns,
+  predictMood,
+  getMoodCalendarSummary,
+  buildMoodCalendarContext,
+  type MoodType,
+  type MoodEntry,
+  type MoodPattern,
+  type MoodPrediction,
+  type MoodCalendarSummary,
+} from './mood-calendar.js';
+
+// Social Battery - Know when they're "peopled out"
+export {
+  socialBattery,
+  recordSocialEvent,
+  loadSocialEvents,
+  getSocialBatteryState,
+  getSocialBatteryProfile,
+  calculateBatteryLevel,
+  buildSocialBatteryContext,
+  type SocialEventType,
+  type SocialEvent,
+  type SocialBatteryState,
+  type SocialBatteryProfile,
+} from './social-battery.js';
+
+// Conflict Resolution Memory - What works in conflicts
+export {
+  conflictResolution,
+  recordConflict as recordConflictHistory,
+  updateConflictResolution,
+  loadConflictHistory,
+  analyzeConflictPattern,
+  getAllConflictPatterns,
+  getConflictRecommendations,
+  buildConflictResolutionContext,
+  type ConflictType,
+  type ResolutionApproach,
+  type ConflictOutcome,
+  type ConflictRecord,
+  type ConflictPattern,
+} from './conflict-resolution-memory.js';
+
+// Protective Silence - Topics to avoid
+export {
+  protectiveSilence,
+  recordBoundary,
+  updateBoundary,
+  removeBoundary,
+  loadBoundaries,
+  checkBoundaries,
+  inferBoundaryFromReaction,
+  checkResponseSafety,
+  buildProtectiveSilenceContext,
+  type BoundarySeverity,
+  type BoundaryCategory,
+  type ProtectiveBoundary,
+  type BoundaryCheckResult,
+} from './protective-silence.js';
+
+// Calendar Prep Coaching - Proactive event prep
+export {
+  calendarPrepCoaching,
+  classifyEvent,
+  loadEventHistory,
+  recordEventOutcome,
+  getPrepRecommendations,
+  buildCalendarPrepContext,
+  type EventDifficulty,
+  type EventType as CalendarEventType,
+  type CalendarEvent,
+  type EventHistory,
+  type PrepCoachingSession,
+  type PrepRecommendation,
+} from './calendar-prep-coaching.js';
+
+// Energy Wave Mapping - Optimal conversation times
+export {
+  energyWaveMapping,
+  recordInteraction as recordEnergyInteraction,
+  loadInteractions as loadEnergyInteractions,
+  analyzeEnergyPatterns,
+  getTimingRecommendation,
+  buildEnergyWaveContext,
+  type ConversationType as EnergyConversationType,
+  type EnergyLevel as EnergyWaveLevel,
+  type ConversationInteraction,
+  type EnergyWaveProfile,
+  type TimingRecommendation,
+} from './energy-wave-mapping.js';
+
+// Emotional Vocabulary Expansion - Name feelings precisely
+export {
+  emotionalVocabulary,
+  detectVagueEmotions,
+  suggestPreciseEmotions,
+  recordEmotionUsage,
+  loadEmotionHistory,
+  analyzeVocabularyProfile,
+  buildVagueEmotionContext,
+  buildVocabularyContext,
+  type EmotionCategory,
+  type EmotionWord,
+  type VagueEmotionMapping,
+  type EmotionUsageRecord,
+  type EmotionalVocabularyProfile,
+} from './emotional-vocabulary.js';
+
+// Recovery Time Tracking - Post-event recovery needs
+export {
+  recoveryTracking,
+  startRecoveryTracking,
+  markRecovered,
+  loadRecoveryHistory,
+  getActiveRecoveryEvents,
+  buildRecoveryProfile,
+  getCheckInRecommendation,
+  buildRecoveryContext,
+  type RecoveryEventType,
+  type RecoveryEvent,
+  type RecoveryProfile,
+  type RecoveryCheckIn,
+} from './recovery-tracking.js';
+
+// Inside Joke Memory - Shared history callbacks
+export {
+  insideJokeMemory,
+  recordSharedMoment,
+  loadSharedMoments,
+  recordMomentReference,
+  findCallbackOpportunities,
+  detectPotentialMoment,
+  identifyRunningGags,
+  buildInsideJokeContext,
+  suggestCallback,
+  type SharedMomentType,
+  type SharedMoment,
+  type CallbackOpportunity,
+} from './inside-joke-memory.js';
+
+// ============================================================================
+// "BETTER THAN HUMAN" V3 - SEMANTIC INTELLIGENCE (Dec 2025)
+// ============================================================================
+
+// Semantic Intelligence - 6 New Capabilities
+export {
+  // Main entry points
+  semanticIntelligence,
+  recordSemanticData,
+  buildSemanticIntelligenceContext,
+  formatSemanticIntelligenceContext,
+  getSemanticIntelligenceSummary,
+  clearSemanticIntelligenceCache,
+  // Individual services
+  correlationMining,
+  emotionalTrajectories,
+  relationalSemantics,
+  counterfactualMemory,
+  growthFingerprint,
+  crossSessionThreading,
+  // Types
+  type SemanticIntelligenceContext,
+  type SemanticCorrelation,
+  type EmotionalArc,
+  type RelationalNode,
+  type DecisionPoint,
+  type GrowthFingerprint as SemanticGrowthFingerprint,
+  type SemanticThread,
+} from './semantic-intelligence/index.js';

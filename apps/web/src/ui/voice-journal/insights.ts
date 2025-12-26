@@ -8,7 +8,7 @@
 
 import { getModal, getEntries } from './state.js';
 import { calculateStats } from './stats.js';
-import { getMoodIcon, getMoodLabel, getMoodScore, MOODS } from './mood-icons.js';
+import { getMoodIcon, getMoodLabel, getMoodScore } from './mood-icons.js';
 import type { CustomAgentMemory } from '../../services/custom-agent.service.js';
 
 // ============================================================================

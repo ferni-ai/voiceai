@@ -75,7 +75,7 @@ import { getMemoryOrchestrator } from '../../../memory/orchestrator.js';
 import {
   detectProactiveTriggers,
   type ProactiveTrigger,
-} from '../../../tools/proactive-coaching.js';
+} from '../../../tools/domains/proactive/coaching/index.js';
 import { getSuperhuman } from '../superhuman/superhuman-integration.js';
 // Better Than Human: Calendar awareness for research timing
 import { getCalendarLoadFactors } from '../../../services/calendar/calendar-load-service.js';
@@ -1375,7 +1375,16 @@ async function buildPeterResearchInsightsContext(
     const briefing = await buildInsightBriefing(userId, isHandoff);
 
     // Get superhuman context (predictions, values, commitments)
-    const superhumanContext = await getSuperhuman(userId, 'peter');
+    // V3 Semantic Intelligence needs current conversation context
+    const personMatch = input.userText?.match(
+      /\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i
+    );
+    const superhumanContext = await getSuperhuman(userId, 'peter', {
+      currentTranscript: input.userText,
+      currentTopics: input.analysis?.topics?.detected,
+      currentEmotion: input.analysis?.emotion?.primary,
+      currentMentionedPerson: personMatch?.[1],
+    });
 
     // Format for injection
     const briefingLines = formatBriefingForInjection(briefing, handoffBriefing, turnCount);

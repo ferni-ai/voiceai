@@ -11,7 +11,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('TranscriptUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE

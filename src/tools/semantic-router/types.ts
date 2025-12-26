@@ -250,6 +250,31 @@ export type ToolCategory =
 // ============================================================================
 
 /**
+ * Holistic context detected from user input.
+ * Provides relationship, emotional, and urgency signals.
+ */
+export interface HolisticContextSummary {
+  /** Detected relationship type (family_immediate, friends, professional, etc.) */
+  relationshipType?: string;
+  /** Relationship sentiment (personal, professional, transactional, collective) */
+  relationshipSentiment?: string;
+  /** Detected emotion type (stressed, happy, crisis, etc.) */
+  emotionType?: string;
+  /** Emotion valence (positive, negative, neutral, crisis) */
+  emotionValence?: string;
+  /** Overall urgency level */
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  /** Overall sentiment of the input */
+  sentiment: 'positive' | 'neutral' | 'negative' | 'crisis';
+  /** Is this a crisis situation requiring safety tools? */
+  isCrisis: boolean;
+  /** Is this a compound (multi-intent) query? */
+  isCompoundIntent: boolean;
+  /** Domain boosts from context (category → boost amount) */
+  domainBoosts: Record<string, number>;
+}
+
+/**
  * Result from the semantic router
  */
 export interface SemanticRouterResult {
@@ -267,6 +292,9 @@ export interface SemanticRouterResult {
 
   /** Routing metadata for debugging */
   metadata: RoutingMetadata;
+
+  /** Holistic context (relationship, emotion, urgency) detected from input */
+  holisticContext?: HolisticContextSummary;
 }
 
 /**
@@ -332,7 +360,8 @@ export type MatchLayer =
   | 'keyword' // Keyword scoring
   | 'embedding' // Semantic embedding similarity
   | 'context' // Conversation context
-  | 'history'; // User's tool usage history
+  | 'history' // User's tool usage history
+  | 'holistic'; // Holistic NLU (relationship, emotion, multi-intent)
 
 /**
  * Recommended action from router
@@ -504,7 +533,7 @@ export interface SemanticRouterConfig {
   enabledLayers: MatchLayer[];
 
   /** Embedding model to use */
-  embeddingModel: 'local' | 'openai' | 'voyage' | 'cohere';
+  embeddingModel: 'local' | 'openai' | 'voyage' | 'cohere' | 'google';
 
   /** Cache embeddings */
   cacheEmbeddings: boolean;
@@ -532,9 +561,10 @@ export const DEFAULT_ROUTER_CONFIG: SemanticRouterConfig = {
     embedding: 0.90, // Embeddings are very reliable
     context: 0.5, // Context is helpful but not definitive
     history: 0.3, // History is a weak signal
+    holistic: 0.85, // Holistic NLU (relationship, emotion, multi-intent) - high trust
   },
   maxMatches: 5,
-  enabledLayers: ['pattern', 'keyword', 'embedding', 'context'],
+  enabledLayers: ['pattern', 'keyword', 'embedding', 'context', 'holistic'],
   embeddingModel: 'google',
   cacheEmbeddings: true,
   debug: false,

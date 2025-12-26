@@ -189,7 +189,7 @@ export function closeJourney(): void {
   );
 
   soundUI.play('click');
-  animateOut(journeyModal).then(() => {
+  void animateOut(journeyModal).then(() => {
     journeyModal?.remove();
     journeyModal = null;
     isOpen = false;
@@ -434,7 +434,7 @@ function createModal(): void {
   journeyModal.querySelector('.journey-backdrop')?.addEventListener('click', closeJourney);
   journeyModal.querySelector('.journey-close')?.addEventListener('click', closeJourney);
   journeyModal.querySelector('.journey-share')?.addEventListener('click', () => {
-    shareJourney(celebrated, total, streak, totalDays);
+    void shareJourney(celebrated, total, streak, totalDays);
   });
 
   // Milestones toggle (collapsible section)
@@ -475,7 +475,7 @@ function createModal(): void {
   document.addEventListener('keydown', handleEscape);
 
   document.body.appendChild(journeyModal);
-  animateIn(journeyModal);
+  void animateIn(journeyModal);
 }
 
 // ============================================================================
@@ -704,7 +704,7 @@ function renderTrustInsights(): void {
   const insightsBody = journeyModal.querySelector('.journey-insights-body');
   if (!insightsBody) return;
 
-  const { trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
+  const { trustScore: _trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
 
   // Check if we have any meaningful data
   const hasData = growthMoments > 0 || winsCelebrated > 0 || sharedMoments > 0 || growthPatterns.length > 0;

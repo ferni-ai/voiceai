@@ -38,7 +38,7 @@ import { toast } from './toast.ui.js';
 const log = createLogger('SubscriptionUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -1031,20 +1031,32 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
     }
     
     .subscription-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
       max-width: min(900px, 100%);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
       padding: var(--space-8, 32px);
+    }
+    
+    
+    @supports not (backdrop-filter: blur(24px)) {
+      .subscription-card {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
     }
     
     .subscription-card--limit {

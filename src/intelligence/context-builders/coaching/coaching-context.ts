@@ -97,7 +97,7 @@ CRITICAL: Respond with warmth and care. Never abandon. Validate first, then gent
       const coaching = await getCoachingModule();
 
       // Get full coaching context (goals, actions, obstacles, style, values, journey, team)
-      const currentPersona = persona.id as 'ferni' | 'maya' | 'alex' | 'peter' | 'jack' | 'jordan';
+      const currentPersona = persona.id as 'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel';
       const coachingContext = coaching.getCoachingContextForLLM(userId, {
         currentPersona,
         userMessage: userText,

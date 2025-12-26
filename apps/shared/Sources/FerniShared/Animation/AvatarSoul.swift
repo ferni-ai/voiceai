@@ -14,6 +14,10 @@ public struct AvatarSoul: View {
     public let size: CGFloat
     public let isActive: Bool
 
+    // MARK: - Accessibility
+    /// Respect user's reduce motion preference
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // Continuous timer for shimmer
     @State private var time: Double = 0
     @State private var isTimerRunning = false
@@ -128,6 +132,9 @@ public struct AvatarSoul: View {
         isTimerRunning = true
 
         activeIntensity = isActive ? 1.0 : 0.0
+
+        // Skip continuous 60fps animation when reduce motion is enabled
+        guard !reduceMotion else { return }
 
         // 60fps timer for shimmer
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in

@@ -1,40 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
-  <!-- Ferni Three Stones Logo - 150x150 -->
+  <!-- Ferni Avatar - Windows Tile 150x150 -->
   <defs>
-    <radialGradient id="stoneGrad150" cx="40%" cy="40%">
-      <stop offset="0%" stop-color="#5a8060"/>
-      <stop offset="70%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
-    </radialGradient>
-    <radialGradient id="catchlightGrad150" cx="30%" cy="30%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glowFilter150" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    <linearGradient id="avatarGrad150" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="shineGrad150" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.18"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-
+  
   <!-- Background -->
-  <rect width="150" height="150" rx="28" fill="#F5F1E8"/>
+  <rect width="150" height="150" fill="#4a6741"/>
   
-  <circle cx="75" cy="75" r="56.595000000000006" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.25"/>
-  <!-- Outer Stone: Body -->
-  <circle cx="75" cy="75" r="51.45" fill="url(#stoneGrad150)" filter="url(#glowFilter150)"/>
-
-  <!-- Middle Stone: Eye White -->
-  <circle cx="75" cy="75" r="21.0945" fill="white"/>
-
-  <!-- Iris -->
-  <circle cx="75" cy="75" r="14.045850000000002" fill="#5a8060"/>
-
-  <!-- Inner Stone: Pupil -->
-  <circle cx="75" cy="75" r="6.997200000000001" fill="#2c2520"/>
-
-  <!-- Catchlight (life spark) -->
-  <circle cx="66.768" cy="66.768" r="2.82975" fill="url(#catchlightGrad150)"/>
+  <!-- Main avatar (centered, no ring for this size) -->
+  <circle cx="75" cy="75" r="52" fill="url(#avatarGrad150)"/>
   
-  <!-- Secondary catchlight -->
-  <circle cx="79.116" cy="78.2928" r="1.1319000000000001" fill="white" opacity="0.4"/>
+  <!-- Shine -->
+  <circle cx="75" cy="75" r="52" fill="url(#shineGrad150)"/>
+  
+  <!-- FE Text -->
+  <text 
+    x="75" 
+    y="75" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="'Segoe UI', 'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="38"
+    font-weight="700"
+    fill="white"
+    letter-spacing="-1">
+    <tspan dy="2">FE</tspan>
+  </text>
 </svg>

@@ -10,9 +10,6 @@
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import type { CategoryId, ExternalBrandId } from './types.js';
 
-// Re-export animation constants for convenience
-export { DURATION, EASING };
-
 // ============================================================================
 // CATEGORY LABELS
 // ============================================================================
@@ -20,7 +17,7 @@ export { DURATION, EASING };
 /**
  * Human-readable labels for marketplace categories
  */
-export const CATEGORY_LABELS: Record<CategoryId | string, string> = {
+export const CATEGORY_LABELS: Record<CategoryId, string> = {
   mentorship: 'Mentorship',
   finance: 'Finance',
   health: 'Health & Wellness',

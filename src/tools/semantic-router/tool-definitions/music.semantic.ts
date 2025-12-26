@@ -19,11 +19,7 @@
  * @module tools/semantic-router/tool-definitions/music
  */
 
-import type {
-  SemanticToolDefinition,
-  ToolExecutionContext,
-  ToolExecutionResult,
-} from '../types.js';
+import type { SemanticToolDefinition, ToolExecutionResult } from '../types.js';
 
 // ============================================================================
 // PLAY MUSIC TOOL
@@ -46,6 +42,15 @@ export const playMusicTool: SemanticToolDefinition = {
       'start playing',
       'put on some music',
       'put on music',
+      // Seasonal/Holiday music (CRITICAL - must beat seasonal→relationships boost)
+      'play christmas music',
+      'play some christmas music',
+      'play holiday music',
+      'play some holiday music',
+      'put on christmas music',
+      'put on some christmas music',
+      'christmas songs',
+      'holiday songs',
       // Polite requests (Gemini problem phrases)
       'can you play music',
       'can you play some music',
@@ -64,6 +69,10 @@ export const playMusicTool: SemanticToolDefinition = {
       'queue up some music',
     ],
     patterns: [
+      // Seasonal/Holiday music patterns (CRITICAL - must match before generic patterns)
+      /^play\s+(?:me\s+)?(?:some\s+)?(?:christmas|holiday|festive)\s+(?:music|songs?)/i,
+      /^(?:can|could|would|will)\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(?:christmas|holiday)\s+(?:music|songs?)/i,
+      /^put\s+on\s+(?:some\s+)?(?:christmas|holiday)\s+(?:music|songs?)/i,
       // Direct commands
       /^play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
       /^put\s+on\s+(?:some\s+)?(.+)/i,
@@ -106,6 +115,15 @@ export const playMusicTool: SemanticToolDefinition = {
       { word: 'folk', weight: 0.7 },
       { word: 'ambient', weight: 0.7 },
       { word: 'lofi', weight: 0.7 },
+      // Seasonal/Holiday music
+      { word: 'christmas', weight: 0.8 },
+      { word: 'holiday', weight: 0.7 },
+      { word: 'thanksgiving', weight: 0.6 },
+      { word: 'halloween', weight: 0.6 },
+      { word: 'easter', weight: 0.6 },
+      { word: 'hanukkah', weight: 0.6 },
+      { word: 'winter', weight: 0.5 },
+      { word: 'summer', weight: 0.5 },
       // Moods
       { word: 'chill', weight: 0.6 },
       { word: 'focus', weight: 0.5 },
@@ -146,6 +164,11 @@ export const playMusicTool: SemanticToolDefinition = {
     'throw on some jazz',
     'spin some vinyl vibes',
     'queue up some chill music',
+    // Seasonal/Holiday music
+    'play some Christmas music',
+    'play holiday music',
+    'play some festive music',
+    'put on some Christmas songs',
   ],
 
   counterExamples: [

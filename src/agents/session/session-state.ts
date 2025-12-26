@@ -517,9 +517,38 @@ export class SessionStateManager {
 
   /**
    * Update last agent response
+   * Also tracks advice for counterfactual memory (Better Than Human V3)
    */
   setLastAgentResponse(response: string): void {
     this.state = updateConversation(this.state, { lastAgentResponse: response });
+
+    // Track advice for counterfactual memory (fire-and-forget, non-blocking)
+    const userId = this.state.user.userId;
+    if (userId && userId !== 'anonymous') {
+      void this.trackAdviceIfPresent(response, userId);
+    }
+  }
+
+  /**
+   * Fire-and-forget advice tracking for counterfactual memory
+   */
+  private async trackAdviceIfPresent(response: string, userId: string): Promise<void> {
+    try {
+      const { trackAdviceInResponse } = await import(
+        '../../services/superhuman/semantic-intelligence/advice-detector.js'
+      );
+
+      await trackAdviceInResponse(response, {
+        userId,
+        sessionId: this.state.sessionId,
+        personaId: this.state.personaId,
+        topic: this.state.conversation.lastTopic,
+        userSituation: this.state.conversation.lastUserMessage,
+        userEmotion: this.state.emotional.lastEmotionAnalysis?.primary,
+      });
+    } catch {
+      // Non-critical - don't disrupt main flow
+    }
   }
 
   /**

@@ -39,6 +39,10 @@ public struct PixarVoiceOrb: View {
     /// When false, uses legacy two-eye system
     public var useLampStyle: Bool = true
 
+    /// Use magical two-eye style (overrides useLampStyle when true)
+    /// Two expressive opaque oval eyes positioned above initials
+    public var useMagicalEyes: Bool = true
+
     /// Current symbolic expression (heart, sparkle, etc.)
     /// When set, replaces the eye with the symbolic icon
     public var symbolicExpression: SymbolicExpression = .none
@@ -76,6 +80,7 @@ public struct PixarVoiceOrb: View {
     @State private var listeningRotation: CGFloat = 0
     @State private var microWarmth: CGFloat = 0
     @State private var microSpark: CGFloat = 0
+    @State private var microGlowColor: Color = Color(hex: 0xc4a265)  // Dynamic per expression
     @State private var anticipationLean: CGFloat = 0
     @State private var anticipationWarmth: CGFloat = 0
 
@@ -88,6 +93,7 @@ public struct PixarVoiceOrb: View {
         personalityEngine: PixarPersonalityEngine? = nil,
         showEyes: Bool = true,
         useLampStyle: Bool = true,
+        useMagicalEyes: Bool = true,
         symbolicExpression: SymbolicExpression = .none
     ) {
         self.persona = persona
@@ -98,6 +104,7 @@ public struct PixarVoiceOrb: View {
         self.personalityEngine = personalityEngine
         self.showEyes = showEyes
         self.useLampStyle = useLampStyle
+        self.useMagicalEyes = useMagicalEyes
         self.symbolicExpression = symbolicExpression
     }
 
@@ -125,13 +132,22 @@ public struct PixarVoiceOrb: View {
             // Layer 6: Memory spark (on top)
             memorySpark
 
-            // Layer 7 & 8: Eye + Initials (Pixar Lamp Style)
-            if useLampStyle {
-                // New style: Single lamp eye + initials together
+            // Layer 6.5: Micro-expression glow (subliminal color flash)
+            microExpressionGlow
+
+            // Layer 7 & 8: Eye + Initials
+            if useMagicalEyes {
+                // NEW: Magical two-eye style (most expressive!)
+                if showEyes {
+                    magicalEyes
+                }
+                // Initials below the eyes
+                personaInitialsMagicalStyle
+            } else if useLampStyle {
+                // Single lamp eye + initials
                 if showEyes {
                     lampEye
                 }
-                // Always show initials in lamp style (below the eye)
                 personaInitialsLampStyle
             } else {
                 // Legacy style: Two expressive eyes OR initials
@@ -255,6 +271,27 @@ public struct PixarVoiceOrb: View {
             .blur(radius: 4)
     }
 
+    // MARK: - Micro-Expression Glow (Expression-specific color)
+
+    private var microExpressionGlow: some View {
+        // Subliminal glow using expression-specific color
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [
+                        microGlowColor.opacity(microWarmth * 0.7),
+                        microGlowColor.opacity(microWarmth * 0.3),
+                        Color.clear
+                    ],
+                    center: .center,
+                    startRadius: size * 0.15,
+                    endRadius: size * 0.8
+                )
+            )
+            .frame(width: size * 1.5, height: size * 1.5)
+            .blur(radius: 10)
+    }
+
     // MARK: - Avatar Body
 
     private var avatarBody: some View {
@@ -361,6 +398,47 @@ public struct PixarVoiceOrb: View {
             y: lampOffsetY + reactionOffset.y + listeningOffset.y + anticipationLean + fidgetOffset.y
         )
         .rotationEffect(.degrees(Double(lampRotation + reactionRotation + listeningRotation)))
+    }
+
+    // MARK: - Magical Pixar Eyes (Two expressive eyes - THE BEST!)
+
+    @ViewBuilder
+    private var magicalEyes: some View {
+        let fidgetOffset = personalityEngine?.fidgetOffset ?? .zero
+
+        AnimatedMagicalEyes(
+            orbSize: size,
+            personaColor: persona.primaryColor,
+            emotionHint: emotionHint ?? .neutral,
+            isActive: isActive,
+            symbolicExpression: symbolicExpression
+        )
+        // Apply all the Lamp transforms for that Pixar bounce!
+        .scaleEffect(
+            x: lampScaleX * reactionScale * listeningScale,
+            y: lampScaleY * reactionScale * listeningScale
+        )
+        .offset(
+            x: reactionOffset.x + listeningOffset.x + fidgetOffset.x,
+            y: lampOffsetY + reactionOffset.y + listeningOffset.y + anticipationLean + fidgetOffset.y
+        )
+        .rotationEffect(.degrees(Double(lampRotation + reactionRotation + listeningRotation)))
+    }
+
+    // MARK: - Persona Initials (Magical Style - eyes above, initials below)
+
+    private var personaInitialsMagicalStyle: some View {
+        Text(persona.initials)
+            .font(.system(size: size * 0.30, weight: .semibold, design: .rounded))
+            .foregroundColor(.white.opacity(0.92))
+            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+            .shadow(color: persona.glowColor.opacity(0.3), radius: 4)  // Subtle persona glow
+            // Positioned below the eyes
+            .offset(y: size * 0.18)
+            // Apply Lamp transforms for synchronized bounce
+            .scaleEffect(x: lampScaleX * reactionScale, y: lampScaleY * reactionScale)
+            .offset(x: reactionOffset.x, y: lampOffsetY + reactionOffset.y)
+            .rotationEffect(.degrees(Double(lampRotation + reactionRotation)))
     }
 
     // MARK: - Legacy Pixar Eyes (for backward compatibility)
@@ -728,6 +806,8 @@ public struct PixarVoiceOrb: View {
         let effect = type.soulEffect
 
         // Instant application (no animation - subliminal)
+        // Set expression-specific glow color for enhanced emotional resonance
+        microGlowColor = type.glowColor
         microWarmth = effect.warmthOpacity
         microSpark = effect.sparkOpacity
 
@@ -797,6 +877,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
     public let emotionHint: EmotionHint?
     public var betterThanHumanState: BetterThanHumanState?
     public var useLampStyle: Bool
+    public var useMagicalEyes: Bool
     public var symbolicExpression: SymbolicExpression
 
     public init(
@@ -806,6 +887,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
         emotionHint: EmotionHint? = nil,
         betterThanHumanState: BetterThanHumanState? = nil,
         useLampStyle: Bool = true,
+        useMagicalEyes: Bool = true,
         symbolicExpression: SymbolicExpression = .none
     ) {
         self.personaId = personaId
@@ -814,6 +896,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
         self.emotionHint = emotionHint
         self.betterThanHumanState = betterThanHumanState
         self.useLampStyle = useLampStyle
+        self.useMagicalEyes = useMagicalEyes
         self.symbolicExpression = symbolicExpression
     }
 
@@ -825,6 +908,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
             emotionHint: emotionHint,
             betterThanHumanState: betterThanHumanState,
             useLampStyle: useLampStyle,
+            useMagicalEyes: useMagicalEyes,
             symbolicExpression: symbolicExpression
         )
     }
@@ -834,6 +918,7 @@ public struct StablePixarVoiceOrb: View, Equatable {
         lhs.isActive == rhs.isActive &&
         lhs.size == rhs.size &&
         lhs.emotionHint == rhs.emotionHint &&
+        lhs.useMagicalEyes == rhs.useMagicalEyes &&
         lhs.useLampStyle == rhs.useLampStyle &&
         lhs.symbolicExpression == rhs.symbolicExpression
         // Note: BetterThanHumanState changes frequently, so we don't compare it

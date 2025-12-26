@@ -63,20 +63,44 @@ public class MicroExpressionEngine: ObservableObject {
 // MARK: - Micro-Expression Types
 
 public enum MicroExpressionType: String, Equatable, CaseIterable {
+    // Recognition & Connection
     case recognition    // User mentions familiar topic
+    case memorySpark    // Something triggers shared history (EASTER EGG)
+    case insider        // Inside joke recognition - brief knowing look
+
+    // Concern & Care
     case concern        // Before empathy kicks in
-    case delight        // User achieves something
-    case warmth         // Connection moments
+    case protective     // When sensing vulnerability
+
+    // Interest & Engagement
     case interest       // Unexpected content
+    case curiosityPeak  // Genuine interest flash
+    case delight        // User achieves something
+
+    // Understanding
+    case epiphany       // "Aha!" moment
+    case connection     // Mutual understanding flash
+
+    // Warmth
+    case warmth         // Connection moments
+    case affection      // Brief caring expression
 
     /// Duration in seconds (subliminal: 40-150ms)
+    /// ENFORCED: Never below 40ms or above 150ms
     public var duration: TimeInterval {
         switch self {
-        case .recognition: return 0.08   // 80ms
-        case .concern: return 0.06       // 60ms
-        case .delight: return 0.10       // 100ms
-        case .warmth: return 0.12        // 120ms
-        case .interest: return 0.07      // 70ms
+        case .recognition: return 0.08    // 80ms
+        case .memorySpark: return 0.10    // 100ms - slightly longer for memory
+        case .insider: return 0.09        // 90ms - knowing look
+        case .concern: return 0.06        // 60ms - quick flash
+        case .protective: return 0.07     // 70ms
+        case .interest: return 0.07       // 70ms
+        case .curiosityPeak: return 0.05  // 50ms - fastest flash
+        case .delight: return 0.10        // 100ms - let joy be seen
+        case .epiphany: return 0.06       // 60ms - snap realization
+        case .connection: return 0.08     // 80ms
+        case .warmth: return 0.12         // 120ms - warmest
+        case .affection: return 0.08      // 80ms
         }
     }
 
@@ -84,10 +108,17 @@ public enum MicroExpressionType: String, Equatable, CaseIterable {
     public var intensity: CGFloat {
         switch self {
         case .recognition: return 0.4
+        case .memorySpark: return 0.5     // Stronger for memory recognition
+        case .insider: return 0.4
         case .concern: return 0.3
-        case .delight: return 0.6
-        case .warmth: return 0.5
+        case .protective: return 0.35
         case .interest: return 0.35
+        case .curiosityPeak: return 0.35
+        case .delight: return 0.6         // Brightest for joy
+        case .epiphany: return 0.6
+        case .connection: return 0.45
+        case .warmth: return 0.5
+        case .affection: return 0.4
         }
     }
 
@@ -96,14 +127,42 @@ public enum MicroExpressionType: String, Equatable, CaseIterable {
         switch self {
         case .recognition:
             return MicroSoulEffect(warmthOpacity: 0.3, sparkOpacity: 0.4, shimmerBoost: 0)
+        case .memorySpark:
+            return MicroSoulEffect(warmthOpacity: 0.4, sparkOpacity: 0.6, shimmerBoost: 0.15)
+        case .insider:
+            return MicroSoulEffect(warmthOpacity: 0.35, sparkOpacity: 0.3, shimmerBoost: 0.1)
         case .concern:
             return MicroSoulEffect(warmthOpacity: 0.2, sparkOpacity: 0, shimmerBoost: -0.1)
-        case .delight:
-            return MicroSoulEffect(warmthOpacity: 0.4, sparkOpacity: 0.6, shimmerBoost: 0.2)
-        case .warmth:
-            return MicroSoulEffect(warmthOpacity: 0.5, sparkOpacity: 0.2, shimmerBoost: 0.1)
+        case .protective:
+            return MicroSoulEffect(warmthOpacity: 0.25, sparkOpacity: 0, shimmerBoost: 0)
         case .interest:
             return MicroSoulEffect(warmthOpacity: 0.1, sparkOpacity: 0.3, shimmerBoost: 0.15)
+        case .curiosityPeak:
+            return MicroSoulEffect(warmthOpacity: 0.15, sparkOpacity: 0.35, shimmerBoost: 0.2)
+        case .delight:
+            return MicroSoulEffect(warmthOpacity: 0.4, sparkOpacity: 0.6, shimmerBoost: 0.2)
+        case .epiphany:
+            return MicroSoulEffect(warmthOpacity: 0.3, sparkOpacity: 0.7, shimmerBoost: 0.25)
+        case .connection:
+            return MicroSoulEffect(warmthOpacity: 0.45, sparkOpacity: 0.3, shimmerBoost: 0.1)
+        case .warmth:
+            return MicroSoulEffect(warmthOpacity: 0.5, sparkOpacity: 0.2, shimmerBoost: 0.1)
+        case .affection:
+            return MicroSoulEffect(warmthOpacity: 0.4, sparkOpacity: 0.25, shimmerBoost: 0.05)
+        }
+    }
+
+    /// Glow color for this expression
+    public var glowColor: Color {
+        switch self {
+        case .recognition, .memorySpark, .insider, .warmth, .affection, .connection:
+            return Color(hexString: "c4a265")  // Gold - recognition/warmth
+        case .concern, .protective:
+            return Color(hexString: "9a8a82")  // Muted warm - concern
+        case .curiosityPeak, .interest:
+            return Color(hexString: "7a9a7a")  // Soft green - curiosity
+        case .delight, .epiphany:
+            return .white  // Bright - joy
         }
     }
 

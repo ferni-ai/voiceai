@@ -23,7 +23,7 @@ public struct OnboardingJourneyView: View {
     public var onComplete: ((OnboardingResult) -> Void)?
 
     /// Persona color
-    public var personaColor: Color = Color(hexString: "4a6741") ?? .green
+    public var personaColor: Color = Color(hexString: "4a6741")
 
     // MARK: - State
 
@@ -45,7 +45,7 @@ public struct OnboardingJourneyView: View {
 
     public init(
         onComplete: ((OnboardingResult) -> Void)? = nil,
-        personaColor: Color = Color(hexString: "4a6741") ?? .green
+        personaColor: Color = Color(hexString: "4a6741")
     ) {
         self.onComplete = onComplete
         self.personaColor = personaColor
@@ -97,8 +97,8 @@ public struct OnboardingJourneyView: View {
     private var backgroundGradient: some View {
         LinearGradient(
             colors: [
-                Color(hexString: "0a0a12") ?? .black,
-                Color(hexString: "12121a") ?? .black
+                Color(hexString: "0a0a12"),
+                Color(hexString: "12121a")
             ],
             startPoint: .top,
             endPoint: .bottom

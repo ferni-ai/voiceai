@@ -1,0 +1,16 @@
+{
+  "" : {
+    "const-values" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary.d",
+    "diagnostics" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary.dia",
+    "emit-module-dependencies" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary-emit-module.dia",
+    "pch" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/LiveKitUniFFI-primary.swiftdeps"
+  },
+  "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/Sources/LiveKitUniFFI/livekit_uniffi.swift" : {
+    "index-unit-output-path" : "/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/livekit_uniffi.o",
+    "llvm-bc" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/livekit_uniffi.bc",
+    "object" : "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/livekit-uniffi-xcframework/build/LiveKitUniFFI.build/Release-iphoneos/LiveKitUniFFI.build/Objects-normal/arm64/livekit_uniffi.o"
+  }
+}

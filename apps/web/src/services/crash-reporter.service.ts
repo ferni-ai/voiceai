@@ -168,7 +168,7 @@ export async function reportCrash(
     });
 
     if (response.ok) {
-      const result = await response.json();
+      const result = (await response.json()) as { crashId?: string };
       log.info({ crashId: result.crashId }, 'Crash report sent successfully');
 
       // Flush any queued crashes

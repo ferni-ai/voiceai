@@ -191,7 +191,7 @@ export function isBehaviorSignalMessage(message: unknown): message is BehaviorSi
  */
 export function processBehaviorSignal(message: BehaviorSignalMessage): boolean {
   // Extract signal type - could be in 'signalType' or nested
-  const signalType = message.signalType || (message as { type: string }).type;
+  const signalType = message.signalType ?? (message as { type: string }).type;
 
   // If type is just 'behavior_signal', look for the actual signal type
   if (signalType === 'behavior_signal') {

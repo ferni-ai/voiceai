@@ -682,7 +682,7 @@ class RoadmapService {
       if (options?.category) params.set('category', options.category);
       if (options?.limit) params.set('limit', String(options.limit));
 
-      const url = `/api/roadmap/suggestions${params.toString() ? '?' + params : ''}`;
+      const url = `/api/roadmap/suggestions${params.toString() ? '?' + params.toString() : ''}`;
       const response = await apiGet<{ suggestions: RoadmapSuggestion[] }>(url);
 
       return response?.suggestions ?? [];

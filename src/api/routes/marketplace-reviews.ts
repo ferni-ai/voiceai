@@ -46,6 +46,9 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 }
 
 function getUserId(req: IncomingMessage): string | null {
+  // SECURITY: Prioritize Firebase auth over deprecated x-user-id
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
   return (req.headers['x-user-id'] as string) || null;
 }
 

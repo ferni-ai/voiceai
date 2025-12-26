@@ -357,9 +357,9 @@ class WebhookSettingsUI {
 
     // Toggle
     const toggle = createElement('label', { className: 'webhook-card__toggle' });
-    const checkbox = createElement('input', { type: 'checkbox' }) as HTMLInputElement;
+    const checkbox = createElement('input', { type: 'checkbox' });
     checkbox.checked = webhook.enabled;
-    checkbox.addEventListener('change', () => this.toggleWebhook(webhook.id, checkbox.checked));
+    checkbox.addEventListener('change', () => { void this.toggleWebhook(webhook.id, checkbox.checked); });
     toggle.appendChild(checkbox);
     toggle.appendChild(createElement('span', { className: 'webhook-card__toggle-slider' }));
     header.appendChild(toggle);
@@ -379,7 +379,7 @@ class WebhookSettingsUI {
 
     const testBtn = createElement('button', { className: 'webhook-card__btn', title: 'Test' });
     testBtn.appendChild(createSvgIcon(ICON_PATHS.play));
-    testBtn.addEventListener('click', () => this.testWebhook(webhook.id));
+    testBtn.addEventListener('click', () => { void this.testWebhook(webhook.id); });
     actions.appendChild(testBtn);
 
     const editBtn = createElement('button', { className: 'webhook-card__btn', title: 'Edit' });
@@ -388,7 +388,7 @@ class WebhookSettingsUI {
 
     const deleteBtn = createElement('button', { className: 'webhook-card__btn webhook-card__btn--danger', title: 'Delete' });
     deleteBtn.appendChild(createSvgIcon(ICON_PATHS.trash));
-    deleteBtn.addEventListener('click', () => this.deleteWebhook(webhook.id));
+    deleteBtn.addEventListener('click', () => { void this.deleteWebhook(webhook.id); });
     actions.appendChild(deleteBtn);
 
     footer.appendChild(actions);

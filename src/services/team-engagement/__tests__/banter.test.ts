@@ -55,9 +55,7 @@ describe('Banter System', () => {
         }
       }
 
-      if (missing.length > 0) {
-        console.error('Missing HANDOFF_BANTER combinations:', missing);
-      }
+      // All HANDOFF_BANTER combinations must be present
       expect(missing).toHaveLength(0);
     });
 
@@ -100,9 +98,7 @@ describe('Banter System', () => {
         }
       }
 
-      if (missing.length > 0) {
-        console.error('Missing ARRIVING_BANTER combinations:', missing);
-      }
+      // All ARRIVING_BANTER combinations must be present
       expect(missing).toHaveLength(0);
     });
 
@@ -290,14 +286,8 @@ describe('Banter System', () => {
         }
       }
 
-      if (missing.length > 0) {
-        console.error('Missing CROSS_PERSONA_REFERENCES:', missing);
-      }
-
+      // All CROSS_PERSONA_REFERENCES must be present
       const coverage = (covered / total) * 100;
-      console.log(
-        `CROSS_PERSONA_REFERENCES Coverage: ${covered}/${total} (${coverage.toFixed(1)}%)`
-      );
       expect(coverage).toBe(100);
     });
 
@@ -339,7 +329,7 @@ describe('Banter System', () => {
       }
 
       const coverage = (covered / total) * 100;
-      console.log(`HANDOFF_BANTER Coverage: ${covered}/${total} (${coverage.toFixed(1)}%)`);
+      // HANDOFF_BANTER Coverage must be 100%
       expect(coverage).toBe(100);
     });
 
@@ -369,7 +359,7 @@ describe('Banter System', () => {
       }
 
       const coverage = (covered / total) * 100;
-      console.log(`ARRIVING_BANTER Coverage: ${covered}/${total} (${coverage.toFixed(1)}%)`);
+      // ARRIVING_BANTER Coverage must be 100%
       expect(coverage).toBe(100);
     });
   });

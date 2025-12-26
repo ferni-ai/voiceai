@@ -9,6 +9,7 @@
  * @module conversation/superhuman/nicknames
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Nicknames' });
@@ -167,7 +168,7 @@ export function shouldUseName(
   }
 
   // Decide between name and endearment
-  const roll = Math.random();
+  const roll = seededFloat(`${Date.now()}:nickname`);
 
   // Endearment for support moments (if allowed)
   if (
@@ -176,7 +177,7 @@ export function shouldUseName(
     roll < NAME_OCCASIONS.endearment.probability
   ) {
     const endearments = ENDEARMENTS[naming.allowedEndearments];
-    const suggestion = endearments[Math.floor(Math.random() * endearments.length)];
+    const suggestion = seededPick(`${Date.now()}:endearment`, endearments) ?? endearments[0];
     return { useName: false, useEndearment: true, suggestion };
   }
 

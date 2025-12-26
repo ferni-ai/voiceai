@@ -22,6 +22,7 @@
  * @module @ferni/humanization/self-correction
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   HumanizationContext,
@@ -332,7 +333,7 @@ export class SelfCorrectionEngine {
     }
 
     // Roll the dice
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return {
         shouldApply: false,
         reason: `Probability check failed (${(probability * 100).toFixed(1)}%)`,
@@ -370,7 +371,7 @@ export class SelfCorrectionEngine {
     }
 
     // Choose random pattern
-    const pattern = patternList[Math.floor(Math.random() * patternList.length)];
+    const pattern = seededPick(`${Date.now()}:374`, patternList) ?? patternList[0];
 
     // Determine placement
     const placement = this.determinePlacement(type, context);
@@ -492,17 +493,17 @@ export class SelfCorrectionEngine {
     const complexity = detectComplexity(context.responseText);
 
     // High complexity = restart (stop and reframe)
-    if (complexity > 0.7 && Math.random() < 0.5) {
+    if (complexity > 0.7 && seededChance(`${Date.now()}:496`, 0.5)) {
       return 'restart';
     }
 
     // Advice giving = refinement (clarify the point)
-    if (context.isGivingAdvice && Math.random() < 0.4) {
+    if (context.isGivingAdvice && seededChance(`${Date.now()}:501`, 0.4)) {
       return 'refinement';
     }
 
-    // Default distribution
-    const roll = Math.random();
+    // Default distribution using seeded RNG
+    const roll = seededFloat(`${Date.now()}:selfCorrection:type`);
     if (roll < 0.4) return 'restart';
     if (roll < 0.7) return 'mid_sentence';
     return 'refinement';

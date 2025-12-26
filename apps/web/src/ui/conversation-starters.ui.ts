@@ -136,9 +136,15 @@ function injectStyles(): void {
     .conversation-starters-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.5));
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .conversation-starters-backdrop {
+        background: rgba(44, 37, 32, 0.85);
+      }
     }
 
     .conversation-starters-modal {
@@ -146,14 +152,24 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
+      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--glass-shadow-thick, 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1));
       display: flex;
       flex-direction: column;
       overflow: hidden;
       transform: scale(0.96) translateY(8px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      .conversation-starters-modal {
+        background: var(--color-background-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+      }
     }
 
     .conversation-starters-overlay.open .conversation-starters-modal {
@@ -469,13 +485,17 @@ function injectStyles(): void {
     }
 
     .cs-footer-btn-secondary {
-      background: transparent;
-      border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
+      background: var(--tonal-surface-2);
+      border: none;
       color: var(--color-text-secondary, #5a4a42);
     }
 
     .cs-footer-btn-secondary:hover {
-      border-color: var(--color-text-muted, #70605a);
+      background: var(--tonal-surface-3);
+    }
+
+    .cs-footer-btn-secondary:active {
+      background: var(--tonal-surface-active);
     }
 
     .cs-footer-btn-primary {
@@ -651,9 +671,9 @@ function bindEvents(): void {
   modalContainer.querySelector('.conversation-starters-backdrop')?.addEventListener('click', closeConversationStarters);
 
   // Generate button
-  modalContainer.querySelector('#cs-generate')?.addEventListener('click', generateStarters);
-  modalContainer.querySelector('#cs-regenerate')?.addEventListener('click', generateStarters);
-  modalContainer.querySelector('#cs-retry')?.addEventListener('click', generateStarters);
+  modalContainer.querySelector('#cs-generate')?.addEventListener('click', () => { void generateStarters(); });
+  modalContainer.querySelector('#cs-regenerate')?.addEventListener('click', () => { void generateStarters(); });
+  modalContainer.querySelector('#cs-retry')?.addEventListener('click', () => { void generateStarters(); });
 
   // Copy button
   modalContainer.querySelector('#cs-copy')?.addEventListener('click', copySelectedStarter);

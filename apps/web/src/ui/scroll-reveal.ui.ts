@@ -226,7 +226,7 @@ function revealElement(element: HTMLElement, options: ScrollRevealOptions): void
   log.debug('Revealed element', { direction: options.direction });
 }
 
-function hideElement(element: HTMLElement, options: ScrollRevealOptions): void {
+function hideElement(element: HTMLElement, _options: ScrollRevealOptions): void {
   element.classList.remove(REVEALED_CLASS);
   element.classList.add(OBSERVING_CLASS);
 }

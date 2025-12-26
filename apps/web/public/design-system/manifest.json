@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-24T15:26:53.616Z",
+  "generated": "2025-12-26T01:01:28.575Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
@@ -90,7 +90,8 @@
       "favicon-32.svg",
       "favicon-48.png",
       "favicon-512.png",
-      "favicon-96.png"
+      "favicon-96.png",
+      "ferni-orb.svg"
     ],
     "sounds": [
       "README.md",

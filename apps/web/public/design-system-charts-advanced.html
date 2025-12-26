@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Advanced Charts - GitHub, Bullet, Slope, Dumbbell</title>
+  <style>
+    /* ========================================
+       FERNI DESIGN SYSTEM TOKENS
+       Midnight (Dark) & Zen (Light) Themes
+    ======================================== */
+
+    :root {
+      /* Default to Midnight (Dark) theme */
+      --bg-primary: #584840;
+      --bg-secondary: #60504a;
+      --bg-tertiary: #685852;
+      --bg-elevated: #70605a;
+      --bg-glass: rgba(230, 195, 160, 0.08);
+
+      --text-primary: #faf6f0;
+      --text-secondary: #f0ebe4;
+      --text-muted: #e8e2da;
+      --text-dimmed: #ddd6cc;
+
+      --accent-primary: #d4a84a;
+      --accent-hover: #e0bc6a;
+      --accent-glow: rgba(212, 168, 74, 0.22);
+      --accent-subtle: rgba(212, 168, 74, 0.08);
+
+      --border-subtle: rgba(215, 185, 145, 0.12);
+      --border-medium: rgba(215, 185, 145, 0.20);
+
+      --semantic-success: #6bc48f;
+      --semantic-success-glow: rgba(107, 196, 143, 0.22);
+      --semantic-error: #e07575;
+      --semantic-error-glow: rgba(224, 117, 117, 0.22);
+      --semantic-warning: #e0b860;
+      --semantic-info: #7da6cf;
+
+      /* Natural palette */
+      --natural-cedar: #a08060;
+      --natural-moonlight: #e8e4dc;
+      --natural-bamboo: #7a8660;
+      --natural-stone: #6b635a;
+      --natural-moss: #5a7040;
+
+      /* GitHub Contribution Colors (dark theme) */
+      --gh-empty: rgba(230, 195, 160, 0.08);
+      --gh-level-1: rgba(107, 196, 143, 0.3);
+      --gh-level-2: rgba(107, 196, 143, 0.5);
+      --gh-level-3: rgba(107, 196, 143, 0.7);
+      --gh-level-4: #6bc48f;
+
+      /* Chart Colors (warm palette) */
+      --chart-1: #d4a84a;
+      --chart-2: #6bc48f;
+      --chart-3: #7da6cf;
+      --chart-4: #e0b860;
+      --chart-5: #a08060;
+      --chart-6: #e07575;
+
+      /* Bullet Chart Ranges */
+      --bullet-poor: rgba(230, 195, 160, 0.12);
+      --bullet-satisfactory: rgba(230, 195, 160, 0.20);
+      --bullet-good: rgba(230, 195, 160, 0.30);
+      --bullet-target: var(--text-primary);
+      --bullet-actual: var(--accent-primary);
+
+      /* Glass border alias */
+      --glass-border: var(--border-subtle);
+    }
+
+    /* Zen (Light) Theme - Warm Paper & Natural Ink */
+    [data-theme="zen"] {
+      /* Warmer backgrounds - like aged Japanese paper */
+      --bg-primary: #f8f4ef;
+      --bg-secondary: #f0ebe2;
+      --bg-tertiary: #e8e0d5;
+      --bg-elevated: #fdfbf7;
+      --bg-glass: rgba(139, 119, 91, 0.04);
+
+      /* Natural ink text */
+      --text-primary: #2c2520;
+      --text-secondary: #4a423a;
+      --text-muted: #6b5f52;
+      --text-dimmed: #857a6e;
+
+      /* Forest green accent */
+      --accent-primary: #3D5A45;
+      --accent-hover: #4a6b52;
+      --accent-glow: rgba(61, 90, 69, 0.20);
+      --accent-subtle: rgba(61, 90, 69, 0.08);
+
+      /* Warmer borders */
+      --border-subtle: rgba(44, 37, 32, 0.08);
+      --border-medium: rgba(44, 37, 32, 0.14);
+
+      /* Earthy semantic colors */
+      --semantic-success: #3d7a52;
+      --semantic-success-glow: rgba(61, 122, 82, 0.22);
+      --semantic-error: #b5453a;
+      --semantic-error-glow: rgba(181, 69, 58, 0.22);
+      --semantic-warning: #a67c35;
+      --semantic-info: #3a6b9c;
+
+      /* Natural palette (light) */
+      --natural-cedar: #a8896c;
+      --natural-moonlight: #f8f4ef;
+      --natural-bamboo: #7a8f5a;
+      --natural-stone: #8a8075;
+      --natural-moss: #5a7a3d;
+
+      /* GitHub Contribution Colors (warm greens) */
+      --gh-empty: rgba(44, 37, 32, 0.05);
+      --gh-level-1: rgba(61, 122, 82, 0.28);
+      --gh-level-2: rgba(61, 122, 82, 0.48);
+      --gh-level-3: rgba(61, 122, 82, 0.68);
+      --gh-level-4: #3d7a52;
+
+      /* Bullet chart ranges (warmer) */
+      --bullet-poor: rgba(44, 37, 32, 0.06);
+      --bullet-satisfactory: rgba(44, 37, 32, 0.12);
+      --bullet-good: rgba(44, 37, 32, 0.18);
+
+      /* Chart Colors (earthy palette) */
+      --chart-1: #3D5A45;
+      --chart-2: #a67c35;
+      --chart-3: #3a6b9c;
+      --chart-4: #b5453a;
+      --chart-5: #a8896c;
+      --chart-6: #5a7a3d;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ========================================
+       HEADER & NAVIGATION
+    ======================================== */
+    header {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      padding: 3rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--glass-border);
+      position: relative;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-primary), var(--semantic-success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg-elevated);
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--border-medium);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .theme-toggle-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .theme-toggle-icons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .theme-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--text-dimmed);
+      transition: all 0.3s ease;
+    }
+
+    .theme-icon.active {
+      color: var(--accent-primary);
+    }
+
+    /* Current theme indicator */
+    .theme-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+
+    nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      background: var(--bg-secondary);
+      flex-wrap: wrap;
+      justify-content: center;
+      border-bottom: 1px solid var(--glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    nav a:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--glass-border);
+    }
+
+    /* ========================================
+       MAIN CONTENT
+    ======================================== */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    section {
+      margin-bottom: 4rem;
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .section-badge {
+      padding: 0.25rem 0.75rem;
+      background: linear-gradient(135deg, var(--accent-primary), var(--semantic-success));
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+    }
+
+    [data-theme="zen"] .section-badge {
+      color: #faf8f5;
+    }
+
+    .section-description {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 700px;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin: 2rem 0 1rem;
+      color: var(--text-primary);
+    }
+
+    /* ========================================
+       GITHUB CONTRIBUTION CALENDAR
+    ======================================== */
+    .gh-calendar-container {
+      overflow-x: auto;
+      padding: 1rem 0;
+    }
+
+    .gh-calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .gh-months {
+      display: flex;
+      padding-left: 32px;
+      margin-bottom: 0.5rem;
+    }
+
+    .gh-month-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex: 1;
+      min-width: 52px;
+    }
+
+    .gh-grid-container {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .gh-day-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-right: 0.5rem;
+    }
+
+    .gh-day-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      height: 13px;
+      line-height: 13px;
+    }
+
+    .gh-day-label:nth-child(even) {
+      visibility: hidden;
+    }
+
+    .gh-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 13px);
+      grid-auto-flow: column;
+      grid-auto-columns: 13px;
+      gap: 3px;
+    }
+
+    .gh-cell {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      background: var(--gh-empty);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .gh-cell:hover {
+      transform: scale(1.3);
+      z-index: 10;
+    }
+
+    .gh-cell[data-level="1"] { background: var(--gh-level-1); }
+    .gh-cell[data-level="2"] { background: var(--gh-level-2); }
+    .gh-cell[data-level="3"] { background: var(--gh-level-3); }
+    .gh-cell[data-level="4"] { background: var(--gh-level-4); }
+
+    /* Tooltip */
+    .gh-cell::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+    }
+
+    .gh-cell:hover::after {
+      opacity: 1;
+    }
+
+    .gh-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      justify-content: flex-end;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .gh-legend-cells {
+      display: flex;
+      gap: 3px;
+    }
+
+    .gh-legend-cell {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+    }
+
+    .gh-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .gh-stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gh-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--semantic-success);
+    }
+
+    .gh-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ========================================
+       BULLET CHARTS (Stephen Few Style)
+    ======================================== */
+    .bullet-charts {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .bullet-chart {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .bullet-label {
+      width: 120px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .bullet-container {
+      flex: 1;
+      max-width: 500px;
+      height: 32px;
+      position: relative;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    /* Qualitative ranges */
+    .bullet-ranges {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+    }
+
+    .bullet-range {
+      height: 100%;
+    }
+
+    .bullet-range.poor { background: var(--bullet-poor); }
+    .bullet-range.satisfactory { background: var(--bullet-satisfactory); }
+    .bullet-range.good { background: var(--bullet-good); }
+
+    /* Featured measure (actual value) */
+    .bullet-actual {
+      position: absolute;
+      top: 25%;
+      left: 0;
+      height: 50%;
+      background: var(--accent-primary);
+      border-radius: 2px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Comparative measure (target) */
+    .bullet-target {
+      position: absolute;
+      top: 10%;
+      height: 80%;
+      width: 3px;
+      background: var(--bullet-target);
+      border-radius: 1px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    }
+
+    .bullet-value {
+      width: 60px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .bullet-vs-target {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ========================================
+       SLOPE CHARTS
+    ======================================== */
+    .slope-chart {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      height: 300px;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .slope-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 100px;
+      position: relative;
+    }
+
+    .slope-column-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .slope-points {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      position: relative;
+    }
+
+    .slope-point {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .slope-column:first-child .slope-point {
+      justify-content: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .slope-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .slope-value {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .slope-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .slope-lines-container {
+      position: absolute;
+      top: 0;
+      left: 100px;
+      right: 100px;
+      bottom: 0;
+      pointer-events: none;
+    }
+
+    .slope-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .slope-line {
+      stroke-width: 2;
+      fill: none;
+      opacity: 0.8;
+    }
+
+    .slope-line.increase { stroke: var(--semantic-success); }
+    .slope-line.decrease { stroke: var(--semantic-error); }
+    .slope-line.neutral { stroke: var(--text-muted); }
+
+    /* ========================================
+       DUMBBELL CHARTS
+    ======================================== */
+    .dumbbell-charts {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .dumbbell-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .dumbbell-label {
+      width: 100px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .dumbbell-container {
+      flex: 1;
+      max-width: 500px;
+      height: 24px;
+      position: relative;
+    }
+
+    .dumbbell-track {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-50%);
+    }
+
+    .dumbbell-bar {
+      position: absolute;
+      top: 50%;
+      height: 4px;
+      border-radius: 2px;
+      transform: translateY(-50%);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dumbbell-dot {
+      position: absolute;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .dumbbell-dot.start {
+      background: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .dumbbell-dot.end {
+      background: var(--semantic-success);
+      color: var(--semantic-success);
+    }
+
+    .dumbbell-values {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      width: 140px;
+    }
+
+    .dumbbell-value {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .dumbbell-value.start { color: var(--accent-primary); }
+    .dumbbell-value.end { color: var(--semantic-success); }
+
+    .dumbbell-change {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+    }
+
+    .dumbbell-change.positive {
+      background: var(--semantic-success-glow);
+      color: var(--semantic-success);
+    }
+
+    .dumbbell-change.negative {
+      background: var(--semantic-error-glow);
+      color: var(--semantic-error);
+    }
+
+    .dumbbell-legend {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .dumbbell-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .dumbbell-legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* ========================================
+       LOLLIPOP CHARTS
+    ======================================== */
+    .lollipop-charts {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .lollipop-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .lollipop-label {
+      width: 100px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .lollipop-container {
+      flex: 1;
+      max-width: 400px;
+      height: 24px;
+      position: relative;
+    }
+
+    .lollipop-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--semantic-success));
+      transform: translateY(-50%);
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .lollipop-dot {
+      position: absolute;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--semantic-success);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px var(--semantic-success-glow);
+      transition: left 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .lollipop-value {
+      width: 50px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ========================================
+       SPARKLINES (Enhanced)
+    ======================================== */
+    .sparkline-demos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .sparkline-card {
+      padding: 1.5rem;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .sparkline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .sparkline-title {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .sparkline-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .sparkline-change {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+    }
+
+    .sparkline-change.positive {
+      background: var(--semantic-success-glow);
+      color: var(--semantic-success);
+    }
+
+    .sparkline-change.negative {
+      background: var(--semantic-error-glow);
+      color: var(--semantic-error);
+    }
+
+    .sparkline-container {
+      height: 50px;
+      position: relative;
+    }
+
+    .sparkline-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .sparkline-area {
+      opacity: 0.3;
+    }
+
+    .sparkline-line {
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-markers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Bar Sparklines */
+    .sparkline-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 50px;
+    }
+
+    .sparkline-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      transition: height 0.5s ease;
+    }
+
+    /* Win/Loss Sparklines */
+    .sparkline-winloss {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 50px;
+    }
+
+    .sparkline-wl-bar {
+      flex: 1;
+      border-radius: 2px;
+    }
+
+    .sparkline-wl-bar.win {
+      background: var(--semantic-success);
+      align-self: flex-start;
+      height: 45%;
+      margin-top: 5%;
+    }
+
+    .sparkline-wl-bar.loss {
+      background: var(--semantic-error);
+      align-self: flex-end;
+      height: 45%;
+      margin-bottom: 5%;
+    }
+
+    .sparkline-wl-bar.neutral {
+      background: var(--text-muted);
+      height: 10%;
+      align-self: center;
+    }
+
+    /* ========================================
+       PERSONAL PROGRESS DASHBOARD (Theme-Aware)
+    ======================================== */
+    .progress-dashboard {
+      background: var(--bg-secondary);
+      border-radius: 24px;
+      padding: 2rem;
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Zen theme: lighter, warmer background */
+    [data-theme="zen"] .progress-dashboard {
+      background: var(--bg-tertiary);
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .progress-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .progress-action-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+    }
+
+    .progress-action-btn:hover {
+      background: var(--accent-subtle);
+      border-color: var(--border-medium);
+      color: var(--accent-primary);
+    }
+
+    /* Stat Cards Row */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .stat-cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-medium);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .stat-icon {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 0.875rem;
+      color: var(--accent-primary);
+    }
+
+    .stat-value {
+      font-size: 1.625rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+      margin-bottom: 0.375rem;
+    }
+
+    .stat-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: capitalize;
+      letter-spacing: 0.02em;
+    }
+
+    /* Chart Cards Grid */
+    .chart-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .chart-cards-grid {
+        grid-template-columns: 1fr;
+      }
+      .chart-card.full-width {
+        grid-column: span 1;
+      }
+    }
+
+    .chart-card {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem 1.5rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .chart-card.full-width {
+      grid-column: span 2;
+      padding: 1.5rem 2rem 2rem;
+    }
+
+    .chart-card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Mood/Streak Vertical Bars */
+    .mood-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 120px;
+      padding-top: 0.5rem;
+      padding-bottom: 2rem;
+      position: relative;
+    }
+
+    .mood-bar-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mood-bar {
+      width: 100%;
+      max-width: 24px;
+      border-radius: 6px 6px 4px 4px;
+      background: var(--accent-primary);
+      transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mood-bar.neutral {
+      background: var(--semantic-warning);
+    }
+
+    .mood-bar.low {
+      background: var(--text-dimmed);
+    }
+
+    .mood-day-label {
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      position: absolute;
+      bottom: 0;
+      transform: translateX(-50%);
+    }
+
+    /* Line Chart with Markers */
+    .trend-chart {
+      position: relative;
+      height: 150px;
+      margin-bottom: 1rem;
+    }
+
+    .trend-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: var(--accent-subtle);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .trend-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .trend-grid-line {
+      stroke: var(--border-medium);
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+    }
+
+    .trend-area {
+      fill: var(--accent-glow);
+    }
+
+    .trend-line {
+      fill: none;
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
+
+    .trend-marker {
+      fill: var(--bg-elevated);
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+    }
+
+    .trend-stats {
+      display: flex;
+      gap: 3rem;
+      justify-content: center;
+    }
+
+    .trend-stat {
+      text-align: center;
+    }
+
+    .trend-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    .trend-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ========================================
+       FOOTER
+    ======================================== */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--glass-border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <span class="theme-toggle-label">Theme</span>
+      <div class="theme-toggle-icons">
+        <!-- Moon icon (dark/midnight) -->
+        <svg class="theme-icon" id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <!-- Sun icon (light/zen) -->
+        <svg class="theme-icon" id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </div>
+      <span class="theme-name" id="themeName">Midnight</span>
+    </button>
+    <h1>Advanced Chart Library</h1>
+    <p>GitHub Contributions, Bullet Charts, Slope, Dumbbell, Lollipop, Sparklines</p>
+  </header>
+
+  <nav>
+    <a href="#progress">Progress Dashboard</a>
+    <a href="#github">GitHub Calendar</a>
+    <a href="#bullet">Bullet Charts</a>
+    <a href="#slope">Slope Charts</a>
+    <a href="#dumbbell">Dumbbell Charts</a>
+    <a href="#lollipop">Lollipop Charts</a>
+    <a href="#sparklines">Sparklines</a>
+  </nav>
+
+  <main>
+    <!-- ============================================
+         PERSONAL PROGRESS DASHBOARD (Ferni-style)
+    ============================================ -->
+    <section id="progress" class="progress-dashboard">
+      <div class="progress-header">
+        <h2 class="progress-title">Your Progress</h2>
+        <div class="progress-actions">
+          <button class="progress-action-btn" aria-label="Download">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+          <button class="progress-action-btn" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stat-cards">
+        <div class="stat-card">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <div class="stat-value">14</div>
+          <div class="stat-label">Days Active</div>
+        </div>
+        <div class="stat-card">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <div class="stat-value">28</div>
+          <div class="stat-label">Rituals Completed</div>
+        </div>
+        <div class="stat-card">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2C8 6 6 9.5 6 12.5c0 4 2.5 6.5 6 6.5s6-2.5 6-6.5C18 9.5 16 6 12 2z"/>
+          </svg>
+          <div class="stat-value">7 days</div>
+          <div class="stat-label">Longest Streak</div>
+        </div>
+        <div class="stat-card">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="6"/>
+            <circle cx="12" cy="12" r="2"/>
+          </svg>
+          <div class="stat-value">72%</div>
+          <div class="stat-label">Prediction Accuracy</div>
+        </div>
+      </div>
+
+      <!-- Chart Cards -->
+      <div class="chart-cards-grid">
+        <!-- Mood Over Time -->
+        <div class="chart-card">
+          <div class="chart-card-title">Mood Over Time</div>
+          <div class="mood-bars" id="moodBars"></div>
+        </div>
+
+        <!-- Streak Progress -->
+        <div class="chart-card">
+          <div class="chart-card-title">Streak Progress</div>
+          <div class="mood-bars" id="streakBars"></div>
+        </div>
+
+        <!-- Prediction Accuracy Trend (Full Width) -->
+        <div class="chart-card full-width">
+          <div class="chart-card-title">Prediction Accuracy Trend</div>
+          <div class="trend-chart">
+            <span class="trend-badge">72% overall</span>
+            <svg class="trend-svg" id="trendChart" viewBox="0 0 400 120" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="trend-stats">
+            <div class="trend-stat">
+              <div class="trend-stat-value">71%</div>
+              <div class="trend-stat-label">Average</div>
+            </div>
+            <div class="trend-stat">
+              <div class="trend-stat-value">61% - 83%</div>
+              <div class="trend-stat-label">Range</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         GITHUB CONTRIBUTION CALENDAR
+    ============================================ -->
+    <section id="github">
+      <div class="section-header">
+        <h2>GitHub Contribution Calendar</h2>
+        <span class="section-badge">Activity</span>
+      </div>
+      <p class="section-description">
+        Authentic GitHub-style contribution calendar with proper grid layout, data-level attributes (0-4),
+        tooltips, and accessibility features. Shows activity patterns over the past year.
+      </p>
+
+      <div class="gh-calendar-container">
+        <div class="gh-calendar">
+          <div class="gh-months" id="ghMonths"></div>
+          <div class="gh-grid-container">
+            <div class="gh-day-labels">
+              <span class="gh-day-label">Sun</span>
+              <span class="gh-day-label">Mon</span>
+              <span class="gh-day-label">Tue</span>
+              <span class="gh-day-label">Wed</span>
+              <span class="gh-day-label">Thu</span>
+              <span class="gh-day-label">Fri</span>
+              <span class="gh-day-label">Sat</span>
+            </div>
+            <div class="gh-grid" id="ghGrid" role="grid"></div>
+          </div>
+        </div>
+
+        <div class="gh-legend">
+          <span>Less</span>
+          <div class="gh-legend-cells">
+            <div class="gh-legend-cell" style="background: var(--gh-empty);"></div>
+            <div class="gh-legend-cell" style="background: var(--gh-level-1);"></div>
+            <div class="gh-legend-cell" style="background: var(--gh-level-2);"></div>
+            <div class="gh-legend-cell" style="background: var(--gh-level-3);"></div>
+            <div class="gh-legend-cell" style="background: var(--gh-level-4);"></div>
+          </div>
+          <span>More</span>
+        </div>
+
+        <div class="gh-stats" id="ghStats"></div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         BULLET CHARTS (Stephen Few)
+    ============================================ -->
+    <section id="bullet">
+      <div class="section-header">
+        <h2>Bullet Charts</h2>
+        <span class="section-badge">Stephen Few</span>
+      </div>
+      <p class="section-description">
+        Designed by Stephen Few as an alternative to gauges. Shows actual performance against a target,
+        with qualitative ranges (poor/satisfactory/good) encoded as intensity bands from dark to light.
+      </p>
+
+      <div class="bullet-charts" id="bulletCharts"></div>
+    </section>
+
+    <!-- ============================================
+         SLOPE CHARTS
+    ============================================ -->
+    <section id="slope">
+      <div class="section-header">
+        <h2>Slope Charts</h2>
+        <span class="section-badge">Comparison</span>
+      </div>
+      <p class="section-description">
+        Perfect for showing changes between two time points. The slope and color of lines instantly
+        communicate direction and magnitude of change.
+      </p>
+
+      <div class="slope-chart" id="slopeChart">
+        <div class="slope-column">
+          <div class="slope-column-label">Q1 2024</div>
+          <div class="slope-points" id="slopeLeft"></div>
+        </div>
+        <div class="slope-lines-container">
+          <svg class="slope-svg" id="slopeSvg" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="slope-column">
+          <div class="slope-column-label">Q4 2024</div>
+          <div class="slope-points" id="slopeRight"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         DUMBBELL CHARTS
+    ============================================ -->
+    <section id="dumbbell">
+      <div class="section-header">
+        <h2>Dumbbell Charts</h2>
+        <span class="section-badge">Before/After</span>
+      </div>
+      <p class="section-description">
+        Also known as Cleveland dot plots. Shows the span between two values, perfect for
+        visualizing change, gaps, or differences between groups.
+      </p>
+
+      <div class="dumbbell-legend">
+        <div class="dumbbell-legend-item">
+          <div class="dumbbell-legend-dot" style="background: var(--accent-primary);"></div>
+          <span>2023</span>
+        </div>
+        <div class="dumbbell-legend-item">
+          <div class="dumbbell-legend-dot" style="background: var(--semantic-success);"></div>
+          <span>2024</span>
+        </div>
+      </div>
+
+      <div class="dumbbell-charts" id="dumbbellCharts"></div>
+    </section>
+
+    <!-- ============================================
+         LOLLIPOP CHARTS
+    ============================================ -->
+    <section id="lollipop">
+      <div class="section-header">
+        <h2>Lollipop Charts</h2>
+        <span class="section-badge">Clean</span>
+      </div>
+      <p class="section-description">
+        A cleaner alternative to bar charts, especially when values are all high (80-90% range).
+        Reduces visual clutter while maintaining readability.
+      </p>
+
+      <div class="lollipop-charts" id="lollipopCharts"></div>
+    </section>
+
+    <!-- ============================================
+         SPARKLINES (Multiple Types)
+    ============================================ -->
+    <section id="sparklines">
+      <div class="section-header">
+        <h2>Sparklines</h2>
+        <span class="section-badge">Inline</span>
+      </div>
+      <p class="section-description">
+        Word-sized graphics for embedding inline with text. Multiple types: line with area,
+        bar charts, and win/loss indicators.
+      </p>
+
+      <h3>Line Sparklines with Gradient</h3>
+      <div class="sparkline-demos" id="lineSparklines"></div>
+
+      <h3>Bar Sparklines</h3>
+      <div class="sparkline-demos" id="barSparklines"></div>
+
+      <h3>Win/Loss Sparklines</h3>
+      <div class="sparkline-demos" id="winlossSparklines"></div>
+    </section>
+  </main>
+
+  <footer>
+    Ferni Advanced Charts - Inspired by GitHub, Stephen Few, and Data Visualization Best Practices
+  </footer>
+
+  <script>
+    // ============================================
+    // GITHUB CONTRIBUTION CALENDAR
+    // ============================================
+    function createGitHubCalendar() {
+      var grid = document.getElementById('ghGrid');
+      var monthsContainer = document.getElementById('ghMonths');
+      var statsContainer = document.getElementById('ghStats');
+
+      var today = new Date();
+      var startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - 364);
+
+      // Adjust to start on Sunday
+      while (startDate.getDay() !== 0) {
+        startDate.setDate(startDate.getDate() - 1);
+      }
+
+      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var currentMonth = -1;
+      var totalContributions = 0;
+      var longestStreak = 0;
+      var currentStreak = 0;
+      var maxStreak = 0;
+      var activeDays = 0;
+
+      var currentDate = new Date(startDate);
+      var weekCount = 0;
+
+      while (currentDate <= today) {
+        // Track month changes for labels
+        if (currentDate.getMonth() !== currentMonth) {
+          currentMonth = currentDate.getMonth();
+          if (weekCount > 0) {
+            var label = document.createElement('span');
+            label.className = 'gh-month-label';
+            label.textContent = months[currentMonth];
+            label.style.marginLeft = (weekCount * 16 - 30) + 'px';
+            monthsContainer.appendChild(label);
+          }
+        }
+
+        // Generate contribution level (weighted random for realistic pattern)
+        var dayOfWeek = currentDate.getDay();
+        var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        var random = Math.random();
+        var level;
+
+        if (isWeekend) {
+          level = random < 0.4 ? 0 : random < 0.7 ? 1 : random < 0.9 ? 2 : 3;
+        } else {
+          level = random < 0.15 ? 0 : random < 0.4 ? 1 : random < 0.65 ? 2 : random < 0.85 ? 3 : 4;
+        }
+
+        // Update stats
+        if (level > 0) {
+          var contributions = level * 2 + Math.floor(Math.random() * 3);
+          totalContributions += contributions;
+          activeDays++;
+          currentStreak++;
+          if (currentStreak > maxStreak) maxStreak = currentStreak;
+        } else {
+          currentStreak = 0;
+        }
+
+        // Create cell
+        var cell = document.createElement('div');
+        cell.className = 'gh-cell';
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('data-level', level);
+        cell.setAttribute('data-date', currentDate.toISOString().split('T')[0]);
+
+        var contribText = level === 0 ? 'No' : (level * 2 + Math.floor(Math.random() * 3));
+        var dateStr = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        cell.setAttribute('data-tooltip', contribText + ' contributions on ' + dateStr);
+
+        grid.appendChild(cell);
+
+        // Next day
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() === 0) weekCount++;
+      }
+
+      // Calculate longest streak at end
+      longestStreak = maxStreak;
+
+      // Create stats
+      var stats = [
+        { value: totalContributions.toLocaleString(), label: 'Total Contributions' },
+        { value: longestStreak + ' days', label: 'Longest Streak' },
+        { value: activeDays + ' days', label: 'Active Days' },
+        { value: Math.round(totalContributions / activeDays * 10) / 10, label: 'Avg per Active Day' }
+      ];
+
+      stats.forEach(function(stat) {
+        var div = document.createElement('div');
+        div.className = 'gh-stat';
+
+        var value = document.createElement('span');
+        value.className = 'gh-stat-value';
+        value.textContent = stat.value;
+        div.appendChild(value);
+
+        var label = document.createElement('span');
+        label.className = 'gh-stat-label';
+        label.textContent = stat.label;
+        div.appendChild(label);
+
+        statsContainer.appendChild(div);
+      });
+    }
+
+    // ============================================
+    // BULLET CHARTS
+    // ============================================
+    function createBulletCharts() {
+      var container = document.getElementById('bulletCharts');
+      var data = [
+        { label: 'Revenue', actual: 275, target: 250, max: 300, unit: 'K' },
+        { label: 'Profit', actual: 22, target: 25, max: 30, unit: '%' },
+        { label: 'New Customers', actual: 1850, target: 2000, max: 2500, unit: '' },
+        { label: 'Satisfaction', actual: 4.6, target: 4.5, max: 5, unit: '/5' },
+        { label: 'Market Share', actual: 18, target: 20, max: 25, unit: '%' }
+      ];
+
+      data.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'bullet-chart';
+
+        // Label
+        var label = document.createElement('div');
+        label.className = 'bullet-label';
+        label.textContent = item.label;
+        row.appendChild(label);
+
+        // Bullet container
+        var bulletContainer = document.createElement('div');
+        bulletContainer.className = 'bullet-container';
+
+        // Qualitative ranges (poor/satisfactory/good)
+        var ranges = document.createElement('div');
+        ranges.className = 'bullet-ranges';
+
+        var poor = document.createElement('div');
+        poor.className = 'bullet-range poor';
+        poor.style.width = '33.3%';
+        ranges.appendChild(poor);
+
+        var satisfactory = document.createElement('div');
+        satisfactory.className = 'bullet-range satisfactory';
+        satisfactory.style.width = '33.3%';
+        ranges.appendChild(satisfactory);
+
+        var good = document.createElement('div');
+        good.className = 'bullet-range good';
+        good.style.width = '33.4%';
+        ranges.appendChild(good);
+
+        bulletContainer.appendChild(ranges);
+
+        // Actual value bar
+        var actual = document.createElement('div');
+        actual.className = 'bullet-actual';
+        actual.style.width = '0%';
+        setTimeout(function() {
+          actual.style.width = (item.actual / item.max * 100) + '%';
+        }, 300);
+        bulletContainer.appendChild(actual);
+
+        // Target marker
+        var target = document.createElement('div');
+        target.className = 'bullet-target';
+        target.style.left = (item.target / item.max * 100) + '%';
+        bulletContainer.appendChild(target);
+
+        row.appendChild(bulletContainer);
+
+        // Value display
+        var valueContainer = document.createElement('div');
+        valueContainer.className = 'bullet-value';
+
+        var valueText = document.createElement('span');
+        valueText.textContent = item.actual + item.unit;
+        valueContainer.appendChild(valueText);
+
+        var vsTarget = document.createElement('div');
+        vsTarget.className = 'bullet-vs-target';
+        var diff = item.actual - item.target;
+        var sign = diff >= 0 ? '+' : '';
+        vsTarget.textContent = sign + diff + item.unit + ' vs target';
+        valueContainer.appendChild(vsTarget);
+
+        row.appendChild(valueContainer);
+
+        container.appendChild(row);
+      });
+    }
+
+    // ============================================
+    // SLOPE CHARTS
+    // ============================================
+    function createSlopeChart() {
+      var leftColumn = document.getElementById('slopeLeft');
+      var rightColumn = document.getElementById('slopeRight');
+      var svg = document.getElementById('slopeSvg');
+
+      var data = [
+        { name: 'Product A', q1: 45, q4: 62, color: '#8B5CF6' },
+        { name: 'Product B', q1: 38, q4: 31, color: '#EC4899' },
+        { name: 'Product C', q1: 52, q4: 58, color: '#06B6D4' },
+        { name: 'Product D', q1: 28, q4: 45, color: '#10B981' },
+        { name: 'Product E', q1: 61, q4: 55, color: '#F59E0B' }
+      ];
+
+      // Sort by Q4 value for better readability
+      data.sort(function(a, b) { return b.q4 - a.q4; });
+
+      var containerHeight = 250;
+      var positions = [];
+
+      data.forEach(function(item, index) {
+        var yPos = (index + 0.5) / data.length * containerHeight;
+        positions.push({ q1: yPos, q4: yPos });
+
+        // Left point
+        var leftPoint = document.createElement('div');
+        leftPoint.className = 'slope-point';
+
+        var leftDot = document.createElement('div');
+        leftDot.className = 'slope-dot';
+        leftDot.style.background = item.color;
+        leftPoint.appendChild(leftDot);
+
+        var leftValue = document.createElement('span');
+        leftValue.className = 'slope-value';
+        leftValue.style.color = item.color;
+        leftValue.textContent = item.q1 + '%';
+        leftPoint.appendChild(leftValue);
+
+        var leftName = document.createElement('span');
+        leftName.className = 'slope-name';
+        leftName.textContent = item.name;
+        leftPoint.appendChild(leftName);
+
+        leftColumn.appendChild(leftPoint);
+
+        // Right point
+        var rightPoint = document.createElement('div');
+        rightPoint.className = 'slope-point';
+
+        var rightDot = document.createElement('div');
+        rightDot.className = 'slope-dot';
+        rightDot.style.background = item.color;
+        rightPoint.appendChild(rightDot);
+
+        var rightValue = document.createElement('span');
+        rightValue.className = 'slope-value';
+        rightValue.style.color = item.color;
+        rightValue.textContent = item.q4 + '%';
+        rightPoint.appendChild(rightValue);
+
+        rightColumn.appendChild(rightPoint);
+      });
+
+      // Draw lines after a small delay to get correct positions
+      setTimeout(function() {
+        var leftPoints = leftColumn.querySelectorAll('.slope-point');
+        var rightPoints = rightColumn.querySelectorAll('.slope-point');
+        var svgRect = svg.getBoundingClientRect();
+
+        svg.setAttribute('viewBox', '0 0 ' + svgRect.width + ' ' + svgRect.height);
+
+        data.forEach(function(item, index) {
+          var leftRect = leftPoints[index].getBoundingClientRect();
+          var rightRect = rightPoints[index].getBoundingClientRect();
+
+          var y1 = leftRect.top + leftRect.height / 2 - svgRect.top;
+          var y2 = rightRect.top + rightRect.height / 2 - svgRect.top;
+
+          var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', '0');
+          line.setAttribute('y1', y1);
+          line.setAttribute('x2', svgRect.width);
+          line.setAttribute('y2', y2);
+          line.setAttribute('stroke', item.color);
+          line.setAttribute('class', 'slope-line ' + (item.q4 > item.q1 ? 'increase' : item.q4 < item.q1 ? 'decrease' : 'neutral'));
+
+          svg.appendChild(line);
+        });
+      }, 100);
+    }
+
+    // ============================================
+    // DUMBBELL CHARTS
+    // ============================================
+    function createDumbbellCharts() {
+      var container = document.getElementById('dumbbellCharts');
+      var data = [
+        { label: 'Mobile Traffic', start: 42, end: 68, max: 100 },
+        { label: 'Desktop Traffic', start: 58, end: 32, max: 100 },
+        { label: 'Avg Session', start: 3.2, end: 4.8, max: 10 },
+        { label: 'Bounce Rate', start: 48, end: 35, max: 100 },
+        { label: 'Conversion', start: 2.1, end: 3.4, max: 10 }
+      ];
+
+      data.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'dumbbell-row';
+
+        // Label
+        var label = document.createElement('div');
+        label.className = 'dumbbell-label';
+        label.textContent = item.label;
+        row.appendChild(label);
+
+        // Container
+        var dbContainer = document.createElement('div');
+        dbContainer.className = 'dumbbell-container';
+
+        // Track
+        var track = document.createElement('div');
+        track.className = 'dumbbell-track';
+        dbContainer.appendChild(track);
+
+        // Bar connecting dots
+        var bar = document.createElement('div');
+        bar.className = 'dumbbell-bar';
+        var leftPos = Math.min(item.start, item.end) / item.max * 100;
+        var rightPos = Math.max(item.start, item.end) / item.max * 100;
+        bar.style.left = leftPos + '%';
+        bar.style.width = '0%';
+        bar.style.background = 'linear-gradient(90deg, var(--accent-primary), var(--semantic-success))';
+        setTimeout(function() {
+          bar.style.width = (rightPos - leftPos) + '%';
+        }, 300);
+        dbContainer.appendChild(bar);
+
+        // Start dot
+        var startDot = document.createElement('div');
+        startDot.className = 'dumbbell-dot start';
+        startDot.style.left = '0%';
+        setTimeout(function() {
+          startDot.style.left = (item.start / item.max * 100) + '%';
+        }, 300);
+        dbContainer.appendChild(startDot);
+
+        // End dot
+        var endDot = document.createElement('div');
+        endDot.className = 'dumbbell-dot end';
+        endDot.style.left = '0%';
+        setTimeout(function() {
+          endDot.style.left = (item.end / item.max * 100) + '%';
+        }, 300);
+        dbContainer.appendChild(endDot);
+
+        row.appendChild(dbContainer);
+
+        // Values
+        var values = document.createElement('div');
+        values.className = 'dumbbell-values';
+
+        var startValue = document.createElement('span');
+        startValue.className = 'dumbbell-value start';
+        startValue.textContent = item.start + (item.max === 100 ? '%' : '');
+        values.appendChild(startValue);
+
+        var arrow = document.createElement('span');
+        arrow.textContent = '→';
+        arrow.style.color = 'var(--text-muted)';
+        values.appendChild(arrow);
+
+        var endValue = document.createElement('span');
+        endValue.className = 'dumbbell-value end';
+        endValue.textContent = item.end + (item.max === 100 ? '%' : '');
+        values.appendChild(endValue);
+
+        var change = document.createElement('span');
+        change.className = 'dumbbell-change';
+        var diff = item.end - item.start;
+        var sign = diff >= 0 ? '+' : '';
+        change.textContent = sign + (Math.round(diff * 10) / 10);
+        change.classList.add(diff >= 0 ? 'positive' : 'negative');
+        values.appendChild(change);
+
+        row.appendChild(values);
+
+        container.appendChild(row);
+      });
+    }
+
+    // ============================================
+    // LOLLIPOP CHARTS
+    // ============================================
+    function createLollipopCharts() {
+      var container = document.getElementById('lollipopCharts');
+      var data = [
+        { label: 'Completion Rate', value: 94 },
+        { label: 'User Satisfaction', value: 89 },
+        { label: 'Feature Adoption', value: 86 },
+        { label: 'Onboarding Success', value: 82 },
+        { label: 'Retention (30d)', value: 78 }
+      ];
+
+      data.forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'lollipop-row';
+
+        // Label
+        var label = document.createElement('div');
+        label.className = 'lollipop-label';
+        label.textContent = item.label;
+        row.appendChild(label);
+
+        // Container
+        var lpContainer = document.createElement('div');
+        lpContainer.className = 'lollipop-container';
+
+        // Line
+        var line = document.createElement('div');
+        line.className = 'lollipop-line';
+        line.style.width = '0%';
+        setTimeout(function() {
+          line.style.width = item.value + '%';
+        }, 300);
+        lpContainer.appendChild(line);
+
+        // Dot
+        var dot = document.createElement('div');
+        dot.className = 'lollipop-dot';
+        dot.style.left = '0%';
+        setTimeout(function() {
+          dot.style.left = item.value + '%';
+        }, 300);
+        lpContainer.appendChild(dot);
+
+        row.appendChild(lpContainer);
+
+        // Value
+        var value = document.createElement('div');
+        value.className = 'lollipop-value';
+        value.textContent = item.value + '%';
+        row.appendChild(value);
+
+        container.appendChild(row);
+      });
+    }
+
+    // ============================================
+    // SPARKLINES
+    // ============================================
+    function createLineSparkline(container, data, color, title, value, change, isPositive) {
+      var card = document.createElement('div');
+      card.className = 'sparkline-card';
+
+      var header = document.createElement('div');
+      header.className = 'sparkline-header';
+
+      var info = document.createElement('div');
+      var titleEl = document.createElement('div');
+      titleEl.className = 'sparkline-title';
+      titleEl.textContent = title;
+      info.appendChild(titleEl);
+
+      var valueEl = document.createElement('div');
+      valueEl.className = 'sparkline-value';
+      valueEl.textContent = value;
+      info.appendChild(valueEl);
+
+      header.appendChild(info);
+
+      var changeEl = document.createElement('span');
+      changeEl.className = 'sparkline-change ' + (isPositive ? 'positive' : 'negative');
+      changeEl.textContent = change;
+      header.appendChild(changeEl);
+
+      card.appendChild(header);
+
+      var sparkContainer = document.createElement('div');
+      sparkContainer.className = 'sparkline-container';
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'sparkline-svg');
+      svg.setAttribute('viewBox', '0 0 200 50');
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      // Gradient
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      var gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      gradient.setAttribute('id', 'grad-' + Math.random().toString(36).substr(2, 9));
+      gradient.setAttribute('x1', '0%');
+      gradient.setAttribute('y1', '0%');
+      gradient.setAttribute('x2', '0%');
+      gradient.setAttribute('y2', '100%');
+
+      var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', color);
+      stop1.setAttribute('stop-opacity', '0.4');
+      gradient.appendChild(stop1);
+
+      var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', color);
+      stop2.setAttribute('stop-opacity', '0');
+      gradient.appendChild(stop2);
+
+      defs.appendChild(gradient);
+      svg.appendChild(defs);
+
+      // Calculate points
+      var max = Math.max.apply(null, data);
+      var min = Math.min.apply(null, data);
+      var range = max - min || 1;
+      var points = data.map(function(val, i) {
+        var x = (i / (data.length - 1)) * 200;
+        var y = 5 + ((max - val) / range) * 40;
+        return x + ',' + y;
+      });
+
+      // Area
+      var area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      area.setAttribute('d', 'M0,50 L' + points.join(' L') + ' L200,50 Z');
+      area.setAttribute('fill', 'url(#' + gradient.getAttribute('id') + ')');
+      area.setAttribute('class', 'sparkline-area');
+      svg.appendChild(area);
+
+      // Line
+      var line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('d', 'M' + points.join(' L'));
+      line.setAttribute('stroke', color);
+      line.setAttribute('class', 'sparkline-line');
+      svg.appendChild(line);
+
+      // End dot
+      var lastPoint = points[points.length - 1].split(',');
+      var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', lastPoint[0]);
+      dot.setAttribute('cy', lastPoint[1]);
+      dot.setAttribute('r', '4');
+      dot.setAttribute('fill', color);
+      svg.appendChild(dot);
+
+      sparkContainer.appendChild(svg);
+      card.appendChild(sparkContainer);
+
+      container.appendChild(card);
+    }
+
+    function createBarSparkline(container, data, color, title, value, change, isPositive) {
+      var card = document.createElement('div');
+      card.className = 'sparkline-card';
+
+      var header = document.createElement('div');
+      header.className = 'sparkline-header';
+
+      var info = document.createElement('div');
+      var titleEl = document.createElement('div');
+      titleEl.className = 'sparkline-title';
+      titleEl.textContent = title;
+      info.appendChild(titleEl);
+
+      var valueEl = document.createElement('div');
+      valueEl.className = 'sparkline-value';
+      valueEl.textContent = value;
+      info.appendChild(valueEl);
+
+      header.appendChild(info);
+
+      var changeEl = document.createElement('span');
+      changeEl.className = 'sparkline-change ' + (isPositive ? 'positive' : 'negative');
+      changeEl.textContent = change;
+      header.appendChild(changeEl);
+
+      card.appendChild(header);
+
+      var barsContainer = document.createElement('div');
+      barsContainer.className = 'sparkline-bars';
+
+      var max = Math.max.apply(null, data);
+
+      data.forEach(function(val, i) {
+        var bar = document.createElement('div');
+        bar.className = 'sparkline-bar';
+        bar.style.height = '0%';
+        bar.style.background = i === data.length - 1 ? color : 'rgba(255,255,255,0.2)';
+        setTimeout(function() {
+          bar.style.height = (val / max * 100) + '%';
+        }, 100 + i * 30);
+        barsContainer.appendChild(bar);
+      });
+
+      card.appendChild(barsContainer);
+      container.appendChild(card);
+    }
+
+    function createWinLossSparkline(container, data, title, value, change, isPositive) {
+      var card = document.createElement('div');
+      card.className = 'sparkline-card';
+
+      var header = document.createElement('div');
+      header.className = 'sparkline-header';
+
+      var info = document.createElement('div');
+      var titleEl = document.createElement('div');
+      titleEl.className = 'sparkline-title';
+      titleEl.textContent = title;
+      info.appendChild(titleEl);
+
+      var valueEl = document.createElement('div');
+      valueEl.className = 'sparkline-value';
+      valueEl.textContent = value;
+      info.appendChild(valueEl);
+
+      header.appendChild(info);
+
+      var changeEl = document.createElement('span');
+      changeEl.className = 'sparkline-change ' + (isPositive ? 'positive' : 'negative');
+      changeEl.textContent = change;
+      header.appendChild(changeEl);
+
+      card.appendChild(header);
+
+      var wlContainer = document.createElement('div');
+      wlContainer.className = 'sparkline-winloss';
+
+      data.forEach(function(val) {
+        var bar = document.createElement('div');
+        bar.className = 'sparkline-wl-bar ' + (val > 0 ? 'win' : val < 0 ? 'loss' : 'neutral');
+        wlContainer.appendChild(bar);
+      });
+
+      card.appendChild(wlContainer);
+      container.appendChild(card);
+    }
+
+    function createSparklines() {
+      var lineContainer = document.getElementById('lineSparklines');
+      var barContainer = document.getElementById('barSparklines');
+      var wlContainer = document.getElementById('winlossSparklines');
+
+      // Line sparklines
+      createLineSparkline(lineContainer, [12, 14, 13, 18, 16, 20, 22, 25, 23, 28, 30], '#8B5CF6', 'Revenue', '$30K', '+18%', true);
+      createLineSparkline(lineContainer, [45, 48, 42, 50, 53, 51, 55, 58, 54, 60, 62], '#06B6D4', 'Active Users', '62K', '+12%', true);
+      createLineSparkline(lineContainer, [8.2, 7.8, 8.5, 7.2, 6.8, 7.1, 6.5, 6.2, 5.8, 5.5, 5.2], '#EF4444', 'Churn Rate', '5.2%', '-3.0%', false);
+
+      // Bar sparklines
+      createBarSparkline(barContainer, [3, 5, 2, 7, 4, 6, 8, 5, 9, 7, 10], '#10B981', 'Weekly Sessions', '10', '+25%', true);
+      createBarSparkline(barContainer, [80, 85, 78, 82, 88, 84, 90, 86, 92, 88, 94], '#F59E0B', 'Quality Score', '94', '+6pts', true);
+      createBarSparkline(barContainer, [120, 135, 115, 140, 125, 145, 130, 150, 138, 155, 142], '#EC4899', 'Transactions', '142', '+8%', true);
+
+      // Win/Loss sparklines
+      createWinLossSparkline(wlContainer, [1, 1, -1, 1, 1, 1, -1, 1, 0, 1, 1, 1, -1, 1, 1], 'Win Rate', '73%', '+5%', true);
+      createWinLossSparkline(wlContainer, [1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, -1], 'Trade Success', '60%', '-2%', false);
+      createWinLossSparkline(wlContainer, [1, 1, 1, 1, -1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1], 'Match Results', '87%', '+12%', true);
+    }
+
+    // ============================================
+    // PERSONAL PROGRESS DASHBOARD
+    // ============================================
+    function createMoodBars() {
+      var container = document.getElementById('moodBars');
+      var days = ['T', 'F', 'S', 'S', 'M', 'T', 'W', 'T', 'F', 'S', 'S', 'T', 'M', 'W'];
+      var moods = ['high', 'high', 'neutral', 'high', 'neutral', 'neutral', 'high', 'high', 'neutral', 'high', 'high', 'high', 'neutral', 'high'];
+      var heights = [85, 80, 65, 90, 55, 60, 75, 88, 50, 82, 78, 85, 62, 92];
+
+      days.forEach(function(day, i) {
+        var barContainer = document.createElement('div');
+        barContainer.className = 'mood-bar-container';
+        barContainer.style.position = 'relative';
+
+        var bar = document.createElement('div');
+        bar.className = 'mood-bar' + (moods[i] === 'neutral' ? ' neutral' : moods[i] === 'low' ? ' low' : '');
+        bar.style.height = '0px';
+
+        setTimeout(function() {
+          bar.style.height = heights[i] + 'px';
+        }, 100 + i * 50);
+
+        barContainer.appendChild(bar);
+
+        var label = document.createElement('span');
+        label.className = 'mood-day-label';
+        label.textContent = day;
+        label.style.position = 'relative';
+        label.style.transform = 'none';
+        label.style.marginTop = '0.5rem';
+        barContainer.appendChild(label);
+
+        container.appendChild(barContainer);
+      });
+    }
+
+    function createStreakBars() {
+      var container = document.getElementById('streakBars');
+      var days = ['T', 'F', 'S', 'S', 'M', 'T', 'W', 'T', 'F', 'S', 'S', 'T', 'M', 'W', 'T'];
+      var heights = [75, 80, 72, 78, 85, 70, 65, 82, 88, 75, 90, 68, 85, 78, 82];
+
+      days.forEach(function(day, i) {
+        var barContainer = document.createElement('div');
+        barContainer.className = 'mood-bar-container';
+        barContainer.style.position = 'relative';
+
+        var bar = document.createElement('div');
+        bar.className = 'mood-bar';
+        bar.style.height = '0px';
+
+        setTimeout(function() {
+          bar.style.height = heights[i] + 'px';
+        }, 100 + i * 50);
+
+        barContainer.appendChild(bar);
+
+        var label = document.createElement('span');
+        label.className = 'mood-day-label';
+        label.textContent = day;
+        label.style.position = 'relative';
+        label.style.transform = 'none';
+        label.style.marginTop = '0.5rem';
+        barContainer.appendChild(label);
+
+        container.appendChild(barContainer);
+      });
+    }
+
+    function createTrendChart() {
+      var svg = document.getElementById('trendChart');
+      var data = [68, 70, 69, 73, 75, 72, 78, 76, 72, 74];
+      var width = 400;
+      var height = 120;
+      var padding = 20;
+
+      // Grid lines
+      [30, 60, 90].forEach(function(y) {
+        var gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        gridLine.setAttribute('x1', padding);
+        gridLine.setAttribute('y1', y);
+        gridLine.setAttribute('x2', width - padding);
+        gridLine.setAttribute('y2', y);
+        gridLine.setAttribute('class', 'trend-grid-line');
+        svg.appendChild(gridLine);
+      });
+
+      // Calculate points
+      var min = 60;
+      var max = 85;
+      var range = max - min;
+      var points = data.map(function(val, i) {
+        var x = padding + (i / (data.length - 1)) * (width - padding * 2);
+        var y = height - padding - ((val - min) / range) * (height - padding * 2);
+        return { x: x, y: y };
+      });
+
+      // Area fill
+      var areaPath = 'M' + points[0].x + ',' + (height - padding);
+      points.forEach(function(p) {
+        areaPath += ' L' + p.x + ',' + p.y;
+      });
+      areaPath += ' L' + points[points.length - 1].x + ',' + (height - padding) + ' Z';
+
+      var area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      area.setAttribute('d', areaPath);
+      area.setAttribute('class', 'trend-area');
+      svg.appendChild(area);
+
+      // Line
+      var linePath = 'M' + points.map(function(p) { return p.x + ',' + p.y; }).join(' L');
+      var line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('d', linePath);
+      line.setAttribute('class', 'trend-line');
+      svg.appendChild(line);
+
+      // Markers
+      points.forEach(function(p) {
+        var marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        marker.setAttribute('cx', p.x);
+        marker.setAttribute('cy', p.y);
+        marker.setAttribute('r', '6');
+        marker.setAttribute('class', 'trend-marker');
+        svg.appendChild(marker);
+      });
+    }
+
+    // ============================================
+    // THEME TOGGLE
+    // ============================================
+    function initThemeToggle() {
+      var toggle = document.getElementById('themeToggle');
+      var moonIcon = document.getElementById('moonIcon');
+      var sunIcon = document.getElementById('sunIcon');
+      var themeName = document.getElementById('themeName');
+      var html = document.documentElement;
+
+      // Check for saved theme preference or default to midnight
+      var savedTheme = localStorage.getItem('ferni-charts-theme');
+      if (savedTheme === 'zen') {
+        html.setAttribute('data-theme', 'zen');
+        updateThemeUI('zen');
+      } else {
+        updateThemeUI('midnight');
+      }
+
+      toggle.addEventListener('click', function() {
+        var currentTheme = html.getAttribute('data-theme');
+        var newTheme = currentTheme === 'zen' ? 'midnight' : 'zen';
+
+        if (newTheme === 'zen') {
+          html.setAttribute('data-theme', 'zen');
+        } else {
+          html.removeAttribute('data-theme');
+        }
+
+        localStorage.setItem('ferni-charts-theme', newTheme);
+        updateThemeUI(newTheme);
+      });
+
+      function updateThemeUI(theme) {
+        if (theme === 'zen') {
+          moonIcon.classList.remove('active');
+          sunIcon.classList.add('active');
+          themeName.textContent = 'Zen';
+        } else {
+          moonIcon.classList.add('active');
+          sunIcon.classList.remove('active');
+          themeName.textContent = 'Midnight';
+        }
+      }
+    }
+
+    // ============================================
+    // INITIALIZE
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      initThemeToggle();
+      createMoodBars();
+      createStreakBars();
+      createTrendChart();
+      createGitHubCalendar();
+      createBulletCharts();
+      createSlopeChart();
+      createDumbbellCharts();
+      createLollipopCharts();
+      createSparklines();
+    });
+  </script>
+</body>
+</html>

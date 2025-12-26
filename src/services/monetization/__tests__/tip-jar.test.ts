@@ -248,10 +248,11 @@ describe('TipJar', () => {
           amountCents: 1000,
           createdAt: new Date(),
           message: 'For someone who needs it',
-          isAnonymous: true,
+          conversationsSponsored: 5,
+          isRecurring: false,
         };
 
-        expect(contribution.isAnonymous).toBe(true);
+        expect(contribution.conversationsSponsored).toBe(5);
         expect(contribution.message).toBe('For someone who needs it');
       });
     });

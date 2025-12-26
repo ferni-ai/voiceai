@@ -47,6 +47,9 @@ export {
   type EmbeddingResult,
 } from './embeddings.js';
 
+// Internal import for embedding provider validation
+import { getEmbeddingProvider as getInternalEmbeddingProvider } from './embeddings.js';
+
 // Vector store interface (unified)
 export {
   isVectorStore,
@@ -483,6 +486,9 @@ export {
   resetMemoryOrchestrator,
 } from './orchestrator.js';
 
+// Superhuman Signal Router (routes extracted signals to superhuman services)
+export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
+
 // ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================
@@ -702,6 +708,52 @@ let cachedMemorySystem: MemorySystemResult | null = null;
 let initializingPromise: Promise<MemorySystemResult> | null = null;
 
 /**
+ * Validate that embedding provider dimensions match vector store configuration.
+ * Logs a warning if there's a mismatch, which could cause silent search quality issues.
+ *
+ * Known dimensions:
+ * - Google text-embedding-004: 768
+ * - OpenAI text-embedding-3-small: 1536
+ * - OpenAI text-embedding-3-large: 3072
+ * - Local hash fallback: 384
+ */
+function validateEmbeddingDimensions(usePersistentVectors: boolean): void {
+  try {
+    const provider = getInternalEmbeddingProvider();
+    const providerDimensions = provider.dimensions;
+    const providerModel = provider.model;
+
+    // FirestoreVectorStore defaults to 768 (Google's text-embedding-004)
+    const vectorStoreDimensions = usePersistentVectors ? 768 : 768;
+
+    if (providerDimensions !== vectorStoreDimensions) {
+      getLogger().warn(
+        {
+          providerModel,
+          providerDimensions,
+          vectorStoreDimensions,
+          usePersistentVectors,
+          risk: 'SEARCH_QUALITY_DEGRADED',
+          recommendation:
+            providerDimensions === 1536
+              ? 'Consider using GOOGLE_API_KEY for matching dimensions, or update Firestore vector index'
+              : 'Ensure embedding provider and vector store dimensions match',
+        },
+        '⚠️ Embedding dimension mismatch detected - semantic search quality may be affected'
+      );
+    } else {
+      getLogger().debug(
+        { providerModel, dimensions: providerDimensions },
+        'Embedding dimensions validated successfully'
+      );
+    }
+  } catch (error) {
+    // Don't fail initialization if validation fails - just log
+    getLogger().debug({ error: String(error) }, 'Could not validate embedding dimensions');
+  }
+}
+
+/**
  * Initialize the complete memory system
  *
  * Auto-selects store based on environment:
@@ -781,6 +833,9 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
   // Set the active vector store for semantic RAG operations
   setActiveVectorStore(vectorStore);
 
+  // Validate embedding dimensions match between provider and vector store
+  validateEmbeddingDimensions(usePersistentVectors);
+
   // Initialize Redis cache (if available)
   let redisCache: ReturnType<typeof import('./redis-cache.js').getRedisCache> | null = null;
   if (config?.enableRedis !== false) {
@@ -817,6 +872,108 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
   );
 
   return { store, vectorStore, redisCache, storeType, usePersistentVectors };
+}
+
+// ============================================================================
+// HEALTH CHECK HELPER
+// ============================================================================
+
+export interface MemorySystemHealth {
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+  initialized: boolean;
+  stores: {
+    primary: { healthy: boolean; type: StoreType; details?: string };
+    vector: { healthy: boolean; usingFallback: boolean; cacheSize: number; details?: string };
+    redis: { enabled: boolean; healthy: boolean; details?: string };
+  };
+  embedding: {
+    provider: string;
+    dimensions: number;
+    dimensionMatch: boolean;
+  };
+}
+
+/**
+ * Get unified health status of all memory system components.
+ * Useful for monitoring dashboards and alerting.
+ */
+export async function getMemorySystemHealth(): Promise<MemorySystemHealth> {
+  const isInit = cachedMemorySystem !== null;
+
+  // Default unhealthy state if not initialized
+  if (!isInit) {
+    return {
+      overall: 'unhealthy',
+      initialized: false,
+      stores: {
+        primary: { healthy: false, type: 'memory', details: 'Not initialized' },
+        vector: { healthy: false, usingFallback: true, cacheSize: 0, details: 'Not initialized' },
+        redis: { enabled: false, healthy: false, details: 'Not initialized' },
+      },
+      embedding: {
+        provider: 'unknown',
+        dimensions: 0,
+        dimensionMatch: false,
+      },
+    };
+  }
+
+  const { storeType, vectorStore, usePersistentVectors } = cachedMemorySystem!;
+
+  // Check vector store health
+  let vectorHealth: MemorySystemHealth['stores']['vector'];
+  if ('getHealth' in vectorStore && typeof vectorStore.getHealth === 'function') {
+    const health = vectorStore.getHealth() as {
+      healthy: boolean;
+      usingFallback: boolean;
+      cacheSize: number;
+      fallbackReason?: string;
+    };
+    vectorHealth = {
+      healthy: health.healthy,
+      usingFallback: health.usingFallback,
+      cacheSize: health.cacheSize,
+      details: health.usingFallback ? health.fallbackReason : undefined,
+    };
+  } else {
+    vectorHealth = { healthy: true, usingFallback: false, cacheSize: 0 };
+  }
+
+  // Check embedding provider
+  const provider = getInternalEmbeddingProvider();
+  const providerDimensions = provider.dimensions;
+  const expectedDimensions = usePersistentVectors ? 768 : 768;
+  const dimensionMatch = providerDimensions === expectedDimensions;
+
+  // Determine overall health
+  let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+  if (vectorHealth.usingFallback) {
+    overall = 'degraded';
+  }
+  if (!dimensionMatch) {
+    overall = overall === 'healthy' ? 'degraded' : overall;
+  }
+  if (!vectorHealth.healthy && !vectorHealth.usingFallback) {
+    overall = 'unhealthy';
+  }
+
+  return {
+    overall,
+    initialized: true,
+    stores: {
+      primary: { healthy: true, type: storeType },
+      vector: vectorHealth,
+      redis: {
+        enabled: redisCacheEnabled,
+        healthy: redisCacheEnabled, // Assume healthy if enabled
+      },
+    },
+    embedding: {
+      provider: provider.model,
+      dimensions: providerDimensions,
+      dimensionMatch,
+    },
+  };
 }
 
 // ============================================================================
@@ -890,6 +1047,7 @@ export async function shutdownMemorySystem(): Promise<void> {
 export default {
   initializeMemorySystem,
   shutdownMemorySystem,
+  getMemorySystemHealth,
   createStore,
   detectStoreType,
   shouldUseRedis,

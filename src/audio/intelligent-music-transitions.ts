@@ -33,7 +33,6 @@ import type { MusicSessionContext, MusicStartReason } from './music-session-cont
 import {
   getTransitionAnalytics,
   recordTransitionWithAnalytics,
-  getBestTransitionType,
   type TransitionEvent,
   type EngagementSignals,
 } from './music-transition-analytics.js';

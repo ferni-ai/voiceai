@@ -61,4 +61,15 @@ export {
   forgetMemoryDef,
 };
 
+// Re-export persona-specific memory tools
+export {
+  createFerniMemoryTools,
+  createBogleMemoryTools,
+  createPeterMemoryTools,
+  createMayaMemoryTools,
+  createJordanMemoryTools,
+  createAlexMemoryTools,
+  createMemoryManagementTools,
+} from './persona-tools.js';
+
 export default getToolDefinitions;
