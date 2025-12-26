@@ -116,6 +116,21 @@ export {
   type AdviceMatch,
 } from './advice-matcher.js';
 
+// LLM-powered detection (Gemini Flash 2.0)
+export {
+  detectAdviceWithLLM,
+  extractPersonsWithLLM,
+  detectAdviceOutcomeWithLLM,
+  detectAdviceHybrid,
+  extractPersonsHybrid,
+  clearLLMDetectorCache,
+  resetLLMDetectorClient,
+  getLLMDetectorStats,
+  type LLMAdviceResult,
+  type LLMPersonResult,
+  type LLMOutcomeResult,
+} from './llm-detector.js';
+
 // ============================================================================
 // V3.2 PROACTIVE INTELLIGENCE
 // ============================================================================

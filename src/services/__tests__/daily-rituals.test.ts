@@ -353,8 +353,9 @@ describe('DailyRituals', () => {
       it('should return response for sunny', () => {
         const response = service.getWeatherResponse('sunny');
         expect(response).toBeDefined();
-        // Actual response is "Clear skies..." not "Sunny"
-        expect(response).toContain('Clear skies');
+        // Response can be either "Clear skies..." or "Sunny inside..." (randomized)
+        const hasSunnyResponse = response.includes('Clear skies') || response.includes('Sunny inside');
+        expect(hasSunnyResponse).toBe(true);
       });
 
       it('should return response for stormy', () => {

@@ -2,7 +2,39 @@
 
 > **"Better than Human" v3 - Connecting dots humans can't see**
 
-Six new superhuman capabilities that leverage semantic understanding to provide insights no human friend could offer.
+Six core superhuman capabilities plus **LLM-powered detection** using Gemini Flash 2.0 for high-accuracy pattern recognition.
+
+---
+
+## 🆕 LLM-Powered Detection (Dec 2024)
+
+For edge cases that regex can't handle, we use **Gemini Flash 2.0**:
+
+```typescript
+import {
+  detectAdviceWithLLM,
+  extractPersonsWithLLM,
+  detectAdviceHybrid,
+  extractPersonsHybrid,
+} from './semantic-intelligence/index.js';
+
+// Pure LLM detection (for testing/high-accuracy needs)
+const advice = await detectAdviceWithLLM('Try keeping a gratitude journal');
+// → { containsAdvice: true, category: 'practical', confidence: 0.92 }
+
+const persons = await extractPersonsWithLLM('My mom always knows what to say');
+// → [{ name: 'mom', relationship: 'parent', confidence: 0.95 }]
+
+// Hybrid: regex first, LLM for uncertain cases (recommended for production)
+const adviceHybrid = await detectAdviceHybrid(text);
+const personsHybrid = await extractPersonsHybrid(text);
+```
+
+**Features:**
+- **Fast**: 2s timeout, ~100-200ms typical latency
+- **Cached**: 5-minute LRU cache for repeated queries
+- **Resilient**: Circuit breaker prevents cascade failures
+- **Hybrid mode**: Regex for high-confidence, LLM for edge cases
 
 ---
 

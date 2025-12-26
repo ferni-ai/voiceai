@@ -53,6 +53,10 @@ export interface SpeechTraitContext {
   turnNumber?: number;
   /** Random seed for deterministic testing */
   randomSeed?: string;
+  /** User's original message (for callback detection) */
+  userText?: string;
+  /** Total conversation count with this user */
+  conversationCount?: number;
 }
 
 /**
@@ -409,6 +413,9 @@ export function applyPersonaSpeechTraitsSync(
       isComforting: /\b(sorry|understand|hard|tough)\b/i.test(result),
       turnNumber: context.turnNumber,
       randomSeed: context.randomSeed,
+      // Pass user text for callback detection
+      userText: context.userText,
+      conversationCount: context.conversationCount,
     });
     log.debug({ personaId }, 'Applied persona speech traits sync (layer 2: JSON behaviors)');
   } catch (error) {

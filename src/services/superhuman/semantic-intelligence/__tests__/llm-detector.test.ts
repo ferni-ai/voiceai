@@ -214,9 +214,6 @@ describe('LLM Detector', () => {
         'Try keeping a gratitude journal - it might help shift your perspective.'
       );
 
-      // Debug: log the result
-      console.log('Advice detection result:', JSON.stringify(result, null, 2));
-
       expect(result.containsAdvice).toBe(true);
       expect(result.adviceText).toContain('gratitude journal');
       expect(result.category).toBe('practical');
