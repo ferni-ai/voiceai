@@ -128,7 +128,32 @@ const TRIGGER_PATTERNS: Record<string, RegExp[]> = {
     /\b(why is life|unfair|injustice|can't understand)\b/i,
   ],
 
-  // Jordan triggers
+  // Jordan triggers (from callbacks.json)
+  big_picture: [
+    /\b(big picture|overall|life arc|looking back|whole life)\b/i,
+    /\b(grand scheme|in the end|when all is said|journey)\b/i,
+  ],
+  achievement: [
+    /\b(achieved|accomplished|reached|completed|milestone)\b/i,
+    /\b(promotion|graduation|award|won|succeeded)\b/i,
+  ],
+  change: [
+    /\b(change|changing|transition|new chapter|moving on)\b/i,
+    /\b(starting fresh|new beginning|next phase|turning point)\b/i,
+  ],
+  dream: [
+    /\b(dream|dreaming|vision|someday|one day)\b/i,
+    /\b(hope to|aspire|bucket list|imagine)\b/i,
+  ],
+  self_doubt: [
+    /\b(doubt myself|not good enough|imposter|fraud|fake)\b/i,
+    /\b(who am I to|don't deserve|not worthy)\b/i,
+  ],
+  celebration: [
+    /\b(celebrate|celebrating|party|birthday|anniversary)\b/i,
+    /\b(congrat|proud of|excited about|big news)\b/i,
+  ],
+  // Legacy Jordan triggers (keep for compatibility)
   future: [
     /\b(someday|one day|future|years from now|when I'm older)\b/i,
     /\b(vision|dream|goal|aspire|hope to)\b/i,
@@ -156,7 +181,71 @@ const TRIGGER_PATTERNS: Record<string, RegExp[]> = {
     /\b(clarity|clear|simplify|streamline|organize)\b/i,
   ],
 
-  // Peter triggers
+  // Nayan triggers (from callbacks.json)
+  searching: [
+    /\b(searching|looking for|seeking|quest|trying to find)\b/i,
+    /\b(what am I|where do I|who am I|meaning)\b/i,
+  ],
+  unique: [
+    /\b(unique|special|different|one of a kind|unlike)\b/i,
+    /\b(no one else|only I|just me|my own way)\b/i,
+  ],
+  contradiction: [
+    /\b(contradiction|contradictory|paradox|both true|opposite)\b/i,
+    /\b(doesn't make sense|conflicting|yet also)\b/i,
+  ],
+  uncomfortable: [
+    /\b(uncomfortable|discomfort|uneasy|hard to sit with)\b/i,
+    /\b(anxiety|anxious|nervous|scared|afraid)\b/i,
+  ],
+  question_seeking_answer: [
+    /\b(what is the answer|why does|how can I|seeking answers)\b/i,
+    /\b(need to understand|figure out|make sense of)\b/i,
+  ],
+  mortality: [
+    /\b(death|dying|mortality|end of life|legacy)\b/i,
+    /\b(when I'm gone|after I die|limited time)\b/i,
+  ],
+  // Legacy Nayan triggers
+  meaning: [
+    /\b(what's the point|meaning of|purpose|why bother|existential)\b/i,
+    /\b(life's meaning|bigger picture|grand scheme|in the end)\b/i,
+  ],
+  paradox: [
+    /\b(both true|contradictory|doesn't make sense|opposite)\b/i,
+    /\b(yet also|but at the same time|seemingly conflicting)\b/i,
+  ],
+  suffering: [
+    /\b(suffering|pain|struggle|hardship|difficult time)\b/i,
+    /\b(why is life|unfair|injustice|can't understand)\b/i,
+  ],
+
+  // Peter triggers (from callbacks.json)
+  doubt: [
+    /\b(doubt|doubting|uncertain|unsure|worried about)\b/i,
+    /\b(second guess|questioning|nervous about)\b/i,
+  ],
+  patience: [
+    /\b(patience|patient|wait|waiting|long term)\b/i,
+    /\b(take time|years|decades|eventually)\b/i,
+  ],
+  expensive: [
+    /\b(expensive|costly|high fees|too much money)\b/i,
+    /\b(costs|expenses|charges|paying too much)\b/i,
+  ],
+  timing: [
+    /\b(timing|time the market|when to buy|when to sell)\b/i,
+    /\b(right time|wrong time|missed|too late|too early)\b/i,
+  ],
+  complicated: [
+    /\b(complicated|complex|confusing|overwhelming|too many)\b/i,
+    /\b(don't understand|hard to follow|options)\b/i,
+  ],
+  more: [
+    /\b(more|want more|need more|not enough|greedy)\b/i,
+    /\b(keep up|always chasing|never satisfied)\b/i,
+  ],
+  // Legacy Peter triggers
   market: [
     /\b(market|stocks|invest|portfolio|fund|401k|IRA)\b/i,
     /\b(down market|bear market|crash|correction|volatility)\b/i,

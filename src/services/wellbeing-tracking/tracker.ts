@@ -109,6 +109,7 @@ const DETECTION_PATTERNS: Record<
     positive: [
       { pattern: /\b(motivated|driven|inspired|excited to)\b/i, value: 0.9, confidence: 0.7 },
       { pattern: /\b(want to|looking forward|can't wait)\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(fired up|ready to|eager to|pumped to)\b/i, value: 0.85, confidence: 0.6 },
     ],
     negative: [
       {
@@ -122,6 +123,10 @@ const DETECTION_PATTERNS: Record<
         confidence: 0.6,
       },
       { pattern: /\b(just going through the motions)\b/i, value: 0.2, confidence: 0.6 },
+      // BETTER THAN HUMAN: Lost motivation patterns
+      { pattern: /\b(can't (find|seem to find) (the )?motivation)\b/i, value: 0.2, confidence: 0.7 },
+      { pattern: /\b(used to (love|enjoy)|I used to)\b.*\b(but (now|lately)|can't)\b/i, value: 0.25, confidence: 0.6 },
+      { pattern: /\b(lost (my|the) (spark|drive|interest)|don't enjoy)\b/i, value: 0.2, confidence: 0.7 },
     ],
   },
 
@@ -157,6 +162,8 @@ const DETECTION_PATTERNS: Record<
       { pattern: /\b(mind (won't stop|keeps|is) racing)\b/i, value: 0.8, confidence: 0.7 },
       { pattern: /\b(try to close my eyes|close my eyes).*(mind|thoughts|racing)\b/i, value: 0.75, confidence: 0.6 },
       { pattern: /\b(tossing and turning|can't stop thinking|lying awake)\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(buried under|drowning in|swamped with).*(deadlines?|work|tasks)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(haven't had a moment|no time to (breathe|think)|nonstop)\b/i, value: 0.7, confidence: 0.6 },
     ],
   },
 

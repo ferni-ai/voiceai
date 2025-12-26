@@ -109,7 +109,7 @@ describe('Pattern Mastery Domain Tools', () => {
   describe('Tool Loading', () => {
     it('should load all pattern mastery tool definitions', async () => {
       expect(toolDefinitions.length).toBeGreaterThan(0);
-      expect(toolDefinitions.length).toBe(6); // 6 tools defined
+      expect(toolDefinitions.length).toBe(9); // Updated: 9 tools now defined
     });
 
     it('should have correct domain for all tools', () => {

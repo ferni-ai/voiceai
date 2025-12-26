@@ -621,11 +621,11 @@ describe('Callback Injection E2E', () => {
 
 describe('Cross-Persona Callback Coverage', () => {
   const PERSONA_TRIGGER_SCENARIOS = [
-    // Jordan - Life planning callbacks
+    // Jordan - Life planning callbacks (uses big_picture, achievement, change, dream, celebration)
     {
       personaId: 'jordan-taylor',
-      userText: "I'm planning a big trip next year, thinking about my future goals",
-      expectedTriggers: ['future', 'milestone'],
+      userText: "I'm dreaming about my future goals and celebrating the changes in my life",
+      expectedTriggers: ['dream', 'change', 'celebration', 'big_picture'],
     },
     // Alex - Communication/productivity callbacks
     {
@@ -633,17 +633,17 @@ describe('Cross-Persona Callback Coverage', () => {
       userText: "I'm so overwhelmed with everything on my plate, can't say no",
       expectedTriggers: ['overwhelm', 'boundaries'],
     },
-    // Nayan - Wisdom/philosophy callbacks
+    // Nayan - Wisdom/philosophy callbacks (uses searching, contradiction, uncomfortable, mortality)
     {
       personaId: 'nayan-patel',
-      userText: "What's the meaning of all this suffering? I don't understand",
-      expectedTriggers: ['meaning', 'suffering', 'paradox'],
+      userText: "I'm searching for meaning but everything seems like a contradiction, feeling uncomfortable",
+      expectedTriggers: ['searching', 'contradiction', 'uncomfortable', 'meaning'],
     },
-    // Peter - Financial wisdom callbacks
+    // Peter - Financial wisdom callbacks (uses doubt, patience, expensive, timing, complicated)
     {
       personaId: 'peter-john',
-      userText: "The market is down and I'm worried about my investments",
-      expectedTriggers: ['market', 'compound'],
+      userText: "I'm doubting my investments, worried about market timing with all these expensive options",
+      expectedTriggers: ['doubt', 'timing', 'expensive', 'market'],
     },
   ];
 

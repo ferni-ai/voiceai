@@ -147,8 +147,8 @@ describe('Career Domain Tools', () => {
       expect(tool?.domain).toBe('career');
     });
 
-    it('should have assessBurnout tool', () => {
-      const tool = toolDefinitions.find((t) => t.id === 'assessBurnout');
+    it('should have assessWorkBurnout tool', () => {
+      const tool = toolDefinitions.find((t) => t.id === 'assessWorkBurnout');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('career');
     });
@@ -340,9 +340,9 @@ describe('Career Domain Tools', () => {
   // Burnout Assessment
   // --------------------------------------------------------------------------
 
-  describe('assessBurnout', () => {
+  describe('assessWorkBurnout', () => {
     it('should assess mild burnout symptoms', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessWorkBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -355,7 +355,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should assess moderate burnout with recommendations', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessWorkBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -368,7 +368,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should flag severe burnout and recommend professional help', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessWorkBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
