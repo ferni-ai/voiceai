@@ -40,9 +40,19 @@ interface MockUserProfile {
   lastConversationSummary?: string;
   lastConversationDate?: Date;
   humanizingState?: {
+    // Real implementation uses lastMood (string), not moodHistory array
+    lastMood?: string;
+    // But we also test moodHistory for future-proofing
     moodHistory?: Array<{ mood: string; timestamp: number }>;
   };
-  lifeEvents?: Array<{ title: string; date: Date; category: string }>;
+  lifeEvents?: Array<{ 
+    title: string; 
+    date: Date; 
+    category: string;
+    // Real implementation filters by status
+    status?: 'in_progress' | 'upcoming' | 'planning' | 'completed';
+    type?: string;
+  }>;
   goals?: string[];
   primaryConcerns?: string[];
 }
@@ -76,6 +86,9 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
     lastConversationSummary: 'We discussed her upcoming presentation and strategies for managing pre-presentation anxiety.',
     lastConversationDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     humanizingState: {
+      // Real implementation uses lastMood
+      lastMood: 'reflective',
+      // Keep moodHistory for extended tests
       moodHistory: [
         { mood: 'anxious', timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000 },
         { mood: 'hopeful', timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000 },
@@ -92,6 +105,7 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
     lastConversationSummary: 'Mike shared that his dad is recovering well from surgery. He mentioned feeling relieved but exhausted from the past month.',
     lastConversationDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
     humanizingState: {
+      lastMood: 'tired_but_present',
       moodHistory: [
         { mood: 'relieved', timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000 },
         { mood: 'exhausted', timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000 },
@@ -99,7 +113,13 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
       ],
     },
     lifeEvents: [
-      { title: "Dad's surgery and recovery", date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), category: 'family' },
+      { 
+        title: "Dad's surgery and recovery", 
+        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), 
+        category: 'family',
+        status: 'in_progress',
+        type: 'loss', // Using 'loss' type for health challenges
+      },
     ],
     goals: ['Be more present with family', 'Start exercising again'],
     primaryConcerns: ["Dad's ongoing recovery"],
@@ -215,18 +235,52 @@ function buildUserAwareness(profile: MockUserProfile): string[] {
     userAwareness.push(`Last time: ${profile.lastConversationSummary}`);
   }
 
-  // Recent emotional state
-  if (profile.humanizingState?.moodHistory?.length) {
+  // Recent emotional state (real implementation uses lastMood string)
+  if (profile.humanizingState?.lastMood) {
+    const lastMood = profile.humanizingState.lastMood;
+    // Map moods to emotional context (matching real implementation)
+    const moodContext: Record<string, string> = {
+      'tired_but_present': 'Last time they seemed a bit tired - be gentle.',
+      'reflective': 'Last time they were in a reflective mood.',
+      'philosophical': 'Last time they were in a thoughtful, philosophical space.',
+      'energized': 'Last time they were full of energy!',
+      'grounded': 'Last time they seemed calm and grounded.',
+      'playful': 'Last time they were in a playful mood.',
+      'nostalgic': 'Last time they were feeling nostalgic.',
+    };
+    if (moodContext[lastMood]) {
+      userAwareness.push(moodContext[lastMood]);
+    }
+  } else if (profile.humanizingState?.moodHistory?.length) {
+    // Fallback to moodHistory array if available (extended test)
     const recentMoods = profile.humanizingState.moodHistory.slice(0, 3);
     const moodStr = recentMoods.map((m) => m.mood).join(', ');
     userAwareness.push(`Recent emotional state: ${moodStr}`);
   }
 
-  // Life events
+  // Life events (real implementation filters by status)
   if (profile.lifeEvents?.length) {
-    const recentEvents = profile.lifeEvents.slice(0, 2);
-    for (const event of recentEvents) {
-      userAwareness.push(`Life context: ${event.title}`);
+    // Filter by status if available, otherwise take all
+    const relevantEvents = profile.lifeEvents
+      .filter(event => {
+        if (!event.status) return true; // No status = include
+        return event.status === 'in_progress' || event.status === 'upcoming' || event.status === 'planning';
+      })
+      .slice(0, 2);
+    
+    const eventTypes: Record<string, string> = {
+      'wedding': 'preparing for a wedding',
+      'baby': 'expecting or has a new baby',
+      'graduation': 'graduation coming up',
+      'career_change': 'going through a career change',
+      'relocation': 'moving/relocating',
+      'loss': 'dealing with a loss',
+      'celebration': 'has something to celebrate',
+    };
+    
+    for (const event of relevantEvents) {
+      const eventContext = event.type ? eventTypes[event.type] : null;
+      userAwareness.push(`Life context: ${event.title || eventContext || 'Important life event'}`);
     }
   }
 
@@ -375,9 +429,10 @@ describe('User Awareness - Better Than Human', () => {
       expect(awareness.some((a) => a.includes('presentation'))).toBe(true);
     });
 
-    it('should include recent emotional state', () => {
+    it('should include recent emotional state from lastMood', () => {
       const awareness = buildUserAwareness(profile);
-      expect(awareness.some((a) => a.includes('anxious') || a.includes('hopeful'))).toBe(true);
+      // Real implementation uses lastMood context descriptions
+      expect(awareness.some((a) => a.toLowerCase().includes('reflective') || a.toLowerCase().includes('mood'))).toBe(true);
     });
 
     it('should include goals', () => {
@@ -750,14 +805,17 @@ describe('Edge Cases - Better Than Human', () => {
     const profile: MockUserProfile = {
       name: 'Test User',
       lifeEvents: [
-        { title: 'Event 1', date: new Date(), category: 'work' },
-        { title: 'Event 2', date: new Date(), category: 'health' },
-        { title: 'Event 3', date: new Date(), category: 'family' },
+        { title: 'Wedding planning', date: new Date(), category: 'personal', status: 'planning', type: 'wedding' },
+        { title: 'Job transition', date: new Date(), category: 'work', status: 'in_progress', type: 'career_change' },
+        { title: 'Completed move', date: new Date(), category: 'personal', status: 'completed', type: 'relocation' },
       ],
     };
     const awareness = buildUserAwareness(profile);
-    // Should only include first 2 events to avoid overload
-    expect(awareness.filter((a) => a.includes('Life context')).length).toBeLessThanOrEqual(2);
+    // Should only include first 2 active events (not completed), to avoid overload
+    const lifeContextItems = awareness.filter((a) => a.includes('Life context'));
+    expect(lifeContextItems.length).toBeLessThanOrEqual(2);
+    // Completed event should be filtered out
+    expect(awareness.join(' ')).not.toContain('Completed move');
   });
 });
 
