@@ -1500,6 +1500,257 @@
       container.appendChild(tap);
     }
 
+    // =====================================================
+    // SUPERHUMAN Watch Builders (Glanceable)
+    // =====================================================
+
+    // Watch Mood Calendar - Today's mood with week context
+    function buildWatchMoodCal(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Mood'));
+      header.appendChild(createElement('p', '', 'This week'));
+      container.appendChild(header);
+
+      // Mini 7-day heatmap
+      const heatmap = createElement('div');
+      heatmap.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 12px 0;';
+      const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm'];
+      const colors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+      moods.forEach((mood, i) => {
+        const cell = createElement('div');
+        cell.style.cssText = `width: 14px; height: 14px; border-radius: 3px; background: ${colors[mood] || '#3D5A45'}; opacity: ${i === 6 ? '1' : '0.6'};`;
+        heatmap.appendChild(cell);
+      });
+      container.appendChild(heatmap);
+
+      const metric = createElement('div');
+      metric.style.cssText = 'text-align: center; font-size: 1.1rem; color: var(--color-accent); font-weight: 600;';
+      metric.textContent = 'Calm';
+      container.appendChild(metric);
+
+      container.appendChild(createElement('div', 'watch-metric', '5 calm days'));
+    }
+
+    // Watch Burnout Gauge - Capacity at a glance
+    function buildWatchBurnout(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Capacity'));
+      header.appendChild(createElement('p', '', 'Energy status'));
+      container.appendChild(header);
+
+      // Arc gauge
+      const ring = createElement('div', 'watch-ring');
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 36 36');
+
+      const bgPath = createSvgElement('path');
+      bgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
+      bgPath.setAttribute('fill', 'none');
+      bgPath.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+      bgPath.setAttribute('stroke-width', '3');
+      svg.appendChild(bgPath);
+
+      const fgPath = createSvgElement('path');
+      fgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
+      fgPath.setAttribute('fill', 'none');
+      fgPath.setAttribute('stroke', '#f5a623');
+      fgPath.setAttribute('stroke-width', '3');
+      fgPath.setAttribute('stroke-dasharray', '65, 100');
+      svg.appendChild(fgPath);
+
+      ring.appendChild(svg);
+      const val = createElement('span', 'watch-ring-value', '65%');
+      val.style.color = '#f5a623';
+      ring.appendChild(val);
+      container.appendChild(ring);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Stretched'));
+    }
+
+    // Watch Timeline - Current chapter
+    function buildWatchTimeline(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Chapter'));
+      header.appendChild(createElement('p', '', 'Life narrative'));
+      container.appendChild(header);
+
+      // Current chapter dot
+      const dots = createElement('div');
+      dots.style.cssText = 'display: flex; gap: 6px; justify-content: center; margin: 12px 0;';
+      for (let i = 0; i < 5; i++) {
+        const dot = createElement('div');
+        dot.style.cssText = `width: ${i === 3 ? '14' : '8'}px; height: ${i === 3 ? '14' : '8'}px; border-radius: 50%; background: ${i === 3 ? 'var(--color-accent)' : 'var(--color-text-muted)'}; opacity: ${i === 3 ? '1' : '0.4'};`;
+        dots.appendChild(dot);
+      }
+      container.appendChild(dots);
+
+      const theme = createElement('div');
+      theme.style.cssText = 'text-align: center; font-size: 0.9rem; color: var(--color-accent); font-weight: 600;';
+      theme.textContent = 'Now';
+      container.appendChild(theme);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Intentional Growth'));
+    }
+
+    // Watch Radar - Growth summary
+    function buildWatchRadar(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Growth'));
+      header.appendChild(createElement('p', '', 'Your fingerprint'));
+      container.appendChild(header);
+
+      // Mini radar visualization
+      const radar = createElement('div');
+      radar.style.cssText = 'display: flex; justify-content: center; margin: 8px 0;';
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 60 60');
+      svg.style.cssText = 'width: 60px; height: 60px;';
+
+      // Simple hexagon shape for radar
+      const polygon = createSvgElement('polygon');
+      polygon.setAttribute('points', '30,5 52,18 52,42 30,55 8,42 8,18');
+      polygon.setAttribute('fill', 'var(--color-accent)');
+      polygon.setAttribute('fill-opacity', '0.3');
+      polygon.setAttribute('stroke', 'var(--color-accent)');
+      polygon.setAttribute('stroke-width', '1.5');
+      svg.appendChild(polygon);
+      radar.appendChild(svg);
+      container.appendChild(radar);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Relational: 90%'));
+    }
+
+    // Watch Arcs - Current emotional trajectory
+    function buildWatchArcs(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Arc'));
+      header.appendChild(createElement('p', '', 'Emotional journey'));
+      container.appendChild(header);
+
+      // Arc indicator
+      const arc = createElement('div');
+      arc.style.cssText = 'display: flex; justify-content: center; margin: 10px 0;';
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 60 30');
+      svg.style.cssText = 'width: 60px; height: 30px;';
+
+      const path = createSvgElement('path');
+      path.setAttribute('d', 'M5,25 Q30,0 55,25');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--color-accent)');
+      path.setAttribute('stroke-width', '3');
+      path.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(path);
+
+      // Current position dot
+      const circle = createSvgElement('circle');
+      circle.setAttribute('cx', '45');
+      circle.setAttribute('cy', '12');
+      circle.setAttribute('r', '4');
+      circle.setAttribute('fill', 'var(--color-accent)');
+      svg.appendChild(circle);
+
+      arc.appendChild(svg);
+      container.appendChild(arc);
+
+      const status = createElement('div');
+      status.style.cssText = 'text-align: center; font-size: 0.8rem; color: var(--color-accent); font-weight: 500;';
+      status.textContent = 'Resolution';
+      container.appendChild(status);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Career clarity'));
+    }
+
+    // Watch Predictions - Top prediction
+    function buildWatchPredictions(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Predict'));
+      header.appendChild(createElement('p', '', 'Pattern insight'));
+      container.appendChild(header);
+
+      // Confidence indicator
+      const conf = createElement('div');
+      conf.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 10px 0;';
+      for (let i = 0; i < 5; i++) {
+        const bar = createElement('div');
+        bar.style.cssText = `width: 8px; height: ${12 + i * 3}px; border-radius: 2px; background: ${i < 4 ? 'var(--color-accent)' : 'rgba(44,37,32,0.2)'};`;
+        conf.appendChild(bar);
+      }
+      container.appendChild(conf);
+
+      const prediction = createElement('div');
+      prediction.style.cssText = 'text-align: center; font-size: 0.75rem; color: var(--color-text-primary); padding: 0 8px;';
+      prediction.textContent = 'Energy dip Wed PM';
+      container.appendChild(prediction);
+
+      container.appendChild(createElement('div', 'watch-metric', 'High confidence'));
+    }
+
+    // Watch Network - Key relationship
+    function buildWatchNetwork(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Connect'));
+      header.appendChild(createElement('p', '', 'Relationship pulse'));
+      container.appendChild(header);
+
+      // Connection indicator
+      const nodes = createElement('div');
+      nodes.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 8px; margin: 12px 0;';
+
+      const you = createElement('div');
+      you.style.cssText = 'width: 20px; height: 20px; border-radius: 50%; background: var(--persona-ferni);';
+      nodes.appendChild(you);
+
+      const line = createElement('div');
+      line.style.cssText = 'width: 20px; height: 2px; background: #f5a623; border-style: dashed;';
+      nodes.appendChild(line);
+
+      const other = createElement('div');
+      other.style.cssText = 'width: 16px; height: 16px; border-radius: 50%; background: #f5a623;';
+      nodes.appendChild(other);
+
+      container.appendChild(nodes);
+
+      const name = createElement('div');
+      name.style.cssText = 'text-align: center; font-size: 0.85rem; color: #f5a623; font-weight: 500;';
+      name.textContent = 'Mike';
+      container.appendChild(name);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Needs attention'));
+    }
+
+    // Watch Open Loops - Top loop
+    function buildWatchLoops(container) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Loops'));
+      header.appendChild(createElement('p', '', 'Open threads'));
+      container.appendChild(header);
+
+      // Loop count
+      const count = createElement('div');
+      count.style.cssText = 'text-align: center; font-size: 1.8rem; color: var(--color-accent); font-weight: 700; margin: 8px 0;';
+      count.textContent = '5';
+      container.appendChild(count);
+
+      const label = createElement('div');
+      label.style.cssText = 'text-align: center; font-size: 0.7rem; color: var(--color-text-muted);';
+      label.textContent = 'open loops';
+      container.appendChild(label);
+
+      const top = createElement('div');
+      top.style.cssText = 'text-align: center; font-size: 0.75rem; color: var(--color-text-primary); margin-top: 8px; padding: 0 8px;';
+      top.textContent = "Aunt's email (12d)";
+      container.appendChild(top);
+    }
+
     // Mobile Mirror builders
     function buildMobileMirror(container, isAndroid) {
       container.replaceChildren();
@@ -1661,6 +1912,15 @@
       if (viz === 'growth') return buildMobileGrowth(container, isAndroid);
       if (viz === 'energy') return buildMobileEnergy(container, isAndroid);
       if (viz === 'values') return buildMobileValues(container, isAndroid);
+      // Superhuman visualizations
+      if (viz === 'moodcal') return buildMobileMoodCal(container, isAndroid);
+      if (viz === 'burnout') return buildMobileBurnout(container, isAndroid);
+      if (viz === 'timeline') return buildMobileTimeline(container, isAndroid);
+      if (viz === 'radar') return buildMobileRadar(container, isAndroid);
+      if (viz === 'arcs') return buildMobileArcs(container, isAndroid);
+      if (viz === 'predictions') return buildMobilePredictions(container, isAndroid);
+      if (viz === 'network') return buildMobileNetwork(container, isAndroid);
+      if (viz === 'loops') return buildMobileLoops(container, isAndroid);
 
       // Fallback for any new viz types
       container.replaceChildren();
@@ -1681,6 +1941,319 @@
       if (isAndroid) card.style.borderLeft = '3px solid var(--color-accent)';
       card.appendChild(createElement('p', 'mobile-insight', 'Visualization coming soon'));
       container.appendChild(card);
+    }
+
+    // =====================================================
+    // SUPERHUMAN Mobile Builders (Touch-friendly Cards)
+    // =====================================================
+
+    // Mobile Mood Calendar - Week heatmap with insights
+    function buildMobileMoodCal(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Mood Calendar'));
+      header.appendChild(createElement('p', '', 'Track your emotional rhythm'));
+      container.appendChild(header);
+
+      // Today's mood card
+      const card1 = createElement('div', 'mobile-card');
+      if (isAndroid) card1.style.borderLeft = '3px solid var(--color-accent)';
+      const ch1 = createElement('div', 'mobile-card-header');
+      ch1.appendChild(createElement('span', 'mobile-card-title', 'Today'));
+      ch1.appendChild(createElement('span', 'mobile-card-badge', 'Calm'));
+      card1.appendChild(ch1);
+
+      // Mini heatmap
+      const heatmap = createElement('div');
+      heatmap.style.cssText = 'display: flex; gap: 4px; margin: 12px 0;';
+      const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm'];
+      const colors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+      const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      moods.forEach((mood, i) => {
+        const day = createElement('div');
+        day.style.cssText = 'text-align: center; flex: 1;';
+        const cell = createElement('div');
+        cell.style.cssText = `height: 20px; border-radius: 4px; background: ${colors[mood]}; margin-bottom: 4px; opacity: ${i === 6 ? '1' : '0.6'};`;
+        day.appendChild(cell);
+        day.appendChild(createElement('span', '', days[i])).style.cssText = 'font-size: 0.65rem; color: var(--color-text-muted);';
+        heatmap.appendChild(day);
+      });
+      card1.appendChild(heatmap);
+      container.appendChild(card1);
+
+      // Pattern card
+      const card2 = createElement('div', 'mobile-card');
+      if (isAndroid) card2.style.borderLeft = '3px solid var(--persona-maya)';
+      card2.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Pattern Detected'));
+      card2.appendChild(createElement('p', 'mobile-insight', 'Tuesdays show highest anxiety. Your mood tends to dip mid-week.'));
+      container.appendChild(card2);
+    }
+
+    // Mobile Burnout Gauge - Capacity status
+    function buildMobileBurnout(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Capacity Guardian'));
+      header.appendChild(createElement('p', '', 'Monitor your energy reserves'));
+      container.appendChild(header);
+
+      // Gauge card
+      const card1 = createElement('div', 'mobile-card');
+      if (isAndroid) card1.style.borderLeft = '3px solid #f5a623';
+      const ch1 = createElement('div', 'mobile-card-header');
+      ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Status'));
+      ch1.appendChild(createElement('span', 'mobile-card-badge', 'Stretched')).style.background = '#f5a623';
+      card1.appendChild(ch1);
+
+      const bar = createElement('div', 'mobile-bar');
+      bar.style.background = 'linear-gradient(90deg, var(--color-accent) 0%, #f5a623 50%, #e74c3c 100%)';
+      if (isAndroid) bar.style.borderRadius = '0';
+      const indicator = createElement('div');
+      indicator.style.cssText = 'position: absolute; left: 65%; top: -2px; width: 4px; height: 16px; background: white; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);';
+      bar.appendChild(indicator);
+      card1.appendChild(bar);
+      card1.appendChild(createElement('p', 'mobile-insight', '65% capacity used'));
+      container.appendChild(card1);
+
+      // Drains card
+      const card2 = createElement('div', 'mobile-card');
+      if (isAndroid) card2.style.borderLeft = '3px solid #e74c3c';
+      card2.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Top Energy Drain'));
+      card2.appendChild(createElement('p', 'mobile-insight', 'Back-to-back meetings (85% impact)'));
+      container.appendChild(card2);
+
+      // Recharge card
+      const card3 = createElement('div', 'mobile-card');
+      if (isAndroid) card3.style.borderLeft = '3px solid var(--color-accent)';
+      card3.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Recharge Signal'));
+      card3.appendChild(createElement('p', 'mobile-insight', 'Friday evening walks show consistent recovery.'));
+      container.appendChild(card3);
+    }
+
+    // Mobile Timeline - Life chapters
+    function buildMobileTimeline(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Life Timeline'));
+      header.appendChild(createElement('p', '', 'Your story chapters'));
+      container.appendChild(header);
+
+      // Current chapter
+      const card1 = createElement('div', 'mobile-card');
+      if (isAndroid) card1.style.borderLeft = '3px solid var(--color-accent)';
+      const ch1 = createElement('div', 'mobile-card-header');
+      ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Chapter'));
+      ch1.appendChild(createElement('span', 'mobile-card-badge', '2024'));
+      card1.appendChild(ch1);
+
+      const theme = createElement('div');
+      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent); font-weight: 600; margin: 8px 0;';
+      theme.textContent = '"Intentional Growth"';
+      card1.appendChild(theme);
+      card1.appendChild(createElement('p', 'mobile-insight', "You're in a season of deliberate choices."));
+      container.appendChild(card1);
+
+      // Timeline dots
+      const card2 = createElement('div', 'mobile-card');
+      if (isAndroid) card2.style.borderLeft = '3px solid var(--persona-nayan)';
+      card2.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Your Journey'));
+
+      const timeline = createElement('div');
+      timeline.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0;';
+      ['2018', '2020', '2022', 'Now', '→'].forEach((y, i) => {
+        const dot = createElement('div');
+        dot.style.cssText = `width: ${i === 3 ? '16' : '10'}px; height: ${i === 3 ? '16' : '10'}px; border-radius: 50%; background: ${i === 3 ? 'var(--color-accent)' : 'var(--color-text-muted)'}; opacity: ${i === 3 ? '1' : '0.5'};`;
+        if (i === 4) { dot.style.background = 'none'; dot.textContent = '→'; dot.style.color = 'var(--color-text-muted)'; }
+        timeline.appendChild(dot);
+      });
+      card2.appendChild(timeline);
+      container.appendChild(card2);
+
+      // Evolution
+      const card3 = createElement('div', 'mobile-card');
+      if (isAndroid) card3.style.borderLeft = '3px solid var(--persona-maya)';
+      card3.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Identity Shift'));
+      card3.appendChild(createElement('p', 'mobile-insight', 'From "I should" → "I choose"'));
+      container.appendChild(card3);
+    }
+
+    // Mobile Radar - Growth dimensions
+    function buildMobileRadar(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Growth Radar'));
+      header.appendChild(createElement('p', '', 'Your multi-dimensional growth'));
+      container.appendChild(header);
+
+      const dimensions = [
+        { name: 'Relational', value: 90, color: 'var(--color-accent)' },
+        { name: 'Emotional', value: 80, color: 'var(--persona-maya)' },
+        { name: 'Creative', value: 75, color: 'var(--persona-jordan)' },
+        { name: 'Career', value: 70, color: 'var(--persona-peter)' },
+        { name: 'Physical', value: 60, color: 'var(--persona-alex)' },
+        { name: 'Spiritual', value: 50, color: 'var(--persona-nayan)' }
+      ];
+
+      dimensions.slice(0, 4).forEach((d, i) => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = `3px solid ${d.color}`;
+        const ch = createElement('div', 'mobile-card-header');
+        ch.appendChild(createElement('span', 'mobile-card-title', d.name));
+        ch.appendChild(createElement('span', 'mobile-card-badge', d.value + '%')).style.background = d.color;
+        card.appendChild(ch);
+
+        const bar = createElement('div', 'mobile-bar');
+        if (isAndroid) bar.style.borderRadius = '0';
+        const fill = createElement('div', 'mobile-bar-fill');
+        fill.style.width = d.value + '%';
+        fill.style.background = d.color;
+        if (isAndroid) fill.style.borderRadius = '0';
+        bar.appendChild(fill);
+        card.appendChild(bar);
+        container.appendChild(card);
+      });
+
+      // Growth edge
+      const edgeCard = createElement('div', 'mobile-card');
+      if (isAndroid) edgeCard.style.borderLeft = '3px solid var(--persona-nayan)';
+      edgeCard.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Growth Edge'));
+      edgeCard.appendChild(createElement('p', 'mobile-insight', 'Spiritual (50%) presents the greatest opportunity.'));
+      container.appendChild(edgeCard);
+    }
+
+    // Mobile Arcs - Emotional trajectories
+    function buildMobileArcs(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Emotional Arcs'));
+      header.appendChild(createElement('p', '', 'Your active journeys'));
+      container.appendChild(header);
+
+      const arcs = [
+        { name: 'Career uncertainty', phase: 'resolution', duration: '6 months', color: 'var(--color-accent)' },
+        { name: 'Family reconnection', phase: 'rising', duration: '3 months', color: 'var(--persona-maya)' },
+        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: '#f5a623' }
+      ];
+
+      arcs.forEach(arc => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = `3px solid ${arc.color}`;
+        const ch = createElement('div', 'mobile-card-header');
+        ch.appendChild(createElement('span', 'mobile-card-title', arc.name));
+        const badge = createElement('span', 'mobile-card-badge', arc.phase);
+        badge.style.background = arc.color;
+        ch.appendChild(badge);
+        card.appendChild(ch);
+        card.appendChild(createElement('p', 'mobile-insight', arc.duration));
+        container.appendChild(card);
+      });
+
+      // Insight
+      const insight = createElement('div', 'mobile-card');
+      if (isAndroid) insight.style.borderLeft = '3px solid var(--color-accent)';
+      insight.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Insight'));
+      insight.appendChild(createElement('p', 'mobile-insight', 'Career arc nearing resolution. Clarity typically emerges within 2-3 weeks.'));
+      container.appendChild(insight);
+    }
+
+    // Mobile Predictions - Pattern insights
+    function buildMobilePredictions(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Predictions'));
+      header.appendChild(createElement('p', '', 'Based on your patterns'));
+      container.appendChild(header);
+
+      const predictions = [
+        { text: 'Energy dip Wednesday afternoon', confidence: 'high', timeframe: 'This week', color: 'var(--color-accent)' },
+        { text: 'Creative breakthrough approaching', confidence: 'medium', timeframe: '2-3 weeks', color: '#f5a623' },
+        { text: 'Good window for difficult conversations', confidence: 'low', timeframe: 'Friday', color: 'var(--color-text-muted)' }
+      ];
+
+      predictions.forEach(p => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = `3px solid ${p.color}`;
+        const ch = createElement('div', 'mobile-card-header');
+        ch.appendChild(createElement('span', 'mobile-card-title', p.text));
+        const badge = createElement('span', 'mobile-card-badge', p.confidence);
+        badge.style.background = p.color;
+        ch.appendChild(badge);
+        card.appendChild(ch);
+        card.appendChild(createElement('p', 'mobile-insight', p.timeframe));
+        container.appendChild(card);
+      });
+    }
+
+    // Mobile Network - Relationships
+    function buildMobileNetwork(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Relationships'));
+      header.appendChild(createElement('p', '', 'Your connection health'));
+      container.appendChild(header);
+
+      const connections = [
+        { name: 'Mike', status: 'Needs attention', days: '3 weeks', color: '#f5a623' },
+        { name: 'Sarah', status: 'Strong', days: 'Yesterday', color: 'var(--color-accent)' },
+        { name: 'Mom', status: 'Strong', days: '2 days ago', color: 'var(--color-accent)' }
+      ];
+
+      connections.forEach(c => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = `3px solid ${c.color}`;
+        const ch = createElement('div', 'mobile-card-header');
+        ch.appendChild(createElement('span', 'mobile-card-title', c.name));
+        const badge = createElement('span', 'mobile-card-badge', c.status);
+        badge.style.background = c.color;
+        ch.appendChild(badge);
+        card.appendChild(ch);
+        card.appendChild(createElement('p', 'mobile-insight', 'Last positive mention: ' + c.days));
+        container.appendChild(card);
+      });
+
+      // Insight
+      const insight = createElement('div', 'mobile-card');
+      if (isAndroid) insight.style.borderLeft = '3px solid #f5a623';
+      insight.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Suggestion'));
+      insight.appendChild(createElement('p', 'mobile-insight', "You haven't mentioned Mike positively in 3 weeks. Consider reaching out."));
+      container.appendChild(insight);
+    }
+
+    // Mobile Open Loops - Unfinished threads
+    function buildMobileLoops(container, isAndroid) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', 'Open Loops'));
+      header.appendChild(createElement('p', '', 'Unfinished threads'));
+      container.appendChild(header);
+
+      const loops = [
+        { text: "Reply to aunt's email", days: 12, urgency: 'nagging' },
+        { text: 'Career conversation with boss', days: 30, urgency: 'simmering' },
+        { text: 'Thank you note to mentor', days: 5, urgency: 'ready' }
+      ];
+
+      const colors = { nagging: '#e74c3c', simmering: '#f5a623', ready: 'var(--color-accent)' };
+
+      loops.forEach(loop => {
+        const card = createElement('div', 'mobile-card');
+        if (isAndroid) card.style.borderLeft = `3px solid ${colors[loop.urgency]}`;
+        const ch = createElement('div', 'mobile-card-header');
+        ch.appendChild(createElement('span', 'mobile-card-title', loop.text));
+        const badge = createElement('span', 'mobile-card-badge', loop.days + 'd');
+        badge.style.background = colors[loop.urgency];
+        ch.appendChild(badge);
+        card.appendChild(ch);
+        card.appendChild(createElement('p', 'mobile-insight', loop.urgency.charAt(0).toUpperCase() + loop.urgency.slice(1)));
+        container.appendChild(card);
+      });
+
+      // Quick win
+      const quick = createElement('div', 'mobile-card');
+      if (isAndroid) quick.style.borderLeft = '3px solid var(--color-accent)';
+      quick.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Quick Win'));
+      quick.appendChild(createElement('p', 'mobile-insight', 'Thank you note takes 5 minutes and frees mental energy.'));
+      container.appendChild(quick);
     }
 
     // Web Mirror builder
@@ -2779,6 +3352,403 @@
         card3.appendChild(createElement('div', 'ipad-card-title', 'Pattern'));
         card3.appendChild(createElement('p', 'mobile-insight', 'When overwhelmed, you minimize'));
         grid.appendChild(card3);
+      } else if (viz === 'moodcal') {
+        // Monthly mood calendar - 5 weeks x 7 days grid
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 3';
+        card.appendChild(createElement('div', 'ipad-card-title', 'Mood Calendar'));
+
+        // Weekday headers
+        const weekdays = createElement('div');
+        weekdays.style.cssText = 'display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px;';
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
+          const dayLabel = createElement('div');
+          dayLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted); text-align: center;';
+          dayLabel.textContent = day;
+          weekdays.appendChild(dayLabel);
+        });
+        card.appendChild(weekdays);
+
+        // 5 weeks of mood data
+        const calendar = createElement('div');
+        calendar.style.cssText = 'display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;';
+        const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm', 'joyful', 'joyful', 'calm', 'tired', 'tired', 'anxious', 'calm', 'focused', 'focused', 'calm', 'joyful', 'calm', 'tired', 'calm', 'anxious', 'joyful', 'focused', 'calm', 'calm', 'joyful', 'calm', 'tired', 'focused', 'calm', '', '', '', ''];
+        const moodColors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+        moods.forEach((mood, i) => {
+          const cell = createElement('div');
+          if (mood) {
+            cell.style.cssText = `width: 100%; aspect-ratio: 1; border-radius: 4px; background: ${moodColors[mood]}; opacity: ${i > 25 ? '1' : '0.6'};`;
+          } else {
+            cell.style.cssText = 'width: 100%; aspect-ratio: 1; border-radius: 4px; background: transparent;';
+          }
+          calendar.appendChild(cell);
+        });
+        card.appendChild(calendar);
+
+        // Legend
+        const legend = createElement('div');
+        legend.style.cssText = 'display: flex; gap: 12px; margin-top: 12px; justify-content: center; flex-wrap: wrap;';
+        Object.entries(moodColors).forEach(([mood, color]) => {
+          const item = createElement('div');
+          item.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+          const dot = createElement('div');
+          dot.style.cssText = `width: 10px; height: 10px; border-radius: 2px; background: ${color};`;
+          item.appendChild(dot);
+          const label = createElement('span');
+          label.style.cssText = 'font-size: 0.7rem; color: var(--color-text-secondary);';
+          label.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+          item.appendChild(label);
+          legend.appendChild(item);
+        });
+        card.appendChild(legend);
+        grid.appendChild(card);
+
+      } else if (viz === 'burnout') {
+        // Three-column burnout view
+        const card1 = createElement('div', 'ipad-card');
+        card1.appendChild(createElement('div', 'ipad-card-title', 'Current'));
+
+        // Large gauge
+        const gauge = createElement('div');
+        gauge.style.cssText = 'width: 80px; height: 80px; margin: 12px auto; position: relative;';
+        const gaugeBg = createElement('div');
+        gaugeBg.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, #3D5A45 0deg 180deg, rgba(44,37,32,0.1) 180deg 270deg);';
+        gauge.appendChild(gaugeBg);
+        const gaugeCenter = createElement('div');
+        gaugeCenter.style.cssText = 'position: absolute; inset: 15px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 600;';
+        gaugeCenter.textContent = '68%';
+        gauge.appendChild(gaugeCenter);
+        card1.appendChild(gauge);
+        card1.appendChild(createElement('p', 'mobile-insight', 'Healthy reserves'));
+        grid.appendChild(card1);
+
+        const card2 = createElement('div', 'ipad-card');
+        card2.appendChild(createElement('div', 'ipad-card-title', 'Week Trend'));
+        const trend = createElement('div');
+        trend.style.cssText = 'display: flex; align-items: flex-end; gap: 6px; height: 60px; margin: 12px 0;';
+        [45, 52, 48, 62, 58, 65, 68].forEach((val, i) => {
+          const bar = createElement('div');
+          bar.style.cssText = `flex: 1; background: ${i === 6 ? '#3D5A45' : 'rgba(61,90,69,0.4)'}; height: ${val}%; border-radius: 2px 2px 0 0;`;
+          trend.appendChild(bar);
+        });
+        card2.appendChild(trend);
+        card2.appendChild(createElement('p', 'mobile-insight', '+23% from Monday'));
+        grid.appendChild(card2);
+
+        const card3 = createElement('div', 'ipad-card');
+        card3.appendChild(createElement('div', 'ipad-card-title', 'Drains'));
+        const drains = [{ name: 'Back-to-back meetings', impact: -15 }, { name: 'Late nights', impact: -12 }, { name: 'Skipped lunch', impact: -8 }];
+        drains.forEach(d => {
+          const item = createElement('div');
+          item.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
+          item.appendChild(createElement('span', '', d.name));
+          const impact = createElement('span');
+          impact.style.cssText = 'color: #e74c3c; font-weight: 500;';
+          impact.textContent = d.impact + '%';
+          item.appendChild(impact);
+          card3.appendChild(item);
+        });
+        grid.appendChild(card3);
+
+      } else if (viz === 'timeline') {
+        // Horizontal life chapters
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 3';
+        card.appendChild(createElement('div', 'ipad-card-title', 'Life Timeline'));
+
+        const timeline = createElement('div');
+        timeline.style.cssText = 'display: flex; gap: 16px; overflow-x: auto; padding: 12px 0;';
+
+        const chapters = [
+          { title: 'Foundation', years: '2010-2015', theme: 'Learning', color: '#3a6b73', status: 'complete' },
+          { title: 'Exploration', years: '2015-2019', theme: 'Discovery', color: '#f5a623', status: 'complete' },
+          { title: 'Growth', years: '2019-2023', theme: 'Building', color: '#3D5A45', status: 'complete' },
+          { title: 'Integration', years: '2023-Now', theme: 'Synthesizing', color: '#a67a6a', status: 'active' },
+          { title: 'Next Chapter', years: 'Future', theme: '?', color: '#9a8f85', status: 'future' }
+        ];
+
+        chapters.forEach(ch => {
+          const chapterEl = createElement('div');
+          chapterEl.style.cssText = `flex: 0 0 140px; padding: 16px; border-radius: 8px; background: ${ch.status === 'active' ? 'rgba(61,90,69,0.1)' : 'var(--color-background-secondary)'}; border: ${ch.status === 'active' ? '2px solid var(--color-accent)' : '1px solid var(--color-border-subtle)'};`;
+
+          const dot = createElement('div');
+          dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${ch.color}; margin-bottom: 8px;`;
+          chapterEl.appendChild(dot);
+
+          chapterEl.appendChild(createElement('div', '', ch.title));
+          const years = createElement('div');
+          years.style.cssText = 'font-size: 0.75rem; color: var(--color-text-muted); margin: 4px 0;';
+          years.textContent = ch.years;
+          chapterEl.appendChild(years);
+
+          const theme = createElement('div');
+          theme.style.cssText = 'font-size: 0.8rem; font-style: italic; color: var(--color-text-secondary);';
+          theme.textContent = ch.theme;
+          chapterEl.appendChild(theme);
+
+          timeline.appendChild(chapterEl);
+        });
+
+        card.appendChild(timeline);
+        grid.appendChild(card);
+
+      } else if (viz === 'radar') {
+        // Growth radar with full labels
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 2';
+        card.appendChild(createElement('div', 'ipad-card-title', 'Growth Radar'));
+
+        const svg = createSvgElement('svg');
+        svg.setAttribute('viewBox', '0 0 200 200');
+        svg.style.cssText = 'width: 100%; max-width: 220px; margin: 0 auto; display: block;';
+
+        const center = 100;
+        const dimensions = ['Career', 'Health', 'Relations', 'Mindset', 'Finance', 'Creative'];
+        const values = [0.85, 0.7, 0.9, 0.75, 0.6, 0.55];
+
+        // Background rings
+        [80, 60, 40, 20].forEach(r => {
+          const circle = createSvgElement('circle');
+          circle.setAttribute('cx', center);
+          circle.setAttribute('cy', center);
+          circle.setAttribute('r', r);
+          circle.setAttribute('fill', 'none');
+          circle.setAttribute('stroke', 'rgba(44,37,32,0.1)');
+          circle.setAttribute('stroke-width', '1');
+          svg.appendChild(circle);
+        });
+
+        // Data polygon
+        const points = values.map((v, i) => {
+          const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+          const r = v * 80;
+          return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+        }).join(' ');
+
+        const polygon = createSvgElement('polygon');
+        polygon.setAttribute('points', points);
+        polygon.setAttribute('fill', 'rgba(61,90,69,0.3)');
+        polygon.setAttribute('stroke', '#3D5A45');
+        polygon.setAttribute('stroke-width', '2');
+        svg.appendChild(polygon);
+
+        // Labels
+        dimensions.forEach((dim, i) => {
+          const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+          const x = center + 95 * Math.cos(angle);
+          const y = center + 95 * Math.sin(angle);
+          const text = createSvgElement('text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', y);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('font-size', '9');
+          text.setAttribute('fill', 'var(--color-text-secondary)');
+          text.textContent = dim;
+          svg.appendChild(text);
+        });
+
+        card.appendChild(svg);
+        grid.appendChild(card);
+
+        // Side panel with scores
+        const card2 = createElement('div', 'ipad-card');
+        card2.appendChild(createElement('div', 'ipad-card-title', 'Scores'));
+        dimensions.forEach((dim, i) => {
+          const row = createElement('div');
+          row.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
+          row.appendChild(createElement('span', '', dim));
+          const score = createElement('span');
+          score.style.cssText = 'font-weight: 600; color: var(--color-accent);';
+          score.textContent = Math.round(values[i] * 100) + '%';
+          row.appendChild(score);
+          card2.appendChild(row);
+        });
+        grid.appendChild(card2);
+
+      } else if (viz === 'arcs') {
+        // Emotional arc visualization
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 3';
+        card.appendChild(createElement('div', 'ipad-card-title', 'Emotional Arc'));
+
+        const svg = createSvgElement('svg');
+        svg.setAttribute('viewBox', '0 0 400 120');
+        svg.style.cssText = 'width: 100%; height: 100px;';
+
+        // Arc path
+        const path = createSvgElement('path');
+        path.setAttribute('d', 'M 20 100 Q 100 100 150 60 Q 200 20 250 40 Q 300 60 350 50 Q 380 45 380 45');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#3D5A45');
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+
+        // Phase markers
+        const phases = [
+          { x: 50, y: 95, label: 'Rising', color: '#f5a623' },
+          { x: 150, y: 55, label: 'Conflict', color: '#e74c3c' },
+          { x: 250, y: 38, label: 'Peak', color: '#3D5A45' },
+          { x: 350, y: 48, label: 'Resolution', color: '#3a6b73' }
+        ];
+
+        phases.forEach(p => {
+          const circle = createSvgElement('circle');
+          circle.setAttribute('cx', p.x);
+          circle.setAttribute('cy', p.y);
+          circle.setAttribute('r', '6');
+          circle.setAttribute('fill', p.color);
+          svg.appendChild(circle);
+
+          const text = createSvgElement('text');
+          text.setAttribute('x', p.x);
+          text.setAttribute('y', p.y + 20);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-size', '10');
+          text.setAttribute('fill', 'var(--color-text-secondary)');
+          text.textContent = p.label;
+          svg.appendChild(text);
+        });
+
+        card.appendChild(svg);
+        card.appendChild(createElement('p', 'mobile-insight', 'Currently in resolution phase after navigating a challenging period'));
+        grid.appendChild(card);
+
+      } else if (viz === 'predictions') {
+        // Prediction cards grid
+        const predictions = [
+          { title: 'Energy Dip', when: 'Thursday 2-4pm', confidence: 85, type: 'warning' },
+          { title: 'Creative Peak', when: 'Saturday morning', confidence: 78, type: 'positive' },
+          { title: 'Social Need', when: 'Next week', confidence: 72, type: 'neutral' }
+        ];
+
+        predictions.forEach(pred => {
+          const card = createElement('div', 'ipad-card');
+          const typeColors = { warning: '#f5a623', positive: '#3D5A45', neutral: '#3a6b73' };
+          card.style.borderLeft = `3px solid ${typeColors[pred.type]}`;
+
+          card.appendChild(createElement('div', 'ipad-card-title', pred.title));
+
+          const when = createElement('div');
+          when.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); margin: 8px 0;';
+          when.textContent = pred.when;
+          card.appendChild(when);
+
+          const confBar = createElement('div');
+          confBar.style.cssText = 'height: 4px; background: var(--color-border-subtle); border-radius: 2px; margin-top: 12px;';
+          const confFill = createElement('div');
+          confFill.style.cssText = `height: 100%; width: ${pred.confidence}%; background: ${typeColors[pred.type]}; border-radius: 2px;`;
+          confBar.appendChild(confFill);
+          card.appendChild(confBar);
+
+          const confLabel = createElement('div');
+          confLabel.style.cssText = 'font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; text-align: right;';
+          confLabel.textContent = pred.confidence + '% confidence';
+          card.appendChild(confLabel);
+
+          grid.appendChild(card);
+        });
+
+      } else if (viz === 'network') {
+        // Relationship network
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 2';
+        card.appendChild(createElement('div', 'ipad-card-title', 'Relationship Network'));
+
+        const svg = createSvgElement('svg');
+        svg.setAttribute('viewBox', '0 0 250 180');
+        svg.style.cssText = 'width: 100%; height: 150px;';
+
+        // Nodes
+        const nodes = [
+          { x: 125, y: 90, r: 20, label: 'You', color: '#3D5A45' },
+          { x: 60, y: 50, r: 12, label: 'Sarah', color: '#a67a6a' },
+          { x: 190, y: 50, r: 14, label: 'Mom', color: '#f5a623' },
+          { x: 40, y: 120, r: 10, label: 'Jake', color: '#3a6b73' },
+          { x: 200, y: 130, r: 11, label: 'Alex', color: '#5a6b8a' },
+          { x: 125, y: 160, r: 9, label: 'Team', color: '#9a8f85' }
+        ];
+
+        // Connections
+        nodes.slice(1).forEach(node => {
+          const line = createSvgElement('line');
+          line.setAttribute('x1', '125');
+          line.setAttribute('y1', '90');
+          line.setAttribute('x2', node.x);
+          line.setAttribute('y2', node.y);
+          line.setAttribute('stroke', 'rgba(44,37,32,0.15)');
+          line.setAttribute('stroke-width', '2');
+          svg.appendChild(line);
+        });
+
+        // Draw nodes
+        nodes.forEach(node => {
+          const circle = createSvgElement('circle');
+          circle.setAttribute('cx', node.x);
+          circle.setAttribute('cy', node.y);
+          circle.setAttribute('r', node.r);
+          circle.setAttribute('fill', node.color);
+          svg.appendChild(circle);
+
+          const text = createSvgElement('text');
+          text.setAttribute('x', node.x);
+          text.setAttribute('y', node.y + node.r + 12);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-size', '8');
+          text.setAttribute('fill', 'var(--color-text-muted)');
+          text.textContent = node.label;
+          svg.appendChild(text);
+        });
+
+        card.appendChild(svg);
+        grid.appendChild(card);
+
+        // Health panel
+        const card2 = createElement('div', 'ipad-card');
+        card2.appendChild(createElement('div', 'ipad-card-title', 'Health'));
+        const health = [
+          { name: 'Sarah', status: 'Thriving', color: '#3D5A45' },
+          { name: 'Mom', status: 'Needs attention', color: '#f5a623' },
+          { name: 'Jake', status: 'Stable', color: '#3a6b73' }
+        ];
+        health.forEach(h => {
+          const row = createElement('div');
+          row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
+          row.appendChild(createElement('span', '', h.name));
+          const status = createElement('span');
+          status.style.cssText = `font-size: 0.8rem; color: ${h.color}; font-weight: 500;`;
+          status.textContent = h.status;
+          row.appendChild(status);
+          card2.appendChild(row);
+        });
+        grid.appendChild(card2);
+
+      } else if (viz === 'loops') {
+        // Kanban-style open loops
+        const columns = [
+          { title: 'Active', color: '#3D5A45', items: ['Reply to Sarah', 'Finish report'] },
+          { title: 'Waiting', color: '#f5a623', items: ['Doctor callback', 'Approval'] },
+          { title: 'Someday', color: '#9a8f85', items: ['Learn guitar', 'Plan trip'] }
+        ];
+
+        columns.forEach(col => {
+          const card = createElement('div', 'ipad-card');
+          const title = createElement('div', 'ipad-card-title', col.title);
+          title.style.borderBottom = `2px solid ${col.color}`;
+          title.style.paddingBottom = '8px';
+          card.appendChild(title);
+
+          col.items.forEach(item => {
+            const itemEl = createElement('div');
+            itemEl.style.cssText = 'padding: 10px 8px; margin: 6px 0; background: var(--color-background-secondary); border-radius: 6px; font-size: 0.85rem;';
+            itemEl.textContent = item;
+            card.appendChild(itemEl);
+          });
+
+          grid.appendChild(card);
+        });
+
       } else {
         // Generic fallback
         const card = createElement('div', 'ipad-card');
@@ -2818,6 +3788,193 @@
         layout.appendChild(createElement('div', 'tv-title', 'Energy Flow'));
         layout.appendChild(createElement('div', 'tv-metric', '+15%'));
         layout.appendChild(createElement('div', 'tv-subtitle', 'Net positive this week'));
+      } else if (viz === 'moodcal') {
+        // Ambient mood visualization - large heatmap week
+        layout.appendChild(createElement('div', 'tv-title', 'This Week'));
+
+        const heatmap = createElement('div');
+        heatmap.style.cssText = 'display: flex; gap: 8px; justify-content: center; margin: 24px 0;';
+        const days = [
+          { day: 'M', mood: 'calm' },
+          { day: 'T', mood: 'anxious' },
+          { day: 'W', mood: 'calm' },
+          { day: 'T', mood: 'joyful' },
+          { day: 'F', mood: 'tired' },
+          { day: 'S', mood: 'focused' },
+          { day: 'S', mood: 'calm' }
+        ];
+        const moodColors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+
+        days.forEach((d, i) => {
+          const dayEl = createElement('div');
+          dayEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 8px;';
+
+          const cell = createElement('div');
+          cell.style.cssText = `width: 32px; height: 32px; border-radius: 8px; background: ${moodColors[d.mood]}; opacity: ${i === 6 ? '1' : '0.7'};`;
+          dayEl.appendChild(cell);
+
+          const label = createElement('span');
+          label.style.cssText = 'font-size: 0.8rem; color: var(--color-text-muted);';
+          label.textContent = d.day;
+          dayEl.appendChild(label);
+
+          heatmap.appendChild(dayEl);
+        });
+        layout.appendChild(heatmap);
+
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Mostly calm this week'));
+
+      } else if (viz === 'burnout') {
+        // Large ambient gauge
+        layout.appendChild(createElement('div', 'tv-title', 'Capacity'));
+
+        const gauge = createElement('div');
+        gauge.style.cssText = 'width: 120px; height: 120px; margin: 20px auto; position: relative;';
+
+        const ring = createElement('div');
+        ring.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, #3D5A45 0deg 180deg, rgba(44,37,32,0.2) 180deg 270deg);';
+        gauge.appendChild(ring);
+
+        const center = createElement('div');
+        center.style.cssText = 'position: absolute; inset: 20px; border-radius: 50%; background: var(--showcase-bg); display: flex; align-items: center; justify-content: center;';
+        const metric = createElement('span');
+        metric.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent);';
+        metric.textContent = '68%';
+        center.appendChild(metric);
+        gauge.appendChild(center);
+
+        layout.appendChild(gauge);
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Healthy reserves'));
+
+      } else if (viz === 'timeline') {
+        // Current chapter focus
+        layout.appendChild(createElement('div', 'tv-title', 'Integration'));
+        layout.appendChild(createElement('div', 'tv-subtitle', '2023 - Present'));
+
+        const theme = createElement('p');
+        theme.style.cssText = 'font-size: 1.2rem; font-style: italic; color: var(--color-accent); margin-top: 16px;';
+        theme.textContent = 'Synthesizing';
+        layout.appendChild(theme);
+
+        // Progress dots
+        const progress = createElement('div');
+        progress.style.cssText = 'display: flex; gap: 12px; justify-content: center; margin-top: 20px;';
+        const chapters = ['complete', 'complete', 'complete', 'active', 'future'];
+        chapters.forEach(status => {
+          const dot = createElement('div');
+          dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${status === 'active' ? '#3D5A45' : status === 'complete' ? 'rgba(61,90,69,0.5)' : 'rgba(154,143,133,0.3)'};`;
+          progress.appendChild(dot);
+        });
+        layout.appendChild(progress);
+
+      } else if (viz === 'radar') {
+        // Simplified radar - top 2 dimensions
+        layout.appendChild(createElement('div', 'tv-title', 'Growth'));
+
+        const metrics = createElement('div');
+        metrics.style.cssText = 'display: flex; gap: 40px; justify-content: center; margin: 20px 0;';
+
+        [{ label: 'Relations', value: '90%' }, { label: 'Career', value: '85%' }].forEach(m => {
+          const item = createElement('div');
+          item.style.cssText = 'text-align: center;';
+
+          const val = createElement('div');
+          val.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent);';
+          val.textContent = m.value;
+          item.appendChild(val);
+
+          const label = createElement('div');
+          label.style.cssText = 'font-size: 0.9rem; color: var(--color-text-muted); margin-top: 4px;';
+          label.textContent = m.label;
+          item.appendChild(label);
+
+          metrics.appendChild(item);
+        });
+        layout.appendChild(metrics);
+
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Top performing areas'));
+
+      } else if (viz === 'arcs') {
+        // Current phase focus
+        layout.appendChild(createElement('div', 'tv-title', 'Resolution'));
+
+        // Simple arc indicator
+        const arc = createElement('div');
+        arc.style.cssText = 'display: flex; gap: 6px; justify-content: center; margin: 20px 0;';
+        const phases = ['rising', 'conflict', 'peak', 'resolution'];
+        phases.forEach((p, i) => {
+          const segment = createElement('div');
+          segment.style.cssText = `width: ${30 + i * 8}px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(61,90,69,0.3)'};`;
+          arc.appendChild(segment);
+        });
+        layout.appendChild(arc);
+
+        const insight = createElement('p');
+        insight.style.cssText = 'font-size: 1rem; color: var(--color-text-secondary); max-width: 400px; text-align: center;';
+        insight.textContent = 'Finding peace after a challenging period';
+        layout.appendChild(insight);
+
+      } else if (viz === 'predictions') {
+        // Next prediction spotlight
+        layout.appendChild(createElement('div', 'tv-title', 'Energy Dip'));
+        layout.appendChild(createElement('div', 'tv-metric', 'Thu 2pm'));
+
+        const confidence = createElement('div');
+        confidence.style.cssText = 'display: flex; align-items: center; gap: 12px; justify-content: center; margin-top: 16px;';
+
+        const bar = createElement('div');
+        bar.style.cssText = 'width: 100px; height: 6px; background: rgba(44,37,32,0.2); border-radius: 3px; overflow: hidden;';
+        const fill = createElement('div');
+        fill.style.cssText = 'height: 100%; width: 85%; background: #f5a623; border-radius: 3px;';
+        bar.appendChild(fill);
+        confidence.appendChild(bar);
+
+        const label = createElement('span');
+        label.style.cssText = 'font-size: 0.9rem; color: var(--color-text-muted);';
+        label.textContent = '85% likely';
+        confidence.appendChild(label);
+
+        layout.appendChild(confidence);
+
+      } else if (viz === 'network') {
+        // Key relationship focus
+        layout.appendChild(createElement('div', 'tv-title', 'Mom'));
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Needs attention'));
+
+        const indicator = createElement('div');
+        indicator.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: #f5a623; margin: 20px auto; display: flex; align-items: center; justify-content: center;';
+        const icon = createElement('span');
+        icon.style.cssText = 'font-size: 1.5rem; color: white;';
+        icon.textContent = '!';
+        indicator.appendChild(icon);
+        layout.appendChild(indicator);
+
+        const action = createElement('p');
+        action.style.cssText = 'font-size: 0.9rem; color: var(--color-text-muted);';
+        action.textContent = '3 days since last call';
+        layout.appendChild(action);
+
+      } else if (viz === 'loops') {
+        // Priority loop spotlight
+        layout.appendChild(createElement('div', 'tv-title', 'Open Loop'));
+
+        const loopItem = createElement('div');
+        loopItem.style.cssText = 'background: rgba(61,90,69,0.1); border-left: 4px solid #3D5A45; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px auto; max-width: 300px;';
+
+        const loopText = createElement('p');
+        loopText.style.cssText = 'font-size: 1.1rem; color: var(--color-text-primary);';
+        loopText.textContent = 'Reply to Sarah';
+        loopItem.appendChild(loopText);
+
+        const loopMeta = createElement('span');
+        loopMeta.style.cssText = 'font-size: 0.85rem; color: var(--color-text-muted);';
+        loopMeta.textContent = 'Active • 2 days';
+        loopItem.appendChild(loopMeta);
+
+        layout.appendChild(loopItem);
+
+        layout.appendChild(createElement('div', 'tv-subtitle', '3 more waiting'));
+
       } else {
         layout.appendChild(createElement('div', 'tv-title', viz.charAt(0).toUpperCase() + viz.slice(1)));
         layout.appendChild(createElement('div', 'tv-subtitle', 'Ambient insight'));
@@ -2854,6 +4011,87 @@
         icon.textContent = '!';
         main.appendChild(icon);
         main.appendChild(createElement('div', 'carplay-label', 'Check in needed'));
+      } else if (viz === 'moodcal') {
+        // Single mood indicator with color
+        const moodIcon = createElement('div');
+        moodIcon.style.cssText = 'width: 50px; height: 50px; background: #3D5A45; border-radius: 50%;';
+        main.appendChild(moodIcon);
+        main.appendChild(createElement('div', 'carplay-label', 'Calm'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = 'Today';
+        main.appendChild(sub);
+      } else if (viz === 'burnout') {
+        // Capacity gauge - single metric
+        main.appendChild(createElement('div', 'carplay-metric', '68%'));
+        const labels = createElement('div');
+        labels.appendChild(createElement('div', 'carplay-label', 'Capacity'));
+        const status = createElement('div');
+        status.style.cssText = 'font-size: 0.9rem; color: #3D5A45; font-weight: 500;';
+        status.textContent = 'Healthy';
+        labels.appendChild(status);
+        main.appendChild(labels);
+      } else if (viz === 'timeline') {
+        // Current chapter only
+        const dot = createElement('div');
+        dot.style.cssText = 'width: 40px; height: 40px; background: #a67a6a; border-radius: 50%;';
+        main.appendChild(dot);
+        main.appendChild(createElement('div', 'carplay-label', 'Integration'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = 'Chapter 4';
+        main.appendChild(sub);
+      } else if (viz === 'radar') {
+        // Top dimension only
+        main.appendChild(createElement('div', 'carplay-metric', '90%'));
+        main.appendChild(createElement('div', 'carplay-label', 'Relations'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.textContent = 'Strong';
+        main.appendChild(sub);
+      } else if (viz === 'arcs') {
+        // Current phase indicator
+        const phases = createElement('div');
+        phases.style.cssText = 'display: flex; gap: 4px;';
+        ['rising', 'conflict', 'peak', 'resolution'].forEach((p, i) => {
+          const seg = createElement('div');
+          seg.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(255,255,255,0.2)'};`;
+          phases.appendChild(seg);
+        });
+        main.appendChild(phases);
+        main.appendChild(createElement('div', 'carplay-label', 'Resolution'));
+      } else if (viz === 'predictions') {
+        // Next alert
+        const icon = createElement('div');
+        icon.style.cssText = 'width: 50px; height: 50px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;';
+        icon.textContent = '!';
+        main.appendChild(icon);
+        main.appendChild(createElement('div', 'carplay-label', 'Energy dip'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = 'Thu 2pm';
+        main.appendChild(sub);
+      } else if (viz === 'network') {
+        // Priority relationship
+        const icon = createElement('div');
+        icon.style.cssText = 'width: 50px; height: 50px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;';
+        icon.textContent = 'M';
+        main.appendChild(icon);
+        main.appendChild(createElement('div', 'carplay-label', 'Call Mom'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = '3 days ago';
+        main.appendChild(sub);
+      } else if (viz === 'loops') {
+        // Priority open loop
+        const count = createElement('div', 'carplay-metric', '4');
+        count.style.color = '#3D5A45';
+        main.appendChild(count);
+        main.appendChild(createElement('div', 'carplay-label', 'Open loops'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = 'Reply to Sarah';
+        main.appendChild(sub);
       } else {
         main.appendChild(createElement('div', 'carplay-metric', '●'));
         main.appendChild(createElement('div', 'carplay-label', viz));
@@ -2863,7 +4101,24 @@
 
       // Voice action button
       const action = createElement('div', 'carplay-action');
-      action.textContent = '🎤';
+      const mic = createSvgElement('svg');
+      mic.setAttribute('viewBox', '0 0 24 24');
+      mic.setAttribute('width', '24');
+      mic.setAttribute('height', '24');
+      mic.style.cssText = 'fill: none; stroke: white; stroke-width: 2;';
+      const path1 = createSvgElement('path');
+      path1.setAttribute('d', 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z');
+      mic.appendChild(path1);
+      const path2 = createSvgElement('path');
+      path2.setAttribute('d', 'M19 10v2a7 7 0 0 1-14 0v-2');
+      mic.appendChild(path2);
+      const path3 = createSvgElement('line');
+      path3.setAttribute('x1', '12');
+      path3.setAttribute('y1', '19');
+      path3.setAttribute('x2', '12');
+      path3.setAttribute('y2', '23');
+      mic.appendChild(path3);
+      action.appendChild(mic);
       layout.appendChild(action);
 
       container.appendChild(layout);
@@ -2896,6 +4151,70 @@
       } else if (viz === 'mirror') {
         smallContent.appendChild(createElement('div', 'widget-value', '!'));
         smallContent.appendChild(createElement('div', 'widget-footer', 'Check in'));
+      } else if (viz === 'moodcal') {
+        // Mini mood heatmap - 7 days
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 8px 0;';
+        const moods = ['#3D5A45', '#e74c3c', '#3D5A45', '#f5a623', '#9a8f85', '#3a6b73', '#3D5A45'];
+        moods.forEach((color, i) => {
+          const cell = createElement('div');
+          cell.style.cssText = `width: 12px; height: 12px; border-radius: 2px; background: ${color}; opacity: ${i === 6 ? '1' : '0.7'};`;
+          row.appendChild(cell);
+        });
+        smallContent.appendChild(row);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'This week'));
+      } else if (viz === 'burnout') {
+        const val = createElement('div', 'widget-value');
+        val.style.color = 'var(--color-accent)';
+        val.textContent = '68%';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Capacity'));
+      } else if (viz === 'timeline') {
+        // Progress dots
+        const dots = createElement('div');
+        dots.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin: 8px 0;';
+        ['complete', 'complete', 'complete', 'active', 'future'].forEach(s => {
+          const dot = createElement('div');
+          dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${s === 'active' ? '#3D5A45' : s === 'complete' ? 'rgba(61,90,69,0.4)' : 'rgba(154,143,133,0.3)'};`;
+          dots.appendChild(dot);
+        });
+        smallContent.appendChild(dots);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Chapter 4'));
+      } else if (viz === 'radar') {
+        const val = createElement('div', 'widget-value');
+        val.style.color = 'var(--color-accent)';
+        val.textContent = '90%';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Relations'));
+      } else if (viz === 'arcs') {
+        // Phase indicator
+        const phases = createElement('div');
+        phases.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin: 8px 0;';
+        ['rising', 'conflict', 'peak', 'resolution'].forEach(p => {
+          const seg = createElement('div');
+          seg.style.cssText = `width: 14px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(61,90,69,0.25)'};`;
+          phases.appendChild(seg);
+        });
+        smallContent.appendChild(phases);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Resolution'));
+      } else if (viz === 'predictions') {
+        const val = createElement('div', 'widget-value');
+        val.style.cssText = 'color: #f5a623;';
+        val.textContent = 'Thu';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Energy dip'));
+      } else if (viz === 'network') {
+        const val = createElement('div', 'widget-value');
+        val.style.cssText = 'color: #f5a623;';
+        val.textContent = '!';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Call Mom'));
+      } else if (viz === 'loops') {
+        const val = createElement('div', 'widget-value');
+        val.style.color = 'var(--color-accent)';
+        val.textContent = '4';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Open loops'));
       } else {
         smallContent.appendChild(createElement('div', 'widget-value', '●'));
         smallContent.appendChild(createElement('div', 'widget-footer', viz));
@@ -2922,6 +4241,127 @@
         medVal.textContent = '"Tired" mentioned 8× this week';
         medContent.appendChild(medVal);
         medContent.appendChild(createElement('div', 'widget-footer', 'Tap to reflect'));
+      } else if (viz === 'moodcal') {
+        // Week heatmap with labels
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; gap: 6px; justify-content: flex-start; margin: 8px 0;';
+        const days = [
+          { day: 'M', color: '#3D5A45' },
+          { day: 'T', color: '#e74c3c' },
+          { day: 'W', color: '#3D5A45' },
+          { day: 'T', color: '#f5a623' },
+          { day: 'F', color: '#9a8f85' },
+          { day: 'S', color: '#3a6b73' },
+          { day: 'S', color: '#3D5A45' }
+        ];
+        days.forEach((d, i) => {
+          const dayCol = createElement('div');
+          dayCol.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 2px;';
+          const cell = createElement('div');
+          cell.style.cssText = `width: 16px; height: 16px; border-radius: 3px; background: ${d.color}; opacity: ${i === 6 ? '1' : '0.7'};`;
+          dayCol.appendChild(cell);
+          const label = createElement('span');
+          label.style.cssText = 'font-size: 0.6rem; color: var(--color-text-muted);';
+          label.textContent = d.day;
+          dayCol.appendChild(label);
+          row.appendChild(dayCol);
+        });
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Mostly calm this week'));
+      } else if (viz === 'burnout') {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        const val = createElement('div', 'widget-value');
+        val.style.cssText = 'font-size: 2rem; color: var(--color-accent);';
+        val.textContent = '68%';
+        row.appendChild(val);
+        const bar = createElement('div');
+        bar.style.cssText = 'flex: 1; height: 8px; background: var(--color-border-subtle); border-radius: 4px; overflow: hidden;';
+        const fill = createElement('div');
+        fill.style.cssText = 'width: 68%; height: 100%; background: var(--color-accent); border-radius: 4px;';
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Healthy capacity reserves'));
+      } else if (viz === 'timeline') {
+        const medVal = createElement('div', 'widget-value');
+        medVal.style.fontSize = '1.3rem';
+        medVal.textContent = 'Integration';
+        medContent.appendChild(medVal);
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent); font-style: italic; margin-top: 4px;';
+        sub.textContent = 'Synthesizing';
+        medContent.appendChild(sub);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Chapter 4 of 5'));
+      } else if (viz === 'radar') {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; gap: 16px;';
+        [{ label: 'Relations', value: '90%' }, { label: 'Career', value: '85%' }].forEach(m => {
+          const item = createElement('div');
+          item.style.cssText = 'text-align: center;';
+          const val = createElement('div');
+          val.style.cssText = 'font-size: 1.2rem; font-weight: 600; color: var(--color-accent);';
+          val.textContent = m.value;
+          item.appendChild(val);
+          const label = createElement('div');
+          label.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+          label.textContent = m.label;
+          item.appendChild(label);
+          row.appendChild(item);
+        });
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Top growth areas'));
+      } else if (viz === 'arcs') {
+        const medVal = createElement('div', 'widget-value');
+        medVal.style.fontSize = '1.3rem';
+        medVal.textContent = 'Resolution phase';
+        medContent.appendChild(medVal);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Finding peace after conflict'));
+      } else if (viz === 'predictions') {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        const icon = createElement('div');
+        icon.style.cssText = 'width: 24px; height: 24px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 600;';
+        icon.textContent = '!';
+        row.appendChild(icon);
+        const text = createElement('div');
+        text.style.cssText = 'font-size: 1rem;';
+        text.textContent = 'Energy dip Thursday';
+        row.appendChild(text);
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', '85% confidence'));
+      } else if (viz === 'network') {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        const icon = createElement('div');
+        icon.style.cssText = 'width: 28px; height: 28px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;';
+        icon.textContent = 'M';
+        row.appendChild(icon);
+        const text = createElement('div');
+        const name = createElement('div');
+        name.style.cssText = 'font-weight: 500;';
+        name.textContent = 'Mom';
+        text.appendChild(name);
+        const status = createElement('div');
+        status.style.cssText = 'font-size: 0.75rem; color: var(--color-text-muted);';
+        status.textContent = 'Needs attention';
+        text.appendChild(status);
+        row.appendChild(text);
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', '3 days since last call'));
+      } else if (viz === 'loops') {
+        const row = createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        const count = createElement('div');
+        count.style.cssText = 'font-size: 2rem; font-weight: 600; color: var(--color-accent);';
+        count.textContent = '4';
+        row.appendChild(count);
+        const text = createElement('div');
+        text.style.cssText = 'font-size: 0.9rem;';
+        text.textContent = 'Open loops';
+        row.appendChild(text);
+        medContent.appendChild(row);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Top: Reply to Sarah'));
       } else {
         const medVal = createElement('div', 'widget-value');
         medVal.style.fontSize = '1.2rem';
@@ -2955,6 +4395,15 @@
       else if (currentViz === 'energy') buildWatchEnergy(watchEl);
       else if (currentViz === 'values') buildWatchValues(watchEl);
       else if (currentViz === 'mirror') buildWatchMirror(watchEl);
+      // Superhuman visualizations
+      else if (currentViz === 'moodcal') buildWatchMoodCal(watchEl);
+      else if (currentViz === 'burnout') buildWatchBurnout(watchEl);
+      else if (currentViz === 'timeline') buildWatchTimeline(watchEl);
+      else if (currentViz === 'radar') buildWatchRadar(watchEl);
+      else if (currentViz === 'arcs') buildWatchArcs(watchEl);
+      else if (currentViz === 'predictions') buildWatchPredictions(watchEl);
+      else if (currentViz === 'network') buildWatchNetwork(watchEl);
+      else if (currentViz === 'loops') buildWatchLoops(watchEl);
       else buildWatchGeneric(watchEl, currentViz);
 
       // Build iPhone content
