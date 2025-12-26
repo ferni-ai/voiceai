@@ -627,6 +627,204 @@
       color: var(--color-text-muted);
     }
 
+    /* =====================================================
+       SUPERHUMAN VISUALIZATIONS - CSS
+       ===================================================== */
+
+    /* Mood Calendar Heatmap */
+    .mood-heatmap {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .mood-cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      min-width: 12px;
+      transition: transform var(--duration-fast) var(--ease-out-expo);
+    }
+    .mood-cell:hover { transform: scale(1.3); z-index: 1; }
+    .mood-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    /* Burnout Gauge */
+    .burnout-gauge {
+      position: relative;
+      width: 100%;
+      height: 24px;
+      background: linear-gradient(90deg, var(--color-accent) 0%, #f5a623 50%, #e74c3c 100%);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    .burnout-indicator {
+      position: absolute;
+      top: -4px;
+      width: 4px;
+      height: 32px;
+      background: var(--color-text-primary);
+      border-radius: 2px;
+      transition: left 0.5s var(--ease-out-expo);
+    }
+    .burnout-zones {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    /* Life Timeline */
+    .timeline-container {
+      position: relative;
+      padding: var(--space-4) 0;
+    }
+    .timeline-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-border-subtle);
+    }
+    .timeline-chapters {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+    }
+    .timeline-chapter {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .timeline-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid var(--color-background);
+      z-index: 1;
+      transition: transform var(--duration-fast) var(--ease-spring);
+    }
+    .timeline-dot:hover { transform: scale(1.3); }
+    .timeline-label {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      text-align: center;
+      max-width: 60px;
+    }
+
+    /* Growth Radar */
+    .radar-container {
+      position: relative;
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+    }
+    .radar-axis {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: center;
+      width: 50%;
+      height: 1px;
+      background: var(--color-border-subtle);
+    }
+    .radar-label {
+      position: absolute;
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Emotional Arcs */
+    .arc-container { position: relative; }
+    .arc-phase {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.65rem;
+      font-weight: 500;
+    }
+    .arc-phase.initiation { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
+    .arc-phase.escalation { background: rgba(245, 166, 35, 0.2); color: #f5a623; }
+    .arc-phase.peak { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+    .arc-phase.resolution { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
+
+    /* Prediction Confidence */
+    .prediction-card {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      border-left: 3px solid transparent;
+    }
+    .prediction-card.high { border-left-color: var(--color-accent); }
+    .prediction-card.medium { border-left-color: #f5a623; }
+    .prediction-card.low { border-left-color: var(--color-text-muted); }
+    .confidence-badge {
+      font-size: 0.6rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+    }
+    .confidence-badge.high { background: var(--color-accent); color: white; }
+    .confidence-badge.medium { background: #f5a623; color: white; }
+    .confidence-badge.low { background: var(--color-text-muted); color: white; }
+
+    /* Relationship Network */
+    .network-node {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: white;
+      transition: transform var(--duration-fast) var(--ease-spring);
+    }
+    .network-node:hover { transform: scale(1.15); }
+    .network-node.positive { background: var(--color-accent); }
+    .network-node.neutral { background: var(--color-text-muted); }
+    .network-node.tense { background: #f5a623; }
+
+    /* Open Loops Kanban */
+    .loops-column {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-2);
+    }
+    .loops-header {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--space-2);
+    }
+    .loop-card {
+      background: var(--color-background);
+      border-radius: var(--radius-md);
+      padding: var(--space-2);
+      margin-bottom: var(--space-1);
+      font-size: 0.75rem;
+      transition: transform var(--duration-fast) var(--ease-out-expo);
+    }
+    .loop-card:hover { transform: translateX(4px); }
+    .loop-weight {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: var(--space-1);
+    }
+
     .viz-selector {
       display: flex;
       justify-content: center;
@@ -863,6 +1061,14 @@
     <button class="viz-chip" data-viz="unsaid">The Unsaid</button>
     <button class="viz-chip" data-viz="ripple">Ripple Effects</button>
     <button class="viz-chip" data-viz="stories">Unfinished Stories</button>
+    <button class="viz-chip" data-viz="moodcal">Mood Calendar</button>
+    <button class="viz-chip" data-viz="burnout">Burnout Gauge</button>
+    <button class="viz-chip" data-viz="timeline">Life Timeline</button>
+    <button class="viz-chip" data-viz="radar">Growth Radar</button>
+    <button class="viz-chip" data-viz="arcs">Emotional Arcs</button>
+    <button class="viz-chip" data-viz="predictions">Predictions</button>
+    <button class="viz-chip" data-viz="network">Relationships</button>
+    <button class="viz-chip" data-viz="loops">Open Loops</button>
   </div>
 
   <div class="devices-container" id="devicesContainer">
@@ -1716,6 +1922,15 @@
       if (viz === 'unsaid') return buildWebUnsaid(container);
       if (viz === 'ripple') return buildWebRipple(container);
       if (viz === 'stories') return buildWebStories(container);
+      // Superhuman visualizations
+      if (viz === 'moodcal') return buildWebMoodCal(container);
+      if (viz === 'burnout') return buildWebBurnout(container);
+      if (viz === 'timeline') return buildWebTimeline(container);
+      if (viz === 'radar') return buildWebRadar(container);
+      if (viz === 'arcs') return buildWebArcs(container);
+      if (viz === 'predictions') return buildWebPredictions(container);
+      if (viz === 'network') return buildWebNetwork(container);
+      if (viz === 'loops') return buildWebLoops(container);
 
       // Fallback
       container.replaceChildren();
@@ -1937,6 +2152,586 @@
 
         grid.appendChild(panel);
       });
+
+      container.appendChild(grid);
+    }
+
+    // =====================================================
+    // SUPERHUMAN VISUALIZATIONS - Web Builders
+    // Deep insights from Ferni's 10 superhuman services
+    // =====================================================
+
+    // Mood Calendar Heatmap - 30 days of emotional data
+    function buildWebMoodCal(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Main heatmap panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Mood Calendar'));
+      const badge = createElement('span');
+      badge.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+      badge.textContent = 'Last 30 days';
+      header.appendChild(badge);
+      panel1.appendChild(header);
+
+      // Generate 30-day heatmap
+      const heatmap = createElement('div', 'mood-heatmap');
+      const moods = ['calm', 'anxious', 'joyful', 'tired', 'focused', 'scattered'];
+      const colors = {
+        calm: 'var(--color-accent)',
+        anxious: '#e74c3c',
+        joyful: '#f5a623',
+        tired: 'var(--color-text-muted)',
+        focused: 'var(--persona-peter)',
+        scattered: 'var(--persona-maya)'
+      };
+      // Generate mock mood data for 30 days
+      for (let i = 0; i < 30; i++) {
+        const cell = createElement('div', 'mood-cell');
+        const mood = moods[Math.floor(Math.random() * moods.length)];
+        const intensity = 0.4 + Math.random() * 0.6;
+        cell.style.background = colors[mood];
+        cell.style.opacity = intensity;
+        cell.title = `Day ${i + 1}: ${mood}`;
+        heatmap.appendChild(cell);
+      }
+      panel1.appendChild(heatmap);
+
+      // Legend
+      const legend = createElement('div');
+      legend.style.cssText = 'display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;';
+      Object.entries(colors).forEach(([mood, color]) => {
+        const item = createElement('div');
+        item.style.cssText = 'display: flex; align-items: center; gap: 4px; font-size: 0.75rem;';
+        const dot = createElement('div');
+        dot.style.cssText = `width: 10px; height: 10px; border-radius: 2px; background: ${color};`;
+        item.appendChild(dot);
+        item.appendChild(document.createTextNode(mood));
+        legend.appendChild(item);
+      });
+      panel1.appendChild(legend);
+      grid.appendChild(panel1);
+
+      // Insight panel
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      const insight = createElement('p', 'mobile-insight');
+      insight.textContent = 'Pattern detected: Your mood tends to dip mid-week. Tuesdays show highest anxiety, while weekends lean toward calm.';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
+
+      container.appendChild(grid);
+    }
+
+    // Burnout Risk Gauge - Capacity guardian visualization
+    function buildWebBurnout(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Main gauge panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Capacity Guardian'));
+      panel1.appendChild(header);
+
+      // Gauge
+      const gauge = createElement('div', 'burnout-gauge');
+      const indicator = createElement('div', 'burnout-indicator');
+      const riskLevel = 65; // Mock: 65% risk
+      indicator.style.left = `${riskLevel}%`;
+      indicator.style.background = riskLevel > 70 ? '#e74c3c' : riskLevel > 40 ? '#f5a623' : 'var(--color-accent)';
+      gauge.appendChild(indicator);
+      panel1.appendChild(gauge);
+
+      // Labels
+      const labels = createElement('div');
+      labels.style.cssText = 'display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75rem; color: var(--color-text-muted);';
+      labels.appendChild(createElement('span', '', 'Thriving'));
+      labels.appendChild(createElement('span', '', 'Stretched'));
+      labels.appendChild(createElement('span', '', 'Burnout Risk'));
+      panel1.appendChild(labels);
+      grid.appendChild(panel1);
+
+      // Contributing factors
+      const panel2 = createElement('div', 'desktop-panel');
+      panel2.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Energy Drains'));
+      const drains = [
+        { name: 'Back-to-back meetings', impact: 85 },
+        { name: 'Unfinished projects', impact: 60 },
+        { name: 'Sleep deficit', impact: 45 }
+      ];
+      drains.forEach(d => {
+        const row = createElement('div');
+        row.style.cssText = 'margin-top: 8px;';
+        row.appendChild(createElement('div', '', d.name)).style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary);';
+        const bar = createElement('div', 'mobile-bar');
+        const fill = createElement('div', 'mobile-bar-fill');
+        fill.style.width = d.impact + '%';
+        fill.style.background = d.impact > 70 ? '#e74c3c' : '#f5a623';
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        panel2.appendChild(row);
+      });
+      grid.appendChild(panel2);
+
+      // Recharge panel
+      const panel3 = createElement('div', 'desktop-panel');
+      panel3.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Recharge Signals'));
+      const recharge = createElement('p', 'mobile-insight');
+      recharge.textContent = 'Your Friday evening walks show consistent energy recovery. Consider blocking Tuesday afternoons.';
+      panel3.appendChild(recharge);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Life Narrative Timeline - Chapters and identity evolution
+    function buildWebTimeline(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Timeline panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Your Life Chapters'));
+      panel1.appendChild(header);
+
+      const timeline = createElement('div', 'timeline-container');
+
+      // Timeline line
+      const line = createElement('div', 'timeline-line');
+      timeline.appendChild(line);
+
+      // Chapters
+      const chapters = [
+        { title: 'Foundation', year: '2018', active: false },
+        { title: 'Discovery', year: '2020', active: false },
+        { title: 'Transformation', year: '2022', active: false },
+        { title: 'Now', year: '2024', active: true },
+        { title: 'Emerging', year: '2025+', active: false }
+      ];
+
+      const dotsContainer = createElement('div', 'timeline-chapters');
+      chapters.forEach((ch, i) => {
+        const chapter = createElement('div');
+        chapter.style.cssText = 'text-align: center; position: relative;';
+
+        const dot = createElement('div', 'timeline-dot');
+        dot.style.background = ch.active ? 'var(--color-accent)' : 'var(--color-text-muted)';
+        if (ch.active) dot.style.transform = 'scale(1.3)';
+        chapter.appendChild(dot);
+
+        const title = createElement('div');
+        title.style.cssText = 'font-size: 0.75rem; margin-top: 8px; color: ' + (ch.active ? 'var(--color-text-primary)' : 'var(--color-text-muted)') + ';';
+        title.textContent = ch.title;
+        chapter.appendChild(title);
+
+        const year = createElement('div');
+        year.style.cssText = 'font-size: 0.65rem; color: var(--color-text-muted);';
+        year.textContent = ch.year;
+        chapter.appendChild(year);
+
+        dotsContainer.appendChild(chapter);
+      });
+      timeline.appendChild(dotsContainer);
+      panel1.appendChild(timeline);
+      grid.appendChild(panel1);
+
+      // Current chapter details
+      const panel2 = createElement('div', 'desktop-panel');
+      panel2.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Current Theme'));
+      const theme = createElement('p');
+      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent); font-weight: 600; margin: 8px 0;';
+      theme.textContent = '"Intentional Growth"';
+      panel2.appendChild(theme);
+      const narrative = createElement('p', 'mobile-insight');
+      narrative.textContent = 'You\'re in a season of deliberate choices. The patterns show you\'ve moved from reactive to proactive.';
+      panel2.appendChild(narrative);
+      grid.appendChild(panel2);
+
+      // Identity evolution
+      const panel3 = createElement('div', 'desktop-panel');
+      panel3.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Identity Evolution'));
+      const evolution = createElement('p', 'mobile-insight');
+      evolution.textContent = 'From "I should" → "I choose"\nFrom scarcity → abundance mindset\nFrom proving → expressing';
+      evolution.style.whiteSpace = 'pre-line';
+      panel3.appendChild(evolution);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Growth Fingerprint Radar - Multi-dimensional growth tracking
+    function buildWebRadar(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Radar chart panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Growth Fingerprint'));
+      panel1.appendChild(header);
+
+      // SVG Radar Chart
+      const radarSvg = createSvgElement('svg');
+      radarSvg.setAttribute('viewBox', '0 0 200 200');
+      radarSvg.style.cssText = 'width: 100%; max-width: 300px; margin: 0 auto; display: block;';
+
+      const dimensions = [
+        { name: 'Emotional', value: 0.8 },
+        { name: 'Physical', value: 0.6 },
+        { name: 'Creative', value: 0.75 },
+        { name: 'Relational', value: 0.9 },
+        { name: 'Spiritual', value: 0.5 },
+        { name: 'Career', value: 0.7 }
+      ];
+
+      const center = 100;
+      const maxRadius = 80;
+      const n = dimensions.length;
+
+      // Draw axes and labels
+      dimensions.forEach((d, i) => {
+        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+        const x = center + maxRadius * Math.cos(angle);
+        const y = center + maxRadius * Math.sin(angle);
+
+        // Axis line
+        const line = createSvgElement('line');
+        line.setAttribute('x1', center);
+        line.setAttribute('y1', center);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'var(--color-border-subtle)');
+        line.setAttribute('stroke-width', '1');
+        radarSvg.appendChild(line);
+
+        // Label
+        const text = createSvgElement('text');
+        const labelX = center + (maxRadius + 15) * Math.cos(angle);
+        const labelY = center + (maxRadius + 15) * Math.sin(angle);
+        text.setAttribute('x', labelX);
+        text.setAttribute('y', labelY);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('fill', 'var(--color-text-secondary)');
+        text.setAttribute('font-size', '8');
+        text.textContent = d.name;
+        radarSvg.appendChild(text);
+      });
+
+      // Draw data polygon
+      const points = dimensions.map((d, i) => {
+        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+        const r = maxRadius * d.value;
+        return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+      }).join(' ');
+
+      const polygon = createSvgElement('polygon');
+      polygon.setAttribute('points', points);
+      polygon.setAttribute('fill', 'var(--color-accent)');
+      polygon.setAttribute('fill-opacity', '0.3');
+      polygon.setAttribute('stroke', 'var(--color-accent)');
+      polygon.setAttribute('stroke-width', '2');
+      radarSvg.appendChild(polygon);
+
+      // Data points
+      dimensions.forEach((d, i) => {
+        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+        const r = maxRadius * d.value;
+        const circle = createSvgElement('circle');
+        circle.setAttribute('cx', center + r * Math.cos(angle));
+        circle.setAttribute('cy', center + r * Math.sin(angle));
+        circle.setAttribute('r', '4');
+        circle.setAttribute('fill', 'var(--color-accent)');
+        radarSvg.appendChild(circle);
+      });
+
+      panel1.appendChild(radarSvg);
+      grid.appendChild(panel1);
+
+      // Growth edge
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      panel2.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Your Growth Edge'));
+      const insight = createElement('p', 'mobile-insight');
+      insight.textContent = 'Spiritual dimension at 50% presents the greatest growth opportunity. Your relational strength (90%) can support this exploration.';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
+
+      container.appendChild(grid);
+    }
+
+    // Emotional Trajectory Arcs - Emotional journey over time
+    function buildWebArcs(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Arc visualization panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Emotional Trajectories'));
+      const badge = createElement('span');
+      badge.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+      badge.textContent = 'Active arcs';
+      header.appendChild(badge);
+      panel1.appendChild(header);
+
+      // Arcs
+      const arcs = [
+        { name: 'Career uncertainty', phase: 'resolution', duration: '6 months', color: 'var(--color-accent)' },
+        { name: 'Family reconnection', phase: 'rising', duration: '3 months', color: 'var(--persona-maya)' },
+        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: '#f5a623' }
+      ];
+
+      arcs.forEach(arc => {
+        const arcRow = createElement('div', 'emotional-arc');
+        arcRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border-subtle);';
+
+        const info = createElement('div');
+        info.appendChild(createElement('div', '', arc.name)).style.cssText = 'font-weight: 500; color: var(--color-text-primary);';
+        const meta = createElement('div');
+        meta.style.cssText = 'font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;';
+        meta.textContent = arc.duration;
+        info.appendChild(meta);
+        arcRow.appendChild(info);
+
+        const phaseBadge = createElement('span', 'phase-badge');
+        phaseBadge.style.cssText = `padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 500; background: ${arc.color}; color: white;`;
+        phaseBadge.textContent = arc.phase;
+        arcRow.appendChild(phaseBadge);
+
+        panel1.appendChild(arcRow);
+      });
+      grid.appendChild(panel1);
+
+      // Arc insight
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      const insight = createElement('p', 'mobile-insight');
+      insight.textContent = 'Your career uncertainty arc is nearing resolution. The patterns suggest clarity typically emerges within 2-3 weeks when you\'re at this stage.';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
+
+      container.appendChild(grid);
+    }
+
+    // Prediction Confidence Radar - Forward-looking insights
+    function buildWebPredictions(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Predictions panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Predictions'));
+      const badge = createElement('span');
+      badge.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+      badge.textContent = 'Based on your patterns';
+      header.appendChild(badge);
+      panel1.appendChild(header);
+
+      const predictions = [
+        { text: 'Energy dip likely Wednesday afternoon', confidence: 'high', timeframe: 'This week' },
+        { text: 'Creative breakthrough approaching', confidence: 'medium', timeframe: '2-3 weeks' },
+        { text: 'Relationship tension may surface around work stress', confidence: 'high', timeframe: 'Next month' },
+        { text: 'Good window for difficult conversations', confidence: 'low', timeframe: 'Friday' }
+      ];
+
+      predictions.forEach(p => {
+        const card = createElement('div', `prediction-card ${p.confidence}`);
+        card.style.cssText = 'padding: 12px; margin-top: 8px; background: var(--color-background-secondary); border-radius: var(--radius-md); border-left: 3px solid ' +
+          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? '#f5a623' : 'var(--color-text-muted)');
+
+        const top = createElement('div');
+        top.style.cssText = 'display: flex; justify-content: space-between; align-items: start;';
+        top.appendChild(createElement('span', '', p.text)).style.cssText = 'font-size: 0.9rem; color: var(--color-text-primary);';
+
+        const confidenceBadge = createElement('span', `confidence-badge ${p.confidence}`);
+        confidenceBadge.style.cssText = 'font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; background: ' +
+          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? '#f5a623' : 'var(--color-text-muted)') + '; color: white;';
+        confidenceBadge.textContent = p.confidence;
+        top.appendChild(confidenceBadge);
+        card.appendChild(top);
+
+        const timeframe = createElement('div');
+        timeframe.style.cssText = 'font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;';
+        timeframe.textContent = p.timeframe;
+        card.appendChild(timeframe);
+
+        panel1.appendChild(card);
+      });
+      grid.appendChild(panel1);
+
+      container.appendChild(grid);
+    }
+
+    // Relationship Network Force Graph - Connection web
+    function buildWebNetwork(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Network panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Relationship Network'));
+      panel1.appendChild(header);
+
+      // SVG Network visualization
+      const networkSvg = createSvgElement('svg');
+      networkSvg.setAttribute('viewBox', '0 0 300 200');
+      networkSvg.style.cssText = 'width: 100%; max-height: 200px;';
+
+      const people = [
+        { name: 'You', x: 150, y: 100, size: 24, type: 'center' },
+        { name: 'Sarah', x: 80, y: 60, size: 18, type: 'positive' },
+        { name: 'Mom', x: 220, y: 50, size: 20, type: 'positive' },
+        { name: 'Mike', x: 60, y: 140, size: 16, type: 'tense' },
+        { name: 'Team', x: 240, y: 130, size: 14, type: 'neutral' },
+        { name: 'Alex', x: 130, y: 170, size: 15, type: 'positive' }
+      ];
+
+      // Draw connections first
+      people.slice(1).forEach(p => {
+        const line = createSvgElement('line');
+        line.setAttribute('x1', 150);
+        line.setAttribute('y1', 100);
+        line.setAttribute('x2', p.x);
+        line.setAttribute('y2', p.y);
+        line.setAttribute('stroke', p.type === 'tense' ? '#f5a623' : 'var(--color-border-subtle)');
+        line.setAttribute('stroke-width', p.type === 'tense' ? '2' : '1');
+        line.setAttribute('stroke-dasharray', p.type === 'tense' ? '4,4' : 'none');
+        networkSvg.appendChild(line);
+      });
+
+      // Draw nodes
+      people.forEach(p => {
+        const g = createSvgElement('g');
+
+        const circle = createSvgElement('circle');
+        circle.setAttribute('cx', p.x);
+        circle.setAttribute('cy', p.y);
+        circle.setAttribute('r', p.size / 2);
+        circle.setAttribute('fill', p.type === 'center' ? 'var(--persona-ferni)' :
+          p.type === 'positive' ? 'var(--color-accent)' :
+          p.type === 'tense' ? '#f5a623' : 'var(--color-text-muted)');
+        g.appendChild(circle);
+
+        const text = createSvgElement('text');
+        text.setAttribute('x', p.x);
+        text.setAttribute('y', p.y + p.size / 2 + 12);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', 'var(--color-text-secondary)');
+        text.setAttribute('font-size', '8');
+        text.textContent = p.name;
+        g.appendChild(text);
+
+        networkSvg.appendChild(g);
+      });
+
+      panel1.appendChild(networkSvg);
+
+      // Legend
+      const legend = createElement('div');
+      legend.style.cssText = 'display: flex; gap: 16px; justify-content: center; margin-top: 12px;';
+      [
+        { label: 'Strong', color: 'var(--color-accent)' },
+        { label: 'Needs attention', color: '#f5a623' },
+        { label: 'Neutral', color: 'var(--color-text-muted)' }
+      ].forEach(l => {
+        const item = createElement('div');
+        item.style.cssText = 'display: flex; align-items: center; gap: 4px; font-size: 0.75rem;';
+        const dot = createElement('div');
+        dot.style.cssText = `width: 10px; height: 10px; border-radius: 50%; background: ${l.color};`;
+        item.appendChild(dot);
+        item.appendChild(document.createTextNode(l.label));
+        legend.appendChild(item);
+      });
+      panel1.appendChild(legend);
+      grid.appendChild(panel1);
+
+      // Relationship insight
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      const insight = createElement('p', 'mobile-insight');
+      insight.textContent = 'Your connection with Mike shows tension signals. You haven\'t mentioned him positively in 3 weeks. Consider reaching out.';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
+
+      container.appendChild(grid);
+    }
+
+    // Open Loops Kanban Board - Unresolved threads
+    function buildWebLoops(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Kanban panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header = createElement('div', 'desktop-panel-header');
+      header.appendChild(createElement('span', 'desktop-panel-title', 'Open Loops'));
+      const badge = createElement('span');
+      badge.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+      badge.textContent = 'Unfinished threads';
+      header.appendChild(badge);
+      panel1.appendChild(header);
+
+      // Kanban columns
+      const kanban = createElement('div', 'loops-kanban');
+      kanban.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;';
+
+      const columns = [
+        {
+          title: 'Nagging',
+          loops: [
+            { text: 'Reply to aunt\'s email', days: 12 },
+            { text: 'Schedule dentist', days: 45 }
+          ]
+        },
+        {
+          title: 'Simmering',
+          loops: [
+            { text: 'Career conversation with boss', days: 30 },
+            { text: 'Boundaries with neighbor', days: 8 }
+          ]
+        },
+        {
+          title: 'Ready to Close',
+          loops: [
+            { text: 'Thank you note to mentor', days: 5 }
+          ]
+        }
+      ];
+
+      columns.forEach(col => {
+        const column = createElement('div', 'loops-column');
+        column.style.cssText = 'background: var(--color-background-secondary); padding: 12px; border-radius: var(--radius-md);';
+
+        const colTitle = createElement('div');
+        colTitle.style.cssText = 'font-size: 0.75rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase;';
+        colTitle.textContent = col.title;
+        column.appendChild(colTitle);
+
+        col.loops.forEach(loop => {
+          const card = createElement('div', 'loop-card');
+          card.style.cssText = 'background: var(--color-background-elevated); padding: 10px; border-radius: var(--radius-md); margin-bottom: 8px; transition: transform var(--duration-fast) var(--ease-out-expo);';
+          card.appendChild(createElement('div', '', loop.text)).style.cssText = 'font-size: 0.85rem; color: var(--color-text-primary);';
+          const days = createElement('div');
+          days.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;';
+          days.textContent = loop.days + ' days';
+          card.appendChild(days);
+          column.appendChild(card);
+        });
+
+        kanban.appendChild(column);
+      });
+      panel1.appendChild(kanban);
+      grid.appendChild(panel1);
+
+      // Loop insight
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      const insight = createElement('p', 'mobile-insight');
+      insight.textContent = 'Closing the "thank you note" loop would take 5 minutes and free mental energy. Your aunt\'s email has been weighing on you—want to tackle it together?';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
 
       container.appendChild(grid);
     }
