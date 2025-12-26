@@ -367,6 +367,10 @@ export function quickHumanizeSync(
     isComforting?: boolean;
     turnNumber?: number;
     randomSeed?: string;
+    /** User's original message (for callback detection) */
+    userText?: string;
+    /** Total conversation count with this user */
+    conversationCount?: number;
   }
 ): string {
   // Skip for very short responses
@@ -410,11 +414,26 @@ export function quickHumanizeSync(
     },
     turnNumber: context?.turnNumber,
     randomSeed: context?.randomSeed,
+    userText: context?.userText,
+    conversationCount: context?.conversationCount,
   };
 
   let result = text;
 
   try {
+    // Try to add callback (relationship continuity)
+    // This happens first because it should precede other humanization
+    if (context?.userText && context?.conversationCount !== undefined) {
+      const triggers = detectCallbackTriggers(context.userText, personaId);
+      if (triggers.length > 0) {
+        const callback = selectCallback(triggers, personaId, context.conversationCount);
+        if (callback) {
+          result = injectCallback(result, callback);
+          log.debug({ personaId, callbackId: callback.id }, 'Added sync callback');
+        }
+      }
+    }
+
     // Try to add a thinking sound at the start
     if (shouldAddThinkingSound(selectionContext)) {
       const thinkingSound = selectThinkingSoundSync(personaId, selectionContext);

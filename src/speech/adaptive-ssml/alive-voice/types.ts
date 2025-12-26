@@ -43,6 +43,8 @@ export interface AliveVoiceContext {
   isLateNight?: boolean;
   /** Random seed for deterministic behavior selection */
   randomSeed?: string;
+  /** Total conversation count with this user (for callback first-use vs repeat) */
+  conversationCount?: number;
 }
 
 export interface AliveVoiceResult {

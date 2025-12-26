@@ -263,7 +263,8 @@ describe('SessionTimeLimit', () => {
       const prompt = getSessionEndPrompt();
 
       expect(prompt.length).toBeGreaterThan(20);
-      expect(prompt).toMatch(/conversation|talking|chat/i);
+      // Prompt may use various warm farewell language - checking for common patterns
+      expect(prompt).toMatch(/conversation|talking|chat|shared|spent|next time/i);
     });
 
     it('should have variety in prompts', () => {

@@ -180,6 +180,7 @@ const DETECTION_PATTERNS: Record<
         value: 0.1,
         confidence: 0.6,
       },
+      { pattern: /\b(spent time with|hung out with|saw my|met up with)\b/i, value: 0.15, confidence: 0.5 },
     ],
     negative: [
       {
@@ -189,6 +190,12 @@ const DETECTION_PATTERNS: Record<
       },
       { pattern: /\b(lonely|alone|disconnected|no friends)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(haven't seen anyone|been by myself)\b/i, value: 0.5, confidence: 0.5 },
+      // BETTER THAN HUMAN: Isolation patterns
+      { pattern: /\b(silence (is|in this)|so empty|empty (house|apartment|home))\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(haven't (left|been out|gone out)|not leaving the house|staying inside)\b/i, value: 0.75, confidence: 0.6 },
+      { pattern: /\b(haven't (spoken|talked) to anyone|not talking to anyone)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(since (he|she|they) left|now that.*(gone|left|divorce))\b/i, value: 0.7, confidence: 0.6 },
+      { pattern: /\b(working from home|work from home).*(silence|quiet|lonely)\b/i, value: 0.6, confidence: 0.5 },
     ],
   },
 

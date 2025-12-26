@@ -416,6 +416,9 @@ export function applyPersonaFingerprint(text: string, context: AliveVoiceContext
       laughterCount,
       turnNumber: context.turnCount,
       randomSeed: context.randomSeed,
+      // Pass user text for callback detection
+      userText: context.userMessage,
+      conversationCount: context.conversationCount,
     });
 
     log.debug({ personaId }, 'Applied detailed persona speech traits');
