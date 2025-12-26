@@ -25,13 +25,17 @@ import type { UserValue } from '../values-alignment.js';
 import type { CrisisLevel } from '../emotional-first-aid.js';
 
 // Mock dependencies before imports
+const mockLogger = {
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  child: () => mockLogger,
+};
+
 vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
+  createLogger: () => mockLogger,
+  getLogger: () => mockLogger,
 }));
 
 vi.mock('../firestore-utils.js', () => ({
