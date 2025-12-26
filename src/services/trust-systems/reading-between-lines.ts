@@ -150,6 +150,17 @@ const FINE_MASKS = [
   "perfectly fine",
   "i'm coping",
   "just dealing",
+  // BETTER THAN HUMAN: Positive masks (excessive positivity about difficult situations)
+  "actually relieved",
+  "actually great",
+  "actually a good thing",
+  "best thing that happened",
+  "blessing in disguise",
+  "for the best",
+  "meant to be",
+  "i'm happy about it",
+  "glad it happened",
+  "weight off my shoulders",
 ];
 
 /** Phrases that indicate wanting permission to share */
@@ -225,6 +236,13 @@ const MINIMIZING_PATTERNS = [
   /other people have it worse/i,
   /i know i'm being/i,
   /i'm probably (just|being)/i,
+  // BETTER THAN HUMAN: Guilt/self-invalidation patterns
+  /i shouldn't (be|feel) (upset|sad|angry|hurt)/i,
+  /i have no right to (feel|be|complain)/i,
+  /first world problem/i,
+  /i know (it's|this is) (stupid|silly|dumb)/i,
+  /compared to (what|others|other people)/i,
+  /at least (i|it|things)/i,
 ];
 
 /** Heavy topics that "I'm fine" often masks */

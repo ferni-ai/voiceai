@@ -92,7 +92,9 @@ const VALUE_PATTERNS: Array<{
     patterns: [
       /\bfamily (is|means|comes first)/i,
       /\bmy (kids|children|spouse|partner) (are|is) (everything|most important)/i,
+      /\bmy (kids|children|spouse|partner) (are|is) the (most important|priority)/i,
       /\bnothing (is|matters) more than (my )?(family|kids)/i,
+      /\b(kids|children|family) (are|is) (everything|my priority|what matters)/i,
     ],
     category: 'family',
     weight: 0.9,

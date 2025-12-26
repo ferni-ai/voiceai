@@ -1,7 +1,7 @@
 # Essentials Tools E2E Audit Results
 
 **Date:** December 26, 2025  
-**Status:** ✅ Complete - Improvements implemented and tested
+**Status:** ✅ Complete - All 146 synthetic tests passing
 
 ---
 
@@ -9,11 +9,17 @@
 
 The synthetic LLM testing validated the new "essentials" tools and identified gaps. We implemented **cross-domain shortcuts**, **capability analytics**, and **spelling with phonetic alphabet** to fill the gaps. The final gap analysis shows most voice assistant features now exist in the codebase.
 
+### Test Configuration
+- **Model**: `gemini-3-flash-preview` (Gemini 3 Flash, released Dec 17, 2024)
+- **Config**: Centralized in `src/tests/test-llm-config.ts`
+- **Env var**: `TEST_LLM_MODEL` to override (default: `gemini-3-flash-preview`)
+- **Tests**: 146 passing across 3 synthetic test files
+
 ---
 
 ## Test Results
 
-### ✅ Passing Tests (34/34)
+### ✅ Passing Tests (146/146 across all synthetic tests)
 
 | Domain | Tests | Status |
 |--------|-------|--------|

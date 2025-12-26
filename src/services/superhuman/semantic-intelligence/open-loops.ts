@@ -533,6 +533,56 @@ async function saveOpenLoop(userId: string, loop: OpenLoop): Promise<void> {
 }
 
 // ============================================================================
+// CONTEXT FORMATTING
+// ============================================================================
+
+/**
+ * Format open loops for LLM context injection.
+ */
+export async function formatOpenLoopsContext(userId: string): Promise<string> {
+  const loops = await getLoopsReadyForFollowUp(userId);
+  if (loops.length === 0) return '';
+
+  const sections: string[] = [];
+
+  // Group by type
+  const byType = new Map<OpenLoopType, OpenLoop[]>();
+  for (const loop of loops) {
+    const existing = byType.get(loop.type) || [];
+    existing.push(loop);
+    byType.set(loop.type, existing);
+  }
+
+  // Format each group
+  for (const [type, typeLoops] of byType) {
+    const typeLabel = type === 'intention' ? '📋 STATED INTENTIONS' :
+                      type === 'event' ? '📅 UPCOMING EVENTS' :
+                      type === 'advice' ? '💡 ADVICE GIVEN' : '🔗 OPEN ITEMS';
+    
+    sections.push(typeLabel);
+    for (const loop of typeLoops.slice(0, 3)) { // Max 3 per type
+      const daysAgo = Math.floor((Date.now() - loop.created.getTime()) / (1000 * 60 * 60 * 24));
+      const timeContext = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+      sections.push(`  • "${loop.content}" (${timeContext})`);
+      if (loop.context) sections.push(`    Context: ${loop.context}`);
+    }
+    sections.push('');
+  }
+
+  if (sections.length === 0) return '';
+
+  return [
+    '═══════════════════════════════════════════════════════════',
+    'OPEN LOOPS - Things Worth Following Up On',
+    '═══════════════════════════════════════════════════════════',
+    '',
+    ...sections,
+    'NOTE: Gently check in on these if naturally relevant.',
+    '═══════════════════════════════════════════════════════════',
+  ].join('\n');
+}
+
+// ============================================================================
 // CACHE MANAGEMENT
 // ============================================================================
 
@@ -558,6 +608,7 @@ export const openLoops = {
   getByType: getLoopsByType,
   detect: detectOpenLoops,
   processUserText: processUserTextForLoops,
+  formatContext: formatOpenLoopsContext,
   clearCache: clearLoopCache,
 };
 

@@ -27,5 +27,7 @@ export { handleAmbientModeRoutes } from './ambient-mode.js';
 export { handleIntelligentRoutingRoutes, registerIntelligentRoutingRoutes } from './intelligent-routing.js';
 // Telephony webhooks (Twilio call status)
 export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.js';
+// Semantic Intelligence API (V3.0-V3.7)
+export { handleSemanticIntelligenceRoutes } from './semantic-intelligence.js';
 // NOTE: handleOutreachRoutes is registered from src/api/outreach.routes.ts in the main server
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

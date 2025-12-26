@@ -137,6 +137,7 @@ import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
 import { handleSitesRoutes } from '../../api/sites-routes.js';
+import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 
 // =============================================================================
 // Route Registry
@@ -602,6 +603,12 @@ export const routes: RouteDefinition[] = [
     handler: handleSpeechMetricsRoutes,
     category: 'api',
     description: 'Speech metrics',
+  },
+  {
+    prefix: '/api/semantic-intelligence',
+    handler: handleSemanticIntelligenceRoutes,
+    category: 'api',
+    description: 'Semantic Intelligence API (V3.0-V3.7 Better Than Human)',
   },
   {
     prefix: '/api/semantic-router',

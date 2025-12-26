@@ -138,11 +138,13 @@ const COMMITMENT_PATTERNS: Array<{
   // Conversations
   { pattern: /\bi need to (talk|speak) to\b/i, type: 'conversation', weight: 0.8 },
   { pattern: /\bi('m| am) going to (tell|ask|confront)\b/i, type: 'conversation', weight: 0.75 },
-  { pattern: /\bi have to have (a|that) conversation\b/i, type: 'conversation', weight: 0.85 },
+  { pattern: /\bi have to have (a|that)( \w+)? conversation\b/i, type: 'conversation', weight: 0.85 },
+  { pattern: /\bi need to have (a|that)( \w+)? conversation\b/i, type: 'conversation', weight: 0.85 },
 
   // Decisions
   { pattern: /\bi('ve| have) decided\b/i, type: 'decision', weight: 0.85 },
-  { pattern: /\bi('m| am) going to (quit|leave|start|end)\b/i, type: 'decision', weight: 0.8 },
+  { pattern: /\bi('m| am) going to (quit|leave|end)\b/i, type: 'decision', weight: 0.8 },
+  { pattern: /\bi('m| am) going to start (my own|a) (business|company|practice)/i, type: 'decision', weight: 0.85 },
   { pattern: /\bthat('s| is) it,? i('m| am)\b/i, type: 'decision', weight: 0.7 },
 ];
 

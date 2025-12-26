@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { LRUCache } from 'lru-cache';
 import {
   correlationMining,
   recordObservation,
@@ -54,16 +55,99 @@ import {
 import type { SemanticIntelligenceContext } from './types.js';
 
 // V3.2+ imports
-import { insightBroker } from './insight-broker.js';
-import { openLoops } from './open-loops.js';
-import { ferniCommitments } from './ferni-commitments.js';
-import { relationshipGraph } from './relationship-graph.js';
-import { temporalPatterns } from './temporal-patterns.js';
-import { behavioralIntelligence } from './behavioral-intelligence.js';
-import { coachingIntelligence } from './coaching-intelligence.js';
-import { selfAwareness } from './self-awareness.js';
+import { insightBroker, getInsightsToSurface, formatInsightsForPrompt } from './insight-broker.js';
+import { openLoops, formatOpenLoopsContext } from './open-loops.js';
+import { ferniCommitments, formatCommitmentsForContext, getPendingCommitments, getAvoidanceTopics } from './ferni-commitments.js';
+import { relationshipGraph, formatGraphForContext } from './relationship-graph.js';
+import { temporalPatterns, formatTemporalContext } from './temporal-patterns.js';
+import { behavioralIntelligence, formatBehavioralContext } from './behavioral-intelligence.js';
+import { coachingIntelligence, formatCoachingContext } from './coaching-intelligence.js';
+import { selfAwareness, formatSelfAwarenessContext } from './self-awareness.js';
 
 const log = createLogger({ module: 'semantic-intelligence' });
+
+// ============================================================================
+// PERFORMANCE METRICS
+// ============================================================================
+
+interface MetricSample {
+  value: number;
+  timestamp: number;
+  labels?: Record<string, string>;
+}
+
+const metricsStore = new LRUCache<string, MetricSample[]>({
+  max: 100, // Track 100 different metrics
+  ttl: 1000 * 60 * 60, // 1 hour TTL
+});
+
+/**
+ * Record a metric value for performance tracking.
+ */
+function recordMetric(
+  name: string,
+  value: number,
+  labels?: Record<string, string>
+): void {
+  const samples = metricsStore.get(name) || [];
+  samples.push({ value, timestamp: Date.now(), labels });
+
+  // Keep last 1000 samples
+  if (samples.length > 1000) {
+    samples.shift();
+  }
+
+  metricsStore.set(name, samples);
+}
+
+/**
+ * Get metrics summary for a specific metric.
+ */
+export function getMetricsSummary(name: string): {
+  count: number;
+  avg: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  max: number;
+  lastValue: number;
+} | null {
+  const samples = metricsStore.get(name);
+  if (!samples || samples.length === 0) return null;
+
+  const values = samples.map((s) => s.value).sort((a, b) => a - b);
+  const count = values.length;
+  const sum = values.reduce((a, b) => a + b, 0);
+  const avg = sum / count;
+
+  return {
+    count,
+    avg: Math.round(avg * 100) / 100,
+    p50: values[Math.floor(count * 0.5)],
+    p95: values[Math.floor(count * 0.95)] || values[count - 1],
+    p99: values[Math.floor(count * 0.99)] || values[count - 1],
+    max: values[count - 1],
+    lastValue: values[count - 1],
+  };
+}
+
+/**
+ * Get all performance metrics for semantic intelligence.
+ */
+export function getAllMetrics(): Record<string, ReturnType<typeof getMetricsSummary>> {
+  const result: Record<string, ReturnType<typeof getMetricsSummary>> = {};
+  for (const [key] of metricsStore.entries()) {
+    result[key] = getMetricsSummary(key);
+  }
+  return result;
+}
+
+/**
+ * Clear all metrics (useful for testing).
+ */
+export function clearMetrics(): void {
+  metricsStore.clear();
+}
 
 // ============================================================================
 // RE-EXPORTS
@@ -501,27 +585,56 @@ export async function buildSemanticIntelligenceContext(
     topics?: string[];
     emotion?: string;
     personMentioned?: string;
+    isSessionStart?: boolean;
   }
 ): Promise<SemanticIntelligenceContext> {
+  const startTime = performance.now();
+
   const context: SemanticIntelligenceContext = {
+    // V3.0 Core
     activeCorrelations: [],
     emotionalArcs: [],
     relationalInsights: [],
     relevantPatterns: [],
     growthContext: '',
     hiddenConnections: [],
+    // V3.2+ New Capabilities
+    proactiveInsights: '',
+    openLoops: '',
+    ferniCommitments: '',
+    relationshipGraph: '',
+    temporalPatterns: '',
+    behavioralIntelligence: '',
+    coachingIntelligence: '',
+    selfAwareness: '',
   };
 
   try {
-    // Build all contexts in parallel
+    // Build all contexts in parallel for optimal latency
     const [
+      // V3.0 Core
       correlationCtx,
       trajectoryCtx,
       relationalCtx,
       counterfactualCtx,
       growthCtx,
       threadingCtx,
+      // V3.2 Proactive Intelligence
+      proactiveInsights,
+      openLoopsCtx,
+      commitmentsCtx,
+      // V3.3 Relational Network
+      graphCtx,
+      // V3.4 Temporal Intelligence
+      temporalCtx,
+      // V3.5 Behavioral Intelligence
+      behavioralCtx,
+      // V3.6 Coaching Intelligence
+      coachingCtx,
+      // V3.7 Self-Awareness
+      selfAwarenessCtx,
     ] = await Promise.all([
+      // V3.0 Core Context Builders
       buildCorrelationContext(userId, {
         currentTopics: currentContext?.topics,
         currentEmotion: currentContext?.emotion,
@@ -545,17 +658,59 @@ export async function buildSemanticIntelligenceContext(
         content: currentContext?.content,
         topic: currentContext?.topics?.[0],
       }),
+      // V3.2 Proactive Intelligence
+      getInsightsToSurface(userId, {
+        currentTopic: currentContext?.topics?.[0],
+        currentPerson: currentContext?.personMentioned,
+        currentEmotion: currentContext?.emotion,
+        isSessionStart: currentContext?.isSessionStart,
+        hourOfDay: new Date().getHours(),
+      }).then(insights => formatInsightsForPrompt(insights)),
+      formatOpenLoopsContext(userId),
+      // Need to load commitments then format
+      Promise.all([
+        getPendingCommitments(userId),
+        getAvoidanceTopics(userId),
+      ]).then(([commitments, avoidance]) => formatCommitmentsForContext(commitments, avoidance)),
+      // V3.3 Relational Network
+      formatGraphForContext(userId, currentContext?.personMentioned),
+      // V3.4 Temporal Intelligence
+      formatTemporalContext(userId),
+      // V3.5 Behavioral Intelligence
+      formatBehavioralContext(userId),
+      // V3.6 Coaching Intelligence
+      formatCoachingContext(userId),
+      // V3.7 Self-Awareness
+      formatSelfAwarenessContext(userId),
     ]);
 
-    // Populate context
+    // V3.0 Core Context
     if (correlationCtx) context.activeCorrelations = [correlationCtx];
     if (trajectoryCtx) context.emotionalArcs = [trajectoryCtx];
     if (relationalCtx) context.relationalInsights = [relationalCtx];
     if (counterfactualCtx) context.relevantPatterns = [counterfactualCtx];
     if (growthCtx) context.growthContext = growthCtx;
     if (threadingCtx) context.hiddenConnections = [threadingCtx];
+
+    // V3.2+ New Capabilities
+    context.proactiveInsights = proactiveInsights || '';
+    context.openLoops = openLoopsCtx || '';
+    context.ferniCommitments = commitmentsCtx || '';
+    context.relationshipGraph = graphCtx || '';
+    context.temporalPatterns = temporalCtx || '';
+    context.behavioralIntelligence = behavioralCtx || '';
+    context.coachingIntelligence = coachingCtx || '';
+    context.selfAwareness = selfAwarenessCtx || '';
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to build semantic context');
+  }
+
+  // Track performance metrics
+  const elapsed = performance.now() - startTime;
+  recordMetric('context_build_time', elapsed, { userId });
+
+  if (elapsed > 1000) {
+    log.warn({ elapsed, userId }, 'Semantic context build took >1s');
   }
 
   return context;
@@ -569,8 +724,8 @@ export function formatSemanticIntelligenceContext(
 ): string {
   const sections: string[] = [];
 
-  // Only include non-empty sections
-  const allSections = [
+  // V3.0 Core sections
+  const v3CoreSections = [
     ...context.activeCorrelations,
     ...context.emotionalArcs,
     ...context.relationalInsights,
@@ -579,16 +734,49 @@ export function formatSemanticIntelligenceContext(
     ...context.hiddenConnections,
   ].filter((s) => s && s.length > 0);
 
-  if (allSections.length === 0) {
+  // V3.2+ New capability sections (already formatted with headers)
+  const v3NewSections = [
+    context.proactiveInsights,
+    context.openLoops,
+    context.ferniCommitments,
+    context.relationshipGraph,
+    context.temporalPatterns,
+    context.behavioralIntelligence,
+    context.coachingIntelligence,
+    context.selfAwareness,
+  ].filter((s) => s && s.length > 0);
+
+  const hasContent = v3CoreSections.length > 0 || v3NewSections.length > 0;
+  if (!hasContent) {
     return '';
   }
 
-  sections.push('═══════════════════════════════════════════════════════════');
-  sections.push('SEMANTIC INTELLIGENCE - Better Than Human v3');
-  sections.push('═══════════════════════════════════════════════════════════');
+  // Header
   sections.push('');
-  sections.push(...allSections);
+  sections.push('╔═══════════════════════════════════════════════════════════╗');
+  sections.push('║  SEMANTIC INTELLIGENCE - Better Than Human v3.7           ║');
+  sections.push('║  Superhuman memory, patterns, and insights                ║');
+  sections.push('╚═══════════════════════════════════════════════════════════╝');
   sections.push('');
+
+  // V3.0 Core (if any)
+  if (v3CoreSections.length > 0) {
+    sections.push('─── CORE INTELLIGENCE ───');
+    sections.push('');
+    sections.push(...v3CoreSections);
+    sections.push('');
+  }
+
+  // V3.2+ New capabilities (each has its own header)
+  if (v3NewSections.length > 0) {
+    sections.push('─── ADVANCED INTELLIGENCE ───');
+    sections.push('');
+    sections.push(...v3NewSections);
+  }
+
+  sections.push('');
+  sections.push('═══════════════════════════════════════════════════════════');
+  sections.push('NOTE: Use these insights naturally. Don\'t force or read verbatim.');
   sections.push('═══════════════════════════════════════════════════════════');
 
   return sections.join('\n');

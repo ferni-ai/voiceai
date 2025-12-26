@@ -397,14 +397,17 @@ const requestMayaHabitInterventionDef: ToolDefinition = {
         patternStrength: z.enum(['weak', 'moderate', 'strong']).describe('How entrenched is this pattern'),
       }),
       execute: async ({ pattern, desiredOutcome, patternStrength }) => {
-        getLogger().info({ agentId: ctx.agentId, pattern, patternStrength }, 'Requesting Maya habit intervention');
+        const goal = desiredOutcome || 'Transform this pattern into something healthier';
+        const strength = patternStrength || 'forming';
+
+        getLogger().info({ agentId: ctx.agentId, pattern, patternStrength: strength }, 'Requesting Maya habit intervention');
 
         try {
           addCrossPersonaInsight(ctx.userId, {
             source: 'peter',
             target: 'maya',
-            content: `Pattern needs habit intervention: "${pattern}" | Desired outcome: ${desiredOutcome} | Pattern strength: ${patternStrength}`,
-            priority: patternStrength === 'strong' ? 'high' : 'normal',
+            content: `Pattern needs habit intervention: "${pattern}" | Desired outcome: ${goal} | Pattern strength: ${strength}`,
+            priority: strength === 'strong' ? 'high' : 'normal',
             category: 'habit_request',
             proactive: true,
             oneTime: false,
@@ -413,8 +416,8 @@ const requestMayaHabitInterventionDef: ToolDefinition = {
           let response = `**Habit Intervention Requested from Maya**\n\n`;
           response += `I've asked Maya to design a habit intervention for this pattern.\n\n`;
           response += `**Pattern:** ${pattern}\n`;
-          response += `**Goal:** ${desiredOutcome}\n`;
-          response += `**Challenge:** ${patternStrength === 'strong' ? 'This is an entrenched pattern—needs gentle, sustainable approach' : 'Pattern is still forming—good timing for intervention'}\n\n`;
+          response += `**Goal:** ${goal}\n`;
+          response += `**Challenge:** ${strength === 'strong' ? 'This is an entrenched pattern—needs gentle, sustainable approach' : 'Pattern is still forming—good timing for intervention'}\n\n`;
           response += `Maya will design something tiny and doable. Patterns don't change overnight, but small consistent actions compound.`;
 
           return response;

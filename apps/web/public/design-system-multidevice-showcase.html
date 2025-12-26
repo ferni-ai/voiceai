@@ -225,6 +225,88 @@
       border-radius: 0 0 12px 12px;
     }
 
+    /* iPad - Tablet landscape */
+    .device-frame.ipad { border-radius: 16px; padding: 10px; }
+    .device-frame.ipad .device-screen {
+      width: 520px;
+      height: 380px;
+      border-radius: 8px;
+      padding: var(--space-5);
+    }
+    .device-frame.ipad::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 8px;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      background: #0a0a0c;
+      border-radius: 50%;
+      z-index: 10;
+    }
+
+    /* Apple TV - 10-foot UI */
+    .device-frame.appletv { border-radius: 8px; padding: 0; }
+    .device-frame.appletv .device-screen {
+      width: 640px;
+      height: 360px;
+      border-radius: 8px;
+      padding: var(--space-6);
+      background: linear-gradient(180deg, var(--color-background) 0%, #f5f3f0 100%);
+    }
+    .device-frame.appletv::before {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 8px;
+      background: #2a2a2e;
+      border-radius: 4px;
+    }
+
+    /* CarPlay - Driver-safe dashboard */
+    .device-frame.carplay { border-radius: 16px; padding: 8px; background: #0d0d0f; }
+    .device-frame.carplay .device-screen {
+      width: 480px;
+      height: 200px;
+      border-radius: 12px;
+      padding: var(--space-4);
+      background: linear-gradient(180deg, #1a1a1e 0%, #0d0d0f 100%);
+    }
+    .device-frame.carplay::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -30px;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 60px;
+      background: linear-gradient(90deg, #2a2a2e 0%, #1a1a1e 100%);
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* Widgets - Home screen */
+    .device-frame.widget { border-radius: 20px; padding: 0; background: transparent; box-shadow: none; }
+    .device-frame.widget .device-screen {
+      display: flex;
+      gap: var(--space-4);
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+    }
+    .widget-item {
+      background: var(--color-background);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    }
+    .widget-small { width: 160px; height: 160px; }
+    .widget-medium { width: 340px; height: 160px; }
+    .widget-large { width: 340px; height: 340px; }
+
     .device-label {
       text-align: center;
       margin-top: var(--space-3);
@@ -350,6 +432,136 @@
       font-weight: 600;
       color: var(--color-text-primary);
     }
+    .full-span { grid-column: span 2; }
+
+    /* iPad-specific layouts */
+    .ipad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-4);
+      height: 100%;
+    }
+    .ipad-card {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+    }
+    .ipad-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    /* Apple TV-specific layouts (10-foot UI) */
+    .tv-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+    }
+    .tv-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+    .tv-subtitle {
+      font-size: 1.2rem;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+    .tv-metric {
+      font-size: 4rem;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+    .tv-focus-ring {
+      border: 3px solid transparent;
+      border-radius: var(--radius-xl);
+      transition: border-color 0.2s ease;
+    }
+    .tv-focus-ring:hover { border-color: var(--color-accent); }
+
+    /* CarPlay-specific layouts (driver-safe) */
+    .carplay-layout {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      padding: var(--space-3);
+      color: white;
+    }
+    .carplay-main {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .carplay-metric {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+    .carplay-label {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .carplay-action {
+      width: 60px;
+      height: 60px;
+      background: var(--color-accent);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Widget sizes */
+    .widget-container {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .widget-small-size { width: 160px; height: 160px; }
+    .widget-medium-size { width: 340px; height: 160px; }
+    .widget-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .widget-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+    }
+    .widget-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--color-accent);
+      border-radius: var(--radius-md);
+    }
+    .widget-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .widget-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .widget-footer {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+    }
 
     .viz-selector {
       display: flex;
@@ -468,6 +680,30 @@
       </svg>
       Web
     </button>
+    <button class="device-btn" data-device="ipad">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="4" cy="12" r="0.5"/>
+      </svg>
+      iPad
+    </button>
+    <button class="device-btn" data-device="appletv">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="4" width="22" height="14" rx="1"/><rect x="8" y="20" width="8" height="2" rx="1"/>
+      </svg>
+      Apple TV
+    </button>
+    <button class="device-btn" data-device="carplay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="8" width="20" height="10" rx="2"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="20" r="2"/>
+      </svg>
+      CarPlay
+    </button>
+    <button class="device-btn" data-device="widget">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>
+      </svg>
+      Widgets
+    </button>
   </div>
 
   <div class="viz-selector">
@@ -476,6 +712,10 @@
     <button class="viz-chip" data-viz="energy">Energy Flow</button>
     <button class="viz-chip" data-viz="values">Values Alignment</button>
     <button class="viz-chip" data-viz="mirror">The Mirror</button>
+    <button class="viz-chip" data-viz="river">Conversation River</button>
+    <button class="viz-chip" data-viz="unsaid">The Unsaid</button>
+    <button class="viz-chip" data-viz="ripple">Ripple Effects</button>
+    <button class="viz-chip" data-viz="stories">Unfinished Stories</button>
   </div>
 
   <div class="devices-container" id="devicesContainer">
@@ -514,6 +754,42 @@
       </div>
       <div class="device-label">Desktop Browser</div>
     </div>
+
+    <div class="device-wrapper" data-device="ipad">
+      <div class="device-frame ipad">
+        <div class="device-screen">
+          <div class="viz-content" id="ipadContent"></div>
+        </div>
+      </div>
+      <div class="device-label">iPad Pro 11"</div>
+    </div>
+
+    <div class="device-wrapper" data-device="appletv">
+      <div class="device-frame appletv">
+        <div class="device-screen">
+          <div class="viz-content" id="appletvContent"></div>
+        </div>
+      </div>
+      <div class="device-label">Apple TV 4K</div>
+    </div>
+
+    <div class="device-wrapper" data-device="carplay">
+      <div class="device-frame carplay">
+        <div class="device-screen">
+          <div class="viz-content" id="carplayContent"></div>
+        </div>
+      </div>
+      <div class="device-label">CarPlay Dashboard</div>
+    </div>
+
+    <div class="device-wrapper" data-device="widget">
+      <div class="device-frame widget">
+        <div class="device-screen" id="widgetContent">
+          <!-- Widget items rendered dynamically -->
+        </div>
+      </div>
+      <div class="device-label">iOS Home Screen Widgets</div>
+    </div>
   </div>
 
   <div class="responsive-notes">
@@ -534,6 +810,22 @@
       <div class="note-item">
         <h4>Web (Full Experience)</h4>
         <p>Multi-column layouts. Rich visualizations. SVG charts. Hover interactions. Full narrative context.</p>
+      </div>
+      <div class="note-item">
+        <h4>iPad (Spatial Canvas)</h4>
+        <p>Multi-column grid. Side-by-side comparisons. Apple Pencil hover states. Landscape-first orientation.</p>
+      </div>
+      <div class="note-item">
+        <h4>Apple TV (10-Foot UI)</h4>
+        <p>Focus-based navigation. Large typography. Ambient mode. Siri Remote optimized. Living room viewing distance.</p>
+      </div>
+      <div class="note-item">
+        <h4>CarPlay (Driver-Safe)</h4>
+        <p>Minimal interaction. Large touch targets. High contrast. Voice-first. Glanceable at 1 second. No complex visuals.</p>
+      </div>
+      <div class="note-item">
+        <h4>Widgets (At-a-Glance)</h4>
+        <p>Small/Medium/Large sizes. Deep links only. No scrolling. Refreshed periodically. Timeline-based updates.</p>
       </div>
     </div>
   </div>
@@ -1273,6 +1565,10 @@
       if (viz === 'growth') return buildWebGrowth(container);
       if (viz === 'energy') return buildWebEnergy(container);
       if (viz === 'values') return buildWebValues(container);
+      if (viz === 'river') return buildWebRiver(container);
+      if (viz === 'unsaid') return buildWebUnsaid(container);
+      if (viz === 'ripple') return buildWebRipple(container);
+      if (viz === 'stories') return buildWebStories(container);
 
       // Fallback
       container.replaceChildren();
@@ -1281,6 +1577,419 @@
       panel.appendChild(createElement('p', 'mobile-insight', 'Visualization coming soon'));
       grid.appendChild(panel);
       container.appendChild(grid);
+    }
+
+    // =====================================================
+    // NEW VISUALIZATIONS - Web Builders
+    // =====================================================
+
+    // Conversation River - Flow of topics over time
+    function buildWebRiver(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // River visualization panel
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'Conversation River'));
+      panel1.appendChild(header1);
+
+      // SVG river
+      const riverSvg = createSvgElement('svg');
+      riverSvg.setAttribute('viewBox', '0 0 520 120');
+      riverSvg.setAttribute('width', '100%');
+      riverSvg.setAttribute('height', '120');
+
+      const topics = [
+        { name: 'Work', color: 'var(--persona-peter)', path: 'M0,60 Q130,20 260,50 T520,40' },
+        { name: 'Family', color: 'var(--persona-maya)', path: 'M0,70 Q130,90 260,60 T520,80' },
+        { name: 'Health', color: 'var(--color-accent)', path: 'M0,80 Q130,50 260,70 T520,60' }
+      ];
+
+      topics.forEach(t => {
+        const path = createSvgElement('path');
+        path.setAttribute('d', t.path);
+        path.setAttribute('stroke', t.color);
+        path.setAttribute('stroke-width', '12');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('opacity', '0.6');
+        riverSvg.appendChild(path);
+      });
+      panel1.appendChild(riverSvg);
+
+      // Legend
+      const legend = createElement('div');
+      legend.style.cssText = 'display: flex; gap: 16px; margin-top: 12px;';
+      topics.forEach(t => {
+        const item = createElement('div');
+        item.style.cssText = 'display: flex; align-items: center; gap: 6px; font-size: 0.75rem;';
+        const dot = createElement('span');
+        dot.style.cssText = 'width: 10px; height: 10px; border-radius: 50%; background: ' + t.color + ';';
+        item.appendChild(dot);
+        item.appendChild(createElement('span', '', t.name));
+        legend.appendChild(item);
+      });
+      panel1.appendChild(legend);
+      grid.appendChild(panel1);
+
+      // Insight panel
+      const panel2 = createElement('div', 'desktop-panel full-span');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'Flow Pattern'));
+      panel2.appendChild(header2);
+      const insight = createElement('p');
+      insight.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6;';
+      insight.textContent = 'Work topics peaked mid-week then gave way to family. Health is a steady undercurrent. Notice how family conversations rise on weekends—you\'re naturally protecting that time.';
+      panel2.appendChild(insight);
+      grid.appendChild(panel2);
+
+      container.appendChild(grid);
+    }
+
+    // The Unsaid - Detecting what's beneath the surface
+    function buildWebUnsaid(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // What was said
+      const panel1 = createElement('div', 'desktop-panel');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'What you said'));
+      panel1.appendChild(header1);
+      const said = createElement('p');
+      said.style.cssText = 'font-size: 0.9rem; color: var(--color-text-primary); line-height: 1.6; font-style: italic;';
+      said.textContent = '"I\'m fine with the decision. It\'s whatever."';
+      panel1.appendChild(said);
+      grid.appendChild(panel1);
+
+      // What might be unsaid
+      const panel2 = createElement('div', 'desktop-panel');
+      const header2 = createElement('div', 'desktop-panel-header');
+      header2.appendChild(createElement('span', 'desktop-panel-title', 'What I\'m noticing'));
+      panel2.appendChild(header2);
+      const unsaid = createElement('div');
+      unsaid.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6;';
+      const signals = ['3× longer pause before responding', 'Voice dropped 15% in energy', '"Whatever" appeared twice this week'];
+      signals.forEach(s => {
+        const item = createElement('div');
+        item.style.cssText = 'padding: 4px 0; color: var(--persona-maya);';
+        item.textContent = '• ' + s;
+        unsaid.appendChild(item);
+      });
+      panel2.appendChild(unsaid);
+      grid.appendChild(panel2);
+
+      // The gentle prompt
+      const panel3 = createElement('div', 'desktop-panel full-span');
+      const header3 = createElement('div', 'desktop-panel-header');
+      header3.appendChild(createElement('span', 'desktop-panel-title', 'A gentle observation'));
+      panel3.appendChild(header3);
+      const prompt = createElement('p');
+      prompt.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6; font-style: italic;';
+      prompt.textContent = 'Sometimes "fine" carries more weight than it sounds. Would it help to explore what\'s really sitting with you about this decision?';
+      panel3.appendChild(prompt);
+      grid.appendChild(panel3);
+
+      container.appendChild(grid);
+    }
+
+    // Ripple Effects - How one change affects everything
+    function buildWebRipple(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      // Ripple visualization
+      const panel1 = createElement('div', 'desktop-panel full-span');
+      const header1 = createElement('div', 'desktop-panel-header');
+      header1.appendChild(createElement('span', 'desktop-panel-title', 'Ripple Effects'));
+      panel1.appendChild(header1);
+
+      const rippleSvg = createSvgElement('svg');
+      rippleSvg.setAttribute('viewBox', '0 0 300 150');
+      rippleSvg.setAttribute('width', '100%');
+      rippleSvg.setAttribute('height', '150');
+
+      // Center point
+      const center = createSvgElement('circle');
+      center.setAttribute('cx', '150');
+      center.setAttribute('cy', '75');
+      center.setAttribute('r', '8');
+      center.setAttribute('fill', 'var(--color-accent)');
+      rippleSvg.appendChild(center);
+
+      // Ripple rings
+      [30, 50, 70].forEach((r, i) => {
+        const ring = createSvgElement('circle');
+        ring.setAttribute('cx', '150');
+        ring.setAttribute('cy', '75');
+        ring.setAttribute('r', r);
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', 'var(--color-accent)');
+        ring.setAttribute('stroke-width', '2');
+        ring.setAttribute('opacity', 1 - i * 0.3);
+        rippleSvg.appendChild(ring);
+      });
+
+      // Effect labels
+      const effects = [
+        { x: 85, y: 55, text: 'Sleep +1hr' },
+        { x: 190, y: 45, text: 'Mood +15%' },
+        { x: 220, y: 90, text: 'Focus +20%' },
+        { x: 70, y: 100, text: 'Energy +25%' }
+      ];
+      effects.forEach(e => {
+        const text = createSvgElement('text');
+        text.setAttribute('x', e.x);
+        text.setAttribute('y', e.y);
+        text.setAttribute('font-size', '11');
+        text.setAttribute('fill', 'var(--color-text-secondary)');
+        text.textContent = e.text;
+        rippleSvg.appendChild(text);
+      });
+
+      panel1.appendChild(rippleSvg);
+
+      const caption = createElement('p');
+      caption.style.cssText = 'text-align: center; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 8px;';
+      caption.textContent = 'Starting morning walks → cascading benefits';
+      panel1.appendChild(caption);
+      grid.appendChild(panel1);
+
+      container.appendChild(grid);
+    }
+
+    // Unfinished Stories - Threads waiting to be continued
+    function buildWebStories(container) {
+      container.replaceChildren();
+      const grid = createElement('div', 'desktop-viz');
+
+      const stories = [
+        { title: 'The book you mentioned wanting to write', days: 45, persona: 'nayan' },
+        { title: 'Learning to play piano again', days: 23, persona: 'maya' },
+        { title: 'That conversation with your father', days: 12, persona: 'ferni' }
+      ];
+
+      stories.forEach((story, i) => {
+        const panel = createElement('div', 'desktop-panel');
+        if (i === 2) panel.classList.add('full-span');
+        const header = createElement('div', 'desktop-panel-header');
+        const title = createElement('span', 'desktop-panel-title', story.title);
+        header.appendChild(title);
+        const badge = createElement('span');
+        badge.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted);';
+        badge.textContent = story.days + ' days ago';
+        header.appendChild(badge);
+        panel.appendChild(header);
+
+        const prompt = createElement('p');
+        prompt.style.cssText = 'font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.5; margin-top: 8px;';
+        if (i === 0) prompt.textContent = 'You spoke about this with real energy. The spark is still there.';
+        if (i === 1) prompt.textContent = 'Your hands remember more than you think.';
+        if (i === 2) prompt.textContent = 'Some conversations wait for the right moment. That moment might be now.';
+        panel.appendChild(prompt);
+
+        grid.appendChild(panel);
+      });
+
+      container.appendChild(grid);
+    }
+
+    // =====================================================
+    // iPad BUILDERS (Spatial Canvas)
+    // =====================================================
+
+    function buildIpad(container, viz) {
+      container.replaceChildren();
+      const grid = createElement('div', 'ipad-grid');
+
+      if (viz === 'seasons') {
+        // Three-column season comparison
+        const seasons = ['Winter', 'Spring', 'Summer'];
+        const data = [
+          { season: 'Winter', theme: 'Rest', progress: 85, insight: 'Deep reflection phase' },
+          { season: 'Spring', theme: 'Growth', progress: 60, insight: 'Emerging energy' },
+          { season: 'Summer', theme: 'Action', progress: 30, insight: 'Coming soon' }
+        ];
+        data.forEach(d => {
+          const card = createElement('div', 'ipad-card');
+          card.appendChild(createElement('div', 'ipad-card-title', d.season));
+          const bar = createElement('div', 'mobile-bar');
+          const fill = createElement('div', 'mobile-bar-fill');
+          fill.style.width = d.progress + '%';
+          bar.appendChild(fill);
+          card.appendChild(bar);
+          card.appendChild(createElement('p', 'mobile-insight', d.insight));
+          grid.appendChild(card);
+        });
+      } else if (viz === 'mirror') {
+        // Side-by-side comparison
+        const card1 = createElement('div', 'ipad-card');
+        card1.appendChild(createElement('div', 'ipad-card-title', 'Surface'));
+        card1.appendChild(createElement('p', 'mobile-insight', '"Everything is fine"'));
+        grid.appendChild(card1);
+
+        const card2 = createElement('div', 'ipad-card');
+        card2.appendChild(createElement('div', 'ipad-card-title', 'Beneath'));
+        card2.appendChild(createElement('p', 'mobile-insight', '3 sleepless nights\nAvoiding that call'));
+        grid.appendChild(card2);
+
+        const card3 = createElement('div', 'ipad-card');
+        card3.appendChild(createElement('div', 'ipad-card-title', 'Pattern'));
+        card3.appendChild(createElement('p', 'mobile-insight', 'When overwhelmed, you minimize'));
+        grid.appendChild(card3);
+      } else {
+        // Generic fallback
+        const card = createElement('div', 'ipad-card');
+        card.style.gridColumn = 'span 3';
+        card.appendChild(createElement('div', 'ipad-card-title', viz.charAt(0).toUpperCase() + viz.slice(1)));
+        card.appendChild(createElement('p', 'mobile-insight', 'iPad view for ' + viz));
+        grid.appendChild(card);
+      }
+
+      container.appendChild(grid);
+    }
+
+    // =====================================================
+    // Apple TV BUILDERS (10-Foot UI)
+    // =====================================================
+
+    function buildAppleTV(container, viz) {
+      container.replaceChildren();
+      const layout = createElement('div', 'tv-layout');
+
+      if (viz === 'seasons') {
+        layout.appendChild(createElement('div', 'tv-title', 'Winter'));
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Rest & Reflection'));
+        layout.appendChild(createElement('div', 'tv-metric', '85%'));
+        const caption = createElement('p');
+        caption.style.cssText = 'font-size: 1rem; color: var(--color-text-muted); margin-top: 16px;';
+        caption.textContent = 'Deep in your reflection phase';
+        layout.appendChild(caption);
+      } else if (viz === 'mirror') {
+        layout.appendChild(createElement('div', 'tv-title', 'The Mirror'));
+        layout.appendChild(createElement('div', 'tv-subtitle', 'What I\'m noticing'));
+        const insight = createElement('p');
+        insight.style.cssText = 'font-size: 1.4rem; color: var(--color-text-primary); max-width: 500px; line-height: 1.5;';
+        insight.textContent = '"Tired" mentioned 8× this week. Rest isn\'t optional.';
+        layout.appendChild(insight);
+      } else if (viz === 'energy') {
+        layout.appendChild(createElement('div', 'tv-title', 'Energy Flow'));
+        layout.appendChild(createElement('div', 'tv-metric', '+15%'));
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Net positive this week'));
+      } else {
+        layout.appendChild(createElement('div', 'tv-title', viz.charAt(0).toUpperCase() + viz.slice(1)));
+        layout.appendChild(createElement('div', 'tv-subtitle', 'Ambient insight'));
+      }
+
+      container.appendChild(layout);
+    }
+
+    // =====================================================
+    // CarPlay BUILDERS (Driver-Safe)
+    // =====================================================
+
+    function buildCarPlay(container, viz) {
+      container.replaceChildren();
+      const layout = createElement('div', 'carplay-layout');
+
+      const main = createElement('div', 'carplay-main');
+
+      if (viz === 'seasons') {
+        main.appendChild(createElement('div', 'carplay-metric', '85%'));
+        const labels = createElement('div');
+        labels.appendChild(createElement('div', 'carplay-label', 'Winter'));
+        const sub = createElement('div');
+        sub.style.cssText = 'font-size: 0.9rem; color: rgba(255,255,255,0.5);';
+        sub.textContent = 'Rest phase';
+        labels.appendChild(sub);
+        main.appendChild(labels);
+      } else if (viz === 'energy') {
+        main.appendChild(createElement('div', 'carplay-metric', '+15%'));
+        main.appendChild(createElement('div', 'carplay-label', 'Energy'));
+      } else if (viz === 'mirror') {
+        const icon = createElement('div');
+        icon.style.cssText = 'width: 50px; height: 50px; background: var(--persona-maya); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;';
+        icon.textContent = '!';
+        main.appendChild(icon);
+        main.appendChild(createElement('div', 'carplay-label', 'Check in needed'));
+      } else {
+        main.appendChild(createElement('div', 'carplay-metric', '●'));
+        main.appendChild(createElement('div', 'carplay-label', viz));
+      }
+
+      layout.appendChild(main);
+
+      // Voice action button
+      const action = createElement('div', 'carplay-action');
+      action.textContent = '🎤';
+      layout.appendChild(action);
+
+      container.appendChild(layout);
+    }
+
+    // =====================================================
+    // Widget BUILDERS (At-a-Glance)
+    // =====================================================
+
+    function buildWidget(container, viz) {
+      container.replaceChildren();
+
+      // Small widget
+      const small = createElement('div', 'widget-item widget-small-size');
+      const smallContent = createElement('div', 'widget-content');
+      const smallHeader = createElement('div', 'widget-header');
+      smallHeader.appendChild(createElement('div', 'widget-icon'));
+      smallHeader.appendChild(createElement('span', 'widget-title', 'FERNI'));
+      smallContent.appendChild(smallHeader);
+
+      if (viz === 'seasons') {
+        smallContent.appendChild(createElement('div', 'widget-value', '85%'));
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Winter phase'));
+      } else if (viz === 'energy') {
+        const val = createElement('div', 'widget-value');
+        val.style.color = 'var(--color-accent)';
+        val.textContent = '+15%';
+        smallContent.appendChild(val);
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Energy today'));
+      } else if (viz === 'mirror') {
+        smallContent.appendChild(createElement('div', 'widget-value', '!'));
+        smallContent.appendChild(createElement('div', 'widget-footer', 'Check in'));
+      } else {
+        smallContent.appendChild(createElement('div', 'widget-value', '●'));
+        smallContent.appendChild(createElement('div', 'widget-footer', viz));
+      }
+      small.appendChild(smallContent);
+
+      // Medium widget
+      const medium = createElement('div', 'widget-item widget-medium-size');
+      const medContent = createElement('div', 'widget-content');
+      const medHeader = createElement('div', 'widget-header');
+      medHeader.appendChild(createElement('div', 'widget-icon'));
+      medHeader.appendChild(createElement('span', 'widget-title', 'FERNI INSIGHT'));
+      medContent.appendChild(medHeader);
+
+      if (viz === 'seasons') {
+        const medVal = createElement('div', 'widget-value');
+        medVal.style.fontSize = '1.5rem';
+        medVal.textContent = 'Winter: Rest & Reflection';
+        medContent.appendChild(medVal);
+        medContent.appendChild(createElement('div', 'widget-footer', '85% through this season'));
+      } else if (viz === 'mirror') {
+        const medVal = createElement('div', 'widget-value');
+        medVal.style.fontSize = '1rem';
+        medVal.textContent = '"Tired" mentioned 8× this week';
+        medContent.appendChild(medVal);
+        medContent.appendChild(createElement('div', 'widget-footer', 'Tap to reflect'));
+      } else {
+        const medVal = createElement('div', 'widget-value');
+        medVal.style.fontSize = '1.2rem';
+        medVal.textContent = viz.charAt(0).toUpperCase() + viz.slice(1) + ' insight';
+        medContent.appendChild(medVal);
+      }
+      medium.appendChild(medContent);
+
+      container.appendChild(small);
+      container.appendChild(medium);
     }
 
     // State
@@ -1293,6 +2002,10 @@
       const iphoneEl = document.getElementById('iphoneContent');
       const androidEl = document.getElementById('androidContent');
       const webEl = document.getElementById('webContent');
+      const ipadEl = document.getElementById('ipadContent');
+      const appletvEl = document.getElementById('appletvContent');
+      const carplayEl = document.getElementById('carplayContent');
+      const widgetEl = document.getElementById('widgetContent');
 
       // Build watch content
       if (currentViz === 'seasons') buildWatchSeasons(watchEl);
@@ -1300,6 +2013,7 @@
       else if (currentViz === 'energy') buildWatchEnergy(watchEl);
       else if (currentViz === 'values') buildWatchValues(watchEl);
       else if (currentViz === 'mirror') buildWatchMirror(watchEl);
+      else buildWatchGeneric(watchEl, currentViz);
 
       // Build iPhone content
       if (currentViz === 'seasons') buildIphoneSeasons(iphoneEl);
@@ -1312,6 +2026,57 @@
       // Build Web content
       if (currentViz === 'seasons') buildWebSeasons(webEl);
       else buildWeb(webEl, currentViz);
+
+      // Build iPad content
+      buildIpad(ipadEl, currentViz);
+
+      // Build Apple TV content
+      buildAppleTV(appletvEl, currentViz);
+
+      // Build CarPlay content
+      buildCarPlay(carplayEl, currentViz);
+
+      // Build Widget content
+      buildWidget(widgetEl, currentViz);
+    }
+
+    // Generic watch builder for new visualizations
+    function buildWatchGeneric(container, viz) {
+      container.replaceChildren();
+      const header = createElement('div', 'viz-header');
+      header.appendChild(createElement('h3', '', viz.charAt(0).toUpperCase() + viz.slice(1)));
+      header.appendChild(createElement('p', '', 'At a glance'));
+      container.appendChild(header);
+
+      // Simple ring
+      const ring = createElement('div', 'watch-ring');
+      const svg = createSvgElement('svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      const bgCircle = createSvgElement('circle');
+      bgCircle.setAttribute('cx', '50');
+      bgCircle.setAttribute('cy', '50');
+      bgCircle.setAttribute('r', '40');
+      bgCircle.setAttribute('fill', 'none');
+      bgCircle.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+      bgCircle.setAttribute('stroke-width', '8');
+      svg.appendChild(bgCircle);
+      const fgCircle = createSvgElement('circle');
+      fgCircle.setAttribute('cx', '50');
+      fgCircle.setAttribute('cy', '50');
+      fgCircle.setAttribute('r', '40');
+      fgCircle.setAttribute('fill', 'none');
+      fgCircle.setAttribute('stroke', 'var(--color-accent)');
+      fgCircle.setAttribute('stroke-width', '8');
+      fgCircle.setAttribute('stroke-dasharray', '188');
+      fgCircle.setAttribute('stroke-dashoffset', '47');
+      fgCircle.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(fgCircle);
+      ring.appendChild(svg);
+      const val = createElement('span', 'watch-ring-value', '●');
+      ring.appendChild(val);
+      container.appendChild(ring);
+
+      container.appendChild(createElement('div', 'watch-metric', 'Tap to explore'));
     }
 
     // Event handlers

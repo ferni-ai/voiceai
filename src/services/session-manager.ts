@@ -1303,17 +1303,49 @@ export async function createSessionServices(
         return { insights: [], highPriorityCount: 0 };
       }
 
+      // Get insights from existing proactive engine
       const insights = proactiveEngine.getUndeliveredInsights();
-      const highPriorityCount = insights.filter((i) => i.priority === 'high').length;
+      let highPriorityCount = insights.filter((i) => i.priority === 'high').length;
       const nextInsight = proactiveEngine.getNextInsight();
-      const suggestedConversationStarter = nextInsight?.message;
+      let suggestedConversationStarter = nextInsight?.message;
+      let suggestedInsightId = nextInsight?.id;
+
+      // V3.2: Also check the new Semantic Intelligence Insight Broker
+      try {
+        const { getInsightsToSurface, markInsightSurfaced } =
+          await import('./superhuman/semantic-intelligence/insight-broker.js');
+        
+        const semanticInsights = await getInsightsToSurface(userId, {
+          isSessionStart: true,
+          hourOfDay: new Date().getHours(),
+        });
+
+        // Count high priority semantic insights
+        const semanticHighPriority = semanticInsights.filter(
+          (i) => i.priority === 'high' || i.priority === 'critical'
+        );
+        highPriorityCount += semanticHighPriority.length;
+
+        // If no suggestion from proactive engine, use top semantic insight
+        if (!suggestedConversationStarter && semanticInsights.length > 0) {
+          const topInsight = semanticInsights[0];
+          suggestedConversationStarter = topInsight.insight;
+          suggestedInsightId = topInsight.id;
+          
+          // Mark as surfaced (non-blocking)
+          void markInsightSurfaced(userId, topInsight.id);
+        }
+      } catch (e) {
+        // Semantic insights are optional enhancement
+        logger.debug({ error: String(e) }, 'Semantic insights not available');
+      }
 
       return {
         insights,
         highPriorityCount,
         suggestedConversationStarter,
         // Include insight ID for delivery tracking
-        suggestedInsightId: nextInsight?.id,
+        suggestedInsightId,
       };
     },
 

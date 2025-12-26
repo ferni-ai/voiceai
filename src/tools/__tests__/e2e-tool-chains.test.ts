@@ -221,7 +221,7 @@ describe('E2E Tool Chains', () => {
           expectedInResult: ['satisfaction', 'work'],
         },
         {
-          toolId: 'assessBurnout',
+          toolId: 'assessWorkBurnout',
           params: { symptoms: ['exhaustion', 'cynicism'], duration: 'weeks' },
           expectedInResult: ['burnout'],
         },
@@ -1047,7 +1047,7 @@ describe('E2E Better Than Human Mastery Tools', () => {
 
   describe('Pattern Mastery (Peter)', () => {
     it('should load pattern mastery tools', async () => {
-      expect(patternMasteryTools.length).toBe(6);
+      expect(patternMasteryTools.length).toBe(9);
 
       const toolIds = patternMasteryTools.map((t) => t.id);
       expect(toolIds).toContain('discoverPattern');
@@ -1098,7 +1098,7 @@ describe('E2E Better Than Human Mastery Tools', () => {
 
   describe('Habit Persistence (Maya)', () => {
     it('should load habit persistence tools', async () => {
-      expect(habitPersistenceTools.length).toBe(6);
+      expect(habitPersistenceTools.length).toBe(10);
 
       const toolIds = habitPersistenceTools.map((t) => t.id);
       expect(toolIds).toContain('gentleAccountability');

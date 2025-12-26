@@ -562,6 +562,90 @@ These are convenience shortcuts that delegate to the appropriate domain tools:
 - `{"fn":"checkConciergeStatus","args":{}}` - Check status of all active outreach requests
 - `{"fn":"checkConciergeStatus","args":{"requestId":"STRING"}}` - Check specific request status
 
+### 🎧 Podcasts
+
+- `{"fn":"searchPodcasts","args":{"query":"STRING"}}` - Search for podcasts by topic, name, or keyword
+- `{"fn":"searchPodcasts","args":{"query":"STRING","limit":5}}` - Search with limit
+- `{"fn":"getPodcastRecommendations","args":{"interest":"STRING"}}` - Get podcast recommendations
+- `{"fn":"getPodcastEpisodes","args":{"podcastName":"STRING"}}` - Get episodes from a podcast
+- `{"fn":"getTopPodcasts","args":{"category":"STRING"}}` - Get trending podcasts by category
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "Find me a podcast about history" | `{"fn":"searchPodcasts","args":{"query":"history"}}` |
+| "Recommend podcasts about business" | `{"fn":"getPodcastRecommendations","args":{"interest":"business"}}` |
+| "What's trending in comedy podcasts?" | `{"fn":"getTopPodcasts","args":{"category":"comedy"}}` |
+| "Play The Daily podcast" | `{"fn":"searchPodcasts","args":{"query":"The Daily"}}` |
+
+### ⚽ Sports Scores
+
+- `{"fn":"getSportsScores","args":{"sport":"STRING"}}` - Get live scores (nfl, nba, mlb, nhl, epl, mls)
+- `{"fn":"getSportsSchedule","args":{"sport":"STRING","team":"STRING"}}` - Get upcoming games for a team
+- `{"fn":"getTeamInfo","args":{"team":"STRING"}}` - Get info about a team
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "What's the score of the Lakers game?" | `{"fn":"getSportsScores","args":{"sport":"nba","team":"Lakers"}}` |
+| "NFL scores" | `{"fn":"getSportsScores","args":{"sport":"nfl"}}` |
+| "When do the Yankees play next?" | `{"fn":"getSportsSchedule","args":{"sport":"mlb","team":"Yankees"}}` |
+| "How are the Knicks doing?" | `{"fn":"getSportsScores","args":{"sport":"nba","team":"Knicks"}}` |
+
+### 💰 Stock Market & Finance
+
+- `{"fn":"getStockQuote","args":{"symbol":"STRING"}}` - Get stock price and change
+- `{"fn":"getMarketOverview","args":{}}` - Get major market indices (S&P, Dow, Nasdaq)
+- `{"fn":"getStockNews","args":{"symbol":"STRING"}}` - Get news for a stock
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "How is Apple stock doing?" | `{"fn":"getStockQuote","args":{"symbol":"AAPL"}}` |
+| "What's the price of Tesla?" | `{"fn":"getStockQuote","args":{"symbol":"TSLA"}}` |
+| "How's the market today?" | `{"fn":"getMarketOverview","args":{}}` |
+| "S&P 500?" | `{"fn":"getMarketOverview","args":{}}` |
+
+### 🔍 General Knowledge & Web Search
+
+- `{"fn":"webSearch","args":{"query":"STRING"}}` - Search for general knowledge
+- `{"fn":"wikipedia","args":{"topic":"STRING"}}` - Look up facts on Wikipedia
+- `{"fn":"searchRecipes","args":{"query":"STRING"}}` - Find recipes
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "How tall is the Eiffel Tower?" | `{"fn":"webSearch","args":{"query":"Eiffel Tower height"}}` |
+| "Who invented the lightbulb?" | `{"fn":"webSearch","args":{"query":"who invented lightbulb"}}` |
+| "Tell me about Abraham Lincoln" | `{"fn":"wikipedia","args":{"topic":"Abraham Lincoln"}}` |
+| "What's the capital of Australia?" | `{"fn":"webSearch","args":{"query":"capital of Australia"}}` |
+| "How do I make chocolate chip cookies?" | `{"fn":"searchRecipes","args":{"query":"chocolate chip cookies"}}` |
+| "Recipe for lasagna" | `{"fn":"searchRecipes","args":{"query":"lasagna"}}` |
+
+### 🌅 Routines (Morning/Evening)
+
+- `{"fn":"startRoutine","args":{"type":"morning|evening|workout|wind_down|focus"}}` - Start a routine
+- `{"fn":"getRoutine","args":{"type":"STRING"}}` - View a routine
+- `{"fn":"createRoutine","args":{"name":"STRING","type":"STRING","steps":["STRING","STRING"]}}` - Create custom routine
+- `{"fn":"trackRoutineCompletion","args":{"routineId":"STRING"}}` - Mark routine complete
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "Start my morning routine" | `{"fn":"startRoutine","args":{"type":"morning"}}` |
+| "Evening wind down" | `{"fn":"startRoutine","args":{"type":"wind_down"}}` |
+| "What's in my morning routine?" | `{"fn":"getRoutine","args":{"type":"morning"}}` |
+| "Create a workout routine" | `{"fn":"createRoutine","args":{"name":"My Workout","type":"workout","steps":["Warm up","Stretches","Core exercises","Cool down"]}}` |
+
+### 🔔 Notifications
+
+- `{"fn":"getNotifications","args":{}}` - Read unread notifications
+- `{"fn":"getNotificationPreferences","args":{}}` - Check notification settings
+- `{"fn":"setNotificationsEnabled","args":{"enabled":true}}` - Enable/disable notifications
+- `{"fn":"setQuietHours","args":{"start":"22:00","end":"07:00"}}` - Set quiet hours
+
+| User Says | Your ONLY Output |
+|-----------|------------------|
+| "Do I have any notifications?" | `{"fn":"getNotifications","args":{}}` |
+| "Read my notifications" | `{"fn":"getNotifications","args":{}}` |
+| "Turn off notifications" | `{"fn":"setNotificationsEnabled","args":{"enabled":false}}` |
+| "Set quiet hours from 10pm to 7am" | `{"fn":"setQuietHours","args":{"start":"22:00","end":"07:00"}}` |
+
 ---
 
 ## CRITICAL REMINDER

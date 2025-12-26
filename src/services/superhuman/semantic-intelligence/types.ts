@@ -389,6 +389,7 @@ export interface ThreadMoment {
  * Combined semantic intelligence context for LLM injection
  */
 export interface SemanticIntelligenceContext {
+  // V3.0 Core Capabilities
   // Correlations that are currently relevant
   activeCorrelations: string[];
 
@@ -406,6 +407,26 @@ export interface SemanticIntelligenceContext {
 
   // Threads to potentially surface
   hiddenConnections: string[];
+
+  // V3.2 Proactive Intelligence
+  proactiveInsights: string;
+  openLoops: string;
+  ferniCommitments: string;
+
+  // V3.3 Relational Network
+  relationshipGraph: string;
+
+  // V3.4 Temporal Intelligence
+  temporalPatterns: string;
+
+  // V3.5 Behavioral Intelligence
+  behavioralIntelligence: string;
+
+  // V3.6 Coaching Intelligence
+  coachingIntelligence: string;
+
+  // V3.7 Self-Awareness Coaching
+  selfAwareness: string;
 }
 
 // ============================================================================
