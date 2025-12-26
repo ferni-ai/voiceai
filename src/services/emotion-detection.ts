@@ -53,6 +53,11 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'panicking',
     'freaking out',
     'losing it',
+    'spiraling',
+    'going crazy',
+    'out of control',
+    'suffocating',
+    'trapped',
   ],
   excited: [
     'excited',
@@ -70,6 +75,14 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'woohoo',
     'fantastic',
     'love it',
+    'omg',
+    'oh my god',
+    'unbelievable',
+    'ecstatic',
+    'over the moon',
+    'on cloud nine',
+    'so good',
+    'best thing ever',
   ],
   sad: [
     'sad',
@@ -87,6 +100,21 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'alone',
     'hurting',
     'grief',
+    'grieving',
+    'miss',
+    'missing',
+    'sigh',
+    'heavy heart',
+    'broken',
+    'shattered',
+    'numb',
+    'hollow',
+    'dark',
+    'darkness',
+    'rough',
+    'tough time',
+    'hard time',
+    'struggling',
   ],
   angry: [
     'angry',
@@ -99,6 +127,16 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'ridiculous',
     'bullshit',
     'unbelievable',
+    'livid',
+    'enraged',
+    'outraged',
+    'fuming',
+    'seething',
+    "can't believe",
+    'so wrong',
+    'makes me sick',
+    'disgusted',
+    'infuriating',
   ],
   anxious: [
     'anxious',
@@ -111,6 +149,17 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'worst case',
     'fear',
     'dread',
+    'uneasy',
+    'on edge',
+    'restless',
+    'racing thoughts',
+    'heart racing',
+    "can't sleep",
+    "can't relax",
+    'tense',
+    'apprehensive',
+    'uncertain',
+    'insecure',
   ],
   happy: [
     'happy',
@@ -123,6 +172,16 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'blessed',
     'grateful',
     'thankful',
+    'cheerful',
+    'delighted',
+    'joyful',
+    'loving',
+    'at peace',
+    'peaceful',
+    'calm',
+    'relaxed',
+    'satisfied',
+    'fulfilled',
   ],
   frustrated: [
     'frustrated',
@@ -134,6 +193,17 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     "can't figure",
     'giving up',
     'pointless',
+    'argh',
+    'grr',
+    'fed up',
+    'had enough',
+    'sick of',
+    'tired of',
+    'exasperated',
+    'at wits end',
+    "doesn't work",
+    'keeps failing',
+    'broken',
   ],
   confused: [
     'confused',
@@ -143,6 +213,13 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'what do you mean',
     'help me understand',
     'unclear',
+    'puzzled',
+    'bewildered',
+    'perplexed',
+    'baffled',
+    "don't get it",
+    'huh',
+    'wait what',
   ],
   grateful: [
     'thank you',
@@ -152,8 +229,57 @@ const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
     'means a lot',
     'so helpful',
     "you're the best",
+    'thankful',
+    'blessed',
+    'appreciate you',
+    'so kind',
+    'touched',
+    'moved',
+    'heartwarming',
   ],
   neutral: [],
+};
+
+// Emoji patterns that indicate emotion
+const EMOJI_EMOTION_MAP: Record<string, EmotionCategory> = {
+  // Happy/Excited
+  '😊': 'happy',
+  '😀': 'happy',
+  '😁': 'happy',
+  '🥰': 'happy',
+  '❤️': 'happy',
+  '💜': 'happy',
+  '🎉': 'excited',
+  '🥳': 'excited',
+  '😍': 'excited',
+  '🤩': 'excited',
+  '✨': 'excited',
+  // Sad
+  '😢': 'sad',
+  '😭': 'sad',
+  '💔': 'sad',
+  '😔': 'sad',
+  '😞': 'sad',
+  '🥺': 'sad',
+  // Angry
+  '😠': 'angry',
+  '😡': 'angry',
+  '🤬': 'angry',
+  '💢': 'angry',
+  // Anxious
+  '😰': 'anxious',
+  '😨': 'anxious',
+  '😱': 'anxious',
+  '😬': 'anxious',
+  // Frustrated
+  '😤': 'frustrated',
+  '🙄': 'frustrated',
+  '😒': 'frustrated',
+  // Grateful
+  '🙏': 'grateful',
+  // Distressed
+  '😩': 'distressed',
+  '😫': 'distressed',
 };
 
 const HIGH_ENERGY_PATTERNS = [
@@ -172,6 +298,50 @@ const LOW_ENERGY_PATTERNS = [
   /drained/i,
   /i don't know/i,
   /whatever/i,
+];
+
+// Semantic patterns for BETTER THAN HUMAN detection
+// These catch natural expressions that keyword matching might miss
+const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; emotion: EmotionCategory; weight: number }> = [
+  // Excited - catch achievement announcements
+  { pattern: /\bi\s+got\s+(the\s+)?(job|offer|in|accepted)/i, emotion: 'excited', weight: 2 },
+  { pattern: /\bwe\s+did\s+it/i, emotion: 'excited', weight: 2 },
+  { pattern: /\b(so|really)\s+(excited|happy|thrilled)/i, emotion: 'excited', weight: 1.5 },
+  { pattern: /\bcan'?t\s+believe\s+(it|this)/i, emotion: 'excited', weight: 1.5 },
+  { pattern: /!{2,}/g, emotion: 'excited', weight: 1 },
+  { pattern: /\boh\s+my\s+(god|gosh)/i, emotion: 'excited', weight: 1.5 },
+  
+  // Anxious - catch worry expressions
+  { pattern: /\bwhat\s+if\b/i, emotion: 'anxious', weight: 2 },
+  { pattern: /\bworr(y|ied|ying)\b/i, emotion: 'anxious', weight: 1.5 },
+  { pattern: /\bkeeps?\s+(me\s+)?up\s+(at\s+night)?/i, emotion: 'anxious', weight: 1.5 },
+  { pattern: /\bcan'?t\s+stop\s+(thinking|worrying)/i, emotion: 'anxious', weight: 2 },
+  { pattern: /\bracing\s+thoughts/i, emotion: 'anxious', weight: 2 },
+  
+  // Frustrated - catch frustration expressions
+  { pattern: /\bnothing\s+(ever\s+)?works/i, emotion: 'frustrated', weight: 2 },
+  { pattern: /\btold\s+(them|you)\s+\w*\s*times/i, emotion: 'frustrated', weight: 2 },
+  { pattern: /\bare\s+you\s+(kidding|serious)/i, emotion: 'frustrated', weight: 1.5 },
+  { pattern: /\bsick\s+(and\s+tired\s+)?of/i, emotion: 'frustrated', weight: 2 },
+  { pattern: /\b(ugh+|argh+)\b/i, emotion: 'frustrated', weight: 1 },
+  
+  // Sad - catch loneliness and loss expressions
+  { pattern: /\bnobody\s+(cares|notices|understands)/i, emotion: 'sad', weight: 2 },
+  { pattern: /\bfeel(ing)?\s+(so\s+)?(alone|empty|lost)/i, emotion: 'sad', weight: 2 },
+  { pattern: /\btoo\s+quiet/i, emotion: 'sad', weight: 1 },
+  { pattern: /\bjust\s+want\s+to\s+(cry|disappear)/i, emotion: 'sad', weight: 2 },
+  
+  // Angry - catch anger expressions
+  { pattern: /\bare\s+you\s+(kidding|serious)\s+me/i, emotion: 'angry', weight: 2 },
+  { pattern: /\bhow\s+(dare|could)\s+(you|they)/i, emotion: 'angry', weight: 2 },
+  { pattern: /\bthis\s+is\s+(insane|ridiculous|crazy)/i, emotion: 'angry', weight: 1.5 },
+  { pattern: /[A-Z]{4,}/g, emotion: 'angry', weight: 0.5 }, // ALL CAPS words
+  
+  // Distressed - catch overwhelm expressions
+  { pattern: /\b(completely|totally)\s+(overwhelmed|exhausted)/i, emotion: 'distressed', weight: 2 },
+  { pattern: /\bi\s+can'?t\s+(do\s+)?(this|it)\s*(anymore)?/i, emotion: 'distressed', weight: 2 },
+  { pattern: /\bfalling\s+apart/i, emotion: 'distressed', weight: 2 },
+  { pattern: /\b(feels?\s+like\s+)?i'?m\s+drowning/i, emotion: 'distressed', weight: 2 },
 ];
 
 // ============================================================================
@@ -207,6 +377,72 @@ export function detectEmotion(text: string): EmotionResult {
     }
   }
 
+  // Check for emoji-indicated emotions
+  for (const [emoji, emotion] of Object.entries(EMOJI_EMOTION_MAP)) {
+    if (text.includes(emoji)) {
+      const existing = detectedEmotions.find((e) => e.emotion === emotion);
+      if (existing) {
+        existing.count += 1;
+        existing.keywords.push(emoji);
+      } else {
+        detectedEmotions.push({
+          emotion,
+          count: 1,
+          keywords: [emoji],
+        });
+      }
+    }
+  }
+
+  // Check for ALL CAPS intensity (boost existing emotions or detect frustration/excitement)
+  const capsWords = text.match(/\b[A-Z]{2,}\b/g) || [];
+  if (capsWords.length > 0) {
+    // ALL CAPS often indicates strong emotion
+    const capsText = capsWords.join(' ').toLowerCase();
+    // Check if caps words match emotion keywords
+    for (const [emotion, keywords] of Object.entries(EMOTION_KEYWORDS)) {
+      for (const keyword of keywords) {
+        if (capsText.includes(keyword.toLowerCase())) {
+          const existing = detectedEmotions.find((e) => e.emotion === (emotion as EmotionCategory));
+          if (existing) {
+            existing.count += 2; // Extra weight for emphasized words
+          } else {
+            detectedEmotions.push({
+              emotion: emotion as EmotionCategory,
+              count: 2,
+              keywords: [keyword.toUpperCase()],
+            });
+          }
+        }
+      }
+    }
+    // If no specific emotion in caps, could indicate frustration or excitement
+    if (detectedEmotions.length === 0 && capsWords.length >= 2) {
+      // Multiple caps words with no detected emotion suggests frustrated or excited
+      detectedEmotions.push({
+        emotion: 'frustrated',
+        count: 1,
+        keywords: capsWords,
+      });
+    }
+  }
+
+  // BETTER THAN HUMAN: Check semantic patterns for nuanced detection
+  for (const { pattern, emotion, weight } of SEMANTIC_PATTERNS) {
+    if (pattern.test(text)) {
+      const existing = detectedEmotions.find((e) => e.emotion === emotion);
+      if (existing) {
+        existing.count += weight;
+      } else {
+        detectedEmotions.push({
+          emotion,
+          count: weight,
+          keywords: [`[semantic]`],
+        });
+      }
+    }
+  }
+
   // Sort by count (most keywords matched = primary emotion)
   detectedEmotions.sort((a, b) => b.count - a.count);
 
@@ -229,7 +465,10 @@ export function detectEmotion(text: string): EmotionResult {
   // Calculate confidence based on keyword count and text length
   const textWords = text.split(/\s+/).length;
   const keywordDensity = primary.count / Math.max(textWords, 1);
-  const confidence = Math.min(0.4 + keywordDensity * 3 + (primary.count > 2 ? 0.2 : 0), 0.95);
+  // Boost confidence for emoji matches (they're very intentional)
+  const hasEmoji = primary.keywords.some((k) => k.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(k));
+  const emojiBoost = hasEmoji ? 0.15 : 0;
+  const confidence = Math.min(0.4 + keywordDensity * 3 + (primary.count > 2 ? 0.2 : 0) + emojiBoost, 0.95);
 
   return {
     primary: primary.emotion,

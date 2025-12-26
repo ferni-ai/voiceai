@@ -456,12 +456,21 @@ function detectEmotionalMismatch(
       lower.includes(topic) || context.recentTopics?.some((t) => t.toLowerCase().includes(topic))
   );
 
+  // Check if there's a negative emotion detected (without requiring high intensity)
   const emotionMismatch =
     context.detectedEmotion &&
-    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated'].includes(context.detectedEmotion) &&
-    (context.emotionIntensity || 0) > 0.5;
+    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated', 'distressed', 'overwhelmed'].includes(context.detectedEmotion);
 
-  if (hasHeavyTopic || emotionMismatch) {
+  // Also check for "but" patterns which often indicate masking
+  // e.g., "I'm fine, but..." or "It's okay but the divorce..."
+  const hasBut = /\b(but|though|although|however)\b/i.test(lower);
+  const hasContradiction = usesFine && hasBut;
+
+  // Check for minimizing language in same sentence as "fine"
+  const hasMinimizing = MINIMIZING_PATTERNS.some((pattern) => pattern.test(lower));
+  const minimizingWithFine = usesFine && hasMinimizing;
+
+  if (hasHeavyTopic || emotionMismatch || hasContradiction || minimizingWithFine) {
     // Record this false fine
     profile.falseFines.push({
       timestamp: new Date(),
@@ -476,11 +485,19 @@ function detectEmotionalMismatch(
       "You don't have to be fine with me. What's really going on?",
     ];
 
+    // Calculate confidence based on what triggered the detection
+    let confidence = 0.65;
+    if (hasHeavyTopic) confidence += 0.15;
+    if (emotionMismatch) confidence += 0.1;
+    if (hasContradiction) confidence += 0.05;
+    if (minimizingWithFine) confidence += 0.05;
+    confidence = Math.min(confidence, 0.95);
+
     return {
       type: 'emotional_mismatch',
       observation: "Said they're fine but context suggests otherwise",
       underlying: context.detectedEmotion || 'suppressed emotion',
-      confidence: hasHeavyTopic && emotionMismatch ? 0.9 : 0.7,
+      confidence,
       approach: 'create_space',
       phrase: phrases[Math.floor(Math.random() * phrases.length)],
       context: {
@@ -671,14 +688,40 @@ function detectMinimizing(
   context: {
     detectedEmotion?: string;
     emotionIntensity?: number;
+    recentTopics?: string[];
   }
 ): UnsaidSignal | null {
   const isMinimizing = MINIMIZING_PATTERNS.some((pattern) => pattern.test(lower));
 
   if (!isMinimizing) return null;
 
-  // More significant if emotion intensity is high but they're minimizing
-  const significantMinimizing = context.emotionIntensity && context.emotionIntensity > 0.6;
+  // Check for heavy topics that make minimizing more significant
+  const hasHeavyTopic = HEAVY_TOPIC_INDICATORS.some(
+    (topic) =>
+      lower.includes(topic) || context.recentTopics?.some((t) => t.toLowerCase().includes(topic))
+  );
+
+  // Check for negative emotions that suggest they're downplaying
+  const hasNegativeEmotion =
+    context.detectedEmotion &&
+    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated', 'distressed', 'overwhelmed'].includes(context.detectedEmotion);
+
+  // Strong minimizing patterns that are significant on their own
+  const strongMinimizing = [
+    /i shouldn't complain/i,
+    /other people have it worse/i,
+    /it's not that bad/i,
+    /i'm probably (just|being) (dramatic|sensitive|silly)/i,
+    /i know (i'm being|it's) silly/i,
+    /it's (really )?nothing/i,
+  ].some((pattern) => pattern.test(lower));
+
+  // Trigger if: high emotion intensity OR heavy topic OR strong minimizing OR negative emotion
+  const significantMinimizing =
+    (context.emotionIntensity && context.emotionIntensity > 0.4) ||
+    hasHeavyTopic ||
+    strongMinimizing ||
+    hasNegativeEmotion;
 
   if (!significantMinimizing) return null;
 
@@ -689,11 +732,19 @@ function detectMinimizing(
     "Other people's struggles don't make yours less real.",
   ];
 
+  // Calculate confidence
+  let confidence = 0.55;
+  if (hasHeavyTopic) confidence += 0.15;
+  if (strongMinimizing) confidence += 0.15;
+  if (hasNegativeEmotion) confidence += 0.1;
+  if (context.emotionIntensity && context.emotionIntensity > 0.6) confidence += 0.1;
+  confidence = Math.min(confidence, 0.9);
+
   return {
     type: 'minimizing_pain',
     observation: 'Downplaying something that seems significant',
     underlying: 'real pain being minimized',
-    confidence: 0.65,
+    confidence,
     approach: 'create_space',
     phrase: phrases[Math.floor(Math.random() * phrases.length)],
     context: {
