@@ -374,7 +374,8 @@ export async function createEvent(
     if (!accessToken) {
       log.warn({ userId }, 'Google token expired, creating in unified store');
       const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
-      return unifiedToCalendarEvent(created, calendarId);
+      // Use 'local' when falling back from Google to unified store
+      return unifiedToCalendarEvent(created, 'local');
     }
 
     try {
@@ -385,14 +386,16 @@ export async function createEvent(
     } catch (error) {
       log.error({ error: String(error), userId }, 'Google Calendar failed, creating in unified store');
       const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
-      return unifiedToCalendarEvent(created, calendarId);
+      // Use 'local' when falling back from Google to unified store
+      return unifiedToCalendarEvent(created, 'local');
     }
   }
 
   // Use unified Ferni calendar
   const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
   log.info({ userId, eventTitle: event.title }, 'Unified calendar event created');
-  return unifiedToCalendarEvent(created, calendarId);
+  // Use 'local' for unified calendar events (not connected to external provider)
+  return unifiedToCalendarEvent(created, 'local');
 }
 
 /**

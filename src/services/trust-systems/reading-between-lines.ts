@@ -164,6 +164,17 @@ const PERMISSION_SEEKERS = [
   "i don't want to burden you",
   'i know this is silly but',
   'this is going to sound stupid',
+  // BETTER THAN HUMAN: Reluctance/carrying patterns
+  "i've been carrying",
+  'been holding onto',
+  "something i haven't",
+  "don't want to dump",
+  "don't want to put this on you",
+  "if i'm being honest",
+  "honestly i've been",
+  "hard to say this",
+  "this is hard but",
+  "need to get something off",
 ];
 
 /** Deflection patterns */

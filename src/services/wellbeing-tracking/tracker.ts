@@ -87,6 +87,7 @@ const DETECTION_PATTERNS: Record<
       },
       { pattern: /\b(good energy|feeling strong|rested|full of energy)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(refreshed|revitalized|recharged)\b/i, value: 0.8, confidence: 0.6 },
+      { pattern: /\b(feel (much|so|really) better|feeling (great|amazing|good))\b/i, value: 0.75, confidence: 0.6 },
     ],
     negative: [
       {
@@ -97,6 +98,10 @@ const DETECTION_PATTERNS: Record<
       { pattern: /\b(tired|fatigued|low energy|sluggish|no energy)\b/i, value: 0.3, confidence: 0.6 },
       { pattern: /\b(a bit tired|kind of tired|too tired|honestly tired)\b/i, value: 0.4, confidence: 0.5 },
       { pattern: /\b(can barely|barely keeping|running on fumes|dead tired)\b/i, value: 0.15, confidence: 0.6 },
+      // BETTER THAN HUMAN: Fog/autopilot patterns
+      { pattern: /\b(moving through (fog|molasses)|brain fog|foggy)\b/i, value: 0.2, confidence: 0.7 },
+      { pattern: /\b(on autopilot|going through the motions|just existing)\b/i, value: 0.25, confidence: 0.6 },
+      { pattern: /\b(can't shake (it|this)|something's off|not myself)\b/i, value: 0.3, confidence: 0.5 },
     ],
   },
 
@@ -146,6 +151,12 @@ const DETECTION_PATTERNS: Record<
       { pattern: /\b(to-do list keeps|keeps getting longer|never ends|piling up)\b/i, value: 0.6, confidence: 0.6 },
       { pattern: /\b(relentless|constantly (behind|catching up)|can't keep up)\b/i, value: 0.75, confidence: 0.6 },
       { pattern: /\b(overwhelmed at work|work is overwhelming|drowning in work)\b/i, value: 0.8, confidence: 0.7 },
+      // BETTER THAN HUMAN: Overwhelm/juggling patterns
+      { pattern: /\b(juggling|juggle).*(million|hundred|everything|too much)\b/i, value: 0.75, confidence: 0.7 },
+      { pattern: /\b(can't even|barely|struggling to).*(think|breathe|function)\b/i, value: 0.85, confidence: 0.7 },
+      { pattern: /\b(mind (won't stop|keeps|is) racing)\b/i, value: 0.8, confidence: 0.7 },
+      { pattern: /\b(try to close my eyes|close my eyes).*(mind|thoughts|racing)\b/i, value: 0.75, confidence: 0.6 },
+      { pattern: /\b(tossing and turning|can't stop thinking|lying awake)\b/i, value: 0.7, confidence: 0.6 },
     ],
   },
 
@@ -253,11 +264,19 @@ const DETECTION_PATTERNS: Record<
       },
       // Gym/exercise patterns (BETTER THAN HUMAN)
       { pattern: /\b(going to the gym|been to the gym|hit the gym|at the gym)\b/i, value: 0.85, confidence: 0.7 },
+      { pattern: /\b(hitting the gym|hit the gym).*(every|this week|daily|morning)\b/i, value: 0.9, confidence: 0.8 },
       { pattern: /\b(working out|been working out|exercise every day|daily workout)\b/i, value: 0.8, confidence: 0.6 },
       { pattern: /\b(yoga|pilates|running|jogging|cardio|lifting weights?)\b/i, value: 0.7, confidence: 0.5 },
       { pattern: /\b(go(ing)? for a walk|daily walk|walk(ing)? every day)\b/i, value: 0.75, confidence: 0.6 },
       { pattern: /\b(making (an )?effort|trying to|been making sure|started)\s+(to )?(exercise|walk|work out)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(really paying off|making progress|getting stronger|seeing results)\b/i, value: 0.85, confidence: 0.6 },
+      // Consistent exercise patterns
+      { pattern: /\b(every (morning|day|week)|three times a week|twice a week)\b/i, value: 0.8, confidence: 0.5 },
+      { pattern: /\b(I feel (much|so|really) better|it's (helping|working))\b/i, value: 0.75, confidence: 0.5 },
+      // BETTER THAN HUMAN: Lifestyle improvements
+      { pattern: /\b(replaced|swapped|switched).*(with|for).*(jog|walk|exercise|workout)\b/i, value: 0.85, confidence: 0.7 },
+      { pattern: /\b(morning (jog|run|walk)|light jog|started jogging)\b/i, value: 0.8, confidence: 0.6 },
+      { pattern: /\b(amazing what|surprising how|it's made a difference)\b/i, value: 0.7, confidence: 0.5 },
       // Work-life balance positive
       { pattern: /\b(good work.?life balance|leaving work at work|disconnecting)\b/i, value: 0.8, confidence: 0.7 },
       { pattern: /\b(not checking (emails?|work)|logging off|stepping away from work)\b/i, value: 0.7, confidence: 0.6 },

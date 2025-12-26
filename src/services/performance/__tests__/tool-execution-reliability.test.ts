@@ -73,9 +73,12 @@ describe('ToolExecutionReliability', () => {
         retryConfig: { maxRetries: 2, initialDelayMs: 100 },
       });
 
-      // Advance timers for retry delays
-      await vi.advanceTimersByTimeAsync(100);
-      await vi.advanceTimersByTimeAsync(200);
+      // Advance timers for retry delays (with exponential backoff + jitter, need extra time)
+      // Delay 1: ~100ms * 1.5^0 + jitter ≈ 100-120ms
+      // Delay 2: ~100ms * 1.5^1 + jitter ≈ 150-180ms
+      // Total: ~300ms, add buffer for jitter
+      await vi.advanceTimersByTimeAsync(150); // First retry delay
+      await vi.advanceTimersByTimeAsync(250); // Second retry delay (with buffer)
 
       const result = await resultPromise;
 

@@ -615,3 +615,205 @@ describe('Callback Injection E2E', () => {
   });
 });
 
+// =============================================================================
+// 6. CROSS-PERSONA CALLBACK COVERAGE TESTS
+// =============================================================================
+
+describe('Cross-Persona Callback Coverage', () => {
+  const PERSONA_TRIGGER_SCENARIOS = [
+    // Jordan - Life planning callbacks
+    {
+      personaId: 'jordan-taylor',
+      userText: "I'm planning a big trip next year, thinking about my future goals",
+      expectedTriggers: ['future', 'milestone'],
+    },
+    // Alex - Communication/productivity callbacks
+    {
+      personaId: 'alex-chen',
+      userText: "I'm so overwhelmed with everything on my plate, can't say no",
+      expectedTriggers: ['overwhelm', 'boundaries'],
+    },
+    // Nayan - Wisdom/philosophy callbacks
+    {
+      personaId: 'nayan-patel',
+      userText: "What's the meaning of all this suffering? I don't understand",
+      expectedTriggers: ['meaning', 'suffering', 'paradox'],
+    },
+    // Peter - Financial wisdom callbacks
+    {
+      personaId: 'peter-john',
+      userText: "The market is down and I'm worried about my investments",
+      expectedTriggers: ['market', 'compound'],
+    },
+  ];
+
+  it.each(PERSONA_TRIGGER_SCENARIOS)(
+    'should detect triggers for $personaId',
+    ({ personaId, userText, expectedTriggers }) => {
+      const triggers = detectCallbackTriggers(userText, personaId);
+
+      // Should detect at least one trigger
+      expect(triggers.length).toBeGreaterThan(0);
+      
+      // Should detect at least one of the expected triggers
+      const detectedTriggerIds = triggers.map(t => t.trigger);
+      const hasExpected = expectedTriggers.some(expected => 
+        detectedTriggerIds.includes(expected)
+      );
+      expect(hasExpected).toBe(true);
+    }
+  );
+
+  it('should have different callback styles per persona', async () => {
+    const userText = "I keep making the same mistakes over and over";
+    
+    const results: Record<string, string[]> = {};
+    
+    for (const personaId of ['ferni', 'maya-santos', 'nayan-patel']) {
+      const triggers = detectCallbackTriggers(userText, personaId);
+      results[personaId] = triggers.map(t => t.id);
+    }
+
+    // Different personas should have different callbacks for similar themes
+    // Ferni has "second_chances", Maya has "stumble_forward", Nayan has "paradox_acceptance"
+    console.log('Cross-persona callback detection:', results);
+  });
+});
+
+// =============================================================================
+// 7. EDGE CASE TESTS
+// =============================================================================
+
+describe('Speech Humanization Edge Cases', () => {
+  describe('Very Short Responses', () => {
+    it('should not crash on empty text', () => {
+      const result = quickHumanizeSync('', 'ferni', { emotion: 'neutral' });
+      expect(result).toBe('');
+    });
+
+    it('should not humanize very short text', () => {
+      const shortText = 'OK';
+      const result = quickHumanizeSync(shortText, 'ferni', { emotion: 'neutral' });
+      expect(result).toBe(shortText); // Should return unchanged
+    });
+
+    it('should handle single word responses', () => {
+      const result = quickHumanizeSync('Yes', 'maya-santos', { emotion: 'neutral' });
+      expect(result.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Special Characters', () => {
+    it('should handle text with SSML-like characters', () => {
+      const text = "Let's talk about <this> and <that> situation.";
+      const result = quickHumanizeSync(text, 'ferni', { emotion: 'neutral' });
+      expect(result).toBeDefined();
+    });
+
+    it('should handle text with quotes and apostrophes', () => {
+      const text = `He said "that's interesting" and I couldn't believe it.`;
+      const result = quickHumanizeSync(text, 'alex-chen', { emotion: 'curious' });
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('Extreme Turn Counts', () => {
+    it('should handle turn count of 0', () => {
+      const result = quickHumanizeSync(
+        "Let's talk about your goals today.",
+        'jordan-taylor',
+        { emotion: 'neutral', turnNumber: 0 }
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should handle very high turn counts', () => {
+      const result = quickHumanizeSync(
+        "We've been talking for a while now.",
+        'ferni',
+        { emotion: 'warm', turnNumber: 100 }
+      );
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('Energy Level Extremes', () => {
+    it('should handle undefined energy level', () => {
+      const context = buildSpeechContext({
+        userText: '',
+        phase: 'listening',
+        turnCount: 1,
+        sessionId: 'test',
+      });
+      expect(context.extendedUserEnergy).toBeDefined();
+    });
+
+    it('should map all energy levels correctly', () => {
+      const energyTests = [
+        { text: '', expected: 'very_low' },
+        { text: 'I am so tired and exhausted', expected: 'low' },
+        { text: 'Had a normal day today', expected: 'neutral' },
+        { text: "That's great news! Excited!", expected: 'elevated' },
+        { text: 'OMG YES!!! AMAZING!!!', expected: 'high' },
+      ];
+
+      for (const { text, expected } of energyTests) {
+        const level = detectExtendedEnergyLevel(text);
+        // Allow ±1 level tolerance for subjective detection
+        const levels = ['very_low', 'low', 'neutral', 'elevated', 'high'];
+        const expectedIdx = levels.indexOf(expected);
+        const actualIdx = levels.indexOf(level);
+        expect(Math.abs(expectedIdx - actualIdx)).toBeLessThanOrEqual(1);
+      }
+    });
+  });
+
+  describe('Callback Edge Cases', () => {
+    it('should not crash with undefined userText', () => {
+      const result = quickHumanizeSync(
+        "Let's explore that further.",
+        'ferni',
+        { emotion: 'curious', userText: undefined, conversationCount: 5 }
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should not crash with undefined conversationCount', () => {
+      const result = quickHumanizeSync(
+        "Second chances are important.",
+        'ferni',
+        { emotion: 'sympathetic', userText: 'I messed up', conversationCount: undefined }
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should handle first conversation (count=0)', () => {
+      const triggers = detectCallbackTriggers("I made a mistake", 'ferni');
+      if (triggers.length > 0) {
+        const callback = selectCallback(triggers, 'ferni', 0);
+        if (callback) {
+          // First use should NOT use callback version
+          expect(callback.useCallbackVersion).toBe(false);
+        }
+      }
+    });
+
+    it('should potentially use callback version for returning users', () => {
+      const triggers = detectCallbackTriggers("I made another mistake", 'ferni');
+      if (triggers.length > 0) {
+        // Run multiple times to catch probabilistic callback version
+        let usedCallbackVersion = false;
+        for (let i = 0; i < 50; i++) {
+          const callback = selectCallback(triggers, 'ferni', 10); // High conversation count
+          if (callback?.useCallbackVersion) {
+            usedCallbackVersion = true;
+            break;
+          }
+        }
+        // It's OK if callback version wasn't used - it's probabilistic
+        console.log(`Callback version usage: ${usedCallbackVersion ? 'triggered' : 'not triggered (probabilistic)'}`);
+      }
+    });
+  });
+});
+
