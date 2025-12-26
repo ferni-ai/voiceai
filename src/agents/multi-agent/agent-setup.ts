@@ -149,20 +149,302 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
 
   // =========================================================================
-  // BUILD SYSTEM PROMPT (Using proper prompt loader for function-calling!)
+  // BUILD SYSTEM PROMPTS - Two levels for optimal instruction following
   // FIX: Previously used buildAgentSystemPrompt which missed function-calling instructions
   // =========================================================================
+  // TWO-LEVEL INSTRUCTION ARCHITECTURE:
+  // Model-level: Foundational rules (tool format, honesty, platform context)
+  //   - These are active from the VERY FIRST MOMENT of connection
+  //   - Concise, critical rules that must never be forgotten
+  // Agent-level: Full persona prompt (identity, detailed tools, personality)
+  //   - Sent via LiveKit's updateInstructions() after session starts
+  //   - Contains full persona identity and detailed tool catalog
+
   let systemPrompt: string;
+  let modelBaseInstructions: string;
   try {
-    const { loadSystemPrompt } = await import('../personas/prompt-loader.js');
-    systemPrompt = await loadSystemPrompt(persona.id);
-    log.info({ personaId: persona.id }, '🎭 Loaded full system prompt with function-calling');
+    const { loadSystemPrompt, loadModelBaseInstructions } = await import(
+      '../personas/prompt-loader.js'
+    );
+
+    // Load both levels of instructions in parallel
+    const [baseInstructions, loadedSystemPrompt] = await Promise.all([
+      loadModelBaseInstructions(),
+      loadSystemPrompt(persona.id),
+    ]);
+
+    systemPrompt = loadedSystemPrompt;
+
+    // =========================================================================
+    // DATE/TIME AWARENESS - Critical for grounding agent in reality
+    // This is injected into model-level instructions so the agent knows
+    // the date/time from the VERY FIRST MOMENT (including greeting)
+    // =========================================================================
+    const now = new Date();
+    const dateTimeContext = `
+---
+
+## Current Date & Time
+
+Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
+
+Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
+If someone asks what day it is, what time it is, or what the date is, you know the answer.
+`;
+
+    // Append date/time to model base instructions (session-specific, not cached)
+    modelBaseInstructions = baseInstructions + dateTimeContext;
+
+    // =========================================================================
+    // USER AWARENESS - Enhance model instructions with user context
+    // This makes the agent aware of WHO they're talking to from the first moment
+    // =========================================================================
+    const userProfile = services.userProfile;
+    if (userProfile) {
+      const userAwareness: string[] = [];
+      const sessionStartTime = now;
+      const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
+
+      // User's name
+      if (displayName) {
+        userAwareness.push(`You're talking to ${displayName}.`);
+      }
+
+      // Relationship context
+      const isReturningUser = (userProfile.totalConversations ?? 0) > 0;
+      if (isReturningUser && userProfile.totalConversations) {
+        const convCount = userProfile.totalConversations;
+        if (convCount === 1) {
+          userAwareness.push("You've talked once before.");
+        } else if (convCount < 5) {
+          userAwareness.push(`You've talked ${convCount} times - still getting to know each other.`);
+        } else if (convCount < 20) {
+          userAwareness.push(`You've had ${convCount} conversations - a growing friendship.`);
+        } else {
+          userAwareness.push(`You've had ${convCount} conversations together - you know each other well.`);
+        }
+
+        // Last conversation time
+        if (userProfile.lastContact) {
+          const lastContactDate = new Date(userProfile.lastContact);
+          const daysSince = Math.floor(
+            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
+          );
+          if (daysSince === 0) {
+            userAwareness.push("You talked earlier today.");
+          } else if (daysSince === 1) {
+            userAwareness.push("You talked yesterday.");
+          } else if (daysSince < 7) {
+            userAwareness.push(`Last talked ${daysSince} days ago.`);
+          } else if (daysSince < 30) {
+            userAwareness.push(`It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`);
+          } else {
+            userAwareness.push(`It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`);
+          }
+        }
+      } else if (!isReturningUser) {
+        userAwareness.push("This is your first conversation with them - be welcoming but not overwhelming.");
+      }
+
+      // Key relationship facts (if available)
+      const relationshipStage = userProfile.relationshipStage;
+      if (relationshipStage && relationshipStage !== 'new_acquaintance') {
+        const stageDescriptions: Record<string, string> = {
+          'getting_to_know': 'You\'re still getting to know each other.',
+          'trusted_advisor': 'They trust you and share openly.',
+          'old_friend': 'You\'re old friends - deep relationship.',
+        };
+        if (stageDescriptions[relationshipStage]) {
+          userAwareness.push(stageDescriptions[relationshipStage]);
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #1: Last Conversation Context
+      // A human friend might vaguely remember "oh we talked recently"
+      // Ferni remembers EXACTLY what you talked about
+      // =========================================================================
+      if (isReturningUser && userProfile.lastConversationSummary) {
+        userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #2: Emotional Memory (via mood tracking)
+      // A human friend might not notice you were struggling last time
+      // Ferni remembers and checks in
+      // =========================================================================
+      if (userProfile.humanizingState?.lastMood) {
+        const lastMood = userProfile.humanizingState.lastMood;
+        // Map moods to emotional context
+        const moodContext: Record<string, string> = {
+          'tired_but_present': 'Last time they seemed a bit tired - be gentle.',
+          'reflective': 'Last time they were in a reflective mood.',
+          'philosophical': 'Last time they were in a thoughtful, philosophical space.',
+          'energized': 'Last time they were full of energy!',
+          'grounded': 'Last time they seemed calm and grounded.',
+          'playful': 'Last time they were in a playful mood.',
+          'nostalgic': 'Last time they were feeling nostalgic.',
+        };
+        if (moodContext[lastMood]) {
+          userAwareness.push(moodContext[lastMood]);
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #3: Key Life Events Awareness
+      // A human friend might forget important dates and events
+      // Ferni remembers milestones, challenges, and celebrations
+      // =========================================================================
+      if (userProfile.lifeEvents && userProfile.lifeEvents.length > 0) {
+        // Find recent events (within last 30 days that are in progress or upcoming)
+        const relevantEvents = userProfile.lifeEvents
+          .filter(event => {
+            // Focus on active or upcoming events
+            return event.status === 'in_progress' || event.status === 'upcoming' || event.status === 'planning';
+          })
+          .slice(0, 2); // Max 2 events
+
+        for (const event of relevantEvents) {
+          const eventTypes: Record<string, string> = {
+            'wedding': 'preparing for a wedding',
+            'baby': 'expecting or has a new baby',
+            'graduation': 'graduation coming up',
+            'career_change': 'going through a career change',
+            'relocation': 'moving/relocating',
+            'loss': 'dealing with a loss',
+            'celebration': 'has something to celebrate',
+          };
+          const eventContext = eventTypes[event.type];
+          if (eventContext) {
+            userAwareness.push(`Life context: ${event.title || eventContext}`);
+          }
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #4: Goals & Concerns Awareness
+      // Know what matters to them right now
+      // =========================================================================
+      if (userProfile.goals && userProfile.goals.length > 0) {
+        const topGoal = userProfile.goals[0];
+        userAwareness.push(`Current goal: ${topGoal}`);
+      }
+      if (userProfile.primaryConcerns && userProfile.primaryConcerns.length > 0) {
+        const topConcern = userProfile.primaryConcerns[0];
+        userAwareness.push(`On their mind: ${topConcern}`);
+      }
+
+      if (userAwareness.length > 0) {
+        modelBaseInstructions += `
+---
+
+## Who You're Talking To
+
+${userAwareness.join('\n')}
+
+Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
+Reference past context when relevant, but don't force it. Let the conversation flow.
+`;
+        // DETAILED LOGGING: Show exactly what "Better Than Human" context is being injected
+        log.info(
+          { personaId: persona.id, userAwarenessCount: userAwareness.length },
+          `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
+        );
+        userAwareness.forEach((fact, i) => {
+          log.debug({ fact }, `  ${i + 1}. ${fact}`);
+        });
+      } else {
+        log.debug(
+          { personaId: persona.id },
+          '👤 No user awareness facts available (new user or empty profile)'
+        );
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #5: Calendar Awareness (Non-blocking)
+      // A human friend doesn't know your schedule. Ferni does.
+      // =========================================================================
+      if (userId) {
+        // Fire-and-forget calendar fetch (don't block agent setup)
+        void (async () => {
+          try {
+            const { getAmbientCalendarContext } = await import('../../services/calendar/ambient-calendar-awareness.js');
+            const calendarContext = await getAmbientCalendarContext(userId);
+            
+            if (calendarContext.isCalendarConnected) {
+              const calendarAwareness: string[] = [];
+              
+              // Next meeting awareness
+              if (calendarContext.nextMeeting.event && calendarContext.nextMeeting.minutesUntil !== null) {
+                const minutes = calendarContext.nextMeeting.minutesUntil;
+                const meetingTitle = calendarContext.nextMeeting.event.title;
+                
+                if (minutes <= 15) {
+                  calendarAwareness.push(`⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`);
+                } else if (minutes <= 60) {
+                  calendarAwareness.push(`📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`);
+                }
+              }
+              
+              // Just ended meeting (great for follow-up)
+              if (calendarContext.justEndedMeeting.event && calendarContext.justEndedMeeting.minutesSince !== null) {
+                const minutes = calendarContext.justEndedMeeting.minutesSince;
+                const meetingTitle = calendarContext.justEndedMeeting.event.title;
+                
+                if (minutes <= 15) {
+                  calendarAwareness.push(`💬 They just finished "${meetingTitle}" - could be a natural topic.`);
+                }
+              }
+              
+              // Busy day awareness
+              if (calendarContext.remainingMeetingsToday >= 4) {
+                calendarAwareness.push(`📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`);
+              }
+              
+              if (calendarAwareness.length > 0) {
+                // Store in userData for use in turn-handler injection (turn 0-1)
+                userData.calendarAwareness = calendarAwareness.join(' ');
+                // DETAILED LOGGING: Show calendar awareness being stored
+                log.info(
+                  { personaId: persona.id, calendarInsightsCount: calendarAwareness.length },
+                  `📅 BETTER THAN HUMAN - Calendar awareness loaded (${calendarAwareness.length} insights)`
+                );
+                calendarAwareness.forEach((insight, i) => {
+                  log.debug({ insight }, `  ${i + 1}. ${insight}`);
+                });
+              } else {
+                log.debug(
+                  { personaId: persona.id },
+                  '📅 Calendar connected but no relevant insights (no upcoming/recent meetings)'
+                );
+              }
+            } else {
+              log.debug({ personaId: persona.id, userId }, '📅 Calendar not connected for user');
+            }
+          } catch (calErr) {
+            // Calendar not connected or fetch failed - log but don't block
+            log.debug({ error: String(calErr) }, '📅 Calendar fetch failed (non-critical)');
+          }
+        })();
+      }
+    }
+
+    log.info(
+      {
+        personaId: persona.id,
+        modelBase: modelBaseInstructions.length,
+        fullPrompt: systemPrompt.length,
+      },
+      '🎭 Loaded two-level prompts (model base + full persona, with date/time + user awareness)'
+    );
   } catch (promptErr) {
     log.warn(
       { error: String(promptErr), personaId: persona.id },
-      '⚠️ Failed to load full prompt, using fallback'
+      '⚠️ Failed to load prompts, using fallback'
     );
     systemPrompt = buildAgentSystemPrompt(config);
+    modelBaseInstructions = systemPrompt; // Fallback: use same for both
   }
 
   // Add handoff context if this is a handoff
@@ -268,15 +550,18 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       '🎭 Creating RealtimeModel with modalities'
     );
 
-    // NOTE: Do NOT pass instructions to RealtimeModel!
-    // In single-agent mode (which works), instructions go ONLY to the Agent, not the LLM.
-    // Passing instructions to both causes the wrong voice - possibly because Gemini
-    // interprets system instructions differently when they're on the model vs agent.
+    // TWO-LEVEL INSTRUCTION ARCHITECTURE:
+    // Model-level: Foundational rules (tool format, honesty, platform context)
+    //   - These are active from the VERY FIRST MOMENT of connection
+    //   - Concise, critical rules that must never be forgotten
+    // Agent-level: Full persona prompt (via FerniAgent constructor below)
+    //   - Sent via LiveKit's updateInstructions() after session starts
+    //   - Contains full persona identity and detailed tool catalog
     const realtimeModelOptions = {
       model: geminiConfig.model,
       modalities: [genai.Modality.TEXT], // Output text → Cartesia TTS (persona voice)
       temperature: geminiConfig.temperature,
-      // instructions: systemPrompt,  // ← REMOVED: Goes on Agent only (matches voice-agent-entry.ts)
+      instructions: modelBaseInstructions, // Model-level: foundational rules (active immediately)
       language: geminiConfig.language,
       // ENABLE USER TRANSCRIPTION - Gemini STT exposes what user says
       inputAudioTranscription: {
@@ -295,10 +580,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
         options: {
           model: realtimeModelOptions.model,
           modalities: realtimeModelOptions.modalities,
-          // Note: instructions are passed to Agent, not RealtimeModel
+          modelBaseLength: modelBaseInstructions.length,
+          agentPromptLength: systemPrompt.length,
         },
       },
-      '🎭 RealtimeModel options BEFORE creation'
+      '🎭 RealtimeModel options BEFORE creation (instructions at model + agent level)'
     );
 
     llmModel = new google.beta.realtime.RealtimeModel(realtimeModelOptions as any);
@@ -403,7 +689,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Import dynamic tool loader
         const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
-        const { autoOptimizer } = await import('../../tools/auto-optimizer.js');
+        const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
 
         const transcriptHandler = createTranscriptHandler({
           room,
@@ -514,49 +800,103 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     tts,
     handlers: handlersStatus,
     cleanup: async () => {
-      if (isCleanedUp) return;
+      const cleanupStart = Date.now();
+      log.info(
+        { personaId: persona.id, sessionId, alreadyCleaned: isCleanedUp },
+        '🧹 [CLEANUP] cleanup() ENTRY'
+      );
+
+      if (isCleanedUp) {
+        log.debug({ personaId: persona.id }, '🧹 [CLEANUP] Already cleaned up, skipping');
+        return;
+      }
       isCleanedUp = true;
 
-      log.info({ personaId: persona.id, sessionId }, '🎭 Cleaning up agent');
+      // NOTE: Do NOT mark session as closing here in multi-agent mode!
+      // All agents share the same sessionId, so marking it as closing would
+      // prevent the new agent (e.g., Maya) from working during handoff.
+      // The session-closing-tracker is only used in cleanup-handler.ts when
+      // the entire conversation is ending.
 
       // Run all cleanup functions
-      for (const cleanup of cleanupFunctions) {
+      log.info(
+        { personaId: persona.id, cleanupCount: cleanupFunctions.length },
+        '🧹 [CLEANUP] Running handler cleanup functions...'
+      );
+      const handlerCleanupStart = Date.now();
+      for (let i = 0; i < cleanupFunctions.length; i++) {
+        const cleanup = cleanupFunctions[i];
         try {
           await cleanup();
+          log.debug({ personaId: persona.id, index: i }, '🧹 [CLEANUP] Handler cleanup completed');
         } catch (err) {
-          log.warn({ error: String(err) }, 'Error in handler cleanup');
+          log.warn({ error: String(err), index: i }, '🧹 [CLEANUP] Error in handler cleanup');
         }
       }
+      log.info(
+        { personaId: persona.id, durationMs: Date.now() - handlerCleanupStart },
+        '🧹 [CLEANUP] Handler cleanups done'
+      );
 
       // FIX: Clean up speech session services (29+ services) to prevent memory leaks
       // This matches what the main voice-agent cleanup does
+      log.debug({ sessionId }, '🧹 [CLEANUP] Cleaning up speech session...');
       try {
         cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
         log.debug(
           { sessionId, personaId: persona.id },
-          '🎤 Speech session cleaned up (agent cleanup)'
+          '🧹 [CLEANUP] Speech session cleaned up'
         );
       } catch (err) {
-        log.warn({ error: String(err) }, 'Error cleaning up speech session');
+        log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up speech session');
       }
 
       // FIX: Clear retry counter WeakMap entry explicitly
       // While WeakMap will GC when session is collected, explicit cleanup is better practice
       // and ensures memory is freed immediately
+      log.debug({ sessionId }, '🧹 [CLEANUP] Clearing retry counter...');
       try {
         clearRetryCounter(session);
-        log.debug({ sessionId }, '🔄 Retry counter cleared');
+        log.debug({ sessionId }, '🧹 [CLEANUP] Retry counter cleared');
       } catch (err) {
-        log.warn({ error: String(err) }, 'Error clearing retry counter');
+        log.warn({ error: String(err) }, '🧹 [CLEANUP] Error clearing retry counter');
       }
 
+      // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
+      // session.close() can block if the session is in a draining state
+      log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
+      const closeStart = Date.now();
       try {
-        await session.close();
+        const closeTimeout = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('session.close() timeout')), 3000)
+        );
+        await Promise.race([session.close(), closeTimeout]);
+        log.info(
+          { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },
+          '🧹 [CLEANUP] ✅ session.close() completed'
+        );
       } catch (err) {
-        log.warn({ error: String(err) }, 'Error closing session');
+        log.warn(
+          { error: String(err), sessionId, closeDurationMs: Date.now() - closeStart },
+          '🧹 [CLEANUP] ⚠️ session.close() error or timeout'
+        );
       }
+
+      log.info(
+        { personaId: persona.id, sessionId, totalCleanupDurationMs: Date.now() - cleanupStart },
+        '🧹 [CLEANUP] cleanup() EXIT'
+      );
     },
     say: (text: string, options?: { allowInterruptions?: boolean }) => {
+      log.info(
+        {
+          personaId: persona.id,
+          sessionId,
+          textPreview: text.slice(0, 60),
+          allowInterruptions: options?.allowInterruptions ?? true,
+        },
+        '🎭 [SAY] Agent speaking via coordinatedSay...'
+      );
       // Use coordinated speech for centralized speech management
       coordinatedSay(sessionId, text, { allowInterruptions: options?.allowInterruptions ?? true });
     },

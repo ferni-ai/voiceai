@@ -49,7 +49,10 @@ import {
 import { speculateTTS } from '../shared/performance/speculative-tts.js';
 
 // "Better Than Human" emotion dispatch for frontend EQ system
-import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
+import {
+  dispatchEmotionEvents,
+  dispatchHolisticEvents,
+} from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // "Better Than Human" concern detection with voice prosody
@@ -66,6 +69,19 @@ import {
   startTurnProfile,
   completeTurnProfile,
 } from '../shared/performance/adaptive-timing.js';
+// Unified Naturalness Engine - combines stress, patterns, ambient, rapport
+import {
+  getNaturalnessEngine,
+  processTurn as processNaturalnessTurn,
+  type TurnInput as NaturalnessTurnInput,
+  type NaturalnessResult,
+} from '../../speech/naturalness/index.js';
+
+// "Better Than Human v3" - Semantic Intelligence System
+import {
+  processSemanticIntelligence,
+  type TurnSemanticData,
+} from '../../services/superhuman/semantic-intelligence/integration.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -101,6 +117,8 @@ export interface TurnHandlerContext {
     currentEmotion?: string;
     // macOS context from menubar app (sent via data channel)
     macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
+    // Better Than Human: Calendar awareness (loaded async at session start)
+    calendarAwareness?: string;
   };
   /** Voice emotion result (optional, from voice agent) */
   voiceEmotion?: {
@@ -188,6 +206,123 @@ function mapProsodyToConcernSignals(prosody: ProsodyFeatures): ProsodySignals {
     tremor,
     energy,
   };
+}
+
+// ============================================================================
+// PROSODY → NATURALNESS ENGINE BRIDGE
+// Maps voice prosody and turn data to naturalness engine input
+// ============================================================================
+
+/**
+ * Build NaturalnessEngine input from turn handler context.
+ *
+ * This bridges the turn handler's data to the naturalness engine's expected format,
+ * enabling unified voice adaptation across stress, patterns, ambient, and rapport.
+ */
+function buildNaturalnessInput(ctx: {
+  sessionId: string;
+  userId: string;
+  turnNumber: number;
+  userText: string;
+  agentWordCount?: number;
+  voiceEmotion?: {
+    primary?: string;
+    confidence?: number;
+    prosody?: ProsodyFeatures;
+  };
+  emotionalResult?: {
+    primary: string;
+    distressLevel?: number;
+  };
+  userData?: {
+    speechRateWPM?: number;
+    pauseBeforeMs?: number;
+  };
+  userAskedQuestion?: boolean;
+  agentInterrupted?: boolean;
+  userInterrupted?: boolean;
+}): NaturalnessTurnInput {
+  const userWordCount = ctx.userText.split(/\s+/).filter(Boolean).length;
+  const agentWordCount = ctx.agentWordCount ?? 0;
+
+  // Build audio signals from prosody (if available)
+  const audio = ctx.voiceEmotion?.prosody ? {
+    stressLevel: calculateStressFromProsody(ctx.voiceEmotion.prosody),
+    anxietyMarkers: detectAnxietyMarkers(ctx.voiceEmotion.prosody),
+    breathPattern: detectBreathPattern(ctx.voiceEmotion.prosody),
+    voiceTremor: ctx.voiceEmotion.prosody.shimmer ?? 0,
+    concernLevel: ctx.emotionalResult?.distressLevel ?? 0,
+  } : undefined;
+
+  return {
+    audio,
+    context: {
+      sessionId: ctx.sessionId,
+      userId: ctx.userId,
+      turnNumber: ctx.turnNumber,
+      userWordCount,
+      agentWordCount,
+      userEmotion: ctx.emotionalResult?.primary,
+      userAskedQuestion: ctx.userAskedQuestion,
+      silenceDurationMs: ctx.userData?.pauseBeforeMs,
+      agentInterrupted: ctx.agentInterrupted,
+      userInterrupted: ctx.userInterrupted,
+    },
+  };
+}
+
+/**
+ * Calculate stress level from prosody features
+ */
+function calculateStressFromProsody(prosody: ProsodyFeatures): number {
+  // Combine multiple stress indicators
+  const jitterContrib = Math.min(1, (prosody.jitter || 0) * 2);
+  const shimmerContrib = Math.min(1, (prosody.shimmer || 0) * 1.5);
+  const pitchVarContrib = Math.min(1, (prosody.pitchVariance || 0) / 100);
+  const breathContrib = (prosody.breathiness || 0) * 0.5;
+
+  // Weighted average
+  return Math.min(1, jitterContrib * 0.3 + shimmerContrib * 0.25 + pitchVarContrib * 0.25 + breathContrib * 0.2);
+}
+
+/**
+ * Detect anxiety markers from prosody
+ */
+function detectAnxietyMarkers(prosody: ProsodyFeatures): boolean {
+  // High jitter + high pitch variance often indicates anxiety
+  const jitterHigh = (prosody.jitter || 0) > 0.02;
+  const pitchUnstable = (prosody.pitchVariance || 0) > 50;
+  const speechFast = (prosody.speechRate || 150) > 180;
+
+  return (jitterHigh && pitchUnstable) || (pitchUnstable && speechFast);
+}
+
+/**
+ * Detect breath pattern from prosody
+ */
+function detectBreathPattern(
+  prosody: ProsodyFeatures
+): 'normal' | 'shallow' | 'deep' | 'held' | 'irregular' | 'relaxing' {
+  const pauseFreq = prosody.pauseFrequency || 0;
+  const pauseDur = prosody.pauseDuration || 0;
+  const breathiness = prosody.breathiness || 0;
+
+  // High pause frequency with short pauses = shallow breathing
+  if (pauseFreq > 8 && pauseDur < 200) return 'shallow';
+
+  // Low pause frequency with long pauses = held breath
+  if (pauseFreq < 2 && pauseDur > 1000) return 'held';
+
+  // High breathiness with moderate pauses = deep breathing
+  if (breathiness > 0.4 && pauseDur > 500) return 'deep';
+
+  // High pause variance = irregular
+  if (pauseFreq > 5 && Math.abs(pauseDur - 400) > 300) return 'irregular';
+
+  // Low energy with slow speech = relaxing
+  if ((prosody.speechRate || 150) < 120 && breathiness > 0.2) return 'relaxing';
+
+  return 'normal';
 }
 
 // ============================================================================
@@ -361,6 +496,27 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         sendDataMessage
       ).catch((e) => {
         diag.debug('Emotion dispatch failed (non-critical)', { error: String(e) });
+      });
+    }
+
+    // ================================================================
+    // 🧠 "BETTER THAN HUMAN": Holistic NLU Signal Dispatch
+    // Sends holistic context (relationship, emotion, crisis) to frontend
+    // for anticipatory avatar expressions BEFORE the LLM responds.
+    // This enables the avatar to show warmth when family is mentioned,
+    // concern when stress is detected, and crisis mode instantly.
+    // ================================================================
+    if (result.semanticRouting?.holisticContext) {
+      void dispatchHolisticEvents(
+        {
+          holisticContext: result.semanticRouting.holisticContext,
+          userId: services.userId || 'anonymous',
+          personaId: persona.id,
+          sessionId: services.sessionId,
+        },
+        sendDataMessage
+      ).catch((e) => {
+        diag.debug('Holistic dispatch failed (non-critical)', { error: String(e) });
       });
     }
 
@@ -563,6 +719,90 @@ You are their lifeline right now. Be fully present.`,
 
       // Early return - don't proceed to LLM
       return;
+    }
+
+    // ================================================================
+    // 🌊 NATURALNESS ENGINE: Unified Voice Adaptation
+    // Combines stress adaptation, voice patterns, ambient reactivity, and rapport
+    // to make Ferni's voice feel naturally responsive to the user's state.
+    // ================================================================
+    let naturalnessResult: NaturalnessResult | null = null;
+    try {
+      // Ensure engine exists for this session
+      getNaturalnessEngine(services.sessionId, services.userId || 'anonymous');
+
+      // Build naturalness input from turn data
+      const naturalnessInput = buildNaturalnessInput({
+        sessionId: services.sessionId,
+        userId: services.userId || 'anonymous',
+        turnNumber,
+        userText,
+        voiceEmotion: voiceEmotion as { primary?: string; confidence?: number; prosody?: ProsodyFeatures },
+        emotionalResult: result.emotional,
+        userData: {
+          speechRateWPM: userData.speechRateWPM,
+          pauseBeforeMs: userData.pauseBeforeMs,
+        },
+        userAskedQuestion: result.analysis?.analysis?.intent?.primary === 'asking_question' ||
+          result.analysis?.analysis?.intent?.primary === 'seeking_clarification',
+      });
+
+      // Process through unified naturalness engine
+      naturalnessResult = processNaturalnessTurn(services.sessionId, naturalnessInput);
+
+      // Add context injections from naturalness systems
+      if (naturalnessResult.contextInjections.length > 0) {
+        for (const injection of naturalnessResult.contextInjections) {
+          if (injection.shouldInject) {
+            result.context.injections.push({
+              category: 'naturalness',
+              content: `[VOICE NATURALNESS - ${injection.source.toUpperCase()}]\n${injection.context}`,
+              priority: 70 + injection.priority, // Base priority 70, boosted by injection priority
+            });
+          }
+        }
+      }
+
+      // Send TTS adjustments to frontend for avatar/voice sync
+      if (naturalnessResult.activeSystems.length > 0) {
+        void sendDataMessage('naturalness_adjustments', {
+          speedMultiplier: naturalnessResult.ttsAdjustments.speedMultiplier,
+          volumeBoost: naturalnessResult.ttsAdjustments.volumeBoost,
+          warmthLevel: naturalnessResult.ttsAdjustments.warmthLevel,
+          clarityMode: naturalnessResult.ttsAdjustments.clarityMode,
+          rapportLevel: naturalnessResult.rapportLevel,
+          rapportScore: naturalnessResult.rapportScore,
+          isNoisy: naturalnessResult.isNoisy,
+          activeSystems: naturalnessResult.activeSystems,
+          reasons: naturalnessResult.ttsAdjustments.reasons,
+        }).catch((e) => {
+          diag.debug('Naturalness adjustments send failed (non-critical)', { error: String(e) });
+        });
+
+        diag.state('🌊 Naturalness adjustments applied', {
+          activeSystems: naturalnessResult.activeSystems,
+          speedMultiplier: naturalnessResult.ttsAdjustments.speedMultiplier.toFixed(2),
+          rapportLevel: naturalnessResult.rapportLevel,
+          reasons: naturalnessResult.ttsAdjustments.reasons,
+        });
+      }
+
+      // Handle verbal acknowledgment (e.g., "I notice it's a bit noisy there...")
+      if (naturalnessResult.acknowledgment && currentSession) {
+        // Speak acknowledgment before main response
+        const { coordinatedSay } = await import('../../speech/coordination/index.js');
+        coordinatedSay(services.sessionId, naturalnessResult.acknowledgment.phrase, {
+          allowInterruptions: true,
+        });
+
+        diag.info('🌊 Naturalness acknowledgment spoken', {
+          phrase: naturalnessResult.acknowledgment.phrase,
+          source: naturalnessResult.acknowledgment.source,
+        });
+      }
+    } catch (naturalnessError) {
+      // Non-critical - continue without naturalness adjustments
+      diag.debug('Naturalness engine error (non-critical)', { error: String(naturalnessError) });
     }
 
     // ================================================================
@@ -790,11 +1030,36 @@ You are their lifeline right now. Be fully present.`,
         });
       }
 
+      // ================================================================
+      // PRE-SESSION BRIEFING (Turn 0 only)
+      // Contains temporal awareness, cultural context, returning user context
+      // ================================================================
       if (userData.preSessionBriefing && (userData.turnCount ?? 0) === 0) {
+        logger.info(
+          { briefingLength: userData.preSessionBriefing.length },
+          '📋 Pre-session briefing injected into turn 0 context'
+        );
         turnCtx.addMessage({
           role: 'system',
           content: `[INTERNAL BRIEFING - DO NOT SPEAK THIS]\n${userData.preSessionBriefing}`,
         });
+      }
+
+      // ================================================================
+      // BETTER THAN HUMAN: Calendar Awareness (injected if available)
+      // This is fetched async at session start - may arrive after first turn
+      // ================================================================
+      if (userData.calendarAwareness && (userData.turnCount ?? 0) <= 1) {
+        logger.info(
+          { turnCount: userData.turnCount ?? 0, calendarAwareness: userData.calendarAwareness },
+          '📅 BETTER THAN HUMAN - Calendar awareness injected into turn context'
+        );
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[CALENDAR AWARENESS - DO NOT ANNOUNCE THIS]\n${userData.calendarAwareness}\n\nUse this naturally - mention upcoming meetings or just-ended meetings if relevant to the conversation.`,
+        });
+      } else if ((userData.turnCount ?? 0) === 0) {
+        logger.debug('📅 No calendar awareness available for turn 0 (calendar not connected or still loading)');
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
@@ -873,6 +1138,42 @@ IMPORTANT:
     };
 
     await recordAllLearningData(learningCtx);
+
+    // ================================================================
+    // "BETTER THAN HUMAN V3" - SEMANTIC INTELLIGENCE
+    // Feed all 6 semantic intelligence systems with turn data
+    // ================================================================
+    if (services.userId) {
+      // voiceEmotion is at the TurnHandlerContext level, not in userData
+      const voiceEmotionResult = ctx.voiceEmotion;
+      const semanticData: TurnSemanticData = {
+        userId: services.userId,
+        sessionId: services.sessionId,
+        personaId: persona.id,
+        turnNumber,
+        userText,
+        topic: result.analysis.currentTopic,
+        topics: result.analysis.analysis.topics?.detected,
+        textEmotion: result.emotional.primary,
+        textEmotionIntensity: result.emotional.intensity,
+        voiceEmotion: voiceEmotionResult?.primary,
+        voiceEmotionConfidence: voiceEmotionResult?.confidence,
+        voiceEmotionIntensity: voiceEmotionResult?.confidence,
+        speechRate: userData.speechRateWPM,
+        timestamp: new Date(),
+        dayOfWeek: new Date().getDay(),
+        hourOfDay: new Date().getHours(),
+        turnsSinceStart: turnNumber,
+        sessionCount: services.userProfile?.totalConversations,
+        relationshipStage: services.userProfile?.relationshipStage,
+      };
+
+      // Fire-and-forget to not block turn completion
+      fireAndForget(
+        () => processSemanticIntelligence(semanticData),
+        'semantic-intelligence'
+      );
+    }
 
     // ================================================================
     // PERFORMANCE: Complete turn profiling
