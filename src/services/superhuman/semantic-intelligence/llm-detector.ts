@@ -228,7 +228,8 @@ export async function detectAdviceWithLLM(text: string): Promise<LLMAdviceResult
   const cacheKey = `advice:${text.slice(0, 100)}`;
   const prompt = ADVICE_DETECTION_PROMPT.replace('{text}', text.slice(0, 500));
 
-  const result = await callLLM<LLMAdviceResult>(cacheKey, prompt, parseAdviceResponse);
+  // BUGFIX: Parameter order was reversed (prompt, cacheKey) not (cacheKey, prompt)
+  const result = await callLLM<LLMAdviceResult>(prompt, cacheKey, parseAdviceResponse);
 
   if (result.success && result.data) {
     log.debug(
@@ -315,7 +316,8 @@ export async function extractPersonsWithLLM(text: string): Promise<ExtractedPers
   const cacheKey = `persons:${text.slice(0, 100)}`;
   const prompt = PERSON_EXTRACTION_PROMPT.replace('{text}', text.slice(0, 500));
 
-  const result = await callLLM<LLMPersonResult>(cacheKey, prompt, parsePersonResponse);
+  // BUGFIX: Parameter order was reversed (prompt, cacheKey) not (cacheKey, prompt)
+  const result = await callLLM<LLMPersonResult>(prompt, cacheKey, parsePersonResponse);
 
   if (result.success && result.data) {
     log.debug(
@@ -401,7 +403,8 @@ export async function detectAdviceOutcomeWithLLM(
     .replace('{advice}', previousAdvice.slice(0, 200))
     .replace('{message}', userMessage.slice(0, 300));
 
-  const result = await callLLM<LLMOutcomeResult>(cacheKey, prompt, parseOutcomeResponse);
+  // BUGFIX: Parameter order was reversed (prompt, cacheKey) not (cacheKey, prompt)
+  const result = await callLLM<LLMOutcomeResult>(prompt, cacheKey, parseOutcomeResponse);
 
   if (result.success && result.data) {
     log.debug(
@@ -520,6 +523,13 @@ export async function extractPersonsHybrid(text: string): Promise<ExtractedPerso
 export function clearLLMDetectorCache(): void {
   cache.clear();
   log.debug('LLM detector cache cleared');
+}
+
+/**
+ * Reset the client state (for testing).
+ */
+export function resetLLMDetectorClient(): void {
+  geminiClient = null;
 }
 
 /**

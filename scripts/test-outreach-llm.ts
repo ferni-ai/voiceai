@@ -23,6 +23,9 @@ const COUNT = parseInt(args.find(a => a.startsWith('--count='))?.split('=')[1] |
 const CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1] as 'personal' | 'proactive' | 'concierge' | undefined;
 const VERBOSE = args.includes('--verbose') || args.includes('-v');
 
+// LLM Model - configurable via .env (default: Gemini 3 Flash Preview)
+const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3-flash-preview';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -62,7 +65,7 @@ async function generateScenarios(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+  const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
   const categoryDescriptions = {
     personal: `Generate ${count} diverse user utterances asking an AI assistant to reach out to a PERSONAL CONTACT.

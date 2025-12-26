@@ -19,6 +19,14 @@ import FerniShared
 
 public class BetterThanHumanIntegration: ObservableObject {
 
+    // MARK: - Core Engine
+
+    /// BetterThanHumanEngine for superhuman EQ (micro-expressions, active listening, etc.)
+    public let engine = BetterThanHumanEngine()
+
+    /// Current state for avatar/orb animations
+    @Published public private(set) var betterThanHumanState: BetterThanHumanState
+
     // MARK: - Managers
 
     /// Late night mode for time-aware theming
@@ -44,6 +52,21 @@ public class BetterThanHumanIntegration: ObservableObject {
         }
     }
 
+    /// Current voice state (for lifecycle management)
+    @Published public var voiceState: VoiceState = .disconnected {
+        didSet {
+            handleVoiceStateChange(from: oldValue, to: voiceState)
+        }
+    }
+
+    /// Current audio level (0-1) for breath sync
+    @Published public var audioLevel: Float = 0 {
+        didSet {
+            engine.audioLevel = audioLevel
+            betterThanHumanState = engine.currentState
+        }
+    }
+
     /// Whether to show celebration particles
     @Published public var showCelebration: Bool = false
 
@@ -57,6 +80,8 @@ public class BetterThanHumanIntegration: ObservableObject {
     // MARK: - Initialization
 
     public init() {
+        // Initialize state from engine
+        self.betterThanHumanState = engine.currentState
         setupBindings()
     }
 
@@ -66,6 +91,55 @@ public class BetterThanHumanIntegration: ObservableObject {
         // LateNightModeManager.shared starts monitoring automatically in its init
         // Link voice recognition to BetterThanHumanEngine when available
         // This will be connected when the engine is injected
+    }
+
+    // MARK: - Voice State Lifecycle
+
+    /// Handle voice state changes for engine lifecycle
+    private func handleVoiceStateChange(from previousState: VoiceState, to newState: VoiceState) {
+        // Connection established
+        if !previousState.isActive && newState.isActive {
+            engine.onConnectionEstablished()
+            isVoiceCallActive = true
+        }
+
+        // Connection ended
+        if previousState.isActive && !newState.isActive {
+            engine.onConnectionEnded()
+            isVoiceCallActive = false
+        }
+
+        // Update speaking state for active listening
+        switch newState {
+        case .listening:
+            engine.isUserSpeaking = true
+        case .speaking, .thinking, .connected:
+            engine.isUserSpeaking = false
+        default:
+            break
+        }
+
+        betterThanHumanState = engine.currentState
+    }
+
+    // MARK: - Engine API
+
+    /// Trigger micro-expression (called from backend emotion events)
+    public func triggerMicroExpression(_ type: MicroExpressionType) {
+        engine.triggerMicroExpression(type)
+        betterThanHumanState = engine.currentState
+    }
+
+    /// Signal concern level (called from backend)
+    public func signalConcern(level: ConcernLevel) {
+        engine.signalConcern(level: level)
+        betterThanHumanState = engine.currentState
+    }
+
+    /// Process partial transcript for anticipation
+    public func processPartialTranscript(_ text: String, tone: VoiceTone? = nil) {
+        engine.processPartialTranscript(text, tone: tone)
+        betterThanHumanState = engine.currentState
     }
 
     // MARK: - Voice Call Lifecycle

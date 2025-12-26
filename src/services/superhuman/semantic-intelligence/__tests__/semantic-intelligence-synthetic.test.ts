@@ -29,13 +29,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { TEST_LLM_MODEL, LLM_TEST_TIMEOUT } from '../../../../tests/test-llm-config.js';
 
 // ============================================================================
 // TEST CONFIGURATION
 // ============================================================================
 
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
-const LLM_TIMEOUT = 60000;
+const LLM_TIMEOUT = LLM_TEST_TIMEOUT * 2; // Semantic tests need more time
 const TEST_USER_ID = 'synthetic-semantic-test-user';
 
 // ============================================================================
@@ -139,7 +140,7 @@ async function generateScenarios(
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+  const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
   const prompt = `${systemPrompt}
 

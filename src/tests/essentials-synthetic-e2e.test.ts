@@ -19,8 +19,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // ============================================================================
 
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
-const LLM_TIMEOUT = 30000;
+const LLM_TIMEOUT = DEFAULT_LLM_TIMEOUT;
 const TEST_USER_ID = 'synthetic-test-user';
+
+import { TEST_LLM_MODEL, LLM_TEST_TIMEOUT as DEFAULT_LLM_TIMEOUT } from './test-llm-config.js';
 
 // ============================================================================
 // MOCK SETUP
@@ -144,8 +146,7 @@ async function generateScenarios(
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-  // Using Gemini 3 Flash for faster, more accurate testing
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+  const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
   const prompt = `${systemPrompt}
 
@@ -261,6 +262,8 @@ describe('Capabilities Discovery - Synthetic Testing', () => {
       const scenarios = await generateScenarios(`
 Generate ${5} realistic user utterances asking about Ferni's capabilities.
 
+IMPORTANT: The toolId MUST be "whatCanYouDo" (exact match).
+
 Include variations:
 - Direct questions: "what can you do?", "what are your features?"
 - Indirect: "I'm curious what you can help with"
@@ -271,6 +274,15 @@ Include variations:
 For each, determine the correct params:
 - category: "all" | "productivity" | "coaching" | "fun" | "smart-home" | "communication" | "finance" | "wellness"
 - quickVersion: true | false
+
+Example output:
+{
+  "utterance": "what can you help me with?",
+  "toolId": "whatCanYouDo",
+  "params": { "category": "all", "quickVersion": false },
+  "expectedInResponse": ["help", "productivity", "coaching"],
+  "difficulty": "easy"
+}
 `);
 
       if (scenarios.length === 0) {
@@ -282,6 +294,8 @@ For each, determine the correct params:
       const failures: string[] = [];
 
       for (const scenario of scenarios) {
+        // Ensure toolId is correct (LLM sometimes misnames it)
+        scenario.toolId = 'whatCanYouDo';
         const result = await testScenario(scenario, tools, ctx);
         if (result.pass) {
           passed++;
@@ -353,6 +367,8 @@ describe('Quick Capture - Synthetic Testing', () => {
       const scenarios = await generateScenarios(`
 Generate ${8} realistic user utterances for capturing thoughts/brain dumps.
 
+IMPORTANT: The toolId MUST be "quickCapture" (exact match).
+
 Include:
 1. Tasks with urgency: "I MUST do X today" → urgency: "now"
 2. Reminders with dates: "remind me to X next Monday" → reminder
@@ -364,7 +380,17 @@ Include:
 For each, determine:
 - thought: the cleaned text to capture
 - urgency: "now" | "soon" | "someday" | "just-remember" (optional)
-- expectedInResponse: what should appear (task/reminder/shopping/idea/journal/memory)
+- expectedInResponse: what should appear (task/reminder/shopping/idea/journal/memory/captured)
+
+Example output:
+{
+  "utterance": "I need to buy milk and eggs",
+  "toolId": "quickCapture",
+  "params": { "thought": "buy milk and eggs" },
+  "expectedInResponse": ["shopping"],
+  "difficulty": "easy",
+  "notes": "shopping item"
+}
 `);
 
       if (scenarios.length === 0) {
@@ -377,6 +403,8 @@ For each, determine:
       const failures: string[] = [];
 
       for (const scenario of scenarios) {
+        // Ensure toolId is correct (LLM sometimes misnames it)
+        scenario.toolId = 'quickCapture';
         const result = await testScenario(scenario, tools, ctx);
         if (result.pass) {
           passed++;
@@ -755,7 +783,7 @@ describe('Gap Analysis - Missing Capabilities', { timeout: LLM_TIMEOUT }, () => 
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
     const currentCapabilities = `
 CURRENT TOOLS (ESSENTIALS DOMAIN):

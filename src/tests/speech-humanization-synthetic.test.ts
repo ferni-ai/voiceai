@@ -39,8 +39,7 @@ import { tagTextWithSsmlAdaptive } from '../speech/adaptive-ssml/adaptation.js';
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 60000;
 
-/** Latest Gemini model for synthetic testing - faster and more capable */
-const GEMINI_MODEL = 'gemini-2.5-flash-preview-05-20';
+import { TEST_LLM_MODEL as GEMINI_MODEL } from './test-llm-config.js';
 
 // =============================================================================
 // LLM SCENARIO GENERATOR

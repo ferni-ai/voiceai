@@ -28,6 +28,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 30000;
 
+import { TEST_LLM_MODEL } from '../test-llm-config.js';
+
 // ============================================================================
 // MOCK USER PROFILES FOR TESTING
 // ============================================================================
@@ -545,7 +547,7 @@ describe('LLM-Powered Validation - Better Than Human', { timeout: LLM_TIMEOUT },
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
     // Build context for returning user
     const profile = TEST_PROFILES.returning_user;
@@ -599,7 +601,7 @@ ONLY output the greeting, nothing else.`;
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
     // Build context for busy professional with upcoming meeting
     const profile = TEST_PROFILES.busy_professional;
@@ -657,7 +659,7 @@ ONLY output the response, nothing else.`;
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
     // Build context for user who was previously struggling
     const profile = TEST_PROFILES.established_user;

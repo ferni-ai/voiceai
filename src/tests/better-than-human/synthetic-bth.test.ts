@@ -29,6 +29,8 @@ import { extractSmallDetails } from '../../intelligence/conversation-quality.js'
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 30000;
 
+import { TEST_LLM_MODEL } from '../test-llm-config.js';
+
 // ============================================================================
 // LLM SCENARIO GENERATOR
 // ============================================================================
@@ -50,7 +52,7 @@ async function generateScenarios(
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+  const model = genAI.getGenerativeModel({ model: TEST_LLM_MODEL });
 
   const prompt = `${systemPrompt}
 
