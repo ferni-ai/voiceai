@@ -80,7 +80,7 @@ export interface SettingsMenuUICallbacks {
   onTeamInsightsClick?: () => void;
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
-  onYourJourneyClick?: () => void;
+  onYourStoryClick?: () => void;
   onYourYearClick?: () => void;
   onFutureInsightsClick?: () => void;
   onShareFerniClick?: () => void;
@@ -709,7 +709,7 @@ class SettingsMenuUI {
                   t('menu.sections.understandingYou'),
                   expandedSections.has('understandingYou'),
                   `
-            ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
+            ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
             ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
@@ -958,7 +958,7 @@ class SettingsMenuUI {
       'together-sessions': { icon: ICONS.users, label: t('menu.items.togetherSessions') },
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
-      'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
+      'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') || 'Your Story' },
       'your-year': { icon: ICONS.sparkles, label: t('menu.items.yourYear') || 'Your Year with Ferni' },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
@@ -1201,7 +1201,7 @@ class SettingsMenuUI {
       case 'apple-health-settings':
         this.callbacks.onAppleHealthClick?.();
         break;
-      // trust-journey removed - consolidated into your-journey
+      // trust-journey removed - consolidated into your-story
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();
         break;
@@ -1247,8 +1247,8 @@ class SettingsMenuUI {
       case 'personal-settings':
         this.callbacks.onPersonalizeClick?.();
         break;
-      case 'your-journey':
-        this.callbacks.onYourJourneyClick?.();
+      case 'your-story':
+        this.callbacks.onYourStoryClick?.();
         break;
       case 'your-year':
         this.callbacks.onYourYearClick?.();
@@ -2676,6 +2676,13 @@ class SettingsMenuUI {
         .settings-menu__card {
           width: min(340px, 100%);
           max-width: 65vw;
+        }
+      }
+
+      /* Hide top-right settings trigger on mobile - bottom sheet provides access */
+      @media (max-width: 768px) {
+        .settings-trigger {
+          display: none !important;
         }
       }
       
