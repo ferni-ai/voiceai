@@ -682,7 +682,7 @@ async function fetchAgentContextAsync(agentId: string, retryCount = 0): Promise<
         { error: String(error), agentId, attempt: retryCount + 1 },
         'Agent context fetch failed, retrying...'
       );
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+      await new Promise<void>((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
       return fetchAgentContextAsync(agentId, retryCount + 1);
     }
     getLogger().warn(
