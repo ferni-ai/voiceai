@@ -11,6 +11,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 

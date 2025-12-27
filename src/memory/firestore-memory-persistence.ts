@@ -21,6 +21,7 @@ import type {
   MemoryItem,
 } from './interfaces/index.js';
 import { QUERY_LIMITS, MEMORY_TIMEOUTS } from './performance-limits.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FirestoreMemoryPersistence' });
 
@@ -176,7 +177,7 @@ export class FirestoreMemoryPersistence {
         } as SerializedMemoryItem;
       }
 
-      await triggerDoc.set(data, { merge: true });
+      await triggerDoc.set(cleanForFirestore(data), { merge: true });
       log.debug({ userId, memoryId, triggerCount: triggers.length }, 'Saved associative triggers');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save associative triggers');
@@ -282,7 +283,7 @@ export class FirestoreMemoryPersistence {
           })),
         };
 
-        await patternDoc.set(serialized);
+        await patternDoc.set(cleanForFirestore(serialized));
       }
 
       log.debug({ userId, patternCount: patterns.length }, 'Saved behavioral patterns');
@@ -371,7 +372,7 @@ export class FirestoreMemoryPersistence {
           lastMentioned: thread.lastMentioned.toISOString(),
         };
 
-        await threadDoc.set(serialized);
+        await threadDoc.set(cleanForFirestore(serialized));
       }
 
       log.debug({ userId, threadCount: threads.length }, 'Saved emotional threads');
@@ -432,7 +433,7 @@ export class FirestoreMemoryPersistence {
         lastUpdated: new Date().toISOString(),
       };
 
-      await prefDoc.set(data);
+      await prefDoc.set(cleanForFirestore(data));
       log.debug({ userId, prefCount: preferences.length }, 'Saved communication preferences');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save communication preferences');

@@ -18,7 +18,7 @@ import crypto from 'crypto';
 import admin from 'firebase-admin';
 import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WebExperiments' });
@@ -525,18 +525,18 @@ async function trackEvent(event: ExperimentEvent): Promise<void> {
 
     if (event.eventType === 'exposure') {
       await metricsRef.set(
-        {
+        cleanForFirestore({
           exposures: FieldValue.increment(1),
           updatedAt: FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true }
       );
     } else if (event.eventType === 'conversion' && event.goalId) {
       await metricsRef.set(
-        {
+        cleanForFirestore({
           [`conversions.${event.goalId}`]: FieldValue.increment(1),
           updatedAt: FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true }
       );
     }
@@ -776,10 +776,10 @@ export async function createWebExperiment(config: {
 export async function startWebExperiment(experimentId: string): Promise<void> {
   const db = getDb();
 
-  await db.collection('web_experiments').doc(experimentId).update({
+  await db.collection('web_experiments').doc(experimentId).update(cleanForFirestore({
     status: 'running',
     startedAt: FieldValue.serverTimestamp(),
-  });
+  }));
 
   const experiment = experimentsCache.get(experimentId);
   if (experiment) {
@@ -796,9 +796,9 @@ export async function startWebExperiment(experimentId: string): Promise<void> {
 export async function pauseWebExperiment(experimentId: string): Promise<void> {
   const db = getDb();
 
-  await db.collection('web_experiments').doc(experimentId).update({
+  await db.collection('web_experiments').doc(experimentId).update(cleanForFirestore({
     status: 'paused',
-  });
+  }));
 
   const experiment = experimentsCache.get(experimentId);
   if (experiment) {
@@ -818,12 +818,12 @@ export async function completeWebExperiment(
 ): Promise<void> {
   const db = getDb();
 
-  await db.collection('web_experiments').doc(experimentId).update({
+  await db.collection('web_experiments').doc(experimentId).update(cleanForFirestore({
     status: 'completed',
     endedAt: FieldValue.serverTimestamp(),
     winner,
     winnerConfidence: confidence,
-  });
+  }));
 
   const experiment = experimentsCache.get(experimentId);
   if (experiment) {

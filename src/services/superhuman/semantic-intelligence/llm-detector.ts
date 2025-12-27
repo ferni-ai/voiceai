@@ -460,11 +460,13 @@ export async function detectAdviceHybrid(
 
   // Uncertain → use LLM
   const llmResult = await detectAdviceWithLLM(text);
-  if (llmResult.success !== false) {
+  
+  // If LLM gave us a confident result, use it
+  if (llmResult.confidence > 0) {
     return llmResult;
   }
 
-  // LLM failed → fall back to regex
+  // LLM failed/uncertain → fall back to regex result
   return {
     containsAdvice: regexResult.containsAdvice,
     adviceText: regexResult.adviceText,

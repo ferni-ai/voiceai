@@ -29,6 +29,7 @@ import { sendEmail, sendSMS } from '../../../../services/communication-service.j
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { getDefaultStore } from '../../../../memory/index.js';
 import { getPersonaDisplayName, getCanonicalPersonaId } from '../../../../personas/voice-registry.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'proactive-outreach' });
 

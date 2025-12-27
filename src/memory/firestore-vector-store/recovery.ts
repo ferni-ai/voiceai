@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { FirestoreInstance } from './types.js';
 import {
   RECOVERY_INTERVAL_MS,

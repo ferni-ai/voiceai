@@ -21,6 +21,7 @@ import { isOk } from '../memory/result.js';
 import type { SharedStory } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { getMomentsForPersona, getRegisteredPersonaIds } from './personal-moment-store.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import type {
   PersonalMoment,
   PersonalMomentTopic,

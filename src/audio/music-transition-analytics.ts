@@ -19,6 +19,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import type { TransitionType, TransitionResult } from './intelligent-music-transitions.js';
 import type { MusicStartReason, MusicSessionContext } from './music-session-context.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'MusicTransitionAnalytics' });
 

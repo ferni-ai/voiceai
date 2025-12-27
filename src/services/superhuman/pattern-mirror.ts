@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'PatternMirror' });
 
@@ -558,7 +558,7 @@ export async function savePatternProfile(userId: string): Promise<void> {
       .doc(userId)
       .collection('pattern_mirror')
       .doc('profile')
-      .set(profile);
+      .set(cleanForFirestore(profile));
     log.debug({ userId }, 'Saved pattern mirror profile');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save pattern profile');

@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'HabitsExecutor' });
@@ -64,7 +65,7 @@ async function execute(
           .doc(ctx.userId)
           .collection('habits')
           .doc(habitId)
-          .set({
+          .set(cleanForFirestore({
             id: habitId,
             name,
             domain,
@@ -74,7 +75,7 @@ async function execute(
             completions: 0,
             createdAt: new Date(),
             status: 'active',
-          });
+          }));
 
         log.info({ habitId, userId: ctx.userId }, '✅ Habit created');
 
@@ -136,17 +137,17 @@ async function execute(
           const isConsecutiveDay =
             lastCompletion && now.getTime() - lastCompletion.getTime() < 48 * 60 * 60 * 1000; // Within 48 hours
 
-          await habitRef.update({
+          await habitRef.update(cleanForFirestore({
             completions: (habitData?.completions || 0) + 1,
             streak: isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1,
             lastCompletedAt: now,
-          });
+          }));
 
           // Log the completion
-          await habitRef.collection('logs').add({
+          await habitRef.collection('logs').add(cleanForFirestore({
             completedAt: now,
             notes: notes || null,
-          });
+          }));
 
           const newStreak = isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1;
 
@@ -358,7 +359,7 @@ async function execute(
             return `"${name}" has been removed. You can always start fresh later.`;
           } else {
             const newStatus = action === 'pause' ? 'paused' : 'active';
-            await habitRef.update({ status: newStatus });
+            await habitRef.update(cleanForFirestore({ status: newStatus }));
             return action === 'pause'
               ? `"${name}" is paused. Ready when you are.`
               : `"${name}" is back on! Let's keep building.`;

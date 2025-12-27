@@ -17,6 +17,7 @@
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { resilienceMetrics } from '../../../services/observability/resilience-metrics.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FirestorePool' });
 
@@ -567,7 +568,7 @@ export async function setDocument<T extends Record<string, unknown>>(
     await db
       .collection(collection)
       .doc(docId)
-      .set(data, options ?? {});
+      .set(cleanForFirestore(data), options ?? {});
     return true;
   });
   return result ?? false;

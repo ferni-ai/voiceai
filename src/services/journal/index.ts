@@ -31,7 +31,7 @@ import {
   getMoodTrend,
   type MoodId,
 } from './mood-conversion.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'JournalService' });
 
@@ -478,7 +478,7 @@ class JournalService {
         .collection('memories')
         .doc(entry.id);
 
-      await memoryRef.set({
+      await memoryRef.set(cleanForFirestore({
         type: 'journalEntry',
         content: entry.content,
         transcript: entry.transcript,
@@ -493,7 +493,7 @@ class JournalService {
         personaId: entry.personaId,
         promptId: entry.promptId,
         createdAt: entry.createdAt,
-      });
+      }));
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to save to Digital Twin');
       throw error;

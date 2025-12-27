@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type {
   GrowthFingerprint,
   SemanticSnapshot,
@@ -683,7 +683,7 @@ async function saveFingerprint(
       .doc(userId)
       .collection('semantic_intelligence')
       .doc('growth_fingerprint')
-      .set(fingerprint);
+      .set(cleanForFirestore(fingerprint));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save growth fingerprint');
   }

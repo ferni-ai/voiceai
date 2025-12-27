@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'predictive-coaching' });
 
@@ -215,7 +215,7 @@ class LRUPatternCache {
       this.evictOldest();
     }
 
-    this.cache.set(userId, { patterns, lastAccess: Date.now() });
+    this.cache.set(cleanForFirestore(userId), { patterns, lastAccess: Date.now() });
   }
 
   has(userId: string): boolean {
@@ -345,7 +345,7 @@ async function savePattern(userId: string, pattern: PatternObservation): Promise
     .doc(userId)
     .collection('patterns')
     .doc(pattern.id)
-    .set(pattern);
+    .set(cleanForFirestore(pattern));
 
   // Invalidate Redis cache after write (will be refreshed on next read)
   await invalidateRedisCache(userId);

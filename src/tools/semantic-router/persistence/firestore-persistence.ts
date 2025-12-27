@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:persistence' });
 
@@ -185,11 +186,11 @@ export async function saveCorrection(correction: PersistedCorrection): Promise<v
     await firestoreInstance
       .collection(COLLECTIONS.CORRECTIONS)
       .doc(correction.id)
-      .set({
+      .set(cleanForFirestore({
         ...correction,
         timestamp: correction.timestamp,
         _createdAt: new Date(),
-      });
+      }));
 
     log.debug({ correctionId: correction.id }, 'Correction persisted to Firestore');
   } catch (error) {
@@ -274,11 +275,11 @@ export async function saveUserProfile(profile: PersistedUserProfile): Promise<vo
     await firestoreInstance
       .collection(COLLECTIONS.USER_PROFILES)
       .doc(profile.userId)
-      .set({
+      .set(cleanForFirestore({
         ...profile,
         lastUpdated: profile.lastUpdated,
         _updatedAt: new Date(),
-      });
+      }));
 
     log.debug({ userId: profile.userId }, 'User profile persisted to Firestore');
   } catch (error) {
@@ -352,10 +353,10 @@ export async function saveRoutingEvent(event: PersistedRoutingEvent): Promise<vo
       .doc(dateStr)
       .collection('events')
       .doc(event.id)
-      .set({
+      .set(cleanForFirestore({
         ...event,
         timestamp: event.timestamp,
-      });
+      }));
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist routing event');
   }
@@ -435,12 +436,12 @@ export async function saveABTest(test: PersistedABTest): Promise<void> {
     await firestoreInstance
       .collection(COLLECTIONS.AB_TESTS)
       .doc(test.testId)
-      .set({
+      .set(cleanForFirestore({
         ...test,
         startDate: test.startDate,
         endDate: test.endDate || null,
         _updatedAt: new Date(),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error), testId: test.testId }, 'Failed to persist A/B test');
   }
@@ -509,11 +510,11 @@ export async function saveToolEmbedding(index: PersistedToolEmbeddingIndex): Pro
     await firestoreInstance
       .collection(COLLECTIONS.TOOL_EMBEDDINGS)
       .doc(docId)
-      .set({
+      .set(cleanForFirestore({
         ...index,
         createdAt: index.createdAt,
         _updatedAt: new Date(),
-      });
+      }));
 
     log.debug({ toolId: index.toolId, version: index.version }, 'Tool embedding index persisted');
   } catch (error) {
@@ -643,11 +644,11 @@ export async function saveLearningState(state: PersistedLearningState): Promise<
     await firestoreInstance
       .collection(COLLECTIONS.LEARNING_STATE)
       .doc('global')
-      .set({
+      .set(cleanForFirestore({
         ...state,
         lastRetrainTime: state.lastRetrainTime || null,
         _updatedAt: new Date(),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist learning state');
   }

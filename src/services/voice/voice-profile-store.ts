@@ -33,7 +33,7 @@
 
 import admin from 'firebase-admin';
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
 
@@ -366,11 +366,11 @@ export async function recordVerification(userId: string, success: boolean): Prom
   try {
     const profileRef = db.doc(getProfilePath(userId));
 
-    await profileRef.update({
+    await profileRef.update(cleanForFirestore({
       verificationCount: FieldValue.increment(1),
       lastVerifiedAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
+    }));
 
     log.debug({ userId, success }, 'Recorded verification');
   } catch (error) {

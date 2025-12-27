@@ -17,6 +17,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { appleCalendarProvider } from '../providers/apple-provider.js';
 import { importEventsFromProvider } from '../unified-calendar-store.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -389,11 +390,11 @@ async function savePollingState(userId: string, state: PollingState): Promise<vo
     await firestore
       .collection(`users/${userId}/apple_polling_state`)
       .doc('state')
-      .set({
+      .set(cleanForFirestore({
         ...state,
         lastPoll: state.lastPoll.toISOString(),
         lastActivity: state.lastActivity.toISOString(),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Error saving polling state');
   }

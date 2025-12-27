@@ -13,6 +13,7 @@
 
 import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   UserTriggerProfile,
   SignificantDate,
@@ -174,7 +175,7 @@ export class UserTriggerProfileService {
         .doc(userId)
         .collection(this.config.profileSubcollection)
         .doc('profile')
-        .set(serialized, { merge: true });
+        .set(cleanForFirestore(serialized), { merge: true });
 
       log.info(
         {
@@ -517,7 +518,7 @@ export class UserTriggerProfileService {
       }
     }
 
-    this.cache.set(userId, {
+    this.cache.set(cleanForFirestore(userId), {
       profile,
       loadedAt: Date.now(),
       dirty: false,

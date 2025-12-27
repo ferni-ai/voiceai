@@ -21,6 +21,7 @@ import {
   recordGuess,
   type MilestoneEvent,
 } from './game-intelligence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   GameHistory,
   GameResult,

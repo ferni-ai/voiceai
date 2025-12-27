@@ -14,7 +14,7 @@ import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError } from './helpers.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -309,7 +309,7 @@ export async function handleSeedsRoutes(
         };
 
         if (!doc.exists) {
-          transaction.set(userSeedsRef, {
+          transaction.set(cleanForFirestore(userSeedsRef), {
             ...updates,
             referralCode: generateReferralCode(),
             referredBy: null,

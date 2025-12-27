@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticRouterResult } from '../types.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SemanticRouter.FeedbackStore' });
 
@@ -478,10 +479,10 @@ async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
     await db
       .collection('semantic_routing_feedback')
       .doc(feedback.id)
-      .set({
+      .set(cleanForFirestore({
         ...feedback,
         timestamp: feedback.timestamp.toISOString(),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist feedback');
   }
@@ -497,10 +498,10 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
       .doc(correction.userId)
       .collection('corrections')
       .doc(correction.id)
-      .set({
+      .set(cleanForFirestore({
         ...correction,
         timestamp: correction.timestamp.toISOString(),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist correction');
   }
@@ -514,14 +515,14 @@ async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
     await db
       .collection('semantic_routing_vocabulary')
       .doc(vocab.userId)
-      .set({
+      .set(cleanForFirestore({
         ...vocab,
         updatedAt: vocab.updatedAt.toISOString(),
         phrases: vocab.phrases.map((p) => ({
           ...p,
           lastUsed: p.lastUsed.toISOString(),
         })),
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist vocabulary');
   }

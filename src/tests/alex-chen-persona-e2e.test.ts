@@ -188,29 +188,20 @@ describe('Alex Chen Persona E2E Tests', () => {
       expect(behaviors.late_night_presence).toBeDefined();
     });
 
-    it('should have midnight Chopin wisdom', () => {
+    it('should have warmth and grounding presence at night', () => {
       const lateNight = behaviors.late_night_presence as any;
-      expect(lateNight?.alex_wisdom_at_night?.phrases).toBeDefined();
-
-      // Verify Alex-specific late night content (Chopin, efficiency, Maya, etc.)
-      const wisdomJson = JSON.stringify(lateNight?.alex_wisdom_at_night?.phrases);
-      const hasAlexLateNightVoice =
-        wisdomJson.includes('Chopin') ||
-        wisdomJson.includes('efficient') ||
-        wisdomJson.includes('Maya') ||
-        wisdomJson.includes('restaurant');
-      expect(hasAlexLateNightVoice).toBe(true);
+      // Alex's late night presence reveals warmth behind efficiency
+      expect(lateNight?.warmth_emerges?.phrases).toBeDefined();
+      expect(lateNight?.grounding_presence?.overwhelm_support).toBeDefined();
+      expect(lateNight?.grounding_presence?.plant_metaphors).toBeDefined();
     });
 
-    it('should have communication-specific late night support', () => {
+    it('should have communication-supportive late night content', () => {
       const lateNight = behaviors.late_night_presence as any;
-      expect(lateNight?.communication_specific_late_night).toBeDefined();
-      expect(
-        lateNight?.communication_specific_late_night?.the_email_keeping_you_awake
-      ).toBeDefined();
-      expect(
-        lateNight?.communication_specific_late_night?.the_conversation_youre_rehearsing
-      ).toBeDefined();
+      // Alex has holding_chaos and sleep_acknowledgment for late night support
+      expect(lateNight?.holding_chaos?.phrases).toBeDefined();
+      expect(lateNight?.sleep_acknowledgment?.gentle_nudge).toBeDefined();
+      expect(lateNight?.closing_for_night?.gentle_close).toBeDefined();
     });
 
     it('should load thinking-of-you.json', () => {
@@ -387,8 +378,10 @@ describe('Alex Chen Persona E2E Tests', () => {
     it('should have usage rules for late-night presence', () => {
       const lateNight = behaviors.late_night_presence as any;
       expect(lateNight?.usage_rules).toBeDefined();
-      expect(lateNight?.usage_rules?.active_hours).toBeDefined();
-      expect(lateNight?.usage_rules?.focus).toBe('presence over productivity');
+      // Actual structure has time_trigger with start_hour/end_hour
+      expect(lateNight?.usage_rules?.time_trigger).toBeDefined();
+      expect(lateNight?.usage_rules?.time_trigger?.start_hour).toBe(22);
+      expect(lateNight?.usage_rules?.warmth_amplified).toBe(true);
     });
 
     it('should have usage rules for i-notice power', () => {

@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type { SemanticThread, ThreadMoment } from './types.js';
 
 const log = createLogger({ module: 'cross-session-threading' });
@@ -571,7 +571,7 @@ async function saveThread(userId: string, thread: SemanticThread): Promise<void>
       .doc(userId)
       .collection('semantic_threads')
       .doc(thread.id)
-      .set(thread);
+      .set(cleanForFirestore(thread));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save thread');
   }

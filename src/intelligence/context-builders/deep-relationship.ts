@@ -33,6 +33,7 @@ import {
 import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { EdgeCache } from '../../services/cache/edge-cache.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -445,10 +446,10 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
     await db
       .collection('bogle_users')
       .doc(userId)
-      .update({
+      .update(cleanForFirestore({
         milestonesCelebrated: FieldValue.arrayUnion(milestoneKey),
         lastMilestoneCelebrated: new Date(),
-      });
+      }));
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not mark milestone celebrated');
   }
@@ -483,7 +484,7 @@ async function recordSharedMomentInternal(
       .doc(userId)
       .collection('shared_moments')
       .doc(momentId)
-      .set({
+      .set(cleanForFirestore({
         id: momentId,
         type: moment.type,
         content: moment.content,
@@ -496,7 +497,7 @@ async function recordSharedMomentInternal(
         callbackCount: 0,
         callbackReception: 'unknown',
         createdAt: new Date(),
-      });
+      }));
 
     log.info(
       { userId, type: moment.type, content: moment.content.slice(0, 50) },

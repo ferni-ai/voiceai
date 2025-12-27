@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'RecoveryTracking' });
 
@@ -144,7 +144,7 @@ export async function startRecoveryTracking(
       .collection('bogle_users')
       .doc(userId)
       .collection('recovery_events')
-      .add(event);
+      .add(cleanForFirestore(event));
 
     log.debug({ userId, eventType, intensity }, 'Started recovery tracking');
     return docRef.id;
@@ -178,11 +178,11 @@ export async function markRecovered(
     const event = doc.data() as RecoveryEvent;
     const recoveryHours = (Date.now() - event.eventTimestamp) / (1000 * 60 * 60);
 
-    await docRef.update({
+    await docRef.update(cleanForFirestore({
       recoveredTimestamp: Date.now(),
       recoveryHours,
       helpfulActions,
-    });
+    }));
 
     log.debug({ userId, eventId, recoveryHours: recoveryHours.toFixed(1) }, 'Marked recovered');
   } catch (error) {

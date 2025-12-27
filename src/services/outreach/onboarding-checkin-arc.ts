@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getTimingRecommendation } from '../contacts/optimal-timing.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'OnboardingArc' });
 

@@ -10,7 +10,7 @@
  * Falls back to in-memory storage when Firestore is unavailable.
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CreativeDNA, CreativeInsight, CreativeJourneyStats } from './creative-dna.js';
 
@@ -163,10 +163,10 @@ class CreativeYouPersistence {
           .collection(this.COLLECTION_CREATIVE_DNA)
           .doc(userId)
           .set(
-            {
+            cleanForFirestore({
               ...dna,
               updatedAt: new Date().toISOString(),
-            },
+            }),
             { merge: true }
           );
         log.debug({ userId }, '💾 Creative DNA saved to Firestore');
@@ -329,7 +329,7 @@ class CreativeYouPersistence {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION_WATCH_HISTORY).doc(record.id).set(record);
+        await this.db.collection(this.COLLECTION_WATCH_HISTORY).doc(record.id).set(cleanForFirestore(record));
         log.debug({ recordId: record.id }, '💾 Watch record saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save watch record');
@@ -436,7 +436,7 @@ class CreativeYouPersistence {
           })),
           lastUpdated: now.toISOString(),
         });
-        await this.db.collection(this.COLLECTION_TOPIC_HISTORY).doc(userId).set(data);
+        await this.db.collection(this.COLLECTION_TOPIC_HISTORY).doc(userId).set(cleanForFirestore(data));
         log.debug({ userId, topicCount: topics.length }, '📚 Topic history saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save topic history');

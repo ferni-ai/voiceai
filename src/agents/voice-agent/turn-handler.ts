@@ -896,7 +896,9 @@ You are their lifeline right now. Be fully present.`,
     }
 
     // ================================================================
-    // 🎭 PERSONALITY SYSTEM INTEGRATION
+    // 🎭 PERSONALITY SYSTEM INTEGRATION (START EARLY - NON-BLOCKING)
+    // Start personality processing immediately, await later before inject.
+    // This saves ~20-50ms by running in parallel with session state updates.
     // ================================================================
     const personalityCtx: PersonalityContext = {
       sessionId: services.sessionId,
@@ -913,46 +915,12 @@ You are their lifeline right now. Be fully present.`,
       sessionStateManager,
     };
 
-    const personalityResult = await processPersonality(personalityCtx);
-
-    if (personalityResult.shouldInject && personalityResult.injectionContent) {
-      result.context.injections.push({
-        category: 'personality',
-        content: personalityResult.injectionContent,
-        priority: 75,
-      });
-    }
-
-    // Handle behavior event from personality system
-    if (personalityResult.behaviorEvent) {
-      const behaviorEventContent = JSON.stringify({
-        event: personalityResult.behaviorEvent.event,
-        data: personalityResult.behaviorEvent.data,
-        suggestedResponse: personalityResult.behaviorEvent.suggestedResponse,
-        source: 'personality_noticing',
-      });
-
-      turnCtx.addMessage({
-        role: 'system',
-        content:
-          `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]\nBehavior event detected:\n${behaviorEventContent}\n\n` +
-          `You may call behavior functions in response to this event.`,
-      });
-    }
+    // START personality processing (don't await yet)
+    const personalityPromise = processPersonality(personalityCtx);
 
     // ================================================================
-    // PERFORMANCE: Mark context building complete
-    // ================================================================
-    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
-
-    // Inject context into LLM
-    injectTurnContext(turnCtx, result);
-
-    // Mark LLM start (LLM inference happens after this point)
-    markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
-
-    // ================================================================
-    // UPDATE SESSION STATE MANAGER
+    // UPDATE SESSION STATE MANAGER (runs in parallel with personality)
+    // These are fast sync operations that don't depend on personality result
     // ================================================================
     if (sessionStateManager) {
       sessionStateManager.incrementTurn();
@@ -1004,6 +972,47 @@ You are their lifeline right now. Be fully present.`,
         sessionStateManager.recordThemesMentioned(themeMentions);
       }
     }
+
+    // ================================================================
+    // AWAIT PERSONALITY RESULT (needed before context injection)
+    // ================================================================
+    const personalityResult = await personalityPromise;
+
+    if (personalityResult.shouldInject && personalityResult.injectionContent) {
+      result.context.injections.push({
+        category: 'personality',
+        content: personalityResult.injectionContent,
+        priority: 75,
+      });
+    }
+
+    // Handle behavior event from personality system
+    if (personalityResult.behaviorEvent) {
+      const behaviorEventContent = JSON.stringify({
+        event: personalityResult.behaviorEvent.event,
+        data: personalityResult.behaviorEvent.data,
+        suggestedResponse: personalityResult.behaviorEvent.suggestedResponse,
+        source: 'personality_noticing',
+      });
+
+      turnCtx.addMessage({
+        role: 'system',
+        content:
+          `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]\nBehavior event detected:\n${behaviorEventContent}\n\n` +
+          `You may call behavior functions in response to this event.`,
+      });
+    }
+
+    // ================================================================
+    // PERFORMANCE: Mark context building complete
+    // ================================================================
+    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
+
+    // Inject context into LLM
+    injectTurnContext(turnCtx, result);
+
+    // Mark LLM start (LLM inference happens after this point)
+    markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
 
     // ================================================================
     // EXTENSIBILITY HOOKS

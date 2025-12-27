@@ -13,7 +13,7 @@
  */
 
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachTrigger } from '../outreach-intelligence.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -315,7 +315,7 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
   // Calculate response rate by day
   const responsesByDay = new Map<number, { sent: number; responded: number }>();
   for (let d = 0; d < 7; d++) {
-    responsesByDay.set(d, { sent: 0, responded: 0 });
+    responsesByDay.set(cleanForFirestore(d), { sent: 0, responded: 0 });
   }
   for (const event of sent) {
     const day = responsesByDay.get(event.dayOfWeek)!;
@@ -332,7 +332,7 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
   // Calculate response rate by hour
   const responsesByHour = new Map<number, { sent: number; responded: number }>();
   for (let h = 0; h < 24; h++) {
-    responsesByHour.set(h, { sent: 0, responded: 0 });
+    responsesByHour.set(cleanForFirestore(h), { sent: 0, responded: 0 });
   }
   for (const event of sent) {
     const hour = responsesByHour.get(event.hourOfDay)!;
@@ -450,7 +450,7 @@ export function getGlobalAnalytics(): GlobalAnalytics {
   const hourGroups = new Map<number, { sent: number; responded: number }>();
 
   for (let h = 0; h < 24; h++) {
-    hourGroups.set(h, { sent: 0, responded: 0 });
+    hourGroups.set(cleanForFirestore(h), { sent: 0, responded: 0 });
   }
 
   for (const event of sent) {
@@ -468,7 +468,7 @@ export function getGlobalAnalytics(): GlobalAnalytics {
   const dayGroups = new Map<number, { sent: number; responded: number }>();
 
   for (let d = 0; d < 7; d++) {
-    dayGroups.set(d, { sent: 0, responded: 0 });
+    dayGroups.set(cleanForFirestore(d), { sent: 0, responded: 0 });
   }
 
   for (const event of sent) {

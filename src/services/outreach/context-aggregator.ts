@@ -17,6 +17,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   deleteUserContext,
   loadContext as loadContextFromFirestore,

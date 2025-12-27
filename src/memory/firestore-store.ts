@@ -18,6 +18,7 @@ import type {
   KeyMoment,
   FinancialGoal,
 } from '../types/user-profile.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   isValidUserProfile,
   isValidConversationSummary,
@@ -243,7 +244,7 @@ export class FirestoreStore extends MemoryStore {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
       const serialized = this.serializeForFirestore(profile);
 
-      await docRef.set(serialized, { merge: true });
+      await docRef.set(cleanForFirestore(serialized), { merge: true });
       getLogger().debug(`Saved profile: ${profile.id}`);
     } catch (error) {
       getLogger().error(`saveProfile error: ${error}`);
@@ -323,7 +324,7 @@ export class FirestoreStore extends MemoryStore {
         .collection('summaries')
         .doc(summary.id);
 
-      await summaryRef.set(this.serializeForFirestore(summary));
+      await summaryRef.set(cleanForFirestore(this.serializeForFirestore(summary)));
       getLogger().debug(`Saved summary: ${summary.id}`);
     } catch (error) {
       getLogger().error(`saveSummary error: ${error}`);
@@ -383,7 +384,9 @@ export class FirestoreStore extends MemoryStore {
         .collection('moments')
         .doc(momentId);
 
-      await momentRef.set(this.serializeForFirestore({ ...moment, id: momentId }));
+      await momentRef.set(
+        cleanForFirestore(this.serializeForFirestore({ ...moment, id: momentId }))
+      );
       getLogger().debug(`Added key moment for user: ${userId}`);
     } catch (error) {
       getLogger().error(`addKeyMoment error: ${error}`);
@@ -438,7 +441,7 @@ export class FirestoreStore extends MemoryStore {
         .collection('goals')
         .doc(goal.id);
 
-      await goalRef.set(this.serializeForFirestore(goal), { merge: true });
+      await goalRef.set(cleanForFirestore(this.serializeForFirestore(goal)), { merge: true });
       getLogger().debug(`Saved goal: ${goal.id}`);
     } catch (error) {
       getLogger().error(`saveGoal error: ${error}`);

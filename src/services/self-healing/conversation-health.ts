@@ -22,6 +22,7 @@ import {
 } from './health-monitors.js';
 import { getAllCircuitStats, type CircuitState } from './circuit-breaker.js';
 import { humanizeError } from './error-humanizer.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'conversation-health' });
 
@@ -236,7 +237,7 @@ export function getHealthContext(): HealthContext {
 
   if (healthStatus?.unhealthyServices) {
     for (const svc of healthStatus.unhealthyServices) {
-      degradedServices.add(svc);
+      degradedServices.add(cleanForFirestore(svc));
     }
   }
 

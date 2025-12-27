@@ -15,6 +15,7 @@ import {
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserTips as getPersistentTips, saveTip, type TipRecord } from './persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TipJar' });
 

@@ -21,6 +21,7 @@ import {
   getCommunityInsights,
   saveCommunityInsightsToFirestore,
 } from '../intelligence/community-insights.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,

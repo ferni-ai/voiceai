@@ -10,6 +10,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultStore } from '../memory/index.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const logger = getLogger().child({ service: 'TopicTracking' });
 
@@ -100,7 +101,7 @@ async function flushToPersistence(): Promise<void> {
   } catch (error) {
     logger.warn({ error }, 'Failed to persist topic history');
     // Re-add users to dirty set for retry
-    usersToFlush.forEach((u) => dirtyUsers.add(u));
+    usersToFlush.forEach((u) => dirtyUsers.add(cleanForFirestore(u)));
   }
 }
 

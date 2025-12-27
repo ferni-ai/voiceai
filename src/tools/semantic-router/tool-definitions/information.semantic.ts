@@ -329,6 +329,372 @@ export const searchTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
+// SPORTS SCORES
+// ============================================================================
+
+export const sportsTool: SemanticToolDefinition = {
+  id: 'info_sports',
+  name: 'Sports Scores',
+  description: 'Get live sports scores, game schedules, and team standings.',
+  shortDescription: 'check sports scores',
+  category: 'information',
+
+  triggers: {
+    phrases: [
+      'sports score',
+      'game score',
+      'who won',
+      'who is winning',
+      'score of the game',
+      'how are the',
+      'did the',
+      'nfl scores',
+      'nba scores',
+      'mlb scores',
+      'nhl scores',
+      'football score',
+      'basketball score',
+      'baseball score',
+      'hockey score',
+    ],
+    patterns: [
+      /^(?:what(?:'s| is) the )?score\s+(?:of\s+)?(?:the\s+)?(.+?)(?:\s+game)?$/i,
+      /^how\s+(?:are|is|did)\s+(?:the\s+)?(.+?)(?:\s+doing)?$/i,
+      /^(?:did|has|have)\s+(?:the\s+)?(.+?)\s+(?:win|won|play|score)/i,
+      /^(?:nfl|nba|mlb|nhl|soccer)\s+scores?$/i,
+      /^(.+?)\s+(?:score|game)$/i,
+      /^who\s+(?:is\s+)?(?:winning|won)(?:\s+the\s+)?(?:.+)?$/i,
+      /^when\s+(?:do|does|is|are)\s+(?:the\s+)?(.+?)\s+play/i,
+    ],
+    keywords: [
+      { word: 'score', weight: 1.0 },
+      { word: 'game', weight: 0.7 },
+      { word: 'sports', weight: 0.9 },
+      { word: 'winning', weight: 0.8 },
+      { word: 'playing', weight: 0.6 },
+      { word: 'nfl', weight: 1.0 },
+      { word: 'nba', weight: 1.0 },
+      { word: 'mlb', weight: 1.0 },
+      { word: 'nhl', weight: 1.0 },
+      { word: 'football', weight: 0.9 },
+      { word: 'basketball', weight: 0.9 },
+      { word: 'baseball', weight: 0.9 },
+      { word: 'hockey', weight: 0.9 },
+      { word: 'soccer', weight: 0.9 },
+    ],
+    antiKeywords: ['weather', 'music', 'calendar'],
+  },
+
+  examples: [
+    "What's the score of the Lakers game?",
+    'How are the Yankees doing?',
+    'NFL scores',
+    'Did the Patriots win?',
+    'When do the Knicks play next?',
+    'NBA scores today',
+    'How is the Phillies game going?',
+    'Eagles score',
+  ],
+
+  counterExamples: ['Play music', "What's the weather?", 'Set a reminder'],
+
+  arguments: [
+    {
+      name: 'team',
+      type: 'string',
+      description: 'Team name to look up',
+      required: false,
+      extractionPatterns: [
+        /score\s+(?:of\s+)?(?:the\s+)?(.+?)(?:\s+game)?$/i,
+        /how\s+(?:are|is)\s+(?:the\s+)?(.+)/i,
+        /^(.+?)\s+(?:score|game)$/i,
+      ],
+    },
+    {
+      name: 'sport',
+      type: 'string',
+      description: 'Sport/league (nfl, nba, mlb, nhl)',
+      required: false,
+      enumValues: ['nfl', 'nba', 'mlb', 'nhl', 'mls', 'epl'],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.85,
+    patternMatchBonus: 0.1,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.3,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'info_sports',
+      args,
+      delegateTo: 'domains/information',
+    };
+  },
+};
+
+// ============================================================================
+// STOCK MARKET
+// ============================================================================
+
+export const stockTool: SemanticToolDefinition = {
+  id: 'info_stock',
+  name: 'Stock Quote',
+  description: 'Get stock prices, market updates, and financial data.',
+  shortDescription: 'check stock prices',
+  category: 'information',
+
+  triggers: {
+    phrases: [
+      'stock price',
+      'stock quote',
+      'how is stock',
+      'market today',
+      'dow jones',
+      's&p 500',
+      'nasdaq',
+      'trading at',
+    ],
+    patterns: [
+      /^(?:how(?:'s| is))?\s*(.+?)\s+stock(?:\s+doing)?$/i,
+      /^(?:what(?:'s| is))?\s*(?:the\s+)?(?:price|value)\s+of\s+(.+?)(?:\s+stock)?$/i,
+      /^(?:stock\s+)?(?:price|quote)\s+(?:for\s+)?(.+)/i,
+      /^how(?:'s| is)\s+(?:the\s+)?market(?:\s+today)?$/i,
+      /^(?:s&p|dow|nasdaq)(?:\s+500)?(?:\s+today)?$/i,
+      /^(.+?)\s+(?:stock\s+)?(?:price|quote|today)/i,
+    ],
+    keywords: [
+      { word: 'stock', weight: 1.0 },
+      { word: 'price', weight: 0.7 },
+      { word: 'market', weight: 0.9 },
+      { word: 'dow', weight: 1.0 },
+      { word: 'nasdaq', weight: 1.0 },
+      { word: 's&p', weight: 1.0 },
+      { word: 'trading', weight: 0.8 },
+      { word: 'shares', weight: 0.8 },
+      { word: 'ticker', weight: 0.9 },
+    ],
+    antiKeywords: ['weather', 'music', 'calendar', 'game', 'score'],
+  },
+
+  examples: [
+    'How is Apple stock doing?',
+    'Tesla stock price',
+    "What's the price of NVDA?",
+    "How's the market today?",
+    'S&P 500',
+    'Check my stocks',
+    'Amazon stock quote',
+  ],
+
+  counterExamples: ['Play music', "What's the weather?", 'Sports scores'],
+
+  arguments: [
+    {
+      name: 'symbol',
+      type: 'string',
+      description: 'Stock ticker symbol',
+      required: false,
+      extractionPatterns: [
+        /(.+?)\s+stock/i,
+        /price\s+of\s+(.+)/i,
+        /quote\s+(?:for\s+)?(.+)/i,
+      ],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.85,
+    patternMatchBonus: 0.1,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.3,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'info_stock',
+      args,
+      delegateTo: 'domains/finance',
+    };
+  },
+};
+
+// ============================================================================
+// PODCASTS
+// ============================================================================
+
+export const podcastTool: SemanticToolDefinition = {
+  id: 'info_podcast',
+  name: 'Podcast Search',
+  description: 'Search for podcasts, get recommendations, and find episodes.',
+  shortDescription: 'find podcasts',
+  category: 'information',
+
+  triggers: {
+    phrases: [
+      'play podcast',
+      'find podcast',
+      'podcast about',
+      'podcast recommendation',
+      'what podcasts',
+      'good podcasts',
+      'popular podcasts',
+      'latest episode',
+    ],
+    patterns: [
+      /^(?:play|find|search)\s+(?:a\s+)?podcast\s+(?:about\s+)?(.+)/i,
+      /^(?:what|any)\s+(?:good\s+)?podcasts?\s+(?:about|on)\s+(.+)/i,
+      /^(?:recommend|suggest)\s+(?:a\s+)?podcast/i,
+      /^podcast\s+(?:about|on)\s+(.+)/i,
+      /^(?:play\s+)?(?:the\s+)?(.+?)\s+podcast/i,
+    ],
+    keywords: [
+      { word: 'podcast', weight: 1.0 },
+      { word: 'episode', weight: 0.9 },
+      { word: 'listen', weight: 0.6 },
+      { word: 'show', weight: 0.4 },
+    ],
+    antiKeywords: ['music', 'song', 'weather', 'stock'],
+  },
+
+  examples: [
+    'Find podcasts about history',
+    'Recommend a comedy podcast',
+    'Play The Daily podcast',
+    'What are some good business podcasts?',
+    'Latest episode of Serial',
+  ],
+
+  counterExamples: ['Play music', 'Play a song', "What's the weather?"],
+
+  arguments: [
+    {
+      name: 'query',
+      type: 'string',
+      description: 'Podcast topic or name',
+      required: false,
+      extractionPatterns: [
+        /podcast\s+(?:about|on)\s+(.+)/i,
+        /(.+?)\s+podcast/i,
+        /podcasts?\s+(?:about|on)\s+(.+)/i,
+      ],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.9,
+    patternMatchBonus: 0.05,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.4,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'info_podcast',
+      args,
+      delegateTo: 'domains/podcasts',
+    };
+  },
+};
+
+// ============================================================================
+// RECIPES
+// ============================================================================
+
+export const recipeTool: SemanticToolDefinition = {
+  id: 'info_recipe',
+  name: 'Recipe Search',
+  description: 'Search for recipes and cooking instructions.',
+  shortDescription: 'find recipes',
+  category: 'information',
+
+  triggers: {
+    phrases: [
+      'recipe for',
+      'how to make',
+      'how to cook',
+      'cooking instructions',
+      'ingredients for',
+      'what do I need to make',
+    ],
+    patterns: [
+      /^(?:find|get|give)\s+(?:me\s+)?(?:a\s+)?recipe\s+(?:for\s+)?(.+)/i,
+      /^how\s+(?:do\s+I|to)\s+(?:make|cook|bake|prepare)\s+(.+)/i,
+      /^(?:what(?:'s| is) the )?recipe\s+(?:for\s+)?(.+)/i,
+      /^(.+?)\s+recipe$/i,
+      /^(?:what\s+)?ingredients\s+(?:do\s+I\s+need\s+)?(?:for|to\s+make)\s+(.+)/i,
+    ],
+    keywords: [
+      { word: 'recipe', weight: 1.0 },
+      { word: 'cook', weight: 0.9 },
+      { word: 'make', weight: 0.5 },
+      { word: 'bake', weight: 0.9 },
+      { word: 'ingredients', weight: 0.9 },
+      { word: 'prepare', weight: 0.7 },
+    ],
+    antiKeywords: ['music', 'weather', 'stock', 'game'],
+  },
+
+  examples: [
+    'Recipe for chocolate chip cookies',
+    'How do I make lasagna?',
+    'How to cook beef stroganoff',
+    'What ingredients do I need for pancakes?',
+    'Give me a recipe for chicken soup',
+  ],
+
+  counterExamples: ['Play music', "What's the weather?", 'Sports scores'],
+
+  arguments: [
+    {
+      name: 'dish',
+      type: 'string',
+      description: 'Dish or food to get recipe for',
+      required: true,
+      extractionPatterns: [
+        /recipe\s+(?:for\s+)?(.+)/i,
+        /(?:make|cook|bake|prepare)\s+(.+)/i,
+        /(.+?)\s+recipe/i,
+        /ingredients\s+(?:for|to\s+make)\s+(.+)/i,
+      ],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.9,
+    patternMatchBonus: 0.05,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.4,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'info_recipe',
+      args,
+      delegateTo: 'domains/information',
+    };
+  },
+};
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -337,4 +703,8 @@ export const informationTools: SemanticToolDefinition[] = [
   dateTool,
   newsTool,
   searchTool,
+  sportsTool,
+  stockTool,
+  podcastTool,
+  recipeTool,
 ];

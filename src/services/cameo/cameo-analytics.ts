@@ -12,6 +12,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CameoPersonaId, CameoTriggerType } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CameoAnalytics' });
 
@@ -628,7 +629,7 @@ async function persistEngagement(userId: string, engagement: CameoEngagement): P
       .doc(userId)
       .collection('history')
       .doc(engagement.cameoId)
-      .set(engagement);
+      .set(cleanForFirestore(engagement));
   } catch (e) {
     log.warn({ error: String(e), userId }, 'Failed to persist cameo engagement');
   }
@@ -639,7 +640,7 @@ async function persistPreferences(prefs: CameoPreferences): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(COLLECTIONS.CAMEO_PREFERENCES).doc(prefs.userId).set(prefs);
+    await db.collection(COLLECTIONS.CAMEO_PREFERENCES).doc(prefs.userId).set(cleanForFirestore(prefs));
   } catch (e) {
     log.warn({ error: String(e), userId: prefs.userId }, 'Failed to persist cameo preferences');
   }

@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 
 const log = createLogger({ module: 'insight-broker' });
 
@@ -588,7 +588,7 @@ async function loadInsights(userId: string): Promise<ProactiveInsight[]> {
     });
     
     // Update cache
-    insightCache.set(userId, {
+    insightCache.set(cleanForFirestore(userId), {
       userId,
       insights,
       fetchedAt: new Date(),
@@ -611,7 +611,7 @@ async function saveInsight(userId: string, insight: ProactiveInsight): Promise<v
       .doc(userId)
       .collection('proactive_insights')
       .doc(insight.id)
-      .set(insight);
+      .set(cleanForFirestore(insight));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save insight');
   }

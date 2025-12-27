@@ -12,14 +12,14 @@
  * re-exports from this file for backward compatibility.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   getMayaNotificationService,
   type MayaNotificationType,
 } from '../../../services/engagement/engagement-notification-service.js';
+import { getLogger } from '../../../utils/safe-logger.js';
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 // ============================================================================
 // NOTIFICATION TOOLS
@@ -29,6 +29,53 @@ export function createNotificationTools() {
   const service = getMayaNotificationService();
 
   return {
+    /**
+     * Get notification status and preferences
+     */
+    getNotifications: llm.tool({
+      description: getToolDescription('getNotifications'),
+      parameters: z.object({}),
+      execute: async (_, { ctx }) => {
+        const userData = ctx.userData as { userId?: string };
+        const userId = userData.userId || 'anonymous';
+
+        try {
+          const prefs = await service.getPreferences(userId);
+
+          const enabledTypes = prefs.enabledTypes || [];
+          const typeSummary =
+            enabledTypes.length > 0
+              ? enabledTypes
+                  .slice(0, 3)
+                  .map((t: string) => t.replace(/_/g, ' '))
+                  .join(', ')
+              : 'none';
+
+          const quietHours =
+            prefs.quietHoursStart !== undefined
+              ? `${prefs.quietHoursStart}:00 - ${prefs.quietHoursEnd}:00`
+              : 'not set';
+
+          getLogger().info({ userId, enabled: prefs.enabled }, '🔔 Got notification status');
+
+          return {
+            enabled: prefs.enabled,
+            preferredTime: prefs.preferredTime || '9:00 AM',
+            quietHours,
+            enabledTypes: typeSummary,
+            message: prefs.enabled
+              ? `Notifications are on. Preferred time: ${prefs.preferredTime || '9:00 AM'}. Types: ${typeSummary}.`
+              : 'Notifications are currently off. Say "enable notifications" to turn them on.',
+          };
+        } catch (error) {
+          getLogger().error({ error: String(error), userId }, 'Failed to get notifications');
+          return {
+            error: "Couldn't get your notification settings right now. Try again?",
+          };
+        }
+      },
+    }),
+
     /**
      * Get notification preferences
      */

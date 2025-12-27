@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
 import { sendError, sendJsonResponse, parseRequestBody } from './helpers.js';
 import { requireAuth, type AuthContext } from './auth-middleware.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'WidgetRoutes' });
 

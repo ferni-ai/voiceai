@@ -12,7 +12,7 @@
  * - engagement_profiles/{userId}/team_huddles/{huddleId} - Team huddle history
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 
@@ -205,7 +205,7 @@ export class EngagementStore {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION).doc(profile.userId).set(profile, { merge: true });
+        await this.db.collection(this.COLLECTION).doc(profile.userId).set(cleanForFirestore(profile), { merge: true });
       } catch (error) {
         getLogger().warn({ error, userId: profile.userId }, 'Failed to save engagement profile');
       }
@@ -248,7 +248,7 @@ export class EngagementStore {
           .doc(userId)
           .collection('ritual_streaks')
           .doc(streak.ritualId)
-          .set(streak, { merge: true });
+          .set(cleanForFirestore(streak), { merge: true });
       } catch (error) {
         getLogger().warn(
           { error, userId, ritualId: streak.ritualId },
@@ -270,7 +270,7 @@ export class EngagementStore {
           .doc(userId)
           .collection('weather_history')
           .doc(docId)
-          .set(entry, { merge: true });
+          .set(cleanForFirestore(entry), { merge: true });
 
         // Update profile stats
         const profile = await this.getProfile(userId);
@@ -323,7 +323,7 @@ export class EngagementStore {
           .doc(userId)
           .collection('predictions')
           .doc(prediction.id)
-          .set(prediction, { merge: true });
+          .set(cleanForFirestore(prediction), { merge: true });
 
         if (!prediction.completedAt) {
           const profile = await this.getProfile(userId);
@@ -372,7 +372,7 @@ export class EngagementStore {
           .doc(userId)
           .collection('team_huddles')
           .doc(huddle.id)
-          .set(huddle);
+          .set(cleanForFirestore(huddle));
 
         const profile = await this.getProfile(userId);
         profile.stats.teamHuddlesAttended++;
@@ -449,11 +449,11 @@ export class EngagementStore {
         .collection('predictions')
         .doc(predictionId)
         .set(
-          {
+          cleanForFirestore({
             actuals,
             accuracy,
             completedAt: new Date().toISOString(),
-          },
+          }),
           { merge: true }
         );
 
@@ -604,7 +604,7 @@ export class EngagementStore {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionRef = docRef.collection('conversation_sessions').doc(latestSession.id as string);
       const existingInsights = (latestSession.insights as string[]) || [];
-      await sessionRef.update({ insights: [...existingInsights, insight] });
+      await sessionRef.update(cleanForFirestore({ insights: [...existingInsights, insight] }));
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to add insight to session');
     }
@@ -619,7 +619,7 @@ export class EngagementStore {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionRef = docRef.collection('conversation_sessions').doc(latestSession.id as string);
       const existingHighlights = (latestSession.highlights as string[]) || [];
-      await sessionRef.update({ highlights: [...existingHighlights, highlight] });
+      await sessionRef.update(cleanForFirestore({ highlights: [...existingHighlights, highlight] }));
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to add highlight to session');
     }
@@ -637,7 +637,7 @@ export class EngagementStore {
       const sessionRef = docRef.collection('conversation_sessions').doc(sessionId);
       const update: Record<string, string> = { mood };
       if (energy) update.energy = energy;
-      await sessionRef.update(update);
+      await sessionRef.update(cleanForFirestore(update));
     } catch (error) {
       getLogger().warn({ error, userId, sessionId }, 'Failed to update session mood');
     }

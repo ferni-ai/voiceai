@@ -22,6 +22,7 @@ import {
 import { registerTeamHandler, teamHandlerRegistry } from '../index.js';
 import type { HandlerCapability, TeamHandlerDefinition } from '../types.js';
 import { ALL_HANDLER_CAPABILITIES } from '../types.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 /**
  * Type guard to check if a string is a valid HandlerCapability
@@ -112,10 +113,10 @@ async function saveTeamMemberStatus(agentId: AgentId, status: TeamMemberStatus):
         .collection(TEAM_STATUS_COLLECTION)
         .doc(agentId)
         .set(
-          {
+          cleanForFirestore({
             ...status,
             updatedAt: new Date(),
-          },
+          }),
           { merge: true }
         );
     } catch (err) {

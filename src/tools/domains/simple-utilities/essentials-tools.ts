@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -74,7 +75,7 @@ async function savePreferences(userId: string, prefs: UserPreferences): Promise<
     const store = getFirestoreStore();
     const db = await store.getDatabase();
 
-    await db.collection('bogle_users').doc(userId).collection('preferences').doc('settings').set(prefs, { merge: true });
+    await db.collection('bogle_users').doc(userId).collection('preferences').doc('settings').set(cleanForFirestore(prefs), { merge: true });
     log.info({ userId }, 'Saved preferences to Firestore');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Could not persist preferences to Firestore');
@@ -351,12 +352,12 @@ const quickCaptureDef: ToolDefinition = {
               if (ctx.userId) {
                 const memoryId = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 const memoryRef = db.collection('bogle_users').doc(ctx.userId).collection('memories').doc(memoryId);
-                await memoryRef.set({
+                await memoryRef.set(cleanForFirestore({
                   content: thought,
                   type: 'fact',
                   importance: urgency === 'just-remember' ? 'low' : 'medium',
                   createdAt: new Date().toISOString(),
-                });
+                }));
                 persisted = true;
               }
             } catch (err) {
@@ -450,7 +451,7 @@ const recentContextDef: ToolDefinition = {
 
               for (const session of history.sessions) {
                 if (session.topicsDiscussed) {
-                  session.topicsDiscussed.forEach((t: string) => allTopics.add(t));
+                  session.topicsDiscussed.forEach((t: string) => allTopics.add(cleanForFirestore(t)));
                 }
                 if (session.insights) {
                   allInsights.push(...session.insights.slice(0, 2));

@@ -13,7 +13,7 @@
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { quickValidate } from '../brand/index.js';
 import { HERO_CTA_VARIANTS, HERO_HEADLINE_VARIANTS } from './variant-library.js';
 import { getWebExperiments, type WebExperiment } from './web-experiments.js';
@@ -617,10 +617,10 @@ export async function updateHypothesisStatus(
 ): Promise<void> {
   const db = getFirestore();
 
-  await db.collection('generated_hypotheses').doc(hypothesisId).update({
+  await db.collection('generated_hypotheses').doc(hypothesisId).update(cleanForFirestore({
     status,
     updatedAt: FieldValue.serverTimestamp(),
-  });
+  }));
 
   log.info({ hypothesisId, status }, 'Hypothesis status updated');
 }

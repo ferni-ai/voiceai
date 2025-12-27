@@ -16,7 +16,7 @@ import { getGCPProjectId } from '../../config/environment.js';
 import { cosineSimilarity } from '../../memory/embeddings.js';
 import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================

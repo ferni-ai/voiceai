@@ -15,7 +15,7 @@
 
 import { type EnglishAccent, ACCENT_TO_DIALECT } from '../../config/voice-accents.js';
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CartesiaLocalization' });

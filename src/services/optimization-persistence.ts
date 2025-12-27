@@ -22,7 +22,7 @@ import type {
   ConsolidationOpportunity,
   SessionData,
 } from '../types/optimization-types.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -214,10 +214,10 @@ class OptimizationPersistenceService {
         .collection(this.COLLECTIONS.FEEDBACK_SUMMARY)
         .doc(toolId)
         .set(
-          {
+          cleanForFirestore({
             ...summary,
             updatedAt: new Date().toISOString(),
-          },
+          }),
           { merge: true }
         );
     } catch (error) {
@@ -495,11 +495,16 @@ class OptimizationPersistenceService {
     if (!this.db) return;
 
     try {
-      await this.db.collection(this.COLLECTIONS.RECOMMENDATIONS).doc(id).update({
-        status,
-        implementedAt: implementedAt?.toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await this.db
+        .collection(this.COLLECTIONS.RECOMMENDATIONS)
+        .doc(id)
+        .update(
+          cleanForFirestore({
+            status,
+            implementedAt: implementedAt?.toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+        );
     } catch (error) {
       getLogger().error({ error, id, status }, 'Failed to update recommendation status');
     }

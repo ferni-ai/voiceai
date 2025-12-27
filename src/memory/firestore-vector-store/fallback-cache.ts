@@ -13,6 +13,7 @@ import type { VectorDocument, VectorFilter, VectorSearchResult } from '../vector
 import type { FallbackCacheEntry } from './types.js';
 import { MAX_FALLBACK_CACHE_SIZE } from './types.js';
 import { matchesFilter } from './helpers.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 /**
  * Manages the in-memory fallback cache for when Firestore is unavailable.

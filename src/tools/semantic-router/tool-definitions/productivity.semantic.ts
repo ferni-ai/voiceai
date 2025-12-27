@@ -357,6 +357,93 @@ export const timeManagementTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
+// ROUTINES
+// ============================================================================
+
+export const routinesTool: SemanticToolDefinition = {
+  id: 'productivity_routines',
+  name: 'Routines',
+  description: 'Start, manage, and track daily routines (morning, evening, workout, wind down).',
+  shortDescription: 'start or manage routines',
+  category: 'productivity',
+
+  triggers: {
+    phrases: [
+      'start my routine',
+      'morning routine',
+      'evening routine',
+      'workout routine',
+      'wind down',
+      'my routine',
+      'begin routine',
+      'bedtime routine',
+      'daily routine',
+    ],
+    patterns: [
+      /^(?:start|begin|do)\s+(?:my\s+)?(?:morning|evening|workout|wind\s*down|focus|bedtime|daily)\s+routine/i,
+      /^(?:let(?:'s| us)|i\s+want\s+to)\s+(?:start|do)\s+(?:my\s+)?(?:morning|evening|workout)\s+routine/i,
+      /^(?:morning|evening|workout|wind\s*down|bedtime)\s+routine/i,
+      /^(?:what(?:'s| is) in|show|list)\s+my\s+(?:morning|evening)?\s*routine/i,
+      /^(?:help\s+me\s+)?(?:with\s+)?(?:my\s+)?(?:morning|evening)\s+routine/i,
+    ],
+    keywords: [
+      { word: 'routine', weight: 1.0 },
+      { word: 'morning', weight: 0.8 },
+      { word: 'evening', weight: 0.8 },
+      { word: 'workout', weight: 0.7 },
+      { word: 'wind down', weight: 0.9 },
+      { word: 'bedtime', weight: 0.8 },
+    ],
+    antiKeywords: ['calendar', 'meeting', 'weather'],
+  },
+
+  examples: [
+    'Start my morning routine',
+    'Evening routine',
+    "Let's do my workout routine",
+    "What's in my morning routine?",
+    'Wind down routine',
+    'Begin my bedtime routine',
+    'Start focus routine',
+  ],
+
+  counterExamples: ['Schedule a meeting', "What's the weather?", 'Play music'],
+
+  arguments: [
+    {
+      name: 'routineType',
+      type: 'string',
+      description: 'Type of routine',
+      required: false,
+      enumValues: ['morning', 'evening', 'workout', 'wind_down', 'focus', 'custom'],
+      extractionPatterns: [
+        /(morning|evening|workout|wind\s*down|focus|bedtime)\s+routine/i,
+        /start\s+(?:my\s+)?(morning|evening|workout)/i,
+      ],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.9,
+    patternMatchBonus: 0.05,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.3,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'productivity_routines',
+      args,
+      delegateTo: 'domains/productivity',
+    };
+  },
+};
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -365,4 +452,5 @@ export const productivityTools: SemanticToolDefinition[] = [
   notesTool,
   focusTool,
   timeManagementTool,
+  routinesTool,
 ];

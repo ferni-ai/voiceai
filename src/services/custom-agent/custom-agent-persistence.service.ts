@@ -11,6 +11,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CustomAgent, CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'CustomAgentPersistence' });
 
@@ -193,7 +194,7 @@ export async function createCustomAgent(
       updatedAt: agent.updatedAt,
     });
 
-    await collection.doc(agentId).set(firestoreDoc);
+    await collection.doc(agentId).set(cleanForFirestore(firestoreDoc));
 
     log.info({ userId, agentId }, 'Custom agent created');
     return agent;
@@ -320,7 +321,7 @@ export async function updateCustomAgent(
     // Remove undefined fields for Firestore compatibility
     const firestoreDoc = removeUndefinedFields(mergedData as unknown as Record<string, unknown>);
 
-    await docRef.set(firestoreDoc, { merge: true });
+    await docRef.set(cleanForFirestore(firestoreDoc), { merge: true });
 
     // Fetch and return updated document
     const updated = await docRef.get();

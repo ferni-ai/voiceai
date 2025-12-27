@@ -23,6 +23,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
 import { sendEmail, sendSMS } from '../communication-service.js';
 import { createAppointmentEvent, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   generateAppointmentTwiML,
   getTwilioWebhookService,
@@ -136,7 +137,7 @@ class AppointmentIntegrationService extends EventEmitter {
     if (!db) return;
 
     try {
-      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).set(request);
+      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).set(cleanForFirestore(request));
     } catch (error) {
       getLogger().error({ error, appointmentId }, 'Failed to save pending request');
     }

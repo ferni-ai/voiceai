@@ -31,6 +31,7 @@ import { getConfig } from '../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -261,7 +262,10 @@ async function persistContact(contact: Contact): Promise<void> {
     try {
       // Strip undefined values before saving - Firestore doesn't accept undefined
       const cleanContact = stripUndefined(contact);
-      await firestore.collection(CONTACTS_COLLECTION).doc(contact.id).set(cleanContact, { merge: true });
+      await firestore
+        .collection(CONTACTS_COLLECTION)
+        .doc(contact.id)
+        .set(cleanForFirestore(cleanContact), { merge: true });
     } catch (err) {
       getLogger().warn({ err, contactId: contact.id }, 'Failed to persist contact to Firestore');
     }

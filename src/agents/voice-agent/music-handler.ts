@@ -296,13 +296,14 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     diag.session('🎵 [DIAG] Audio modules imported, calling initializeMusicPlayer...');
 
-    // 🐛 FIX: Generate a unique session ID to detect singleton pollution
+    // 🐛 FIX: Generate a unique music player session ID to detect singleton pollution
     // This helps prevent one session's state from affecting another
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // IMPORTANT: Don't shadow the ctx.sessionId - use a different variable name!
+    const musicPlayerSessionId = `${sessionId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Pass the agent session for proper audio mixing with voice
     // Also pass session ID to detect and handle singleton reuse
-    await initializeMusicPlayer(room, session, sessionId);
+    await initializeMusicPlayer(room, session, musicPlayerSessionId);
 
     diag.session('🎵 [DIAG] initializeMusicPlayer completed successfully');
 

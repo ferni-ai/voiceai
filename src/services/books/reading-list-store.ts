@@ -8,6 +8,7 @@
 
 import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ReadingListStore' });
 
@@ -158,7 +159,7 @@ export async function addToReadingList(
       updatedAt: now,
     };
 
-    const docRef = await collection.add(entry);
+    const docRef = await collection.add(cleanForFirestore(entry));
     log.info({ userId, bookId: book.bookId, title: book.title }, 'Book added to reading list');
 
     return {

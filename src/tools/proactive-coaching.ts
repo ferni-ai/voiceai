@@ -18,4 +18,3 @@ export * from './domains/proactive/coaching/index.js';
 
 // Re-export default for backward compatibility
 export { default } from './domains/proactive/coaching/index.js';
-

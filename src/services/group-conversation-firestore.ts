@@ -29,7 +29,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getFirestoreDb } from './superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './superhuman/firestore-utils.js';
 import type {
   GroupConversation,
   GroupParticipant,
@@ -219,7 +219,7 @@ export async function saveGroupSession(
       .doc(userId)
       .collection('group_sessions')
       .doc(conversation.sessionId)
-      .set(doc, { merge: true });
+      .set(cleanForFirestore(doc), { merge: true });
 
     log.info({ userId, sessionId: conversation.sessionId }, '💾 Group session saved to Firestore');
 
@@ -262,7 +262,7 @@ export async function saveTranscript(
       .doc(sessionId)
       .collection('transcript')
       .doc('full')
-      .set(doc);
+      .set(cleanForFirestore(doc));
 
     log.debug({ userId, sessionId, utteranceCount: utterances.length }, '💾 Transcript saved');
 
@@ -346,15 +346,17 @@ export async function updateSessionSummary(
       .doc(userId)
       .collection('group_sessions')
       .doc(sessionId)
-      .update({
-        summary: {
-          keyPoints: summary.keyPoints,
-          actionItems: summary.actionItems,
-          decisions: summary.decisions,
-          participantSummaries,
-        },
-        updatedAt: new Date().toISOString(),
-      });
+      .update(
+        cleanForFirestore({
+          summary: {
+            keyPoints: summary.keyPoints,
+            actionItems: summary.actionItems,
+            decisions: summary.decisions,
+            participantSummaries,
+          },
+          updatedAt: new Date().toISOString(),
+        })
+      );
 
     log.debug({ userId, sessionId }, '💾 Session summary updated');
 

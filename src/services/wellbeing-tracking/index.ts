@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   persistSnapshot as saveToFirestore,
   loadSnapshots as loadFromFirestore,
@@ -725,7 +726,7 @@ export function getOverallScore(userId: string): number | null {
 
 function getOrCreateProfile(userId: string): WellbeingProfile {
   if (!userProfiles.has(userId)) {
-    userProfiles.set(userId, {
+    userProfiles.set(cleanForFirestore(userId), {
       userId,
       current: null,
       personalBaseline: null,

@@ -32,6 +32,7 @@ import { insightsBroadcast } from './insights-broadcast.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // Superhuman service imports for "Better than Human" insights
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   loadUserCommitments,
   assessBurnoutRisk,
@@ -175,7 +176,7 @@ function persistInsights(userId: string): void {
   const insights = userInsightsCache.get(userId) || [];
   const store = getInsightsPersistence();
 
-  store.set(userId, {
+  store.set(cleanForFirestore(userId), {
     insights,
     lastScannedAt: Date.now(),
   });

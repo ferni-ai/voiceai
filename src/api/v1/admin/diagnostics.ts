@@ -18,6 +18,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
 import { recordActivity } from './dashboard.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'AdminDiagnosticsAPI' });
 

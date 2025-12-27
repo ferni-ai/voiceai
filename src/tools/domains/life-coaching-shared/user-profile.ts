@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type {
   LifeCoachingProfile,
   FourTendency,
@@ -209,7 +210,7 @@ export async function updateLifeCoachingProfile(
 
     const serialized = serializeProfile(updated);
 
-    docRef.set(serialized, { merge: true }).catch((error) => {
+    docRef.set(cleanForFirestore(serialized), { merge: true }).catch((error) => {
       log.error({ error: String(error), userId }, 'Failed to persist profile to Firestore');
     });
   }

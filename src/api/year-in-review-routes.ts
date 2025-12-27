@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { sendJSON, sendError } from './helpers.js';
 
 const log = createLogger({ module: 'YearInReviewRoutes' });
@@ -178,7 +179,7 @@ async function fetchConversationHistory(
       if (existing) {
         existing.count++;
       } else {
-        dailyMap.set(dateKey, {
+        dailyMap.set(cleanForFirestore(dateKey), {
           date: dateKey,
           count: 1,
           dominantEmotion: data.dominantEmotion,

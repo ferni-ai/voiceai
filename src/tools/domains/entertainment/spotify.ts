@@ -82,6 +82,9 @@ async function getAvailableDevices(): Promise<
 // Check if user has Spotify Premium (required for Web Playback SDK)
 let hasPremium: boolean | null = null;
 
+// Sleep timer reference for music auto-stop
+let sleepTimerRef: ReturnType<typeof setTimeout> | null = null;
+
 async function checkPremiumStatus(): Promise<boolean> {
   if (hasPremium !== null) return hasPremium;
 
@@ -1233,6 +1236,64 @@ export function createSpotifyTools() {
         }
 
         return 'No music is playing. Would you like me to play something?';
+      },
+    }),
+
+    // ========================================
+    // SLEEP TIMER (stop music after X minutes)
+    // ========================================
+
+    setSleepTimer: llm.tool({
+      description: 'Set a sleep timer to stop music after a specified duration. Use when user wants music to stop automatically after a certain time (e.g., "stop music in 30 minutes", "set a sleep timer for an hour").',
+      parameters: z.object({
+        minutes: z.number().min(1).max(180).describe('Minutes until music stops (1-180, default 30)'),
+      }),
+      execute: async ({ minutes }) => {
+        const log = getLogger();
+        
+        // Store timer reference so we can cancel it
+        if (sleepTimerRef) {
+          clearTimeout(sleepTimerRef);
+        }
+        
+        sleepTimerRef = setTimeout(async () => {
+          log.info({ minutes }, '💤 Sleep timer triggered - stopping music');
+          
+          // Stop both in-call music and Spotify
+          const musicPlayer = getMusicPlayer();
+          musicPlayer.stop();
+          
+          if (checkConfigured()) {
+            try {
+              await spotifyRequest('/me/player/pause', 'PUT');
+            } catch (error) {
+              log.debug({ error }, '💤 Could not pause Spotify (may already be paused)');
+            }
+          }
+          
+          sleepTimerRef = null;
+        }, minutes * 60 * 1000);
+        
+        log.info({ minutes }, '💤 Sleep timer set');
+        
+        const timeStr = minutes === 60 ? 'an hour' : 
+                        minutes > 60 ? `${Math.floor(minutes / 60)} hours and ${minutes % 60} minutes` :
+                        `${minutes} minutes`;
+        
+        return `Got it! I'll stop the music in ${timeStr}. Sleep well! 🌙`;
+      },
+    }),
+
+    cancelSleepTimer: llm.tool({
+      description: 'Cancel an active sleep timer. Use when user wants to cancel their music sleep timer.',
+      parameters: z.object({}),
+      execute: async () => {
+        if (sleepTimerRef) {
+          clearTimeout(sleepTimerRef);
+          sleepTimerRef = null;
+          return "Sleep timer cancelled. The music will keep playing!";
+        }
+        return "There's no sleep timer active right now.";
       },
     }),
 

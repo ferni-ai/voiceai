@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'acknowledgment-persistence' });
 
@@ -58,7 +59,7 @@ export async function saveAcknowledgmentPreferences(
       updatedAt: Date.now(),
     };
 
-    await docRef.set(data);
+    await docRef.set(cleanForFirestore(data));
     log.debug({ userId, sampleCount: preferences.sampleCount }, 'Acknowledgment preferences saved');
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to save acknowledgment preferences');

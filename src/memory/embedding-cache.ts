@@ -12,6 +12,7 @@ import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
 import { embed, embedBatch, getEmbeddingProvider } from './embeddings.js';
 import { err, memoryError, ok, type MemoryError, type Result } from './result.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   noopMetrics,
   type PerformanceMetricsCallbacks,

@@ -16,6 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

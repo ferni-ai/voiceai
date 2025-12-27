@@ -16,6 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { VideoCategory } from './youtube-integration.js';
 import type { PodcastCategory } from './podcast-discovery.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 

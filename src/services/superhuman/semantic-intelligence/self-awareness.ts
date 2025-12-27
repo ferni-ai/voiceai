@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 
 const log = createLogger({ module: 'self-awareness' });
 
@@ -771,7 +771,7 @@ async function saveBlindSpot(userId: string, blindSpot: BlindSpot): Promise<void
       .doc(userId)
       .collection('blind_spots')
       .doc(blindSpot.id)
-      .set(blindSpot);
+      .set(cleanForFirestore(blindSpot));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save blind spot');
   }
@@ -828,7 +828,7 @@ async function saveGap(userId: string, gap: SelfPerceptionGap): Promise<void> {
       .doc(userId)
       .collection('self_perception_gaps')
       .doc(gap.id)
-      .set(gap);
+      .set(cleanForFirestore(gap));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save gap');
   }
@@ -882,7 +882,7 @@ async function saveValuesAlignment(userId: string, alignment: ValuesBehaviorAlig
       .doc(userId)
       .collection('self_awareness')
       .doc('values_alignment')
-      .set(data);
+      .set(cleanForFirestore(data));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save values alignment');
   }
@@ -907,7 +907,7 @@ async function loadDistortionProfile(userId: string): Promise<CognitiveDistortio
     
     for (const [key, value] of Object.entries(data.distortions ?? {})) {
       const v = value as { count: number; recentExamples: string[]; lastSeen: unknown };
-      distortionsMap.set(key, {
+      distortionsMap.set(cleanForFirestore(key), {
         count: v.count,
         recentExamples: v.recentExamples,
         lastSeen: typeof v.lastSeen === 'object' && v.lastSeen && 'toDate' in v.lastSeen 
@@ -948,7 +948,7 @@ async function saveDistortionProfile(userId: string, profile: CognitiveDistortio
       .doc(userId)
       .collection('self_awareness')
       .doc('distortions')
-      .set(data);
+      .set(cleanForFirestore(data));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save distortion profile');
   }

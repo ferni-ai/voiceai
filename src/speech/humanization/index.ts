@@ -87,6 +87,23 @@ export {
   getEnergyMatchedPacing,
   // Callbacks
   shouldUseCallback,
+  // Celebrations
+  detectCelebrationIntensity,
+  selectCelebration,
+  selectCelebrationSync,
+  // Catchphrases
+  selectCatchphrase,
+  getPowerfulQuestion,
+  getPartnershipPhrase,
+  CATCHPHRASE_TRIGGERS,
+  // Anticipation
+  getSessionOpeningPhrase,
+  getTopicCallbackPhrase,
+  getFutureLookingPhrase,
+  getContinuityMarker,
+  getPendingItemPhrase,
+  type CelebrationIntensity,
+  type AnticipationType,
 } from './behavior-loader.js';
 
 // Types
@@ -110,6 +127,9 @@ export type {
   LaughterContagionSchema,
   EnergyMatchingSchema,
   EnergyLevelConfig,
+  CelebrationsSchema,
+  CatchphrasesSchema,
+  AnticipationSchema,
   // Profile
   PersonaSpeechProfile,
   // Categories

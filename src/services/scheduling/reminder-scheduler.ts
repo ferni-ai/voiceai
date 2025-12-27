@@ -22,6 +22,7 @@ import { InMemoryStore } from '../../memory/in-memory-store.js';
 import type { MemoryStore } from '../../memory/store.js';
 import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();

@@ -39,7 +39,7 @@
  * @module @ferni/humanization/persistence
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getComfortProgressionEngine } from './comfort-progression.js';
 import { getCrossSessionVoiceEngine, type CrossSessionVoiceMemory } from './cross-session-voice.js';

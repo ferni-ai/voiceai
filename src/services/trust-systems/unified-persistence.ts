@@ -23,6 +23,7 @@
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
@@ -255,7 +256,7 @@ export async function saveSystemData(
     if (!pendingChanges.has(userId)) {
       pendingChanges.set(userId, new Set());
     }
-    pendingChanges.get(userId)!.add(systemName);
+    pendingChanges.get(userId)!.add(cleanForFirestore(systemName));
 
     // Check if we should force sync
     const userPending = pendingChanges.get(userId)!;
@@ -349,11 +350,11 @@ async function persistProfile(userId: string, profile: UnifiedTrustProfile): Pro
       .collection('trust')
       .doc('unified_profile')
       .set(
-        {
+        cleanForFirestore({
           ...profile,
           createdAt: profile.createdAt.toISOString(),
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
   } catch (error) {

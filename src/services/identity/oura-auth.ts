@@ -14,7 +14,7 @@
 
 import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import type { OuraTokens, OuraTokenResponse, OuraResult } from './oura-types.js';
 
 const log = createLogger({ module: 'oura-auth' });
@@ -77,7 +77,7 @@ export function getAuthorizationUrl(userId: string): OuraResult<{ url: string }>
 
   // Generate state parameter for CSRF protection
   const state = crypto.randomBytes(32).toString('hex');
-  pendingStates.set(state, { userId, createdAt: Date.now() });
+  pendingStates.set(cleanForFirestore(state), { userId, createdAt: Date.now() });
 
   // Clean up old states
   const now = Date.now();
@@ -282,10 +282,10 @@ async function storeTokens(userId: string, tokens: OuraTokens): Promise<void> {
     await db
       .collection(FIRESTORE_COLLECTION)
       .doc(userId)
-      .set({
+      .set(cleanForFirestore({
         ...tokens,
         updatedAt: new Date().toISOString(),
-      });
+      }));
 
     // Update cache
     tokenCache.set(userId, tokens);

@@ -20,6 +20,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { ReasoningStyle } from '../../personas/cognitive-types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getUserCognitiveProfile,
   saveUserCognitiveProfile,

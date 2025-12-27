@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'optimal-timing' });
 
@@ -347,7 +348,7 @@ async function saveTimingProfile(profile: ContactTimingProfile): Promise<void> {
       .doc(profile.userId)
       .collection('contact_timing')
       .doc(profile.contactId)
-      .set(profile);
+      .set(cleanForFirestore(profile));
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save timing profile');
   }

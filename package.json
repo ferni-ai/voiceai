@@ -197,6 +197,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
     "quality": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "quality:check": "npx tsx apps/cli/src/commands/quality/code-quality-check.ts",
+    "quality:firestore": "npx tsx scripts/check-unsafe-firestore.ts",
     "debt": "npx tsx apps/cli/src/commands/quality/tech-debt.ts",
     "debt:json": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --json",
     "debt:markdown": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --markdown",

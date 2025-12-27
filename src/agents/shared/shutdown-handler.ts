@@ -13,7 +13,7 @@
  */
 
 import { diag } from '../../services/diagnostic-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Track if we're already shutting down to prevent double-shutdown
 let isShuttingDown = false;

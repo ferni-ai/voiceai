@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type {
   EmotionalArc,
   EmotionalWaypoint,
@@ -519,7 +519,7 @@ async function saveArc(userId: string, arc: EmotionalArc): Promise<void> {
       .doc(userId)
       .collection('emotional_arcs')
       .doc(arc.id)
-      .set(arc);
+      .set(cleanForFirestore(arc));
 
     log.debug({ userId, arcId: arc.id }, '💾 Emotional arc saved');
   } catch (error) {

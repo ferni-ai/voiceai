@@ -10,7 +10,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, } from './firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'values-alignment' });
 
@@ -342,7 +343,7 @@ export async function saveValue(value: UserValue): Promise<void> {
       .doc(value.userId)
       .collection('values')
       .doc(value.id)
-      .set(value);
+      .set(cleanForFirestore(value));
   }
 
   // Update cache
@@ -425,7 +426,7 @@ export async function recordConflict(
       .doc(userId)
       .collection('value_conflicts')
       .doc(conflictRecord.id)
-      .set(conflictRecord);
+      .set(cleanForFirestore(conflictRecord));
   }
 
   log.info({ userId, valueId: conflict.valueId }, '⚠️ Value conflict detected');

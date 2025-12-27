@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   CallbackAttempt,
   CallbackEffectiveness,
@@ -310,7 +311,7 @@ export class RelationshipMemoryPersistence {
 
     try {
       const data = serializeForFirestore(memory);
-      await db.collection(COLLECTION_NAME).doc(docId).set(data, { merge: true });
+      await db.collection(COLLECTION_NAME).doc(docId).set(cleanForFirestore(data), { merge: true });
 
       log.debug(
         {

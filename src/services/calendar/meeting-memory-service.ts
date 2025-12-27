@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import type { CalendarEvent } from './types.js';
 
 const log = createLogger({ module: 'meeting-memory' });
@@ -249,7 +249,7 @@ export async function enrichPreMeetingBriefing(
 
   for (const ctx of attendeeContexts) {
     if (ctx.lastInteraction) {
-      ctx.lastInteraction.topics.forEach((t) => pastTopics.add(t));
+      ctx.lastInteraction.topics.forEach((t) => pastTopics.add(cleanForFirestore(t)));
       ctx.lastInteraction.openItems.forEach((c) => openCommitments.push(c));
     }
 
@@ -324,7 +324,7 @@ export async function recordMeetingInteraction(
       .doc(userId)
       .collection('meeting_interactions')
       .doc(docId)
-      .set(stored);
+      .set(cleanForFirestore(stored));
 
     log.debug({ userId, personEmail: interaction.personEmail }, 'Meeting interaction recorded');
   } catch (error) {
@@ -348,12 +348,12 @@ export async function updateContactNotes(
     const docId = email.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
     await db.collection('bogle_users').doc(userId).collection('contact_notes').doc(docId).set(
-      {
+      cleanForFirestore({
         email: email.toLowerCase(),
         notes,
         relationshipType,
         updatedAt: new Date().toISOString(),
-      },
+      }),
       { merge: true }
     );
 

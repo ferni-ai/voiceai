@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
   sendJSON,
@@ -269,7 +270,7 @@ async function deploySite(
     };
 
     // Save to Firestore
-    await db.collection('deployed-sites').doc(siteId).set(site);
+    await db.collection('deployed-sites').doc(siteId).set(cleanForFirestore(site));
 
     log.info({ userId, siteId, agentId, subdomain }, 'Site deployed');
 
@@ -490,10 +491,12 @@ async function serveStaticSite(
     // Update view analytics
     db.collection('deployed-sites')
       .doc(siteId)
-      .update({
-        'analytics.views': (site.analytics?.views || 0) + 1,
-        'analytics.lastVisit': new Date().toISOString(),
-      })
+      .update(
+        cleanForFirestore({
+          'analytics.views': (site.analytics?.views || 0) + 1,
+          'analytics.lastVisit': new Date().toISOString(),
+        })
+      )
       .catch((err: unknown) => log.warn({ err, siteId }, 'Failed to update analytics'));
 
     res.writeHead(200, {

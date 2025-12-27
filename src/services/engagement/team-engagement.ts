@@ -18,6 +18,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Re-export from modular version (canonical source - DO NOT REMOVE)
 

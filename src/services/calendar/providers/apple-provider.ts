@@ -35,6 +35,7 @@ const log = getLogger();
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 
@@ -781,7 +782,7 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
     }
 
     try {
-      await firestore.collection(`users/${userId}/calendar_providers`).doc('apple').set({
+      await firestore.collection(`users/${userId}/calendar_providers`).doc('apple').set(cleanForFirestore({
         provider: 'apple',
         connected: true,
         email: appleId,
@@ -789,7 +790,7 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
         syncDirection: 'two-way',
         credentials: storedCreds,
         lastSyncedAt: null,
-      });
+      }));
 
       log.info({ userId }, 'Stored Apple Calendar credentials (encrypted)');
       return true;
@@ -870,7 +871,7 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
       await firestore
         .collection(`users/${userId}/calendar_providers`)
         .doc('apple')
-        .update({ credentials: storedCreds });
+        .update(cleanForFirestore({ credentials: storedCreds }));
     } catch (error) {
       log.error({ error: String(error) }, 'Error updating Apple credentials');
     }

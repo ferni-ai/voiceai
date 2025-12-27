@@ -476,9 +476,7 @@ export function buildSpeechContext(input: {
   const userJustLaughed = input.userText ? detectUserLaughter(input.userText) : false;
 
   // Generate random seed for deterministic behavior selection
-  const randomSeed = input.sessionId
-    ? `${input.sessionId}-${input.turnCount || 0}`
-    : undefined;
+  const randomSeed = input.sessionId ? `${input.sessionId}-${input.turnCount || 0}` : undefined;
 
   return {
     userWPM,

@@ -13,6 +13,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { embed, cosineSimilarity } from './embeddings.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-memory-cache' });
 

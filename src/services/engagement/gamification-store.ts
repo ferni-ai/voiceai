@@ -23,7 +23,7 @@
 
 import { Firestore, FieldValue, Query, DocumentData } from '@google-cloud/firestore';
 import { z } from 'zod';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
@@ -248,7 +248,7 @@ class MayaGamificationStore {
 
       // Create new profile
       const newProfile = this.createDefaultProfile(userId);
-      await docRef.set(newProfile);
+      await docRef.set(cleanForFirestore(newProfile));
       this.cacheProfile(userId, newProfile);
 
       getLogger().info({ userId }, '🎮 Created new gamification profile');
@@ -285,7 +285,7 @@ class MayaGamificationStore {
           .doc(userId)
           .collection(this.GAMIFICATION_SUBCOLLECTION)
           .doc('profile')
-          .set(validated);
+          .set(cleanForFirestore(validated));
       } catch (error) {
         getLogger().error({ error, userId }, 'Failed to save gamification profile');
       }
@@ -350,7 +350,7 @@ class MayaGamificationStore {
           .doc('badges')
           .collection('items')
           .doc(validated.badgeId)
-          .set(validated);
+          .set(cleanForFirestore(validated));
 
         // Update badge count in profile
         const profile = await this.getProfile(userId);
@@ -473,7 +473,7 @@ class MayaGamificationStore {
           .doc('challenges')
           .collection('items')
           .doc(validated.id)
-          .set(validated);
+          .set(cleanForFirestore(validated));
 
         getLogger().info(
           { userId, challengeType: challenge.challengeType },
@@ -514,7 +514,7 @@ class MayaGamificationStore {
       const current = ChallengeProgressSchema.parse(doc.data());
       const updated = ChallengeProgressSchema.parse({ ...current, ...updates });
 
-      await docRef.set(updated);
+      await docRef.set(cleanForFirestore(updated));
 
       // If completed, update profile and award XP
       if (updates.status === 'completed' && current.status !== 'completed') {
@@ -612,7 +612,7 @@ class MayaGamificationStore {
           .doc('behavior_tools')
           .collection('items')
           .doc(validated.id)
-          .set(validated);
+          .set(cleanForFirestore(validated));
 
         // Update profile stats
         const profile = await this.getProfile(userId);
@@ -689,7 +689,7 @@ class MayaGamificationStore {
           .doc('mood_logs')
           .collection('items')
           .doc(validated.id)
-          .set(validated);
+          .set(cleanForFirestore(validated));
 
         getLogger().debug({ userId, mood: mood.mood, energy: mood.energy }, '📊 Mood logged');
       } catch (error) {
@@ -771,7 +771,7 @@ class MayaGamificationStore {
         .doc('weekly')
         .collection('entries')
         .doc(userId)
-        .set(entry);
+        .set(cleanForFirestore(entry));
 
       // Update monthly leaderboard
       await this.db
@@ -787,7 +787,7 @@ class MayaGamificationStore {
         .doc('all_time')
         .collection('entries')
         .doc(userId)
-        .set(entry);
+        .set(cleanForFirestore(entry));
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to update leaderboard');
     }
@@ -1197,7 +1197,7 @@ class MayaGamificationStore {
   }
 
   private cacheProfile(userId: string, profile: GamificationProfile): void {
-    this.profileCache.set(userId, {
+    this.profileCache.set(cleanForFirestore(userId), {
       data: profile,
       expires: Date.now() + this.CACHE_TTL,
     });

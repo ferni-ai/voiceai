@@ -28,15 +28,16 @@
  * @module agents/shared/json-function-executor
  */
 
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { recordAction } from './action-history.js';
+import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 import {
   cacheToolResult,
   checkToolCache,
   invalidateToolCache,
 } from './performance/tool-response-cache.js';
 import { executeWithReliability } from './tool-execution-reliability.js';
-import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
-import { recordAction } from './action-history.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -457,7 +458,7 @@ async function routeToTool(
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
-          .add(memoryDoc);
+          .add(cleanForFirestore(memoryDoc));
 
         // Also index in vector store for cross-session semantic search
         try {
@@ -785,12 +786,12 @@ async function routeToTool(
         // Boost confidence (asymptotic approach to 1.0)
         const newConfidence = Math.min(0.99, currentConfidence + (1 - currentConfidence) * 0.15);
 
-        await docToReinforce.ref.update({
+        await docToReinforce.ref.update(cleanForFirestore({
           confidence: newConfidence,
           reinforceCount: reinforceCount + 1,
           lastReinforcedAt: new Date(),
           importance: newConfidence > 0.85 ? 'high' : currentData.importance,
-        });
+        }));
 
         log.info(
           { oldConfidence: currentConfidence, newConfidence, reinforceCount: reinforceCount + 1 },
@@ -861,16 +862,18 @@ async function routeToTool(
             .collection('bogle_users')
             .doc(ctx.userId)
             .collection('extracted_facts')
-            .add({
-              fact: newFact,
-              category: 'personal',
-              importance: 'medium',
-              confidence: 0.8,
-              extractedAt: new Date(),
-              source: 'explicit_update',
-              previousVersion: oldFact,
-              ...(newEmbedding && { embedding: newEmbedding }),
-            });
+            .add(
+              cleanForFirestore({
+                fact: newFact,
+                category: 'personal',
+                importance: 'medium',
+                confidence: 0.8,
+                extractedAt: new Date(),
+                source: 'explicit_update',
+                previousVersion: oldFact,
+                ...(newEmbedding && { embedding: newEmbedding }),
+              })
+            );
         }
 
         // Silent operation
@@ -1001,17 +1004,17 @@ async function routeToTool(
     // This emits the voiceSwitch event which triggers voice/LLM switch
     try {
       const { executeHandoff } = await import('../../tools/handoff/executor.js');
-      
+
       log.info(
         { target, reason, sessionId: ctx.sessionId },
         '🎭 Executing handoff via executor (will emit voiceSwitch event)'
       );
-      
+
       const result = await executeHandoff(target, reason, {
         sessionId: ctx.sessionId,
         // Pass through context for proper handoff
       });
-      
+
       if (result.success) {
         log.info(
           { target, greeting: result.greeting?.slice(0, 50), sessionId: ctx.sessionId },
@@ -1027,10 +1030,7 @@ async function routeToTool(
           handoffComplete: true,
         };
       } else {
-        log.warn(
-          { target, error: result.error, sessionId: ctx.sessionId },
-          '⚠️ Handoff failed'
-        );
+        log.warn({ target, error: result.error, sessionId: ctx.sessionId }, '⚠️ Handoff failed');
         return {
           success: false,
           target,
@@ -1226,20 +1226,22 @@ async function routeToTool(
           .doc(ctx.userId)
           .collection('habits')
           .doc(habitId)
-          .set({
-            id: habitId,
-            name,
-            domain,
-            cue: cue || null,
-            currentLevel: 1, // Start at tiny habit level (Glidepath)
-            targetLevel: 3,
-            frequency: 'daily',
-            currentStreak: 0,
-            totalCompletions: 0,
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
+          .set(
+            cleanForFirestore({
+              id: habitId,
+              name,
+              domain,
+              cue: cue || null,
+              currentLevel: 1, // Start at tiny habit level (Glidepath)
+              targetLevel: 3,
+              frequency: 'daily',
+              currentStreak: 0,
+              totalCompletions: 0,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+          );
 
         // Return behavior-science guided response
         const tinyHabitResponses = [
@@ -1289,20 +1291,26 @@ async function routeToTool(
           const newStreak = (habitData.currentStreak || 0) + 1;
           const newTotal = (habitData.totalCompletions || 0) + 1;
 
-          await matchingHabit.ref.update({
+          await matchingHabit.ref.update(cleanForFirestore({
             currentStreak: newStreak,
             totalCompletions: newTotal,
             lastCompleted: new Date(),
             updatedAt: new Date(),
-          });
+          }));
 
           // Log completion event
-          await db.collection('bogle_users').doc(ctx.userId).collection('habit_completions').add({
-            habitId: matchingHabit.id,
-            habitName: habitData.name,
-            completedAt: new Date(),
-            streak: newStreak,
-          });
+          await db
+            .collection('bogle_users')
+            .doc(ctx.userId)
+            .collection('habit_completions')
+            .add(
+              cleanForFirestore({
+                habitId: matchingHabit.id,
+                habitName: habitData.name,
+                completedAt: new Date(),
+                streak: newStreak,
+              })
+            );
 
           // Generate streak-aware celebration
           if (newStreak === 7) {
@@ -2193,11 +2201,13 @@ async function routeToTool(
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('notes')
-          .add({
-            content,
-            type: type || 'note',
-            createdAt: new Date(),
-          });
+          .add(
+            cleanForFirestore({
+              content,
+              type: type || 'note',
+              createdAt: new Date(),
+            })
+          );
         return `Got it, I've noted that down.`;
       } catch {
         return `I noted that mentally: "${content.slice(0, 50)}..."`;

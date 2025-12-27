@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 
 const log = createLogger({ module: 'relationship-graph' });
@@ -613,7 +613,7 @@ async function saveNode(userId: string, node: PersonNode): Promise<void> {
       .doc(userId)
       .collection('relationship_nodes')
       .doc(node.id)
-      .set(node);
+      .set(cleanForFirestore(node));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save relationship node');
   }
@@ -668,7 +668,7 @@ async function saveConnection(userId: string, connection: PersonConnection): Pro
       .doc(userId)
       .collection('relationship_connections')
       .doc(connection.id)
-      .set(connection);
+      .set(cleanForFirestore(connection));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save connection');
   }

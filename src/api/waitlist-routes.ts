@@ -23,6 +23,7 @@ import admin from 'firebase-admin';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 
@@ -241,10 +242,10 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
       .collection('waitlist')
       .doc(docId)
       .set(
-        {
+        cleanForFirestore({
           ...signup,
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -291,11 +292,11 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
 
       transaction.set(
         featureRef,
-        {
+        cleanForFirestore({
           featureId,
           votes: currentVotes + 1,
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
     });
@@ -317,11 +318,11 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
         .collection('waitlist')
         .doc(docId)
         .set(
-          {
+          cleanForFirestore({
             ...signup,
             interestedFeatures: FieldValue.arrayUnion(featureId),
             updatedAt: new Date(),
-          },
+          }),
           { merge: true }
         );
     }

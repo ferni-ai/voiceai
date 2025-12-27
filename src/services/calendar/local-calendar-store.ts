@@ -39,6 +39,7 @@ interface StoredEvent {
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 const LOCAL_CALENDAR_COLLECTION = 'local_calendar_events';
@@ -128,7 +129,7 @@ async function persistEvent(userId: string, event: CalendarEvent): Promise<void>
   };
 
   try {
-    await firestore.collection(LOCAL_CALENDAR_COLLECTION).doc(event.id).set(stored);
+    await firestore.collection(LOCAL_CALENDAR_COLLECTION).doc(event.id).set(cleanForFirestore(stored));
   } catch (error) {
     log.error({ error: String(error), eventId: event.id }, 'Failed to persist local event');
   }

@@ -18,6 +18,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import type { ChangeTalk, ChangeTalkInstance } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'MotivationalInterviewing' });
 
@@ -419,7 +420,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
 
 function persistHistory(userId: string): void {
   const history = changeTalkHistory.get(userId) || [];
-  getPersistence().set(userId, {
+  getPersistence().set(cleanForFirestore(userId), {
     history: history.map(serializeInstance),
   });
 }

@@ -15,6 +15,7 @@
 
 import { LRUCache } from 'lru-cache';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ContextService' });
 

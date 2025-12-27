@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   getCapabilityEffectiveness,
   clearCapabilityTracking,
@@ -72,7 +73,7 @@ const sessionSurfacedDomains = new Map<string, { domains: string[]; timestamp: n
  * Called from domain-fluency builder when domains are surfaced
  */
 export function trackSurfacedDomains(sessionKey: string, domains: string[]): void {
-  sessionSurfacedDomains.set(sessionKey, {
+  sessionSurfacedDomains.set(cleanForFirestore(sessionKey), {
     domains,
     timestamp: Date.now(),
   });
@@ -383,11 +384,11 @@ export async function persistPatterns(): Promise<void> {
     }
 
     await docRef.set(
-      {
+      cleanForFirestore({
         patterns: patternsObj,
         updatedAt: new Date(),
         version: 1,
-      },
+      }),
       { merge: true }
     );
 
@@ -427,7 +428,7 @@ export async function loadPatterns(): Promise<void> {
     let loadedCount = 0;
 
     for (const [domain, pattern] of Object.entries(patternsObj)) {
-      aggregatePatterns.set(domain, {
+      aggregatePatterns.set(cleanForFirestore(domain), {
         ...pattern,
         // Convert Firestore timestamp to Date if needed
         lastUpdated:

@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
@@ -507,7 +508,7 @@ export function scheduleExperiment(
   personaId: string,
   schedule: ExperimentSchedule
 ): void {
-  scheduledExperiments.set(experimentId, { experimentId, personaId, schedule });
+  scheduledExperiments.set(cleanForFirestore(experimentId), { experimentId, personaId, schedule });
 
   // Ensure schedule checker is running
   if (!scheduleCheckTimer) {

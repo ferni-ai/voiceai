@@ -30,6 +30,7 @@ import {
 import { getEmbedding, getEmbeddings } from '../embedding-providers.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getExampleText, normalizeExamples } from '../types.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:tool-embedding-index' });
 
@@ -281,7 +282,7 @@ class ToolEmbeddingIndexService {
         const { toolId, type, index } = textsToEmbed[i];
 
         if (!toolEmbeddings.has(toolId)) {
-          toolEmbeddings.set(toolId, { examples: [] });
+          toolEmbeddings.set(cleanForFirestore(toolId), { examples: [] });
         }
 
         const te = toolEmbeddings.get(toolId)!;

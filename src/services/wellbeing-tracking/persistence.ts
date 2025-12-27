@@ -12,6 +12,7 @@
  */
 
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 import type {
@@ -101,7 +102,7 @@ export async function persistSnapshot(
       .doc(userId)
       .collection('wellbeing_snapshots')
       .doc(snapshot.id)
-      .set(firestoreData);
+      .set(cleanForFirestore(firestoreData));
 
     // Clear cache to force refresh
     clearCacheForUser(userId);
@@ -161,7 +162,7 @@ export async function loadSnapshots(userId: string, days = 30): Promise<Wellbein
     );
 
     // Update cache
-    snapshotCache.set(userId, {
+    snapshotCache.set(cleanForFirestore(userId), {
       snapshots,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
@@ -211,10 +212,10 @@ export async function persistProfile(userId: string, profile: WellbeingProfile):
       .doc(userId)
       .collection('wellbeing_profile')
       .doc('current')
-      .set(firestoreData, { merge: true });
+      .set(cleanForFirestore(firestoreData), { merge: true });
 
     // Update cache
-    profileCache.set(userId, {
+    profileCache.set(cleanForFirestore(userId), {
       profile,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
@@ -299,7 +300,7 @@ export async function loadProfile(userId: string): Promise<WellbeingProfile | nu
     };
 
     // Update cache
-    profileCache.set(userId, {
+    profileCache.set(cleanForFirestore(userId), {
       profile,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });

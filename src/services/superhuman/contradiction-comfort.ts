@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'ContradictionComfort' });
 
@@ -441,7 +441,7 @@ export async function recordContradiction(
     }
 
     profile.updatedAt = new Date();
-    await ref.set(profile);
+    await ref.set(cleanForFirestore(profile));
 
     log.debug({ userId, emotions: detection.emotions }, 'Recorded contradiction');
   } catch (error) {

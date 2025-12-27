@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'life-narrative' });
 
@@ -235,7 +235,7 @@ export async function saveChapter(chapter: LifeChapter): Promise<void> {
         .doc(chapter.userId)
         .collection('life_chapters')
         .doc(chapter.id)
-        .set(chapter);
+        .set(cleanForFirestore(chapter));
     }
 
     // Update cache
@@ -407,7 +407,7 @@ export async function recordIdentityShift(
   // Save
   const db = getFirestoreDb();
   if (db) {
-    await db.collection('bogle_users').doc(userId).collection('meta').doc('identity').set(identity);
+    await db.collection('bogle_users').doc(userId).collection('meta').doc('identity').set(cleanForFirestore(identity));
   }
   identityCache.set(userId, identity);
 

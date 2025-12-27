@@ -35,6 +35,7 @@ const log = getLogger();
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 
@@ -729,7 +730,7 @@ async function persistEvent(userId: string, event: CalendarEvent): Promise<void>
 
   try {
     const stored = eventToStored(event);
-    await firestore.collection(getUserEventsCollection(userId)).doc(event.id).set(stored);
+    await firestore.collection(getUserEventsCollection(userId)).doc(event.id).set(cleanForFirestore(stored));
   } catch (error) {
     log.error({ error: String(error), eventId: event.id }, 'Failed to persist event');
   }
@@ -761,7 +762,7 @@ async function persistProviderConnection(
     await firestore
       .collection(getUserProvidersCollection(userId))
       .doc(connection.provider)
-      .set(stored);
+      .set(cleanForFirestore(stored));
   } catch (error) {
     log.error(
       { error: String(error), provider: connection.provider },

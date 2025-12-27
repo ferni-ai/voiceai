@@ -98,6 +98,16 @@ export { CleanupManager, addAutoCleanupListener, addOnceListener } from './clean
 
 export { cleanForFirestore, deepRemoveUndefined, removeUndefined } from './firestore-utils.js';
 
+// Safe Firestore write operations (ALWAYS use these instead of direct writes!)
+export {
+  safeSet,
+  safeUpdate,
+  safeAdd,
+  createSafeBatch,
+  getFirestoreInstance,
+  COLLECTIONS,
+} from './safe-firestore.js';
+
 // ============================================================================
 // SAFE FIRE AND FORGET
 // ============================================================================

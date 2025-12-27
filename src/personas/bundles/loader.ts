@@ -302,11 +302,13 @@ export async function loadBundle(
       const storiesDir = manifest.content.stories?.directory;
       if (!storiesDir) return null;
 
-      const storyPath = join(bundlePath, storiesDir, ref.file);
+      // Default to ${id}.json if file property is missing
+      const storyFile = ref.file || `${id}.json`;
+      const storyPath = join(bundlePath, storiesDir, storyFile);
       if (!(await fileExists(storyPath))) return null;
 
       let story: BundleStory;
-      if (ref.file.endsWith('.json')) {
+      if (storyFile.endsWith('.json')) {
         story = await loadJsonFile<BundleStory>(storyPath);
       } else {
         // Markdown file - wrap in story object
@@ -390,11 +392,13 @@ export async function loadBundle(
       const knowledgeDir = manifest.content.knowledge?.directory;
       if (!knowledgeDir) return null;
 
-      const knowledgePath = join(bundlePath, knowledgeDir, ref.file);
+      // Default to ${id}.md if file property is missing
+      const knowledgeFile = ref.file || `${ref.id}.md`;
+      const knowledgePath = join(bundlePath, knowledgeDir, knowledgeFile);
       if (!(await fileExists(knowledgePath))) return null;
 
       let knowledge: BundleKnowledge;
-      if (ref.file.endsWith('.json')) {
+      if (knowledgeFile.endsWith('.json')) {
         knowledge = await loadJsonFile<BundleKnowledge>(knowledgePath);
       } else {
         const content = await loadMarkdownFile(knowledgePath);

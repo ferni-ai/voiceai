@@ -59,6 +59,7 @@ import {
 import { getHopeProfile, importHopeProfile, type HopeProfile } from './hope-trajectory.js';
 
 import { getChapterProfile, importChapterProfile, type ChapterProfile } from './life-chapter.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'DeepUnderstandingPersistence' });
 
@@ -157,7 +158,7 @@ async function saveSystemProfile<T>(
       version: CURRENT_VERSION,
     };
 
-    await getDoc(userId, systemName).set(doc, { merge: true });
+    await getDoc(userId, systemName).set(cleanForFirestore(doc), { merge: true });
     log.debug({ userId, systemName }, 'Deep understanding profile saved');
     return true;
   } catch (error) {

@@ -32,6 +32,7 @@ import { recordPattern as recordCoachingPattern } from '../intelligence/coaching
 
 // Superhuman observations
 import { getSuperhumanObservations } from '../conversation/superhuman/superhuman-observations.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'PredictionsWorker' });
 

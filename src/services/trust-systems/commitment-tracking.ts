@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -426,7 +427,7 @@ export async function saveCommitment(commitment: Commitment): Promise<void> {
       .doc(commitment.userId)
       .collection('commitments')
       .doc(commitment.id)
-      .set(commitmentData);
+      .set(cleanForFirestore(commitmentData));
 
     log.info({ userId: commitment.userId, commitmentId: commitment.id }, '💫 Commitment saved');
   } catch (err) {
@@ -563,7 +564,7 @@ export async function updateCommitmentStatus(
       .doc(userId)
       .collection('commitments')
       .doc(commitmentId)
-      .update(updates);
+      .update(cleanForFirestore(updates));
 
     log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
   } catch (err) {
@@ -608,14 +609,14 @@ export async function recordFollowUp(
     const doc = await docRef.get();
     if (doc.exists) {
       const data = doc.data();
-      await docRef.update({
+      await docRef.update(cleanForFirestore({
         followUpCount: (data?.followUpCount || 0) + 1,
         followUpReception: reception,
         followUpDate: nextFollowUp.toISOString(),
         lastMentioned: new Date().toISOString(),
         // If avoidant 3+ times, stop following up
         shouldFollowUp: reception === 'avoidant' && (data?.followUpCount || 0) >= 2 ? false : true,
-      });
+      }));
     }
   } catch (err) {
     log.error({ error: String(err), userId, commitmentId }, 'Failed to record follow-up');

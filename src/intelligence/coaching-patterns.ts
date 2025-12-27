@@ -15,6 +15,7 @@
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -223,18 +224,26 @@ export async function recordPattern(observation: PatternObservation): Promise<vo
         surfacedToUser: false,
       };
 
-      await db.collection(PATTERNS_COLLECTION).doc(newPattern.id).set(newPattern);
+      await db
+        .collection(PATTERNS_COLLECTION)
+        .doc(newPattern.id)
+        .set(cleanForFirestore(newPattern));
       log.debug({ userId, patternType, pattern }, 'Created new pattern record');
     } else {
       // Update existing pattern
       const doc = existing.docs[0];
       const data = doc.data();
 
-      await doc.ref.update({
-        occurrences: (data.occurrences || 0) + 1,
-        lastSeen: now,
-        contexts: [...(data.contexts || []).slice(-9), { ...context, timestamp: now, triggerText }],
-      });
+      await doc.ref.update(
+        cleanForFirestore({
+          occurrences: (data.occurrences || 0) + 1,
+          lastSeen: now,
+          contexts: [
+            ...(data.contexts || []).slice(-9),
+            { ...context, timestamp: now, triggerText },
+          ],
+        })
+      );
 
       log.debug(
         { userId, patternType, pattern, occurrences: data.occurrences + 1 },
@@ -339,11 +348,13 @@ export async function markPatternSurfaced(
     await db
       .collection(PATTERNS_COLLECTION)
       .doc(patternId)
-      .update({
-        surfacedToUser: true,
-        surfacedAt: new Date(),
-        ...(reaction && { userReaction: reaction }),
-      });
+      .update(
+        cleanForFirestore({
+          surfacedToUser: true,
+          surfacedAt: new Date(),
+          ...(reaction && { userReaction: reaction }),
+        })
+      );
 
     // Invalidate cache (get userId from pattern ID format)
     const userId = patternId.split('_')[0];

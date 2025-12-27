@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'MonetizationPersistence' });
 

@@ -17,6 +17,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type {
   CallOutcome,
   CallObjective,

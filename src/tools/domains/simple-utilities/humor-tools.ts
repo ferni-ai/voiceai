@@ -17,6 +17,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -116,10 +117,10 @@ async function saveHumorHistory(userId: string, type: 'jokes' | 'facts' | 'stori
     const store = getFirestoreStore();
     const db = await store.getDatabase();
 
-    await db.collection('bogle_users').doc(userId).collection('humor_history').doc(type).set({
+    await db.collection('bogle_users').doc(userId).collection('humor_history').doc(type).set(cleanForFirestore({
       heard: Array.from(heard),
       updatedAt: new Date().toISOString(),
-    });
+    }));
     log.debug({ userId, type, count: heard.size }, 'Saved humor history');
   } catch (error) {
     log.debug({ error: String(error), userId, type }, 'Could not save humor history');

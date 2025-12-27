@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type {
   DecisionPoint,
   CounterfactualOutcome,
@@ -593,7 +593,7 @@ async function saveDecisionPoint(userId: string, decision: DecisionPoint): Promi
       .doc(userId)
       .collection('decision_points')
       .doc(decision.id)
-      .set(decision);
+      .set(cleanForFirestore(decision));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save decision point');
   }
@@ -631,7 +631,7 @@ async function savePattern(userId: string, pattern: CounterfactualPattern): Prom
       .doc(userId)
       .collection('counterfactual_patterns')
       .doc(pattern.id)
-      .set(pattern);
+      .set(cleanForFirestore(pattern));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save pattern');
   }

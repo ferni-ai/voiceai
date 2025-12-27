@@ -15,6 +15,7 @@ import { resilienceMetrics } from '../observability/resilience-metrics.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'health-monitors' });
 

@@ -290,6 +290,13 @@ export type {
   LearningPattern,
 } from './cognitive-insights.ui.js';
 
+// Semantic Intelligence Panel (Better Than Human V3.0-V3.7)
+export {
+  showSemanticIntelligencePanel,
+  hideSemanticIntelligencePanel,
+  isSemanticIntelligencePanelVisible,
+} from './semantic-intelligence-panel.ui.js';
+
 // Custom Ritual Builder UI
 export { getRitualBuilderUI, initRitualBuilderUI, showRitualBuilder } from './ritual-builder.ui.js';
 export type { CustomRitual, RitualBuilderUICallbacks } from './ritual-builder.ui.js';

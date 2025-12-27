@@ -15,6 +15,7 @@ import { canReachUser, scheduleText } from '../../tools/domains/proactive/outrea
 import { getLogger } from '../../utils/safe-logger.js';
 import { canSendOutreach, getPreferences } from '../outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -141,7 +142,7 @@ function persistUserData(userId: string): void {
   const events = eventStore.get(userId) || [];
   const sentLog = reminderSentLog.get(userId) || new Set();
 
-  getPersistence().set(userId, {
+  getPersistence().set(cleanForFirestore(userId), {
     events: events.map(serializeEvent),
     remindersSent: Array.from(sentLog),
   });
@@ -416,7 +417,7 @@ export async function checkAndSendReminders(): Promise<{
         if (digest) {
           const result = await scheduleText(userId, digest.message, now, 'Ferni');
           if (result.success) {
-            sentLog.add(digestKey);
+            sentLog.add(cleanForFirestore(digestKey));
             digestsSent++;
             getLogger().info({ userId }, '📅 Morning digest sent');
           }

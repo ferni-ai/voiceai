@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type {
   RelationshipArcData,
   FirstMeetingData,
@@ -82,7 +83,7 @@ export async function loadRelationshipArcData(userId: string): Promise<Relations
     const data = doc.data() as RelationshipArcData;
 
     // Update cache
-    arcCache.set(userId, { data, loadedAt: Date.now() });
+    arcCache.set(cleanForFirestore(userId), { data, loadedAt: Date.now() });
 
     log.debug({ userId, stage: data.currentStage }, 'Loaded relationship arc data');
     return data;
@@ -108,7 +109,7 @@ export async function saveRelationshipArcData(data: RelationshipArcData): Promis
       .doc(data.userId)
       .collection('relationship_arc')
       .doc('data')
-      .set(data, { merge: true });
+      .set(cleanForFirestore(data), { merge: true });
 
     // Update cache
     arcCache.set(data.userId, { data, loadedAt: Date.now() });

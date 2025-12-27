@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'user-analytics' });
 
@@ -207,8 +208,8 @@ export async function recordSessionStart(
   // Persist
   if (firestoreAvailable && firestoreClient) {
     try {
-      await firestoreClient.collection(COLLECTIONS.DAILY).doc(dateKey).set(daily);
-      await firestoreClient.collection(COLLECTIONS.SESSIONS).doc(sessionId).set(session);
+      await firestoreClient.collection(COLLECTIONS.DAILY).doc(dateKey).set(cleanForFirestore(daily));
+      await firestoreClient.collection(COLLECTIONS.SESSIONS).doc(sessionId).set(cleanForFirestore(session));
     } catch (error) {
       log.error({ error }, 'Failed to persist session start');
     }
@@ -272,7 +273,7 @@ export async function recordSessionEnd(
 
     if (firestoreAvailable && firestoreClient) {
       try {
-        await firestoreClient.collection(COLLECTIONS.DAILY).doc(dateKey).set(daily);
+        await firestoreClient.collection(COLLECTIONS.DAILY).doc(dateKey).set(cleanForFirestore(daily));
       } catch (error) {
         log.error({ error }, 'Failed to update daily analytics');
       }
@@ -287,7 +288,7 @@ export async function recordSessionEnd(
   // Persist session
   if (firestoreAvailable && firestoreClient) {
     try {
-      await firestoreClient.collection(COLLECTIONS.SESSIONS).doc(sessionId).set(session);
+      await firestoreClient.collection(COLLECTIONS.SESSIONS).doc(sessionId).set(cleanForFirestore(session));
     } catch (error) {
       log.error({ error }, 'Failed to persist session end');
     }
@@ -350,7 +351,7 @@ async function updateUserStats(
 
   if (firestoreAvailable && firestoreClient) {
     try {
-      await firestoreClient.collection(COLLECTIONS.USERS).doc(visitorId).set(stats);
+      await firestoreClient.collection(COLLECTIONS.USERS).doc(visitorId).set(cleanForFirestore(stats));
     } catch (error) {
       log.error({ error }, 'Failed to update user stats');
     }

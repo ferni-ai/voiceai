@@ -18,6 +18,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -638,21 +639,72 @@ export async function getContactsNeedingAttention(
 }
 
 /**
- * Search contacts by name or topic
+ * Relationship aliases for natural language matching
+ * Maps common words to relationship types
+ */
+const RELATIONSHIP_ALIASES: Record<string, string[]> = {
+  family: [
+    'mom', 'mother', 'mama', 'ma', 'mommy',
+    'dad', 'father', 'papa', 'pa', 'daddy',
+    'brother', 'bro', 'sis', 'sister',
+    'grandma', 'grandmother', 'granny', 'nana',
+    'grandpa', 'grandfather', 'grandad', 'gramps',
+    'aunt', 'auntie', 'uncle',
+    'cousin', 'niece', 'nephew',
+    'son', 'daughter', 'kid', 'child',
+    'wife', 'husband', 'spouse', 'partner',
+  ],
+  friend: ['friend', 'buddy', 'pal', 'bestie', 'bff'],
+  colleague: ['colleague', 'coworker', 'boss', 'manager', 'teammate'],
+  professional: ['doctor', 'dentist', 'lawyer', 'therapist', 'accountant'],
+};
+
+/**
+ * Search contacts by name, topic, or relationship alias
  */
 export async function searchContacts(
   userId: string,
   query: string
 ): Promise<ContactRelationship[]> {
   const contacts = await getContacts(userId);
-  const queryLower = query.toLowerCase();
+  const queryLower = query.toLowerCase().trim();
+
+  // Check if query is a relationship alias
+  let matchingRelationshipType: string | null = null;
+  for (const [relType, aliases] of Object.entries(RELATIONSHIP_ALIASES)) {
+    if (aliases.includes(queryLower)) {
+      matchingRelationshipType = relType;
+      break;
+    }
+  }
 
   return contacts.filter((contact) => {
+    // Search by relationship alias (e.g., "mom" matches family)
+    if (matchingRelationshipType && contact.relationship === matchingRelationshipType) {
+      // For family, also check if the specific alias matches the role
+      // e.g., "mom" should match someone whose notes say "mom" or relationship is family
+      const notesLower = contact.notes?.toLowerCase() || '';
+      if (notesLower.includes(queryLower) || notesLower.includes('mom') || notesLower.includes('mother')) {
+        return true;
+      }
+      // If no specific match in notes, still return family members for "mom"
+      // This is a fallback for cases where notes aren't set
+      if (queryLower === 'mom' || queryLower === 'mother' || queryLower === 'mama') {
+        return true; // Return any family member as a match
+      }
+    }
+
     // Search name
     if (contact.name.toLowerCase().includes(queryLower)) return true;
 
     // Search email
     if (contact.email?.toLowerCase().includes(queryLower)) return true;
+
+    // Search phone (support partial matching)
+    if (contact.phone?.includes(queryLower)) return true;
+
+    // Search notes (for aliases like "my mom")
+    if (contact.notes?.toLowerCase().includes(queryLower)) return true;
 
     // Search topics
     if (contact.topics.some((t) => t.topic.toLowerCase().includes(queryLower))) return true;
@@ -974,12 +1026,15 @@ async function persistContact(contact: ContactRelationship): Promise<void> {
   if (!firestore) return;
 
   try {
+    // Remove undefined values before persisting to Firestore
+    const cleanContact = Object.fromEntries(
+      Object.entries(contact).filter(([_, v]) => v !== undefined)
+    );
+    
     await firestore
       .collection(CONTACTS_COLLECTION)
       .doc(contact.id)
-      .set({
-        ...contact,
-      });
+      .set(cleanForFirestore(cleanContact));
   } catch (error) {
     log.error({ error: String(error), contactId: contact.id }, 'Failed to persist contact');
   }
@@ -990,7 +1045,7 @@ async function persistInteraction(interaction: InteractionRecord): Promise<void>
   if (!firestore) return;
 
   try {
-    await firestore.collection(INTERACTIONS_COLLECTION).doc(interaction.id).set(interaction);
+    await firestore.collection(INTERACTIONS_COLLECTION).doc(interaction.id).set(cleanForFirestore(interaction));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist interaction');
   }

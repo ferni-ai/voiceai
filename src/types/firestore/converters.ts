@@ -19,7 +19,7 @@
  * const user = doc.data(); // UserIdentity with UserId branded type
  *
  * // Write with validation
- * await db.collection('users').doc(userId).withConverter(converter).set(user);
+ * await db.collection('users').doc(userId).withConverter(converter).set(cleanForFirestore(user));
  * ```
  *
  * @module types/firestore/converters
@@ -27,6 +27,7 @@
 
 import type { z } from 'zod';
 import type { GoalId, MemoryId, OrganizationId, PersonaId, SessionId, UserId } from '../branded.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   unsafeAsGoalId,
   unsafeAsMemoryId,

@@ -14,6 +14,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -85,7 +86,7 @@ async function persistAnalytics(userId: string): Promise<void> {
     if (!userUsage) return;
 
     const data = Object.fromEntries(userUsage);
-    await db.collection('bogle_users').doc(userId).collection('analytics').doc('capability_usage').set(data, { merge: true });
+    await db.collection('bogle_users').doc(userId).collection('analytics').doc('capability_usage').set(cleanForFirestore(data), { merge: true });
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Could not persist analytics');
   }

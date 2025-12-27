@@ -20,6 +20,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import { getRedisCache } from './redis-cache.js';
 import type { MemoryItem } from './interfaces/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TieredMemoryStorage' });
 

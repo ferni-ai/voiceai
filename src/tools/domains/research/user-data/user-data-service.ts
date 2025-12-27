@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import type {
   InvestmentThesis,
   ThesisUpdate,
@@ -65,12 +66,12 @@ export async function saveInvestmentThesis(
       .collection('investment_theses')
       .doc(thesis.symbol.toUpperCase());
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...thesis,
       purchaseDate: thesis.purchaseDate.toISOString(),
       updates: thesis.updates.map((u) => ({ ...u, date: u.date.toISOString() })),
       lastReviewed: thesis.lastReviewed.toISOString(),
-    });
+    }));
 
     log.debug({ userId, symbol: thesis.symbol }, 'Investment thesis saved');
   } catch (error) {
@@ -175,7 +176,7 @@ export async function saveFinancialGoal(userId: string, goal: FinancialGoal): Pr
       .collection('financial_goals')
       .doc(goal.id);
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...goal,
       target: {
         ...goal.target,
@@ -194,7 +195,7 @@ export async function saveFinancialGoal(userId: string, goal: FinancialGoal): Pr
         celebratedAt: m.celebratedAt?.toISOString(),
       })),
       createdAt: goal.createdAt.toISOString(),
-    });
+    }));
 
     log.debug({ userId, goalId: goal.id, goalName: goal.name }, 'Financial goal saved');
   } catch (error) {
@@ -326,10 +327,10 @@ export async function saveLifeEvent(userId: string, event: LifeEvent): Promise<v
       .collection('life_events')
       .doc(event.id);
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...event,
       date: event.date.toISOString(),
-    });
+    }));
 
     log.debug({ userId, eventId: event.id, eventType: event.type }, 'Life event saved');
   } catch (error) {
@@ -400,10 +401,10 @@ export async function saveQuestion(userId: string, record: QuestionRecord): Prom
       .collection('question_history')
       .doc(record.id);
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...record,
       timestamp: record.timestamp.toISOString(),
-    });
+    }));
 
     log.debug({ userId, questionId: record.id }, 'Question recorded');
   } catch (error) {
@@ -490,14 +491,14 @@ export async function saveLearningPreferences(
       .collection('profile')
       .doc('learning_preferences');
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...prefs,
       effectiveExplanations: prefs.effectiveExplanations.map((e) => ({
         ...e,
         timestamp: e.timestamp.toISOString(),
       })),
       lastUpdated: new Date().toISOString(),
-    });
+    }));
 
     log.debug({ userId }, 'Learning preferences saved');
   } catch (error) {
@@ -594,14 +595,14 @@ export async function saveRiskEvent(userId: string, event: RiskEvent): Promise<v
       .collection('risk_events')
       .doc(event.id);
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...event,
       date: event.date.toISOString(),
       userReaction: {
         ...event.userReaction,
         reflectionDate: event.userReaction.reflectionDate?.toISOString(),
       },
-    });
+    }));
 
     log.debug({ userId, eventId: event.id }, 'Risk event saved');
   } catch (error) {
@@ -699,10 +700,10 @@ export async function saveTrustedSources(userId: string, sources: TrustedSources
       .collection('profile')
       .doc('trusted_sources');
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...sources,
       lastUpdated: new Date().toISOString(),
-    });
+    }));
 
     log.debug({ userId }, 'Trusted sources saved');
   } catch (error) {
@@ -751,7 +752,7 @@ export async function saveKnowledgeProfile(
       .collection('profile')
       .doc('knowledge');
 
-    await docRef.set({
+    await docRef.set(cleanForFirestore({
       ...profile,
       gaps: profile.gaps.map((g) => ({
         ...g,
@@ -759,7 +760,7 @@ export async function saveKnowledgeProfile(
         addressedAt: g.addressedAt?.toISOString(),
       })),
       lastAssessed: profile.lastAssessed.toISOString(),
-    });
+    }));
 
     log.debug({ userId }, 'Knowledge profile saved');
   } catch (error) {

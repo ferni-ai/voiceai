@@ -18,6 +18,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

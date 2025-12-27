@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SemanticRouter.BetterThanHuman' });
 
@@ -873,14 +874,14 @@ export async function persistEmotionalHistory(userId: string): Promise<void> {
     await (db as any)
       .collection('emotional_history')
       .doc(userId)
-      .set({
+      .set(cleanForFirestore({
         userId,
         dataPoints: history.map((dp) => ({
           ...dp,
           timestamp: dp.timestamp.toISOString(),
         })),
         lastUpdated: new Date().toISOString(),
-      });
+      }));
 
     log.debug({ userId, dataPointCount: history.length }, 'Emotional history persisted');
   } catch (error) {

@@ -20,6 +20,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { googleCalendarProvider } from '../providers/google-provider.js';
 import { importEventsFromProvider } from '../unified-calendar-store.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -392,7 +393,7 @@ async function storeWatchChannel(channel: WatchChannel): Promise<void> {
     await firestore
       .collection(`users/${channel.userId}/google_watch_channels`)
       .doc(channel.id)
-      .set(channel);
+      .set(cleanForFirestore(channel));
   } catch (error) {
     log.error({ error: String(error) }, 'Error storing watch channel');
   }

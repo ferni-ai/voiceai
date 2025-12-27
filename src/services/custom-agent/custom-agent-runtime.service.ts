@@ -10,6 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence.service.js';
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -492,11 +493,11 @@ function buildQualifiedTopics(agent: ApiCustomAgent): string[] {
   const allThemes = new Set<string>();
 
   for (const story of agent.memories.stories || []) {
-    (story.themes || []).forEach((t) => allThemes.add(t));
+    (story.themes || []).forEach((t) => allThemes.add(cleanForFirestore(t)));
   }
 
   for (const wisdom of agent.memories.wisdom || []) {
-    (wisdom.themes || []).forEach((t) => allThemes.add(t));
+    (wisdom.themes || []).forEach((t) => allThemes.add(cleanForFirestore(t)));
   }
 
   return [...topics, ...Array.from(allThemes)];

@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'relationship-milestones' });
 
@@ -246,7 +246,7 @@ async function saveMilestone(milestone: RelationshipMilestone): Promise<void> {
       .doc(milestone.userId)
       .collection('relationship_milestones')
       .doc(milestone.id)
-      .set(milestone);
+      .set(cleanForFirestore(milestone));
   }
 
   // Update cache

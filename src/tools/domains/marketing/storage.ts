@@ -5,6 +5,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -170,7 +171,7 @@ export class MarketingStorage {
     const existing = scheduledStore.get(key);
 
     if (existing) {
-      scheduledStore.set(key, { ...existing, ...update });
+      scheduledStore.set(cleanForFirestore(key), { ...existing, ...update });
     }
   }
 

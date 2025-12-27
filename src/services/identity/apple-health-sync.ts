@@ -14,7 +14,7 @@
 
 import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import type {
   AppleHealthSyncPayload,
   AppleHealthSleepData,
@@ -63,13 +63,13 @@ export async function generateSyncToken(
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    await db.collection(SYNC_TOKEN_COLLECTION).doc(userId).set({
+    await db.collection(SYNC_TOKEN_COLLECTION).doc(userId).set(cleanForFirestore({
       hashedToken,
       deviceId,
       deviceName,
       createdAt: new Date().toISOString(),
       lastUsedAt: null,
-    });
+    }));
 
     log.info({ userId, deviceId }, 'Generated Apple Health sync token');
 
@@ -106,7 +106,7 @@ export async function validateSyncToken(
     }
 
     // Update last used timestamp
-    await doc.ref.update({ lastUsedAt: new Date().toISOString() });
+    await doc.ref.update(cleanForFirestore({ lastUsedAt: new Date().toISOString() }));
 
     return { valid: true, deviceId: data.deviceId };
   } catch (error) {
@@ -245,7 +245,7 @@ async function processSleepData(
       .doc(userId)
       .collection('daily')
       .doc(day)
-      .set({ sleep: summary }, { merge: true });
+      .set(cleanForFirestore({ sleep: summary }), { merge: true });
   }
 }
 
@@ -315,7 +315,7 @@ async function storeDailyActivity(
     .doc(userId)
     .collection('daily')
     .doc(activity.date)
-    .set({ activity }, { merge: true });
+    .set(cleanForFirestore({ activity }), { merge: true });
 }
 
 async function storeHeartRateData(
@@ -344,13 +344,13 @@ async function storeHeartRateData(
       .collection('daily')
       .doc(day)
       .set(
-        {
+        cleanForFirestore({
           heart: {
             averageHeartRate: Math.round(average),
             restingHeartRate: resting,
             maxHeartRate: Math.max(...values),
           },
-        },
+        }),
         { merge: true }
       );
   }
@@ -379,7 +379,7 @@ async function storeHrvData(
       .doc(userId)
       .collection('daily')
       .doc(day)
-      .set({ heart: { hrv: Math.round(average) } }, { merge: true });
+      .set(cleanForFirestore({ heart: { hrv: Math.round(average) } }), { merge: true });
   }
 }
 
@@ -401,7 +401,7 @@ async function storeStepsData(
       .doc(userId)
       .collection('daily')
       .doc(day)
-      .set({ activity: { steps } }, { merge: true });
+      .set(cleanForFirestore({ activity: { steps } }), { merge: true });
   }
 }
 
@@ -418,11 +418,11 @@ async function storeWorkout(
     .doc(userId)
     .collection('workouts')
     .doc(workout.id)
-    .set({
+    .set(cleanForFirestore({
       ...workout,
       day,
       syncedAt: new Date().toISOString(),
-    });
+    }));
 }
 
 async function storeMindfulnessSession(
@@ -439,12 +439,12 @@ async function storeMindfulnessSession(
   const existing = doc.data()?.mindfulness || { totalMinutes: 0, sessions: 0 };
 
   await docRef.set(
-    {
+    cleanForFirestore({
       mindfulness: {
         totalMinutes: existing.totalMinutes + session.duration / 60,
         sessions: existing.sessions + 1,
       },
-    },
+    }),
     { merge: true }
   );
 }
@@ -463,7 +463,7 @@ async function updateConnectionStatus(
     .collection(STATUS_COLLECTION)
     .doc(userId)
     .set(
-      {
+      cleanForFirestore({
         connected: true,
         lastSyncAt: syncedAt,
         deviceId,
@@ -477,7 +477,7 @@ async function updateConnectionStatus(
           'workouts',
           'mindfulness',
         ],
-      },
+      }),
       { merge: true }
     );
 }
@@ -511,7 +511,7 @@ export async function getConnectionStatus(userId: string): Promise<AppleHealthAu
         authorizedTypes: [],
         deviceName: null,
       };
-      statusCache.set(userId, { status, expiresAt: Date.now() + CACHE_TTL_MS });
+      statusCache.set(cleanForFirestore(userId), { status, expiresAt: Date.now() + CACHE_TTL_MS });
       return status;
     }
 
@@ -523,7 +523,7 @@ export async function getConnectionStatus(userId: string): Promise<AppleHealthAu
       deviceName: data.deviceName ?? null,
     };
 
-    statusCache.set(userId, { status, expiresAt: Date.now() + CACHE_TTL_MS });
+    statusCache.set(cleanForFirestore(userId), { status, expiresAt: Date.now() + CACHE_TTL_MS });
     return status;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get connection status');

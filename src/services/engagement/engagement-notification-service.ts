@@ -26,6 +26,7 @@ import { getProductivityStore } from '../stores/productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
 import { getDefaultStore } from '../../memory/index.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -172,7 +173,7 @@ class MayaNotificationService extends EventEmitter {
           if (reminder.status === 'pending') {
             const scheduledFor = new Date(reminder.scheduledFor);
             if (scheduledFor > new Date()) {
-              this.scheduledNotifications.set(id, {
+              this.scheduledNotifications.set(cleanForFirestore(id), {
                 ...reminder,
                 scheduledFor,
               });

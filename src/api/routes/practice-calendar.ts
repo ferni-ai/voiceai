@@ -330,6 +330,7 @@ export async function handleGetPractices(
 // ============================================================================
 
 import type { CalendarPractice } from '../../services/calendar/practice-calendar.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 async function storePractice(userId: string, practice: CalendarPractice): Promise<void> {
   try {
@@ -339,7 +340,7 @@ async function storePractice(userId: string, practice: CalendarPractice): Promis
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
 
-    await db.collection('users').doc(userId).collection('practices').doc(practice.id).set(practice);
+    await db.collection('users').doc(userId).collection('practices').doc(practice.id).set(cleanForFirestore(practice));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Firestore not available for practice storage');
     // Could fall back to in-memory cache here

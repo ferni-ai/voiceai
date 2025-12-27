@@ -12,7 +12,7 @@
 
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'apple-signin-notifications' });
 
@@ -202,12 +202,12 @@ async function handleConsentRevoked(userId: string, event: AppleNotificationEven
     await db
       .collection('bogle_users')
       .doc(userId)
-      .update({
+      .update(cleanForFirestore({
         'appleAuth.consentRevoked': true,
         'appleAuth.consentRevokedAt': new Date().toISOString(),
         'appleAuth.emailEnabled': false,
         updatedAt: new Date().toISOString(),
-      });
+      }));
 
     log.info({ userId }, 'Marked Apple consent as revoked');
   } catch (error) {
@@ -229,14 +229,14 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
   try {
     // Mark the account for deletion
     // The actual deletion should be handled by a separate GDPR job
-    await db.collection('bogle_users').doc(userId).update({
+    await db.collection('bogle_users').doc(userId).update(cleanForFirestore({
       'appleAuth.accountDeleted': true,
       'appleAuth.accountDeletedAt': new Date().toISOString(),
       'scheduledForDeletion': true,
       'scheduledDeletionAt': new Date().toISOString(),
       'deletionReason': 'apple_account_deleted',
       updatedAt: new Date().toISOString(),
-    });
+    }));
 
     log.warn({ userId }, 'Apple Account deleted - user scheduled for deletion');
 
@@ -258,11 +258,11 @@ async function handleEmailDisabled(userId: string, event: AppleNotificationEvent
   if (!db) return;
 
   try {
-    await db.collection('bogle_users').doc(userId).update({
+    await db.collection('bogle_users').doc(userId).update(cleanForFirestore({
       'appleAuth.emailEnabled': false,
       'appleAuth.emailDisabledAt': new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    }));
 
     log.info({ userId }, 'Apple email forwarding disabled');
   } catch (error) {
@@ -281,11 +281,11 @@ async function handleEmailEnabled(userId: string, event: AppleNotificationEvent)
   if (!db) return;
 
   try {
-    await db.collection('bogle_users').doc(userId).update({
+    await db.collection('bogle_users').doc(userId).update(cleanForFirestore({
       'appleAuth.emailEnabled': true,
       'appleAuth.emailEnabledAt': new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    }));
 
     log.info({ userId }, 'Apple email forwarding enabled');
   } catch (error) {

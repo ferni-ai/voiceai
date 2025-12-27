@@ -12,6 +12,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticRouterResult, ToolMatch, RouterAction } from '../types.js';
 import { isPersistenceAvailable, saveRoutingEvent as persistEvent } from '../persistence/index.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:analytics' });
 

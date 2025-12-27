@@ -1099,6 +1099,21 @@ function createPanel(): HTMLElement {
         </div>
       </section>
 
+      <!-- Semantic Intelligence (Better Than Human V3.0) -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.brain} Ferni's Understanding</h3>
+        <p class="dev-section__desc">What Ferni notices about your patterns and growth</p>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Deep Insights</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Open Insights" class="dev-action-btn dev-action-btn--primary" data-action="open-semantic-intelligence" title="View what Ferni has learned about you">
+              ${ICONS.lightbulb} What I've Noticed
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Outreach Testing (Email/SMS) -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.mail} Outreach Testing</h3>
@@ -2496,6 +2511,20 @@ function createPanel(): HTMLElement {
     journeyUI.open();
     log.info('${ICONS.bookOpen} Journey view opened');
   });
+
+  // Open semantic intelligence panel (what Ferni has learned)
+  container
+    .querySelector('[data-action="open-semantic-intelligence"]')
+    ?.addEventListener('click', async () => {
+      try {
+        const { showSemanticIntelligencePanel } = await import('./semantic-intelligence-panel.ui.js');
+        showSemanticIntelligencePanel();
+        log.info('${ICONS.brain} Semantic intelligence panel opened');
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to open semantic intelligence panel');
+        toast.error("Something went wrong. Try again?");
+      }
+    });
 
   // Reset milestones button
   container.querySelector('[data-action="reset-milestones"]')?.addEventListener('click', () => {

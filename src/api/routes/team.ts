@@ -14,6 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getTeamEngagementService,
   TEAM_HUDDLE_SCRIPTS,

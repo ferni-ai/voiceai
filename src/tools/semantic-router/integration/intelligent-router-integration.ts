@@ -25,6 +25,7 @@ import {
 import { routeUserInput, createSemanticRouter } from '../router.js';
 import type { SemanticRouterResult } from '../types.js';
 import type { TurnRouterResult, RoutingContext } from './turn-processor-integration.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'intelligent-router-integration' });
 
@@ -194,10 +195,10 @@ async function createBanditFirestorePersistence() {
           };
         }
         
-        await db.collection('system_cache').doc('bandit_arms').set({
+        await db.collection('system_cache').doc('bandit_arms').set(cleanForFirestore({
           arms: plainArms,
           updatedAt: new Date(),
-        });
+        }));
         log.debug({ armCount: arms.size }, 'Bandit arms saved to Firestore');
       },
       load: async () => {

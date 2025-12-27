@@ -12,6 +12,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -78,7 +79,7 @@ async function saveMemo(memo: VoiceMemo): Promise<void> {
         .doc(memo.userId)
         .collection('voice_memos')
         .doc(memo.id)
-        .set(memo);
+        .set(cleanForFirestore(memo));
       log.info({ memoId: memo.id, userId: memo.userId }, '📝 Voice memo saved to Firestore');
       return;
     }

@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolArm, BanditConfig } from './bandit-optimizer.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'bandit-persistence' });
 
@@ -118,11 +119,11 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
           }
 
           await db.collection('system_cache').doc('bandit_arms').set(
-            {
+            cleanForFirestore({
               arms: armsObj,
               updatedAt: new Date(),
               armCount: arms.size,
-            },
+            }),
             { merge: true }
           );
 
@@ -153,7 +154,7 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
               contextWeightsObj ? Object.entries(contextWeightsObj) : []
             );
 
-            arms.set(id, {
+            arms.set(cleanForFirestore(id), {
               toolId: String(arm.toolId || id),
               successes: Number(arm.successes) || 0,
               failures: Number(arm.failures) || 0,
@@ -199,10 +200,10 @@ export async function saveUserPreferences(
       .collection('routing_preferences')
       .doc('bandit')
       .set(
-        {
+        cleanForFirestore({
           ...preferences,
           lastUpdated: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -301,10 +302,10 @@ export async function saveBanditMetrics(metrics: Partial<BanditMetrics>): Promis
     const db = getFirestore();
 
     await db.collection('system_cache').doc('bandit_metrics').set(
-      {
+      cleanForFirestore({
         ...metrics,
         lastUpdated: new Date(),
-      },
+      }),
       { merge: true }
     );
 
@@ -356,11 +357,11 @@ export async function incrementBanditMetrics(
     await db
       .collection('system_cache')
       .doc('bandit_metrics')
-      .update({
+      .update(cleanForFirestore({
         totalSelections: FieldValue.increment(selections),
         totalRewards: FieldValue.increment(rewards),
         lastUpdated: new Date(),
-      });
+      }));
   } catch (error) {
     // Document might not exist, try to create it
     try {
@@ -401,10 +402,10 @@ export async function recordRoutingEvent(event: RoutingEvent): Promise<string | 
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
 
-    const docRef = await db.collection('routing_events').add({
+    const docRef = await db.collection('routing_events').add(cleanForFirestore({
       ...event,
       timestamp: event.timestamp || new Date(),
-    });
+    }));
 
     return docRef.id;
   } catch (error) {
@@ -424,11 +425,11 @@ export async function updateRoutingEventOutcome(
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
 
-    await db.collection('routing_events').doc(eventId).update({
+    await db.collection('routing_events').doc(eventId).update(cleanForFirestore({
       success: outcome.success,
       reward: outcome.reward,
       outcomeRecordedAt: new Date(),
-    });
+    }));
   } catch (error) {
     log.warn({ error, eventId }, 'Failed to update routing event outcome');
   }
@@ -450,7 +451,7 @@ export function createInMemoryPersistence(): BanditPersistence {
       // Deep clone to prevent reference issues
       const clone = new Map<string, ToolArm>();
       for (const [id, arm] of arms) {
-        clone.set(id, { ...arm });
+        clone.set(cleanForFirestore(id), { ...arm });
       }
       storage.set(key, clone);
     },
@@ -463,7 +464,7 @@ export function createInMemoryPersistence(): BanditPersistence {
       // Return deep clone
       const clone = new Map<string, ToolArm>();
       for (const [id, arm] of arms) {
-        clone.set(id, { ...arm });
+        clone.set(cleanForFirestore(id), { ...arm });
       }
       return clone;
     },

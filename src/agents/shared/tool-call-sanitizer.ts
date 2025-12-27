@@ -2295,6 +2295,13 @@ export function createSanitizerWithMusicFallback(
   let toolExecutionInProgress = false;
   let activeToolId: string | null = null;
 
+  // 🔒 PER-STREAM DEDUPLICATION: Prevent same tool+args from being called twice
+  // This catches cases where JSON is detected in multiple code paths
+  const executedToolsThisStream = new Set<string>();
+  const makeToolKey = (fn: string, args: Record<string, unknown>): string => {
+    return `${fn.toLowerCase()}:${JSON.stringify(args)}`;
+  };
+
   // 🎯 POST-LLM SEMANTIC ROUTING FALLBACK (Dec 2024)
   // Track whether we intercepted any JSON tool calls during this stream.
   // If not, run semantic routing on the final text as a safety net.
@@ -2513,10 +2520,26 @@ export function createSanitizerWithMusicFallback(
         // Check if we have a complete JSON now
         const jsonCall = detectJsonFunctionCall(jsonAccumulator);
         if (jsonCall) {
+          // 🔒 PER-STREAM DEDUPLICATION: Check if we already executed this exact tool+args
+          const toolKey = makeToolKey(jsonCall.fn, jsonCall.args);
+          if (executedToolsThisStream.has(toolKey)) {
+            log.warn(
+              { fn: jsonCall.fn, args: jsonCall.args },
+              '🚫 DEDUP: Skipping accumulated JSON - exact tool+args already executed'
+            );
+            jsonAccumulator = '';
+            jsonAccumulatorActive = false;
+            buffer = '';
+            return;
+          }
+
           log.info(
             { fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length },
             '🎯 Accumulated JSON function call - executing'
           );
+
+          // 🔒 Mark this tool+args as executed
+          executedToolsThisStream.add(toolKey);
 
           // 🔒 RACE CONDITION FIX: Set tool execution flag before starting
           // This prevents music fallback from racing with JSON tool execution
@@ -2806,10 +2829,39 @@ export function createSanitizerWithMusicFallback(
       // Check if buffer contains a complete JSON function call (in markdown or inline)
       const jsonCall = detectJsonFunctionCall(buffer);
       if (jsonCall) {
+        // 🔒 PER-STREAM DEDUPLICATION: Check if we already executed this exact tool+args
+        const toolKey = makeToolKey(jsonCall.fn, jsonCall.args);
+        if (executedToolsThisStream.has(toolKey)) {
+          log.warn(
+            { fn: jsonCall.fn, args: jsonCall.args },
+            '🚫 DEDUP: Skipping - exact tool+args already executed this stream'
+          );
+          buffer = '';
+          return;
+        }
+
+        // 🔒 RACE CONDITION FIX: Check if tool already executing to prevent duplicates
+        if (toolExecutionInProgress) {
+          log.warn(
+            { fn: jsonCall.fn, activeTool: activeToolId },
+            '🚫 DEDUP: Skipping JSON execution - another tool already in progress'
+          );
+          buffer = '';
+          return;
+        }
+
         log.info(
           { fn: jsonCall.fn, args: jsonCall.args, bufferLen: buffer.length },
           '🎯 JSON function call intercepted - executing'
         );
+
+        // 🔒 Mark this tool+args as executed
+        executedToolsThisStream.add(toolKey);
+
+        // 🔒 RACE CONDITION FIX: Set tool execution flag BEFORE async execution
+        // This prevents duplicate calls if JSON is detected in multiple paths
+        toolExecutionInProgress = true;
+        activeToolId = jsonCall.fn;
 
         // Notify state machine of JSON completion and tool start
         if (stateIntegration && sessionId) {
@@ -2918,6 +2970,12 @@ export function createSanitizerWithMusicFallback(
             if (stateIntegration && sessionId) {
               stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
             }
+          })
+          .finally(() => {
+            // 🔒 RACE CONDITION FIX: Always clear tool execution flag
+            toolExecutionInProgress = false;
+            activeToolId = null;
+            log.debug({ fn: jsonCall.fn }, '🔒 Main JSON tool execution flag cleared');
           });
 
         // Suppress the JSON text and trailing conversational text
@@ -3026,10 +3084,39 @@ export function createSanitizerWithMusicFallback(
           // Try one more time to detect JSON before passing through
           const lastChanceJson = detectJsonFunctionCall(buffer);
           if (lastChanceJson) {
+            // 🔒 PER-STREAM DEDUPLICATION: Check if we already executed this exact tool+args
+            const toolKey = makeToolKey(lastChanceJson.fn, lastChanceJson.args);
+            if (executedToolsThisStream.has(toolKey)) {
+              log.warn(
+                { fn: lastChanceJson.fn, args: lastChanceJson.args },
+                '🚫 DEDUP: Skipping last-chance - exact tool+args already executed'
+              );
+              buffer = '';
+              return;
+            }
+
+            // 🔒 RACE CONDITION FIX: Check if tool already executing to prevent duplicates
+            if (toolExecutionInProgress) {
+              log.warn(
+                { fn: lastChanceJson.fn, activeTool: activeToolId },
+                '🚫 DEDUP: Skipping last-chance execution - tool already in progress'
+              );
+              buffer = '';
+              return;
+            }
+
             log.info(
               { fn: lastChanceJson.fn },
               '🎯 LAST-CHANCE SAVE: Detected JSON that earlier checks missed!'
             );
+
+            // 🔒 Mark this tool+args as executed
+            executedToolsThisStream.add(toolKey);
+            
+            // 🔒 RACE CONDITION FIX: Set tool execution flag BEFORE async execution
+            toolExecutionInProgress = true;
+            activeToolId = lastChanceJson.fn;
+            
             // Execute the tool
             // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
             jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
@@ -3066,6 +3153,12 @@ export function createSanitizerWithMusicFallback(
                   { fn: lastChanceJson.fn, error: String(err) },
                   '❌ Last-chance tool failed'
                 );
+              })
+              .finally(() => {
+                // 🔒 RACE CONDITION FIX: Always clear tool execution flag
+                toolExecutionInProgress = false;
+                activeToolId = null;
+                log.debug({ fn: lastChanceJson.fn }, '🔒 Last-chance tool execution flag cleared');
               });
             suppressMode = true;
             suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;

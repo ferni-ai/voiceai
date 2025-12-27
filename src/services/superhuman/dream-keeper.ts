@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'dream-keeper' });
 
@@ -221,7 +221,7 @@ export async function saveDream(dream: Dream): Promise<void> {
       .doc(dream.userId)
       .collection('dreams')
       .doc(dream.id)
-      .set(dream);
+      .set(cleanForFirestore(dream));
   }
 
   // Update cache

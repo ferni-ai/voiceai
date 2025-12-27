@@ -11,7 +11,7 @@
 
 import admin from 'firebase-admin';
 import { getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
 
@@ -236,7 +236,7 @@ async function savePatternToFirestore(pattern: ANTPattern): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(PATTERNS_COLLECTION).doc(pattern.userId).set(serializePattern(pattern));
+    await db.collection(PATTERNS_COLLECTION).doc(pattern.userId).set(cleanForFirestore(serializePattern(pattern)));
     log.debug({ userId: pattern.userId }, 'ANT pattern saved to Firestore');
   } catch (error) {
     log.error({ error, userId: pattern.userId }, 'Failed to save ANT pattern to Firestore');

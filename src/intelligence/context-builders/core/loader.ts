@@ -127,6 +127,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'cognitive-insights',
     'pattern-surfacing',
     'superhuman-insights',
+    'semantic-intelligence-integration', // V3.0-V3.7: Semantic intelligence context injection
     'life-context-synthesis', // Phase 6: Cross-domain life context awareness
   ],
 

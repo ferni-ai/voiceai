@@ -24,6 +24,7 @@ import {
   initializeFirestorePersistence,
 } from '../persistence/index.js';
 import type { RoutingCorrection } from './correction-store.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:community-learning' });
 
@@ -363,20 +364,20 @@ async function updatePatternInFirestore(
       const existingUsers = new Set<string>((data?.userHashes as string[]) || []);
       const isNewUser = !existingUsers.has(userHash);
 
-      existingUsers.add(userHash);
+      existingUsers.add(cleanForFirestore(userHash));
       const userCount = existingUsers.size;
       const occurrenceCount = ((data?.occurrenceCount as number) || 0) + 1;
 
       // Merge keywords
       const existingKeywords = new Set<string>((data?.keywords as string[]) || []);
       for (const k of keywords) {
-        existingKeywords.add(k);
+        existingKeywords.add(cleanForFirestore(k));
       }
 
       // Calculate confidence
       const confidence = calculateConfidence(userCount, occurrenceCount);
 
-      await patternRef.update({
+      await patternRef.update(cleanForFirestore({
         userHashes: Array.from(existingUsers),
         userCount,
         occurrenceCount,
@@ -389,14 +390,14 @@ async function updatePatternInFirestore(
           (data?.queryExamples as QueryExample[]) || [],
           normalizedQuery
         ),
-      });
+      }));
 
       if (isNewUser) {
         log.info({ patternId, userCount, confidence }, 'Community pattern updated with new user');
       }
     } else {
       // Create new pattern
-      await patternRef.set({
+      await patternRef.set(cleanForFirestore({
         patternId,
         incorrectTool,
         correctTool,
@@ -410,7 +411,7 @@ async function updatePatternInFirestore(
         createdAt: new Date(),
         updatedAt: new Date(),
         queryExamples: [{ query: normalizedQuery, count: 1 }],
-      });
+      }));
 
       log.debug({ patternId, incorrectTool, correctTool }, 'New community pattern created');
     }

@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'VoiceBiomarkers' });
 
@@ -196,7 +197,7 @@ export async function storeBiomarkerReading(
       .collection('bogle_users')
       .doc(userId)
       .collection('voice_biomarkers')
-      .add(reading);
+      .add(cleanForFirestore(reading));
 
     log.debug({ userId, fatigueLevel: biomarkers.fatigueLevel }, 'Stored biomarker reading');
   } catch (error) {

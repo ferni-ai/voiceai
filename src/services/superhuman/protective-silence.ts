@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'ProtectiveSilence' });
 
@@ -98,7 +98,7 @@ export async function recordBoundary(
       .collection('bogle_users')
       .doc(userId)
       .collection('protective_boundaries')
-      .add(record);
+      .add(cleanForFirestore(record));
 
     log.info(
       { userId, topic: boundary.topic, severity: boundary.severity },
@@ -129,7 +129,7 @@ export async function updateBoundary(
       .doc(userId)
       .collection('protective_boundaries')
       .doc(boundaryId)
-      .update(updates);
+      .update(cleanForFirestore(updates));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to update boundary');
   }

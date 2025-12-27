@@ -16,6 +16,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'HumanListeningAPI' });
 

@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'personality-ab-testing' });
 
@@ -243,7 +244,7 @@ export function getVariant(
     bucket < experiment.treatmentPercentage ? 'treatment' : 'control';
 
   // Store assignment
-  assignments.set(assignmentKey, {
+  assignments.set(cleanForFirestore(assignmentKey), {
     userId,
     experimentId,
     variant,
@@ -602,6 +603,8 @@ export const _testing = {
     sessionMetrics.clear();
   },
 };
+
+
 
 
 

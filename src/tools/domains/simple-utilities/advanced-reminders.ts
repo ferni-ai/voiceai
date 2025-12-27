@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { trackCapabilityUsage } from './shortcuts-tools.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -119,7 +120,7 @@ async function saveLocationReminder(userId: string, reminder: LocationReminder):
       .doc(userId)
       .collection('location_reminders')
       .doc(reminder.id)
-      .set(reminder);
+      .set(cleanForFirestore(reminder));
 
     log.info({ userId, reminderId: reminder.id }, 'Saved location reminder');
   } catch (error) {
@@ -176,7 +177,7 @@ async function saveRecurringReminder(userId: string, reminder: RecurringReminder
       .doc(userId)
       .collection('recurring_reminders')
       .doc(reminder.id)
-      .set(reminder);
+      .set(cleanForFirestore(reminder));
 
     log.info({ userId, reminderId: reminder.id }, 'Saved recurring reminder');
   } catch (error) {

@@ -18,7 +18,7 @@
  */
 
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
@@ -183,9 +183,9 @@ export async function persistTurn(
     // Increment turn count (fire and forget - don't await)
     if (FieldValue) {
       conversationRef
-        .update({
+        .update(cleanForFirestore({
           turnCount: FieldValue.increment(1),
-        })
+        }))
         .catch((err) => {
           // Non-critical - log for production monitoring
           log.warn({ error: String(err) }, 'Turn count increment failed (non-critical)');
@@ -216,9 +216,9 @@ export async function endConversation(userId: string, conversationId: string): P
       .doc(userId)
       .collection('conversations')
       .doc(conversationId)
-      .update({
+      .update(cleanForFirestore({
         endedAt: new Date(),
-      });
+      }));
 
     log.info({ userId, conversationId }, '🏁 Conversation ended, ready for summarization');
   } catch (error) {
@@ -407,17 +407,17 @@ export async function markSummarized(
       .doc(userId)
       .collection('conversations')
       .doc(conversationId)
-      .update({
+      .update(cleanForFirestore({
         summarized: true,
         summary,
         summarizedAt: new Date(),
-      });
+      }));
 
     // Also update the user's lastConversationSummary
-    await firestore.collection('bogle_users').doc(userId).update({
+    await firestore.collection('bogle_users').doc(userId).update(cleanForFirestore({
       lastConversationSummary: summary,
       lastContact: new Date(),
-    });
+    }));
 
     log.info(
       { userId, conversationId, summaryPreview: summary.slice(0, 50) },
@@ -516,7 +516,7 @@ export async function getUserMemoryForAPI(userId: string): Promise<{
             existing.lastMentioned = conv.startedAt;
           }
         } else {
-          topicCounts.set(word, { count: 1, lastMentioned: conv.startedAt });
+          topicCounts.set(cleanForFirestore(word), { count: 1, lastMentioned: conv.startedAt });
         }
       }
     }
@@ -628,7 +628,7 @@ function deriveRelationshipMilestones(
       .filter((m) => {
         const key = `${m.type}:${m.date.toISOString()}`;
         if (seen.has(key)) return false;
-        seen.add(key);
+        seen.add(cleanForFirestore(key));
         return true;
       })
       // Don’t return milestones in the future (shouldn’t happen, but keep sane)

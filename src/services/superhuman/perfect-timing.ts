@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'PerfectTiming' });
 
@@ -645,7 +645,7 @@ async function saveTimingProfile(userId: string, profile: TimingIntelligence): P
       .doc(userId)
       .collection('timing_intelligence')
       .doc('profile')
-      .set(profile);
+      .set(cleanForFirestore(profile));
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save timing profile');
   }

@@ -21,6 +21,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getDefaultStore } from '../../memory/index.js';
 import { sendVerificationCode, isTwilioConfigured } from '../twilio-sms.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'HumanFirst2FA' });
 
@@ -830,7 +831,7 @@ export async function initiatePhoneVerification(
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Store code with 10-minute expiry
-  verificationCodes.set(userId, {
+  verificationCodes.set(cleanForFirestore(userId), {
     code,
     expires: new Date(Date.now() + 10 * 60 * 1000),
     phone: phoneNumber,

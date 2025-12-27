@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import {
   validateCommitmentFeasibility,
   createCalendarBlocksForCommitment,
@@ -284,7 +284,7 @@ export async function saveCommitment(
         .doc(commitment.userId)
         .collection('commitments')
         .doc(id)
-        .set(fullCommitment);
+        .set(cleanForFirestore(fullCommitment));
     }
 
     // Better Than Human: Create calendar blocks for the commitment
@@ -308,7 +308,7 @@ export async function saveCommitment(
               .doc(commitment.userId)
               .collection('commitments')
               .doc(id)
-              .update({ calendarEventIds: blocks.eventIds });
+              .update(cleanForFirestore({ calendarEventIds: blocks.eventIds }));
           }
 
           log.info(
@@ -403,11 +403,11 @@ export async function updateCommitmentStatus(
         .doc(userId)
         .collection('commitments')
         .doc(commitmentId)
-        .update({
+        .update(cleanForFirestore({
           status,
           ...(reaction && { userReactionToFollowUp: reaction }),
           lastMentioned: Date.now(),
-        });
+        }));
     }
 
     // Update cache

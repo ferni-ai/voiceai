@@ -42,6 +42,7 @@ const SCOPES = ['openid', 'profile', 'offline_access', 'User.Read', 'Calendars.R
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 
@@ -641,7 +642,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
 
     try {
       await firestore.collection(`users/${userId}/calendar_providers`).doc('outlook').set(
-        {
+        cleanForFirestore({
           provider: 'outlook',
           connected: true,
           email: tokens.email,
@@ -650,7 +651,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
           syncDirection: 'two-way',
           tokens,
           lastSyncedAt: null,
-        },
+        }),
         { merge: true }
       );
     } catch (error) {

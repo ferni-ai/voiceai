@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type {
   RelationalNode,
   TopicAssociation,
@@ -579,7 +579,7 @@ async function saveNode(userId: string, node: RelationalNode): Promise<void> {
       .doc(userId)
       .collection('relational_nodes')
       .doc(node.id)
-      .set(node);
+      .set(cleanForFirestore(node));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save relational node');
   }
@@ -619,7 +619,7 @@ async function saveEdges(userId: string, edges: RelationalEdge[]): Promise<void>
       .doc(userId)
       .collection('relational_graph')
       .doc('edges')
-      .set({ edges, updatedAt: Date.now() });
+      .set(cleanForFirestore({ edges, updatedAt: Date.now() }));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save relational edges');
   }

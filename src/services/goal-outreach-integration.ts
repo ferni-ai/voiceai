@@ -17,6 +17,7 @@ import { canReachUser, scheduleEmail, scheduleText } from './outreach/user-conta
 import { getLogger } from '../utils/safe-logger.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -218,7 +219,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
  */
 function persistGoals(userId: string): void {
   const goals = goalStore.get(userId) || [];
-  getGoalPersistence().set(userId, {
+  getGoalPersistence().set(cleanForFirestore(userId), {
     goals: goals.map(serializeGoal),
   });
 }
@@ -228,7 +229,7 @@ function persistGoals(userId: string): void {
  */
 function persistStreaks(userId: string): void {
   const streaks = streakStore.get(userId) || [];
-  getStreakPersistence().set(userId, {
+  getStreakPersistence().set(cleanForFirestore(userId), {
     streaks: streaks.map(serializeStreak),
   });
 }

@@ -15,6 +15,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 import type { UserResonanceProfile } from './better-than-human-personality.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'personality-resonance' });
 
@@ -102,7 +103,7 @@ async function persistToFirestore(userId: string, profile: StoredResonanceProfil
       },
     };
 
-    await profileDoc.set(serialized, { merge: true });
+    await profileDoc.set(cleanForFirestore(serialized), { merge: true });
     log.debug(
       { userId, totalExpressions: profile.totalExpressions },
       'Persisted resonance profile'

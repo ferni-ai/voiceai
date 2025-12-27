@@ -23,6 +23,7 @@ import {
   type ContextInjection,
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'context:career-awareness' });
 

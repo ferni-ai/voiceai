@@ -464,7 +464,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // ✅ FULL RICH PROMPT - Load persona-specific system prompt from bundles
     // Uses loadSystemPrompt() which handles all personas (ferni, maya-santos, alex-chen, etc.)
-    const { loadSystemPrompt, loadModelBaseInstructions } = await import('./personas/prompt-loader.js');
+    const { loadSystemPrompt, loadModelBaseInstructions } =
+      await import('./personas/prompt-loader.js');
 
     // Load TWO levels of instructions:
     // 1. Model-level: Foundational rules (tool format, honesty, platform context)
@@ -622,11 +623,15 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         if (convCount === 1) {
           userAwareness.push("You've talked once before.");
         } else if (convCount < 5) {
-          userAwareness.push(`You've talked ${convCount} times - still getting to know each other.`);
+          userAwareness.push(
+            `You've talked ${convCount} times - still getting to know each other.`
+          );
         } else if (convCount < 20) {
           userAwareness.push(`You've had ${convCount} conversations - a growing friendship.`);
         } else {
-          userAwareness.push(`You've had ${convCount} conversations together - you know each other well.`);
+          userAwareness.push(
+            `You've had ${convCount} conversations together - you know each other well.`
+          );
         }
 
         // Last conversation time
@@ -636,28 +641,34 @@ If someone asks what day it is, what time it is, or what the date is, you know t
             (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
           );
           if (daysSince === 0) {
-            userAwareness.push("You talked earlier today.");
+            userAwareness.push('You talked earlier today.');
           } else if (daysSince === 1) {
-            userAwareness.push("You talked yesterday.");
+            userAwareness.push('You talked yesterday.');
           } else if (daysSince < 7) {
             userAwareness.push(`Last talked ${daysSince} days ago.`);
           } else if (daysSince < 30) {
-            userAwareness.push(`It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`);
+            userAwareness.push(
+              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
+            );
           } else {
-            userAwareness.push(`It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`);
+            userAwareness.push(
+              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
+            );
           }
         }
       } else if (!isReturningUser) {
-        userAwareness.push("This is your first conversation with them - be welcoming but not overwhelming.");
+        userAwareness.push(
+          'This is your first conversation with them - be welcoming but not overwhelming.'
+        );
       }
 
       // Key relationship facts (if available)
-      const relationshipStage = profile.relationshipStage;
+      const { relationshipStage } = profile;
       if (relationshipStage && relationshipStage !== 'new_acquaintance') {
         const stageDescriptions: Record<string, string> = {
-          'getting_to_know': 'You\'re still getting to know each other.',
-          'trusted_advisor': 'They trust you and share openly.',
-          'old_friend': 'You\'re old friends - deep relationship.',
+          getting_to_know: "You're still getting to know each other.",
+          trusted_advisor: 'They trust you and share openly.',
+          old_friend: "You're old friends - deep relationship.",
         };
         if (stageDescriptions[relationshipStage]) {
           userAwareness.push(stageDescriptions[relationshipStage]);
@@ -679,16 +690,16 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       // Ferni remembers and checks in
       // =========================================================================
       if (profile.humanizingState?.lastMood) {
-        const lastMood = profile.humanizingState.lastMood;
+        const { lastMood } = profile.humanizingState;
         // Map moods to emotional context
         const moodContext: Record<string, string> = {
-          'tired_but_present': 'Last time they seemed a bit tired - be gentle.',
-          'reflective': 'Last time they were in a reflective mood.',
-          'philosophical': 'Last time they were in a thoughtful, philosophical space.',
-          'energized': 'Last time they were full of energy!',
-          'grounded': 'Last time they seemed calm and grounded.',
-          'playful': 'Last time they were in a playful mood.',
-          'nostalgic': 'Last time they were feeling nostalgic.',
+          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
+          reflective: 'Last time they were in a reflective mood.',
+          philosophical: 'Last time they were in a thoughtful, philosophical space.',
+          energized: 'Last time they were full of energy!',
+          grounded: 'Last time they seemed calm and grounded.',
+          playful: 'Last time they were in a playful mood.',
+          nostalgic: 'Last time they were feeling nostalgic.',
         };
         if (moodContext[lastMood]) {
           userAwareness.push(moodContext[lastMood]);
@@ -703,21 +714,25 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       if (profile.lifeEvents && profile.lifeEvents.length > 0) {
         // Find recent events (within last 30 days that are in progress or upcoming)
         const relevantEvents = profile.lifeEvents
-          .filter(event => {
+          .filter((event) => {
             // Focus on active or upcoming events
-            return event.status === 'in_progress' || event.status === 'upcoming' || event.status === 'planning';
+            return (
+              event.status === 'in_progress' ||
+              event.status === 'upcoming' ||
+              event.status === 'planning'
+            );
           })
           .slice(0, 2); // Max 2 events
 
         for (const event of relevantEvents) {
           const eventTypes: Record<string, string> = {
-            'wedding': 'preparing for a wedding',
-            'baby': 'expecting or has a new baby',
-            'graduation': 'graduation coming up',
-            'career_change': 'going through a career change',
-            'relocation': 'moving/relocating',
-            'loss': 'dealing with a loss',
-            'celebration': 'has something to celebrate',
+            wedding: 'preparing for a wedding',
+            baby: 'expecting or has a new baby',
+            graduation: 'graduation coming up',
+            career_change: 'going through a career change',
+            relocation: 'moving/relocating',
+            loss: 'dealing with a loss',
+            celebration: 'has something to celebrate',
           };
           const eventContext = eventTypes[event.type];
           if (eventContext) {
@@ -772,39 +787,54 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // Fire-and-forget calendar fetch (don't block session start)
         void (async () => {
           try {
-            const { getAmbientCalendarContext } = await import('../services/calendar/ambient-calendar-awareness.js');
+            const { getAmbientCalendarContext } =
+              await import('../services/calendar/ambient-calendar-awareness.js');
             const calendarContext = await getAmbientCalendarContext(userId);
-            
+
             if (calendarContext.isCalendarConnected) {
               const calendarAwareness: string[] = [];
-              
+
               // Next meeting awareness
-              if (calendarContext.nextMeeting.event && calendarContext.nextMeeting.minutesUntil !== null) {
+              if (
+                calendarContext.nextMeeting.event &&
+                calendarContext.nextMeeting.minutesUntil !== null
+              ) {
                 const minutes = calendarContext.nextMeeting.minutesUntil;
                 const meetingTitle = calendarContext.nextMeeting.event.title;
-                
+
                 if (minutes <= 15) {
-                  calendarAwareness.push(`⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`);
+                  calendarAwareness.push(
+                    `⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`
+                  );
                 } else if (minutes <= 60) {
-                  calendarAwareness.push(`📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`);
+                  calendarAwareness.push(
+                    `📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`
+                  );
                 }
               }
-              
+
               // Just ended meeting (great for follow-up)
-              if (calendarContext.justEndedMeeting.event && calendarContext.justEndedMeeting.minutesSince !== null) {
+              if (
+                calendarContext.justEndedMeeting.event &&
+                calendarContext.justEndedMeeting.minutesSince !== null
+              ) {
                 const minutes = calendarContext.justEndedMeeting.minutesSince;
                 const meetingTitle = calendarContext.justEndedMeeting.event.title;
-                
+
                 if (minutes <= 15) {
-                  calendarAwareness.push(`💬 They just finished "${meetingTitle}" - could be a natural topic.`);
+                  calendarAwareness.push(
+                    `💬 They just finished "${meetingTitle}" - could be a natural topic.`
+                  );
                 }
               }
-              
+
               // Busy day awareness
               if (calendarContext.remainingMeetingsToday >= 4) {
-                calendarAwareness.push(`📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`);
+                calendarAwareness.push(
+                  `📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`
+                );
               }
-              
+
               if (calendarAwareness.length > 0) {
                 // Store in userData for use in turn-handler injection (turn 0-1)
                 userData.calendarAwareness = calendarAwareness.join(' ');
@@ -1805,9 +1835,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
       const calls = eventData?.calls || [];
       const callNames = calls.map((c) => c.name).join(', ') || 'unknown';
       process.stderr.write(`\n🔧 [NATIVE TOOL CALL] Gemini attempting: ${callNames}\n`);
-      process.stderr.write(`🔧 [NATIVE TOOL CALL] Full event: ${JSON.stringify(event, null, 2)}\n\n`);
+      process.stderr.write(
+        `🔧 [NATIVE TOOL CALL] Full event: ${JSON.stringify(event, null, 2)}\n\n`
+      );
     };
-    session.on('function_calls_collected' as Parameters<typeof session.on>[0], nativeFnCallsHandler);
+    session.on(
+      'function_calls_collected' as Parameters<typeof session.on>[0],
+      nativeFnCallsHandler
+    );
     cleanupTracker.register('event', 'native_function_calls handler', () => {
       session.off?.('function_calls_collected', nativeFnCallsHandler);
     });

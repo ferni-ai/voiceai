@@ -12,7 +12,7 @@
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   EightSleepTokens,
@@ -208,7 +208,7 @@ export function getAuthorizationUrl(userId: string): EightSleepResult<{ url: str
 
   // Generate state for CSRF protection
   const state = crypto.randomUUID();
-  oauthStates.set(state, {
+  oauthStates.set(cleanForFirestore(state), {
     userId,
     expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
   });

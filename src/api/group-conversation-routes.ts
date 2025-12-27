@@ -10,6 +10,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type {
   AddParticipantRequest,
@@ -137,7 +138,7 @@ router.post('/roundtable/start', async (req: Request, res: Response) => {
         .doc(userId)
         .collection('group_sessions')
         .doc(sessionId)
-        .set(session);
+        .set(cleanForFirestore(session));
     }
 
     log.info({ userId, sessionId, personas, topic }, '🎭 Team roundtable started');
@@ -177,10 +178,12 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
         .doc(userId)
         .collection('group_sessions')
         .doc(sessionId)
-        .update({
-          status: 'ended',
-          endedAt: new Date().toISOString(),
-        });
+        .update(
+          cleanForFirestore({
+            status: 'ended',
+            endedAt: new Date().toISOString(),
+          })
+        );
     }
 
     log.info({ userId, sessionId }, '🎭 Team roundtable ended');

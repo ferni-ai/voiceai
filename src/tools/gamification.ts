@@ -20,9 +20,14 @@ export {
   TITLE_PROGRESSION,
   type Badge,
   type BadgeCategory,
-  type TitleLevel,
-  type TitleTier,
+  type UserTitle,
 } from './domains/habits/gamification-constants.js';
+
+// Legacy type aliases for backward compatibility
+/** @deprecated Use UserTitle instead */
+export type TitleLevel = import('./domains/habits/gamification-constants.js').UserTitle;
+/** @deprecated Use UserTitle instead */
+export type TitleTier = import('./domains/habits/gamification-constants.js').UserTitle;
 
 // Re-export the V2 tools as the default (under old name for compatibility)
 export { createGamificationToolsV2 as createGamificationTools } from './domains/habits/gamification-v2.js';

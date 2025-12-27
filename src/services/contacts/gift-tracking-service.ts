@@ -12,6 +12,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
 import type { Firestore } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'GiftTrackingService' });
 
@@ -141,11 +142,11 @@ async function saveGiftToFirestore(userId: string, gift: Gift): Promise<void> {
       return;
     }
 
-    await collection.doc(gift.id).set({
+    await collection.doc(gift.id).set(cleanForFirestore({
       ...gift,
       date: gift.date,
       createdAt: new Date(),
-    });
+    }));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to save gift to Firestore');
     // Don't throw - we still have it in cache

@@ -7,6 +7,7 @@
 
 import { getEngagementStore } from '../engagement/engagement-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

@@ -18,6 +18,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import type { MusicSessionContext } from './music-session-context.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'MusicMemoryIntegration' });
 

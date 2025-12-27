@@ -15,7 +15,7 @@
 
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import { AsyncEvents, type EventPayload } from '../services/async-events/index.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SummarizationWorker' });

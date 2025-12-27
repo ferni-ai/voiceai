@@ -13,6 +13,7 @@
 
 import { createHash } from 'crypto';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   CachedTriggerEmbedding,
   TriggerEmbeddingCacheConfig,
@@ -168,10 +169,10 @@ export class TriggerEmbeddingCache {
 
               // Update access time in Firestore (non-blocking)
               docRef
-                .update({
+                .update(cleanForFirestore({
                   accessedAt: new Date(),
                   accessCount: cached.accessCount,
-                })
+                }))
                 .catch((err) => {
                   log.debug({ error: String(err) }, 'Failed to update Firestore access time');
                 });
@@ -252,7 +253,7 @@ export class TriggerEmbeddingCache {
     if (!this.firestoreDb) return;
 
     try {
-      await this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId).set(cached);
+      await this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId).set(cleanForFirestore(cached));
     } catch (error) {
       log.error({ error: String(error), triggerId }, 'Firestore set failed');
       throw error;
@@ -364,7 +365,7 @@ export class TriggerEmbeddingCache {
 
         const docRef = this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId);
 
-        batch.set(docRef, cached);
+        batch.set(docRef, cleanForFirestore(cached));
         this.setInMemory(triggerId, cached);
         count++;
 

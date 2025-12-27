@@ -13,7 +13,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   generateApiKey,
@@ -172,7 +172,7 @@ export async function registerPublisher(
   };
 
   // Store in Firestore
-  await db.collection('publishers').doc(publisherId).set(publisher);
+  await db.collection('publishers').doc(publisherId).set(cleanForFirestore(publisher));
 
   // Generate initial test API key
   const apiKey = generateApiKey('test');
@@ -186,7 +186,7 @@ export async function registerPublisher(
     createdAt: new Date(),
   };
 
-  await db.collection('api_keys').doc(keyId).set(keyDoc);
+  await db.collection('api_keys').doc(keyId).set(cleanForFirestore(keyDoc));
 
   log.info({ publisherId, email, name }, 'Publisher registered');
 
@@ -250,7 +250,7 @@ export async function createApiKey(
     createdAt: new Date(),
   };
 
-  await db.collection('api_keys').doc(keyId).set(keyDoc);
+  await db.collection('api_keys').doc(keyId).set(cleanForFirestore(keyDoc));
 
   log.info({ publisherId, keyId, keyType, keyPrefix: keyDoc.keyPrefix }, 'API key created');
 

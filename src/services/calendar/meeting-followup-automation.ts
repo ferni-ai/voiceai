@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import { createEvent, type CreateEventInput } from './calendar-service.js';
 import type { CalendarEvent } from './types.js';
 
@@ -90,7 +90,7 @@ async function saveCommitment(
     .doc(userId)
     .collection(COLLECTION_COMMITMENTS)
     .doc(id)
-    .set(doc);
+    .set(cleanForFirestore(doc));
 
   log.debug({ userId, commitmentId: id }, 'Saved meeting commitment');
   return doc;
@@ -146,10 +146,10 @@ async function updateCommitmentStatus(
     .doc(userId)
     .collection(COLLECTION_COMMITMENTS)
     .doc(commitmentId)
-    .update({
+    .update(cleanForFirestore({
       status,
       updatedAt: new Date(),
-    });
+    }));
 }
 
 async function saveFollowUpTask(
@@ -170,7 +170,7 @@ async function saveFollowUpTask(
     createdAt: now,
   };
 
-  await db.collection('bogle_users').doc(userId).collection(COLLECTION_FOLLOWUPS).doc(id).set(doc);
+  await db.collection('bogle_users').doc(userId).collection(COLLECTION_FOLLOWUPS).doc(id).set(cleanForFirestore(doc));
 
   return doc;
 }
@@ -507,9 +507,9 @@ export async function processRecentMeetingsForFollowUp(
         });
 
         // Mark as processed
-        await doc.ref.update({
+        await doc.ref.update(cleanForFirestore({
           processedAt: new Date(),
-        });
+        }));
 
         processedCount++;
       } catch (error) {

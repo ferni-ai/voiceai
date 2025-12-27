@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'EnergyWaveMapping' });
 
@@ -154,7 +154,7 @@ export async function recordInteraction(
       .collection('bogle_users')
       .doc(userId)
       .collection('energy_interactions')
-      .add(interaction);
+      .add(cleanForFirestore(interaction));
 
     log.debug({ userId, type, hourOfDay: interaction.hourOfDay }, 'Recorded energy interaction');
   } catch (error) {

@@ -22,6 +22,7 @@ import type { EmbeddingVector } from '../types.js';
 import { getToolEmbeddingIndex } from '../persistence/index.js';
 import { getToolRegistry } from '../registry.js';
 import { getLearnedRetriever } from '../advanced/learned-retriever.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:online-learning' });
 

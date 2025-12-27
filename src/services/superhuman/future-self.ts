@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'FutureSelf' });
 
@@ -536,7 +536,7 @@ async function saveLetter(userId: string, letter: FutureSelfLetter): Promise<voi
       .doc(userId)
       .collection('future_self_letters')
       .doc(letter.id)
-      .set(letter);
+      .set(cleanForFirestore(letter));
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save letter');
   }

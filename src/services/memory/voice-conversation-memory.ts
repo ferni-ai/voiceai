@@ -17,7 +17,7 @@
 import admin from 'firebase-admin';
 import pino from 'pino';
 import { getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = pino({ name: 'voice-memory' });
 

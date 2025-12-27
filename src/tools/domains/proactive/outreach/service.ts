@@ -33,6 +33,7 @@ import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { getDefaultStore } from '../../../../memory/index.js';
 import { getPersonaDisplayName, getCanonicalPersonaId } from '../../../../personas/voice-registry.js';
 import { recordOutcome } from '../../../../services/contacts/optimal-timing.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 
 /**
  * Make a phone call using Twilio with persona voice (via Cartesia TTS)

@@ -55,6 +55,7 @@ import {
   quickWarmup as warmIntelligentRouter,
 } from '../advanced/intelligent/cache-warming.js';
 import { initializeIntelligentRouter } from './intelligent-router-integration.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:init' });
 

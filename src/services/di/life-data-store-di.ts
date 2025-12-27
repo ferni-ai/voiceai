@@ -21,6 +21,7 @@ import { failure, NotFoundError, success, type AsyncResult } from '../../types/r
 import type { UserProfile } from '../../types/user-profile.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { Tokens, type Container, type Factory } from './container.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES (subset - full types in original file)
@@ -259,7 +260,7 @@ export class LifeDataStoreService {
     const userGoals = this.goals.get(userId) || [];
     const retirementPlan = this.retirementPlans.get(userId);
 
-    this.getPersistence().set(userId, {
+    this.getPersistence().set(cleanForFirestore(userId), {
       milestones: userMilestones.map(serializeMilestone),
       goals: userGoals.map(serializeGoal),
       retirementPlan: retirementPlan ? serializeRetirementPlan(retirementPlan) : undefined,

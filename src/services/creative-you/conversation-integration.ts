@@ -18,6 +18,7 @@ import type { TopicExtractionResult } from '../../intelligence/topic-tracker.js'
 import { createIntelligentCurator, type IntelligentRecommendation } from './intelligent-curator.js';
 import { getCreativeDNA } from './creative-dna.js';
 import { getCreativeYouPersistence } from './persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 

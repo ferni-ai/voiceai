@@ -10,6 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { ContactGroup, OccasionPreferences } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -342,7 +343,7 @@ async function persistGroup(group: ContactGroup): Promise<void> {
   if (!firestore) return;
 
   try {
-    await firestore.collection(GROUPS_COLLECTION).doc(group.id).set(group);
+    await firestore.collection(GROUPS_COLLECTION).doc(group.id).set(cleanForFirestore(group));
   } catch (error) {
     log.error({ error: String(error), groupId: group.id }, 'Failed to persist contact group');
   }

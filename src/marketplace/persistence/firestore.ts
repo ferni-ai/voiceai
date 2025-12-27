@@ -12,7 +12,7 @@
  * - marketplace_executions/{executionId} - Execution history
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type {
   AgentManifest,
@@ -333,10 +333,10 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.INSTALLATIONS)
       .doc(id)
-      .update({
+      .update(cleanForFirestore({
         ...updates,
         _updatedAt: new Date(),
-      });
+      }));
     log.debug({ installationId: id }, 'Installation updated in Firestore');
   }
 

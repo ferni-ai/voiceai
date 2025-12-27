@@ -12,6 +12,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -73,7 +74,7 @@ async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
     const db = getFirestoreDb();
     if (db) {
       const ref = db.collection('bogle_users').doc(userId).collection('alarms').doc(alarm.id);
-      await ref.set(alarm);
+      await ref.set(cleanForFirestore(alarm));
       log.info({ alarmId: alarm.id, userId }, 'Alarm saved to Firestore');
       return alarm;
     }

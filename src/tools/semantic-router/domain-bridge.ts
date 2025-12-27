@@ -107,6 +107,26 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'getCurrentDate',
     transformArgs: (args) => ({ timezone: args.timezone }),
   },
+  info_sports: {
+    domainToolId: 'getTeamScore',
+    transformArgs: (args) => ({ teamName: args.team || '' }),
+  },
+  info_stock: {
+    domainToolId: 'getStockQuote',
+    transformArgs: (args) => ({ symbol: args.symbol || '' }),
+  },
+  info_podcast: {
+    domainToolId: 'searchPodcasts',
+    transformArgs: (args) => ({ query: args.query || '' }),
+  },
+  info_recipe: {
+    domainToolId: 'searchRecipes',
+    transformArgs: (args) => ({ dish: args.dish || '' }),
+  },
+  productivity_routines: {
+    domainToolId: 'startRoutine',
+    transformArgs: (args) => ({ routineType: args.routineType || 'morning' }),
+  },
   traffic_commute: {
     domainToolId: 'getTrafficConditions',
     transformArgs: (args) => ({ origin: args.origin, destination: args.destination }),

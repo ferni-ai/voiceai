@@ -15,6 +15,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'BatchOperationsAPI' });
 

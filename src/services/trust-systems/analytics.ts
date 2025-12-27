@@ -12,7 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TrustAnalytics' });
 

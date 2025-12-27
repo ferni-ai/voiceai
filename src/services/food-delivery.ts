@@ -19,7 +19,7 @@
 
 import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';

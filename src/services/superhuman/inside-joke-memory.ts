@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -100,7 +100,7 @@ export async function recordSharedMoment(
       .collection('bogle_users')
       .doc(userId)
       .collection('shared_moments')
-      .add(moment);
+      .add(cleanForFirestore(moment));
 
     log.info({ userId, type, essence }, 'Recorded shared moment');
     return docRef.id;
@@ -154,12 +154,12 @@ export async function recordMomentReference(
     if (!doc.exists) return;
 
     const moment = doc.data() as SharedMoment;
-    await docRef.update({
+    await docRef.update(cleanForFirestore({
       timesReferenced: (moment.timesReferenced || 0) + 1,
       lastReferencedAt: Date.now(),
       // Increase resonance with use (memories get stronger)
       resonance: Math.min(1, moment.resonance + 0.05),
-    });
+    }));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to record reference');
   }

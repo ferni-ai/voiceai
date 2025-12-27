@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 
 const log = createLogger({ module: 'open-loops' });
@@ -526,7 +526,7 @@ async function saveOpenLoop(userId: string, loop: OpenLoop): Promise<void> {
       .doc(userId)
       .collection('open_loops')
       .doc(loop.id)
-      .set(loop);
+      .set(cleanForFirestore(loop));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save open loop');
   }
@@ -556,8 +556,12 @@ export async function formatOpenLoopsContext(userId: string): Promise<string> {
   // Format each group
   for (const [type, typeLoops] of byType) {
     const typeLabel = type === 'intention' ? '📋 STATED INTENTIONS' :
-                      type === 'event' ? '📅 UPCOMING EVENTS' :
-                      type === 'advice' ? '💡 ADVICE GIVEN' : '🔗 OPEN ITEMS';
+                      type === 'life_event' ? '📅 LIFE EVENTS' :
+                      type === 'advice' ? '💡 ADVICE GIVEN' :
+                      type === 'commitment' ? '🎯 COMMITMENTS' :
+                      type === 'question' ? '❓ QUESTIONS' :
+                      type === 'concern' ? '💭 CONCERNS' :
+                      type === 'emotional_peak' ? '💗 EMOTIONAL MOMENTS' : '🔗 OPEN ITEMS';
     
     sections.push(typeLabel);
     for (const loop of typeLoops.slice(0, 3)) { // Max 3 per type

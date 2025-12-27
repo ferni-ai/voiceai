@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { trackCapabilityUsage } from './shortcuts-tools.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 

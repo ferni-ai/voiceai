@@ -10,7 +10,7 @@
  * Data is persisted to Firestore for historical analysis.
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================

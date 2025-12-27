@@ -29,6 +29,7 @@ import {
   validateForFirestore,
 } from '../types/firestore/index.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // Re-export all converter utilities for convenient access
 export {
@@ -226,12 +227,12 @@ export function validateBatchDocuments<T>(
  * const profile = snapshot.data(); // TypeScript knows this is UserProfile | undefined
  *
  * // Write with automatic date conversion
- * await docRef.set({
+ * await docRef.set(cleanForFirestore({
  *   id: userId,
  *   name: 'Test User',
  *   createdAt: new Date(),
  *   // ... other fields
- * });
+ * }));
  *
  * // Partial updates
  * const updates = createPartialUpdate({

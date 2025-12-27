@@ -17,6 +17,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { CalendarEvent, SyncConflict, ConflictResolution, CalendarProvider } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -151,7 +152,7 @@ export async function storeConflict(
     await firestore
       .collection(`users/${userId}/calendar_conflicts`)
       .doc(conflictId)
-      .set(storedConflict);
+      .set(cleanForFirestore(storedConflict));
 
     log.info(
       { userId, conflictId, conflictType: conflict.conflictType },
@@ -299,11 +300,11 @@ export async function resolveConflict(
     }
 
     // Mark conflict as resolved
-    await conflictRef.update({
+    await conflictRef.update(cleanForFirestore({
       resolvedAt: new Date().toISOString(),
       resolution,
       resolvedBy,
-    });
+    }));
 
     log.info({ userId, conflictId, resolution, resolvedBy }, 'Resolved calendar conflict');
 
@@ -389,7 +390,7 @@ export async function setResolutionPreference(
     await firestore
       .collection('users')
       .doc(userId)
-      .set({ calendarConflictResolution: strategy }, { merge: true });
+      .set(cleanForFirestore({ calendarConflictResolution: strategy }), { merge: true });
     log.info({ userId, strategy }, 'Updated conflict resolution preference');
     return true;
   } catch (error) {

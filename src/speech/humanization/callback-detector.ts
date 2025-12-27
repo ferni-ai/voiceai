@@ -57,7 +57,7 @@ const TRIGGER_PATTERNS: Record<string, RegExp[]> = {
   // Ferni triggers
   question: [
     /\b(why|what if|how come|what does .+ mean|can you explain)\b/i,
-    /\?\s*$/,  // Ends with question mark
+    /\?\s*$/, // Ends with question mark
     /\b(curious|wondering|thinking about|pondering)\b/i,
   ],
   mistake: [
@@ -206,26 +206,13 @@ const TRIGGER_PATTERNS: Record<string, RegExp[]> = {
     /\b(death|dying|mortality|end of life|legacy)\b/i,
     /\b(when I'm gone|after I die|limited time)\b/i,
   ],
-  // Legacy Nayan triggers
-  meaning: [
-    /\b(what's the point|meaning of|purpose|why bother|existential)\b/i,
-    /\b(life's meaning|bigger picture|grand scheme|in the end)\b/i,
-  ],
-  paradox: [
-    /\b(both true|contradictory|doesn't make sense|opposite)\b/i,
-    /\b(yet also|but at the same time|seemingly conflicting)\b/i,
-  ],
-  suffering: [
-    /\b(suffering|pain|struggle|hardship|difficult time)\b/i,
-    /\b(why is life|unfair|injustice|can't understand)\b/i,
-  ],
 
   // Peter triggers (from callbacks.json)
   doubt: [
     /\b(doubt|doubting|uncertain|unsure|worried about)\b/i,
     /\b(second guess|questioning|nervous about)\b/i,
   ],
-  patience: [
+  investing_patience: [
     /\b(patience|patient|wait|waiting|long term)\b/i,
     /\b(take time|years|decades|eventually)\b/i,
   ],
@@ -267,10 +254,7 @@ const TRIGGER_PATTERNS: Record<string, RegExp[]> = {
 /**
  * Detect callback triggers in user input
  */
-export function detectCallbackTriggers(
-  userText: string,
-  personaId: string
-): CallbackTrigger[] {
+export function detectCallbackTriggers(userText: string, personaId: string): CallbackTrigger[] {
   const profile = getSpeechProfileSync(personaId);
 
   if (!profile?.callbacks?.callbacks) {
@@ -352,7 +336,7 @@ export function selectCallback(
       continue;
     }
 
-    const callback = profile.callbacks.callbacks.find(c => c.id === trigger.id);
+    const callback = profile.callbacks.callbacks.find((c) => c.id === trigger.id);
     if (!callback) continue;
 
     // Determine first-use vs callback version
@@ -398,10 +382,7 @@ export function selectCallback(
 /**
  * Inject a callback phrase into the beginning of a response
  */
-export function injectCallback(
-  text: string,
-  callback: DetectedCallback
-): string {
+export function injectCallback(text: string, callback: DetectedCallback): string {
   // Add the callback phrase at the start with a natural break
   return `${callback.phrase} <break time="300ms"/> ${text}`;
 }
@@ -415,4 +396,3 @@ export default {
   selectCallback,
   injectCallback,
 };
-

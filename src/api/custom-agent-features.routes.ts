@@ -20,6 +20,7 @@ import {
   getUserId,
 } from './helpers.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'CustomAgentFeaturesRoutes' });
 
@@ -219,7 +220,7 @@ export async function handleCustomAgentFeaturesRoutes(
       };
 
       // Save to Firestore
-      await db.collection('share_invites').doc(invite.id).set(invite);
+      await db.collection('share_invites').doc(invite.id).set(cleanForFirestore(invite));
 
       // In production, send email via SendGrid/Mailgun
       // For now, just return the invite data
@@ -273,7 +274,7 @@ export async function handleCustomAgentFeaturesRoutes(
         createdAt: new Date().toISOString(),
       };
 
-      await db.collection('share_links').doc(shareLink.id).set(shareLink);
+      await db.collection('share_links').doc(shareLink.id).set(cleanForFirestore(shareLink));
 
       log.info({ linkId: shareLink.id }, 'Share link created');
 
@@ -412,7 +413,7 @@ export async function handleCustomAgentFeaturesRoutes(
         startedAt: new Date().toISOString(),
       };
 
-      await db.collection('coaching_sessions').doc(session.id).set(session);
+      await db.collection('coaching_sessions').doc(session.id).set(cleanForFirestore(session));
 
       log.info({ sessionId: session.id }, 'Coaching session started');
 
@@ -459,9 +460,11 @@ export async function handleCustomAgentFeaturesRoutes(
         timestamp: new Date().toISOString(),
       };
 
-      await docRef.update({
-        messages: admin.firestore.FieldValue.arrayUnion(message),
-      });
+      await docRef.update(
+        cleanForFirestore({
+          messages: admin.firestore.FieldValue.arrayUnion(message),
+        })
+      );
 
       sendJSON(res, { success: true, message });
     } catch (error) {
@@ -498,11 +501,13 @@ export async function handleCustomAgentFeaturesRoutes(
         return true;
       }
 
-      await docRef.update({
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        insights: body.insights || [],
-      });
+      await docRef.update(
+        cleanForFirestore({
+          status: 'completed',
+          completedAt: new Date().toISOString(),
+          insights: body.insights || [],
+        })
+      );
 
       log.info({ sessionId: body.sessionId }, 'Coaching session completed');
 
@@ -579,7 +584,7 @@ export async function handleCustomAgentFeaturesRoutes(
         createdAt: new Date().toISOString(),
       };
 
-      await db.collection('task_sessions').doc(session.id).set(session);
+      await db.collection('task_sessions').doc(session.id).set(cleanForFirestore(session));
 
       // TODO: Process task asynchronously and update status
 
@@ -658,7 +663,7 @@ export async function handleCustomAgentFeaturesRoutes(
         startedAt: new Date().toISOString(),
       };
 
-      await db.collection('roleplay_sessions').doc(session.id).set(session);
+      await db.collection('roleplay_sessions').doc(session.id).set(cleanForFirestore(session));
 
       log.info({ sessionId: session.id }, 'Roleplay session started');
 

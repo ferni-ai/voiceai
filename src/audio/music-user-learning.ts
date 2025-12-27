@@ -17,6 +17,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
 import type { MusicStartReason } from './music-session-context.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger();
 

@@ -12,7 +12,7 @@
  */
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PredictiveInsightFeedbackStore' });

@@ -15,6 +15,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -151,7 +152,7 @@ async function saveList(userId: string, list: UserList): Promise<UserList> {
     const db = getFirestoreDb();
     if (db) {
       const ref = db.collection('bogle_users').doc(userId).collection('lists').doc(list.id);
-      await ref.set(list);
+      await ref.set(cleanForFirestore(list));
       log.info({ listId: list.id, userId }, 'List saved to Firestore');
       return list;
     }

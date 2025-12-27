@@ -13,6 +13,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDefaultStore } from '../../memory/index.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createReminder } from '../scheduling/reminder-scheduler.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 

@@ -18,7 +18,7 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAgent, getTool } from '../marketplace/index.js';
 import type { AgentManifest, ToolManifest } from '../marketplace/schema/types.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'review-queue' });
@@ -488,12 +488,14 @@ export async function assignReviewer(
   const submission = docToSubmission(doc)!;
 
   // Update status and assignment
-  await doc.ref.update({
-    status: 'in_review',
-    assignedTo: reviewerId,
-    reviewerName,
-    assignedAt: new Date(),
-  });
+  await doc.ref.update(
+    cleanForFirestore({
+      status: 'in_review',
+      assignedTo: reviewerId,
+      reviewerName,
+      assignedAt: new Date(),
+    })
+  );
 
   const updated: ReviewSubmission = {
     ...submission,
@@ -544,12 +546,14 @@ export async function submitReview(
 
   // Update submission
   const newStatus: ReviewStatus = decision;
-  await doc.ref.update({
-    status: newStatus,
-    decision,
-    reviewerFeedback: feedback,
-    reviewedAt: new Date(),
-  });
+  await doc.ref.update(
+    cleanForFirestore({
+      status: newStatus,
+      decision,
+      reviewerFeedback: feedback,
+      reviewedAt: new Date(),
+    })
+  );
 
   const updated: ReviewSubmission = {
     ...submission,

@@ -20,6 +20,7 @@ import {
   type SponsoredConversation,
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FerniFund' });
 
@@ -91,7 +92,7 @@ async function updateGardenStats(params: {
     const statsRef = db.collection('garden_stats').doc(monthKey);
     batch.set(
       statsRef,
-      {
+      cleanForFirestore({
         totalAmount: admin.firestore.FieldValue.increment(amountDollars),
         totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
         uniqueContributors: admin.firestore.FieldValue.increment(1), // May double-count, but that's OK
@@ -99,7 +100,7 @@ async function updateGardenStats(params: {
           ? admin.firestore.FieldValue.increment(1)
           : admin.firestore.FieldValue.increment(0),
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true }
     );
 
@@ -107,13 +108,13 @@ async function updateGardenStats(params: {
     const userRef = db.collection('user_gardens').doc(userId);
     batch.set(
       userRef,
-      {
+      cleanForFirestore({
         totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
         seedsThisMonth: admin.firestore.FieldValue.increment(amountDollars),
         isMonthlyGardener: isMonthly || admin.firestore.FieldValue.increment(0), // Keep existing if not monthly
         lastSeedDate: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true }
     );
 

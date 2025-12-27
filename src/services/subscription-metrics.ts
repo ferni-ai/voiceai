@@ -10,7 +10,7 @@
  * Persists to Firestore for durability.
  */
 
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'subscription-metrics' });

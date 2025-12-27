@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'CalendarPrepCoaching' });
 
@@ -325,7 +325,7 @@ export async function recordEventOutcome(
     const newOutcome = { date: Date.now(), outcome, reflection };
 
     if (existing) {
-      await docRef.update({
+      await docRef.update(cleanForFirestore({
         outcomes: [...existing.outcomes, newOutcome],
         helpfulPrep: helpfulPrep
           ? [...new Set([...existing.helpfulPrep, ...helpfulPrep])]
@@ -333,7 +333,7 @@ export async function recordEventOutcome(
         wouldDoDifferently: wouldDoDifferently
           ? [...new Set([...existing.wouldDoDifferently, ...wouldDoDifferently])]
           : existing.wouldDoDifferently,
-      });
+      }));
     } else {
       const newHistory: EventHistory = {
         userId,
@@ -346,7 +346,7 @@ export async function recordEventOutcome(
         wouldDoDifferently: wouldDoDifferently || [],
         averageAnxiety: outcome === 'negative' ? 0.7 : outcome === 'positive' ? 0.3 : 0.5,
       };
-      await docRef.set(newHistory);
+      await docRef.set(cleanForFirestore(newHistory));
     }
 
     log.debug({ userId, eventType, outcome }, 'Recorded event outcome');

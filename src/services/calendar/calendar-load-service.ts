@@ -322,6 +322,7 @@ export async function getCalendarBurnoutRiskFactors(
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 
@@ -451,7 +452,7 @@ export async function recordBurnoutPattern(
 
   try {
     const docId = `burnout_${Date.now()}`;
-    await firestore.collection(`users/${userId}/burnout_patterns`).doc(docId).set(pattern);
+    await firestore.collection(`users/${userId}/burnout_patterns`).doc(docId).set(cleanForFirestore(pattern));
 
     log.info({ userId, pattern, docId }, '📊 Recorded burnout pattern for future matching');
     return pattern;

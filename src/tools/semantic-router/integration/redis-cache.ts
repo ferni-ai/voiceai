@@ -17,6 +17,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getRedisCacheAsync, RedisCache } from '../../../memory/redis-cache.js';
 import type { EmbeddingVector } from '../types.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:redis-cache' });
 
@@ -131,7 +132,7 @@ class MemoryCache<T> {
       if (firstKey) this.cache.delete(firstKey);
     }
 
-    this.cache.set(key, { value, timestamp: Date.now() });
+    this.cache.set(cleanForFirestore(key), { value, timestamp: Date.now() });
   }
 
   delete(key: string): void {

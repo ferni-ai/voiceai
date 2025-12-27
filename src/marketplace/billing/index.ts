@@ -21,6 +21,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, Pricing, TenantId, UserId } from '../schema/types.js';
 import type { BillingStore } from './persistence.js';
 import { getBillingStore, resetBillingStore as resetStore } from './persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'marketplace-billing' });
 

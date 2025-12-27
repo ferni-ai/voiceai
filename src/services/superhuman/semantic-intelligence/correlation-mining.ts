@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type {
   SemanticCorrelation,
   CorrelationDomain,
@@ -495,7 +495,7 @@ async function saveCorrelations(
 
     for (const corr of toSave.slice(0, 50)) {
       // Limit batch size
-      batch.set(collRef.doc(corr.id), corr);
+      batch.set(collRef.doc(corr.id), cleanForFirestore(corr));
     }
 
     await batch.commit();

@@ -25,6 +25,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import { getPubSubClient, type PubSubMessage } from '../services/pubsub/pubsub-client.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'OutreachWorker' });
 

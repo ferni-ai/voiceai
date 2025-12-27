@@ -248,6 +248,7 @@ import { IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
 import { GoalsTask, SituationAssessmentTask, WelcomeTask } from './onboarding.js';
 import { DeepDiveTask, FollowUpTask, GoodbyeTask } from './relationship-tasks.js';
 import { CheckInTask, EmotionalSupportTask } from './support-tasks.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 /**
  * Create an intelligent onboarding flow that adapts to user emotions

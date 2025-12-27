@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   HealthSummary,
   HealthContext,
@@ -87,10 +88,10 @@ export async function storeHealthSummary(summary: HealthSummary): Promise<void> 
       .collection('health_summaries')
       .doc(summary.date)
       .set(
-        {
+        cleanForFirestore({
           ...summary,
           syncedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 
@@ -203,10 +204,10 @@ export async function updateHealthPreferences(
       .collection('settings')
       .doc('health_preferences')
       .set(
-        {
+        cleanForFirestore({
           ...preferences,
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 

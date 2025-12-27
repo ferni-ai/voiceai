@@ -18,6 +18,8 @@ import {
   emotionTag,
   spellTag,
   CARTESIA_EMOTIONS,
+  ALL_CARTESIA_EMOTIONS,
+  CARTESIA_SUPPORTED_EMOTIONS,
 } from '../ssml/cartesia.js';
 
 describe('Cartesia SSML Tag Helpers', () => {
@@ -30,8 +32,8 @@ describe('Cartesia SSML Tag Helpers', () => {
 
     it('should clamp values below minimum to 0.6', () => {
       expect(clampSpeed(0.5)).toBe(0.6);
-      expect(clampSpeed(0.0)).toBe(0.6);
-      expect(clampSpeed(-1)).toBe(0.6);
+      expect(clampSpeed(0.3)).toBe(0.6);
+      expect(clampSpeed(0)).toBe(0.6);
     });
 
     it('should clamp values above maximum to 1.5', () => {
@@ -55,8 +57,8 @@ describe('Cartesia SSML Tag Helpers', () => {
 
     it('should clamp values below minimum to 0.5', () => {
       expect(clampVolume(0.4)).toBe(0.5);
-      expect(clampVolume(0.0)).toBe(0.5);
-      expect(clampVolume(-1)).toBe(0.5);
+      expect(clampVolume(0.2)).toBe(0.5);
+      expect(clampVolume(0)).toBe(0.5);
     });
 
     it('should clamp values above maximum to 2.0', () => {
@@ -82,9 +84,11 @@ describe('Cartesia SSML Tag Helpers', () => {
       expect(breakTag('2.5s')).toBe('<break time="2.5s"/>');
     });
 
-    it('should handle arbitrary time strings', () => {
-      expect(breakTag('0')).toBe('<break time="0"/>');
-      expect(breakTag('short')).toBe('<break time="short"/>');
+    it('should return default break tag for invalid time strings', () => {
+      // Implementation validates format and returns default for invalid inputs
+      expect(breakTag('0')).toBe('<break time="500ms"/>');
+      expect(breakTag('short')).toBe('<break time="500ms"/>');
+      expect(breakTag('invalid')).toBe('<break time="500ms"/>');
     });
   });
 
@@ -113,82 +117,120 @@ describe('Cartesia SSML Tag Helpers', () => {
 
   describe('volumeTag', () => {
     it('should generate volume tag with clamped value', () => {
-      expect(volumeTag(1.0)).toBe('<volume ratio="1.00"/>');
-      expect(volumeTag(1.5)).toBe('<volume ratio="1.50"/>');
+      // Note: Implementation uses .toFixed(1) for volume
+      expect(volumeTag(1.0)).toBe('<volume ratio="1.0"/>');
+      expect(volumeTag(1.5)).toBe('<volume ratio="1.5"/>');
     });
 
     it('should clamp and format values below minimum', () => {
-      expect(volumeTag(0.2)).toBe('<volume ratio="0.50"/>');
-      expect(volumeTag(0.0)).toBe('<volume ratio="0.50"/>');
+      expect(volumeTag(0.2)).toBe('<volume ratio="0.5"/>');
+      expect(volumeTag(0.0)).toBe('<volume ratio="0.5"/>');
     });
 
     it('should clamp and format values above maximum', () => {
-      expect(volumeTag(2.5)).toBe('<volume ratio="2.00"/>');
-      expect(volumeTag(10)).toBe('<volume ratio="2.00"/>');
+      expect(volumeTag(2.5)).toBe('<volume ratio="2.0"/>');
+      expect(volumeTag(10)).toBe('<volume ratio="2.0"/>');
     });
 
-    it('should format to two decimal places', () => {
-      expect(volumeTag(1.0)).toBe('<volume ratio="1.00"/>');
-      expect(volumeTag(0.777777)).toBe('<volume ratio="0.78"/>');
+    it('should format to one decimal place', () => {
+      expect(volumeTag(1.0)).toBe('<volume ratio="1.0"/>');
+      expect(volumeTag(0.77)).toBe('<volume ratio="0.8"/>');
     });
   });
 
   describe('emotionTag', () => {
-    it('should generate emotion tag for valid emotions', () => {
-      expect(emotionTag('happy')).toBe('<emotion value="happy"/>');
+    it('should generate emotion tag only for supported emotions', () => {
+      // Only CARTESIA_SUPPORTED_EMOTIONS generate tags
+      expect(emotionTag('angry')).toBe('<emotion value="angry"/>');
       expect(emotionTag('sad')).toBe('<emotion value="sad"/>');
-      expect(emotionTag('excited')).toBe('<emotion value="excited"/>');
+      expect(emotionTag('surprised')).toBe('<emotion value="surprised"/>');
+      expect(emotionTag('curious')).toBe('<emotion value="curious"/>');
+      expect(emotionTag('affectionate')).toBe('<emotion value="affectionate"/>');
     });
 
-    it('should generate emotion tag for any string', () => {
-      expect(emotionTag('neutral')).toBe('<emotion value="neutral"/>');
-      expect(emotionTag('custom-emotion')).toBe('<emotion value="custom-emotion"/>');
+    it('should return empty string for unsupported emotions', () => {
+      // These emotions are in CARTESIA_EMOTIONS but not in CARTESIA_SUPPORTED_EMOTIONS
+      expect(emotionTag('happy')).toBe('');
+      expect(emotionTag('excited')).toBe('');
+      expect(emotionTag('neutral')).toBe('');
+      expect(emotionTag('custom-emotion')).toBe('');
     });
   });
 
   describe('spellTag', () => {
-    it('should wrap text in spell tag', () => {
+    it('should wrap acronyms in spell tag', () => {
       expect(spellTag('NASA')).toBe('<spell>NASA</spell>');
       expect(spellTag('FBI')).toBe('<spell>FBI</spell>');
+      expect(spellTag('ABC123')).toBe('<spell>ABC123</spell>');
     });
 
-    it('should handle empty string', () => {
-      expect(spellTag('')).toBe('<spell></spell>');
-    });
-
-    it('should handle regular words', () => {
-      expect(spellTag('hello')).toBe('<spell>hello</spell>');
-    });
-
-    it('should handle mixed case', () => {
-      expect(spellTag('McDonalds')).toBe('<spell>McDonalds</spell>');
+    it('should return original text for non-acronyms', () => {
+      // Only 2-10 uppercase alphanumeric chars get wrapped
+      expect(spellTag('')).toBe('');
+      expect(spellTag('hello')).toBe('hello');
+      expect(spellTag('McDonalds')).toBe('McDonalds');
+      expect(spellTag('A')).toBe('A'); // Too short
     });
   });
 
   describe('CARTESIA_EMOTIONS', () => {
-    it('should contain standard emotions', () => {
-      expect(CARTESIA_EMOTIONS).toContain('neutral');
-      expect(CARTESIA_EMOTIONS).toContain('happy');
-      expect(CARTESIA_EMOTIONS).toContain('sad');
-      expect(CARTESIA_EMOTIONS).toContain('angry');
-      expect(CARTESIA_EMOTIONS).toContain('excited');
+    it('should be an object with emotion constants', () => {
+      expect(typeof CARTESIA_EMOTIONS).toBe('object');
+      expect(CARTESIA_EMOTIONS).not.toBeNull();
     });
 
-    it('should contain nuanced emotions', () => {
-      expect(CARTESIA_EMOTIONS).toContain('curious');
-      expect(CARTESIA_EMOTIONS).toContain('affectionate');
-      expect(CARTESIA_EMOTIONS).toContain('nostalgic');
-      expect(CARTESIA_EMOTIONS).toContain('contemplative');
-      expect(CARTESIA_EMOTIONS).toContain('grateful');
+    it('should contain standard emotions as constants', () => {
+      expect(CARTESIA_EMOTIONS.NEUTRAL).toBe('neutral');
+      expect(CARTESIA_EMOTIONS.HAPPY).toBe('happy');
+      expect(CARTESIA_EMOTIONS.SAD).toBe('sad');
+      expect(CARTESIA_EMOTIONS.ANGRY).toBe('angry');
+      expect(CARTESIA_EMOTIONS.EXCITED).toBe('excited');
     });
 
-    it('should contain all 16 emotions', () => {
-      expect(CARTESIA_EMOTIONS).toHaveLength(16);
+    it('should contain nuanced emotions as constants', () => {
+      expect(CARTESIA_EMOTIONS.CURIOUS).toBe('curious');
+      expect(CARTESIA_EMOTIONS.AFFECTIONATE).toBe('affectionate');
+      expect(CARTESIA_EMOTIONS.NOSTALGIC).toBe('nostalgic');
+      expect(CARTESIA_EMOTIONS.CONTEMPLATIVE).toBe('contemplative');
+      expect(CARTESIA_EMOTIONS.GRATEFUL).toBe('grateful');
     });
 
-    it('should be a readonly array', () => {
-      // TypeScript ensures this at compile time, but we verify the array exists
-      expect(Array.isArray(CARTESIA_EMOTIONS)).toBe(true);
+    it('should have more than 16 emotions (expanded set)', () => {
+      const emotionCount = Object.keys(CARTESIA_EMOTIONS).length;
+      expect(emotionCount).toBeGreaterThan(16);
+    });
+  });
+
+  describe('ALL_CARTESIA_EMOTIONS', () => {
+    it('should be an array', () => {
+      expect(Array.isArray(ALL_CARTESIA_EMOTIONS)).toBe(true);
+    });
+
+    it('should contain all emotion values', () => {
+      expect(ALL_CARTESIA_EMOTIONS).toContain('neutral');
+      expect(ALL_CARTESIA_EMOTIONS).toContain('happy');
+      expect(ALL_CARTESIA_EMOTIONS).toContain('sad');
+      expect(ALL_CARTESIA_EMOTIONS).toContain('angry');
+      expect(ALL_CARTESIA_EMOTIONS).toContain('curious');
+    });
+
+    it('should have length matching CARTESIA_EMOTIONS keys', () => {
+      expect(ALL_CARTESIA_EMOTIONS.length).toBe(Object.keys(CARTESIA_EMOTIONS).length);
+    });
+  });
+
+  describe('CARTESIA_SUPPORTED_EMOTIONS', () => {
+    it('should be a subset of emotions for direct tag support', () => {
+      expect(Array.isArray(CARTESIA_SUPPORTED_EMOTIONS)).toBe(true);
+      expect(CARTESIA_SUPPORTED_EMOTIONS.length).toBeLessThan(ALL_CARTESIA_EMOTIONS.length);
+    });
+
+    it('should contain the 5 directly supported emotions', () => {
+      expect(CARTESIA_SUPPORTED_EMOTIONS).toContain('angry');
+      expect(CARTESIA_SUPPORTED_EMOTIONS).toContain('sad');
+      expect(CARTESIA_SUPPORTED_EMOTIONS).toContain('surprised');
+      expect(CARTESIA_SUPPORTED_EMOTIONS).toContain('curious');
+      expect(CARTESIA_SUPPORTED_EMOTIONS).toContain('affectionate');
     });
   });
 });

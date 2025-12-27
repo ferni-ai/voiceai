@@ -18,7 +18,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, } from './firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SilenceInterpreter' });
 
@@ -429,7 +430,7 @@ export async function recordSilenceOutcome(
       }
 
       profile.updatedAt = new Date();
-      await ref.set(profile); // Use set instead of update for type safety
+      await ref.set(cleanForFirestore(profile)); // Use set instead of update for type safety
     } else {
       // Create new profile
       const newProfile: SilenceProfile = {
@@ -439,7 +440,7 @@ export async function recordSilenceOutcome(
         baselinePauseTolerance: 2000,
         updatedAt: new Date(),
       };
-      await ref.set(newProfile);
+      await ref.set(cleanForFirestore(newProfile));
     }
 
     log.debug({ userId, type: analysis.type }, 'Recorded silence outcome');
@@ -499,10 +500,10 @@ export async function updateBaselineTolerance(userId: string): Promise<void> {
       .doc(userId)
       .collection('silence_patterns')
       .doc('profile')
-      .update({
+      .update(cleanForFirestore({
         baselinePauseTolerance: avgDuration,
         updatedAt: new Date(),
-      });
+      }));
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to update baseline tolerance');
   }

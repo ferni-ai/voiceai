@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FirestoreExtendedPersistence' });
 
@@ -319,7 +320,7 @@ export async function saveSessionState(session: SessionState): Promise<void> {
       .doc(session.userId)
       .collection('sessions')
       .doc(session.sessionId)
-      .set(serialized, { merge: true });
+      .set(cleanForFirestore(serialized), { merge: true });
 
     log.debug({ sessionId: session.sessionId }, 'Session state saved');
   } catch (error) {
@@ -402,7 +403,7 @@ export async function logToolExecution(execution: ToolExecution): Promise<void> 
       .doc(execution.sessionId.split('_')[0]) // Extract userId from sessionId
       .collection('tool_executions')
       .doc(execution.id)
-      .set(serialized);
+      .set(cleanForFirestore(serialized));
 
     log.debug({ toolId: execution.toolId }, 'Tool execution logged');
   } catch (error) {
@@ -467,7 +468,7 @@ export async function savePersonaBond(bond: PersonaBond): Promise<void> {
       .doc(bond.userId)
       .collection('persona_bonds')
       .doc(bond.personaId)
-      .set(serialized, { merge: true });
+      .set(cleanForFirestore(serialized), { merge: true });
 
     log.debug({ personaId: bond.personaId }, 'Persona bond saved');
   } catch (error) {
@@ -556,7 +557,7 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
       .doc(profile.userId)
       .collection('voice_profile')
       .doc('current')
-      .set(serialized, { merge: true });
+      .set(cleanForFirestore(serialized), { merge: true });
 
     log.debug({ userId: profile.userId }, 'Voice profile saved');
   } catch (error) {
@@ -608,7 +609,7 @@ export async function logUserIntent(intent: UserIntent): Promise<void> {
       .doc(intent.userId)
       .collection('intents')
       .doc(intent.id)
-      .set(serialized);
+      .set(cleanForFirestore(serialized));
 
     log.debug({ intent: intent.detectedIntent }, 'User intent logged');
   } catch (error) {
@@ -662,7 +663,7 @@ export async function setCachedInsight(insight: CachedInsight): Promise<void> {
       .doc(insight.userId)
       .collection('superhuman_cache')
       .doc(insight.cacheKey)
-      .set(serialized, { merge: true });
+      .set(cleanForFirestore(serialized), { merge: true });
 
     log.debug({ cacheKey: insight.cacheKey }, 'Superhuman insight cached');
   } catch (error) {
@@ -702,7 +703,7 @@ export async function getCachedInsight(
     }
 
     // Increment hit count
-    await doc.ref.update({ hitCount: insight.hitCount + 1 });
+    await doc.ref.update(cleanForFirestore({ hitCount: insight.hitCount + 1 }));
 
     return insight;
   } catch (error) {
@@ -730,7 +731,7 @@ export async function saveQualityMetrics(metrics: QualityMetrics): Promise<void>
       .doc(metrics.userId)
       .collection('quality_metrics')
       .doc(metrics.sessionId)
-      .set(serialized);
+      .set(cleanForFirestore(serialized));
 
     log.debug({ sessionId: metrics.sessionId }, 'Quality metrics saved');
   } catch (error) {

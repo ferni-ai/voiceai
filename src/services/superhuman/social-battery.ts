@@ -14,7 +14,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, } from './firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SocialBattery' });
 
@@ -235,7 +236,7 @@ export async function recordSocialEvent(
       .collection('bogle_users')
       .doc(userId)
       .collection('social_events')
-      .add(event);
+      .add(cleanForFirestore(event));
 
     log.debug({ userId, type, impact: energyImpact }, 'Recorded social event');
   } catch (error) {

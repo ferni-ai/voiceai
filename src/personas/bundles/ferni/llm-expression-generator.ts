@@ -21,6 +21,7 @@
 
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 // Pre-import these modules to avoid slow dynamic imports in hot path
 // Note: These must be imported AFTER the types to avoid circular dependencies
@@ -891,7 +892,7 @@ async function persistExpression(userId: string, expr: GeneratedExpression): Pro
       createdAt: expr.generatedAt.toISOString(),
     };
 
-    await docRef.set(persisted, { merge: true });
+    await docRef.set(cleanForFirestore(persisted), { merge: true });
     log.debug(
       { userId, expressionId: expr.id, theme: expr.theme },
       'Persisted high-engagement expression'

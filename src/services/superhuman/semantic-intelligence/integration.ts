@@ -47,6 +47,7 @@ import { coachingIntelligence, updateLearningStyle, recordDeflection } from './c
 
 // V3.7 Self-Awareness
 import { selfAwareness, recordDistortions, recordSelfPerception } from './self-awareness.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SemanticIntelligenceIntegration' });
 
@@ -420,7 +421,7 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
   for (const person of enhancedPersons) {
     const normalizedName = person.name.toLowerCase();
     if (!seenNames.has(normalizedName) && person.confidence > 0.5) {
-      seenNames.add(normalizedName);
+      seenNames.add(cleanForFirestore(normalizedName));
       await recordPersonMention(userId, {
         name: person.name,
         relationship: person.relationship ?? 'other',
@@ -437,7 +438,7 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
     const name = mention.name || mention.role;
     const normalizedName = name.toLowerCase();
     if (!seenNames.has(normalizedName)) {
-      seenNames.add(normalizedName);
+      seenNames.add(cleanForFirestore(normalizedName));
       await recordPersonMention(userId, {
         name,
         relationship: mention.role,
@@ -453,7 +454,7 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
   for (const detail of personDetails) {
     const normalizedName = detail.value.toLowerCase();
     if (!seenNames.has(normalizedName)) {
-      seenNames.add(normalizedName);
+      seenNames.add(cleanForFirestore(normalizedName));
       await recordPersonMention(userId, {
         name: detail.value,
         relationship: detail.type === 'pet_name' ? 'pet' : 'other',

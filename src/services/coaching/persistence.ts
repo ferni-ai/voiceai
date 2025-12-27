@@ -11,6 +11,7 @@
 
 import { getGCPProjectId } from '../../config/environment.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CoachingPersistence' });
 
@@ -259,7 +260,7 @@ export async function saveCoachingProfilesToFirestore(userId: string): Promise<b
     // Serialize dates for Firestore
     const serialized = JSON.parse(JSON.stringify(bundle));
 
-    await firestoreClient.collection(COACHING_COLLECTION).doc(userId).set(serialized);
+    await firestoreClient.collection(COACHING_COLLECTION).doc(userId).set(cleanForFirestore(serialized));
 
     log.info({ userId }, '💾 Saved coaching profiles to Firestore');
     return true;

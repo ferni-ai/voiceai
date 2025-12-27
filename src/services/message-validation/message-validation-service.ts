@@ -21,6 +21,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -758,7 +759,7 @@ async function persistDraft(draft: MessageDraft): Promise<void> {
   try {
     // Remove undefined values for Firestore compatibility
     const cleanDraft = JSON.parse(JSON.stringify(draft));
-    await firestore.collection(DRAFTS_COLLECTION).doc(draft.id).set(cleanDraft);
+    await firestore.collection(DRAFTS_COLLECTION).doc(draft.id).set(cleanForFirestore(cleanDraft));
   } catch (error) {
     log.error({ error: String(error), draftId: draft.id }, 'Failed to persist draft');
   }

@@ -26,6 +26,7 @@ export type {
 } from '../../types/optimization-types.js';
 
 // Import types for use in this file
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   ToolCoOccurrence,
   ToolSequence,
@@ -61,7 +62,7 @@ export class PatternAnalyzer {
    * Start tracking a session
    */
   startSession(sessionId: string, userId: string, agentId: string): void {
-    this.sessions.set(sessionId, {
+    this.sessions.set(cleanForFirestore(sessionId), {
       sessionId,
       userId,
       agentId,
@@ -167,7 +168,7 @@ export class PatternAnalyzer {
       for (const [toolB, count] of innerMap) {
         const key = [toolA, toolB].sort().join('|');
         if (seen.has(key) || count < minCount) continue;
-        seen.add(key);
+        seen.add(cleanForFirestore(key));
 
         results.push({
           toolA,
@@ -335,7 +336,7 @@ export class PatternAnalyzer {
       if (assigned.has(seq)) continue;
 
       const cluster = [seq];
-      assigned.add(seq);
+      assigned.add(cleanForFirestore(seq));
 
       for (const other of sequences) {
         if (assigned.has(other)) continue;
@@ -346,7 +347,7 @@ export class PatternAnalyzer {
 
         if (similarity > 0.5) {
           cluster.push(other);
-          assigned.add(other);
+          assigned.add(cleanForFirestore(other));
         }
       }
 

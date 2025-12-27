@@ -26,6 +26,7 @@ import {
   type UserTransitionProfile,
 } from './music-user-learning.js';
 
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   exportUserMusicMemories,
   importUserMusicMemories,

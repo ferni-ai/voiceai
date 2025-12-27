@@ -12,6 +12,7 @@
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ThompsonSampler' });
 
@@ -223,7 +224,7 @@ export async function getBanditConfig(experimentId: string): Promise<BanditConfi
     experimentId,
   };
 
-  await db.collection('bandit_configs').doc(experimentId).set(defaultConfig);
+  await db.collection('bandit_configs').doc(experimentId).set(cleanForFirestore(defaultConfig));
   configCache.set(experimentId, defaultConfig);
 
   return defaultConfig;
@@ -240,7 +241,7 @@ export async function updateBanditConfig(
   const current = await getBanditConfig(experimentId);
   const updated = { ...current, ...updates };
 
-  await db.collection('bandit_configs').doc(experimentId).update(updates);
+  await db.collection('bandit_configs').doc(experimentId).update(cleanForFirestore(updates));
   configCache.set(experimentId, updated);
 
   log.info({ experimentId, updates }, 'Bandit config updated');

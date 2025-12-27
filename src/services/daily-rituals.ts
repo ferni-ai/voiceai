@@ -15,6 +15,7 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground } from '../utils/background-task.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   getEngagementStore,
   type StoredRitualStreak,

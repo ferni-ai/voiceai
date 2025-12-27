@@ -32,7 +32,13 @@
 // TYPES
 // ============================================================================
 
-export type { PersonaVoiceConfig, PrewarmState, TTSOptions, VoiceConfig } from './types.js';
+export type {
+  PersonaVoiceConfig,
+  PrewarmState,
+  TTSOptions,
+  TTSProvider,
+  VoiceConfig,
+} from './types.js';
 
 // ============================================================================
 // CORE (Lightweight - Zero Heavy Imports)
@@ -46,6 +52,8 @@ export {
   // Factory
   createCartesiaTTS,
   createTTSFromConfig,
+  createUnifiedTTS,
+  getDefaultTTSProvider,
   getPrewarmedVoiceId,
   // Voice lookup
   getVoiceIdForPersona,
@@ -70,6 +78,71 @@ export {
   // Accent types
   type EnglishAccent,
 } from './persona-aware.js';
+
+// ============================================================================
+// BTCW (CosyVoice TTS)
+// ============================================================================
+
+export {
+  // Classes
+  BTCWTTS,
+  BTCWChunkedStream,
+  BTCWSynthesizeStream,
+
+  // Factory functions
+  createBTCWTTS,
+  createBTCWTTSFromEnv,
+
+  // Prewarming
+  prewarmBTCWTTS,
+  isBTCWTTSPrewarmed,
+  getPrewarmedBTCWTTS,
+  clearPrewarmedBTCWTTS,
+
+  // Voice mapping
+  cartesiaVoiceToBTCW,
+  getBTCWVoiceIdForPersona,
+
+  // Constants
+  DEFAULT_BTCW_ENDPOINT,
+  BTCW_VOICE_IDS,
+
+  // Types
+  type BTCWOptions,
+  type BTCWEmotionType,
+  type SuperhumanOptions,
+  type AudioFrame,
+  type SynthesisEvent,
+  type SynthesisEventType,
+} from './btcw-core.js';
+
+// ============================================================================
+// SUPERHUMAN TTS (Beyond Human Voice Experience)
+// ============================================================================
+
+export {
+  // Main class
+  SuperhumanTTS,
+
+  // Factory functions
+  createSuperhumanTTS,
+  createSuperhumanTTSFromEnv,
+
+  // Utility functions
+  calculateRelationshipStage,
+  isLateNightWisdomTime,
+  determineMemoryWeight,
+
+  // Types
+  type RelationshipStage,
+  type MemoryWeight,
+  type MemoryReference,
+  type UserState,
+  type RelationshipContext,
+  type SuperhumanContext,
+  type SuperhumanResult,
+  type SuperhumanTTSConfig,
+} from './superhuman-tts.js';
 
 // ============================================================================
 // LEGACY ALIASES (for backwards compatibility)

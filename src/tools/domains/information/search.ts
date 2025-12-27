@@ -134,6 +134,60 @@ export async function defineTerm(term: string): Promise<string> {
   return searchWikipedia(term);
 }
 
+/**
+ * Search for recipes using DuckDuckGo
+ */
+export async function searchRecipes(dish: string): Promise<string> {
+  try {
+    // Use DuckDuckGo to search for recipes
+    const response = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(dish + ' recipe')}&format=json&no_html=1&skip_disambig=1`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+
+    if (!response.ok) {
+      return `I couldn't search for recipes right now.`;
+    }
+
+    const data = (await response.json()) as {
+      AbstractText?: string;
+      AbstractSource?: string;
+      AbstractURL?: string;
+      RelatedTopics?: Array<{ Text?: string; FirstURL?: string }>;
+    };
+
+    // If we have a direct recipe result
+    if (data.AbstractText && data.AbstractText.length > 50) {
+      const source = data.AbstractSource ? ` (via ${data.AbstractSource})` : '';
+      return `Here's a recipe for ${dish}:\n\n${data.AbstractText.slice(0, 1000)}${source}`;
+    }
+
+    // Try to find recipe from related topics
+    const recipeTopics = data.RelatedTopics?.filter(
+      (topic) => topic.Text && (topic.Text.toLowerCase().includes('recipe') || topic.Text.toLowerCase().includes('ingredient'))
+    );
+
+    if (recipeTopics && recipeTopics.length > 0) {
+      const recipes = recipeTopics.slice(0, 3).map((t) => `• ${t.Text}`).join('\n');
+      return `Here are some ${dish} recipes:\n\n${recipes}`;
+    }
+
+    // Fall back to general search results
+    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+      const first = data.RelatedTopics[0];
+      if (first.Text) {
+        return `Here's what I found about ${dish}: ${first.Text.slice(0, 500)}`;
+      }
+    }
+
+    // Ultimate fallback - suggest searching
+    return `I couldn't find a specific recipe for "${dish}". Try asking for ingredients or cooking instructions instead?`;
+  } catch (error) {
+    getLogger().warn(`Recipe search error: ${error}`);
+    return `I had trouble searching for that recipe. Try a different dish name?`;
+  }
+}
+
 // ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
@@ -171,6 +225,17 @@ export function createSearchTools() {
       execute: async ({ term }) => {
         getLogger().info(`Defining: ${term}`);
         return defineTerm(term);
+      },
+    }),
+
+    searchRecipes: llm.tool({
+      description: 'Search for recipes and cooking instructions for a dish',
+      parameters: z.object({
+        dish: z.string().describe('The dish or food to find a recipe for'),
+      }),
+      execute: async ({ dish }) => {
+        getLogger().info(`Searching recipes for: ${dish}`);
+        return searchRecipes(dish);
       },
     }),
   };

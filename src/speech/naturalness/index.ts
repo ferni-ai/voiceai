@@ -46,6 +46,7 @@ import {
   mergeContextInjections,
   type SourceAdjustments,
 } from './combine-adjustments.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   AudioSignalInput,
   TurnContextInput,
@@ -99,7 +100,7 @@ export function getNaturalnessEngine(
   userId: string
 ): NaturalnessEngineInstance {
   if (!engines.has(sessionId)) {
-    engines.set(sessionId, {
+    engines.set(cleanForFirestore(sessionId), {
       sessionId,
       userId,
       turnsProcessed: 0,

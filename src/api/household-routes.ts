@@ -10,6 +10,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded } from './helpers.js';
 
@@ -158,7 +159,10 @@ export async function handleHouseholdRoutes(
         household.settings = data.settings as HouseholdSettings;
       }
 
-      await db.collection('households').doc(userId).set(household, { merge: true });
+      await db
+        .collection('households')
+        .doc(userId)
+        .set(cleanForFirestore(household), { merge: true });
 
       log.info({ userId }, 'Household updated');
       sendJson(res, 200, { success: true, household });
@@ -185,13 +189,16 @@ export async function handleHouseholdRoutes(
       }
 
       const db = getFirestore();
-      await db.collection('households').doc(userId).set(
-        {
-          settings,
-          updatedAt: new Date(),
-        },
-        { merge: true }
-      );
+      await db
+        .collection('households')
+        .doc(userId)
+        .set(
+          cleanForFirestore({
+            settings,
+            updatedAt: new Date(),
+          }),
+          { merge: true }
+        );
 
       log.info({ userId }, 'Household settings updated');
       sendJson(res, 200, { success: true });
@@ -237,11 +244,11 @@ export async function handleHouseholdRoutes(
       };
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           members: [...currentMembers, newMember],
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -272,10 +279,12 @@ export async function handleHouseholdRoutes(
       const currentMembers = doc.data()?.members || [];
       const updatedMembers = currentMembers.filter((m: HouseholdMember) => m.id !== memberId);
 
-      await docRef.update({
-        members: updatedMembers,
-        updatedAt: new Date(),
-      });
+      await docRef.update(
+        cleanForFirestore({
+          members: updatedMembers,
+          updatedAt: new Date(),
+        })
+      );
 
       log.info({ userId, memberId }, 'Household member removed');
       sendJson(res, 200, { success: true });

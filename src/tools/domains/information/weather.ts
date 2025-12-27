@@ -395,6 +395,72 @@ export async function getCurrentWeather(location: string): Promise<string> {
 }
 
 /**
+ * Get sunrise/sunset times for a location
+ */
+export async function getSunriseSunset(location: string): Promise<string> {
+  const log = getLogger();
+  const geo = await geocodeLocation(location);
+
+  if (!geo) {
+    return `I couldn't find "${location}". Try a city name like "Philadelphia" or "Denver".`;
+  }
+
+  try {
+    // Open-Meteo provides sunrise/sunset in daily forecast
+    const url =
+      `https://api.open-meteo.com/v1/forecast?` +
+      `latitude=${geo.latitude}&longitude=${geo.longitude}` +
+      `&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+
+    if (!response.ok) {
+      return `Couldn't get sunrise/sunset for ${geo.name}.`;
+    }
+
+    const data = (await response.json()) as { 
+      daily?: { 
+        sunrise?: string[]; 
+        sunset?: string[]; 
+      };
+      timezone?: string;
+    };
+
+    if (!data.daily?.sunrise?.[0] || !data.daily?.sunset?.[0]) {
+      return `No sunrise/sunset data available for ${geo.name}.`;
+    }
+
+    const sunriseDate = new Date(data.daily.sunrise[0]);
+    const sunsetDate = new Date(data.daily.sunset[0]);
+    
+    const formatTime = (date: Date) => {
+      const hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${minutes} ${ampm}`;
+    };
+
+    const sunriseTime = formatTime(sunriseDate);
+    const sunsetTime = formatTime(sunsetDate);
+    
+    // Calculate daylight hours
+    const daylightMs = sunsetDate.getTime() - sunriseDate.getTime();
+    const daylightHours = Math.floor(daylightMs / (1000 * 60 * 60));
+    const daylightMinutes = Math.floor((daylightMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
+    
+    log.info({ location, locationName, sunrise: sunriseTime, sunset: sunsetTime }, '🌅 Sunrise/sunset');
+
+    return `In ${locationName} today: Sunrise at ${sunriseTime}, sunset at ${sunsetTime}. That's ${daylightHours} hours and ${daylightMinutes} minutes of daylight.`;
+  } catch (error) {
+    log.warn(`Sunrise/sunset API error: ${error}`);
+    return `I had trouble getting sunrise/sunset times.`;
+  }
+}
+
+/**
  * Get weather forecast for a location
  */
 export async function getWeatherForecast(location: string, days = 5): Promise<string> {
@@ -506,6 +572,30 @@ export function createWeatherTools() {
         } catch (error) {
           logger.error({ location, days, error: String(error) }, '📅 Weather forecast tool error');
           return `I couldn't get the forecast for ${location}. Try a different city name?`;
+        }
+      },
+    }),
+
+    getSunriseSunset: llm.tool({
+      description: 'Get sunrise and sunset times for a location. Use when user asks about sunrise, sunset, daylight hours, golden hour, or when the sun rises/sets.',
+      parameters: z.object({
+        location: z.string().describe('City name'),
+      }),
+      execute: async ({ location }) => {
+        const startTime = Date.now();
+        logger.info({ location }, '🌅 Sunrise/sunset tool called');
+
+        try {
+          const result = await getSunriseSunset(location);
+          const elapsed = Date.now() - startTime;
+          logger.info(
+            { location, elapsed, resultLength: result.length },
+            '🌅 Sunrise/sunset returned'
+          );
+          return result;
+        } catch (error) {
+          logger.error({ location, error: String(error) }, '🌅 Sunrise/sunset tool error');
+          return `I couldn't get sunrise/sunset times for ${location}. Try a different city name?`;
         }
       },
     }),

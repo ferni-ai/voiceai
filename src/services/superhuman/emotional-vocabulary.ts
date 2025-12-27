@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'EmotionalVocabulary' });
 
@@ -277,7 +277,7 @@ export async function recordEmotionUsage(
       .collection('bogle_users')
       .doc(userId)
       .collection('emotion_vocabulary')
-      .add(record);
+      .add(cleanForFirestore(record));
 
     log.debug({ userId, emotionWord }, 'Recorded emotion usage');
   } catch (error) {

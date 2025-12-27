@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 
 const log = createLogger({ module: 'ferni-commitments' });
@@ -554,7 +554,7 @@ async function saveCommitment(userId: string, commitment: FerniCommitment): Prom
       .doc(userId)
       .collection('ferni_commitments')
       .doc(commitment.id)
-      .set(commitment);
+      .set(cleanForFirestore(commitment));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save commitment');
   }

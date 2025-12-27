@@ -50,6 +50,8 @@ import {
 } from './i18n/index.js';
 import type { SemanticToolDefinition, EmbeddingProvider } from './types.js';
 
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+
 // Import advanced SOTA features
 import {
   // Learning loop

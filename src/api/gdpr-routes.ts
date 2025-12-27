@@ -19,6 +19,7 @@ import { recordDataAccess, recordSecurityEvent } from '../services/security-even
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -432,7 +433,7 @@ async function handleExportRequest(
     };
 
     // Store export for later download (in production, use a proper storage)
-    exportStorage.set(exportId, {
+    exportStorage.set(cleanForFirestore(exportId), {
       data: result,
       userId,
       expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),

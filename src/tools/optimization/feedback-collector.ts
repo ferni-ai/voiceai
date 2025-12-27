@@ -29,6 +29,7 @@ export type { FeedbackType, FeedbackRecord, FeedbackSummary } from '../../types/
 
 // Import types for internal use
 import type { FeedbackType, FeedbackRecord, FeedbackSummary } from '../../types/optimization-types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 export interface ConversationContext {
   userId: string;

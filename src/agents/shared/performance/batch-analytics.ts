@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'BatchAnalytics' });
 
@@ -78,7 +79,7 @@ type FlushHandler = (events: AnalyticsEvent[]) => Promise<void>;
  *
  * // Set the flush handler
  * batchWriter.setFlushHandler(async (events) => {
- *   await firestore.collection('analytics').add({ events });
+ *   await firestore.collection('analytics').add(cleanForFirestore({ events }));
  * });
  *
  * // Queue events

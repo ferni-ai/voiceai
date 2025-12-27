@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { runBackground } from '../../utils/background-task.js';
 
 const log = createLogger({ module: 'ProactiveScheduler' });
@@ -356,7 +357,7 @@ function canSendToUser(userId: string): boolean {
   // Reset weekly count
   const weekMs = 7 * 24 * 60 * 60 * 1000;
   if (now.getTime() - userCount.weekStart.getTime() > weekMs) {
-    userSendCounts.set(userId, { count: 0, weekStart: now });
+    userSendCounts.set(cleanForFirestore(userId), { count: 0, weekStart: now });
     return true;
   }
 
@@ -368,7 +369,7 @@ function recordSentOutreach(userId: string): void {
   if (userCount) {
     userCount.count++;
   } else {
-    userSendCounts.set(userId, { count: 1, weekStart: new Date() });
+    userSendCounts.set(cleanForFirestore(userId), { count: 1, weekStart: new Date() });
   }
 }
 
@@ -387,11 +388,11 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
       .doc(outreach.userId)
       .collection('scheduled_outreach')
       .doc(outreach.id)
-      .set({
+      .set(cleanForFirestore({
         ...outreach,
         scheduledFor: outreach.scheduledFor.toISOString(),
         createdAt: outreach.createdAt.toISOString(),
-      });
+      }));
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist outreach');
   }
@@ -439,7 +440,7 @@ export function setUserOutreachPreferences(
     timezone: 'America/New_York',
   };
 
-  userPreferences.set(userId, { ...existing, ...prefs });
+  userPreferences.set(cleanForFirestore(userId), { ...existing, ...prefs });
 }
 
 // ============================================================================

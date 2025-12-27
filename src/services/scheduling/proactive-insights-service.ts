@@ -20,6 +20,7 @@ import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getLifeDataStore } from '../stores/life-data-store.js';
 import { getFinancialStore } from '../stores/financial-store.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // FIRESTORE SETUP

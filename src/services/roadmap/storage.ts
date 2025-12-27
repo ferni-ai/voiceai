@@ -6,7 +6,7 @@
  */
 
 import admin from 'firebase-admin';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   type UserSeeds,
@@ -279,7 +279,7 @@ export async function checkStreakReward(
               lastClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
           } else {
-            transaction.set(streakRewardsRef, {
+            transaction.set(cleanForFirestore(streakRewardsRef), {
               claimedMilestones: [milestone],
               lastClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -329,7 +329,7 @@ export async function recordVote(
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       } else {
-        transaction.set(voteRef, {
+        transaction.set(cleanForFirestore(voteRef), {
           userId,
           featureId,
           seedsPlanted: seeds,
@@ -401,10 +401,10 @@ export async function createSuggestion(
       createdAt: new Date(),
     };
 
-    await suggestionRef.set({
+    await suggestionRef.set(cleanForFirestore({
       ...suggestion,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    }));
 
     log.info({ userId, suggestionId: suggestionRef.id, title }, 'Feature suggestion created');
 

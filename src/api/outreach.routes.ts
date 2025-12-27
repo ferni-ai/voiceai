@@ -804,7 +804,8 @@ Here's to many more.`;
         sequence?: 'day0' | 'day3' | 'week';
       };
 
-      const { emailUser, getUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
+      const { emailUser, getUserContactInfo } =
+        await import('../tools/domains/proactive/outreach/index.js');
 
       const contactInfo = await getUserContactInfo(authenticatedUserId);
 
@@ -886,7 +887,8 @@ Whenever you're ready.`,
         return true;
       }
 
-      const { textUser, getUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
+      const { textUser, getUserContactInfo } =
+        await import('../tools/domains/proactive/outreach/index.js');
 
       const contactInfo = await getUserContactInfo(authenticatedUserId);
 
@@ -931,7 +933,8 @@ Whenever you're ready.`,
       }
 
       // Import the outreach tools
-      const { textUser, emailUser, callUser } = await import('../tools/domains/proactive/outreach/index.js');
+      const { textUser, emailUser, callUser } =
+        await import('../tools/domains/proactive/outreach/index.js');
 
       let result: { success: boolean; error?: string };
       switch (channel) {

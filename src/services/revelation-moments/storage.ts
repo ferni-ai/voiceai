@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   RevelationProfile,
   RevelationMoment,
@@ -77,7 +78,7 @@ export async function loadRevelationProfile(userId: string): Promise<RevelationP
     const profile = doc.data() as RevelationProfile;
 
     // Update cache
-    profileCache.set(userId, { profile, loadedAt: Date.now() });
+    profileCache.set(cleanForFirestore(userId), { profile, loadedAt: Date.now() });
 
     return profile;
   } catch (error) {
@@ -104,7 +105,7 @@ export async function saveRevelationProfile(profile: RevelationProfile): Promise
       .doc(profile.userId)
       .collection('revelation_profile')
       .doc('data')
-      .set(profile, { merge: true });
+      .set(cleanForFirestore(profile), { merge: true });
 
     // Update cache
     profileCache.set(profile.userId, { profile, loadedAt: Date.now() });

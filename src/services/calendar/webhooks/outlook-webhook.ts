@@ -19,6 +19,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { outlookCalendarProvider } from '../providers/outlook-provider.js';
 import { importEventsFromProvider } from '../unified-calendar-store.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -399,7 +400,7 @@ async function storeSubscription(subscription: OutlookSubscription): Promise<voi
     await firestore
       .collection(`users/${subscription.userId}/outlook_subscriptions`)
       .doc(subscription.id)
-      .set(subscription);
+      .set(cleanForFirestore(subscription));
   } catch (error) {
     log.error({ error: String(error) }, 'Error storing Outlook subscription');
   }

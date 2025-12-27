@@ -100,7 +100,11 @@ vi.mock('../../firestore-utils.js', () => {
 // IMPORTS (after mocks)
 // ============================================================================
 
-import { detectAdvice, type AdviceCategory } from '../advice-detector.js';
+import { detectAdvice } from '../advice-detector.js';
+import { type AgentAdviceContext } from '../integration.js';
+
+// Define AdviceCategory locally from the AgentAdviceContext type
+type AdviceCategory = AgentAdviceContext['category'];
 import { extractPersons, getPrimaryPersonName } from '../person-extractor.js';
 import { correlationMining } from '../correlation-mining.js';
 import { emotionalTrajectories } from '../emotional-trajectories.js';
@@ -267,7 +271,14 @@ For expected, include:
 // ============================================================================
 
 describe('Person Extraction - Synthetic Testing', () => {
-  const SEED_SCENARIOS = [
+  interface PersonScenarioExpected {
+    name?: string;
+    nameContains?: string;
+    noPerson?: boolean;
+    relationship?: string;
+  }
+  
+  const SEED_SCENARIOS: Array<{ utterance: string; expected: PersonScenarioExpected }> = [
     // Named persons (capitalized proper names)
     { utterance: "I talked to Sarah about it yesterday", expected: { name: 'Sarah' } },
     { utterance: "My friend Mike is getting married next month", expected: { name: 'Mike' } },
@@ -290,9 +301,10 @@ describe('Person Extraction - Synthetic Testing', () => {
         if (expected.noPerson) {
           expect(mentions.length).toBe(0);
         } else if (expected.name) {
-          expect(mentions.some(m => m.name.includes(expected.name))).toBe(true);
-        } else if ((expected as { nameContains?: string }).nameContains) {
-          const nameContains = (expected as { nameContains?: string }).nameContains!;
+          const expectedName = expected.name;
+          expect(mentions.some(m => m.name.includes(expectedName))).toBe(true);
+        } else if (expected.nameContains) {
+          const nameContains = expected.nameContains;
           expect(mentions.some(m => m.name.toLowerCase().includes(nameContains.toLowerCase()))).toBe(true);
         } else if (expected.relationship) {
           expect(mentions.some(m => m.relationship === expected.relationship)).toBe(true);
@@ -375,14 +387,12 @@ describe('Emotional Trajectory Detection - Synthetic Testing', () => {
       async ({ sequence, expectedArc }) => {
         // Record the emotional data points using correct API
         for (const point of sequence) {
-          await emotionalTrajectories.recordWaypoint(
-            TEST_USER_ID,
-            point.emotion,
-            0.7,
-            ['general'],
-            point.text,
-            new Date(Date.now() - point.day * 24 * 60 * 60 * 1000)
-          );
+          await emotionalTrajectories.recordWaypoint(TEST_USER_ID, {
+            emotion: point.emotion,
+            intensity: 0.7,
+            valence: point.emotion === 'sad' ? -0.6 : point.emotion === 'hopeful' ? 0.6 : 0,
+            context: point.text,
+          });
         }
 
         // Build context should reflect the trajectory
@@ -498,24 +508,18 @@ describe('Growth Fingerprint - Synthetic Testing', () => {
       'should detect $expectedGrowth',
       async ({ early, later, expectedGrowth }) => {
         // Record early data using correct API
-        await growthFingerprint.recordData(
-          TEST_USER_ID,
-          early,
-          ['general'],
-          'neutral',
-          0.5,
-          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // 90 days ago
-        );
+        await growthFingerprint.recordData(TEST_USER_ID, {
+          messageText: early,
+          topics: ['general'],
+          emotion: 'neutral',
+        });
 
         // Record later data
-        await growthFingerprint.recordData(
-          TEST_USER_ID,
-          later,
-          ['general'],
-          'hopeful',
-          0.6,
-          new Date()
-        );
+        await growthFingerprint.recordData(TEST_USER_ID, {
+          messageText: later,
+          topics: ['general'],
+          emotion: 'hopeful',
+        });
 
         // Build context
         const context = await growthFingerprint.buildContext(TEST_USER_ID);
@@ -557,18 +561,15 @@ describe('Cross-Session Threading - Synthetic Testing', () => {
       async ({ sessions, expectedThread }) => {
         // Record moments across sessions using correct API
         for (const session of sessions) {
-          await crossSessionThreading.recordMoment(
-            TEST_USER_ID,
-            session.text,
-            `session-${session.session}`,
-            [session.topic],
-            'neutral',
-            0.5
-          );
+          await crossSessionThreading.recordMoment(TEST_USER_ID, {
+            content: session.text,
+            topic: session.topic,
+            emotion: 'neutral',
+          });
         }
 
         // Build context
-        const context = await crossSessionThreading.buildContext(TEST_USER_ID, ['general']);
+        const context = await crossSessionThreading.buildContext(TEST_USER_ID, { topic: 'general' });
         expect(typeof context).toBe('string');
       }
     );
@@ -580,8 +581,9 @@ describe('Cross-Session Threading - Synthetic Testing', () => {
 // ============================================================================
 
 describe('Correlation Mining - Synthetic Testing', () => {
+  // Valid CorrelationDomain types: 'emotion' | 'topic' | 'person' | 'time' | 'energy' | 'behavior' | 'sleep' | 'work' | 'relationship' | 'health' | 'goal'
   const CORRELATION_SCENARIOS = [
-    // Sleep → Mood correlation
+    // Sleep → Emotion correlation
     {
       dataPoints: [
         { domain: 'sleep', value: 'poor_sleep', mood: 'anxious' },
@@ -590,14 +592,14 @@ describe('Correlation Mining - Synthetic Testing', () => {
       ],
       expectedCorrelation: 'sleep_mood',
     },
-    // Exercise → Energy correlation
+    // Behavior (exercise) → Energy correlation
     {
       dataPoints: [
-        { domain: 'exercise', value: 'worked_out', mood: 'energized' },
-        { domain: 'exercise', value: 'no_exercise', mood: 'tired' },
-        { domain: 'exercise', value: 'worked_out', mood: 'motivated' },
+        { domain: 'behavior', value: 'worked_out', mood: 'energized' },
+        { domain: 'behavior', value: 'no_exercise', mood: 'tired' },
+        { domain: 'behavior', value: 'worked_out', mood: 'motivated' },
       ],
-      expectedCorrelation: 'exercise_energy',
+      expectedCorrelation: 'behavior_energy',
     },
   ];
 
@@ -605,15 +607,13 @@ describe('Correlation Mining - Synthetic Testing', () => {
     it.each(CORRELATION_SCENARIOS)(
       'should detect $expectedCorrelation correlation',
       async ({ dataPoints, expectedCorrelation }) => {
-        // Record observations using correct API
+        // Record observations using correct API (CorrelationDomain types)
         for (const point of dataPoints) {
-          await correlationMining.recordObservation(
-            TEST_USER_ID,
-            point.domain,
-            point.value,
-            { emotion: point.mood, intensity: 0.7 },
-            ['general']
-          );
+          await correlationMining.recordObservation(TEST_USER_ID, {
+            domain: point.domain as 'emotion' | 'topic' | 'person' | 'time' | 'energy' | 'behavior' | 'sleep' | 'work' | 'relationship' | 'health' | 'goal',
+            pattern: point.value,
+            context: point.mood,
+          });
         }
 
         // Build context
@@ -709,7 +709,7 @@ describe('Combined "Better Than Human" Detection', { timeout: LLM_TIMEOUT }, () 
       relationalSemantics.buildContext(TEST_USER_ID),
       counterfactualMemory.buildContext(TEST_USER_ID),
       growthFingerprint.buildContext(TEST_USER_ID),
-      crossSessionThreading.buildContext(TEST_USER_ID, ['general']),
+      crossSessionThreading.buildContext(TEST_USER_ID, { topic: 'general' }),
       correlationMining.buildContext(TEST_USER_ID),
     ]);
 
@@ -757,18 +757,19 @@ describe('Stress Testing - High Volume', () => {
   it('should handle rapid-fire data recording', async () => {
     const startTime = Date.now();
     const iterations = 50;
+    const emotions = ['joy', 'sad', 'anxious', 'neutral'];
+    const valences = [0.7, -0.6, -0.3, 0];
 
-    const promises: Promise<void>[] = [];
+    const promises: Array<Promise<unknown>> = [];
     for (let i = 0; i < iterations; i++) {
+      const emotionIndex = i % 4;
       promises.push(
-        emotionalTrajectories.recordWaypoint(
-          `stress-test-user-${i % 5}`,
-          ['joy', 'sad', 'anxious', 'neutral'][i % 4],
-          Math.random(),
-          ['test'],
-          `Test utterance ${i} with some content`,
-          new Date()
-        )
+        emotionalTrajectories.recordWaypoint(`stress-test-user-${i % 5}`, {
+          emotion: emotions[emotionIndex],
+          intensity: Math.random(),
+          valence: valences[emotionIndex],
+          context: `Test utterance ${i} with some content`,
+        })
       );
     }
 

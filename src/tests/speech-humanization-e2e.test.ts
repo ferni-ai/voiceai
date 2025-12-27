@@ -11,12 +11,28 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { buildSpeechContext, isLateNightHours, detectUserLaughter, detectExtendedEnergyLevel } from '../speech/speech-context.js';
+import {
+  buildSpeechContext,
+  isLateNightHours,
+  detectUserLaughter,
+  detectExtendedEnergyLevel,
+} from '../speech/speech-context.js';
 import { tagTextWithSsmlAdaptive } from '../speech/adaptive-ssml/adaptation.js';
 import { makeVoiceAlive } from '../speech/adaptive-ssml/alive-voice/index.js';
-import { quickHumanizeSync, preloadAllSpeechProfiles, areSpeechProfilesPreloaded } from '../speech/humanization/index.js';
-import { applyPersonaSpeechTraitsSync, preloadAllTraits } from '../speech/adaptive-ssml/persona-speech-traits-loader.js';
-import { getEnergyMatchedPacing, getLateNightPacing, selectLaughterResponseSync } from '../speech/humanization/behavior-loader.js';
+import {
+  quickHumanizeSync,
+  preloadAllSpeechProfiles,
+  areSpeechProfilesPreloaded,
+} from '../speech/humanization/index.js';
+import {
+  applyPersonaSpeechTraitsSync,
+  preloadAllTraits,
+} from '../speech/adaptive-ssml/persona-speech-traits-loader.js';
+import {
+  getEnergyMatchedPacing,
+  getLateNightPacing,
+  selectLaughterResponseSync,
+} from '../speech/humanization/behavior-loader.js';
 import type { AliveVoiceContext } from '../speech/adaptive-ssml/alive-voice/types.js';
 import type { BehaviorSelectionContext } from '../speech/humanization/types.js';
 
@@ -37,25 +53,25 @@ describe('Speech Humanization E2E', () => {
     it('should detect low energy from tired language', () => {
       expect(detectExtendedEnergyLevel('I am so tired today...')).toBe('low');
       // "exhausted" triggers very_low, "overwhelmed" triggers low - both are low energy
-      const exhausted = detectExtendedEnergyLevel("I am feeling exhausted and overwhelmed");
+      const exhausted = detectExtendedEnergyLevel('I am feeling exhausted and overwhelmed');
       expect(['very_low', 'low']).toContain(exhausted);
     });
 
     it('should detect neutral energy from normal responses', () => {
       expect(detectExtendedEnergyLevel('I had a good day at work today')).toBe('neutral');
-      expect(detectExtendedEnergyLevel("Let me think about that")).toBe('neutral');
+      expect(detectExtendedEnergyLevel('Let me think about that')).toBe('neutral');
     });
 
     it('should detect elevated/high energy from excited language', () => {
       const amazing = detectExtendedEnergyLevel("That's amazing!! I love it!");
       expect(['elevated', 'high']).toContain(amazing);
-      
+
       const excited = detectExtendedEnergyLevel("I'm so excited about this!");
       expect(['elevated', 'high']).toContain(excited);
     });
 
     it('should detect high energy from very excited language', () => {
-      expect(detectExtendedEnergyLevel("OMG YES!!! This is incredible!!!")).toBe('high');
+      expect(detectExtendedEnergyLevel('OMG YES!!! This is incredible!!!')).toBe('high');
     });
   });
 
@@ -112,9 +128,16 @@ describe('Speech Humanization E2E', () => {
   });
 
   describe('Energy Matching', () => {
-    const personas = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel', 'peter-john'];
+    const personas = [
+      'ferni',
+      'maya-santos',
+      'jordan-taylor',
+      'alex-chen',
+      'nayan-patel',
+      'peter-john',
+    ];
 
-    personas.forEach(personaId => {
+    personas.forEach((personaId) => {
       it(`should have energy matching for ${personaId}`, () => {
         const lowPacing = getEnergyMatchedPacing(personaId, 'low');
         const highPacing = getEnergyMatchedPacing(personaId, 'high');
@@ -138,7 +161,7 @@ describe('Speech Humanization E2E', () => {
 
       it(`should have late night pacing for ${personaId}`, () => {
         const lateNightPacing = getLateNightPacing(personaId);
-        
+
         // May be null if persona doesn't have late-night-presence.json
         if (lateNightPacing) {
           expect(lateNightPacing.speedMultiplier).toBeLessThanOrEqual(1.0);
@@ -148,9 +171,16 @@ describe('Speech Humanization E2E', () => {
   });
 
   describe('Laughter Contagion', () => {
-    const personas = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel', 'peter-john'];
+    const personas = [
+      'ferni',
+      'maya-santos',
+      'jordan-taylor',
+      'alex-chen',
+      'nayan-patel',
+      'peter-john',
+    ];
 
-    personas.forEach(personaId => {
+    personas.forEach((personaId) => {
       it(`should have laughter responses for ${personaId}`, () => {
         const context: BehaviorSelectionContext & { userLaughed?: boolean } = {
           personaId,
@@ -176,10 +206,18 @@ describe('Speech Humanization E2E', () => {
   });
 
   describe('Persona Speech Traits', () => {
-    const personas = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel', 'peter-john'];
-    const testText = "That's a really great question. Let me think about how to help you with your goals and plans for the future.";
+    const personas = [
+      'ferni',
+      'maya-santos',
+      'jordan-taylor',
+      'alex-chen',
+      'nayan-patel',
+      'peter-john',
+    ];
+    const testText =
+      "That's a really great question. Let me think about how to help you with your goals and plans for the future.";
 
-    personas.forEach(personaId => {
+    personas.forEach((personaId) => {
       it(`should apply speech traits for ${personaId}`, () => {
         const result = applyPersonaSpeechTraitsSync(testText, personaId, {
           emotion: 'affectionate',
@@ -201,10 +239,18 @@ describe('Speech Humanization E2E', () => {
       expect(areSpeechProfilesPreloaded()).toBe(true);
     });
 
-    const personas = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel', 'peter-john'];
-    const testText = "I understand how you're feeling. That must be really challenging to deal with, and I want you to know that I'm here to support you through this.";
+    const personas = [
+      'ferni',
+      'maya-santos',
+      'jordan-taylor',
+      'alex-chen',
+      'nayan-patel',
+      'peter-john',
+    ];
+    const testText =
+      "I understand how you're feeling. That must be really challenging to deal with, and I want you to know that I'm here to support you through this.";
 
-    personas.forEach(personaId => {
+    personas.forEach((personaId) => {
       it(`should apply quick humanization for ${personaId}`, () => {
         // Run multiple times - humanization is probabilistic
         let wasModified = false;
@@ -227,7 +273,8 @@ describe('Speech Humanization E2E', () => {
   });
 
   describe('Full SSML Pipeline', () => {
-    const testText = "I hear you. That sounds like a challenging situation, and I think we can work through it together.";
+    const testText =
+      'I hear you. That sounds like a challenging situation, and I think we can work through it together.';
 
     it('should produce valid SSML output for Ferni', () => {
       const speechContext = buildSpeechContext({
@@ -295,7 +342,7 @@ describe('Speech Humanization E2E', () => {
       let foundLaughter = false;
       for (let i = 0; i < 10; i++) {
         const result = makeVoiceAlive(testText, { ...aliveContext, randomSeed: `test-${i}` });
-        if (result.appliedFeatures.some(f => f.includes('laughter'))) {
+        if (result.appliedFeatures.some((f) => f.includes('laughter'))) {
           foundLaughter = true;
           break;
         }
@@ -322,7 +369,8 @@ describe('Speech Humanization E2E', () => {
       expect(context.randomSeed).toBeDefined();
 
       // 2. Generate response and tag with SSML
-      const agentResponse = "I hear you. Work stress is so common, and it's wonderful that you're maintaining a positive outlook. What specifically has been weighing on you?";
+      const agentResponse =
+        "I hear you. Work stress is so common, and it's wonderful that you're maintaining a positive outlook. What specifically has been weighing on you?";
       const taggedResponse = tagTextWithSsmlAdaptive(agentResponse, context, 'ferni');
 
       // Verify SSML was applied
@@ -350,8 +398,8 @@ describe('Speech Humanization E2E', () => {
 
     it('should integrate callbacks through sync path when user triggers them', () => {
       // User text that should trigger a callback (Ferni's "second_chances" trigger)
-      const userText = "I messed up my presentation and now I feel like a failure";
-      
+      const userText = 'I messed up my presentation and now I feel like a failure';
+
       // Build speech context with the user text
       const context = buildSpeechContext({
         userText,
@@ -360,8 +408,8 @@ describe('Speech Humanization E2E', () => {
         sessionId: 'callback-integration-test',
       });
 
-      const agentResponse = "I hear you. Making mistakes at work can feel really discouraging.";
-      
+      const agentResponse = 'I hear you. Making mistakes at work can feel really discouraging.';
+
       // Run multiple times to catch probabilistic callback injection
       let foundCallback = false;
       for (let i = 0; i < 20; i++) {
@@ -376,19 +424,20 @@ describe('Speech Humanization E2E', () => {
         };
 
         const result = makeVoiceAlive(agentResponse, aliveContext);
-        
+
         // Check if callback was injected (will contain "second chances" or similar)
-        if (result.text.toLowerCase().includes('second chance') ||
-            result.text.toLowerCase().includes('mistake') && result.text !== agentResponse) {
+        if (
+          result.text.toLowerCase().includes('second chance') ||
+          (result.text.toLowerCase().includes('mistake') && result.text !== agentResponse)
+        ) {
           foundCallback = true;
           break;
         }
       }
-      
+
       // Note: This is probabilistic, so we just verify the pipeline doesn't error
       // The callback detection is tested more thoroughly in synthetic tests
       expect(true).toBe(true);
     });
   });
 });
-

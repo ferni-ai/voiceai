@@ -83,6 +83,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cognitive-insights': () => import('../coaching/cognitive-insights.js'),
   'pattern-surfacing': () => import('../pattern-surfacing.js'),
   'superhuman-insights': () => import('../superhuman/superhuman-insights.js'),
+  'semantic-intelligence-integration': () =>
+    import('../superhuman/semantic-intelligence-integration.js'), // V3.0-V3.7 Semantic Intelligence
   'deep-understanding': () => import('../deep-understanding.js'), // Unified deep intelligence
   'life-context-synthesis': () => import('../life-context-synthesis.js'), // Phase 6: Cross-domain life context
 

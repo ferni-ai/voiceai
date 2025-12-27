@@ -26,6 +26,9 @@ import { appleMusicTools } from './apple-music-tools.js';
 // Import Spotify Connect multi-room tools
 import { spotifyConnectTools } from './spotify-connect.js';
 
+// Import movie tools
+import { createMovieTools } from './movies.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -346,6 +349,45 @@ function getSpotifyToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// MOVIE TOOLS
+// ============================================================================
+
+function getMovieToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createMovieTools();
+
+  return [
+    wrapLegacyTool(
+      'getMovieInfo',
+      'Get Movie Info',
+      'Get information about a specific movie including rating, runtime, genres, and description.',
+      legacyTools.getMovieInfo,
+      { tags: ['movie', 'film', 'info'] }
+    ),
+    wrapLegacyTool(
+      'getMoviesNowPlaying',
+      'Movies Now Playing',
+      'Get a list of movies currently playing in theaters.',
+      legacyTools.getMoviesNowPlaying,
+      { tags: ['movie', 'theater', 'now playing'] }
+    ),
+    wrapLegacyTool(
+      'getUpcomingMovies',
+      'Upcoming Movies',
+      'Get a list of upcoming movies coming to theaters soon.',
+      legacyTools.getUpcomingMovies,
+      { tags: ['movie', 'upcoming', 'coming soon'] }
+    ),
+    wrapLegacyTool(
+      'getMovieShowtimes',
+      'Movie Showtimes',
+      'Get showtime information for a movie in a specific location.',
+      legacyTools.getMovieShowtimes,
+      { tags: ['movie', 'showtimes', 'theater'] }
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -356,6 +398,7 @@ const entertainmentTools: ToolDefinition[] = [
   ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
   ...spotifyConnectTools, // Spotify Connect multi-room playback
   ...appleMusicTools, // Apple Music catalog search
+  ...getMovieToolDefinitions(), // Movie info and showtimes
 ];
 
 log.info(
@@ -375,6 +418,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   entertainmentTools
 );
 
-export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions };
+export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getMovieToolDefinitions };
 
 export default getToolDefinitions;

@@ -8,7 +8,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getWebExperiments, type WebExperiment } from '../experiments/web-experiments.js';
 import { clearBrandContextCache } from './brand-context.js';
@@ -231,17 +231,17 @@ export async function evolveBrandRules(learnings: ExperimentPattern[]): Promise<
 
     try {
       // Store the rule change
-      await db.collection('brand_rule_changes').add(change);
+      await db.collection('brand_rule_changes').add(cleanForFirestore(change));
 
       // Update winning patterns
       await db
         .collection('brand_learnings')
         .doc('winning_patterns')
         .set(
-          {
+          cleanForFirestore({
             patterns: FieldValue.arrayUnion(learning),
             updatedAt: FieldValue.serverTimestamp(),
-          },
+          }),
           { merge: true }
         );
 
@@ -275,7 +275,7 @@ export async function recordFailedApproach(
       .collection('brand_learnings')
       .doc('failed_approaches')
       .set(
-        {
+        cleanForFirestore({
           approaches: FieldValue.arrayUnion({
             approach,
             reason,
@@ -283,7 +283,7 @@ export async function recordFailedApproach(
             learnedAt: new Date().toISOString(),
           }),
           updatedAt: FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true }
       );
 

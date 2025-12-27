@@ -22,6 +22,7 @@ import type { SessionServices } from '../../services/types.js';
 import type { UserData } from '../shared/types.js';
 import type { ContextInjection, EmotionalState } from './types.js';
 // Session dynamics for phase-aware context
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   buildSessionDynamicsInjection,
   mapToLegacyPhase,
@@ -57,7 +58,7 @@ function getCachedInjection(key: string): ContextInjection | null | undefined {
 }
 
 function setCachedInjection(key: string, injection: ContextInjection | null): void {
-  nonVolatileInjectionCache.set(key, {
+  nonVolatileInjectionCache.set(cleanForFirestore(key), {
     injection,
     timestamp: Date.now(),
   });

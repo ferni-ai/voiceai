@@ -20,6 +20,7 @@ import {
   type Gift as GiftRecord,
 } from '../../../services/contacts/gift-tracking-service.js';
 import { searchContacts } from '../../../services/contacts/contact-relationship-service.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES (kept for backward compatibility with registry features)

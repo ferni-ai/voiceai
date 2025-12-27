@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getCommunityInsights,
   getAgentEvolution,
@@ -279,7 +279,7 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('patterns')
           .set(
-            { patterns: exported.patterns, updatedAt: new Date().toISOString() },
+            cleanForFirestore({ patterns: exported.patterns, updatedAt: new Date().toISOString() }),
             { merge: true }
           );
       }
@@ -290,7 +290,7 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('questions')
           .set(
-            { questions: exported.effectiveQuestions, updatedAt: new Date().toISOString() },
+            cleanForFirestore({ questions: exported.effectiveQuestions, updatedAt: new Date().toISOString() }),
             { merge: true }
           );
       }
@@ -301,7 +301,7 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('stories')
           .set(
-            { stories: exported.storyResonance, updatedAt: new Date().toISOString() },
+            cleanForFirestore({ stories: exported.storyResonance, updatedAt: new Date().toISOString() }),
             { merge: true }
           );
       }
@@ -312,7 +312,7 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('journeys')
           .set(
-            { journeys: exported.journeyPatterns, updatedAt: new Date().toISOString() },
+            cleanForFirestore({ journeys: exported.journeyPatterns, updatedAt: new Date().toISOString() }),
             { merge: true }
           );
       }

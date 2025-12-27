@@ -23,6 +23,7 @@ import {
   type CardData,
 } from '../../services/sharing/card-generator.js';
 import type { CardType, ShareableCard } from '../../services/musical-you/types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ShareRoutes' });
 

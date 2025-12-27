@@ -9,7 +9,7 @@
 
 import crypto from 'node:crypto';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   CreateRoomGroupInput,

@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -276,7 +276,7 @@ export async function savePerson(person: RelationshipPerson): Promise<void> {
       .doc(person.userId)
       .collection('relationship_network')
       .doc(person.id)
-      .set(person);
+      .set(cleanForFirestore(person));
   }
 
   // Update cache

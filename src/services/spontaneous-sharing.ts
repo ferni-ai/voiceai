@@ -12,6 +12,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { loadPersonaBehaviors } from './persona-behavior-manager.js';
 import type { PersonaRelationshipStage } from '../types/user-profile.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const logger = getLogger().child({ service: 'SpontaneousSharing' });
 
@@ -107,7 +108,7 @@ function persistSharedContent(userId: string): void {
     }
   }
 
-  persistenceStore.set(userId, {
+  persistenceStore.set(cleanForFirestore(userId), {
     sharedByPersona,
     updatedAt: new Date().toISOString(),
   });
@@ -155,7 +156,7 @@ function markAsShared(personaId: string, userId: string, content: string): void 
     shared = new Set();
     sharedContent.set(key, shared);
   }
-  shared.add(content);
+  shared.add(cleanForFirestore(content));
 
   // Persist to Firestore
   persistSharedContent(userId);

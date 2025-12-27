@@ -10,6 +10,7 @@
 
 import admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 /**
  * Get Firestore instance, returns null if not initialized.

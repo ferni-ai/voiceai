@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'MoodCalendar' });
 
@@ -133,7 +133,7 @@ export async function recordMoodEntry(
       .collection('bogle_users')
       .doc(userId)
       .collection('mood_calendar')
-      .add(entry);
+      .add(cleanForFirestore(entry));
 
     log.debug({ userId, mood, dayOfWeek: entry.dayOfWeek }, 'Recorded mood entry');
   } catch (error) {

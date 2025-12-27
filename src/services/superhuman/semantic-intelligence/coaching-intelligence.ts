@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 
 const log = createLogger({ module: 'coaching-intelligence' });
 
@@ -665,7 +665,7 @@ async function saveEffectivenessProfile(userId: string, profile: AdviceEffective
       .doc(userId)
       .collection('coaching_intelligence')
       .doc('effectiveness')
-      .set(profile);
+      .set(cleanForFirestore(profile));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save effectiveness profile');
   }
@@ -706,7 +706,7 @@ async function saveLearningStyle(userId: string, style: LearningStyle): Promise<
       .doc(userId)
       .collection('coaching_intelligence')
       .doc('learning_style')
-      .set(style);
+      .set(cleanForFirestore(style));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save learning style');
   }
@@ -755,7 +755,7 @@ async function saveResistancePattern(userId: string, pattern: ResistancePattern)
       .doc(userId)
       .collection('coaching_intelligence')
       .doc('resistance')
-      .set(pattern);
+      .set(cleanForFirestore(pattern));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save resistance pattern');
   }

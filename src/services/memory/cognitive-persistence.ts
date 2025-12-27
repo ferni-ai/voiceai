@@ -12,6 +12,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ReasoningStyle } from '../../personas/cognitive-types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -189,10 +190,10 @@ export async function saveUserCognitiveProfile(profile: UserCognitiveProfile): P
         .collection(COGNITIVE_COLLECTION)
         .doc(profile.userId)
         .set(
-          {
+          cleanForFirestore({
             ...profile,
             updatedAt: new Date(),
-          },
+          }),
           { merge: true }
         );
       getLogger().debug({ userId: profile.userId }, 'Saved cognitive profile to Firestore');
@@ -418,7 +419,7 @@ export async function recordTopicExplained(
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(state, { merge: true });
+      await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(cleanForFirestore(state), { merge: true });
     } catch (error) {
       getLogger().warn({ userId, error }, 'Failed to save knowledge state to Firestore');
     }
@@ -473,7 +474,7 @@ export async function recordDemonstratedUnderstanding(
     const firestore = await getFirestore();
     if (firestore) {
       try {
-        await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(state, { merge: true });
+        await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(cleanForFirestore(state), { merge: true });
       } catch (error) {
         getLogger().warn({ userId, error }, 'Failed to save demonstrated understanding');
       }
@@ -510,7 +511,7 @@ export async function recordUncertaintyStatement(
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(UNCERTAINTY_COLLECTION).add(record);
+      await firestore.collection(UNCERTAINTY_COLLECTION).add(cleanForFirestore(record));
     } catch (error) {
       getLogger().warn({ userId, error }, 'Failed to save uncertainty record');
     }
@@ -548,10 +549,10 @@ export async function validateUncertaintyStatement(
           .get();
 
         if (!query.empty) {
-          await query.docs[0].ref.update({
+          await query.docs[0].ref.update(cleanForFirestore({
             wasCorrect,
             userFeedback,
-          });
+          }));
         }
       } catch (error) {
         getLogger().warn({ userId, error }, 'Failed to update uncertainty validation');

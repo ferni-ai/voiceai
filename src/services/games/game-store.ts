@@ -13,6 +13,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { GameMemory, MusicMemory } from '../../types/user-profile.js';
 import { createEmptyGameMemory } from './game-persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -174,7 +175,7 @@ async function flushDirtyUsers(): Promise<void> {
   } catch (error) {
     log.error({ error }, '🎮 Failed to get engagement store');
     // Re-add all users for retry
-    usersToSave.forEach((u) => dirtyUsers.add(u));
+    usersToSave.forEach((u) => dirtyUsers.add(cleanForFirestore(u)));
   }
 }
 

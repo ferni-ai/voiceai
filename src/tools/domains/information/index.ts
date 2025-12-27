@@ -34,6 +34,7 @@ import { getSportScores, getTeamScore } from './sports.js';
 // Import legacy tool creators for simple wrapping
 // NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createTrafficTools } from './traffic.js';
+import { createNutritionTools } from './nutrition.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -365,6 +366,31 @@ function getTrafficToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// NUTRITION TOOLS
+// ============================================================================
+
+function getNutritionToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createNutritionTools();
+
+  return [
+    wrapLegacyTool(
+      'getNutritionInfo',
+      'Get Nutrition Info',
+      'Get nutritional information for a food including calories, protein, carbs, and fat. Use when user asks about nutrition, calories, or macros.',
+      legacyTools.getNutritionInfo,
+      ['nutrition', 'calories', 'food', 'health']
+    ),
+    wrapLegacyTool(
+      'compareNutrition',
+      'Compare Nutrition',
+      'Compare nutritional information between two foods. Use when user asks which food is healthier or wants to compare calories.',
+      legacyTools.compareNutrition,
+      ['nutrition', 'compare', 'food', 'health']
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -373,6 +399,7 @@ const informationTools: ToolDefinition[] = [
   ...getWeatherToolDefinitions(),
   ...getSportsToolDefinitions(),
   ...getTrafficToolDefinitions(),
+  ...getNutritionToolDefinitions(),
   // Apple WeatherKit removed - using Google Weather API only
 ];
 
@@ -390,6 +417,7 @@ export {
   getSportsToolDefinitions,
   getWeatherToolDefinitions,
   getTrafficToolDefinitions,
+  getNutritionToolDefinitions,
 };
 
 export default getToolDefinitions;

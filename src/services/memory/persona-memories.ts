@@ -23,6 +23,7 @@
 import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

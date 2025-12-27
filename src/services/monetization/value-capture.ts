@@ -17,6 +17,7 @@ import {
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserValueCapture, saveValueEvent, type ValueCaptureRecord } from './persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ValueCapture' });
 

@@ -71,6 +71,7 @@ async function sendCalendarBriefingNotification(
 // ============================================================================
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 let db: FirestoreType | null = null;
 const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';

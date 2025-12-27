@@ -15,7 +15,7 @@
 
 import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -144,7 +144,7 @@ class HumanizationAnalyticsService {
 
     const db = getFirestore();
     if (!db) {
-      this.loadedPersonas.add(personaId);
+      this.loadedPersonas.add(cleanForFirestore(personaId));
       return null;
     }
 
@@ -153,14 +153,14 @@ class HumanizationAnalyticsService {
       if (doc.exists) {
         const data = doc.data() as HumanizationMetrics;
         this.aggregatedMetrics.set(personaId, data);
-        this.loadedPersonas.add(personaId);
+        this.loadedPersonas.add(cleanForFirestore(personaId));
         return data;
       }
     } catch (error) {
       getLogger().error({ error, personaId }, 'Failed to load humanization metrics');
     }
 
-    this.loadedPersonas.add(personaId);
+    this.loadedPersonas.add(cleanForFirestore(personaId));
     return null;
   }
 
@@ -172,7 +172,7 @@ class HumanizationAnalyticsService {
     if (!db) return;
 
     try {
-      await db.collection(METRICS_COLLECTION).doc(personaId).set(metrics);
+      await db.collection(METRICS_COLLECTION).doc(personaId).set(cleanForFirestore(metrics));
     } catch (error) {
       getLogger().error({ error, personaId }, 'Failed to save humanization metrics');
     }
@@ -209,7 +209,7 @@ class HumanizationAnalyticsService {
    * Start tracking a new session
    */
   startSession(sessionId: string, personaId: string): void {
-    this.sessions.set(sessionId, {
+    this.sessions.set(cleanForFirestore(sessionId), {
       sessionId,
       personaId,
       startTime: Date.now(),

@@ -38,6 +38,7 @@ import {
   type TimeSlot,
   type DayOfWeek,
 } from '../contacts/optimal-timing.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getPendingCheckIns,
   recordCheckInSent,

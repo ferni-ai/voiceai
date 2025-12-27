@@ -23,6 +23,7 @@
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { UrlWithParsedQuery } from 'url';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   canSendOutreach,
   generateOutreachOpportunities,
@@ -428,7 +429,10 @@ export async function handleOutreachRoutes(
         if (phone !== undefined) updateData['contactInfo.phone'] = phone;
         if (email !== undefined) updateData['contactInfo.email'] = email;
 
-        await db.collection('profiles').doc(userId).set(updateData, { merge: true });
+        await db
+          .collection('profiles')
+          .doc(userId)
+          .set(cleanForFirestore(updateData), { merge: true });
 
         log.info({ userId, hasPhone: !!phone, hasEmail: !!email }, 'Updated contact info');
 

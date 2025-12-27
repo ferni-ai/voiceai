@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../../superhuman/firestore-utils.js';
 import type {
   ConciergeRequest,
   ConciergeTarget,
@@ -377,23 +377,23 @@ export class TaskTracker {
         .doc(request.userId)
         .collection('concierge_requests')
         .doc(request.id)
-        .set({
+        .set(cleanForFirestore({
           ...request,
           createdAt: request.createdAt.toISOString(),
           updatedAt: request.updatedAt.toISOString(),
           completedAt: request.completedAt?.toISOString(),
-        });
+        }));
 
       // Also store in global collection for admin queries
       await db
         .collection('concierge_requests')
         .doc(request.id)
-        .set({
+        .set(cleanForFirestore({
           ...request,
           createdAt: request.createdAt.toISOString(),
           updatedAt: request.updatedAt.toISOString(),
           completedAt: request.completedAt?.toISOString(),
-        });
+        }));
     } catch (error) {
       log.error({ error: String(error), requestId: request.id }, 'Failed to persist request');
     }

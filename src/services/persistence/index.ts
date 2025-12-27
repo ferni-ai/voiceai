@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'PersistenceLayer' });
@@ -216,11 +216,11 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           ...data,
           _updatedAt: new Date().toISOString(),
           _userId: userId,
-        },
+        }),
         { merge: true }
       );
 

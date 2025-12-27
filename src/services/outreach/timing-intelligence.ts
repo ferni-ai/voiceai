@@ -19,6 +19,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TIMEZONE UTILITIES

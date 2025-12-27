@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'seasonal-awareness' });
 
@@ -300,7 +300,7 @@ export async function recordSeasonalObservation(
         .doc(userId)
         .collection('seasonal_observations')
         .doc(existing.id)
-        .set(existing);
+        .set(cleanForFirestore(existing));
     }
     return existing;
   }
@@ -327,7 +327,7 @@ export async function recordSeasonalObservation(
       .doc(userId)
       .collection('seasonal_observations')
       .doc(newObs.id)
-      .set(newObs);
+      .set(cleanForFirestore(newObs));
   }
 
   observations.push(newObs);
@@ -354,7 +354,7 @@ export async function recordPersonalDate(
       .doc(userId)
       .collection('personal_dates')
       .doc(newDate.id)
-      .set(newDate);
+      .set(cleanForFirestore(newDate));
   }
 
   const dates = dateCache.get(userId) || [];

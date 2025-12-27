@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'BatchFirestore' });
 
@@ -217,7 +218,7 @@ class BatchWriteManager {
     }
 
     // Mark as flushing to prevent concurrent operations
-    this.flushingQueues.add(sessionId);
+    this.flushingQueues.add(cleanForFirestore(sessionId));
 
     const startTime = Date.now();
     const count = queue.length;
@@ -295,7 +296,7 @@ class BatchWriteManager {
         }
       } else {
         // First failure - track it
-        this.failedQueues.set(sessionId, { failedAt: Date.now(), retryCount: 1 });
+        this.failedQueues.set(cleanForFirestore(sessionId), { failedAt: Date.now(), retryCount: 1 });
       }
 
       // Clean up any old failed queues (older than MAX_FAILED_QUEUE_AGE_MS)

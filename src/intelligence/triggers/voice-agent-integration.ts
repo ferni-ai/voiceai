@@ -36,6 +36,7 @@ import {
   recordEffectivenessAnalytics,
   type UserEffectivenessAnalysis,
 } from './effectiveness-calculator.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   UserTriggerProfile,
   SignificantDate,

@@ -19,6 +19,8 @@ import type { SpeechCharacteristics } from '../personas/types.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 
+const log = getLogger();
+
 // Extracted session-manager modules
 import {
   clearAllSessions as clearAll,
@@ -139,6 +141,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from './analytics/persistence-metrics.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // SESSION STATE
@@ -1311,33 +1314,35 @@ export async function createSessionServices(
       let suggestedInsightId = nextInsight?.id;
 
       // V3.2: Also check the new Semantic Intelligence Insight Broker
-      try {
-        const { getInsightsToSurface, markInsightSurfaced } =
-          await import('./superhuman/semantic-intelligence/insight-broker.js');
-        
-        const semanticInsights = await getInsightsToSurface(userId, {
-          isSessionStart: true,
-          hourOfDay: new Date().getHours(),
-        });
+      if (userId) {
+        try {
+          const { getInsightsToSurface, markInsightSurfaced } =
+            await import('./superhuman/semantic-intelligence/insight-broker.js');
 
-        // Count high priority semantic insights
-        const semanticHighPriority = semanticInsights.filter(
-          (i) => i.priority === 'high' || i.priority === 'critical'
-        );
-        highPriorityCount += semanticHighPriority.length;
+          const semanticInsights = await getInsightsToSurface(userId, {
+            isSessionStart: true,
+            hourOfDay: new Date().getHours(),
+          });
 
-        // If no suggestion from proactive engine, use top semantic insight
-        if (!suggestedConversationStarter && semanticInsights.length > 0) {
-          const topInsight = semanticInsights[0];
-          suggestedConversationStarter = topInsight.insight;
-          suggestedInsightId = topInsight.id;
-          
-          // Mark as surfaced (non-blocking)
-          void markInsightSurfaced(userId, topInsight.id);
+          // Count high priority semantic insights
+          const semanticHighPriority = semanticInsights.filter(
+            (i) => i.priority === 'high' || i.priority === 'critical'
+          );
+          highPriorityCount += semanticHighPriority.length;
+
+          // If no suggestion from proactive engine, use top semantic insight
+          if (!suggestedConversationStarter && semanticInsights.length > 0) {
+            const topInsight = semanticInsights[0];
+            suggestedConversationStarter = topInsight.insight;
+            suggestedInsightId = topInsight.id;
+
+            // Mark as surfaced (non-blocking)
+            void markInsightSurfaced(userId, topInsight.id);
+          }
+        } catch (e) {
+          // Semantic insights are optional enhancement
+          log.debug({ error: String(e) }, 'Semantic insights not available');
         }
-      } catch (e) {
-        // Semantic insights are optional enhancement
-        logger.debug({ error: String(e) }, 'Semantic insights not available');
       }
 
       return {

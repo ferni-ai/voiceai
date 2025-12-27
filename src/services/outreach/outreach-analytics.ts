@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getOnboardingProgress } from './onboarding-checkin-arc.js';
 import { getReengagementSummary } from './reengagement-arc.js';
 import { calculateDeliveryStats, type DeliveryStats } from './delivery/delivery-tracker.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'OutreachAnalytics' });
 

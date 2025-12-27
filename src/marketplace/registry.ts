@@ -24,6 +24,7 @@ import type {
   UserId,
 } from './schema/types.js';
 import { getMarketplaceStore, type MarketplaceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'marketplace-registry' });
 

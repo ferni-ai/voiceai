@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import {
   getCalendarLoadFactors,
   getCalendarBurnoutRiskFactors,
@@ -226,7 +226,7 @@ export async function recordEnergyReading(
         .doc(userId)
         .collection('energy_readings')
         .doc(fullReading.id)
-        .set(fullReading);
+        .set(cleanForFirestore(fullReading));
     }
 
     // Update cache

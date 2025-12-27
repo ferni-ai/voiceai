@@ -12,7 +12,7 @@
 
 import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import type { FirestoreVectorStore } from './firestore-vector-store.js';
 import type { VectorStore } from './vector-store.js';
 

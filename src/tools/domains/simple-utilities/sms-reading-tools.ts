@@ -12,6 +12,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 

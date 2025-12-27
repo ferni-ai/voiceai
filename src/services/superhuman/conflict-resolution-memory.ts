@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 
 const log = createLogger({ module: 'ConflictResolution' });
 
@@ -124,7 +124,7 @@ export async function recordConflict(
       .collection('bogle_users')
       .doc(userId)
       .collection('conflict_history')
-      .add(record);
+      .add(cleanForFirestore(record));
 
     log.debug(
       { userId, withPerson: conflict.withPerson, type: conflict.conflictType },
@@ -155,7 +155,7 @@ export async function updateConflictResolution(
       .doc(userId)
       .collection('conflict_history')
       .doc(conflictId)
-      .update(updates);
+      .update(cleanForFirestore(updates));
 
     log.debug({ userId, conflictId, outcome: updates.outcome }, 'Updated conflict resolution');
   } catch (error) {

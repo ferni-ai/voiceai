@@ -10,6 +10,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultStore } from '../memory/index.js';
 import type { PersonaRelationshipStage } from '../types/user-profile.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const logger = getLogger().child({ service: 'StoryTracking' });
 
@@ -125,7 +126,7 @@ async function flushToPersistence(): Promise<void> {
     }
   } catch (error) {
     logger.warn({ error }, 'Failed to persist story history');
-    usersToFlush.forEach((u) => dirtyUsers.add(u));
+    usersToFlush.forEach((u) => dirtyUsers.add(cleanForFirestore(u)));
   }
 }
 
@@ -208,7 +209,7 @@ export async function markStoryTold(
     told = new Set();
     storiesToldMap.set(key, told);
   }
-  told.add(storyId);
+  told.add(cleanForFirestore(storyId));
 
   // Schedule persistence (debounced)
   schedulePersistence(userId);
@@ -389,7 +390,7 @@ export async function findStoryForContext(
         for (const storyId of recommendedStoryIds) {
           const existing = graphRecommendations.get(storyId);
           if (!existing || existing.priority < 8) {
-            graphRecommendations.set(storyId, { priority: 8, trigger });
+            graphRecommendations.set(cleanForFirestore(storyId), { priority: 8, trigger });
           }
         }
         logger.debug(
@@ -416,7 +417,10 @@ export async function findStoryForContext(
         for (const storyId of triggerConfig.recommended_stories) {
           const existing = graphRecommendations.get(storyId);
           if (!existing || existing.priority < priorityScore) {
-            graphRecommendations.set(storyId, { priority: priorityScore, trigger });
+            graphRecommendations.set(cleanForFirestore(storyId), {
+              priority: priorityScore,
+              trigger,
+            });
           }
         }
       }

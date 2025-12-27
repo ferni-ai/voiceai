@@ -253,6 +253,69 @@ export function getVoiceIdForPersona(personaId: string): string {
 }
 
 // ============================================================================
+// UNIFIED TTS FACTORY (Provider Switching)
+// ============================================================================
+
+/**
+ * Get the default TTS provider from environment
+ */
+export function getDefaultTTSProvider(): 'cartesia' | 'btcw' {
+  const provider = process.env.TTS_PROVIDER?.toLowerCase();
+  if (provider === 'btcw' || provider === 'cosyvoice') {
+    return 'btcw';
+  }
+  return 'cartesia';
+}
+
+/**
+ * Create a TTS instance from config, with automatic provider switching.
+ *
+ * This is the recommended factory for new code - it will automatically
+ * use the correct provider based on config or environment.
+ *
+ * @param personaName - Name for logging
+ * @param config - Voice configuration with optional provider
+ * @returns TTS instance (Cartesia or BTCW)
+ */
+export async function createUnifiedTTS(
+  personaName: string,
+  config: VoiceConfig
+): Promise<cartesia.TTS | import('./btcw-core.js').BTCWTTS> {
+  const provider = config.provider || getDefaultTTSProvider();
+
+  if (provider === 'btcw' || provider === 'cosyvoice') {
+    // Dynamic import to avoid loading BTCW when not needed
+    const { createBTCWTTS, getBTCWVoiceIdForPersona, cartesiaVoiceToBTCW } = await import(
+      './btcw-core.js'
+    );
+
+    // Convert Cartesia voice ID to BTCW persona name if needed
+    let btcwVoice: string;
+    if (config.voiceId.includes('-')) {
+      // Looks like a UUID (Cartesia format)
+      btcwVoice = cartesiaVoiceToBTCW(config.voiceId);
+    } else {
+      // Already a persona name
+      btcwVoice = getBTCWVoiceIdForPersona(config.voiceId);
+    }
+
+    _log(`Creating BTCW TTS for ${personaName}`, {
+      voice: btcwVoice,
+      endpoint: config.btcwEndpoint?.slice(0, 30),
+    });
+
+    return createBTCWTTS(btcwVoice, {
+      endpoint: config.btcwEndpoint,
+      apiKey: config.btcwApiKey,
+      defaultEmotion: (config.btcwDefaultEmotion as import('./btcw-core.js').BTCWEmotionType) || 'neutral',
+    });
+  }
+
+  // Default: Cartesia
+  return createTTSFromConfig(personaName, config);
+}
+
+// ============================================================================
 // RE-EXPORTS
 // ============================================================================
 

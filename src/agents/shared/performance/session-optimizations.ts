@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'session-optimizations' });
 
@@ -354,7 +355,7 @@ export function cacheMemoryResult(sessionId: string, query: string, result: unkn
     }
   }
 
-  cache.set(normalizedQuery, {
+  cache.set(cleanForFirestore(normalizedQuery), {
     result,
     timestamp: Date.now(),
     query: normalizedQuery,
@@ -437,7 +438,7 @@ export function startSpeculativePrefetch(
     return null;
   });
 
-  sessionPrefetchState.set(sessionId, {
+  sessionPrefetchState.set(cleanForFirestore(sessionId), {
     partialText,
     prefetchPromise,
     prefetchedContext: null,

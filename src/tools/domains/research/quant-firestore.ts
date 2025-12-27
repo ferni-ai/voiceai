@@ -14,6 +14,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -223,7 +224,7 @@ export class QuantFirestoreService {
         .collection('financial_profile')
         .doc('current');
 
-      await docRef.set(this.serializeProfile(profile), { merge: true });
+      await docRef.set(cleanForFirestore(this.serializeProfile(profile)), { merge: true });
       log.info({ userId: profile.userId }, 'Financial profile saved');
     } catch (error) {
       log.error(
@@ -271,10 +272,10 @@ export class QuantFirestoreService {
         .collection('financial_profile')
         .doc('current');
 
-      await docRef.update({
+      await docRef.update(cleanForFirestore({
         ...updates,
         updatedAt: new Date().toISOString(),
-      });
+      }));
       log.debug({ userId, fields: Object.keys(updates) }, 'Financial profile updated');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to update financial profile');
@@ -299,7 +300,7 @@ export class QuantFirestoreService {
         .collection('portfolio')
         .doc('holdings');
 
-      await docRef.set(this.serializePortfolio(portfolio), { merge: true });
+      await docRef.set(cleanForFirestore(this.serializePortfolio(portfolio)), { merge: true });
       log.info(
         { userId: portfolio.userId, holdingCount: portfolio.holdings.length },
         'Portfolio saved'
@@ -395,7 +396,7 @@ export class QuantFirestoreService {
         .collection('behavioral_finance')
         .doc('tracking');
 
-      await docRef.set(this.serializeBehavioral(tracking), { merge: true });
+      await docRef.set(cleanForFirestore(this.serializeBehavioral(tracking)), { merge: true });
       log.info({ userId: tracking.userId }, 'Behavioral tracking saved');
     } catch (error) {
       log.error(
@@ -510,7 +511,7 @@ export class QuantFirestoreService {
         .doc(userId)
         .collection('fire_progress');
 
-      await colRef.add(this.serializeFIRESnapshot(snapshot));
+      await colRef.add(cleanForFirestore(this.serializeFIRESnapshot(snapshot)));
       log.info({ userId, percentToFire: snapshot.percentToFire }, 'FIRE snapshot saved');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save FIRE snapshot');
@@ -564,7 +565,7 @@ export class QuantFirestoreService {
         .doc(userId)
         .collection('quant_insights');
 
-      await colRef.doc(insight.id).set(this.serializeInsight(insight));
+      await colRef.doc(insight.id).set(cleanForFirestore(this.serializeInsight(insight)));
       log.debug({ userId, insightId: insight.id, type: insight.type }, 'Quant insight saved');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save quant insight');
@@ -640,7 +641,7 @@ export class QuantFirestoreService {
         .collection('quant_insights')
         .doc(insightId);
 
-      await docRef.update({ acknowledged: true });
+      await docRef.update(cleanForFirestore({ acknowledged: true }));
     } catch (error) {
       log.error({ error: String(error), userId, insightId }, 'Failed to acknowledge insight');
     }

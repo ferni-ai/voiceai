@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { analyzeImage, generateImageDescription, categorizeImage } from './vision-analysis.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   VisualMemory,
   VisualUploadRequest,
@@ -205,7 +206,7 @@ export async function uploadVisualMemory(
       .doc(userId)
       .collection('visual_memories')
       .doc(memoryId)
-      .set(visualMemory);
+      .set(cleanForFirestore(visualMemory));
 
     log.info(
       { userId, memoryId, category, labelsCount: detectedLabels.length },
@@ -317,10 +318,10 @@ export async function deleteVisualMemory(
       .collection('visual_memories')
       .doc(memoryId)
       .set(
-        {
+        cleanForFirestore({
           deletedAt: new Date().toISOString(),
           deletedReason: reason || 'user_deleted',
-        },
+        }),
         { merge: true }
       );
 
@@ -499,10 +500,10 @@ export async function updateVisualPreferences(
       .collection('settings')
       .doc('visual_preferences')
       .set(
-        {
+        cleanForFirestore({
           ...prefs,
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 

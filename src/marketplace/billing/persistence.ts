@@ -10,7 +10,7 @@
  * - marketplace_revenue_shares/{publisherId_period} - Revenue share calculations
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import type { RevenueShare, UsageMetrics, UsageRecord } from './index.js';
@@ -245,10 +245,10 @@ class FirestoreBillingStore implements BillingStore {
       .get();
 
     if (!snapshot.empty) {
-      await snapshot.docs[0].ref.update({
+      await snapshot.docs[0].ref.update(cleanForFirestore({
         status,
         _updatedAt: new Date(),
-      });
+      }));
     }
   }
 }

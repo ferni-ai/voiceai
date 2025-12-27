@@ -13,6 +13,7 @@ import type { CalendarProvider, SelectedCalendar } from './types.js';
 import { googleCalendarProvider } from './providers/google-provider.js';
 import { appleCalendarProvider } from './providers/apple-provider.js';
 import { outlookCalendarProvider } from './providers/outlook-provider.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -165,10 +166,10 @@ export async function updateSelectedCalendars(
 
     // Save to Firestore
     await firestore.collection(`users/${userId}/calendar_providers`).doc(provider).set(
-      {
+      cleanForFirestore({
         selectedCalendars: updated,
         updatedAt: new Date().toISOString(),
-      },
+      }),
       { merge: true }
     );
 

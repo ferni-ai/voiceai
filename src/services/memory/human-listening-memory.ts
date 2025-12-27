@@ -17,6 +17,7 @@
 
 import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'HumanListeningMemory' });
 
@@ -233,7 +234,7 @@ export async function saveUserBaseline(baseline: UserListeningBaseline): Promise
   }
 
   try {
-    await db.collection(BASELINES_COLLECTION).doc(baseline.userId).set(baseline);
+    await db.collection(BASELINES_COLLECTION).doc(baseline.userId).set(cleanForFirestore(baseline));
     log.debug(
       { userId: baseline.userId, sessionCount: baseline.sessionCount },
       'Baseline saved to Firestore'

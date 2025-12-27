@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/call-on-behalf.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
@@ -69,7 +70,7 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
         .doc(result.userId)
         .collection('on_behalf_calls')
         .doc(result.callId)
-        .set(result);
+        .set(cleanForFirestore(result));
 
       log.debug({ callId: result.callId }, 'Call result stored in Firestore');
     } else {
@@ -179,7 +180,7 @@ async function storeNotification(
         .collection('pending_notifications')
         .doc(sessionId)
         .collection('items')
-        .add(notification);
+        .add(cleanForFirestore(notification));
     }
 
     log.debug({ sessionId, callId }, 'Notification stored for later delivery');
@@ -328,7 +329,7 @@ async function createFollowUpActions(
             .doc(userId)
             .collection('follow_up_actions')
             .doc(action.id)
-            .set(action);
+            .set(cleanForFirestore(action));
         }
       } else {
         // In-memory fallback

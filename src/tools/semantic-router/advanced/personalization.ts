@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import {
   initializeFirestorePersistence,
   isPersistenceAvailable,

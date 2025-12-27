@@ -23,6 +23,7 @@
 
 import admin from 'firebase-admin';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -70,15 +71,15 @@ async function sendToAnalyticsService(event: ToolUsageEvent): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(EVENTS_COLLECTION).add({
+    await db.collection(EVENTS_COLLECTION).add(cleanForFirestore({
       ...event,
       timestamp: event.timestamp,
-    });
+    }));
 
     // Update aggregated metrics
     const metricsRef = db.collection(METRICS_COLLECTION).doc(`${event.domain}:${event.toolId}`);
     await metricsRef.set(
-      {
+      cleanForFirestore({
         toolId: event.toolId,
         domain: event.domain,
         totalCalls: admin.firestore.FieldValue.increment(1),
@@ -86,7 +87,7 @@ async function sendToAnalyticsService(event: ToolUsageEvent): Promise<void> {
         errorCount: admin.firestore.FieldValue.increment(event.success ? 0 : 1),
         totalDurationMs: admin.firestore.FieldValue.increment(event.durationMs),
         lastCalled: event.timestamp,
-      },
+      }),
       { merge: true }
     );
   } catch (error) {

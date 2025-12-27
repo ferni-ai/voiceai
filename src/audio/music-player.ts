@@ -366,6 +366,16 @@ export class CallMusicPlayer {
   }
 
   /**
+   * Check if the LiveKit room is still connected
+   * This helps prevent race conditions where the room disconnects during async operations
+   *
+   * @returns true if room exists and is connected, false otherwise
+   */
+  isRoomConnected(): boolean {
+    return this.room !== null && this.room.isConnected === true;
+  }
+
+  /**
    * Set callback for when track ends
    * The agent can use this to acknowledge the music ended
    *
@@ -702,26 +712,78 @@ export class CallMusicPlayer {
       this.trackEndHandled = true;
 
       // Stop any current playback
-      if (DEBUG_MUSIC) log.debug('Stopping any current playback');
+      log.info(
+        { track: track.name, wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped },
+        '🎵 [PLAY-TRACE] Step 1: About to call internal stop() to clear current playback'
+      );
       this.stop();
+
+      // 🐛 CRITICAL FIX: Reset wasExplicitlyStopped AFTER the internal stop()
+      // The internal stop() above is NOT an external user request - it's just clearing
+      // any currently playing track before we start a new one.
+      // The race-fix check below should only detect EXTERNAL stop() calls that happen
+      // DURING the download (e.g., user said "stop" while music was loading).
+      log.info(
+        {
+          track: track.name,
+          wasExplicitlyStoppedAfterInternalStop: this.state.wasExplicitlyStopped,
+          resettingTo: false,
+        },
+        '🎵 [PLAY-TRACE] Step 2: Resetting wasExplicitlyStopped after internal stop()'
+      );
+      this.state.wasExplicitlyStopped = false;
+      this.state.explicitStopTime = null;
 
       // Download the audio file (with DJ fade-out baked in)
       // 🐛 FIX: Now returns actual duration detected via ffprobe (iTunes previews vary!)
-      if (DEBUG_MUSIC) log.debug('Downloading audio', { url });
+      log.info(
+        { track: track.name, url: url.slice(0, 60) },
+        '🎵 [PLAY-TRACE] Step 3: Starting download...'
+      );
+      const downloadStartTime = Date.now();
       // 🐛 FIX: Pass track.duration as hint for fallback if ffprobe unavailable
       const downloadResult = await this.downloadAudio(url, track.name, track.duration);
-      if (DEBUG_MUSIC)
-        log.debug('Download result', {
+      const downloadDurationMs = Date.now() - downloadStartTime;
+      log.info(
+        {
+          track: track.name,
+          downloadDurationMs,
           success: downloadResult ? 'SUCCESS' : 'FAILED',
-          audioPath: downloadResult?.path,
-          actualDurationMs: downloadResult?.actualDurationMs,
-        });
+          wasExplicitlyStoppedDuringDownload: this.state.wasExplicitlyStopped,
+        },
+        '🎵 [PLAY-TRACE] Step 4: Download complete'
+      );
       if (!downloadResult) {
         log.error('Failed to download audio');
         return false;
       }
 
       const { path: audioPath, actualDurationMs } = downloadResult;
+
+      // 🐛 FIX: Check if stop() was called DURING the download
+      // This prevents race condition where stop() is called but playFromUrl() continues
+      // because the download was already in progress
+      log.info(
+        {
+          track: track.name,
+          wasExplicitlyStopped: this.state.wasExplicitlyStopped,
+          explicitStopTime: this.state.explicitStopTime,
+          willCancelPlayback: this.state.wasExplicitlyStopped,
+        },
+        '🎵 [PLAY-TRACE] Step 5: Checking race condition flag'
+      );
+      if (this.state.wasExplicitlyStopped) {
+        log.warn(
+          {
+            track: track.name,
+            wasExplicitlyStopped: this.state.wasExplicitlyStopped,
+            explicitStopTime: this.state.explicitStopTime,
+          },
+          '🎧 [RACE-FIX] Playback cancelled - external stop() called during download'
+        );
+        this.cleanupTempFile(audioPath);
+        return false;
+      }
 
       // Set current track state
       this.state.currentTrack = track;
@@ -1744,6 +1806,19 @@ export class CallMusicPlayer {
    * - Session is ending
    */
   stop(): void {
+    // 🎵 TRACE: Log who called stop() with stack trace
+    const { stack } = new Error();
+    const callerLine = stack?.split('\n')[2]?.trim() || 'unknown';
+    log.info(
+      {
+        wasPlaying: this.state.isPlaying,
+        currentTrack: this.state.currentTrack?.name,
+        wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped,
+        caller: callerLine.slice(0, 100),
+      },
+      '🛑 [STOP-TRACE] stop() called'
+    );
+
     const wasPlaying = this.state.isPlaying;
     const stoppedTrack = this.state.currentTrack;
     const wasAmbient = this.state.isAmbientMode;
@@ -2127,6 +2202,15 @@ export function isMusicAvailable(): { available: boolean; reason: string } {
     return {
       available: false,
       reason: 'Music player was disposed - session may have ended',
+    };
+  }
+
+  // 🐛 FIX: Check if the LiveKit room is still connected BEFORE attempting playback
+  // This prevents the race condition where music search completes but room disconnected
+  if (!musicPlayerInstance.isRoomConnected()) {
+    return {
+      available: false,
+      reason: 'LiveKit room disconnected - reconnect to enable music playback',
     };
   }
 

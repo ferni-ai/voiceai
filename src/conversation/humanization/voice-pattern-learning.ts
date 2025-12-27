@@ -13,7 +13,7 @@
  * @module @ferni/humanization/voice-pattern-learning
  */
 
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'VoicePatternLearning' });
@@ -160,7 +160,7 @@ export function getVoicePatternEngine(
   const key = sessionId;
 
   if (!engines.has(key)) {
-    engines.set(key, {
+    engines.set(cleanForFirestore(key), {
       sessionId,
       userId,
       observations: [],

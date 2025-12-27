@@ -287,18 +287,15 @@ interface ClassificationResult {
 async function classifyOutreachIntent(utterance: string): Promise<ClassificationResult> {
   // First try our semantic router
   try {
-    const { semanticRouter } = await import('../../semantic-router/index.js');
-    const matches = await semanticRouter.findMatches(utterance, {
-      threshold: 0.5,
-      maxResults: 3,
-    });
+    const { semanticRouter } = await import('../semantic-router/index.js');
+    const matches = await semanticRouter.findRelevantToolsAsync(utterance);
     
     if (matches.length > 0) {
       const topMatch = matches[0];
       const domain = inferDomainFromTool(topMatch.toolId);
       return {
         domain,
-        confidence: topMatch.score,
+        confidence: topMatch.similarity,
         suggestedTool: topMatch.toolId,
         extractedParams: extractParams(utterance, domain), // Always extract params
         reasoning: `Semantic router matched: ${topMatch.toolId}`,

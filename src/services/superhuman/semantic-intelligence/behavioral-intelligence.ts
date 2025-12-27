@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 
 const log = createLogger({ module: 'behavioral-intelligence' });
@@ -610,7 +610,7 @@ async function savePattern(userId: string, pattern: SelfSabotagePattern): Promis
       .doc(userId)
       .collection('sabotage_patterns')
       .doc(pattern.id)
-      .set(pattern);
+      .set(cleanForFirestore(pattern));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save pattern');
   }
@@ -656,7 +656,7 @@ async function saveBaseline(userId: string, baseline: EmotionalBaseline): Promis
       .doc(userId)
       .collection('behavioral_intelligence')
       .doc('baseline')
-      .set(data);
+      .set(cleanForFirestore(data));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save baseline');
   }
@@ -709,7 +709,7 @@ async function saveTrigger(userId: string, trigger: Trigger): Promise<void> {
       .doc(userId)
       .collection('behavioral_triggers')
       .doc(trigger.id)
-      .set(trigger);
+      .set(cleanForFirestore(trigger));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save trigger');
   }

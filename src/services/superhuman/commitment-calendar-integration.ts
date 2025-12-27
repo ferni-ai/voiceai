@@ -20,6 +20,7 @@ import {
   type CreateEventInput,
 } from '../calendar/calendar-service.js';
 import type { Commitment } from './commitment-keeper.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'commitment-calendar' });
 
@@ -434,7 +435,7 @@ async function storeCommitmentAlert(
     await db
       .collection(`users/${userId}/superhuman_alerts`)
       .doc(`commitment_conflicts_${Date.now()}`)
-      .set({
+      .set(cleanForFirestore({
         type: 'commitment_conflict',
         conflicts: conflicts.map((c) => ({
           commitmentId: c.commitmentId,
@@ -444,7 +445,7 @@ async function storeCommitmentAlert(
         })),
         createdAt: new Date().toISOString(),
         acknowledged: false,
-      });
+      }));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to store commitment alert');
   }

@@ -11,6 +11,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // Web-push module interface (optional dependency)
 interface WebPushModule {
@@ -231,7 +232,7 @@ class PushNotificationsBackendService {
           if (notification.status === 'pending') {
             const scheduledFor = new Date(notification.scheduledFor);
             if (scheduledFor > new Date()) {
-              this.scheduledNotifications.set(id, {
+              this.scheduledNotifications.set(cleanForFirestore(id), {
                 ...notification,
                 scheduledFor,
               });
@@ -291,7 +292,7 @@ class PushNotificationsBackendService {
 
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
-      this.subscriptionStore?.set(userId, { subscriptions: filtered });
+      this.subscriptionStore?.set(cleanForFirestore(userId), { subscriptions: filtered });
     } else {
       this.subscriptions.delete(userId);
       await this.subscriptionStore?.delete(userId);

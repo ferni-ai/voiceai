@@ -14,7 +14,7 @@
 
 import crypto from 'node:crypto';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================

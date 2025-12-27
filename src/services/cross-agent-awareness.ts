@@ -10,7 +10,7 @@
  * PERSISTENCE: Uses Firestore for cross-session awareness with in-memory caching.
  */
 
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { AgentId } from './agent-bus.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -129,11 +129,11 @@ export async function recordConversationForTeam(
       const trimmed = teamHistory.slice(-20);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           conversations: trimmed,
           lastUpdated: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -278,11 +278,11 @@ export async function addTeamNote(
       const trimmed = notes.slice(-50);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           notes: trimmed,
           lastUpdated: new Date(),
-        },
+        }),
         { merge: true }
       );
 

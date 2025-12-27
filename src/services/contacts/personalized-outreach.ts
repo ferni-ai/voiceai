@@ -8,27 +8,26 @@
  * @module services/contacts/personalized-outreach
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
-import { loadNetwork } from '../superhuman/relationship-network.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { sendEmail, sendSMS } from '../communication-service.js';
-import { getContacts, getContact, recordInteraction } from './contact-relationship-service.js';
-import { getGroup, getGroups } from './contact-groups.js';
 import { callLLM } from '../llm-utils.js';
+import { loadNetwork } from '../superhuman/relationship-network.js';
+import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
+import { getGroup, getGroups } from './contact-groups.js';
+import { getContact, getContacts, recordInteraction } from './contact-relationship-service.js';
 import type {
+  BatchOutreachRequest,
+  BatchOutreachResult,
+  ContactChannel,
+  ContactImportantDate,
   EnhancedContact,
   OutreachContext,
   OutreachOccasion,
+  OutreachSuggestion,
   OutreachTone,
   PersonalizedMessage,
-  BatchOutreachRequest,
-  BatchOutreachResult,
-  OutreachSuggestion,
-  SuggestionType,
-  ChannelType,
-  ContactChannel,
-  ContactImportantDate,
 } from './types.js';
 
 const log = createLogger({ module: 'personalized-outreach' });
@@ -1119,18 +1118,20 @@ async function saveOutreachHistory(
     await firestore
       .collection(OUTREACH_COLLECTION)
       .doc(requestId)
-      .set({
-        userId,
-        requestId,
-        messages: messages.map((m) => ({
-          contactId: m.contactId,
-          contactName: m.contactName,
-          occasion: m.occasion,
-          channel: m.channel,
-          sentAt: m.sentAt,
-        })),
-        createdAt: new Date(),
-      });
+      .set(
+        cleanForFirestore({
+          userId,
+          requestId,
+          messages: messages.map((m) => ({
+            contactId: m.contactId,
+            contactName: m.contactName,
+            occasion: m.occasion,
+            channel: m.channel,
+            sentAt: m.sentAt,
+          })),
+          createdAt: new Date(),
+        })
+      );
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save outreach history');
   }

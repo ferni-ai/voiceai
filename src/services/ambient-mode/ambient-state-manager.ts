@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   AmbientState,
   AmbientNudge,
@@ -68,7 +69,7 @@ export async function storeAmbientState(state: AmbientState): Promise<void> {
       .doc(state.userId)
       .collection('ambient')
       .doc('current_state')
-      .set(state, { merge: true });
+      .set(cleanForFirestore(state), { merge: true });
 
     log.debug({ userId: state.userId, locationType: state.locationType }, 'Ambient state stored');
   } catch (error) {
@@ -145,10 +146,10 @@ export async function updateAmbientPreferences(
       .collection('settings')
       .doc('ambient_preferences')
       .set(
-        {
+        cleanForFirestore({
           ...prefs,
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 

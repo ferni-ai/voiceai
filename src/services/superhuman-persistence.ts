@@ -14,6 +14,7 @@ import type {
   SuperhumanPatternData,
 } from '../types/profile/conversation-memory.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const logger = createLogger({ module: 'SuperhumanPersistence' });
 
@@ -344,7 +345,10 @@ export function createFirestoreSuperhumanStore(
           lastUpdated: data.lastUpdated.toISOString(),
         };
 
-        await db.collection(COLLECTION).doc(data.userId).set(serialized, { merge: true });
+        await db
+          .collection(COLLECTION)
+          .doc(data.userId)
+          .set(cleanForFirestore(serialized), { merge: true });
       } catch (error) {
         logger.error({ userId: data.userId, error }, 'Error saving superhuman data to Firestore');
         throw error;

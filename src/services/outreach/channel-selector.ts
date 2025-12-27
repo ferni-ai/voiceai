@@ -17,6 +17,7 @@ import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
 import { getTimingProfile } from './timing-intelligence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

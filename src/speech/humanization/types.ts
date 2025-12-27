@@ -464,6 +464,168 @@ export interface EnergyMatchingSchema {
 }
 
 /**
+ * Schema for anticipation.json files
+ * Defines how persona shows continuity, remembers topics, creates anticipation
+ */
+export interface AnticipationSchema {
+  schema_version: number;
+  description: string;
+  /** Topic callbacks with {topic} placeholders */
+  looking_forward_to_topic: string[];
+  /** Session anticipation - opening warmth, between sessions, returning */
+  session_anticipation: {
+    opening_warmth: string[];
+    between_sessions: string[];
+    returning_after_time: string[];
+  };
+  /** Future looking - curiosity, planting seeds, expressing hope */
+  future_looking: {
+    curiosity_about_outcome: string[];
+    planting_seeds: string[];
+    expressing_hope: string[];
+  };
+  /** Pending items - goals, people, decisions */
+  pending_items: {
+    goal_tracking: string[];
+    person_mentioned: string[];
+    decision_pending: string[];
+  };
+  /** Continuity markers - growth references, journey acknowledgments */
+  continuity_markers: {
+    referencing_growth: string[];
+    acknowledging_journey: string[];
+  };
+  /** Proactive triggers for anticipation */
+  proactive_triggers?: Record<string, {
+    trigger: string;
+    behavior: string;
+  }>;
+  /** Usage rules */
+  usage_rules?: {
+    opening_anticipation_probability?: number;
+    topic_callback_probability?: number;
+    future_looking_probability?: number;
+    requires_previous_session_data?: boolean;
+    more_likely_when?: string[];
+    never_when?: string[];
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Schema for celebrations.json files
+ * Defines how persona celebrates user wins and milestones
+ */
+export interface CelebrationsSchema {
+  schema_version: number;
+  description: string;
+  philosophy?: string;
+  /** Small wins - subtle acknowledgments */
+  small_wins: string[];
+  /** Big milestones - bigger celebrations */
+  big_milestones: string[];
+  /** Growth acknowledgment - noticing change over time */
+  growth_acknowledgment: string[];
+  /** Effort over outcome - celebrating the try */
+  effort_over_outcome: string[];
+  /** Quiet celebrations - understated nods */
+  quiet_celebrations: string[];
+  /** Celebrating courage - for hard things */
+  celebrating_courage: string[];
+  /** Celebrating consistency - for streaks */
+  celebrating_consistency: string[];
+  /** Usage rules for celebration injection */
+  usage_rules?: {
+    match_intensity_to_achievement?: boolean;
+    prefer_quiet_over_overwhelming?: boolean;
+    celebrate_effort_not_just_outcome?: boolean;
+    avoid_hollow_praise?: boolean;
+    never_diminish_their_success?: boolean;
+    [key: string]: unknown;
+  };
+  /** Proactive triggers for celebrations */
+  proactive_triggers?: Record<string, {
+    trigger: string;
+    behavior: string;
+  }>;
+  /** Usage rules for proactive celebrations */
+  proactive_usage_rules?: {
+    probability?: number;
+    min_turns_between?: number;
+    max_per_session?: number;
+    more_likely_when?: string[];
+    never_when?: string[];
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Catchphrase trigger definition
+ */
+export interface CatchphraseTrigger {
+  phrase: string;
+  triggers: string[];
+  delivery: string;
+}
+
+/**
+ * Schema for catchphrases.json files
+ * Defines persona signature phrases - RARE and trigger-based
+ */
+export interface CatchphrasesSchema {
+  schema_version: number;
+  description: string;
+  _design_notes?: {
+    pixar_principle?: string;
+    usage_rule?: string;
+    trigger_philosophy?: string;
+    [key: string]: unknown;
+  };
+  /** THE core signature phrase - max once per 3-4 conversations */
+  core_signature?: {
+    _note?: string;
+    phrase: string;
+    triggers: string[];
+    delivery: string;
+  };
+  /** Secondary signatures - once per conversation MAX */
+  secondary_signatures?: {
+    _note?: string;
+    phrases: CatchphraseTrigger[];
+  };
+  /** Powerful questions - can be used more freely */
+  powerful_questions?: {
+    _note?: string;
+    deep_questions: string[];
+    usage?: string;
+  };
+  /** Partnership phrases - natural throughout */
+  partnership_phrases?: {
+    _note?: string;
+    phrases: string[];
+  };
+  /** Wyoming wisdom - for grounding perspective (Ferni-specific) */
+  wyoming_wisdom?: {
+    _note?: string;
+    phrases: string[];
+    triggers?: string[];
+    max_per_conversation?: number;
+  };
+  /** Self-aware humor */
+  self_aware_humor?: {
+    _note?: string;
+    phrases: string[];
+    usage?: string;
+  };
+  /** Forbidden phrases */
+  _forbidden?: {
+    _note?: string;
+    never_say?: string[];
+    reason?: string;
+  };
+}
+
+/**
  * Complete speech profile for a persona
  * Loaded from JSON files, used by speech-traits.ts
  */
@@ -485,6 +647,12 @@ export interface PersonaSpeechProfile {
   laughterContagion: LaughterContagionSchema | null;
   /** Energy matching behaviors (from energy-matching.json) */
   energyMatching: EnergyMatchingSchema | null;
+  /** Celebrations (from celebrations.json) */
+  celebrations: CelebrationsSchema | null;
+  /** Catchphrases (from catchphrases.json) */
+  catchphrases: CatchphrasesSchema | null;
+  /** Anticipation (from anticipation.json) */
+  anticipation: AnticipationSchema | null;
   /** When this profile was loaded */
   loadedAt: Date;
 }

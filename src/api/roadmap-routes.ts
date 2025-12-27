@@ -19,7 +19,7 @@
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import {
@@ -327,7 +327,7 @@ export async function checkStreakReward(
 
           // Mark milestone as claimed
           if (!streakRewardsDoc.exists) {
-            transaction.set(streakRewardsRef, {
+            transaction.set(cleanForFirestore(streakRewardsRef), {
               claimedMilestones: [milestone],
               lastClaimed: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -520,10 +520,10 @@ async function handleVote(
         const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
         transaction.set(
           featureStatsRef,
-          {
+          cleanForFirestore({
             totalSeeds: admin.firestore.FieldValue.increment(additionalSeeds),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
+          }),
           { merge: true }
         );
 
@@ -536,7 +536,7 @@ async function handleVote(
       }
 
       // Create new vote (using deterministic ID)
-      transaction.set(existingVoteRef, {
+      transaction.set(cleanForFirestore(existingVoteRef), {
         userId,
         featureId,
         seedsPlanted: seeds,
@@ -573,11 +573,11 @@ async function handleVote(
       const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
       transaction.set(
         featureStatsRef,
-        {
+        cleanForFirestore({
           totalSeeds: admin.firestore.FieldValue.increment(seeds),
           uniqueVoters: admin.firestore.FieldValue.increment(1),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true }
       );
 
@@ -637,17 +637,23 @@ async function handleUnvote(
 
       // Refund seeds
       const userSeedsRef = db.collection('user_seeds').doc(userId);
-      transaction.update(userSeedsRef, {
-        balance: admin.firestore.FieldValue.increment(refund),
-      });
+      transaction.update(
+        userSeedsRef,
+        cleanForFirestore({
+          balance: admin.firestore.FieldValue.increment(refund),
+        })
+      );
 
       // Update feature stats
       const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
-      transaction.update(featureStatsRef, {
-        totalSeeds: admin.firestore.FieldValue.increment(-seedsPlanted),
-        uniqueVoters: admin.firestore.FieldValue.increment(-1),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      transaction.update(
+        featureStatsRef,
+        cleanForFirestore({
+          totalSeeds: admin.firestore.FieldValue.increment(-seedsPlanted),
+          uniqueVoters: admin.firestore.FieldValue.increment(-1),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+      );
 
       return {
         success: true,
@@ -770,7 +776,7 @@ async function handleSuggest(
 
       // Create suggestion
       const suggestionRef = db.collection('roadmap_suggestions').doc();
-      transaction.set(suggestionRef, {
+      transaction.set(cleanForFirestore(suggestionRef), {
         userId,
         title,
         description,

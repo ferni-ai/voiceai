@@ -13,6 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { EnhancedContact, OutreachOccasion, RelationshipType } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'gift-suggestions' });
 
@@ -575,7 +576,7 @@ function deduplicateGifts(gifts: GiftSuggestion[]): GiftSuggestion[] {
   return gifts.filter((gift) => {
     const key = gift.name.toLowerCase();
     if (seen.has(key)) return false;
-    seen.add(key);
+    seen.add(cleanForFirestore(key));
     return true;
   });
 }
@@ -664,10 +665,10 @@ export async function recordGiftGiven(userId: string, gift: Omit<PastGift, 'date
       .collection('bogle_users')
       .doc(userId)
       .collection('gift_history')
-      .add({
+      .add(cleanForFirestore({
         ...gift,
         date: new Date(),
-      });
+      }));
 
     log.info({ userId, contactId: gift.contactId }, 'Gift recorded');
   } catch (error) {

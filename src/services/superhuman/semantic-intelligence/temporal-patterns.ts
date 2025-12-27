@@ -11,7 +11,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../firestore-utils.js';
+import { getFirestoreDb, } from '../firestore-utils.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'temporal-patterns' });
 
@@ -186,7 +187,7 @@ async function computePatterns(userId: string): Promise<void> {
   
   // Initialize seasonal patterns
   for (const season of ['spring', 'summer', 'fall', 'winter'] as const) {
-    seasonal.set(season, {
+    seasonal.set(cleanForFirestore(season), {
       season,
       moodBaseline: 0,
       energyBaseline: 0.5,
@@ -274,7 +275,7 @@ async function computePatterns(userId: string): Promise<void> {
   }
   
   // Store in cache
-  patternCache.set(userId, {
+  patternCache.set(cleanForFirestore(userId), {
     hourly,
     daily,
     seasonal,
@@ -645,7 +646,7 @@ async function saveSnapshot(userId: string, snapshot: TemporalSnapshot): Promise
       .doc(userId)
       .collection('temporal_snapshots')
       .doc(id)
-      .set(snapshot);
+      .set(cleanForFirestore(snapshot));
     
     // Update cache
     const cached = snapshotCache.get(userId) ?? [];

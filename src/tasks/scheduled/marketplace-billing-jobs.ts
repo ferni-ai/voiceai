@@ -23,6 +23,7 @@ import {
   isStripeConfigured,
 } from '../../marketplace/billing/stripe-webhooks.js';
 import type { UserId, MarketplaceId } from '../../marketplace/schema/types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'marketplace-billing-jobs' });
 

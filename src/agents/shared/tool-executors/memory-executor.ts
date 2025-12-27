@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'MemoryExecutor' });
@@ -82,7 +83,7 @@ async function execute(
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
-          .add(memoryDoc);
+          .add(cleanForFirestore(memoryDoc));
 
         // Index in vector store
         try {
@@ -304,11 +305,11 @@ async function execute(
         const currentConfidence = (data.confidence as number) || 0.5;
         const newConfidence = Math.min(0.99, currentConfidence + (1 - currentConfidence) * 0.15);
 
-        await docToReinforce.ref.update({
+        await docToReinforce.ref.update(cleanForFirestore({
           confidence: newConfidence,
           reinforceCount: ((data.reinforceCount as number) || 0) + 1,
           lastReinforcedAt: new Date(),
-        });
+        }));
       }
     } catch (err) {
       log.debug({ error: String(err) }, 'Memory reinforcement failed');
@@ -356,19 +357,19 @@ async function execute(
         });
 
         if (docToUpdate) {
-          await docToUpdate.ref.update({
+          await docToUpdate.ref.update(cleanForFirestore({
             fact: newFact,
             updatedAt: new Date(),
             previousVersion: oldFact,
             ...(newEmbedding && { embedding: newEmbedding }),
-          });
+          }));
         } else {
           // Store as new
           await db
             .collection('bogle_users')
             .doc(ctx.userId)
             .collection('extracted_facts')
-            .add({
+            .add(cleanForFirestore({
               fact: newFact,
               category: 'personal',
               importance: 'medium',
@@ -377,7 +378,7 @@ async function execute(
               source: 'explicit_update',
               previousVersion: oldFact,
               ...(newEmbedding && { embedding: newEmbedding }),
-            });
+            }));
         }
 
         return '';
