@@ -7,9 +7,15 @@
  * Storage:
  * - In development: In-memory Maps for fast iteration
  * - In production: Firestore for persistence across restarts
+ *
+ * Security:
+ * - All manifests are validated with Zod schemas before registration
+ * - Rate limiting on registration operations
+ * - Audit logging for all state changes
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import * as semver from 'semver';
 import type {
   AgentManifest,
   Installation,
@@ -25,6 +31,12 @@ import type {
 } from './schema/types.js';
 import { getMarketplaceStore, type MarketplaceStore } from './persistence/index.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import {
+  validateToolManifest,
+  validateAgentManifest,
+  formatValidationErrors,
+} from './schema/validation.js';
+import { generateSecureId, checkRateLimit, logAuditEvent, type AuthContext } from './auth/index.js';
 
 const log = getLogger().child({ module: 'marketplace-registry' });
 
@@ -75,27 +87,104 @@ async function getStore(): Promise<MarketplaceStore> {
 
 /**
  * Register a tool manifest in the marketplace
+ *
+ * @param manifest - Tool manifest to register
+ * @param authContext - Optional auth context for rate limiting and audit (required in production)
+ * @returns Result with success/failure and validation errors
  */
-export function registerTool(manifest: ToolManifest): void {
-  const existingVersion = cache.tools.get(manifest.id);
-  if (existingVersion && existingVersion.version >= manifest.version) {
-    log.warn(
-      { toolId: manifest.id, version: manifest.version },
-      'Tool already registered with same or newer version'
-    );
-    return;
+export function registerTool(
+  manifest: ToolManifest,
+  authContext?: AuthContext
+): { success: boolean; error?: string; validationErrors?: string[] } {
+  // Rate limiting (if auth context provided)
+  if (authContext) {
+    const rateLimitResult = checkRateLimit(authContext.userId, 'tool:register');
+    if (!rateLimitResult.allowed) {
+      log.warn({ userId: authContext.userId }, 'Rate limit exceeded for tool registration');
+      return {
+        success: false,
+        error: `Rate limited. Retry after ${rateLimitResult.retryAfterMs}ms`,
+      };
+    }
+  }
+
+  // Validate manifest
+  const validationResult = validateToolManifest(manifest);
+  if (!validationResult.success) {
+    const errors = formatValidationErrors(validationResult.errors);
+    log.warn({ toolId: manifest.id, errors }, 'Tool manifest validation failed');
+    return { success: false, error: 'Manifest validation failed', validationErrors: errors };
+  }
+
+  const validatedManifest = validationResult.data;
+
+  // Check existing version using proper semver comparison
+  const existingTool = cache.tools.get(validatedManifest.id);
+  if (existingTool) {
+    const existingVer = semver.parse(existingTool.version);
+    const newVer = semver.parse(validatedManifest.version);
+
+    if (existingVer && newVer && semver.gte(existingVer, newVer)) {
+      log.warn(
+        {
+          toolId: validatedManifest.id,
+          existingVersion: existingTool.version,
+          newVersion: validatedManifest.version,
+        },
+        'Tool already registered with same or newer version'
+      );
+      return {
+        success: false,
+        error: `Version ${validatedManifest.version} is not newer than existing ${existingTool.version}`,
+      };
+    }
   }
 
   // Update cache immediately (sync)
-  cache.tools.set(manifest.id, manifest);
-  log.info({ toolId: manifest.id, version: manifest.version }, 'Tool registered');
+  cache.tools.set(validatedManifest.id, validatedManifest as ToolManifest);
+  log.info({ toolId: validatedManifest.id, version: validatedManifest.version }, 'Tool registered');
 
-  // Persist to store (async, fire-and-forget)
-  getStore()
-    .then(async (store) => store.saveTool(manifest))
-    .catch((err) =>
-      log.warn({ toolId: manifest.id, error: String(err) }, 'Failed to persist tool')
-    );
+  // Audit log
+  if (authContext) {
+    logAuditEvent({
+      userId: authContext.userId,
+      sessionId: authContext.sessionId,
+      action: 'tool:register',
+      resource: 'tool',
+      resourceId: validatedManifest.id,
+      success: true,
+      details: { version: validatedManifest.version },
+    });
+  }
+
+  // Persist to store with retry queue
+  void persistToolWithRetry(validatedManifest as ToolManifest);
+
+  return { success: true };
+}
+
+/**
+ * Persist tool to store with retry logic
+ */
+async function persistToolWithRetry(manifest: ToolManifest, attempt = 1): Promise<void> {
+  const maxRetries = 3;
+  const backoffMs = 1000;
+
+  try {
+    const store = await getStore();
+    await store.saveTool(manifest);
+    log.debug({ toolId: manifest.id }, 'Tool persisted to store');
+  } catch (err) {
+    if (attempt < maxRetries) {
+      log.warn({ toolId: manifest.id, attempt, error: String(err) }, 'Retrying tool persistence');
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, backoffMs * attempt);
+      });
+      return persistToolWithRetry(manifest, attempt + 1);
+    }
+    // After all retries, log at ERROR level (not warn)
+    log.error({ toolId: manifest.id, error: String(err) }, 'Failed to persist tool after retries');
+  }
 }
 
 /**
@@ -154,27 +243,109 @@ export function listTools(options?: {
 
 /**
  * Register an agent manifest in the marketplace
+ *
+ * @param manifest - Agent manifest to register
+ * @param authContext - Optional auth context for rate limiting and audit (required in production)
+ * @returns Result with success/failure and validation errors
  */
-export function registerAgent(manifest: AgentManifest): void {
-  const existingVersion = cache.agents.get(manifest.id);
-  if (existingVersion && existingVersion.version >= manifest.version) {
-    log.warn(
-      { agentId: manifest.id, version: manifest.version },
-      'Agent already registered with same or newer version'
-    );
-    return;
+export function registerAgent(
+  manifest: AgentManifest,
+  authContext?: AuthContext
+): { success: boolean; error?: string; validationErrors?: string[] } {
+  // Rate limiting (if auth context provided)
+  if (authContext) {
+    const rateLimitResult = checkRateLimit(authContext.userId, 'agent:register');
+    if (!rateLimitResult.allowed) {
+      log.warn({ userId: authContext.userId }, 'Rate limit exceeded for agent registration');
+      return {
+        success: false,
+        error: `Rate limited. Retry after ${rateLimitResult.retryAfterMs}ms`,
+      };
+    }
+  }
+
+  // Validate manifest
+  const validationResult = validateAgentManifest(manifest);
+  if (!validationResult.success) {
+    const errors = formatValidationErrors(validationResult.errors);
+    log.warn({ agentId: manifest.id, errors }, 'Agent manifest validation failed');
+    return { success: false, error: 'Manifest validation failed', validationErrors: errors };
+  }
+
+  const validatedManifest = validationResult.data;
+
+  // Check existing version using proper semver comparison
+  const existingAgent = cache.agents.get(validatedManifest.id);
+  if (existingAgent) {
+    const existingVer = semver.parse(existingAgent.version);
+    const newVer = semver.parse(validatedManifest.version);
+
+    if (existingVer && newVer && semver.gte(existingVer, newVer)) {
+      log.warn(
+        {
+          agentId: validatedManifest.id,
+          existingVersion: existingAgent.version,
+          newVersion: validatedManifest.version,
+        },
+        'Agent already registered with same or newer version'
+      );
+      return {
+        success: false,
+        error: `Version ${validatedManifest.version} is not newer than existing ${existingAgent.version}`,
+      };
+    }
   }
 
   // Update cache immediately (sync)
-  cache.agents.set(manifest.id, manifest);
-  log.info({ agentId: manifest.id, version: manifest.version }, 'Agent registered');
+  cache.agents.set(validatedManifest.id, validatedManifest as AgentManifest);
+  log.info(
+    { agentId: validatedManifest.id, version: validatedManifest.version },
+    'Agent registered'
+  );
 
-  // Persist to store (async, fire-and-forget)
-  getStore()
-    .then(async (store) => store.saveAgent(manifest))
-    .catch((err) =>
-      log.warn({ agentId: manifest.id, error: String(err) }, 'Failed to persist agent')
+  // Audit log
+  if (authContext) {
+    logAuditEvent({
+      userId: authContext.userId,
+      sessionId: authContext.sessionId,
+      action: 'agent:register',
+      resource: 'agent',
+      resourceId: validatedManifest.id,
+      success: true,
+      details: { version: validatedManifest.version },
+    });
+  }
+
+  // Persist to store with retry queue
+  void persistAgentWithRetry(validatedManifest as AgentManifest);
+
+  return { success: true };
+}
+
+/**
+ * Persist agent to store with retry logic
+ */
+async function persistAgentWithRetry(manifest: AgentManifest, attempt = 1): Promise<void> {
+  const maxRetries = 3;
+  const backoffMs = 1000;
+
+  try {
+    const store = await getStore();
+    await store.saveAgent(manifest);
+    log.debug({ agentId: manifest.id }, 'Agent persisted to store');
+  } catch (err) {
+    if (attempt < maxRetries) {
+      log.warn({ agentId: manifest.id, attempt, error: String(err) }, 'Retrying agent persistence');
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, backoffMs * attempt);
+      });
+      return persistAgentWithRetry(manifest, attempt + 1);
+    }
+    log.error(
+      { agentId: manifest.id, error: String(err) },
+      'Failed to persist agent after retries'
     );
+  }
 }
 
 /**
@@ -253,8 +424,8 @@ export async function installItem(options: {
     throw new Error(`Missing required permissions: ${missingPerms.join(', ')}`);
   }
 
-  // Create installation record
-  const installationId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Create installation record with secure ID
+  const installationId = generateSecureId('inst');
   const now = new Date().toISOString();
 
   const permissionGrants: PermissionGrant[] = permissions.map((scope) => ({
@@ -395,7 +566,7 @@ export async function uninstallItem(installationId: string): Promise<void> {
 export function recordExecution(execution: Omit<ToolExecution, 'id'>): ToolExecution {
   const fullExecution: ToolExecution = {
     ...execution,
-    id: `exec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: generateSecureId('exec'),
   };
 
   // Update cache with size limit to prevent unbounded memory growth

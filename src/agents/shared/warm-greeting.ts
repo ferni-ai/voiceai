@@ -230,10 +230,9 @@ function buildDynamicFerniGreeting(ctx?: GreetingContext): string {
   // Build with SIMPLE SSML - don't over-engineer!
   let greeting = '';
 
-  // 1. Opening settle pause - ALWAYS add a small one for natural cadence
-  // This is like taking a breath before speaking. Even "immediate" responses
-  // need a tiny beat to feel human, not robotic.
-  const settleMs = opener.energy === 'calm' ? 300 : opener.energy === 'warm' ? 150 : 100;
+  // 1. Opening settle pause - SHORTER to match conversational flow
+  // FIX: Reduced from 100-300ms to 50-150ms for more natural pacing
+  const settleMs = opener.energy === 'calm' ? 150 : opener.energy === 'warm' ? 80 : 50;
   greeting += `<break time="${settleMs}ms"/>`;
 
   // 2. Emotion tag (simple, at the start)
@@ -244,20 +243,19 @@ function buildDynamicFerniGreeting(ctx?: GreetingContext): string {
   // 3. The opener word
   greeting += opener.text;
 
-  // 4. Breathing pause - THIS is what makes it human
-  // Real humans pause between "Hey." and their next thought
-  // Longer pauses for calmer energy, but never too short
-  const pauseMs = opener.energy === 'calm' ? 450 : opener.energy === 'warm' ? 350 : 300;
+  // 4. Breathing pause - SHORTER to match conversational flow
+  // FIX: Reduced from 300-450ms to 150-250ms for more natural pacing
+  const pauseMs = opener.energy === 'calm' ? 250 : opener.energy === 'warm' ? 180 : 150;
   greeting += `<break time="${pauseMs}ms"/>`;
 
   // Maybe add flavor before the question (only for friends+)
   if (flavor) {
-    greeting += `${flavor.text}<break time="350ms"/>`;
+    greeting += `${flavor.text}<break time="180ms"/>`;
   }
 
   // If we know their name
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.3) {
-    greeting += `${context.userName}.<break time="250ms"/>`;
+    greeting += `${context.userName}.<break time="120ms"/>`;
   }
 
   // Main question/statement
@@ -323,16 +321,17 @@ function buildDynamicAlexGreeting(ctx?: GreetingContext): string {
           : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  // FIX: Reduced pause times to match conversational flow
+  const settleMs = opener.energy === 'calm' ? 100 : 50;
   const emotion = opener.emotion || 'affectionate';
-  const pauseMs = opener.energy === 'calm' ? 300 : 150;
+  const pauseMs = opener.energy === 'calm' ? 150 : 80;
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.25) {
-    greeting += `${context.userName}.<break time="150ms"/>`;
+    greeting += `${context.userName}.<break time="80ms"/>`;
   }
   greeting += middle;
 
@@ -393,16 +392,17 @@ function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
           : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  // FIX: Reduced pause times to match conversational flow
+  const settleMs = opener.energy === 'calm' ? 100 : 50;
   const emotion = opener.emotion || 'friendly';
-  const pauseMs = opener.energy === 'calm' ? 250 : 150;
+  const pauseMs = opener.energy === 'calm' ? 150 : 80;
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.3) {
-    greeting += `${context.userName}!<break time="100ms"/>`;
+    greeting += `${context.userName}!<break time="50ms"/>`;
   }
   greeting += middle;
 
@@ -461,16 +461,17 @@ function buildDynamicJordanGreeting(ctx?: GreetingContext): string {
           : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  // FIX: Reduced pause times to match conversational flow
+  const settleMs = opener.energy === 'calm' ? 100 : 50;
   const emotion = opener.emotion || 'happy';
-  const pauseMs = opener.energy === 'calm' ? 250 : 100;
+  const pauseMs = opener.energy === 'calm' ? 150 : 60;
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.35) {
-    greeting += `${context.userName}!<break time="100ms"/>`;
+    greeting += `${context.userName}!<break time="50ms"/>`;
   }
   greeting += middle;
 
@@ -529,16 +530,17 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
           : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = opener.energy === 'calm' ? 250 : 150;
+  // FIX: Reduced pause times to match conversational flow
+  const settleMs = opener.energy === 'calm' ? 120 : 70;
   const emotion = opener.emotion || 'curious';
-  const pauseMs = opener.energy === 'calm' ? 350 : 200;
+  const pauseMs = opener.energy === 'calm' ? 180 : 100;
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.2) {
-    greeting += `${context.userName}.<break time="200ms"/>`;
+    greeting += `${context.userName}.<break time="100ms"/>`;
   }
   greeting += middle;
 
@@ -597,16 +599,18 @@ function buildDynamicNayanGreeting(ctx?: GreetingContext): string {
           : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = 350; // Nayan always has a contemplative pause
+  // FIX: Reduced pause times to match conversational flow
+  // Nayan is still contemplative but not excessively slow
+  const settleMs = 180; // Still a contemplative pause, but shorter
   const emotion = opener.emotion || 'affectionate';
-  const pauseMs = 450; // Longer pauses for Nayan's calm presence
+  const pauseMs = 250; // Still longer than others for Nayan's calm presence
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage === 'trusted_advisor' && Math.random() < 0.2) {
-    greeting += `${context.userName}.<break time="300ms"/>`;
+    greeting += `${context.userName}.<break time="150ms"/>`;
   }
   greeting += middle;
 
@@ -649,48 +653,50 @@ export function generateContextAwareGreeting(personaId: string, ctx: GreetingCon
 // SIMPLICITY: The backchannels work because they're SIMPLE. Follow that pattern.
 // KEY: Use "affectionate" (warm) instead of "happy" (forced). No exclamation points with warm emotions.
 // Pattern: [settle pause] + emotion + opener + [breathing pause] + question
+// FIX: Reduced break times across all greetings to match conversational flow
 const INSTANT_GREETINGS: Record<string, string[]> = {
   ferni: [
     // Simple, clean SSML - affectionate = warm, curious = interested
-    '<break time="150ms"/><emotion value="affectionate"/>Hey.<break time="350ms"/>What\'s going on?',
-    '<emotion value="surprised"/>Oh, hey.<break time="300ms"/>What\'s up?',
-    '<break time="150ms"/><emotion value="affectionate"/>Hey.<break time="400ms"/>Talk to me.',
-    '<break time="200ms"/><emotion value="affectionate"/>Hey.<break time="450ms"/>What\'s happening?',
-    '<break time="150ms"/><emotion value="curious"/>Hey.<break time="350ms"/>What\'s on your mind?',
+    '<break time="80ms"/><emotion value="affectionate"/>Hey.<break time="180ms"/>What\'s going on?',
+    '<emotion value="surprised"/>Oh, hey.<break time="150ms"/>What\'s up?',
+    '<break time="80ms"/><emotion value="affectionate"/>Hey.<break time="200ms"/>Talk to me.',
+    '<break time="100ms"/><emotion value="affectionate"/>Hey.<break time="220ms"/>What\'s happening?',
+    '<break time="80ms"/><emotion value="curious"/>Hey.<break time="180ms"/>What\'s on your mind?',
   ],
   'alex-chen': [
-    '<emotion value="happy"/>Hey!<break time="100ms"/>Alex here.<break time="150ms"/>What\'s up?',
-    'Oh hey!<break time="100ms"/>It\'s Alex.<break time="150ms"/>What\'s going on?',
-    '<emotion value="happy"/>Alex here!<break time="150ms"/>Talk to me.',
+    '<emotion value="happy"/>Hey!<break time="60ms"/>Alex here.<break time="80ms"/>What\'s up?',
+    'Oh hey!<break time="60ms"/>It\'s Alex.<break time="80ms"/>What\'s going on?',
+    '<emotion value="happy"/>Alex here!<break time="80ms"/>Talk to me.',
   ],
   'maya-santos': [
-    '<emotion value="happy"/>Hey!<break time="100ms"/>Maya here.<break time="150ms"/>What\'s going on?',
-    '<emotion value="friendly"/>Hi!<break time="100ms"/>It\'s Maya.<break time="150ms"/>How are you?',
-    '<emotion value="friendly"/>Maya here.<break time="150ms"/>What\'s on your mind?',
+    '<emotion value="happy"/>Hey!<break time="60ms"/>Maya here.<break time="80ms"/>What\'s going on?',
+    '<emotion value="friendly"/>Hi!<break time="60ms"/>It\'s Maya.<break time="80ms"/>How are you?',
+    '<emotion value="friendly"/>Maya here.<break time="80ms"/>What\'s on your mind?',
   ],
   'jordan-taylor': [
-    '<emotion value="surprised"/>Oh!<break time="100ms"/>Hey!<break time="100ms"/>What are we planning?',
-    '<emotion value="happy"/>Hey!<break time="100ms"/>It\'s Jordan!<break time="150ms"/>What\'s happening?',
-    '<emotion value="happy"/>Jordan here!<break time="100ms"/>Tell me everything!',
+    '<emotion value="surprised"/>Oh!<break time="50ms"/>Hey!<break time="60ms"/>What are we planning?',
+    '<emotion value="happy"/>Hey!<break time="60ms"/>It\'s Jordan!<break time="80ms"/>What\'s happening?',
+    '<emotion value="happy"/>Jordan here!<break time="60ms"/>Tell me everything!',
   ],
   'peter-john': [
-    '<emotion value="curious"/>Hey!<break time="100ms"/>Peter here.<break time="150ms"/>What are you thinking about?',
-    '<emotion value="happy"/>Hey!<break time="100ms"/>Peter here.<break time="150ms"/>What\'s interesting?',
-    '<emotion value="curious"/>Hey!<break time="150ms"/>What\'s on your mind?',
+    '<emotion value="curious"/>Hey!<break time="60ms"/>Peter here.<break time="100ms"/>What are you thinking about?',
+    '<emotion value="happy"/>Hey!<break time="60ms"/>Peter here.<break time="100ms"/>What\'s interesting?',
+    '<emotion value="curious"/>Hey!<break time="100ms"/>What\'s on your mind?',
   ],
   'nayan-patel': [
-    '<emotion value="affectionate"/>Hey.<break time="200ms"/>Nayan here.<break time="150ms"/>I\'m listening.',
-    '<emotion value="affectionate"/>Hello, friend.<break time="200ms"/>What brings you?',
-    '<emotion value="affectionate"/>Hey.<break time="200ms"/>What\'s on your mind?',
+    '<emotion value="affectionate"/>Hey.<break time="120ms"/>Nayan here.<break time="100ms"/>I\'m listening.',
+    '<emotion value="affectionate"/>Hello, friend.<break time="120ms"/>What brings you?',
+    '<emotion value="affectionate"/>Hey.<break time="120ms"/>What\'s on your mind?',
   ],
 };
 
 // Simple defaults - let Cartesia do the work
 // Use "affectionate" for warmth, not "happy" (sounds forced)
+// FIX: Reduced break times to match conversational flow
 const DEFAULT_GREETINGS = [
-  '<break time="150ms"/><emotion value="affectionate"/>Hey.<break time="350ms"/>What\'s going on?',
-  '<break time="150ms"/><emotion value="affectionate"/>Hey there.<break time="350ms"/>What\'s up?',
-  '<break time="200ms"/><emotion value="affectionate"/>Hey.<break time="400ms"/>Talk to me.',
+  '<break time="80ms"/><emotion value="affectionate"/>Hey.<break time="180ms"/>What\'s going on?',
+  '<break time="80ms"/><emotion value="affectionate"/>Hey there.<break time="180ms"/>What\'s up?',
+  '<break time="100ms"/><emotion value="affectionate"/>Hey.<break time="200ms"/>Talk to me.',
 ];
 
 // ============================================================================

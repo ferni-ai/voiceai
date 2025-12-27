@@ -83,6 +83,7 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
 
 /**
  * Render the CLI auth page using safe DOM methods
+ * @design-tokens-ignore - Standalone page without access to design system CSS variables
  */
 function renderAuthPage(status: AuthStatus, message?: string): void {
   const container = document.getElementById('app') || document.body;

@@ -252,11 +252,17 @@ class SpotifyService {
    */
   dispose(): void {
     if (this.player) {
-      this.player.disconnect();
+      // Check if disconnect exists (might not in test mocks after vi.clearAllMocks)
+      if (typeof this.player.disconnect === 'function') {
+        this.player.disconnect();
+      }
       this.player = null;
     }
     this.deviceId = null;
     this.accessToken = null;
+    this.initPromise = null;
+    this.currentTrack = null;
+    this.callbacks.clear();
     this.updateState('uninitialized');
   }
 

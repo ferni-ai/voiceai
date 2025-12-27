@@ -44,7 +44,7 @@ import {
 } from '../../../services/engagement/team-engagement.js';
 
 // Safe LLM generation (with mutex and timeout protection)
-import { safeGenerateReply } from '../safe-generate-reply.js';
+import { safeGenerateReply, resetCircuitBreaker } from '../safe-generate-reply.js';
 
 // Cached module accessors
 import { getVoiceManagerCached, getPersonaAsyncCached } from './cached-modules.js';
@@ -440,6 +440,11 @@ export class CoordinatorAdapter {
     // Use previousAgent from context (passed from coordinator) - NOT from services.handoffState
     const fromPersonaId = context.previousAgent || 'ferni';
 
+    // CRITICAL: Reset circuit breaker for new agent - don't let old failures block greeting
+    // This ensures the new persona gets a clean slate for speech
+    resetCircuitBreaker();
+    log.info({ toPersonaId, fromPersonaId }, '🔄 Circuit breaker reset for new persona');
+
     try {
       // Get the banter phrase (actual speech, not meta-instructions)
       const greetingPhrase = getArrivingBanter(toPersonaId, fromPersonaId);
@@ -454,11 +459,17 @@ export class CoordinatorAdapter {
       );
 
       // Try safeGenerateReply first - best UX as model can continue naturally
+      // CRITICAL: Bypass circuit breaker and session closing check for handoff greetings
+      // Handoffs must ALWAYS produce a greeting - we know the session is valid because
+      // the new agent was just spawned on it
       const result = await safeGenerateReply(this.session, {
         instructions: finalGreeting,
         allowInterruptions: false,
         timeoutMs: 4000,
         context: 'handoff-arriving-welcome',
+        sessionId: this.sessionId,
+        bypassCircuitBreaker: true,       // CRITICAL: Don't let old failures block greeting
+        bypassSessionClosingCheck: true,  // CRITICAL: Session is valid for new agent
       });
 
       if (result.success) {

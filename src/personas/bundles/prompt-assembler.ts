@@ -134,9 +134,12 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
  * Load function calling with base + specialty pattern.
  * Base contains critical rules, specialty contains persona-specific tools.
  * 
- * SKIP when SEMANTIC_ROUTING_PRIMARY=true:
- * When semantic routing handles all tool calls, we don't want the LLM
- * to output JSON function calls (they would be spoken as text).
+ * SKIP when:
+ * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
+ * - USE_OPENAI_REALTIME=true: OpenAI has native function calling (no JSON format needed)
+ * 
+ * When these are active, we don't want the LLM to output JSON function calls
+ * (they would be spoken as text like "fn:speak args:...")
  */
 async function loadFunctionCallingWithBase(
   personaId: string,
@@ -149,6 +152,18 @@ async function loadFunctionCallingWithBase(
     log.info(
       { personaId },
       '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
+    );
+    return '';
+  }
+
+  // 🔮 OPENAI REALTIME: Skip JSON function calling prompts
+  // OpenAI Realtime has NATIVE function calling - the LLM calls functions directly
+  // via the API, not by outputting JSON. If we include JSON format instructions,
+  // the LLM will output "fn:speak" etc. as speech (like Alex was doing!)
+  if (process.env.USE_OPENAI_REALTIME === 'true') {
+    log.info(
+      { personaId },
+      '🔮 USE_OPENAI_REALTIME=true: Skipping JSON function-calling prompts (OpenAI has native function calling)'
     );
     return '';
   }

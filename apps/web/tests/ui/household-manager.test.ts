@@ -67,11 +67,11 @@ const mockMembers = [
 // ============================================================================
 
 function findHouseholdModal(): HTMLElement | null {
-  return document.querySelector('.household-manager');
+  return document.querySelector('.household-modal-overlay');
 }
 
 function findMemberCards(): NodeListOf<HTMLElement> {
-  return document.querySelectorAll('.household-member-card');
+  return document.querySelectorAll('.household-member');
 }
 
 function findAddMemberButton(): HTMLElement | null {
@@ -83,11 +83,11 @@ function findCreateHouseholdButton(): HTMLElement | null {
 }
 
 function findCloseButton(): HTMLElement | null {
-  return document.querySelector('.household-manager-close');
+  return document.querySelector('.household-modal__close');
 }
 
 function findAutoIdentifyToggle(): HTMLInputElement | null {
-  return document.querySelector('[data-setting="auto-identify"]');
+  return document.querySelector('[data-setting="autoIdentify"]');
 }
 
 // ============================================================================
@@ -104,17 +104,23 @@ describe('Household Manager UI', () => {
       if (url.includes('/api/voice/household/members')) {
         return Promise.resolve({
           ok: true,
+          status: 200,
+          statusText: 'OK',
           json: () => Promise.resolve({ members: mockMembers }),
         });
       }
       if (url.includes('/api/voice/household')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ household: mockHousehold }),
+          status: 200,
+          statusText: 'OK',
+          json: () => Promise.resolve(mockHousehold),
         });
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        statusText: 'OK',
         json: () => Promise.resolve({}),
       });
     });

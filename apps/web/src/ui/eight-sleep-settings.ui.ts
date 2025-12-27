@@ -14,6 +14,9 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './toast.ui.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('EightSleep');
 
 // ============================================================================
 // TYPES
@@ -645,7 +648,7 @@ async function fetchStatus(): Promise<EightSleepStatus> {
     const response = await apiGet<EightSleepStatus>('/api/eight-sleep/status');
     return response.data || { connected: false };
   } catch (error) {
-    console.error('Failed to fetch Eight Sleep status:', error);
+    log.error('Failed to fetch Eight Sleep status:', error);
     return { connected: false };
   }
 }
@@ -659,7 +662,7 @@ async function startAuthFlow(): Promise<void> {
       window.location.href = response.data.url;
     }
   } catch (error) {
-    console.error('Failed to start Eight Sleep auth:', error);
+    log.error('Failed to start Eight Sleep auth:', error);
     toast.error("Couldn't connect to Eight Sleep. Try again?");
   }
 }
@@ -669,7 +672,7 @@ async function setTemperature(level: number): Promise<void> {
     await apiPut('/api/eight-sleep/temperature', { level });
     toast.success(`Bed set to level ${level}`);
   } catch (error) {
-    console.error('Failed to set temperature:', error);
+    log.error('Failed to set temperature:', error);
     toast.error("Couldn't set temperature. Try again?");
   }
 }
@@ -681,7 +684,7 @@ async function disconnect(): Promise<void> {
     callbacks.onDisconnected?.();
     render({ connected: false });
   } catch (error) {
-    console.error('Failed to disconnect Eight Sleep:', error);
+    log.error('Failed to disconnect Eight Sleep:', error);
     toast.error("Couldn't disconnect. Try again?");
   }
 }

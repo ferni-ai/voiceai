@@ -193,6 +193,7 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
  * GET /api/apple/products
  * Get available product IDs for the iOS app
  */
+// eslint-disable-next-line @typescript-eslint/require-await
 async function getProducts(_ctx: RequestContext): Promise<ResponseContext> {
   return {
     status: 200,
@@ -211,6 +212,7 @@ async function getProducts(_ctx: RequestContext): Promise<ResponseContext> {
  * GET /api/apple/cancel-instructions
  * Get instructions for canceling Apple subscription
  */
+// eslint-disable-next-line @typescript-eslint/require-await
 async function getCancelInstructions(_ctx: RequestContext): Promise<ResponseContext> {
   const instructions = appleIAP.getCancellationInstructions();
 

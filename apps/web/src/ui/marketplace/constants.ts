@@ -10,6 +10,9 @@
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import type { CategoryId, ExternalBrandId } from './types.js';
 
+// Re-export animation constants for convenience
+export { DURATION, EASING };
+
 // ============================================================================
 // CATEGORY LABELS
 // ============================================================================
@@ -32,7 +35,7 @@ export const CATEGORY_LABELS: Record<CategoryId, string> = {
  * Get human-readable label for a category
  */
 export function getCategoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] || category.charAt(0).toUpperCase() + category.slice(1);
+  return CATEGORY_LABELS[category as CategoryId] || category.charAt(0).toUpperCase() + category.slice(1);
 }
 
 // ============================================================================

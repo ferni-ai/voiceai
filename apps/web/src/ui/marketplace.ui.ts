@@ -1906,18 +1906,27 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
 
       if (agent) {
         // Request permission consent before installing
+        // Uses verified publisher, trust level, and permissions from registry
+        // Map trust level: 'official' -> 'verified' for MarketplaceItem compatibility
+        const trustLevelMap: Record<string, 'platform' | 'verified' | 'community' | 'unverified'> = {
+          official: 'verified',
+          verified: 'verified',
+          community: 'community',
+        };
         const consentItem: MarketplaceItem = {
           id: agent.id,
           name: agent.name,
           type: 'agent',
           publisher: {
-            name: agent.author,
-            verified: false, // TODO: Get from registry
+            name: agent.publisher.name,
+            verified: agent.publisher.verified,
           },
-          trustLevel: 'community', // TODO: Get from registry
+          trustLevel: trustLevelMap[agent.trustLevel] || 'community',
           permissions: {
-            required: [], // TODO: Get from agent manifest
-            optional: [],
+            // Map PermissionScope strings to PermissionRequest objects
+            // Use type assertion since marketplace.service and marketplace-permission-consent have different scope types
+            required: agent.permissions.required.map((scope) => ({ scope: scope as unknown as import('./marketplace-permission-consent.ui.js').PermissionScope, reason: '', required: true as const })),
+            optional: agent.permissions.optional.map((scope) => ({ scope: scope as unknown as import('./marketplace-permission-consent.ui.js').PermissionScope, reason: '', required: false as const })),
           },
         };
 

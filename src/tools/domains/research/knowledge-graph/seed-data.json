@@ -1,0 +1,699 @@
+{
+  "nodes": [
+    {
+      "id": "compound_interest",
+      "type": "concept",
+      "name": "Compound Interest",
+      "aliases": ["compounding", "compound growth", "interest on interest"],
+      "definition": "Interest calculated on both the initial principal and accumulated interest from previous periods.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["growth", "returns"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "$10,000 at 7% for 30 years = $76,123",
+        "Einstein called it the 8th wonder of the world",
+        "The Rule of 72: years to double = 72 / interest rate"
+      ],
+      "commonMisunderstandings": [
+        "Confusing simple vs compound interest",
+        "Underestimating the time factor",
+        "Thinking you need to start with a lot - you don't"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Mathematics", "Investopedia"],
+        "helpfulnessScore": 0.95
+      }
+    },
+    {
+      "id": "inflation",
+      "type": "concept",
+      "name": "Inflation",
+      "aliases": ["price inflation", "cost of living increase", "purchasing power loss"],
+      "definition": "The rate at which the general level of prices for goods and services rises, eroding purchasing power.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["economics", "purchasing power"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "Historical average ~2-3% per year in the US",
+        "$100 today = ~$55 purchasing power in 30 years at 2% inflation",
+        "Why cash savings lose value over time"
+      ],
+      "commonMisunderstandings": [
+        "Thinking 0% inflation is ideal (mild inflation is healthy)",
+        "Confusing inflation with cost of individual items",
+        "Not accounting for inflation in retirement planning"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Federal Reserve", "BLS"],
+        "helpfulnessScore": 0.9
+      }
+    },
+    {
+      "id": "emergency_fund",
+      "type": "concept",
+      "name": "Emergency Fund",
+      "aliases": ["rainy day fund", "safety net", "cash reserve"],
+      "definition": "3-6 months of essential expenses kept in easily accessible savings for unexpected events.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["savings", "risk management"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "Job loss protection",
+        "Medical emergency coverage",
+        "Car or home repairs",
+        "Keep in high-yield savings account"
+      ],
+      "commonMisunderstandings": [
+        "Investing the emergency fund (it's not for growth)",
+        "Only needing 1-2 months",
+        "Using credit cards instead (dangerous)"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Dave Ramsey", "Financial Planning Association"],
+        "helpfulnessScore": 0.92
+      }
+    },
+    {
+      "id": "budgeting",
+      "type": "concept",
+      "name": "Budgeting",
+      "aliases": ["spending plan", "money management", "expense tracking"],
+      "definition": "Creating a plan for how to allocate income across expenses, savings, and investments.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["planning", "cash flow"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "50/30/20 rule: 50% needs, 30% wants, 20% savings",
+        "Zero-based budgeting",
+        "Pay yourself first approach"
+      ],
+      "commonMisunderstandings": [
+        "Budgeting means deprivation",
+        "High earners dont need budgets",
+        "One-time setup vs ongoing process"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["YNAB", "Financial Planning Standards"],
+        "helpfulnessScore": 0.88
+      }
+    },
+    {
+      "id": "savings_rate",
+      "type": "metric",
+      "name": "Savings Rate",
+      "aliases": ["saving percentage", "how much to save"],
+      "definition": "Percentage of gross or net income saved or invested each period.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["savings", "FIRE"],
+        "difficulty": "beginner"
+      },
+      "examples": ["15% is a common minimum recommendation", "FIRE seekers often save 50%+"],
+      "relatedMetrics": ["Net worth growth", "Years to FIRE"],
+      "ranges": { "low": 5, "typical": 15, "high": 30, "extreme": 50 },
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Financial Independence literature"],
+        "helpfulnessScore": 0.91
+      }
+    },
+    {
+      "id": "net_worth",
+      "type": "metric",
+      "name": "Net Worth",
+      "aliases": ["wealth", "total assets minus liabilities"],
+      "definition": "Total assets minus total liabilities - the clearest measure of financial health.",
+      "context": {
+        "domain": "basics",
+        "subdomains": ["wealth measurement", "tracking"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "Assets: home, investments, cash, retirement accounts",
+        "Liabilities: mortgage, student loans, credit card debt",
+        "Track monthly or quarterly"
+      ],
+      "relatedMetrics": ["Asset allocation", "Debt-to-income"],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Financial Planning Standards"],
+        "helpfulnessScore": 0.93
+      }
+    },
+    {
+      "id": "index_funds",
+      "type": "concept",
+      "name": "Index Funds",
+      "aliases": ["passive investing", "index investing", "market-cap weighted funds"],
+      "definition": "Funds that track a market index like the S&P 500, offering broad diversification at low cost.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["passive investing", "diversification"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "VTI - Total US Stock Market",
+        "VXUS - Total International Stock",
+        "SPY - S&P 500",
+        "BND - Total Bond Market"
+      ],
+      "commonMisunderstandings": [
+        "Index funds are boring (boring is good!)",
+        "You need to pick stocks to beat the market",
+        "All index funds are the same"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Vanguard", "John Bogle"],
+        "helpfulnessScore": 0.96
+      }
+    },
+    {
+      "id": "diversification",
+      "type": "concept",
+      "name": "Diversification",
+      "aliases": ["not putting all eggs in one basket", "spreading risk"],
+      "definition": "Spreading investments across different assets to reduce risk from any single investment.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["risk management", "portfolio construction"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "Across asset classes: stocks, bonds, real estate",
+        "Across geographies: US, international, emerging",
+        "Across sectors: tech, healthcare, finance",
+        "Across time: dollar cost averaging"
+      ],
+      "commonMisunderstandings": [
+        "Owning 20 tech stocks is diversified",
+        "More holdings always = more diversified",
+        "Diversification eliminates all risk"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Modern Portfolio Theory", "Markowitz"],
+        "helpfulnessScore": 0.94
+      }
+    },
+    {
+      "id": "dollar_cost_averaging",
+      "type": "concept",
+      "name": "Dollar Cost Averaging",
+      "aliases": ["DCA", "systematic investing", "regular investing"],
+      "definition": "Investing a fixed amount at regular intervals regardless of market conditions.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["strategy", "behavioral finance"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "$500/month into index funds",
+        "401(k) contributions from each paycheck",
+        "Buying more shares when prices are low, fewer when high"
+      ],
+      "commonMisunderstandings": [
+        "DCA beats lump sum investing (statistically, lump sum wins ~66% of time)",
+        "You need to time the market",
+        "DCA guarantees profits"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Vanguard Research", "Academic Studies"],
+        "helpfulnessScore": 0.91
+      }
+    },
+    {
+      "id": "asset_allocation",
+      "type": "concept",
+      "name": "Asset Allocation",
+      "aliases": ["portfolio mix", "stocks/bonds split", "investment mix"],
+      "definition": "The strategic division of investments across asset classes based on goals and risk tolerance.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["portfolio construction", "risk management"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "60/40 stocks/bonds - classic balanced",
+        "90/10 for young investors",
+        "Age in bonds rule (conservative)",
+        "Target date funds automate this"
+      ],
+      "commonMisunderstandings": [
+        "One size fits all (it doesn't)",
+        "Never needs adjusting (rebalance annually)",
+        "More stocks always = more wealth (sequence of returns risk)"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Financial Planning Standards", "Vanguard"],
+        "helpfulnessScore": 0.93
+      }
+    },
+    {
+      "id": "expense_ratio",
+      "type": "metric",
+      "name": "Expense Ratio",
+      "aliases": ["fund fees", "management fee", "TER"],
+      "definition": "Annual fee charged by funds as a percentage of assets, directly reducing returns.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["costs", "fund selection"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "VTI: 0.03% (excellent)",
+        "Average active fund: 0.50-1.00%",
+        "1% fee = 28% less wealth over 30 years"
+      ],
+      "relatedMetrics": ["Total return", "Net return"],
+      "ranges": { "low": 0.03, "typical": 0.2, "high": 0.75, "extreme": 1.5 },
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["John Bogle", "Morningstar"],
+        "helpfulnessScore": 0.95
+      }
+    },
+    {
+      "id": "rebalancing",
+      "type": "concept",
+      "name": "Rebalancing",
+      "aliases": ["portfolio rebalancing", "allocation adjustment"],
+      "definition": "Periodically adjusting portfolio back to target allocation as assets grow at different rates.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["portfolio management", "risk control"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "Annually or when allocation drifts 5%+",
+        "Selling winners, buying laggards",
+        "Tax-loss harvesting opportunity"
+      ],
+      "commonMisunderstandings": [
+        "Rebalancing too frequently (trading costs)",
+        "Never rebalancing (drift increases risk)",
+        "Emotional difficulty selling winners"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Vanguard Research"],
+        "helpfulnessScore": 0.88
+      }
+    },
+    {
+      "id": "tax_advantaged_accounts",
+      "type": "concept",
+      "name": "Tax-Advantaged Accounts",
+      "aliases": ["retirement accounts", "401k", "IRA", "tax-deferred"],
+      "definition": "Investment accounts with special tax benefits for retirement or specific goals.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["tax planning", "retirement"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "401(k) - employer-sponsored, pre-tax or Roth",
+        "Traditional IRA - pre-tax contributions",
+        "Roth IRA - tax-free growth and withdrawals",
+        "HSA - triple tax advantage"
+      ],
+      "commonMisunderstandings": [
+        "Roth vs Traditional always has a clear winner",
+        "Missing employer match (free money!)",
+        "Can't invest in same things as taxable"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["IRS", "Vanguard"],
+        "helpfulnessScore": 0.94
+      }
+    },
+    {
+      "id": "risk_tolerance",
+      "type": "concept",
+      "name": "Risk Tolerance",
+      "aliases": ["risk capacity", "risk appetite", "investment temperament"],
+      "definition": "Your ability and willingness to accept investment volatility and potential losses.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["behavioral finance", "portfolio construction"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "Can you sleep during a 30% drawdown?",
+        "Time horizon affects risk capacity",
+        "Emotional vs financial risk tolerance"
+      ],
+      "commonMisunderstandings": [
+        "Overestimating tolerance before a crash",
+        "Confusing risk tolerance with risk capacity",
+        "Risk tolerance doesn't change (it does with life events)"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Behavioral Finance Research"],
+        "helpfulnessScore": 0.87
+      }
+    },
+    {
+      "id": "market_timing",
+      "type": "concept",
+      "name": "Market Timing",
+      "aliases": ["timing the market", "buying the dip", "selling at the top"],
+      "definition": "Attempting to predict market movements to buy low and sell high. Usually fails.",
+      "context": {
+        "domain": "investing",
+        "subdomains": ["strategy", "behavioral finance"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "Missing best 10 days in 20 years cuts returns by 50%",
+        "Time in market beats timing the market",
+        "Even experts can't consistently time"
+      ],
+      "commonMisunderstandings": [
+        "It's obvious when to buy/sell",
+        "Sitting in cash during uncertainty helps",
+        "Technical analysis enables timing"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Academic Research", "Vanguard", "JP Morgan"],
+        "helpfulnessScore": 0.91
+      }
+    },
+    {
+      "id": "pe_ratio",
+      "type": "metric",
+      "name": "Price-to-Earnings Ratio",
+      "aliases": ["P/E", "PE ratio", "earnings multiple"],
+      "definition": "Stock price divided by earnings per share - measures how much you pay per dollar of earnings.",
+      "context": {
+        "domain": "valuation",
+        "subdomains": ["fundamentals", "stock analysis"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "S&P 500 historical average: ~15-18",
+        "Growth stocks: often 25-50+",
+        "Value stocks: often 10-15"
+      ],
+      "relatedMetrics": ["Forward P/E", "PEG ratio", "Trailing P/E"],
+      "ranges": { "low": 10, "typical": 18, "high": 30, "extreme": 50 },
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Benjamin Graham", "Investopedia"],
+        "helpfulnessScore": 0.89
+      }
+    },
+    {
+      "id": "four_percent_rule",
+      "type": "concept",
+      "name": "The 4% Rule",
+      "aliases": ["safe withdrawal rate", "SWR", "Trinity Study"],
+      "definition": "Guideline that you can withdraw 4% of portfolio annually (inflation-adjusted) with low risk of running out over 30 years.",
+      "context": {
+        "domain": "fire",
+        "subdomains": ["withdrawal strategies", "retirement planning"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "$1M portfolio = $40k/year withdrawal",
+        "Based on historical US market returns",
+        "Some use 3.5% for extra safety"
+      ],
+      "commonMisunderstandings": [
+        "It's a guarantee (it's a guideline based on history)",
+        "Works identically in all markets",
+        "Never needs adjustment"
+      ],
+      "metadata": {
+        "confidence": 0.9,
+        "sources": ["Trinity Study", "William Bengen"],
+        "helpfulnessScore": 0.91
+      }
+    },
+    {
+      "id": "fire_number",
+      "type": "concept",
+      "name": "FIRE Number",
+      "aliases": ["financial independence number", "retirement number", "FI number"],
+      "definition": "The amount of invested assets needed to live indefinitely off investment returns.",
+      "context": {
+        "domain": "fire",
+        "subdomains": ["financial independence", "retirement planning"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "Annual expenses × 25 (4% rule)",
+        "$50k expenses = $1.25M FIRE number",
+        "Lean FIRE, Fat FIRE, Barista FIRE variants"
+      ],
+      "commonMisunderstandings": [
+        "One number fits everyone",
+        "The number never needs adjusting",
+        "Reaching the number means no more money worries"
+      ],
+      "metadata": {
+        "confidence": 0.95,
+        "sources": ["Trinity Study", "FIRE movement literature"],
+        "helpfulnessScore": 0.92
+      }
+    },
+    {
+      "id": "loss_aversion",
+      "type": "concept",
+      "name": "Loss Aversion",
+      "aliases": ["fear of loss", "loss hurts more than gains feel good"],
+      "definition": "Psychological tendency where losses feel about 2x as painful as equivalent gains feel good.",
+      "context": {
+        "domain": "behavior",
+        "subdomains": ["behavioral finance", "psychology"],
+        "difficulty": "intermediate"
+      },
+      "examples": [
+        "Holding losers too long hoping to break even",
+        "Selling winners too early to lock in gains",
+        "Avoiding stocks entirely after a loss"
+      ],
+      "commonMisunderstandings": [
+        "Thinking you are immune",
+        "Believing it's irrational (it's evolutionarily rational)",
+        "Not recognizing it in real-time"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["Kahneman & Tversky", "Prospect Theory"],
+        "helpfulnessScore": 0.88
+      }
+    },
+    {
+      "id": "stay_the_course",
+      "type": "principle",
+      "name": "Stay the Course",
+      "aliases": ["dont panic", "long-term focus", "discipline"],
+      "definition": "Maintain your investment strategy through market cycles without emotional reaction.",
+      "source": "John Bogle",
+      "context": {
+        "domain": "principles",
+        "subdomains": ["discipline", "behavioral finance"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "2008-2009: Those who stayed recovered by 2013",
+        "2020 March: 30% drop recovered in months",
+        "Markets reward patience, punish panic"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["John Bogle", "Vanguard"],
+        "helpfulnessScore": 0.94
+      }
+    },
+    {
+      "id": "cost_matters",
+      "type": "principle",
+      "name": "Bogle's Cost Matters Hypothesis",
+      "aliases": ["costs matter", "expense ratios matter", "you get what you don't pay for"],
+      "definition": "In investing, gross returns minus costs equals net returns. Lower costs = higher returns.",
+      "source": "John Bogle",
+      "context": {
+        "domain": "principles",
+        "subdomains": ["costs", "fund selection"],
+        "difficulty": "beginner"
+      },
+      "examples": [
+        "1% annual fee = 28% less wealth over 30 years",
+        "Active funds' higher fees rarely overcome with returns",
+        "Index funds won by not losing"
+      ],
+      "metadata": {
+        "confidence": 1.0,
+        "sources": ["John Bogle", "The Little Book of Common Sense Investing"],
+        "helpfulnessScore": 0.96
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_compound_inflation",
+      "from": "compound_interest",
+      "to": "inflation",
+      "type": "relates_to",
+      "strength": 0.8,
+      "description": "Compound interest must outpace inflation for real growth",
+      "bidirectional": true
+    },
+    {
+      "id": "edge_budget_savings",
+      "from": "budgeting",
+      "to": "savings_rate",
+      "type": "causes",
+      "strength": 0.9,
+      "description": "Good budgeting enables higher savings rate"
+    },
+    {
+      "id": "edge_savings_emergency",
+      "from": "savings_rate",
+      "to": "emergency_fund",
+      "type": "causes",
+      "strength": 0.8,
+      "description": "Savings enables emergency fund"
+    },
+    {
+      "id": "edge_savings_networth",
+      "from": "savings_rate",
+      "to": "net_worth",
+      "type": "causes",
+      "strength": 0.95,
+      "description": "Savings rate is primary driver of net worth"
+    },
+    {
+      "id": "edge_emergency_investing",
+      "from": "emergency_fund",
+      "to": "index_funds",
+      "type": "prerequisite",
+      "strength": 0.9,
+      "description": "Build emergency fund before investing"
+    },
+    {
+      "id": "edge_index_diversification",
+      "from": "index_funds",
+      "to": "diversification",
+      "type": "exemplifies",
+      "strength": 0.95,
+      "description": "Index funds are the simplest way to diversify"
+    },
+    {
+      "id": "edge_index_expense",
+      "from": "index_funds",
+      "to": "expense_ratio",
+      "type": "relates_to",
+      "strength": 0.9,
+      "description": "Index funds have low expense ratios"
+    },
+    {
+      "id": "edge_index_cost_matters",
+      "from": "index_funds",
+      "to": "cost_matters",
+      "type": "exemplifies",
+      "strength": 0.95,
+      "description": "Index funds embody the cost matters principle"
+    },
+    {
+      "id": "edge_dca_timing",
+      "from": "dollar_cost_averaging",
+      "to": "market_timing",
+      "type": "contradicts",
+      "strength": 0.85,
+      "description": "DCA is the antidote to market timing urges"
+    },
+    {
+      "id": "edge_allocation_rebalancing",
+      "from": "asset_allocation",
+      "to": "rebalancing",
+      "type": "relates_to",
+      "strength": 0.9,
+      "description": "Rebalancing maintains target allocation",
+      "bidirectional": true
+    },
+    {
+      "id": "edge_allocation_risk",
+      "from": "asset_allocation",
+      "to": "risk_tolerance",
+      "type": "relates_to",
+      "strength": 0.95,
+      "description": "Allocation should match risk tolerance",
+      "bidirectional": true
+    },
+    {
+      "id": "edge_diversification_risk",
+      "from": "diversification",
+      "to": "risk_tolerance",
+      "type": "causes",
+      "strength": 0.85,
+      "description": "Diversification reduces portfolio volatility"
+    },
+    {
+      "id": "edge_fire_savings",
+      "from": "fire_number",
+      "to": "savings_rate",
+      "type": "relates_to",
+      "strength": 0.95,
+      "description": "Higher savings rate = faster to FIRE number"
+    },
+    {
+      "id": "edge_fire_4pct",
+      "from": "fire_number",
+      "to": "four_percent_rule",
+      "type": "derived_from",
+      "strength": 0.95,
+      "description": "FIRE number is calculated using 4% rule (25x expenses)"
+    },
+    {
+      "id": "edge_loss_panic",
+      "from": "loss_aversion",
+      "to": "market_timing",
+      "type": "causes",
+      "strength": 0.85,
+      "description": "Loss aversion drives panic selling and market timing"
+    },
+    {
+      "id": "edge_stay_loss",
+      "from": "stay_the_course",
+      "to": "loss_aversion",
+      "type": "contradicts",
+      "strength": 0.9,
+      "description": "Discipline overcomes loss aversion"
+    },
+    {
+      "id": "edge_stay_index",
+      "from": "stay_the_course",
+      "to": "index_funds",
+      "type": "relates_to",
+      "strength": 0.85,
+      "description": "Index funds make staying the course easier"
+    }
+  ],
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Core financial concepts for Peter's Big Brain knowledge graph",
+    "nodeCount": 22,
+    "edgeCount": 17,
+    "lastUpdated": "2024-12-26"
+  }
+}

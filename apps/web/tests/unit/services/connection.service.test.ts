@@ -27,6 +27,7 @@ vi.mock('../../../src/state/app.state.js', () => {
       get: vi.fn((key: string) => mockState[key as keyof typeof mockState]),
     },
     setConnectionState: vi.fn(),
+    updateAuthState: vi.fn(),
   };
 });
 

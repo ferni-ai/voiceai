@@ -50,7 +50,7 @@ export interface UnsaidSignal {
   confidence: number;
 
   /** Suggested response approach */
-  approach: 'create_space' | 'gentle_probe' | 'acknowledge_silently' | 'wait';
+  approach: 'create_space' | 'gentle_probe' | 'acknowledge_silently' | 'wait' | 'name_gently';
 
   /** Optional phrase to use */
   phrase?: string;
@@ -61,6 +61,7 @@ export interface UnsaidSignal {
     recentTopics?: string[];
     statedEmotion?: string;
     detectedEmotion?: string;
+    previousTopic?: string;
   };
 }
 
@@ -162,6 +163,69 @@ const FINE_MASKS = [
   "i'm happy about it",
   "glad it happened",
   "weight off my shoulders",
+  // Gen-Z / Casual deflection masks (P1 FIX)
+  "literally fine",
+  "literally okay",
+  "i'm literally fine",
+  "i'm literally okay",
+  "lowkey fine",
+  "i'm lowkey fine",
+  "whatever honestly",
+  "honestly whatever",
+  "vibes are off but i'm fine",
+  "it's giving fine",
+  "not stressed",
+  "we good",
+  "i'm chillin",
+  "i'm chilling",
+  // More Gen-Z with "bestie" (P3 FIX)
+  "literally fine bestie",
+  "i'm literally fine bestie",
+  "fine bestie",
+  "i'm fine bestie",
+  "all good bestie",
+];
+
+/** Nervous laughter patterns - masking with humor (P1 FIX) */
+const NERVOUS_LAUGHTER_PATTERNS = [
+  /\b(lol|lmao|haha|hehe|rofl)\s*(yeah|i'm|it's|that's|i guess|whatever)\s*(fine|okay|good|alright)/i,
+  /\b(yeah|it's|i'm)\s*(fine|okay|good)\s*(lol|lmao|haha|hehe)/i,
+  /\bhaha\s+(anyway|but|so)\b/i,
+  /\b(lol|haha)\s+(it's nothing|no worries|i'm fine|all good)/i,
+  /\b(fine|okay)\s+(haha|lol)\s*$/i,
+  /\b😅|😂|🙃\s*(fine|okay|good|whatever)/i,
+];
+
+/** Excessive exclamation masking - forced positivity (P2 FIX) */
+const EXCLAMATION_MASKING_PATTERNS = [
+  /\b(i'm|it's|we're|that's)\s+(fine|okay|good|great|totally good)!/i, // "I'm fine!"
+  /\bno worries!/i,
+  /\ball good!/i,
+  /\btotally (fine|okay|good)!/i,
+  /!{2,}/, // Multiple exclamation marks often signal forced enthusiasm
+];
+
+/** Spiritual/fatalistic deflection - avoiding agency (P2 FIX) */
+const SPIRITUAL_DEFLECTION_PATTERNS = [
+  /\bgod has a plan\b/i,
+  /\beverything happens for a reason\b/i,
+  /\bit('s| is) (meant|supposed) to be\b/i,
+  /\bwhat('s| is) meant to be will be\b/i,
+  /\bin god('s|s) hands\b/i,
+  /\bthe universe (has|knows)\b/i,
+  /\bit('s| is) not (up to|for) me\b/i,
+  /\blet go and let god\b/i,
+  /\bthis too shall pass\b/i, // Can indicate avoidance of addressing feelings
+  /\bgod('s| is) will\b/i,
+];
+
+/** Sudden topic change indicators - context needed (P2 FIX) */
+const TOPIC_CHANGE_INDICATORS = [
+  /^(so|anyway|but)\.*\s*(how|what|did|have|are)/i, // "So... how was your day?"
+  /^that reminds me\b/i,
+  /^speaking of\b/i,
+  /^oh,? (by the way|btw)\b/i,
+  /^random but\b/i,
 ];
 
 /** Phrases that indicate wanting permission to share */
@@ -199,6 +263,7 @@ const DEFLECTION_PATTERNS = [
   /let's move on/i,
   /i don't (want to|wanna) talk about/i,
   /can we (change|talk about something)/i,
+  /let's talk about something else/i,
   /sorry,? (i|that)/i,
   // More natural deflection patterns
   /let's not dwell/i,
@@ -226,6 +291,18 @@ const DEFLECTION_PATTERNS = [
   /what about you/i,
   /so,? what's new/i,
   /but hey\b/i,
+  // Gen-Z / Meme-based deflection (P1 FIX)
+  /no thoughts head empty/i,
+  /we don't talk about that/i,
+  /that's not giving/i,
+  /moving forward/i,
+  /let's not go there/i,
+  /it's giving avoidance/i,
+  /not today satan/i,
+  /touch grass/i, // "go outside" - dismissing topic
+  /rent free/i, // dismissing something living in their head
+  /slay (anyway|though)/i, // false confidence deflection
+  /bestie,? (anyway|let's)/i,
 ];
 
 /** Minimizing language */
@@ -332,14 +409,14 @@ const HEAVY_TOPIC_INDICATORS = [
 // PERSISTENCE TYPES
 // ============================================================================
 
-interface PersistedConversationPattern {
+export interface PersistedConversationPattern {
   topic: string;
   avoidanceCount: number;
   lastAvoided: string;
   deflectionPhrases: string[];
 }
 
-interface PersistedUserUnsaidProfile {
+export interface PersistedUserUnsaidProfile {
   userId: string;
   avoidedTopics: PersistedConversationPattern[];
   falseFines: Array<{
@@ -531,6 +608,39 @@ export function detectUnsaidSignals(
   const deflection = detectDeflection(lower, context);
   if (deflection) {
     signals.push(deflection);
+  }
+
+  // 3.5. Check for nervous laughter (P1 FIX)
+  const nervousLaughter = detectNervousLaughter(lower);
+  if (nervousLaughter) {
+    signals.push(nervousLaughter);
+  }
+
+  // 3.6. Check for exclamation masking (P2 FIX)
+  const exclamationMask = detectExclamationMasking(lower, userMessage);
+  if (exclamationMask) {
+    signals.push(exclamationMask);
+  }
+
+  // 3.7. Check for spiritual deflection (P2 FIX)
+  const spiritualDeflection = detectSpiritualDeflection(lower);
+  if (spiritualDeflection) {
+    signals.push(spiritualDeflection);
+  }
+
+  // 3.8. Check for sudden topic change (P2 FIX)
+  const topicChange = detectTopicChange(lower, {
+    topicBeforeThis: context.topicBeforeThis,
+    recentTopics: context.recentTopics,
+  });
+  if (topicChange) {
+    signals.push(topicChange);
+  }
+
+  // 3.9. Check for Gen-Z dismissive patterns (P3 FIX) - fires WITHOUT needing heavy context
+  const genZDismissive = detectGenZDismissive(lower);
+  if (genZDismissive) {
+    signals.push(genZDismissive);
   }
 
   // 4. Check for permission-seeking
@@ -753,6 +863,173 @@ function detectDeflection(
 }
 
 /**
+ * Detect nervous laughter masking real feelings (P1 FIX)
+ * "LOL yeah I'm fine" / "haha it's whatever" often masks distress
+ */
+function detectNervousLaughter(lower: string): UnsaidSignal | null {
+  const hasNervousLaughter = NERVOUS_LAUGHTER_PATTERNS.some((pattern) => pattern.test(lower));
+
+  if (!hasNervousLaughter) return null;
+
+  const phrases = [
+    "I noticed a 'haha' in there. Sometimes we use humor when things are harder than they seem.",
+    'The laughter tells me something. How are you really doing?',
+    "It's okay to not be okay, even when we joke about it.",
+  ];
+
+  return {
+    type: 'emotional_mismatch',
+    observation: 'Using humor/laughter to soften difficult feelings',
+    underlying: 'real feelings masked with nervous laughter',
+    confidence: 0.7,
+    approach: 'name_gently',
+    phrase: phrases[Math.floor(Math.random() * phrases.length)],
+    context: {
+      userMessage: lower,
+    },
+  };
+}
+
+/**
+ * Detect excessive exclamation masking - forced positivity (P2 FIX)
+ * "No worries!" / "I'm totally fine!" with exclamation often masks stress
+ */
+function detectExclamationMasking(lower: string, original: string): UnsaidSignal | null {
+  // Check original for exclamation marks
+  const hasExclamationPattern = EXCLAMATION_MASKING_PATTERNS.some((pattern) => pattern.test(original));
+  
+  if (!hasExclamationPattern) return null;
+
+  const phrases = [
+    'That enthusiasm... are you sure everything is okay?',
+    'I appreciate you trying to reassure me, but how are you really?',
+    "You don't have to be positive for my sake.",
+  ];
+
+  return {
+    type: 'emotional_mismatch',
+    observation: 'Excessive positivity/exclamation may mask real feelings',
+    underlying: 'forced enthusiasm covering stress',
+    confidence: 0.6,
+    approach: 'name_gently',
+    phrase: phrases[Math.floor(Math.random() * phrases.length)],
+    context: {
+      userMessage: original,
+    },
+  };
+}
+
+/**
+ * Detect spiritual/fatalistic deflection (P2 FIX)
+ * "God has a plan" / "Everything happens for a reason" can avoid addressing feelings
+ */
+function detectSpiritualDeflection(lower: string): UnsaidSignal | null {
+  const hasSpiritual = SPIRITUAL_DEFLECTION_PATTERNS.some((pattern) => pattern.test(lower));
+  
+  if (!hasSpiritual) return null;
+
+  const phrases = [
+    'Faith can be a comfort. And... how are you feeling about all of this?',
+    "I hear you trusting in something bigger. What's on your heart right now?",
+    'Beyond what\'s meant to be... what do you want?',
+  ];
+
+  return {
+    type: 'deflection',
+    observation: 'Using spiritual framing to avoid addressing feelings directly',
+    underlying: 'feelings about the situation',
+    confidence: 0.55, // Lower confidence - spirituality is valid, not always deflection
+    approach: 'create_space',
+    phrase: phrases[Math.floor(Math.random() * phrases.length)],
+    context: {
+      userMessage: lower,
+    },
+  };
+}
+
+/**
+ * Detect sudden topic change (P2 FIX)
+ * "So... how was your day?" after heavy topic = deflection
+ */
+function detectTopicChange(
+  lower: string,
+  context: { topicBeforeThis?: string; recentTopics?: string[] }
+): UnsaidSignal | null {
+  // Need previous topic OR recent heavy topics to detect change
+  const previousTopic = context.topicBeforeThis || (context.recentTopics?.[0] ?? null);
+  
+  // Check if there's a heavy recent topic
+  const hasHeavyRecentTopic = context.recentTopics?.some((topic) =>
+    HEAVY_TOPIC_INDICATORS.some((indicator) => topic.toLowerCase().includes(indicator))
+  );
+  
+  // Need either explicit previous topic OR a heavy topic in recent topics
+  if (!previousTopic && !hasHeavyRecentTopic) return null;
+  
+  const isTopicChange = TOPIC_CHANGE_INDICATORS.some((pattern) => pattern.test(lower));
+  
+  if (!isTopicChange) return null;
+
+  const phrases = [
+    "We can move on - and that previous topic is safe to return to whenever.",
+    "I noticed we shifted gears. I'm here if you want to go back to that.",
+    "New topic works for me. That earlier thing? Still here when you're ready.",
+  ];
+
+  return {
+    type: 'deflection',
+    observation: 'Changed subject from previous topic',
+    underlying: previousTopic || 'previous heavy topic',
+    confidence: 0.65,
+    approach: 'create_space',
+    phrase: phrases[Math.floor(Math.random() * phrases.length)],
+    context: {
+      userMessage: lower,
+      previousTopic: previousTopic || undefined,
+      recentTopics: context.recentTopics,
+    },
+  };
+}
+
+/**
+ * Detect Gen-Z dismissive patterns WITHOUT needing heavy context (P3 FIX)
+ * These are phrases that ALWAYS warrant a gentle probe
+ */
+const GEN_Z_DISMISSIVE_PATTERNS = [
+  /\bi('m| am) literally (fine|okay|good) bestie\b/i,
+  /\bliterally fine bestie\b/i,
+  /\bno thoughts head empty\b/i,
+  /\bit('s| is) giving (fine|nothing|whatever)\b/i,
+  /\bwe don't talk about that\b/i,
+  /\bi('m| am) literally (so )?okay\b/i,
+  /\b(fine|okay|good|great) bestie\b/i,
+];
+
+function detectGenZDismissive(lower: string): UnsaidSignal | null {
+  const isGenZDismissive = GEN_Z_DISMISSIVE_PATTERNS.some((pattern) => pattern.test(lower));
+  
+  if (!isGenZDismissive) return null;
+
+  const phrases = [
+    "Bestie... how are you *really* doing?",
+    "That's a vibe, but what's actually going on?",
+    "I hear you. And... what's underneath that?",
+  ];
+
+  return {
+    type: 'emotional_mismatch',
+    observation: 'Using Gen-Z dismissive language that often masks real feelings',
+    underlying: 'feelings beneath the casual facade',
+    confidence: 0.65,
+    approach: 'name_gently',
+    phrase: phrases[Math.floor(Math.random() * phrases.length)],
+    context: {
+      userMessage: lower,
+    },
+  };
+}
+
+/**
  * Detect when someone is seeking permission to share
  */
 function detectPermissionSeeking(lower: string, original: string): UnsaidSignal | null {
@@ -957,13 +1234,153 @@ export function recordDidShare(userId: string): void {
 }
 
 // ============================================================================
+// PERSISTENCE - Import/Export for Firestore
+// ============================================================================
+
+/**
+ * Export the unsaid profile for persistence.
+ */
+export function exportUnsaidProfile(userId: string): PersistedUserUnsaidProfile | null {
+  const profile = userProfiles.get(userId);
+  if (!profile) return null;
+  return serializeProfile(profile);
+}
+
+/**
+ * Import a persisted unsaid profile into memory.
+ * This restores deflection patterns from Firestore on session start.
+ */
+export function importUnsaidProfile(data: PersistedUserUnsaidProfile): void {
+  if (!data || !data.userId) {
+    log.warn('Invalid unsaid profile data - skipping import');
+    return;
+  }
+
+  const profile = deserializeProfile(data);
+  userProfiles.set(profile.userId, profile);
+
+  log.info(
+    {
+      userId: profile.userId,
+      avoidedTopics: profile.avoidedTopics.length,
+      falseFines: profile.falseFines.length,
+      hangingThreads: profile.hangingThreads.length,
+    },
+    '📥 Imported unsaid profile from Firestore'
+  );
+}
+
+/**
+ * Record a deflection pattern (called when detectUnsaidSignals finds deflection).
+ * This enables tracking across sessions.
+ */
+export function recordDeflectionPattern(
+  userId: string,
+  signal: UnsaidSignal
+): void {
+  if (signal.type !== 'deflection' && signal.type !== 'topic_avoidance') {
+    return; // Only track deflection patterns
+  }
+
+  const profile = getOrCreateProfile(userId);
+  const topic = signal.underlying || 'unknown';
+
+  // Find or create the pattern
+  const existingPattern = profile.avoidedTopics.find(
+    (t) => t.topic.toLowerCase() === topic.toLowerCase()
+  );
+
+  if (existingPattern) {
+    existingPattern.avoidanceCount++;
+    existingPattern.lastAvoided = new Date();
+    if (signal.context.userMessage) {
+      existingPattern.deflectionPhrases.push(signal.context.userMessage.slice(0, 50));
+      // Keep last 10 phrases
+      if (existingPattern.deflectionPhrases.length > 10) {
+        existingPattern.deflectionPhrases = existingPattern.deflectionPhrases.slice(-10);
+      }
+    }
+  } else {
+    profile.avoidedTopics.push({
+      topic,
+      avoidanceCount: 1,
+      lastAvoided: new Date(),
+      deflectionPhrases: signal.context.userMessage ? [signal.context.userMessage.slice(0, 50)] : [],
+    });
+  }
+
+  log.debug(
+    { userId, topic, count: existingPattern?.avoidanceCount || 1 },
+    '📊 Recorded deflection pattern'
+  );
+}
+
+/**
+ * Get deflection statistics for a user (for LLM context).
+ */
+export function getDeflectionStats(userId: string): {
+  topics: Array<{ topic: string; count: number; lastSeen: Date }>;
+  totalDeflections: number;
+  mostAvoided: string | null;
+} {
+  const profile = userProfiles.get(userId);
+  if (!profile || profile.avoidedTopics.length === 0) {
+    return { topics: [], totalDeflections: 0, mostAvoided: null };
+  }
+
+  const topics = profile.avoidedTopics
+    .filter((t) => t.avoidanceCount >= 1)
+    .map((t) => ({
+      topic: t.topic,
+      count: t.avoidanceCount,
+      lastSeen: t.lastAvoided,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const totalDeflections = topics.reduce((sum, t) => sum + t.count, 0);
+  const mostAvoided = topics.length > 0 ? topics[0].topic : null;
+
+  return { topics, totalDeflections, mostAvoided };
+}
+
+/**
+ * Build deflection awareness context for LLM injection.
+ */
+export function buildDeflectionContext(userId: string): string {
+  const stats = getDeflectionStats(userId);
+  if (stats.totalDeflections === 0) return '';
+
+  const lines: string[] = ['[DEFLECTION AWARENESS - Better Than Human Pattern Detection]'];
+  lines.push('You notice patterns humans miss. These are topics they consistently avoid:');
+  lines.push('');
+
+  for (const topic of stats.topics.slice(0, 5)) {
+    const daysSince = Math.floor(
+      (Date.now() - topic.lastSeen.getTime()) / (24 * 60 * 60 * 1000)
+    );
+    const recency = daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+    lines.push(`• "${topic.topic}" - deflected ${topic.count}x (last: ${recency})`);
+  }
+
+  lines.push('');
+  lines.push('Create space for these topics. Never push. They\'ll share when ready.');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   detectUnsaidSignals,
   getUnsaidProfile,
+  exportUnsaidProfile,
+  importUnsaidProfile,
   getAvoidedTopics,
   shouldAvoidTopic,
   recordDidShare,
+  recordDeflectionPattern,
+  getDeflectionStats,
+  buildDeflectionContext,
 };

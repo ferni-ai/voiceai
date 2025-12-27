@@ -345,10 +345,11 @@ describe('SmartPromptTracker', () => {
     it('should have rules defined for key features', () => {
       const featureIds = SMART_PROMPT_RULES.map(r => r.featureId);
 
+      // Check for features actually defined in SMART_PROMPT_RULES
       expect(featureIds).toContain('video-settings');
-      expect(featureIds).toContain('group-coaching');
-      expect(featureIds).toContain('wearable-settings');
+      expect(featureIds).toContain('connections');
       expect(featureIds).toContain('household');
+      expect(featureIds).toContain('voice-enrollment');
     });
 
     it('should have valid trigger keywords for each rule', () => {

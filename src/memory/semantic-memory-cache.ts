@@ -78,7 +78,7 @@ export interface CacheLookupResult<T> {
 // ============================================================================
 
 const DEFAULT_CONFIG: SemanticCacheConfig = {
-  similarityThreshold: 0.85, // 85% similarity required for cache hit
+  similarityThreshold: 0.75, // 75% similarity required for cache hit (was 85%, but semantic similar queries score 0.6-0.75)
   ttlMs: 5 * 60 * 1000, // 5 minutes
   maxEntriesPerUser: 50, // Max 50 cached queries per user
   debug: false,

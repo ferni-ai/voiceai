@@ -65,7 +65,9 @@ export type User = {
   isAnonymous: boolean;
   emailVerified: boolean;
   providerData: UserInfo[];
+  refreshToken: string;
   getIdToken: (forceRefresh?: boolean) => Promise<string>;
+  getIdTokenResult: (forceRefresh?: boolean) => Promise<{ token: string; expirationTime: string; claims: Record<string, unknown> }>;
   reload: () => Promise<void>;
   delete: () => Promise<void>;
 };
@@ -83,7 +85,8 @@ export const getAuth = (_app?: FirebaseApp): Auth => ({
   currentUser: null,
   app: _app ?? getApp(),
   onAuthStateChanged: (callback: (user: User | null) => void) => {
-    callback(null);
+    // Use setTimeout to defer callback, mimicking real Firebase behavior
+    setTimeout(() => callback(null), 0);
     return () => {};
   },
 });
@@ -92,8 +95,18 @@ export const onAuthStateChanged = (
   _auth: Auth,
   callback: (user: User | null) => void
 ): Unsubscribe => {
-  callback(null);
-  return () => {};
+  // Use setTimeout to defer callback, mimicking real Firebase behavior
+  // This allows the caller to store the unsubscribe function first
+  let unsubscribeCalled = false;
+  setTimeout(() => {
+    if (!unsubscribeCalled) {
+      callback(null);
+    }
+  }, 0);
+  
+  return () => {
+    unsubscribeCalled = true;
+  };
 };
 
 export const signInWithCustomToken = (_auth: Auth, _customToken: string): Promise<UserCredential> => {

@@ -50,11 +50,12 @@ export const SOFT_BACKCHANNELS: Record<string, Record<BackchannelEmotionType, st
     supportive: ['Yeah', 'I get it', 'Mm'],
   },
   'maya-santos': {
-    neutral: ['Mm', 'Yeah', 'Okay'],
-    engaged: ['Oh', 'Yeah', 'Right'],
-    empathetic: ['Mm', 'Yeah', 'I hear you'],
-    excited: ['Oh!', 'Yeah!', "That's great!"],
-    supportive: ['Yeah', 'I understand', 'Mm'],
+    // HUMANIZATION FIX (Dec 2025): Added more variety to prevent robotic repetition
+    neutral: ['Mm', 'Yeah', 'Mhm', 'Okay', 'Mm-hm'],
+    engaged: ['Oh', 'Yeah', 'Right', 'I see', 'Ah'],
+    empathetic: ['Mm', 'Yeah', 'I hear you', 'That makes sense', 'I feel that'],
+    excited: ['Oh!', 'Yeah!', "That's great!", 'Nice!', 'Love it!'],
+    supportive: ['Yeah', 'I understand', 'Mm', 'Take your time', "I'm here"],
   },
   'jordan-taylor': {
     neutral: ['Yeah', 'Mhm', 'Uh-huh'],
@@ -114,9 +115,12 @@ export const PERSONA_BACKCHANNEL_STYLE: Record<string, PersonaBackchannelStyle> 
     emotionTag: 'curious',
   },
   'maya-santos': {
-    preferred: ['acknowledgment', 'empathy', 'encouragement'],
+    // HUMANIZATION FIX (Dec 2025): Maya needs warmth variation, not monotone
+    preferred: ['acknowledgment', 'empathy', 'encouragement', 'understanding'],
     volumeRatio: 0.7,
     emotionTag: 'sympathetic',
+    // Maya-specific: warmer, slightly slower delivery for presence
+    speedVariation: 0.1, // ±10% speed variation for natural feel
   },
   'alex-chen': {
     preferred: ['understanding', 'agreement', 'thinking'],

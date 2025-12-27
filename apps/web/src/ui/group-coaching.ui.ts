@@ -13,6 +13,9 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('GroupCoaching');
 
 // ============================================================================
 // TYPES
@@ -536,7 +539,7 @@ class GroupCoachingUI {
         this.renderSession(response.data.session, response.data.joinLink);
       }
     } catch (error) {
-      console.error('Failed to create session:', error);
+      log.error('Failed to create session:', error);
     }
   }
 
@@ -555,7 +558,7 @@ class GroupCoachingUI {
         this.renderSession(response.data.session);
       }
     } catch (error) {
-      console.error('Failed to join session:', error);
+      log.error('Failed to join session:', error);
     }
   }
 
@@ -571,7 +574,7 @@ class GroupCoachingUI {
         this.renderSession(response.data.session);
       }
     } catch (error) {
-      console.error('Failed to start session:', error);
+      log.error('Failed to start session:', error);
     }
   }
 

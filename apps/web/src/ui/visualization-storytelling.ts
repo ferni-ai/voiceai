@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 
 const log = createLogger('VisualizationStorytelling');
 
@@ -287,7 +287,7 @@ export function generateTemporalStory(
   current: number,
   previous: number | null,
   trend: 'up' | 'down' | 'stable',
-  domain: NarrativeContext['domain'] = 'growth'
+  _domain: NarrativeContext['domain'] = 'growth'
 ): TemporalStory {
   const change = previous !== null ? current - previous : 0;
   const changePercent = previous !== null && previous > 0

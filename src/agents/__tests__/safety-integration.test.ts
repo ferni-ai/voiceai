@@ -41,6 +41,7 @@ function createTestTrustContext(overrides: Partial<TrustContext> = {}): TrustCon
     firstTimeVulnerability: null,
     linguisticContext: '',
     protectiveMemory: '',
+    deflectionContext: '',
     ...overrides,
   };
 }

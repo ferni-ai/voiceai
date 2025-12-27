@@ -13,7 +13,26 @@
  * @module @ferni/speech/tts/btcw-core
  */
 
+import { AudioFrame } from '@livekit/rtc-node';
+import { tts } from '@livekit/agents';
 import type { PrewarmState, TTSOptions } from './types.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'btcw-tts' });
+
+// Import SynthesizedAudio type for LiveKit compatibility
+type SynthesizedAudio = {
+  requestId: string;
+  segmentId: string;
+  frame: AudioFrame;
+  deltaText?: string;
+  final: boolean;
+};
+
+// Generate short unique IDs for request/segment tracking
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 10);
+}
 
 // ============================================================================
 // TYPES
@@ -79,15 +98,7 @@ export interface SuperhumanOptions {
   enableRelationship?: boolean;
 }
 
-/**
- * Audio frame from BTCW streaming
- */
-export interface AudioFrame {
-  data: Int16Array;
-  sampleRate: number;
-  numChannels: number;
-  samplesPerChannel: number;
-}
+// AudioFrame is imported from @livekit/rtc-node for LiveKit compatibility
 
 /**
  * Synthesis event types
@@ -288,9 +299,10 @@ export class BTCWTTS {
 // ============================================================================
 
 /**
- * Streaming synthesis stream - compatible with Cartesia's SynthesizeStream
+ * Streaming synthesis stream - compatible with LiveKit's SynthesizeStream
+ * Yields SynthesizedAudio objects that LiveKit expects
  */
-export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
+export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM> {
   #endpoint: string;
   #voiceId: string;
   #emotion: BTCWEmotionType;
@@ -303,10 +315,12 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
 
   #inputEnded = false;
   #textQueue: string[] = [];
-  #eventQueue: SynthesisEvent[] = [];
+  #eventQueue: (SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM)[] = [];
   #resolveWait: (() => void) | null = null;
   #abortController: AbortController | null = null;
   #processing = false;
+  #requestId: string = generateId();
+  #segmentId: string = generateId();
 
   constructor(
     endpoint: string,
@@ -352,6 +366,19 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
     if (this.#inputEnded) {
       throw new Error('Cannot push text after endInput() called');
     }
+    // Validate text before processing
+    if (text === undefined || text === null) {
+      log.error(`pushText called with ${text === undefined ? 'undefined' : 'null'} text - skipping`);
+      return;
+    }
+    if (typeof text !== 'string') {
+      log.error({ textType: typeof text }, 'pushText called with non-string text type - converting to string');
+      text = String(text);
+    }
+    if (!text.trim()) {
+      log.warn('pushText called with empty/whitespace text - skipping');
+      return;
+    }
     this.#textQueue.push(text);
     this.#processNextText();
   }
@@ -362,9 +389,152 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
   endInput(): void {
     this.#inputEnded = true;
     if (!this.#processing && this.#textQueue.length === 0) {
-      this.#eventQueue.push({ type: 'done' });
+      this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
       this.#notifyWaiter();
     }
+  }
+
+  /**
+   * Update the input stream with new text (required by LiveKit agents)
+   * This replaces the current text queue with new text
+   */
+  updateInputStream(textOrStream: string | ReadableStream<string>): void {
+    // Handle ReadableStream (LiveKit agents pass the LLM output stream)
+    if (textOrStream && typeof textOrStream === 'object' && 'getReader' in textOrStream) {
+      log.debug('Received ReadableStream - reading text chunks');
+      this.#consumeTextStream(textOrStream as ReadableStream<string>);
+      return;
+    }
+
+    // From here on, treat as string
+    let text = textOrStream as string;
+
+    // Validate text before processing
+    if (text === undefined || text === null) {
+      log.error(`updateInputStream called with ${text === undefined ? 'undefined' : 'null'} text - skipping`);
+      return;
+    }
+    if (typeof text !== 'string') {
+      // Check if it's a TokenData object with text property
+      if (text && typeof text === 'object' && 'text' in (text as object)) {
+        text = (text as { text: string }).text;
+        log.debug({ extractedText: text.slice(0, 50) }, 'Extracted text from object');
+      } else {
+        log.warn({ textType: typeof text }, 'Converting non-string to string');
+        text = String(text);
+      }
+    }
+    if (!text.trim()) {
+      log.warn('updateInputStream called with empty/whitespace text - skipping');
+      return;
+    }
+
+    // Strip SSML tags - BTCW uses its own emotion system, not SSML
+    text = this.#stripSSML(text);
+
+    if (!text.trim()) {
+      log.warn('Text empty after SSML stripping - skipping');
+      return;
+    }
+
+    // Clear existing queue and add new text
+    this.#textQueue.length = 0;
+    this.#textQueue.push(text);
+    this.#processNextText();
+  }
+
+  /**
+   * Strip SSML tags from text, keeping only the spoken content.
+   * BTCW uses its own emotion system (via the emotion parameter), not SSML.
+   */
+  #stripSSML(text: string): string {
+    const original = text;
+
+    // Remove <break> tags entirely (BTCW handles pauses differently)
+    text = text.replace(/<break[^>]*\/>/gi, ' ');
+    text = text.replace(/<break[^>]*>[^<]*<\/break>/gi, ' ');
+
+    // Remove <emotion> tags but keep content
+    text = text.replace(/<emotion[^>]*>(.*?)<\/emotion>/gi, '$1');
+
+    // Remove <prosody> tags but keep content
+    text = text.replace(/<prosody[^>]*>(.*?)<\/prosody>/gi, '$1');
+
+    // Remove <speak> wrapper if present
+    text = text.replace(/<\/?speak>/gi, '');
+
+    // Remove any other XML-like tags
+    text = text.replace(/<[^>]+>/g, ' ');
+
+    // Clean up multiple spaces
+    text = text.replace(/\s+/g, ' ').trim();
+
+    // Log if SSML was stripped
+    if (original !== text) {
+      log.debug({ original: original.slice(0, 100), stripped: text.slice(0, 100) }, 'Stripped SSML');
+    }
+
+    return text;
+  }
+
+  /**
+   * Consume a ReadableStream of text chunks and synthesize
+   */
+  async #consumeTextStream(stream: ReadableStream<string>): Promise<void> {
+    const reader = stream.getReader();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        if (value && typeof value === 'string') {
+          buffer += value;
+
+          // Check for sentence boundaries to send chunks
+          const sentenceEnd = buffer.search(/[.!?,:;]\s+/);
+          if (sentenceEnd !== -1) {
+            const chunk = buffer.slice(0, sentenceEnd + 1).trim();
+            buffer = buffer.slice(sentenceEnd + 1);
+
+            // Strip SSML from chunk
+            const cleanChunk = this.#stripSSML(chunk);
+            if (cleanChunk.length > 0) {
+              log.debug({ chunk: cleanChunk.slice(0, 50) }, 'Sending text chunk');
+              this.#textQueue.push(cleanChunk);
+              this.#processNextText();
+            }
+          }
+        }
+      }
+
+      // Send any remaining text
+      const cleanBuffer = this.#stripSSML(buffer);
+      if (cleanBuffer.length > 0) {
+        log.debug({ text: cleanBuffer.slice(0, 50) }, 'Sending final text');
+        this.#textQueue.push(cleanBuffer);
+        this.#processNextText();
+      }
+    } catch (error) {
+      log.error({ error: String(error) }, 'Error reading text stream');
+    } finally {
+      reader.releaseLock();
+      // Signal end of input
+      this.#inputEnded = true;
+      if (!this.#processing && this.#textQueue.length === 0) {
+        this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
+        this.#notifyWaiter();
+      }
+    }
+  }
+
+  /**
+   * Mark the end of the segment (required by LiveKit agents)
+   */
+  markSegmentEnd(): void {
+    // For HTTP-based synthesis, this is a no-op
+    // The segment naturally ends when text is fully synthesized
   }
 
   /**
@@ -402,62 +572,134 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
 
       try {
         const headers = await this.#getAuthHeaders();
-        const response = await fetch(speechEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            text,
-            voice: this.#voiceId,
-            emotion: this.#emotion,
-            emotion_intensity: 1.0,
-            speed: 1.0,
-            stream: true,
-            superhuman: this.#superhumanOptions
-              ? {
-                  enable_circadian: this.#superhumanOptions.enableCircadian ?? true,
-                  user_id: this.#superhumanOptions.userId,
-                  relationship_days: this.#superhumanOptions.relationshipDays,
-                  memory_topics: this.#superhumanOptions.memoryTopics,
-                }
-              : undefined,
-          }),
-          signal: this.#abortController.signal,
-        });
+
+        // Debug: Log the request being made
+        const requestBody = {
+          text,
+          voice: this.#voiceId,
+          emotion: this.#emotion,
+          emotion_intensity: 1.0,
+          speed: 1.0,
+          stream: true,
+          superhuman: this.#superhumanOptions
+            ? {
+                enable_circadian: this.#superhumanOptions.enableCircadian ?? true,
+                user_id: this.#superhumanOptions.userId,
+                relationship_days: this.#superhumanOptions.relationshipDays,
+                memory_topics: this.#superhumanOptions.memoryTopics,
+              }
+            : undefined,
+        };
+        log.debug({ endpoint: speechEndpoint, textLength: text?.length, voice: this.#voiceId }, 'Sending request');
+
+        const fetchStart = Date.now();
+        let response: Response;
+        try {
+          response = await fetch(speechEndpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody),
+            signal: this.#abortController.signal,
+          });
+          log.debug({ latencyMs: Date.now() - fetchStart, status: response.status }, 'Fetch completed');
+        } catch (fetchError) {
+          log.error({ latencyMs: Date.now() - fetchStart, error: String(fetchError) }, 'Fetch failed');
+          this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
+          this.#notifyWaiter();
+          continue;
+        }
 
         if (!response.ok) {
-          this.#eventQueue.push({
-            type: 'error',
-            error: `HTTP ${response.status}: ${response.statusText}`,
-          });
+          // Try to get error details from response body
+          let errorDetails = '';
+          try {
+            errorDetails = await response.text();
+          } catch {
+            errorDetails = '(could not read response body)';
+          }
+          log.error({ status: response.status, statusText: response.statusText, body: errorDetails }, 'HTTP error');
+          this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
           this.#notifyWaiter();
           continue;
         }
 
         const reader = response.body?.getReader();
         if (!reader) {
-          this.#eventQueue.push({ type: 'error', error: 'No response body' });
+          log.error('No response body');
+          this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
           this.#notifyWaiter();
           continue;
         }
 
-        // Process audio chunks
+        // Collect ALL audio bytes first, then chunk into consistent frame sizes
+        // This prevents tiny frames from HTTP chunking causing audio artifacts
+        const allChunks: Uint8Array[] = [];
+        let totalBytes = 0;
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          allChunks.push(value);
+          totalBytes += value.length;
+        }
 
-          const audioData = new Int16Array(value.buffer, value.byteOffset, value.byteLength / 2);
-          const frame: AudioFrame = {
-            data: audioData,
-            sampleRate: this.#sampleRate,
-            numChannels: this.#numChannels,
-            samplesPerChannel: audioData.length / this.#numChannels,
-          };
-          this.#eventQueue.push({ type: 'audio', frame });
+        // Combine all chunks into a single buffer
+        const combinedBuffer = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const chunk of allChunks) {
+          combinedBuffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        // Ensure we have complete Int16 samples (2 bytes each)
+        const completeBytes = combinedBuffer.length - (combinedBuffer.length % 2);
+        if (completeBytes === 0) {
+          log.warn('No complete audio samples received');
+          this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
+          this.#notifyWaiter();
+          continue;
+        }
+
+        // Create properly aligned Int16Array
+        const alignedBuffer = new ArrayBuffer(completeBytes);
+        new Uint8Array(alignedBuffer).set(combinedBuffer.subarray(0, completeBytes));
+        const allAudioData = new Int16Array(alignedBuffer);
+
+        log.debug({ samples: allAudioData.length, durationSec: (allAudioData.length / this.#sampleRate).toFixed(2) }, 'Received audio');
+
+        // Chunk into consistent CHUNK_SIZE_SAMPLES frames for smooth playback
+        const frames: AudioFrame[] = [];
+        for (let i = 0; i < allAudioData.length; i += CHUNK_SIZE_SAMPLES) {
+          const chunkData = allAudioData.slice(i, i + CHUNK_SIZE_SAMPLES);
+          const samplesPerChannel = chunkData.length / this.#numChannels;
+
+          const frame = new AudioFrame(
+            chunkData,
+            this.#sampleRate,
+            this.#numChannels,
+            samplesPerChannel
+          );
+          frames.push(frame);
+        }
+
+        log.debug({ frameCount: frames.length }, 'Created audio frames');
+
+        // Push all frames with proper SynthesizedAudio structure
+        for (let i = 0; i < frames.length; i++) {
+          const isLastFrame = i === frames.length - 1;
+          this.#eventQueue.push({
+            requestId: this.#requestId,
+            segmentId: this.#segmentId,
+            frame: frames[i],
+            final: isLastFrame,
+          });
           this.#notifyWaiter();
         }
       } catch (error) {
         if ((error as Error).name === 'AbortError') break;
-        this.#eventQueue.push({ type: 'error', error: String(error) });
+        // For errors, push END_OF_STREAM and let consumer handle it
+        log.error({ error: String(error) }, 'Synthesis error');
+        this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
         this.#notifyWaiter();
       }
     }
@@ -465,12 +707,12 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
     this.#processing = false;
 
     if (this.#inputEnded && this.#textQueue.length === 0) {
-      this.#eventQueue.push({ type: 'done' });
+      this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
       this.#notifyWaiter();
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<SynthesisEvent> {
+  async *[Symbol.asyncIterator](): AsyncIterator<SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM> {
     this.#processNextText();
 
     while (true) {
@@ -478,7 +720,8 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
         const event = this.#eventQueue.shift()!;
         yield event;
 
-        if (event.type === 'done' || event.type === 'error') {
+        // Check for END_OF_STREAM symbol
+        if (event === tts.SynthesizeStream.END_OF_STREAM) {
           this.close();
           return;
         }
@@ -489,7 +732,7 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
           this.#resolveWait = resolve;
         });
       } else {
-        yield { type: 'done' };
+        yield tts.SynthesizeStream.END_OF_STREAM;
         return;
       }
     }
@@ -502,8 +745,9 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesisEvent> {
 
 /**
  * Chunked audio stream for non-streaming synthesis
+ * Yields SynthesizedAudio objects that LiveKit expects
  */
-export class BTCWChunkedStream implements AsyncIterable<SynthesisEvent> {
+export class BTCWChunkedStream implements AsyncIterable<SynthesizedAudio> {
   #endpoint: string;
   #voiceId: string;
   #text: string;
@@ -512,6 +756,8 @@ export class BTCWChunkedStream implements AsyncIterable<SynthesisEvent> {
   #numChannels: number;
   #superhumanOptions?: SuperhumanOptions;
   #authHeaders: Record<string, string>;
+  #requestId: string = generateId();
+  #segmentId: string = generateId();
 
   constructor(
     endpoint: string,
@@ -533,7 +779,7 @@ export class BTCWChunkedStream implements AsyncIterable<SynthesisEvent> {
     this.#authHeaders = authHeaders;
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<SynthesisEvent> {
+  async *[Symbol.asyncIterator](): AsyncIterator<SynthesizedAudio> {
     const speechEndpoint = `${this.#endpoint}/v1/audio/speech`;
 
     try {
@@ -559,28 +805,39 @@ export class BTCWChunkedStream implements AsyncIterable<SynthesisEvent> {
       });
 
       if (!response.ok) {
-        yield { type: 'error', error: `HTTP ${response.status}: ${response.statusText}` };
+        log.error({ status: response.status, statusText: response.statusText }, 'HTTP error in chunked synthesis');
         return;
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const audioData = new Int16Array(arrayBuffer);
 
-      // Yield in chunks
-      for (let i = 0; i < audioData.length; i += CHUNK_SIZE_SAMPLES) {
-        const chunkData = audioData.slice(i, i + CHUNK_SIZE_SAMPLES);
-        const frame: AudioFrame = {
-          data: chunkData,
-          sampleRate: this.#sampleRate,
-          numChannels: this.#numChannels,
-          samplesPerChannel: chunkData.length / this.#numChannels,
-        };
-        yield { type: 'audio', frame };
-      }
+      // Calculate total number of chunks
+      const numChunks = Math.ceil(audioData.length / CHUNK_SIZE_SAMPLES);
 
-      yield { type: 'done' };
+      // Yield in chunks using proper LiveKit AudioFrame instances
+      let chunkIndex = 0;
+      for (let i = 0; i < audioData.length; i += CHUNK_SIZE_SAMPLES) {
+        chunkIndex++;
+        const isLastChunk = chunkIndex === numChunks;
+        const chunkData = audioData.slice(i, i + CHUNK_SIZE_SAMPLES);
+        const samplesPerChannel = chunkData.length / this.#numChannels;
+        // Use LiveKit's AudioFrame constructor: (data, sampleRate, numChannels, samplesPerChannel)
+        const frame = new AudioFrame(
+          chunkData,
+          this.#sampleRate,
+          this.#numChannels,
+          samplesPerChannel
+        );
+        yield {
+          requestId: this.#requestId,
+          segmentId: this.#segmentId,
+          frame,
+          final: isLastChunk,
+        };
+      }
     } catch (error) {
-      yield { type: 'error', error: String(error) };
+      log.error({ error: String(error) }, 'Chunked synthesis error');
     }
   }
 }

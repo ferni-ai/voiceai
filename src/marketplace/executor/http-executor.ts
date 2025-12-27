@@ -2,6 +2,11 @@
  * HTTP Tool Executor
  *
  * Executes HTTP-based marketplace tools by calling external endpoints.
+ * 
+ * SECURITY NOTES:
+ * - User IDs are anonymized before being sent to external endpoints
+ * - Internal/private URLs are blocked
+ * - Endpoint URLs are validated on each call
  */
 
 /* global AbortController */
@@ -9,6 +14,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ToolManifest } from '../schema/types.js';
 import type { ExecutionContext, ExecutionOptions } from './sandbox.js';
+import { anonymizeUserId, isValidExternalUrl, generateSecureId } from '../auth/index.js';
 
 const log = getLogger().child({ module: 'http-executor' });
 
@@ -31,7 +37,18 @@ export async function executeHttpTool(
     throw new Error('HTTP tool missing endpoint configuration');
   }
 
-  log.debug({ toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout }, 'Executing HTTP tool');
+  // SECURITY: Validate endpoint URL to prevent SSRF attacks
+  if (!isValidExternalUrl(endpoint)) {
+    log.warn({ toolId: manifest.id, endpoint }, 'Blocked invalid/internal endpoint URL');
+    throw new Error('Tool endpoint URL is invalid or points to internal resources');
+  }
+
+  // SECURITY: Anonymize user ID before sending to external endpoint
+  // Each tool sees a different anonymized ID, preventing cross-tool tracking
+  const anonymizedUserId = anonymizeUserId(context.userId, manifest.id);
+  const requestId = generateSecureId('req');
+
+  log.debug({ toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout, requestId }, 'Executing HTTP tool');
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);
@@ -43,15 +60,18 @@ export async function executeHttpTool(
         'Content-Type': 'application/json',
         'X-Ferni-Tool-Id': manifest.id,
         'X-Ferni-Tool-Version': manifest.version,
-        'X-Ferni-User-Id': context.userId,
-        'X-Ferni-Session-Id': context.sessionId,
-        ...(context.tenantId && { 'X-Ferni-Tenant-Id': context.tenantId }),
+        // SECURITY: Send anonymized user ID instead of real user ID
+        'X-Ferni-User-Token': anonymizedUserId,
+        'X-Ferni-Request-Id': requestId,
+        // Note: Session ID and Tenant ID are intentionally NOT sent to external tools
       },
       body: JSON.stringify({
         parameters,
+        // SECURITY: Only send anonymized context to external tools
         context: {
-          userId: context.userId,
-          sessionId: context.sessionId,
+          userToken: anonymizedUserId,
+          requestId,
+          // agentId is safe to send (it's the agent type, not user-specific)
           agentId: context.agentId,
         },
       }),

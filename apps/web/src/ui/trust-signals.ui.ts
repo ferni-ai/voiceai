@@ -674,6 +674,13 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
+    /* MOBILE: Hide trust signals - too intrusive on small screens */
+    @media (max-width: 768px) {
+      .trust-signals-container {
+        display: none !important;
+      }
+    }
+    
     @media (max-width: clamp(336px, 90vw, 480px)) {
       .trust-signals-container {
         top: auto;

@@ -23,7 +23,12 @@ export {
   detectUnsaidSignals,
   getAvoidedTopics,
   getUnsaidProfile,
+  exportUnsaidProfile,
+  importUnsaidProfile,
   recordDidShare,
+  recordDeflectionPattern,
+  getDeflectionStats,
+  buildDeflectionContext,
   shouldAvoidTopic,
   type UnsaidSignal,
   type UserUnsaidProfile,
@@ -145,6 +150,8 @@ export {
 import {
   detectUnsaidSignals,
   getAvoidedTopics,
+  recordDeflectionPattern,
+  buildDeflectionContext,
   type UnsaidSignal,
 } from './reading-between-lines.js';
 
@@ -225,6 +232,9 @@ export interface TrustContext {
 
   /** Protective memory context */
   protectiveMemory: string;
+
+  /** P4 FIX: Cross-session deflection pattern awareness */
+  deflectionContext: string;
 }
 
 /**
@@ -250,6 +260,13 @@ export function buildTrustContext(
     previousMessages: context.previousMessages,
     topicBeforeThis: context.recentTopic,
   });
+
+  // 1.5. P4 FIX: Record deflection patterns for cross-session tracking
+  for (const signal of unsaidSignals) {
+    if (signal.type === 'deflection' || signal.type === 'topic_avoidance') {
+      recordDeflectionPattern(userId, signal);
+    }
+  }
 
   // 2. Check boundaries for AI response
   let boundaryCheck: BoundaryCheckResult | null = null;
@@ -345,6 +362,9 @@ export function buildTrustContext(
   const linguisticContext = buildLinguisticContext(userId);
   const protectiveMemory = buildProtectiveMemoryContext(userId);
 
+  // P4 FIX: Build cross-session deflection awareness
+  const deflectionContext = buildDeflectionContext(userId);
+
   return {
     unsaidSignals,
     boundaryCheck,
@@ -357,6 +377,7 @@ export function buildTrustContext(
     firstTimeVulnerability,
     linguisticContext,
     protectiveMemory,
+    deflectionContext,
   };
 }
 

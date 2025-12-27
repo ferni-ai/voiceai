@@ -808,7 +808,7 @@ async function handleSave(): Promise<void> {
       contactId: state.contactId,
       direction: state.direction,
       item: state.item.trim(),
-      occasion: state.occasion === 'other' ? state.customOccasion.trim() || 'other' : state.occasion,
+      occasion: (state.occasion === 'other' ? state.customOccasion.trim() || 'other' : state.occasion) as GiftOccasion,
       date: state.date,
     };
 

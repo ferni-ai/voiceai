@@ -65,6 +65,19 @@ interface RawRegistryAgent {
   downloads?: number;
   rating?: number;
   featured?: boolean;
+  // Publisher verification info
+  publisher?: {
+    name?: string;
+    verified?: boolean;
+    profileUrl?: string;
+  };
+  // Trust level
+  trust_level?: 'official' | 'verified' | 'community';
+  // Permission requirements
+  permissions?: {
+    required?: string[];
+    optional?: string[];
+  };
   // Nested marketplace format (legacy)
   requirements?: {
     voice_id_env?: string;
@@ -80,6 +93,16 @@ interface RawRegistryAgent {
       secondary?: string;
       gradient?: string;
       glow?: string;
+    };
+    publisher?: {
+      name?: string;
+      verified?: boolean;
+      profileUrl?: string;
+    };
+    trust_level?: 'official' | 'verified' | 'community';
+    permissions?: {
+      required?: string[];
+      optional?: string[];
     };
   };
 }
@@ -100,6 +123,42 @@ interface RawRegistry {
   }>;
   updated_at: string;
 }
+
+/**
+ * Publisher information for marketplace agents
+ */
+export interface PublisherInfo {
+  name: string;
+  verified: boolean;
+  profileUrl?: string;
+}
+
+/**
+ * Trust level for marketplace agents
+ * - 'official': Built by Ferni team
+ * - 'verified': Publisher identity verified, code reviewed
+ * - 'community': Community-contributed, not reviewed
+ */
+export type TrustLevel = 'official' | 'verified' | 'community';
+
+/**
+ * Permission scopes that agents can request
+ */
+export type PermissionScope =
+  | 'user:profile:read'
+  | 'user:profile:write'
+  | 'user:memory:read'
+  | 'user:memory:write'
+  | 'user:calendar:read'
+  | 'user:calendar:write'
+  | 'user:contacts:read'
+  | 'user:habits:read'
+  | 'user:habits:write'
+  | 'user:finance:read'
+  | 'user:health:read'
+  | 'conversation:history:read'
+  | 'conversation:current:read'
+  | 'notifications:send';
 
 /**
  * Registry entry for a marketplace agent (normalized for UI)
@@ -127,6 +186,15 @@ export interface MarketplaceAgent {
   downloads?: number;
   rating?: number;
   reviewCount?: number;
+  /** Publisher information with verification status */
+  publisher: PublisherInfo;
+  /** Trust level based on verification and review status */
+  trustLevel: TrustLevel;
+  /** Permission scopes this agent requires/requests */
+  permissions: {
+    required: PermissionScope[];
+    optional: PermissionScope[];
+  };
 }
 
 /**
@@ -288,6 +356,25 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
   const primaryColor = colors.primary ?? FALLBACK_COLORS.primary;
   const secondaryColor = colors.secondary ?? FALLBACK_COLORS.secondary;
 
+  // Extract publisher info from flat or nested format
+  const rawPublisher = raw.publisher ?? raw.marketplace?.publisher;
+  const publisher: PublisherInfo = {
+    name: rawPublisher?.name ?? raw.author,
+    verified: rawPublisher?.verified ?? false,
+    profileUrl: rawPublisher?.profileUrl,
+  };
+
+  // Extract trust level from flat or nested format
+  const trustLevel: TrustLevel =
+    raw.trust_level ?? raw.marketplace?.trust_level ?? 'community';
+
+  // Extract permissions from flat or nested format
+  const rawPermissions = raw.permissions ?? raw.marketplace?.permissions;
+  const permissions: { required: PermissionScope[]; optional: PermissionScope[] } = {
+    required: (rawPermissions?.required ?? []) as PermissionScope[],
+    optional: (rawPermissions?.optional ?? []) as PermissionScope[],
+  };
+
   return {
     id: raw.id,
     name: raw.name,
@@ -304,14 +391,17 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
       primary: primaryColor,
       secondary: secondaryColor,
       gradient:
-        ('gradient' in colors && colors.gradient) ??
+        ('gradient' in colors && colors.gradient) ||
         `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
-      glow: ('glow' in colors && colors.glow) ?? `rgba(${hexToRgb(primaryColor)}, 0.3)`,
+      glow: ('glow' in colors && colors.glow) || `rgba(${hexToRgb(primaryColor)}, 0.3)`,
     },
     path: raw.path ?? `agents/${raw.id}`,
     featured: raw.featured ?? raw.marketplace?.featured,
     downloads: raw.downloads ?? raw.marketplace?.downloads,
     rating: raw.rating ?? raw.marketplace?.rating,
+    publisher,
+    trustLevel,
+    permissions,
   };
 }
 

@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { animateSpring, springToCubicBezier, getSpringDuration } from './emotional-springs.ui.js';
+import { springToCubicBezier } from './emotional-springs.ui.js';
 
 const log = createLogger('InsightCards');
 

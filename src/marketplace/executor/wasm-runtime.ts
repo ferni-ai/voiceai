@@ -136,12 +136,132 @@ const DEFAULT_LIMITS: Record<TrustLevel, WasmLimits> = {
 };
 
 // ============================================================================
+// LRU CACHE WITH TTL
+// ============================================================================
+
+interface CacheEntry<T> {
+  value: T;
+  lastAccessed: number;
+  createdAt: number;
+}
+
+class LRUCache<T> {
+  private cache = new Map<string, CacheEntry<T>>();
+  private readonly maxSize: number;
+  private readonly ttlMs: number;
+
+  constructor(maxSize = 100, ttlMs = 30 * 60 * 1000) {
+    // Default: 100 entries, 30 minute TTL
+    this.maxSize = maxSize;
+    this.ttlMs = ttlMs;
+  }
+
+  get(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+
+    // Check TTL
+    if (Date.now() - entry.createdAt > this.ttlMs) {
+      this.cache.delete(key);
+      return undefined;
+    }
+
+    // Update last accessed for LRU
+    entry.lastAccessed = Date.now();
+    return entry.value;
+  }
+
+  set(key: string, value: T): void {
+    // Evict if at capacity
+    if (this.cache.size >= this.maxSize) {
+      this.evictLRU();
+    }
+
+    this.cache.set(key, {
+      value,
+      lastAccessed: Date.now(),
+      createdAt: Date.now(),
+    });
+  }
+
+  delete(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+
+  private evictLRU(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this.cache.entries()) {
+      // Also evict expired entries
+      if (Date.now() - entry.createdAt > this.ttlMs) {
+        this.cache.delete(key);
+        continue;
+      }
+
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      log.debug({ key: oldestKey }, 'Evicted LRU cache entry');
+    }
+  }
+
+  /**
+   * Clean up expired entries (call periodically)
+   */
+  cleanup(): number {
+    let cleaned = 0;
+    const now = Date.now();
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.createdAt > this.ttlMs) {
+        this.cache.delete(key);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      log.debug({ cleaned }, 'Cleaned expired WASM cache entries');
+    }
+
+    return cleaned;
+  }
+}
+
+// ============================================================================
 // WASM RUNTIME
 // ============================================================================
 
+/** Maximum number of compiled modules in cache */
+const MAX_CACHED_MODULES = 50;
+
+/** TTL for compiled modules (30 minutes) */
+const MODULE_TTL_MS = 30 * 60 * 1000;
+
+/** Cleanup interval (5 minutes) */
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
 export class WasmRuntime {
   private initialized = false;
-  private moduleCache = new Map<string, WasmCompiledModule>();
+  private moduleCache: LRUCache<WasmCompiledModule>;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  constructor() {
+    this.moduleCache = new LRUCache<WasmCompiledModule>(MAX_CACHED_MODULES, MODULE_TTL_MS);
+  }
 
   /**
    * Initialize the WASM runtime
@@ -154,7 +274,12 @@ export class WasmRuntime {
       throw new Error('WebAssembly is not supported in this environment');
     }
 
-    log.info('WASM runtime initialized');
+    // Start periodic cleanup
+    this.cleanupInterval = setInterval(() => {
+      this.moduleCache.cleanup();
+    }, CLEANUP_INTERVAL_MS);
+
+    log.info({ maxModules: MAX_CACHED_MODULES, ttlMs: MODULE_TTL_MS }, 'WASM runtime initialized');
     this.initialized = true;
   }
 
@@ -166,9 +291,27 @@ export class WasmRuntime {
       await this.initialize();
     }
 
+    // Check if already cached
+    const cached = this.moduleCache.get(moduleId);
+    if (cached) {
+      log.debug({ moduleId, cacheSize: this.moduleCache.size() }, 'Using cached WASM module');
+      // Still need to return module info, extract from cached
+      const moduleExports = WebAssembly.Module.exports(cached);
+      const functionExports = moduleExports.filter((e) => e.kind === 'function').map((e) => e.name);
+      return {
+        id: moduleId,
+        bytes: wasmBytes,
+        exports: functionExports,
+        memoryMin: 1,
+        memoryMax: 16,
+      };
+    }
+
     // Compile the module
     const compiled = await WebAssembly.compile(wasmBytes);
     this.moduleCache.set(moduleId, compiled);
+    
+    log.debug({ moduleId, cacheSize: this.moduleCache.size() }, 'WASM module compiled and cached');
 
     // Extract exports
     const moduleExports = WebAssembly.Module.exports(compiled);
@@ -215,7 +358,7 @@ export class WasmRuntime {
     if (!compiled) {
       return {
         success: false,
-        error: { code: 'MODULE_NOT_FOUND', message: `Module '${moduleId}' not compiled` },
+        error: { code: 'MODULE_NOT_FOUND', message: `Module '${moduleId}' not compiled or cache expired` },
         metrics: { fuelConsumed: 0, memoryUsedBytes: 0, executionTimeMs: 0 },
       };
     }
@@ -402,6 +545,29 @@ export class WasmRuntime {
    */
   clearAllModules(): void {
     this.moduleCache.clear();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number; maxSize: number; ttlMs: number } {
+    return {
+      size: this.moduleCache.size(),
+      maxSize: MAX_CACHED_MODULES,
+      ttlMs: MODULE_TTL_MS,
+    };
+  }
+
+  /**
+   * Stop the runtime (cleanup)
+   */
+  shutdown(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.moduleCache.clear();
+    this.initialized = false;
   }
 }
 

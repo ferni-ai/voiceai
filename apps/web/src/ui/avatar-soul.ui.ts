@@ -33,6 +33,7 @@
 
 import { DURATION, EASING, FIBONACCI_DURATION } from '../config/animation-constants.js';
 import { type EmotionId } from '../emotion/emotion-state.js';
+import { soulStatsService } from '../services/soul-stats.service.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -167,6 +168,8 @@ const PUPIL_SIZES = {
   DILATED: 1.35, // Peak interest/emotion
 } as const;
 
+// Emotion-mapped glow colors for canvas/WebGL rendering
+// @design-tokens-ignore - Canvas rendering requires literal color values
 const GLOW_COLORS = {
   NEUTRAL: 'rgba(74, 103, 65, 0.4)', // Ferni sage
   WARM: 'rgba(196, 162, 101, 0.5)', // Golden warmth
@@ -1035,6 +1038,9 @@ export function triggerMemorySpark(): void {
   setPupilDilation('DILATED', 'fast');
   trackedTimeout(() => setPupilDilation('INTERESTED', 'slow'), 400);
 
+  // Track stats
+  soulStatsService.recordMemorySpark();
+
   log.debug('Memory spark triggered');
 }
 
@@ -1078,6 +1084,9 @@ export function startComfortPulse(): void {
 
   // Also set protective glow
   setGlowBleed(0.4, GLOW_COLORS.PROTECTIVE);
+
+  // Track stats
+  soulStatsService.recordComfortPulse();
 
   log.debug('Comfort pulse started');
 }
@@ -1334,6 +1343,9 @@ export function enterProtectiveMode(): void {
 
   // Start comfort pulse
   startComfortPulse();
+
+  // Track stats
+  soulStatsService.recordProtectiveMode();
 
   log.debug('Protective mode entered');
 }

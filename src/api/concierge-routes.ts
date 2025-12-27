@@ -288,7 +288,7 @@ async function handleCallStatusWebhook(
   }
 }
 
-async function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): Promise<boolean> {
+function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): boolean {
   const { from, body: messageBody } = body;
 
   log.info({ from, bodyLength: messageBody?.length }, 'SMS reply webhook received');
@@ -313,10 +313,7 @@ async function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload):
   }
 }
 
-async function handleEmailReplyWebhook(
-  res: ServerResponse,
-  body: WebhookPayload
-): Promise<boolean> {
+function handleEmailReplyWebhook(res: ServerResponse, body: WebhookPayload): boolean {
   const { from, body: emailBody } = body;
 
   log.info({ from, bodyLength: emailBody?.length }, 'Email reply webhook received');

@@ -284,11 +284,11 @@ async function fetchLifeContext(userId: string): Promise<void> {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = (await response.json()) as { snapshot?: unknown; triggers?: unknown[] };
+    const data = (await response.json()) as { snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] };
 
     if (data.snapshot) {
       lastSnapshot = data.snapshot;
-      lastTriggers = data.triggers || [];
+      lastTriggers = data.triggers ?? [];
 
       // Map backend data to frontend types
       const mappedData = mapSnapshotToFrontend(userId, data.snapshot, lastTriggers);

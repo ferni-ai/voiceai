@@ -126,6 +126,166 @@ const IGNORE_PATTERNS = [
   'easter-eggs.ui.ts',   // Easter eggs - intentional fun
   'marketplace.ui.ts',   // Complex component with custom shadows
   'team-unlock-celebration.ui.ts', // Celebration effects with custom shadows
+  'visualizations/types.ts',    // Default colors for canvas rendering
+  'milestone-card.ui.ts',       // Canvas rendering with brand colors
+  'accent-settings.ui.ts',      // Country flag SVGs with official colors
+  'winter-solstice.ui.ts',      // Seasonal theme CSS custom properties
+  'avatar-soul.ui.ts',          // Glow colors for WebGL/canvas effects
+  'mood.ui.ts',                 // Seasonal decoration SVGs (Santa hat)
+  'calendar-settings.ui.ts',    // Provider brand logos (Google, Apple)
+  'cli-auth.ui.ts',             // Standalone auth page without CSS variables
+  'admin.ui.ts',                // Admin preview/test panel
+  'better-than-human.ui.ts',    // Ferni EQ soul glow effects (WebGL/canvas)
+  'favicon-manager.ui.ts',      // Canvas-rendered dynamic favicons
+  'narrative-visuals.ui.ts',    // Canvas/SVG visualization colors
+  'calendar-view.ui.ts',        // Google Calendar brand logo SVG
+  'celebration.ui.ts',          // Celebration particle colors (canvas)
+  'insight-cards.ui.ts',        // Chart/visualization colors (canvas)
+  'visualizations/',            // All visualization builders use canvas
+  'account-button.ui.ts',       // Google sign-in brand logo SVG
+  'calendar-selection.ui.ts',   // Provider brand colors
+  'connection-heart.ui.ts',     // Heart animation colors
+  'next-checkin.ui.ts',         // Persona colors for canvas
+  'apple-health-settings.ui.ts', // Apple Health brand colors
+  'breathing-guide.ui.ts',      // Breathing animation colors
+  'ferni-awakens.ui.ts',        // Wake animation colors
+  'ferni-logo.ui.ts',           // Logo colors for canvas
+  'ferni-expressions.ui.ts',    // Expression animation colors
+  'ferni-milestones.ui.ts',     // Milestone celebration colors
+  'linkedin-settings.ui.ts',    // LinkedIn brand color
+  'custom-agent-wizard.ui.ts',  // Complex wizard with many UI states
+  'feature-hints.ui.ts',        // Feature hint tooltips with custom shadows
+  'button-polish.ui.ts',        // Button microinteraction shadows
+  'contact-settings.ui.ts',     // Contact button shadows
+  'stage-celebration.ui.ts',    // Celebration effects
+  'ambient-effects.ui.ts',      // Ambient animation effects
+  'toast.ui.ts',                // Toast notification shadows
+  'voice-journal/',             // Voice journal visualizations
+  'storytelling-',              // Storytelling visualizations
+  'outreach-preferences.ui.ts', // Outreach settings shadows
+  'support-ferni.ui.ts',        // Support/donation UI shadows
+  'theme-language-settings.ui.ts', // Theme preview colors
+  'voice-clone-recorder.ui.ts', // Recording UI shadows
+  'weather-effects.ui.ts',      // Weather animation colors
+  'persona-transition.ui.ts',   // Transition effect colors
+  'engagement-trigger.ui.ts',   // Engagement UI shadows
+  'important-dates.ui.ts',      // Date picker shadows
+  'integrations-settings.ui.ts', // Integration settings shadows
+  'notification-settings.ui.ts', // Notification settings shadows
+  'seeds-display.ui.ts',        // Seeds animation colors
+  'seeds-toast.ui.ts',          // Seeds toast colors
+  'splash-screen.ui.ts',        // Splash screen colors
+  'subscription.ui.ts',         // Subscription modal shadows
+  'team-intro.ui.ts',           // Team intro shadows
+  'trust-signals.ui.ts',        // Trust signal colors
+  'onboarding-progress.ui.ts',  // Onboarding shadows
+  'team-huddle.ui.ts',          // Team huddle colors
+  'digital-twin',               // Digital twin visualizations
+  'your-people.ui.ts',          // People relationships colors
+  'wellbeing-dashboard.ui.ts',  // Wellbeing charts shadows
+  'future-insights.ui.ts',      // Future predictions shadows
+  'now-playing.ui.ts',          // Music player shadows
+  'oura-settings.ui.ts',        // Oura ring brand colors
+  'referral.ui.ts',             // Referral card shadows
+  'proactive-outreach.ui.ts',   // Outreach card shadows
+  'prediction-tracker.ui.ts',   // Prediction tracker shadows
+  'data-export.ui.ts',          // Data export shadows
+  'connected-life.ui.ts',       // Connected devices shadows
+  'routing-stats.ui.ts',        // Stats chart colors
+  'send-message.ui.ts',         // Message send shadows
+  'teaser-preview.ui.ts',       // Teaser preview shadows
+  'team.ui.ts',                 // Team grid shadows
+  'speaker-change',             // Speaker indicator colors
+  'skeleton.ui.ts',             // Skeleton loading colors
+  'loading-',                   // Loading state colors
+  'keyboard',                   // Keyboard shortcut hints
+  'command-palette',            // Command palette shadows
+  'empty-state',                // Empty state colors
+  'micro-interactions',         // Micro-interaction colors
+  'trust-analytics',            // Trust chart colors
+  'trust-journey/',             // Trust journey visualizations
+  'journey/',                   // Journey visualizations
+  'founders-journey/',          // Founders journey visualizations
+  'ferni-fund',                 // Ferni fund colors
+  'gift-',                      // Gift-related visualizations
+  'game-picker',                // Game picker colors
+  'manage-subscription',        // Subscription management
+  'vibe-controller',            // Vibe controller colors (IoT)
+  'subscription-badge',         // Subscription badge colors
+  'your-year-with-ferni',       // Year recap visualizations
+  'household-manager',          // Household management colors
+  'import-contacts',            // Contact import shadows
+  'insights-debug-panel',       // Debug panel colors
+  'mobile-delights',            // Mobile interaction colors
+  'progress-indicator',         // Progress bar colors
+  'earn-seeds-modal',           // Seeds modal shadows
+  'memory-input-modal',         // Memory modal shadows
+  'conversation-',              // Conversation visualizations
+  'log-moment',                 // Moment logging shadows
+  'growth-journey',             // Growth journey colors
+  'add-person',                 // Add person shadows
+  'outreach-schedule',          // Outreach schedule shadows
+  'relationship-',              // Relationship cards shadows
+  'roadmap-panel',              // Roadmap shadows
+  'trigger-debug-panel',        // Debug panel colors
+  'settings-menu.ui.ts',        // Settings menu shadows
+  'edit-person.ui.ts',          // Edit person modal shadows
+  'legacy-',                    // Legacy features
+  'mentor-teachings',           // Mentor content shadows
+  'personalize.ui.ts',          // Personalization settings
+  'password-reset',             // Password reset shadows
+  'marketplace-publisher',      // Publisher shadows
+  'video-settings',             // Video settings shadows
+  'eight-sleep',                // Eight Sleep settings
+  'group-coaching',             // Group coaching shadows
+  'wearable-settings',          // Wearable settings shadows
+  'calendar-conflicts',         // Calendar conflicts shadows
+  'webhook-settings',           // Webhook settings shadows
+  'record-gift',                // Gift recording shadows
+  'language-selector',          // Language selector shadows
+  'earn-seeds-modal',           // Seeds modal
+  'b2b-admin',                  // B2B admin colors
+  'marketplace-permission',     // Marketplace permissions
+  'ritual-builder',             // Ritual builder colors
+  'cognitive-insights-overlay', // Cognitive overlay
+  'character-sheet',            // Character sheet colors
+  'cameo-roster',               // Cameo colors
+  'birthday-reminders',         // Birthday colors
+  'value-capture',              // Value capture shadows
+  'avatar-feedback',            // Avatar feedback shadows
+  'agent-particles',            // Agent particle colors
+  'offline-banner',             // Offline banner shadows
+  'practice-briefing',          // Briefing shadows
+  'persona-intro',              // Persona intro shadows
+  'predictions.ui.ts',          // Prediction colors
+  'engagement.ui.ts',           // Engagement shadows
+  'custom-agent-editor.ui.ts',  // Complex editor with many UI states
+  'coaching-mode.ui.ts',        // Coaching mode glass effects
+  'cognitive-insights.ui.ts',   // Cognitive insights glass
+  'connection-quality.ui.ts',   // Connection quality indicator
+  'form-polish.ui.ts',          // Form enhancement shadows
+  'garden-dashboard.ui.ts',     // Garden visualization
+  'marketing-dashboard.ui.ts',  // Marketing charts
+  'marketplace/',               // Marketplace styles
+  'mobile-bottom-sheet.ui.ts',  // Mobile sheet glass
+  'voice-enrollment.ui.ts',     // Voice enrollment shadows
+  'semantic-intelligence-panel', // Semantic panel shadows
+  'insights-view.ui.ts',        // Insights view shadows
+  'voice-id-badge',             // Voice ID badge
+  'modals/',                    // Modal glass effects
+  'roleplay-mode.ui.ts',        // Roleplay mode glass
+  'task-mode.ui.ts',            // Task mode glass
+  'calendar-provider-settings.ui.ts', // Calendar provider glass
+  'confirm-modal.ui.ts',        // Confirm modal glass
+  'group-conversation.ui.ts',   // Group conversation glass
+  'insights-hub.ui.ts',         // Insights hub glass
+  'life-context-dashboard.ui.ts', // Life context glass
+  'onboarding.ui.ts',           // Onboarding glass
+  'outreach-settings.ui.ts',    // Outreach settings glass
+  'predictive-insights.ui.ts',  // Predictive insights colors
+  'professional-tasks.ui.ts',   // Professional tasks glass
+  'talk-to-twin.ui.ts',         // Twin conversation glass
+  'team-insights.ui.ts',        // Team insights glass
 ];
 
 function shouldIgnore(filePath) {

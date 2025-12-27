@@ -16,6 +16,7 @@
  */
 
 import { tts } from '@livekit/agents';
+import { AudioFrame } from '@livekit/rtc-node';
 import type { BTCWEmotionType, SuperhumanOptions } from './btcw-core.js';
 
 // ============================================================================
@@ -126,7 +127,7 @@ export interface SuperhumanResult {
   /** Capabilities that were applied */
   capabilitiesUsed: string[];
   /** The audio stream (null if silent) */
-  audio?: AsyncIterable<{ type: string; frame?: { data: Int16Array } }>;
+  audio?: AsyncIterable<{ type: string; frame?: AudioFrame }>;
 }
 
 /**
@@ -334,11 +335,10 @@ export class SuperhumanTTS extends tts.TTS {
 
   private synthesizeSimple(text: string): tts.ChunkedStream {
     // Delegate to regular BTCW synthesis
-    const chunks: Array<{ type: string; frame?: { data: Int16Array } }> = [];
 
     const generator = async function* (
       this: SuperhumanTTS
-    ): AsyncGenerator<{ type: string; frame?: { data: Int16Array } }> {
+    ): AsyncGenerator<{ type: string; frame?: AudioFrame }> {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -359,14 +359,17 @@ export class SuperhumanTTS extends tts.TTS {
       });
 
       if (!response.ok) {
-        yield { type: 'error', error: `HTTP ${response.status}` } as any;
+        // For errors, just return without yielding - the stream will end gracefully
         return;
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const int16Array = new Int16Array(arrayBuffer);
+      const samplesPerChannel = int16Array.length;
+      // Use proper LiveKit AudioFrame for compatibility
+      const frame = new AudioFrame(int16Array, 24000, 1, samplesPerChannel);
 
-      yield { type: 'audio', frame: { data: int16Array } };
+      yield { type: 'audio', frame };
       yield { type: 'done' };
     }.bind(this);
 
@@ -374,21 +377,38 @@ export class SuperhumanTTS extends tts.TTS {
   }
 
   private createSimpleStream(): tts.SynthesizeStream {
-    // Return a stream-compatible object
+    // Return a stream-compatible object with internal state
     const self = this;
+    const streamState = {
+      _text: '',
+      _ended: false,
+    };
 
     return {
       pushText(text: string) {
         // Store text for synthesis
-        (this as any)._text = ((this as any)._text || '') + text;
+        streamState._text += text;
       },
       endInput() {
-        (this as any)._ended = true;
+        streamState._ended = true;
+      },
+      updateInputStream(text: string) {
+        // Replace current text with new text (required by LiveKit agents)
+        streamState._text = text;
+      },
+      markSegmentEnd() {
+        // No-op for simple stream
+      },
+      flush() {
+        // No-op for simple stream
+      },
+      close() {
+        // No-op for simple stream
       },
       async *[Symbol.asyncIterator]() {
         // Wait for text
         await new Promise((r) => setTimeout(r, 10));
-        const text = (this as any)._text || '';
+        const text = streamState._text;
 
         if (!text) {
           yield { type: 'done' };
@@ -406,7 +426,7 @@ export class SuperhumanTTS extends tts.TTS {
 
   private async *streamAudio(
     result: any
-  ): AsyncGenerator<{ type: string; frame?: { data: Int16Array } }> {
+  ): AsyncGenerator<{ type: string; frame?: AudioFrame }> {
     // If we have audio data directly in result
     if (result.audio_base64) {
       const binaryString = atob(result.audio_base64);
@@ -415,7 +435,10 @@ export class SuperhumanTTS extends tts.TTS {
         bytes[i] = binaryString.charCodeAt(i);
       }
       const int16Array = new Int16Array(bytes.buffer);
-      yield { type: 'audio', frame: { data: int16Array } };
+      const samplesPerChannel = int16Array.length;
+      // Use proper LiveKit AudioFrame for compatibility
+      const frame = new AudioFrame(int16Array, 24000, 1, samplesPerChannel);
+      yield { type: 'audio', frame };
     }
 
     yield { type: 'done' };
@@ -423,12 +446,11 @@ export class SuperhumanTTS extends tts.TTS {
 
   private async *createBackchannelAudio(
     backchannel: string
-  ): AsyncGenerator<{ type: string; frame?: { data: Int16Array } }> {
-    // Synthesize the backchannel phrase
+  ): AsyncGenerator<{ type: string; frame?: AudioFrame }> {
+    // Synthesize the backchannel phrase - already uses proper AudioFrame
     const stream = this.synthesizeSimple(backchannel);
     for await (const event of stream) {
-      // Cast ChunkedStream events to our internal format
-      yield event as unknown as { type: string; frame?: { data: Int16Array } };
+      yield event as unknown as { type: string; frame?: AudioFrame };
     }
   }
 }

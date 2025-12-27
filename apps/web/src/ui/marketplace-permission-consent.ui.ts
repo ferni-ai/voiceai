@@ -147,6 +147,30 @@ export interface ConsentResult {
 }
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Extracts the scope from either a PermissionRequest object or a PermissionScope string.
+ * This allows the code to handle both formats consistently.
+ */
+function getPermissionScope(p: PermissionRequest | PermissionScope): PermissionScope {
+  return typeof p === 'string' ? p : p.scope;
+}
+
+/**
+ * Normalizes a permission to a PermissionRequest object.
+ * If it's already a PermissionRequest, returns it as-is.
+ * If it's a PermissionScope string, wraps it in a basic PermissionRequest.
+ */
+function normalizePermission(p: PermissionRequest | PermissionScope, required: boolean): PermissionRequest {
+  if (typeof p === 'string') {
+    return { scope: p, reason: '', required };
+  }
+  return p;
+}
+
+// ============================================================================
 // PERMISSION DISPLAY CONFIG
 // ============================================================================
 
@@ -400,7 +424,7 @@ export function requestPermissionConsent(item: MarketplaceItem): Promise<Consent
     selectedOptionalPermissions = new Set();
 
     // Pre-select all optional permissions by default
-    item.permissions.optional.forEach((p) => selectedOptionalPermissions.add(p.scope));
+    item.permissions.optional.forEach((p) => selectedOptionalPermissions.add(getPermissionScope(p)));
 
     modal = createModal(item);
     document.body.appendChild(modal);
@@ -431,7 +455,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
 
   const trustBadge = TRUST_BADGES[item.trustLevel] || TRUST_BADGES.community;
   const hasHighSensitivity = [...item.permissions.required, ...item.permissions.optional].some(
-    (p) => PERMISSION_DISPLAY[p.scope]?.sensitivity === 'high'
+    (p) => PERMISSION_DISPLAY[getPermissionScope(p)]?.sensitivity === 'high'
   );
 
   el.innerHTML = `
@@ -473,7 +497,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
           <section class="permission-section">
             <h3 class="section-label">Required permissions</h3>
             <ul class="permission-list" role="list">
-              ${item.permissions.required.map((p) => renderPermissionItem(p, true)).join('')}
+              ${item.permissions.required.map((p) => renderPermissionItem(normalizePermission(p, true), true)).join('')}
             </ul>
           </section>
         `
@@ -487,7 +511,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
             <h3 class="section-label">Optional permissions</h3>
             <p class="section-hint">You can change these later in settings</p>
             <ul class="permission-list" role="list">
-              ${item.permissions.optional.map((p) => renderPermissionItem(p, false)).join('')}
+              ${item.permissions.optional.map((p) => renderPermissionItem(normalizePermission(p, false), false)).join('')}
             </ul>
           </section>
         `
@@ -597,7 +621,7 @@ function handleCancel(): void {
 
 function handleConfirm(item: MarketplaceItem): void {
   const grantedPermissions: PermissionScope[] = [
-    ...item.permissions.required.map((p) => p.scope),
+    ...item.permissions.required.map((p) => getPermissionScope(p)),
     ...Array.from(selectedOptionalPermissions),
   ];
 

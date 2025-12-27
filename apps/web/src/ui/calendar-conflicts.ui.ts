@@ -10,6 +10,9 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CalendarConflicts');
 
 // ============================================================================
 // TYPES
@@ -351,7 +354,7 @@ class CalendarConflictsUI {
       this.renderContent();
     } catch (error) {
       card?.classList.remove('calendar-conflicts__card--resolving');
-      console.error('Failed to resolve conflict:', error);
+      log.error('Failed to resolve conflict:', error);
     } finally {
       this.isLoading = false;
     }
@@ -368,7 +371,7 @@ class CalendarConflictsUI {
       this.conflicts = this.conflicts.filter((c) => c.id !== conflictId);
       this.renderContent();
     } catch (error) {
-      console.error('Failed to dismiss conflict:', error);
+      log.error('Failed to dismiss conflict:', error);
     } finally {
       this.isLoading = false;
     }
@@ -394,7 +397,7 @@ class CalendarConflictsUI {
       // Reload conflicts
       await this.loadConflicts();
     } catch (error) {
-      console.error('Failed to auto-resolve conflicts:', error);
+      log.error('Failed to auto-resolve conflicts:', error);
     } finally {
       this.isLoading = false;
       if (btn) {
@@ -413,7 +416,7 @@ class CalendarConflictsUI {
       });
       this.preferredResolution = preference;
     } catch (error) {
-      console.error('Failed to save preference:', error);
+      log.error('Failed to save preference:', error);
     }
   }
 

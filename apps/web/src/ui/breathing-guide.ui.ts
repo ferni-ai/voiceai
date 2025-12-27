@@ -266,11 +266,11 @@ function clearElement(element: HTMLElement): void {
 
 export class BreathingGuide {
   private container: HTMLElement;
-  private orb: HTMLElement;
-  private instruction: HTMLElement;
-  private timer: HTMLElement;
-  private info: HTMLElement;
-  private progressRing: SVGCircleElement;
+  private orb!: HTMLElement;
+  private instruction!: HTMLElement;
+  private timer!: HTMLElement;
+  private info!: HTMLElement;
+  private progressRing!: SVGCircleElement;
 
   private pattern: BreathingPattern;
   private config: BreathingConfig;
@@ -437,8 +437,9 @@ export class BreathingGuide {
 
     // Try to import haptics service dynamically
     import('../services/haptics.service.js').then(module => {
-      if (module.hapticsService) {
-        this.hapticsService = module.hapticsService;
+      const service = module.getHapticsService();
+      if (service) {
+        this.hapticsService = service;
         log.debug('Haptics service connected');
       }
     }).catch(() => {

@@ -63,8 +63,14 @@ const CRISIS_PATTERNS: Array<{
     patterns: [
       /\bi (want to|wanna) (die|end it|hurt myself|kill myself)/i,
       /\bi (don't|do not) want to (be here|live|exist)/i,
-      /\bwhat('s| is) the point (of living|anymore)/i,
+      /\bwhat('s| is) the point (of living|anymore|of trying)/i,
       /\bi('m| am) going to (hurt|harm|kill) myself/i,
+      // P0 FIX: Passive suicidal ideation - CRITICAL to detect
+      /\b(everyone|they|people|the world) would be better off (if i|without me)/i,
+      /\bnobody would (notice|care|miss me) if i (was|were) gone/i,
+      /\bno ?one would (notice|care|miss me)/i,
+      /\bi('m| am) (just )?a burden/i,
+      /\bwhat('s| is) (even )?the point\b/i, // Catches "what's the point" and "what's even the point"
     ],
     level: 'safety',
     confidence: 1.0,
@@ -77,6 +83,13 @@ const CRISIS_PATTERNS: Array<{
       /\beverything is (too much|overwhelming)/i,
       /\bi('m| am) (completely|totally) (overwhelmed|lost|broken|falling apart)/i,
       /\bi('m| am) totally (overwhelmed|lost|falling apart)/i,
+      // P0 FIX: Indirect hopelessness & exhaustion
+      /\bi('m| am) (just )?(so )?tired of (everything|trying|it all|life)/i,
+      /\bi (don't|do not) (care|see the point) anymore/i,
+      /\bwhy (do i|should i) (even )?(bother|try)/i,
+      /\bnothing (matters|makes sense) anymore/i,
+      /\bi('ve| have) given up/i,
+      /\bi (feel|am) (so )?hopeless/i,
     ],
     level: 'containing',
     confidence: 0.9,

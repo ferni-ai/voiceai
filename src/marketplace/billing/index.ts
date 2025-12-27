@@ -283,6 +283,9 @@ export function getUsageSummary(
 
 /**
  * Check if user can execute (quota check)
+ * 
+ * NOTE: For thread-safe quota enforcement, use checkAndIncrementQuota instead.
+ * This function only checks the current state without incrementing.
  */
 export function checkQuota(
   userId: UserId,
@@ -300,6 +303,105 @@ export function checkQuota(
   }
 
   return { allowed: true };
+}
+
+/**
+ * Atomically check and increment quota.
+ * 
+ * Uses Firestore transactions to prevent race conditions where multiple
+ * concurrent requests could exceed the quota.
+ * 
+ * @returns Whether the execution is allowed AND increments the counter atomically
+ */
+export async function checkAndIncrementQuota(
+  userId: UserId,
+  itemId: MarketplaceId,
+  subscriptionTier = 'free'
+): Promise<{ allowed: boolean; reason?: string; upgradeRequired?: boolean; newCount?: number }> {
+  const tierQuota = TIER_QUOTAS[subscriptionTier] || TIER_QUOTAS.free;
+  
+  // Unlimited tier
+  if (tierQuota.executions < 0) {
+    return { allowed: true };
+  }
+
+  const now = new Date();
+  const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const key = `${userId}:${itemId}:${period}`;
+
+  try {
+    const store = await getStore();
+    if (!store) {
+      // Fallback to non-atomic check if no persistence
+      log.warn('No persistence store, falling back to non-atomic quota check');
+      return checkQuota(userId, itemId, subscriptionTier);
+    }
+
+    // Use Firestore transaction for atomic check-and-increment
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    const docRef = db.collection('marketplace_monthly_usage').doc(key);
+
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      
+      let currentExecutions = 0;
+      if (doc.exists) {
+        const data = doc.data();
+        currentExecutions = data?.metrics?.executions || 0;
+      }
+
+      // Check if already at or over quota
+      if (currentExecutions >= tierQuota.executions) {
+        return {
+          allowed: false,
+          reason: `Monthly quota exceeded (${currentExecutions}/${tierQuota.executions} executions)`,
+          upgradeRequired: subscriptionTier === 'free',
+          newCount: currentExecutions,
+        };
+      }
+
+      // Increment counter atomically
+      const newCount = currentExecutions + 1;
+      
+      if (doc.exists) {
+        transaction.update(docRef, {
+          'metrics.executions': newCount,
+          _updatedAt: new Date(),
+        });
+      } else {
+        transaction.set(docRef, {
+          userId,
+          itemId,
+          period,
+          metrics: {
+            executions: newCount,
+            executionTimeMs: 0,
+            dataTransferBytes: 0,
+          },
+          _createdAt: new Date(),
+          _updatedAt: new Date(),
+        });
+      }
+
+      return { allowed: true, newCount };
+    });
+
+    // Also update in-memory cache for consistency
+    const existing = state.monthlyUsage.get(key) || {
+      executions: 0,
+      executionTimeMs: 0,
+      dataTransferBytes: 0,
+    };
+    existing.executions = result.newCount || existing.executions;
+    state.monthlyUsage.set(key, existing);
+
+    return result;
+  } catch (error) {
+    log.error({ error: String(error), userId, itemId }, 'Atomic quota check failed, using non-atomic fallback');
+    // Fallback to non-atomic check
+    return checkQuota(userId, itemId, subscriptionTier);
+  }
 }
 
 // ============================================================================

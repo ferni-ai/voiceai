@@ -243,7 +243,7 @@ class VoiceAuthService {
       throw new Error(error.error || `API error: ${response.status}`);
     }
 
-    return response.json() as Promise<unknown>;
+    return response.json() as Promise<T>;
   }
 
   // ==========================================================================

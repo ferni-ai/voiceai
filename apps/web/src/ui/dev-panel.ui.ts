@@ -6008,6 +6008,13 @@ function injectStyles(): void {
       flex-shrink: 0;
     }
     
+    /* MOBILE: Hide dev indicator - keyboard shortcuts don't work on mobile */
+    @media (max-width: 768px) {
+      .dev-indicator {
+        display: none !important;
+      }
+    }
+    
     /* Dev Panel */
     .dev-panel {
       position: fixed;

@@ -22,7 +22,7 @@ const { trackedTimeout } = createTimeoutTracker();
 // STATE
 // ============================================================================
 
-const _selectorElement: HTMLElement | null = null;
+let _selectorElement: HTMLElement | null = null;
 let isOpen = false;
 
 // ============================================================================
@@ -79,7 +79,7 @@ export function createLanguageSelector(): HTMLElement {
   // Set up event handlers
   setupEventHandlers(container);
 
-  selectorElement = container;
+  _selectorElement = container;
   return container;
 }
 

@@ -991,13 +991,13 @@ function getEditorStyles(): string {
     }
     
     .editor-status.status--active {
-      background: rgba(74, 103, 65, 0.2);
-      color: #4a6741;
+      background: var(--persona-tint, rgba(74, 103, 65, 0.2));
+      color: var(--color-ferni, #4a6741);
     }
     
     .editor-status.status--paused {
-      background: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
+      background: rgba(var(--color-warning-rgb, 245, 158, 11), 0.2);
+      color: var(--color-warning, #f59e0b);
     }
     
     .editor-close {
@@ -1168,8 +1168,8 @@ function getEditorStyles(): string {
     }
     
     .status-dot--draft { background: var(--color-text-muted); }
-    .status-dot--active { background: #4a6741; }
-    .status-dot--paused { background: #f59e0b; }
+    .status-dot--active { background: var(--color-ferni, #4a6741); }
+    .status-dot--paused { background: var(--color-warning, #f59e0b); }
     
     /* Sliders */
     .editor-slider-group {
@@ -1310,9 +1310,9 @@ function getEditorStyles(): string {
       border-radius: 50%;
     }
     
-    .voice-status--ready .voice-status-dot { background: #4a6741; }
-    .voice-status--processing .voice-status-dot { background: #f59e0b; }
-    .voice-status--failed .voice-status-dot { background: #ef4444; }
+    .voice-status--ready .voice-status-dot { background: var(--color-ferni, #4a6741); }
+    .voice-status--processing .voice-status-dot { background: var(--color-warning, #f59e0b); }
+    .voice-status--failed .voice-status-dot { background: var(--color-error, #ef4444); }
     .voice-status--pending .voice-status-dot { background: var(--color-text-muted); }
     
     .voice-type {
@@ -1429,10 +1429,10 @@ function getEditorStyles(): string {
       text-transform: uppercase;
     }
     
-    .memory-type-badge--stories { background: rgba(74, 103, 65, 0.2); color: #4a6741; }
-    .memory-type-badge--wisdom { background: rgba(138, 122, 106, 0.2); color: #8a7a6a; }
-    .memory-type-badge--sharedMoments { background: rgba(166, 122, 106, 0.2); color: #a67a6a; }
-    .memory-type-badge--journalEntries { background: rgba(90, 107, 138, 0.2); color: #5a6b8a; }
+    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni, #4a6741); }
+    .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan, #8a7a6a); }
+    .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya, #a67a6a); }
+    .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex, #5a6b8a); }
     
     .memory-content {
       flex: 1;
@@ -1465,8 +1465,8 @@ function getEditorStyles(): string {
     }
     
     .memory-delete-btn:hover {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
+      background: var(--color-error-tint, rgba(239, 68, 68, 0.1));
+      color: var(--color-error, #ef4444);
     }
     
     /* Footer */
@@ -1530,8 +1530,8 @@ function getEditorStyles(): string {
     }
     
     .editor-btn--danger:hover {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
+      background: var(--color-error-tint, rgba(239, 68, 68, 0.1));
+      color: var(--color-error, #ef4444);
     }
     
     .spinner {

@@ -107,6 +107,28 @@ export interface CommitmentDetectionResult {
 // COMMITMENT DETECTION PATTERNS
 // ============================================================================
 
+// Sarcasm indicators - reduce confidence when detected (P2 FIX)
+const SARCASM_INDICATORS = [
+  /\(not\)$/i,
+  /\bas if\b/i,
+  /\byeah right\b/i,
+  /\bsure,? (yeah|right|okay|uh huh)/i,
+  /\boh (sure|yeah|definitely|absolutely)\b/i,
+  /\bwhen (pigs fly|hell freezes)/i,
+  /\b(totally|definitely|absolutely),? (not|never)/i,
+  /\b🙄|\/s$/i, // Eye roll emoji or /s tag
+  /\blol as if\b/i,
+  /\bsuuure\b/i, // Drawn out "sure"
+];
+
+// External pressure - NOT the user's own commitment (P3 FIX)
+const EXTERNAL_PRESSURE_PATTERNS = [
+  /\b(everyone|they|people|my (mom|dad|parents|boss|friends)) (say|says|tell|tells|think|thinks) i should\b/i,
+  /\b(everyone|they) (want|wants) me to\b/i,
+  /\bi('m| am) supposed to\b/i, // Obligation, not commitment
+  /\bi('m| am) expected to\b/i,
+];
+
 const COMMITMENT_PATTERNS: Array<{
   pattern: RegExp;
   type: CommitmentType;
@@ -120,10 +142,75 @@ const COMMITMENT_PATTERNS: Array<{
   { pattern: /\bi('ve| have) got to\b/i, type: 'intention', weight: 0.65 },
   { pattern: /\bi want to\b/i, type: 'intention', weight: 0.5 },
 
+  // Gen-Z / Casual slang intentions (P1 FIX)
+  { pattern: /\bgonna\b/i, type: 'intention', weight: 0.65 }, // Works standalone
+  { pattern: /\bi('m| am)? ?gonna\b/i, type: 'intention', weight: 0.7 }, // With "I'm"
+  { pattern: /\bfinna\b/i, type: 'intention', weight: 0.7 }, // "fixing to"
+  { pattern: /\bboutta\b/i, type: 'intention', weight: 0.65 }, // "about to"
+  { pattern: /\bdeadass (gonna|going to|finna)\b/i, type: 'intention', weight: 0.85 }, // emphatic
+  { pattern: /\blowkey (need to|gotta|gonna)\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bhighkey (need to|gotta|gonna)\b/i, type: 'intention', weight: 0.7 },
+  { pattern: /\bno cap,? i('m| am)?\b/i, type: 'intention', weight: 0.7 }, // "not lying"
+  { pattern: /\bi gotta\b/i, type: 'intention', weight: 0.65 },
+  { pattern: /\bimma\b/i, type: 'intention', weight: 0.65 }, // "I'm going to"
+  { pattern: /\bfr fr\b/i, type: 'intention', weight: 0.5 }, // "for real for real" = emphasis
+
+  // ESL / Non-native speaker patterns (P1 FIX)
+  { pattern: /\bi (will|must) (to )?do\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bi must to\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\btomorrow i (will |am |)(start|do|make|go)\b/i, type: 'intention', weight: 0.65 },
+  { pattern: /\bi (am )?(make|do) (start|begin)\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bi (will |am )?definitely\b/i, type: 'intention', weight: 0.6 },
+
+  // Implicit/hedged intentions (maybe → still tracking)
+  { pattern: /\bmaybe i should\b/i, type: 'intention', weight: 0.4 },
+  { pattern: /\bi (keep|kept) telling myself\b/i, type: 'intention', weight: 0.5 },
+  { pattern: /\bi (really )?(should|ought to)\b/i, type: 'intention', weight: 0.5 },
+
+  // Indirect commitments - "consider it done" patterns (P2 FIX)
+  { pattern: /\bconsider (it|that|the \w+) (as )?(good as )?done\b/i, type: 'promise', weight: 0.75 },
+  { pattern: /\bsay less\b/i, type: 'intention', weight: 0.65 }, // Gen-Z "I got you"
+  { pattern: /\bi got (you|this|it)\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\b(say no more|no need to ask twice)\b/i, type: 'promise', weight: 0.7 },
+  { pattern: /\b(count on|you can count on) (me|it)\b/i, type: 'promise', weight: 0.8 },
+  { pattern: /\bi('ll|'d) bet (i'm|i am|i'll)\b/i, type: 'intention', weight: 0.55 },
+
+  // Archaic/formal patterns (P2 FIX)
+  { pattern: /\bupon the morrow\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bshall (find|ensure|complete|deliver)\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bby (eod|end of day|close of business|cob)\b/i, type: 'intention', weight: 0.7 },
+
+  // More ESL patterns (P2 FIX)
+  { pattern: /\bme (finish|do|make|complete|send)\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bno (you )?worry\b/i, type: 'promise', weight: 0.5 },
+
+  // Double negative patterns (P3 FIX) - "It's not as though I'm NOT going to..."
+  { pattern: /\bnot as (though|if) i('m| am)? not\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bi('m| am) not not going to\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bit('s| is) not (like|that) i (won't|wouldn't)\b/i, type: 'intention', weight: 0.55 },
+
+  // Formal/legal patterns (P3 FIX)
+  { pattern: /\b(hereby|herewith) (undertake|commit|agree)\b/i, type: 'promise', weight: 0.7 },
+  { pattern: /\bthe undersigned\b/i, type: 'promise', weight: 0.65 },
+  { pattern: /\bensure (the|that|its)\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bfacilitate (the|delivery|completion)\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bprior to (the|conclusion|end)\b/i, type: 'intention', weight: 0.5 },
+
+  // UK/AU slang (P3 FIX)
+  { pattern: /\bgive it a (fair )?crack\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bshe'll be (right|apples)\b/i, type: 'promise', weight: 0.55 },
+  { pattern: /\bno worries,? (i'll|i will)\b/i, type: 'promise', weight: 0.7 },
+
+  // More ESL/broken English (P3 FIX)
+  { pattern: /\bi am will be\b/i, type: 'intention', weight: 0.5 },
+  { pattern: /\bi am the person who (does|will)\b/i, type: 'intention', weight: 0.55 },
+  { pattern: /\bby the time of\b/i, type: 'intention', weight: 0.5 },
+
   // Promises
   { pattern: /\bi promise\b/i, type: 'promise', weight: 0.9 },
   { pattern: /\bi swear\b/i, type: 'promise', weight: 0.85 },
   { pattern: /\bi commit to\b/i, type: 'promise', weight: 0.9 },
+  { pattern: /\bon god\b/i, type: 'promise', weight: 0.8 }, // Gen-Z emphatic promise
 
   // Goals
   { pattern: /\bmy goal is\b/i, type: 'goal', weight: 0.8 },
@@ -169,6 +256,20 @@ export function detectCommitment(
   context?: { topic?: string; personMentioned?: string; emotionalIntensity?: number }
 ): CommitmentDetectionResult {
   const lowerTranscript = transcript.toLowerCase();
+
+  // P2 FIX: Check for sarcasm indicators FIRST
+  const hasSarcasm = SARCASM_INDICATORS.some((pattern) => pattern.test(lowerTranscript));
+  if (hasSarcasm) {
+    // Don't detect commitments that are clearly sarcastic
+    return { detected: false, confidence: 0 };
+  }
+
+  // P3 FIX: Check for external pressure - not the user's own commitment
+  const isExternalPressure = EXTERNAL_PRESSURE_PATTERNS.some((pattern) => pattern.test(lowerTranscript));
+  if (isExternalPressure) {
+    // External pressure is NOT a commitment the user made
+    return { detected: false, confidence: 0 };
+  }
 
   // Find matching patterns
   let bestMatch: { type: CommitmentType; weight: number } | null = null;

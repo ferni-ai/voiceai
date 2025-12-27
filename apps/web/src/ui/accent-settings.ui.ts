@@ -52,6 +52,7 @@ interface AccentSettingsState {
 // ============================================================================
 
 // SVG flag icons (brand-compliant, no emojis)
+// @design-tokens-ignore - Official country flag colors must be exact
 const FLAG_SVGS = {
   us: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="24" height="16" fill="#B22234"/>

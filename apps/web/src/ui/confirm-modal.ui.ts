@@ -99,27 +99,17 @@ function ensureStylesExist(): void {
     .confirm-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      background: rgba(0, 0, 0, 0.5);
     }
 
-    @supports not (backdrop-filter: blur(1px)) {
-      .confirm-modal-backdrop {
-        background: rgba(44, 37, 32, 0.85);
-      }
-    }
-    
     .confirm-modal-container {
       position: relative;
       width: 90vw;
       max-width: min(400px, 100%);
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: var(--shadow-lg);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
       overflow: hidden;
@@ -154,13 +144,13 @@ function ensureStylesExist(): void {
     }
     
     .confirm-modal-icon--destructive {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--color-error-tint, rgba(239, 68, 68, 0.15));
+      color: var(--color-error, #ef4444);
     }
     
     .confirm-modal-icon--warning {
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
+      background: var(--color-warning-tint, rgba(245, 158, 11, 0.15));
+      color: var(--color-warning, #f59e0b);
     }
     
     .confirm-modal-title {
@@ -220,12 +210,12 @@ function ensureStylesExist(): void {
     }
     
     .confirm-modal-btn--destructive {
-      background: #ef4444;
+      background: var(--color-error, #ef4444);
       color: white;
     }
     
     .confirm-modal-btn--destructive:hover {
-      background: #dc2626;
+      background: var(--color-error-dark, #dc2626);
     }
   `;
   document.head.appendChild(styles);

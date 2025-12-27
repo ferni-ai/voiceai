@@ -74,9 +74,11 @@ export const SOFT_BACKCHANNELS: Record<string, Record<string, string[]>> = {
     engaged: ['Right', 'Yeah', 'Okay'],
   },
   'maya-santos': {
-    neutral: ['Mm', 'Yeah', 'Okay'],
-    empathetic: ['Mm', 'Yeah', 'I hear you'],
-    engaged: ['Oh', 'Yeah', 'Right'],
+    // HUMANIZATION FIX (Dec 2025): More variety to prevent robotic repetition
+    // Maya is warm and supportive - her backchannels should reflect that
+    neutral: ['Mm', 'Yeah', 'Mhm', 'Okay', 'Mm-hm', 'Yep', 'Uh-huh'],
+    empathetic: ['Mm', 'Yeah', 'I hear you', 'Mmm', 'Ahh', 'Yeah...', 'Mm-hm'],
+    engaged: ['Oh', 'Yeah', 'Right', 'Mm!', 'Ah', 'Oh!', 'Yes'],
   },
   'peter-john': {
     neutral: ['Mm', 'Yeah', 'Okay'],

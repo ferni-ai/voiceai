@@ -92,7 +92,7 @@ export const SPRINGS: Record<SpringType, SpringConfig> = {
 // EMOTIONAL MOMENTUM STATE
 // ============================================================================
 
-let emotionalState: EmotionalMomentumState = {
+const emotionalState: EmotionalMomentumState = {
   currentWeight: 0.5,
   emotionalCarryover: 'gentle',
   decayRate: 0.05,
@@ -279,7 +279,7 @@ export function animateSpringMultiple(
 
     if (allSettled) {
       // Snap all to final values
-      properties.forEach((p, i) => {
+      properties.forEach((p) => {
         p.onUpdate(p.to);
       });
       running = false;

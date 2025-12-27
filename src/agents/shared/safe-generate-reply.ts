@@ -73,6 +73,10 @@ export interface SafeGenerateReplyOptions {
   session?: voice.AgentSession;
   /** Optional: session ID for coordinated speech */
   sessionId?: string;
+  /** Optional: Bypass circuit breaker (use for critical operations like handoff greetings) */
+  bypassCircuitBreaker?: boolean;
+  /** Optional: Bypass session closing check (use when we KNOW the session is valid for handoff) */
+  bypassSessionClosingCheck?: boolean;
 }
 
 export interface SafeGenerateReplyResult {
@@ -335,11 +339,14 @@ export async function safeGenerateReply(
     timeoutMs = SAFE_TIMEOUT_MS,
     context = 'unknown',
     sessionId,
+    bypassCircuitBreaker = false,
+    bypassSessionClosingCheck = false,
   } = options;
 
-  // SAFEGUARD 0 (new): Check if session is closing - abort immediately
+  // SAFEGUARD 0: Check if session is closing - abort immediately
   // This prevents wasted time trying to speak on a draining session
-  if (sessionId) {
+  // Can be bypassed for handoff greetings where we KNOW the session is valid
+  if (sessionId && !bypassSessionClosingCheck) {
     const { isSessionClosing } = await import('./session-closing-tracker.js');
     if (isSessionClosing(sessionId)) {
       logger.debug({ context, sessionId }, '🚪 Session is closing - skipping generateReply');
@@ -352,8 +359,13 @@ export async function safeGenerateReply(
   }
 
   // SAFEGUARD 1: Check circuit breaker
-  const circuitResult = checkCircuitBreaker(session, fallbackMessage, context, sessionId);
-  if (circuitResult) return circuitResult;
+  // Can be bypassed for critical operations like handoff greetings
+  if (!bypassCircuitBreaker) {
+    const circuitResult = checkCircuitBreaker(session, fallbackMessage, context, sessionId);
+    if (circuitResult) return circuitResult;
+  } else {
+    logger.debug({ context }, '⚡ Circuit breaker bypassed for critical operation');
+  }
 
   // SAFEGUARD 2: Check rate limit
   const rateLimitResult = checkRateLimit(context);

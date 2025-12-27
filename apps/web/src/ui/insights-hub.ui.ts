@@ -29,14 +29,15 @@ import {
   createUnfinishedStoriesElement,
   createRippleEffectsElement,
   injectStorytellingVisualizationStyles,
-  type LifeSeasonsData,
-  type ConversationRiverData,
-  type MirrorData,
-  type EnergyFlowData,
-  type GrowthRingsData,
-  type ValuesAlignmentData,
-  type UnfinishedStoriesData,
-  type RippleEffectsData,
+  type SeasonData,
+  type ConversationTopic,
+  type MirrorInsight,
+  type EnergyNode,
+  type EnergyFlow,
+  type GrowthRing,
+  type ValueAlignment,
+  type UnfinishedStory,
+  type RippleEffect,
 } from './storytelling-visualizations.js';
 
 const log = createLogger('InsightsHub');
@@ -156,16 +157,18 @@ interface TeamInsightsData {
 }
 
 // Stories tab data - aggregates data for storytelling visualizations
+// Note: These interfaces match the visualization component expectations
 interface StoriesData {
-  lifeSeasons: LifeSeasonsData | null;
-  conversationRiver: ConversationRiverData | null;
-  mirror: MirrorData | null;
-  energyFlow: EnergyFlowData | null;
-  growthRings: GrowthRingsData | null;
-  valuesAlignment: ValuesAlignmentData | null;
-  unfinishedStories: UnfinishedStoriesData | null;
-  rippleEffects: RippleEffectsData | null;
+  lifeSeasons: SeasonData[] | null;
+  conversationRiver: ConversationTopic[] | null;
+  mirror: MirrorInsight[] | null;
+  energyFlow: { nodes: EnergyNode[]; flows: EnergyFlow[] } | null;
+  growthRings: GrowthRing[] | null;
+  valuesAlignment: ValueAlignment[] | null;
+  unfinishedStories: UnfinishedStory[] | null;
+  rippleEffects: RippleEffect | null;
 }
+
 
 // Tab data cache
 interface TabDataCache {
@@ -431,107 +434,71 @@ class InsightsHubUI {
     else if (month >= 8 && month <= 10) currentSeason = 'autumn';
     else currentSeason = 'winter';
 
+    // Generate mock data in the format expected by visualization components
+    // Each visualization expects arrays matching the exported interface types
+    const seasonInsight = currentSeason === 'winter'
+      ? 'This is a time for rest and reflection. Your energy has naturally turned inward.'
+      : currentSeason === 'spring'
+      ? 'New beginnings are emerging. Your energy is shifting toward growth and renewal.'
+      : currentSeason === 'summer'
+      ? 'Your energy is at its peak. This is a time for action and expansion.'
+      : 'A natural time for harvest and letting go. Integration is happening.';
+
     this.dataCache.stories = {
-      lifeSeasons: {
-        currentSeason,
-        seasonStrength: 0.75,
-        primaryEnergy: 'growth',
-        seasonInsight: currentSeason === 'winter'
-          ? 'This is a time for rest and reflection. Your energy has naturally turned inward.'
-          : currentSeason === 'spring'
-          ? 'New beginnings are emerging. Your energy is shifting toward growth and renewal.'
-          : currentSeason === 'summer'
-          ? 'Your energy is at its peak. This is a time for action and expansion.'
-          : 'A natural time for harvest and letting go. Integration is happening.',
-      },
-      conversationRiver: {
-        timeRange: 'month',
-        topics: [
-          { name: 'Work', mentions: 45, trend: 'rising', color: 'var(--persona-alex)' },
-          { name: 'Family', mentions: 32, trend: 'stable', color: 'var(--persona-ferni)' },
-          { name: 'Health', mentions: 28, trend: 'rising', color: 'var(--persona-maya)' },
-          { name: 'Goals', mentions: 22, trend: 'falling', color: 'var(--persona-jordan)' },
-          { name: 'Finances', mentions: 15, trend: 'stable', color: 'var(--persona-peter)' },
-        ],
-        dominantTheme: 'Work has been taking center stage, but Health is rising as a priority',
-      },
-      mirror: {
-        surfaceInsights: [
-          { text: 'You mentioned feeling tired 8 times this week', type: 'observation' },
-          { text: 'Most conversations happen between 9-11pm', type: 'pattern' },
-        ],
-        deeperInsights: [
-          { text: 'The tiredness seems connected to boundary-setting challenges at work', type: 'connection' },
-          { text: 'Late-night conversations suggest processing needs that aren\'t being met during the day', type: 'meaning' },
-        ],
-        reflectionPrompt: 'What would it look like to create space for yourself during daylight hours?',
-      },
+      lifeSeasons: [
+        { season: currentSeason, label: 'Current Season', energy: 75, themes: ['growth', 'reflection'], insight: seasonInsight },
+      ],
+      conversationRiver: [
+        { id: '1', name: 'Work', frequency: 45, trend: 'rising', lastMentioned: new Date(), emotionalWeight: 0.3 },
+        { id: '2', name: 'Family', frequency: 32, trend: 'stable', lastMentioned: new Date(), emotionalWeight: 0.7 },
+        { id: '3', name: 'Health', frequency: 28, trend: 'rising', lastMentioned: new Date(), emotionalWeight: 0.5 },
+        { id: '4', name: 'Goals', frequency: 22, trend: 'falling', lastMentioned: new Date(), emotionalWeight: 0.4 },
+        { id: '5', name: 'Finances', frequency: 15, trend: 'stable', lastMentioned: new Date(), emotionalWeight: -0.1 },
+      ],
+      mirror: [
+        { surface: 'You mentioned feeling tired 8 times this week', deeper: 'The tiredness seems connected to boundary-setting challenges at work', pattern: 'recurring fatigue', invitation: 'What would rest look like for you?' },
+        { surface: 'Most conversations happen between 9-11pm', deeper: 'Late-night conversations suggest processing needs that aren\'t being met during the day', pattern: 'late-night processing', invitation: 'What would it look like to create space for yourself during daylight hours?' },
+      ],
       energyFlow: {
-        sources: [
-          { name: 'Morning routine', energy: 25 },
-          { name: 'Deep work', energy: 35 },
-          { name: 'Exercise', energy: 20 },
-          { name: 'Social time', energy: 20 },
+        nodes: [
+          { id: 'morning', label: 'Morning routine', value: 25, type: 'source' },
+          { id: 'work', label: 'Deep work', value: 35, type: 'source' },
+          { id: 'exercise', label: 'Exercise', value: 20, type: 'source' },
+          { id: 'social', label: 'Social time', value: 20, type: 'source' },
+          { id: 'meetings', label: 'Meetings', value: 30, type: 'sink' },
+          { id: 'commute', label: 'Commute', value: 20, type: 'sink' },
         ],
-        drains: [
-          { name: 'Meetings', energy: 30 },
-          { name: 'Commute', energy: 20 },
-          { name: 'Email', energy: 25 },
-          { name: 'Decisions', energy: 25 },
+        flows: [
+          { from: 'morning', to: 'work', value: 15, label: 'Focus' },
+          { from: 'exercise', to: 'work', value: 10, label: 'Energy' },
+          { from: 'work', to: 'meetings', value: 25, label: 'Drain' },
         ],
-        netEnergy: -5,
-        insight: 'Your energy balance is slightly negative. Consider protecting your morning routine more.',
       },
-      growthRings: {
-        rings: [
-          { year: 2022, theme: 'Foundation', keyMoment: 'Started daily journaling', growth: 0.6 },
-          { year: 2023, theme: 'Discovery', keyMoment: 'Career transition', growth: 0.8 },
-          { year: 2024, theme: 'Integration', keyMoment: 'Work-life balance focus', growth: 0.7 },
-        ],
-        currentRingProgress: 0.95,
-        emergingTheme: 'Mastery',
-      },
-      valuesAlignment: {
-        values: [
-          { name: 'Family', stated: 95, lived: 75 },
-          { name: 'Health', stated: 85, lived: 60 },
-          { name: 'Growth', stated: 80, lived: 85 },
-          { name: 'Creativity', stated: 70, lived: 40 },
-          { name: 'Connection', stated: 90, lived: 70 },
-        ],
-        biggestGap: { value: 'Creativity', gap: 30 },
-        mostAligned: { value: 'Growth', alignment: 95 },
-      },
-      unfinishedStories: {
-        stories: [
-          { title: 'Learning Spanish', startedDaysAgo: 120, lastMentionedDaysAgo: 45, status: 'paused', emotion: 'wistful' },
-          { title: 'Starting a side project', startedDaysAgo: 90, lastMentionedDaysAgo: 30, status: 'active', emotion: 'excited' },
-          { title: 'Reconnecting with old friend', startedDaysAgo: 60, lastMentionedDaysAgo: 14, status: 'active', emotion: 'hopeful' },
-        ],
-        longestOpen: 'Learning Spanish',
-        readyToClose: 'The Spanish learning might need a decision: commit or release with intention.',
-      },
+      growthRings: [
+        { period: '2022', label: 'Foundation', growth: 0.6, highlights: ['Started daily journaling'], color: 'var(--persona-ferni)' },
+        { period: '2023', label: 'Discovery', growth: 0.8, highlights: ['Career transition'], color: 'var(--persona-maya)' },
+        { period: '2024', label: 'Integration', growth: 0.7, highlights: ['Work-life balance focus'], color: 'var(--persona-alex)' },
+      ],
+      valuesAlignment: [
+        { value: 'Family', stated: 95, lived: 75, gap: 20, insight: 'Opportunity to increase family time' },
+        { value: 'Health', stated: 85, lived: 60, gap: 25, insight: 'Health habits could use attention' },
+        { value: 'Growth', stated: 80, lived: 85, gap: -5, insight: 'Living your growth values well!' },
+        { value: 'Creativity', stated: 70, lived: 40, gap: 30, insight: 'Biggest opportunity area' },
+        { value: 'Connection', stated: 90, lived: 70, gap: 20, insight: 'Room for deeper connection' },
+      ],
+      unfinishedStories: [
+        { id: '1', title: 'Learning Spanish', started: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000), lastMentioned: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), progress: 30, emotionalSignificance: 0.6, gentleReminder: 'Ready to pick this up again?' },
+        { id: '2', title: 'Starting a side project', started: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), lastMentioned: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), progress: 50, emotionalSignificance: 0.8, gentleReminder: 'This excites you - what\'s next?' },
+        { id: '3', title: 'Reconnecting with old friend', started: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), lastMentioned: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), progress: 70, emotionalSignificance: 0.7, gentleReminder: 'Time to reach out again?' },
+      ],
       rippleEffects: {
-        actions: [
-          {
-            action: 'Started morning meditation',
-            ripples: [
-              'Better focus at work',
-              'Less reactive in conflicts',
-              'Sleeping better'
-            ],
-            magnitude: 'high'
-          },
-          {
-            action: 'Said no to extra project',
-            ripples: [
-              'More time with family',
-              'Finished book'
-            ],
-            magnitude: 'medium'
-          },
+        trigger: 'Started morning meditation',
+        effects: [
+          { area: 'Work focus', impact: 0.8, description: 'Better focus at work' },
+          { area: 'Relationships', impact: 0.6, description: 'Less reactive in conflicts' },
+          { area: 'Health', impact: 0.7, description: 'Sleeping better' },
         ],
-        strongestRipple: 'Morning meditation has created the most positive cascading effects',
+        timeframe: 'Last 30 days',
       },
     };
   }
@@ -1108,7 +1075,7 @@ class InsightsHubUI {
     if (data.energyFlow) {
       const section = document.createElement('div');
       section.className = 'stories-viz-section';
-      section.appendChild(createEnergyFlowElement(data.energyFlow));
+      section.appendChild(createEnergyFlowElement(data.energyFlow.nodes, data.energyFlow.flows));
       sections.push(section);
     }
 

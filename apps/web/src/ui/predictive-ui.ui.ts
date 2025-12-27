@@ -52,7 +52,7 @@ export interface UserPreferences {
 // LOADING STAGES (from predictive.json)
 // ============================================================================
 
-const LOADING_STAGES: Record<LoadingStage, LoadingStageConfig> = {
+const _LOADING_STAGES: Record<LoadingStage, LoadingStageConfig> = {
   instant: {
     stage: 'instant',
     duration: '0-100ms',
@@ -542,12 +542,12 @@ export function createScrollAnticipation(
     onPreload: (direction: 'up' | 'down') => void;
   }
 ): ScrollAnticipation {
-  const { lookAheadDistance = 2, preloadThreshold = 0.5, onPreload } = options;
+  const { lookAheadDistance: _lookAheadDistance = 2, preloadThreshold = 0.5, onPreload } = options;
 
   let lastScrollTop = 0;
   let lastScrollTime = 0;
   let scrollVelocity = 0;
-  let hasPreloaded: { up: boolean; down: boolean } = { up: false, down: false };
+  const hasPreloaded: { up: boolean; down: boolean } = { up: false, down: false };
 
   const handleScroll = () => {
     const now = performance.now();

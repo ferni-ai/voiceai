@@ -636,7 +636,9 @@ export class NarrativeDirector {
     
     // 4. Play sound
     if (orchestration.sound) {
-      promises.push(this.audio.play(orchestration.sound).catch(() => {}));
+      promises.push(this.audio.play(orchestration.sound).catch((e) => {
+        if (import.meta.env?.DEV) console.debug('Narrative sound blocked:', e);
+      }));
     }
     
     // 5. Trigger Ferni moment

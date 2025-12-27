@@ -132,7 +132,7 @@ export async function handleBrandRoutes(
  *
  * Edge cached for 1 hour (static content)
  */
-async function handleGetRules(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+function handleGetRules(_req: IncomingMessage, res: ServerResponse): boolean {
   const rules = getClientBrandRules();
 
   // Edge cache for 1 hour (brand rules are static)
@@ -208,7 +208,7 @@ async function handleQuickValidate(req: IncomingMessage, res: ServerResponse): P
  * GET /api/brand/personas
  * Returns list of all personas
  */
-async function handleGetPersonas(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+function handleGetPersonas(_req: IncomingMessage, res: ServerResponse): boolean {
   const personas = Object.values(PERSONA_VOICES).map((p) => ({
     id: p.id,
     name: p.name,
@@ -229,14 +229,10 @@ async function handleGetPersonas(req: IncomingMessage, res: ServerResponse): Pro
  *
  * Edge cached for 24 hours (persona profiles are static)
  */
-async function handleGetPersona(
-  req: IncomingMessage,
-  res: ServerResponse,
-  personaId: string
-): Promise<boolean> {
+function handleGetPersona(_req: IncomingMessage, res: ServerResponse, personaId: string): boolean {
   const persona = getPersonaVoice(personaId as PersonaId);
 
-  if (!persona) {
+  if (persona === undefined) {
     sendError(res, 'Persona not found', 404);
     return true;
   }

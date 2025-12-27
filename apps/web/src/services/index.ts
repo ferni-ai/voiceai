@@ -67,3 +67,4 @@ export * from './team-unlock.service.js';
 // ============================================================================
 
 export * from './roadmap.service.js';
+export * from './soul-stats.service.js';

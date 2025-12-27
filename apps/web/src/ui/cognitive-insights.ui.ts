@@ -27,6 +27,9 @@ import {
   renderCloseButton,
   STAGGER_DELAYS,
 } from './engagement-components.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CognitiveInsights');
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -1384,7 +1387,7 @@ export async function fetchSuperhumanInsights(): Promise<{
     });
 
     if (!response.ok) {
-      console.warn('Failed to fetch superhuman insights:', response.status);
+      log.warn('Failed to fetch superhuman insights:', response.status);
       return null;
     }
 
@@ -1395,7 +1398,7 @@ export async function fetchSuperhumanInsights(): Promise<{
       topicAbsences: data.topicAbsences || [],
     };
   } catch (error) {
-    console.warn('Error fetching superhuman insights:', error);
+    log.warn('Error fetching superhuman insights:', error);
     return null;
   }
 }

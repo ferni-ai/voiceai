@@ -14,6 +14,9 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('WearableSettings');
 
 // ============================================================================
 // TYPES
@@ -95,9 +98,13 @@ const ICONS = {
 // PROVIDER INFO
 // ============================================================================
 
+// Providers with backend API support (can actually connect)
+const IMPLEMENTED_PROVIDERS: WearableProvider[] = ['apple_health', 'oura'];
+
 const PROVIDERS: Array<{
   id: WearableProvider;
   icon: string;
+  comingSoon?: boolean;
 }> = [
   {
     id: 'apple_health',
@@ -106,10 +113,12 @@ const PROVIDERS: Array<{
   {
     id: 'fitbit',
     icon: ICONS.watch,
+    comingSoon: true, // No backend API yet
   },
   {
     id: 'garmin',
     icon: ICONS.run,
+    comingSoon: true, // No backend API yet
   },
   {
     id: 'oura',
@@ -118,6 +127,7 @@ const PROVIDERS: Array<{
   {
     id: 'whoop',
     icon: ICONS.chartLine,
+    comingSoon: true, // No backend API yet
   },
 ];
 
@@ -156,7 +166,7 @@ class WearableSettingsUI {
     this.isVisible = true;
 
     await this.loadStatus().catch((error) => {
-      console.error('Failed to load wearable status:', error);
+      log.error('Failed to load wearable status:', error);
       this.renderError(t('wearableSettings.errors.loadFailed'));
     });
   }
@@ -248,21 +258,31 @@ class WearableSettingsUI {
     const providersList = PROVIDERS.map((provider) => {
       const connectionStatus = this.status?.status[provider.id] ?? 'disconnected';
       const isConnected = connectionStatus === 'connected';
+      const isComingSoon = provider.comingSoon ?? false;
 
       return `
-        <div class="wearable-settings__provider ${isConnected ? 'wearable-settings__provider--connected' : ''}">
+        <div class="wearable-settings__provider ${isConnected ? 'wearable-settings__provider--connected' : ''} ${isComingSoon ? 'wearable-settings__provider--coming-soon' : ''}">
           <div class="wearable-settings__provider-icon">${provider.icon}</div>
           <div class="wearable-settings__provider-info">
-            <span class="wearable-settings__provider-name">${t(`wearableSettings.providers.${provider.id}.name`)}</span>
+            <span class="wearable-settings__provider-name">
+              ${t(`wearableSettings.providers.${provider.id}.name`)}
+              ${isComingSoon ? '<span class="wearable-settings__coming-soon-badge">Coming Soon</span>' : ''}
+            </span>
             <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
-          <button aria-label="Settings"
-            class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
-            data-provider="${provider.id}"
-            data-connected="${isConnected}"
-          >
-            ${isConnected ? t('wearableSettings.buttons.disconnect') : t('wearableSettings.buttons.connect')}
-          </button>
+          ${isComingSoon ? `
+            <span class="wearable-settings__provider-btn wearable-settings__provider-btn--disabled" aria-disabled="true">
+              Coming Soon
+            </span>
+          ` : `
+            <button aria-label="Settings"
+              class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
+              data-provider="${provider.id}"
+              data-connected="${isConnected}"
+            >
+              ${isConnected ? t('wearableSettings.buttons.disconnect') : t('wearableSettings.buttons.connect')}
+            </button>
+          `}
         </div>
       `;
     }).join('');
@@ -385,7 +405,7 @@ class WearableSettingsUI {
         window.location.href = response.data.authUrl;
       }
     } catch (error) {
-      console.error('Failed to connect provider:', error);
+      log.error('Failed to connect provider:', error);
     }
   }
 
@@ -395,7 +415,7 @@ class WearableSettingsUI {
       await this.loadStatus();
       this.callbacks.onConnectionChange?.(provider, false);
     } catch (error) {
-      console.error('Failed to disconnect provider:', error);
+      log.error('Failed to disconnect provider:', error);
     }
   }
 
@@ -608,6 +628,31 @@ class WearableSettingsUI {
         background: var(--color-background-tertiary, #ebe6df);
         color: var(--color-semantic-error, #b5453a);
         border-color: var(--color-semantic-error, #b5453a);
+      }
+
+      .wearable-settings__provider-btn--disabled {
+        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted, #756a5e);
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .wearable-settings__provider--coming-soon {
+        opacity: 0.75;
+      }
+
+      .wearable-settings__coming-soon-badge {
+        display: inline-flex;
+        align-items: center;
+        margin-left: var(--space-2, 8px);
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary, #ebe6df);
+        border-radius: var(--radius-sm, 4px);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
       }
 
       .wearable-settings__features {

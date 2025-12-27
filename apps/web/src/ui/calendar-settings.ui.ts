@@ -320,6 +320,7 @@ class CalendarSettingsUI {
     `;
 
     // Provider integrations section
+    // @design-tokens-ignore - Google brand logo uses official Google colors
     const googleSection = this.status.connected
       ? `
         <div class="calendar-settings__provider calendar-settings__provider--connected">

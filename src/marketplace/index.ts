@@ -92,6 +92,7 @@ export {
 export {
   calculateBilling,
   calculateRevenueShare,
+  checkAndIncrementQuota,
   checkQuota,
   getPendingPayouts,
   getUsageSummary,
@@ -103,3 +104,35 @@ export {
   type UsageRecord,
   type UsageSummary,
 } from './billing/index.js';
+
+// Auth exports (security layer)
+export {
+  anonymizeUserId,
+  canExecute,
+  canInstall,
+  canModerateReviews,
+  canModify,
+  canRegister,
+  canUninstall,
+  checkRateLimit,
+  clearAuthState,
+  createTestAuthContext,
+  generateSecureId,
+  generateSessionToken,
+  hasRequiredPermissions,
+  isValidCommand,
+  isValidDockerImage,
+  isValidExternalUrl,
+  logAuditEvent,
+  sanitizeString,
+  type AuthContext,
+  type AuthResult,
+  type AuditEvent,
+} from './auth/index.js';
+
+// Validation exports
+export {
+  formatValidationErrors,
+  validateAgentManifest,
+  validateToolManifest,
+} from './schema/validation.js';

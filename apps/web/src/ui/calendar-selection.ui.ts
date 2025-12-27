@@ -10,6 +10,9 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CalendarSelection');
 
 // ============================================================================
 // TYPES
@@ -333,7 +336,7 @@ class CalendarSelectionUI {
 
       this.hide();
     } catch (error) {
-      console.error('Failed to save calendar selection:', error);
+      log.error('Failed to save calendar selection:', error);
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Selection';

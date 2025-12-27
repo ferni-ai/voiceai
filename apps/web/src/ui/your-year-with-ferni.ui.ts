@@ -257,8 +257,8 @@ export class YourYearWithFerni {
     this.container.className = 'your-year-overlay';
     this.container.innerHTML = `
       <div class="your-year-backdrop"></div>
-      <div class="your-year-modal">
-        <button class="your-year-close" aria-label="Close">
+      <div class="your-year-modal" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
+        <button class="your-year-close" aria-label="Close year review">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -267,7 +267,7 @@ export class YourYearWithFerni {
 
         <header class="your-year-header">
           <span class="your-year-eyebrow">YOUR JOURNEY</span>
-          <h2 class="your-year-title">Your Year with Ferni</h2>
+          <h2 id="your-year-title" class="your-year-title">Your Year with Ferni</h2>
           <p class="your-year-subtitle">${this.data.stats.totalConversations} conversations. ${this.data.stats.totalMinutes} minutes. Countless moments of growth.</p>
         </header>
 
@@ -289,25 +289,25 @@ export class YourYearWithFerni {
           </section>
 
           <!-- Emotional Journey -->
-          <section class="your-year-section">
-            <h3 class="your-year-section-title">Emotional Milestones</h3>
-            <div class="your-year-timeline">
+          <section class="your-year-section" aria-labelledby="milestones-title">
+            <h3 id="milestones-title" class="your-year-section-title">Emotional Milestones</h3>
+            <div class="your-year-timeline" role="list" aria-label="Emotional milestones timeline">
               ${this.renderTimeline()}
             </div>
           </section>
 
           <!-- Team Unlocks -->
-          <section class="your-year-section">
-            <h3 class="your-year-section-title">Your Team</h3>
-            <div class="your-year-team">
+          <section class="your-year-section" aria-labelledby="team-title">
+            <h3 id="team-title" class="your-year-section-title">Your Team</h3>
+            <div class="your-year-team" role="list" aria-label="Team members unlocked">
               ${this.renderTeam()}
             </div>
           </section>
 
           <!-- Dreams -->
-          <section class="your-year-section">
-            <h3 class="your-year-section-title">Dreams We're Guarding</h3>
-            <div class="your-year-dreams">
+          <section class="your-year-section" aria-labelledby="dreams-title">
+            <h3 id="dreams-title" class="your-year-section-title">Dreams We're Guarding</h3>
+            <div class="your-year-dreams" role="list" aria-label="Your tracked dreams">
               ${this.renderDreams()}
             </div>
           </section>
@@ -373,16 +373,19 @@ export class YourYearWithFerni {
 
     return this.data.emotionalJourney
       .map(
-        (moment) => `
-      <div class="timeline-item">
-        <div class="timeline-dot" style="background: var(--color-ferni)"></div>
+        (moment) => {
+          const date = moment.date instanceof Date ? moment.date : new Date(moment.date);
+          return `
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-dot" aria-hidden="true"></div>
         <div class="timeline-content">
-          <div class="timeline-date">${new Date(moment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+          <div class="timeline-date">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
           <div class="timeline-emotion">${moment.emotion}</div>
           ${moment.context ? `<div class="timeline-context">${moment.context}</div>` : ''}
         </div>
       </div>
-    `
+    `;
+        }
       )
       .join('');
   }
@@ -392,13 +395,16 @@ export class YourYearWithFerni {
 
     return this.data.teamUnlocks
       .map(
-        (member) => `
-      <div class="team-member">
-        <div class="team-avatar" style="background: ${member.primaryColor}">${member.personaName.charAt(0)}</div>
+        (member) => {
+          const unlockDate = member.unlockedAt instanceof Date ? member.unlockedAt : new Date(member.unlockedAt);
+          return `
+      <div class="team-member" role="listitem">
+        <div class="team-avatar" style="background: ${member.primaryColor}" aria-hidden="true">${member.personaName.charAt(0)}</div>
         <div class="team-name">${member.personaName}</div>
-        <div class="team-unlocked">Unlocked ${new Date(member.unlockedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+        <div class="team-unlocked">Unlocked ${unlockDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
       </div>
-    `
+    `;
+        }
       )
       .join('');
   }
@@ -406,11 +412,19 @@ export class YourYearWithFerni {
   private renderDreams(): string {
     if (!this.data) return '';
 
+    const achievedIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>`;
+    const activeIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22c4-4 8-7.582 8-12a8 8 0 1 0-16 0c0 4.418 4 8 8 12z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>`;
+
     return this.data.dreams
       .map(
         (dream) => `
-      <div class="dream-item ${dream.status}">
-        <div class="dream-icon">${dream.status === 'achieved' ? '✨' : '💫'}</div>
+      <div class="dream-item ${dream.status}" role="listitem">
+        <div class="dream-icon" aria-hidden="true">${dream.status === 'achieved' ? achievedIcon : activeIcon}</div>
         <div class="dream-content">
           <div class="dream-text">${dream.dream}</div>
           <div class="dream-meta">Mentioned ${dream.mentionCount} times · ${dream.type}</div>
@@ -434,7 +448,7 @@ export class YourYearWithFerni {
       .your-year-overlay {
         position: fixed;
         inset: 0;
-        z-index: 10000;
+        z-index: var(--z-system, 9999);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -444,8 +458,7 @@ export class YourYearWithFerni {
       .your-year-backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.6);
-        backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.5);
       }
 
       .your-year-modal {
@@ -453,9 +466,10 @@ export class YourYearWithFerni {
         width: 90%;
         max-width: 800px;
         max-height: 85vh;
-        background: var(--color-background-elevated, #FFFDFB);
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl);
+        box-shadow: var(--shadow-lg);
         overflow: hidden;
         transform: scale(0.9);
         opacity: 0;
@@ -465,21 +479,27 @@ export class YourYearWithFerni {
         position: absolute;
         top: var(--space-4, 16px);
         right: var(--space-4, 16px);
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border: none;
-        background: rgba(44, 37, 32, 0.05);
+        background: rgba(255, 255, 255, 0.2);
         border-radius: var(--radius-full, 9999px);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 200ms ease;
-        z-index: 10;
+        transition: background var(--duration-fast, 150ms) ease;
+        z-index: var(--z-raised, 1);
       }
 
-      .your-year-close:hover {
-        background: rgba(44, 37, 32, 0.1);
+      .your-year-close:hover,
+      .your-year-close:focus-visible {
+        background: rgba(255, 255, 255, 0.3);
+        outline: none;
+      }
+
+      .your-year-close:focus-visible {
+        box-shadow: 0 0 0 2px white;
       }
 
       .your-year-close svg {
@@ -697,11 +717,18 @@ export class YourYearWithFerni {
       }
 
       .dream-item.achieved {
-        background: rgba(74, 103, 65, 0.1);
+        background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
       }
 
       .dream-icon {
-        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: var(--color-ferni, #4a6741);
+        flex-shrink: 0;
+      }
+
+      .dream-icon svg {
+        display: block;
       }
 
       .dream-text {
@@ -712,6 +739,19 @@ export class YourYearWithFerni {
       .dream-meta {
         font-size: 12px;
         color: var(--color-text-muted, #8a7e74);
+      }
+
+      /* Reduced Motion */
+      @media (prefers-reduced-motion: reduce) {
+        .your-year-overlay,
+        .your-year-modal {
+          transition: none;
+          animation: none;
+        }
+
+        .your-year-modal {
+          transform: none;
+        }
       }
     `;
 

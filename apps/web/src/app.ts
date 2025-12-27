@@ -1733,15 +1733,54 @@ class VoiceAIApp {
           const userId = appState.get('deviceId') || 'anonymous';
           window.location.href = `/auth/google/calendar?userId=${userId}`;
         },
-        onConnectBiometrics: (platform) => {
-          // TODO: Implement biometrics OAuth for each platform
-          log.info('Connect biometrics requested', { platform });
-          messageUI.show(`${platform} connection coming soon!`, 'info', 3000);
+        onConnectBiometrics: async (platform) => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          log.info('Connect biometrics requested', { platform, userId });
+          
+          // Import biometrics service dynamically to avoid circular deps
+          const { connectBiometrics, isPlatformAvailable, getPlatformConfig } = await import(
+            './services/biometrics.service.js'
+          );
+          
+          // Type assertion - the callback provides a string but we know it's a valid platform
+          type BiometricsPlatform = Parameters<typeof connectBiometrics>[0];
+          const typedPlatform = platform as BiometricsPlatform;
+          
+          // Check if platform is available
+          if (!isPlatformAvailable(typedPlatform)) {
+            const config = getPlatformConfig(typedPlatform);
+            messageUI.show(
+              config?.name 
+                ? `${config.name} isn't available on this device` 
+                : 'Platform not available',
+              'warning',
+              3000
+            );
+            return;
+          }
+          
+          // Initiate OAuth connection
+          const result = await connectBiometrics(typedPlatform, userId);
+          
+          if (!result.success && result.error) {
+            messageUI.show(result.error, 'error', 4000);
+          }
         },
-        onConnectBanking: () => {
-          // TODO: Implement Plaid integration
-          log.info('Connect banking requested');
-          messageUI.show('Banking integration coming soon!', 'info', 3000);
+        onConnectBanking: async () => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          log.info('Connect banking requested', { userId });
+          
+          // Import banking service dynamically to avoid circular deps
+          const { connectBanking } = await import('./services/banking.service.js');
+          
+          // Initiate Plaid Link flow
+          const result = await connectBanking(userId);
+          
+          if (result.success) {
+            messageUI.show('Bank connected!', 'success', 2500);
+          } else if (result.error && result.error !== 'User cancelled') {
+            messageUI.show(result.error, 'error', 4000);
+          }
         },
       });
     });

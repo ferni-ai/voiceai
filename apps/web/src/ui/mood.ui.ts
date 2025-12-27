@@ -294,6 +294,7 @@ function addChristmasTreeDecoration(): void {
     
     // SVG Santa Hat - designed so avatar circle fits INSIDE the hat
     // Fur band is an arc that wraps around the top of the avatar
+    // @design-tokens-ignore - Traditional holiday decoration colors (red/white Christmas theme)
     decoration.innerHTML = `
       <svg viewBox="0 0 150 90" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Main hat cone + droopy tip as single closed shape to prevent gaps -->

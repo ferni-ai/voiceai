@@ -73,18 +73,210 @@ export interface JourneyProgress {
 }
 
 // ============================================================================
-// CURRENT SEASON - "Spring Awakening"
+// SEASONAL THEMES
 // ============================================================================
 
-const CURRENT_SEASON: Season = {
-  id: 'spring-2024',
-  name: 'Spring Awakening',
-  description: 'A season of new beginnings. Every conversation plants a seed.',
-  startDate: new Date('2024-03-01'),
-  endDate: new Date('2024-05-31'),
-  companionPriceInCents: 499, // $4.99 if someone wants to support
-  milestones: generateMilestones('spring-2024'),
-};
+/**
+ * Get the appropriate season based on current date.
+ * Seasons rotate automatically - no manual updates needed!
+ */
+function determineCurrentSeason(): Season {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-11
+
+  // New Year (Dec 26 - Jan 31): Reflection and fresh starts
+  if (month === 11 && now.getDate() >= 26) {
+    return createNewYearSeason(year + 1);
+  }
+  if (month === 0) {
+    return createNewYearSeason(year);
+  }
+
+  // Spring (Mar 1 - May 31): Growth and new beginnings
+  if (month >= 2 && month <= 4) {
+    return createSpringSeason(year);
+  }
+
+  // Summer (Jun 1 - Aug 31): Energy and exploration
+  if (month >= 5 && month <= 7) {
+    return createSummerSeason(year);
+  }
+
+  // Fall (Sep 1 - Nov 30): Harvest and gratitude
+  if (month >= 8 && month <= 10) {
+    return createFallSeason(year);
+  }
+
+  // Winter (Feb 1 - Feb 28): Cozy introspection
+  return createWinterSeason(year);
+}
+
+function createNewYearSeason(year: number): Season {
+  return {
+    id: `new-year-${year}`,
+    name: `Fresh Start ${year}`,
+    description: `A new year, a new chapter. What will you create in ${year}?`,
+    startDate: new Date(`${year - 1}-12-26`),
+    endDate: new Date(`${year}-01-31`),
+    companionPriceInCents: 499,
+    milestones: generateNewYearMilestones(`new-year-${year}`),
+  };
+}
+
+function createSpringSeason(year: number): Season {
+  return {
+    id: `spring-${year}`,
+    name: 'Spring Awakening',
+    description: 'A season of new beginnings. Every conversation plants a seed.',
+    startDate: new Date(`${year}-03-01`),
+    endDate: new Date(`${year}-05-31`),
+    companionPriceInCents: 499,
+    milestones: generateMilestones(`spring-${year}`),
+  };
+}
+
+function createSummerSeason(year: number): Season {
+  return {
+    id: `summer-${year}`,
+    name: 'Summer Light',
+    description: 'Long days, big dreams. Let the warmth inspire you.',
+    startDate: new Date(`${year}-06-01`),
+    endDate: new Date(`${year}-08-31`),
+    companionPriceInCents: 499,
+    milestones: generateMilestones(`summer-${year}`),
+  };
+}
+
+function createFallSeason(year: number): Season {
+  return {
+    id: `fall-${year}`,
+    name: 'Autumn Harvest',
+    description: 'A time for gratitude and gathering what you\'ve grown.',
+    startDate: new Date(`${year}-09-01`),
+    endDate: new Date(`${year}-11-30`),
+    companionPriceInCents: 499,
+    milestones: generateMilestones(`fall-${year}`),
+  };
+}
+
+function createWinterSeason(year: number): Season {
+  return {
+    id: `winter-${year}`,
+    name: 'Winter Rest',
+    description: 'A quiet time for reflection and inner warmth.',
+    startDate: new Date(`${year}-02-01`),
+    endDate: new Date(`${year}-02-28`),
+    companionPriceInCents: 499,
+    milestones: generateMilestones(`winter-${year}`),
+  };
+}
+
+/**
+ * Generate New Year-specific milestones with fresh start themes
+ */
+function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
+  return [
+    // Fresh start milestones
+    {
+      id: `${seasonId}-first-chat`,
+      title: 'First Chat of the Year',
+      message: 'A new year, a new conversation. Here\'s to fresh beginnings.',
+      type: 'badge',
+      gift: { badgeId: 'badge-new-year' },
+      requirement: { type: 'conversations', value: 1 },
+    },
+    {
+      id: `${seasonId}-week-one`,
+      title: 'First Week',
+      message: 'You started the year strong. That takes intention.',
+      type: 'theme',
+      gift: { cosmeticId: 'theme-aurora' },
+      requirement: { type: 'weeks-together', value: 1 },
+    },
+    {
+      id: `${seasonId}-five-chats`,
+      title: 'Five Fresh Starts',
+      message: 'Five conversations in the new year. You\'re building momentum.',
+      type: 'soundscape',
+      gift: { cosmeticId: 'sounds-morning-birds' },
+      requirement: { type: 'conversations', value: 5 },
+    },
+
+    // Building momentum
+    {
+      id: `${seasonId}-two-weeks`,
+      title: 'Two Weeks In',
+      message: 'Most resolutions fade by now. You\'re still here.',
+      type: 'avatar-style',
+      gift: { cosmeticId: 'style-fresh-start' },
+      requirement: { type: 'weeks-together', value: 2 },
+    },
+    {
+      id: `${seasonId}-first-goal`,
+      title: 'First Win of the Year',
+      message: 'Your first goal of the year, achieved. This is your year.',
+      type: 'badge',
+      gift: { badgeId: 'badge-first-win-year' },
+      requirement: { type: 'goals-achieved', value: 1 },
+    },
+    {
+      id: `${seasonId}-ten-chats`,
+      title: 'Ten Conversations',
+      message: 'Ten conversations in. You\'re not just starting—you\'re continuing.',
+      type: 'theme',
+      gift: { cosmeticId: 'theme-sunrise' },
+      requirement: { type: 'conversations', value: 10 },
+    },
+
+    // Deep commitment
+    {
+      id: `${seasonId}-three-weeks`,
+      title: 'Three Weeks Strong',
+      message: 'Three weeks of showing up. You\'ve made this a habit.',
+      type: 'soundscape',
+      gift: { cosmeticId: 'sounds-celebration' },
+      requirement: { type: 'weeks-together', value: 3 },
+    },
+    {
+      id: `${seasonId}-three-goals`,
+      title: 'Three Goals Achieved',
+      message: 'Three goals down in the new year. You\'re proving something to yourself.',
+      type: 'title',
+      gift: { title: 'Year of Growth' },
+      requirement: { type: 'goals-achieved', value: 3 },
+    },
+    {
+      id: `${seasonId}-twenty-chats`,
+      title: 'Twenty Conversations',
+      message: 'Twenty conversations. This isn\'t a new year\'s resolution. This is who you are.',
+      type: 'avatar-style',
+      gift: { cosmeticId: 'style-golden-dawn' },
+      requirement: { type: 'conversations', value: 20 },
+    },
+
+    // Season completion
+    {
+      id: `${seasonId}-month-one`,
+      title: 'January Complete',
+      message: 'You made it through January, still growing. Most don\'t get here.',
+      type: 'badge',
+      gift: { badgeId: 'badge-january-champion' },
+      requirement: { type: 'weeks-together', value: 4 },
+    },
+    {
+      id: `${seasonId}-thirty-chats`,
+      title: 'Thirty Conversations',
+      message: 'Thirty conversations to start the year. You\'re not just dreaming—you\'re doing.',
+      type: 'title',
+      gift: { title: 'Fresh Starter' },
+      requirement: { type: 'conversations', value: 30 },
+    },
+  ];
+}
+
+// Current season is determined dynamically
+const CURRENT_SEASON: Season = determineCurrentSeason();
 
 function generateMilestones(seasonId: string): JourneyMilestone[] {
   return [

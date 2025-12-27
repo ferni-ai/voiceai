@@ -803,6 +803,7 @@ function updateSoulPreview(action: string, value: string): void {
         if (value === 'none') {
           glow.classList.remove('active');
         } else {
+          // @design-tokens-ignore - Preview glow colors for admin testing
           const defaultColor = 'rgba(196, 162, 101, 0.5)';
           const colors: Record<string, string> = {
             warmth: defaultColor,

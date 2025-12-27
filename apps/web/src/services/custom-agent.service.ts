@@ -299,7 +299,7 @@ export async function uploadVoiceSample(
     throw new Error(error.message || 'Failed to upload voice sample');
   }
 
-  return response.json() as Promise<unknown>;
+  return response.json() as Promise<{ audioUrl: string; qualityScore: number; feedback: string }>;
 }
 
 /**

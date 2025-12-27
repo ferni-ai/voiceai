@@ -352,7 +352,7 @@ export function setVolume(volume: number): void {
     volumeDropWarningLogged = false;
   } else if (isSpeaking && Date.now() - lastNonZeroVolumeTime > 2000 && !volumeDropWarningLogged) {
     // No volume for 2+ seconds while we think we're speaking
-    console.warn('[Waveform] ⚠️ No volume received for 2s while speaking - audio visualization may be disconnected');
+    log.warn('⚠️ No volume received for 2s while speaking - audio visualization may be disconnected');
     volumeDropWarningLogged = true;
   }
 }

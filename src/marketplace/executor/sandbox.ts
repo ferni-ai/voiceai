@@ -18,7 +18,7 @@
 /* global AbortController */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { checkQuota, recordUsage } from '../billing/index.js';
+import { checkAndIncrementQuota, recordUsage } from '../billing/index.js';
 import { getInstallation, getTool, hasPermission, recordExecution } from '../registry.js';
 import type {
   MarketplaceId,
@@ -362,9 +362,10 @@ export async function executeMarketplaceTool(
   // Track which permissions we're using
   permissionsUsed.push(...manifest.permissions.required.map((p) => p.scope));
 
-  // Check quota before execution (skip for platform tools)
+  // Check and atomically increment quota before execution (skip for platform tools)
+  // Using atomic operation prevents race conditions where concurrent requests could exceed quota
   if (manifest.verification.trustLevel !== 'platform' && !options.skipPermissionCheck) {
-    const quotaCheck = checkQuota(context.userId, toolId, context.subscriptionTier || 'free');
+    const quotaCheck = await checkAndIncrementQuota(context.userId, toolId, context.subscriptionTier || 'free');
 
     if (!quotaCheck.allowed) {
       log.warn({ toolId, userId: context.userId, reason: quotaCheck.reason }, 'Quota exceeded');

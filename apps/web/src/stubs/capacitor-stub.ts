@@ -80,4 +80,31 @@ export const Haptics = {
   selectionEnd: () => Promise.resolve(),
 };
 
-export default { FerniPurchases, Browser, PushNotifications, LocalNotifications, Capacitor, Haptics };
+// Stub for @capacitor-community/health-kit
+export const HealthKit = {
+  requestAuthorization: (_options: { read: string[]; write: string[] }) =>
+    Promise.resolve({ authorized: false, error: 'Not available on web' }),
+  isAvailable: () => Promise.resolve({ available: false }),
+  queryHKitSampleType: (_options: { sampleType: string; startDate: string; endDate: string }) =>
+    Promise.resolve({ samples: [] }),
+  queryHKitStatisticsCollectionType: (_options: {
+    sampleType: string;
+    startDate: string;
+    endDate: string;
+    anchorDate: string;
+    intervalUnit: string;
+    intervalValue: number;
+  }) => Promise.resolve({ statistics: [] }),
+  querySleepAnalysis: (_options: { startDate: string; endDate: string }) =>
+    Promise.resolve({ sleepData: [] }),
+};
+
+export default {
+  FerniPurchases,
+  Browser,
+  PushNotifications,
+  LocalNotifications,
+  Capacitor,
+  Haptics,
+  HealthKit,
+};

@@ -109,6 +109,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cameo-opportunities': () => import('../cameo-opportunities.js'),
   'cameo-unlock': () => import('../cameo-unlock.js'), // Natural team member introductions
   'team-gossip': () => import('../superhuman/team-gossip.js'), // Cross-persona references and banter
+  // DISABLED: semantic-intent-guidance has broken imports - see FIXME
+  // 'semantic-intent-guidance': () => import('../semantic-intent-guidance.js'), // Semantic pattern matching for handoffs, tools
 
   // CONTEXT (in awareness/)
   'outbound-call-context': () => import('../outbound-call-context.js'), // On-behalf call awareness

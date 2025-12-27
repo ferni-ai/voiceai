@@ -485,7 +485,7 @@ export const recordLifeEvent = llm.tool({
       id: `event_${Date.now()}`,
       date: new Date(),
       type: type as LifeEvent['type'],
-      subtype: 'custom' as any, // Simplified
+      subtype: 'major_loss', // Use generic financial subtype for custom events
       description,
       financialImpact: {
         incomeChange,

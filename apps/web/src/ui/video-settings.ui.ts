@@ -221,19 +221,27 @@ class VideoSettingsUI {
           <p>${t('videoSettings.intro')}</p>
         </div>
 
+        <div class="video-settings__coming-soon">
+          <div class="video-settings__coming-soon-icon">${ICONS.video}</div>
+          <h3>Video Calls Coming Soon</h3>
+          <p>We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar.</p>
+        </div>
+
+        <!-- Video Controls (Hidden - Coming Soon)
         <div class="video-settings__controls">
           <h3>${t('videoSettings.controls.title')}</h3>
 
-          <button aria-label="Settings" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video">
+          <button aria-label="Settings" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
             <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
-          <button aria-label="Settings" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen">
+          <button aria-label="Settings" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
             <span class="video-settings__control-icon">${ICONS.screen}</span>
             <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
         </div>
+        -->
 
         <div class="video-settings__modes">
           <h3>${t('videoSettings.modes.title')}</h3>
@@ -448,6 +456,44 @@ class VideoSettingsUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         margin: 0 0 var(--ma-rest, 21px) 0;
+      }
+
+      .video-settings__coming-soon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: var(--ma-vastness, 89px) var(--ma-rest, 21px);
+      }
+
+      .video-settings__coming-soon-icon {
+        width: 48px;
+        height: 48px;
+        color: var(--color-text-muted, #756a5e);
+        margin-bottom: var(--space-4, 16px);
+        opacity: 0.6;
+      }
+
+      .video-settings__coming-soon-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .video-settings__coming-soon h3 {
+        font-family: var(--font-display);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px) 0;
+      }
+
+      .video-settings__coming-soon p {
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: 0;
+        max-width: 280px;
+        line-height: 1.5;
       }
 
       .video-settings__controls h3,

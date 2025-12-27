@@ -145,6 +145,62 @@ const RELATIONSHIP_PATTERNS: RelationshipPattern[] = [
     type: 'other',
     extractName: (m) => m[1],
   },
+
+  // NAME-ONLY patterns (P3 FIX) - infer relationship from context
+  // "[Name] was really helpful" → likely colleague
+  {
+    pattern: /\b([A-Z][a-z]+)\s+(?:was|is|has been)\s+(?:really|so|very|super)\s+(?:helpful|supportive|kind|nice|great)/i,
+    type: 'colleague', // Default to colleague when context unclear
+    extractName: (m) => m[1],
+  },
+  // "Talked to [Name]" → friend or colleague
+  {
+    pattern: /(?:talked|spoke|chatted)\s+(?:to|with)\s+([A-Z][a-z]+)/i,
+    type: 'other',
+    extractName: (m) => m[1],
+  },
+  // "[Name] said..." / "[Name] told me..."
+  {
+    pattern: /\b([A-Z][a-z]+)\s+(?:said|told|mentioned|asked|suggested)/i,
+    type: 'other',
+    extractName: (m) => m[1],
+  },
+  // "Saw [Name]" / "Met [Name]"
+  {
+    pattern: /(?:saw|met|ran into|bumped into)\s+([A-Z][a-z]+)/i,
+    type: 'other',
+    extractName: (m) => m[1],
+  },
+
+  // GROUP patterns (P3 FIX)
+  // "the team" → colleagues
+  {
+    pattern: /(?:lunch|dinner|meeting|call)\s+with\s+(?:the\s+)?team/i,
+    type: 'colleague',
+    role: 'team',
+    extractName: () => 'Team',
+  },
+  // "the guys" / "the girls" → friends
+  {
+    pattern: /(?:with|see|saw|met)\s+(?:the\s+)?(?:guys|girls|gang|crew|squad)/i,
+    type: 'friend',
+    role: 'friend_group',
+    extractName: () => 'Friends',
+  },
+  // "my coworkers" → colleagues
+  {
+    pattern: /my\s+(?:coworkers|colleagues|team|staff)/i,
+    type: 'colleague',
+    role: 'team',
+    extractName: () => 'Coworkers',
+  },
+  // "the family" → family
+  {
+    pattern: /(?:with|see|saw|visited)\s+(?:the\s+)?family/i,
+    type: 'family',
+    role: 'family_group',
+    extractName: () => 'Family',
+  },
 ];
 
 // ============================================================================

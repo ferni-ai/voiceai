@@ -19,6 +19,7 @@
 
 import { EASING } from '../config/animation-constants.js';
 import { emotionState, type EmotionId } from '../emotion/emotion-state.js';
+import { soulStatsService } from '../services/soul-stats.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ferniExpressions, type EmotionalExpression } from './ferni-expressions.ui.js';
@@ -378,6 +379,9 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
   // Play the micro-expression with enforced timing
   // The /3 factor ensures expression transition is subliminal
   ferniExpressions.setExpression(micro.expression, enforcedDuration / 3);
+
+  // 📊 Track micro-expression for admin stats
+  soulStatsService.recordMicroExpression(type);
 
   // ✨ Avatar Soul integration - enhance with visual effects
   void (async () => {
@@ -1103,6 +1107,25 @@ export function anticipateEmotion(partial: {
   const text = partial.transcript.toLowerCase();
 
   // =========================================================================
+  // PRIORITY 0: SPECIFIC PHRASE PATTERNS - Context-aware, check first
+  // =========================================================================
+
+  // "Remember when..." = nostalgia/emotional - triggers memory spark!
+  // Must check BEFORE generic word matching (e.g., "got lost" in a memory context)
+  if (/remember (when|that time)/i.test(partial.transcript)) {
+    void (async () => {
+      const soul = await getAvatarSoul();
+      if (soul) {
+        soul.triggerMemorySpark(); // Golden flash for shared memory
+      }
+    })();
+    ferniExpressions.setExpression('remembering', 300);
+    // Dispatch memory callback event
+    document.dispatchEvent(new CustomEvent('ferni:memory-callback'));
+    return 'remembering';
+  }
+
+  // =========================================================================
   // PRIORITY 1: CONCERN/DISTRESS - Show care immediately
   // =========================================================================
 
@@ -1197,19 +1220,8 @@ export function anticipateEmotion(partial: {
     return 'contemplative';
   }
 
-  // "Remember when..." = nostalgia/emotional - triggers memory spark!
-  if (/remember (when|that time)/i.test(partial.transcript)) {
-    void (async () => {
-      const soul = await getAvatarSoul();
-      if (soul) {
-        soul.triggerMemorySpark(); // Golden flash for shared memory
-      }
-    })();
-    ferniExpressions.setExpression('remembering', 300);
-    // Dispatch memory callback event
-    document.dispatchEvent(new CustomEvent('ferni:memory-callback'));
-    return 'remembering';
-  }
+  // NOTE: "Remember when..." pattern moved to PRIORITY 0 (above)
+  // It must be checked before generic word matching to avoid false positives
 
   // "I need to tell you..." = something important
   if (/i need to (tell you|say|share)/i.test(partial.transcript)) {

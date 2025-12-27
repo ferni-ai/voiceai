@@ -109,11 +109,21 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
    * Speak text with interrupt awareness.
    * Applies recovery softening if the user interrupted us previously.
    * This makes agent responses feel less abrupt after an interrupt.
+   * 
+   * CRITICAL: Checks if session is closing before speaking to prevent
+   * errors during handoffs when the old agent's session is draining.
    */
-  const sayWithInterruptAwareness = (
+  const sayWithInterruptAwareness = async (
     text: string,
     options?: { allowInterruptions?: boolean }
-  ): void => {
+  ): Promise<void> => {
+    // CRITICAL: Check if session is closing before trying to speak
+    const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
+    if (isSessionClosing(sessionId)) {
+      diag.state('🚪 Skipping speech - session is closing');
+      return;
+    }
+
     const wrapped = wrapSpeechWithInterruptAwareness(text, {
       wasInterrupted: userData.wasInterrupted,
       interruptType: userData.interruptType,
@@ -158,9 +168,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let hasWarnedAboutIdle = false;
   let isDisconnectingDueToIdle = false;
 
-  // Backchannel timing constants
-  const BACKCHANNEL_MIN_INTERVAL_MS = 4000; // 4s feels more natural than 5s
-  const BACKCHANNEL_TRIGGER_MS = 3000; // 3s better than 3.5s for responsiveness
+  // Backchannel timing constants - HUMANIZATION FIX (Dec 2025)
+  // Real humans backchannel about once per 10-15 seconds, not every 4s!
+  // Using longer intervals to prevent robotic over-backchanneling
+  const BACKCHANNEL_MIN_INTERVAL_MS = 12000; // 12s between backchannels (was 4s - too robotic!)
+  const BACKCHANNEL_TRIGGER_MS = 4000; // 4s pause before triggering (was 3s - too quick!)
 
   // ============================================================
   // IDLE TIMEOUT HELPER - Auto-disconnect after extended silence
@@ -279,8 +291,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     ? getLiveBackchannelingService(sessionId)
     : null;
   let lastLiveBackchannelAt = 0;
-  const LIVE_BACKCHANNEL_MIN_INTERVAL_MS = 4000; // At least 4s between live backchannels
-  const MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS = 2000; // User must speak 2s+ before live backchannel
+  // HUMANIZATION FIX (Dec 2025): Live backchannels were too frequent - felt robotic
+  // Increased interval and minimum speech time for more natural feel
+  const LIVE_BACKCHANNEL_MIN_INTERVAL_MS = 15000; // 15s between live backchannels (was 4s!)
+  const MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS = 5000; // User must speak 5s+ (was 2s)
 
   // ============================================================
   // BACKCHANNEL HELPER (Regular - after user pauses)
@@ -320,7 +334,18 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     }
 
     // Don't backchannel too frequently
-    if (Date.now() - lastBackchannelAt < BACKCHANNEL_MIN_INTERVAL_MS) return;
+    // HUMANIZATION FIX: Add ±30% randomization to prevent robotic predictability
+    const randomizedInterval = BACKCHANNEL_MIN_INTERVAL_MS * (0.7 + Math.random() * 0.6);
+    const timeSinceLastBackchannel = Date.now() - lastBackchannelAt;
+    if (timeSinceLastBackchannel < randomizedInterval) {
+      // VISIBLE LOG: Show when backchannel is skipped due to cooldown
+      diag.state('🔇 [BACKCHANNEL] Cooldown active', {
+        waitedSec: Math.round(timeSinceLastBackchannel / 1000),
+        needSec: Math.round(randomizedInterval / 1000),
+        randomized: true,
+      });
+      return;
+    }
 
     // Feature flag: Use LLM-based backchannels for more natural variation
     const useLLMBackchannels = voiceFlags.enableLLMBackchannels ?? true;
@@ -373,56 +398,19 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           mode: 'llm',
         });
 
-        diag.state('🤖 LLM backchannel triggered', {
+        // PROMINENT LOG: Show backchannel timing for debugging
+        diag.state('🎯 [BACKCHANNEL] FIRED', {
           type: backchannelType,
           persona: sessionPersona.id,
           turnNumber: userData.turnCount,
+          intervalSec: Math.round(pauseDuration / 1000),
+          nextMinSec: Math.round(BACKCHANNEL_MIN_INTERVAL_MS / 1000),
         });
       } else {
-        diag.state('Backchannel skipped', { reason: result.skipReason });
-      }
-    } else {
-      // LEGACY: Use hardcoded phrase pools (fallback)
-      const backchannel = activeListening.getBackchannel(sessionPersona.id, {
-        userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : undefined,
-        topicSeriousness: silenceContext.recentEmotionalTone === 'heavy' ? 'serious' : 'casual',
-        userJustSharedSomethingPersonal: silenceContext.recentEmotionalTone === 'heavy',
-      });
-
-      if (backchannel) {
-        try {
-          // Use coordinated speech for backchannel
-          coordinatedSay(sessionId, backchannel.ssml, { allowInterruptions: true });
-          const backchannelFiredAt = Date.now();
-          const pauseDuration = backchannelFiredAt - lastBackchannelAt;
-          lastBackchannelAt = backchannelFiredAt;
-          pendingBackchannelReaction = true;
-
-          trackBackchannelEvent(sessionId, {
-            pauseDurationMs: pauseDuration,
-            wasTimely: true,
-            category:
-              backchannel.type === 'empathy'
-                ? 'empathy'
-                : backchannel.type === 'encouragement'
-                  ? 'encouragement'
-                  : backchannel.type === 'agreement'
-                    ? 'affirmation'
-                    : 'acknowledgment',
-            userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
-            mode: 'adaptive',
-          });
-
-          diag.state('Backchannel fired (legacy)', {
-            text: backchannel.verbal,
-            type: backchannel.type,
-            persona: sessionPersona.id,
-          });
-        } catch (e) {
-          getLogger().warn({ error: e }, 'Failed to fire backchannel');
-        }
+        diag.state('🔇 [BACKCHANNEL] Skipped', { reason: result.skipReason });
       }
     }
+    // NOTE: Legacy static phrase fallback REMOVED - always use LLM for natural variation
   };
 
   // ============================================================
@@ -444,7 +432,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     if (timeSinceAgentStopped < liveEchoGracePeriod) return;
 
     // Don't live-backchannel too frequently
-    if (Date.now() - lastLiveBackchannelAt < LIVE_BACKCHANNEL_MIN_INTERVAL_MS) return;
+    // HUMANIZATION FIX: Add ±30% randomization to prevent robotic predictability
+    const randomizedLiveInterval = LIVE_BACKCHANNEL_MIN_INTERVAL_MS * (0.7 + Math.random() * 0.6);
+    if (Date.now() - lastLiveBackchannelAt < randomizedLiveInterval) return;
 
     // Check breath pause state from userData
     const isBreathPause = userData.isInBreathPause ?? false;
@@ -487,10 +477,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           mode: 'live',
         });
 
-        diag.state('🎤 Live backchannel during breath pause', {
-          phrase: result.phrase.slice(0, 30),
-          speechDurationMs,
+        // PROMINENT LOG: Show live backchannel timing
+        diag.state('🎯 [LIVE BACKCHANNEL] FIRED during breath pause', {
+          phrase: result.phrase,
+          speechSec: Math.round(speechDurationMs / 1000),
           isEmotional: isEmotionalMoment,
+          persona: sessionPersona.id,
         });
       } catch (e) {
         getLogger().debug({ error: e }, 'Live backchannel failed (non-critical)');
@@ -791,7 +783,16 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         earlyAckAgentStateHandler = null;
       }
 
-      earlyAckTimer = setTimeout(() => {
+      earlyAckTimer = setTimeout(async () => {
+        // CRITICAL: Check if session is closing before trying to speak
+        // This prevents errors during handoffs when the old agent's session is draining
+        const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
+        if (isSessionClosing(sessionId)) {
+          diag.state('Early dead air skipped - session is closing');
+          earlyAckTimer = null;
+          return;
+        }
+
         if (!conversationManager.isAgentSpeaking()) {
           const timeSinceStop = Date.now() - userStoppedAt;
           if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
@@ -821,9 +822,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               contextParts.push('You have rapport now - be casual and natural.');
             }
 
-            diag.filler('Early dead air - using stage directions', {
-              waitedMs: timeSinceStop,
-              personaId: sessionPersona.id,
+            // PROMINENT LOG: Show dead air timing
+            diag.state('🎭 [DEAD AIR] Early acknowledgment', {
+              waitedSec: Math.round(timeSinceStop / 1000),
+              persona: sessionPersona.id,
               turnCount,
               hasContext: !!lastTranscript,
             });
@@ -838,7 +840,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           }
         }
         earlyAckTimer = null;
-      }, SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000);
+      // HUMANIZATION FIX: Add ±25% randomization to early acknowledgment timing
+      }, SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * (0.75 + Math.random() * 0.5));
 
       // Clean up timer if agent starts speaking
       const cleanupEarlyAck = () => {
@@ -995,7 +998,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           if (silenceBackchannel) {
             try {
               // Use interrupt-aware wrapper for softer recovery after interrupts
-              sayWithInterruptAwareness(silenceBackchannel.ssml, { allowInterruptions: true });
+              void sayWithInterruptAwareness(silenceBackchannel.ssml, { allowInterruptions: true });
               lastBackchannelAt = Date.now();
               diag.state('Silence-aware backchannel', {
                 phrase: silenceBackchannel.verbal,
@@ -1017,7 +1020,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               const insight = userData.pendingVoiceInsight;
               if (insight.confidence > 0.6) {
                 // Voice insights benefit from interrupt-aware delivery
-                sayWithInterruptAwareness(`<break time="300ms"/>${insight.ssml}`, {
+                void sayWithInterruptAwareness(`<break time="300ms"/>${insight.ssml}`, {
                   allowInterruptions: true,
                 });
                 userData.deliveredVoiceInsight = true;
@@ -1045,7 +1048,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       }
 
       // LONG SILENCE (10s+) - Meaningful silence responses
-      const intervals = [10, 22, 38];
+      // HUMANIZATION FIX: Add ±20% randomization to prevent predictable timing
+      const baseIntervals = [10, 22, 38];
+      const randomize = (base: number) => Math.round(base * (0.8 + Math.random() * 0.4));
+      const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
       if (
@@ -1082,11 +1088,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         // LLM-DRIVEN: Get instructions for natural, contextual silence response
         const silenceInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
 
-        diag.state('LLM-driven silence response', {
+        // PROMINENT LOG: Show silence response timing
+        diag.state('🤫 [SILENCE] LLM response triggered', {
           type: silenceInstructions.type,
-          silenceDuration: Math.round(silenceDurationSec),
-          responseCount: silenceResponseCount + 1,
-          hasInstructions: !!silenceInstructions.instructions,
+          silenceSec: Math.round(silenceDurationSec),
+          responseNum: silenceResponseCount + 1,
+          persona: sessionPersona.id,
         });
 
         // Try LLM-driven response using safe wrapper to prevent native crash
@@ -1115,7 +1122,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             }
           } else if (silenceInstructions.fallback) {
             // No LLM instructions (e.g., music playing) - use fallback if present
-            sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
+            void sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
           }
 
           // If we offered music, actually play it after a short delay

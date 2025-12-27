@@ -111,10 +111,12 @@ export {
   type BTCWOptions,
   type BTCWEmotionType,
   type SuperhumanOptions,
-  type AudioFrame,
   type SynthesisEvent,
   type SynthesisEventType,
 } from './btcw-core.js';
+
+// Re-export AudioFrame from LiveKit for consumers that need it
+export { AudioFrame } from '@livekit/rtc-node';
 
 // ============================================================================
 // SUPERHUMAN TTS (Beyond Human Voice Experience)

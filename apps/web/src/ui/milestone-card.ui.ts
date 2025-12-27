@@ -49,7 +49,8 @@ export interface JourneySummaryCardData {
 const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 630;
 
-// Ferni brand colors
+// Ferni brand colors for canvas rendering
+// @design-tokens-ignore - Canvas API requires literal color values
 const COLORS = {
   background: '#FAF8F5', // Paper cream
   backgroundDark: '#2C2520', // Natural ink

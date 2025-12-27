@@ -99,13 +99,16 @@ const ICONS = {
 // BIOMETRICS PLATFORMS
 // ============================================================================
 
+// Platforms with full backend API support
+const IMPLEMENTED_BIOMETRICS = ['apple_health', 'oura', 'eight_sleep'];
+
 const BIOMETRICS_PLATFORMS = [
   { id: 'apple_health', name: 'Apple Health', icon: ICONS.heart },
-  { id: 'google_fit', name: 'Google Fit', icon: ICONS.activity },
-  { id: 'fitbit', name: 'Fitbit', icon: ICONS.activity },
+  { id: 'google_fit', name: 'Google Fit', icon: ICONS.activity, comingSoon: true },
+  { id: 'fitbit', name: 'Fitbit', icon: ICONS.activity, comingSoon: true },
   { id: 'oura', name: 'Oura Ring', icon: ICONS.activity },
-  { id: 'whoop', name: 'WHOOP', icon: ICONS.activity },
-  { id: 'garmin', name: 'Garmin', icon: ICONS.activity },
+  { id: 'whoop', name: 'WHOOP', icon: ICONS.activity, comingSoon: true },
+  { id: 'garmin', name: 'Garmin', icon: ICONS.activity, comingSoon: true },
 ];
 
 // ============================================================================
@@ -262,13 +265,22 @@ class IntegrationsSettingsUI {
               </div>
             ` : `
               <div class="integrations-settings__platforms">
-                ${BIOMETRICS_PLATFORMS.map(p => `
+                ${BIOMETRICS_PLATFORMS.map(p => {
+                  const isComingSoon = 'comingSoon' in p && p.comingSoon;
+                  return isComingSoon ? `
+                  <div class="integrations-settings__platform-btn integrations-settings__platform-btn--disabled" aria-disabled="true">
+                    <span class="integrations-settings__platform-icon">${p.icon}</span>
+                    <span>${p.name}</span>
+                    <span class="integrations-settings__coming-soon-badge">Coming Soon</span>
+                  </div>
+                  ` : `
                   <button aria-label="Go forward" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
                     <span class="integrations-settings__platform-icon">${p.icon}</span>
                     <span>${p.name}</span>
                     ${ICONS.chevronRight}
                   </button>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             `}
           </section>
@@ -865,6 +877,28 @@ class IntegrationsSettingsUI {
       .integrations-settings__platform-btn:focus-visible {
         outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
+      }
+
+      .integrations-settings__platform-btn--disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .integrations-settings__platform-btn--disabled:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+        border-color: transparent;
+      }
+
+      .integrations-settings__coming-soon-badge {
+        margin-left: auto;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary, #ebe6df);
+        border-radius: var(--radius-sm, 4px);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
       }
 
       .integrations-settings__platform-icon {

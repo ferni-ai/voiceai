@@ -65,7 +65,7 @@ export interface UserTeamExperience {
 // TEAM MEMBER PROFILES
 // ============================================================================
 
-const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
+export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
   ferni: {
     id: 'ferni',
     name: 'Ferni',
@@ -210,7 +210,7 @@ const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
 
 const userExperiences = new Map<string, UserTeamExperience>();
 
-function getOrCreateExperience(userId: string): UserTeamExperience {
+export function getOrCreateExperience(userId: string): UserTeamExperience {
   let experience = userExperiences.get(userId);
   if (!experience) {
     experience = {

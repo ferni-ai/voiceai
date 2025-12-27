@@ -771,7 +771,7 @@ class SettingsMenuUI {
 
           <!-- SECTION 6: Settings - Preferences & account combined (UPDATED 2024-12-24 v2) -->
           ${(() => {
-            console.log('[SettingsMenu] Rendering Settings section with personalize + voice-enrollment');
+            // Debug log removed - use browser DevTools if needed
             return this.isSectionVisible('settings')
               ? this.renderCollapsibleSection(
                   'settings',

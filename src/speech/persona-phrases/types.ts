@@ -59,6 +59,8 @@ export interface PersonaBackchannelStyle {
   volumeRatio: number;
   /** Cartesia emotion tag to use */
   emotionTag?: string;
+  /** Speed variation range (e.g., 0.1 = ±10%) for natural feel */
+  speedVariation?: number;
 }
 
 export interface CatchphraseConfig {

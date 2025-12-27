@@ -373,7 +373,9 @@ export async function linkWithGoogleCredential(idToken: string): Promise<UserCre
 
   log.info('Linking Google account via One-Tap credential');
 
-  // Create credential from the One-Tap ID token
+  // Create credential from the One-Tap JWT ID token
+  // GoogleAuthProvider.credential(idToken, accessToken?) creates an OAuthCredential
+  // For One-Tap/GIS, idToken is a JWT that Firebase validates server-side
   const credential = GoogleAuthProvider.credential(idToken);
 
   try {

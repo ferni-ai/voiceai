@@ -878,6 +878,7 @@ class WinterSolsticeMomentUI {
 
     const style = document.createElement('style');
     style.id = 'solstice-styles';
+    // @design-tokens-ignore - Seasonal theme defines its own CSS custom properties
     style.textContent = `
       /* Winter Solstice Color Tokens */
       :root {

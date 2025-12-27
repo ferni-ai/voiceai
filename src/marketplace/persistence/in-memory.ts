@@ -16,7 +16,6 @@ import type {
   UserId,
 } from '../schema/types.js';
 import type { MarketplaceStore } from './firestore.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'marketplace-in-memory' });
 
@@ -146,7 +145,7 @@ export class InMemoryMarketplaceStore implements MarketplaceStore {
   async updateInstallation(id: string, updates: Partial<Installation>): Promise<void> {
     const existing = this.installations.get(id);
     if (existing) {
-      this.installations.set(cleanForFirestore(id), { ...existing, ...updates });
+      this.installations.set(id, { ...existing, ...updates });
     }
   }
 

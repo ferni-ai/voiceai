@@ -148,6 +148,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'team-availability',
     'team-dynamics',
     'handoff',
+    // DISABLED: semantic-intent-guidance has broken imports - see FIXME
+    // 'semantic-intent-guidance', // Semantic pattern matching for handoffs, tools, intent
     'role-boundaries',
     'cameo-opportunities',
     'cameo-unlock', // Natural team member introductions

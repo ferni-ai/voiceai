@@ -14,7 +14,7 @@
  * @module ui/semantic-intelligence-panel
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, getUserId } from '../utils/api.js';
 
@@ -382,8 +382,8 @@ async function fetchInsights(): Promise<SemanticInsight[]> {
   if (!userId) return [];
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/insights?userId=${userId}`);
-    return response?.insights || [];
+    const response = await apiGet<{ insights: SemanticInsight[] }>(`/api/semantic-intelligence/insights?userId=${userId}`);
+    return response.data?.insights || [];
   } catch (error) {
     log.debug({ error }, 'Failed to fetch insights');
     return [];
@@ -395,8 +395,8 @@ async function fetchOpenLoops(): Promise<OpenLoop[]> {
   if (!userId) return [];
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/open-loops?userId=${userId}`);
-    return response?.loops || [];
+    const response = await apiGet<{ loops: OpenLoop[] }>(`/api/semantic-intelligence/open-loops?userId=${userId}`);
+    return response.data?.loops || [];
   } catch (error) {
     log.debug({ error }, 'Failed to fetch open loops');
     return [];
@@ -408,8 +408,8 @@ async function fetchCommitments(): Promise<{ pending: Commitment[]; remembered: 
   if (!userId) return { pending: [], remembered: [] };
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/commitments?userId=${userId}`);
-    return { pending: response?.pending || [], remembered: response?.remembered || [] };
+    const response = await apiGet<{ pending: Commitment[]; remembered: Commitment[] }>(`/api/semantic-intelligence/commitments?userId=${userId}`);
+    return { pending: response.data?.pending || [], remembered: response.data?.remembered || [] };
   } catch (error) {
     log.debug({ error }, 'Failed to fetch commitments');
     return { pending: [], remembered: [] };
@@ -421,12 +421,13 @@ async function fetchRelationships(): Promise<RelationshipSummary | null> {
   if (!userId) return null;
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/relationships?userId=${userId}`);
+    const response = await apiGet<{ totalPeople: number; summary?: { topSupporter?: string; energyDrainer?: string; mostMentioned?: string } }>(`/api/semantic-intelligence/relationships?userId=${userId}`);
+    const data = response.data;
     return {
-      totalPeople: response?.totalPeople || 0,
-      topSupporter: response?.summary?.topSupporter,
-      energyDrainer: response?.summary?.energyDrainer,
-      mostMentioned: response?.summary?.mostMentioned,
+      totalPeople: data?.totalPeople || 0,
+      topSupporter: data?.summary?.topSupporter,
+      energyDrainer: data?.summary?.energyDrainer,
+      mostMentioned: data?.summary?.mostMentioned,
     };
   } catch (error) {
     log.debug({ error }, 'Failed to fetch relationships');
@@ -439,8 +440,8 @@ async function fetchTemporal(): Promise<TemporalContext | null> {
   if (!userId) return null;
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/temporal?userId=${userId}`);
-    return response || null;
+    const response = await apiGet<TemporalContext>(`/api/semantic-intelligence/temporal?userId=${userId}`);
+    return response.data || null;
   } catch (error) {
     log.debug({ error }, 'Failed to fetch temporal patterns');
     return null;
@@ -452,10 +453,11 @@ async function fetchBehavioral(): Promise<BehavioralContext | null> {
   if (!userId) return null;
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/behavioral?userId=${userId}`);
+    const response = await apiGet<{ sabotagePatterns?: Array<{ pattern: string; frequency: number }>; emotionalBaseline?: { dominantEmotion: string; stability: number } }>(`/api/semantic-intelligence/behavioral?userId=${userId}`);
+    const data = response.data;
     return {
-      sabotagePatterns: response?.sabotagePatterns || [],
-      emotionalBaseline: response?.emotionalBaseline || { dominantEmotion: 'neutral', stability: 0.5 },
+      sabotagePatterns: data?.sabotagePatterns || [],
+      emotionalBaseline: data?.emotionalBaseline || { dominantEmotion: 'neutral', stability: 0.5 },
     };
   } catch (error) {
     log.debug({ error }, 'Failed to fetch behavioral intelligence');
@@ -468,11 +470,12 @@ async function fetchCoaching(): Promise<CoachingContext | null> {
   if (!userId) return null;
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/coaching?userId=${userId}`);
+    const response = await apiGet<{ learningStyle?: { primary?: string }; effectiveness?: { bestApproach?: string }; resistance?: { sensitiveTopics?: string[] } }>(`/api/semantic-intelligence/coaching?userId=${userId}`);
+    const data = response.data;
     return {
-      learningStyle: response?.learningStyle?.primary,
-      bestApproach: response?.effectiveness?.bestApproach,
-      resistanceTopics: response?.resistance?.sensitiveTopics || [],
+      learningStyle: data?.learningStyle?.primary,
+      bestApproach: data?.effectiveness?.bestApproach,
+      resistanceTopics: data?.resistance?.sensitiveTopics || [],
     };
   } catch (error) {
     log.debug({ error }, 'Failed to fetch coaching intelligence');
@@ -485,10 +488,11 @@ async function fetchSelfAwareness(): Promise<SelfAwarenessContext | null> {
   if (!userId) return null;
 
   try {
-    const response = await apiGet(`/api/semantic-intelligence/self-awareness?userId=${userId}`);
+    const response = await apiGet<{ blindSpots?: Array<{ area: string; evidence: string }>; valuesAlignment?: { misaligned?: Array<{ value: string; behavior: string }> } }>(`/api/semantic-intelligence/self-awareness?userId=${userId}`);
+    const data = response.data;
     return {
-      blindSpots: response?.blindSpots || [],
-      valuesMisalignment: response?.valuesAlignment?.misaligned || [],
+      blindSpots: data?.blindSpots || [],
+      valuesMisalignment: data?.valuesAlignment?.misaligned || [],
     };
   } catch (error) {
     log.debug({ error }, 'Failed to fetch self-awareness data');

@@ -310,7 +310,7 @@ export async function startLifeContextPolling(userId: string): Promise<void> {
       const response = await fetch(`/api/life-context?userId=${userId}`);
       if (!response.ok) return;
 
-      const data = (await response.json()) as { snapshot?: unknown; triggers?: unknown[] };
+      const data = (await response.json()) as { snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] };
 
       if (data.snapshot) {
         currentSnapshot = data.snapshot;
@@ -320,7 +320,7 @@ export async function startLifeContextPolling(userId: string): Promise<void> {
           type: 'update',
           userId,
           snapshot: data.snapshot,
-          triggers: data.triggers,
+          triggers: data.triggers ?? [],
           timestamp: new Date().toISOString(),
         });
       }

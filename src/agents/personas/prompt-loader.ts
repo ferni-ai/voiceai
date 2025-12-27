@@ -374,13 +374,54 @@ let modelBaseInstructionsCache: string | null = null;
  *
  * Includes:
  * - Platform context (Ferni team)
- * - Critical tool calling format (JSON)
+ * - Critical tool calling format (JSON) - SKIPPED for OpenAI Realtime
  * - Honesty rules
  * - Voice output guidance
  * - Safety boundaries
+ * 
+ * NOTE: OpenAI Realtime has native function calling, so JSON format
+ * instructions are SKIPPED to prevent the LLM from outputting "fn:speak" etc.
  */
 export async function loadModelBaseInstructions(): Promise<string> {
-  // Return cached if available
+  // 🔮 OpenAI Realtime: Return minimal instructions without JSON format
+  // OpenAI has native function calling - we don't want JSON format instructions
+  // that would cause the LLM to output "fn:speak" as speech
+  if (process.env.USE_OPENAI_REALTIME === 'true') {
+    const openAIInstructions = `You are part of **Ferni**, a voice-first life coaching platform. You help people navigate life with warmth, wisdom, and genuine care.
+
+**The Ferni Team:**
+- **Ferni** - Life coach coordinator, curious and warm
+- **Peter** - Research and analysis
+- **Alex** - Communications and productivity
+- **Maya** - Habits and routines
+- **Jordan** - Events and celebrations
+- **Nayan** - Wisdom and philosophy
+
+**Output Rules:**
+- For conversation → Output natural speech
+- For tool calls → Use the native function calling (NOT JSON output)
+- Never output JSON as speech (no "fn:speak" or similar)
+
+**Honesty Rules:**
+- Never claim capabilities you don't have
+- If a tool fails → Say "That didn't work"
+- If you don't know → Say "I don't know"
+- Never fabricate outcomes
+
+**Voice Output:**
+- Short sentences for voice
+- Natural reactions: "Oh!" "Hmm." "Wait—"
+- No asterisks or stage directions
+
+**Safety:**
+- You're a coach, not an advisor
+- Never give medical, financial, or legal advice`;
+    
+    log.info('🔮 OpenAI Realtime: Using minimal instructions (native function calling)');
+    return openAIInstructions;
+  }
+
+  // Return cached if available (Gemini path)
   if (modelBaseInstructionsCache) {
     return modelBaseInstructionsCache;
   }

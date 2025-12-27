@@ -32,6 +32,7 @@ import {
   formatHandoffContextForAgent,
   getHandoffContextNew as getHandoffContext, // Use executor version which includes cognitiveContext
 } from '../../../tools/handoff/index.js';
+import { detectHandoffEnhanced } from '../../../services/coaching/semantic-handoff.js';
 import { formatCognitiveHandoffForPrompt } from '../../../tools/handoff/cognitive-handoff.js';
 import type { AgentId } from '../../../services/agent-bus.js';
 import { getAllHandoffTriggers } from '../../../personas/team/team-config.js';
@@ -380,29 +381,74 @@ Respond warmly: "I have a friend who'd be perfect for that, but we need to get t
   }
 
   // -----------------------------------------------
-  // HANDOFF SUGGESTIONS (for topic-based handoffs, only if unlocked)
+  // HANDOFF SUGGESTIONS (semantic + keyword detection)
+  // Uses semantic matching first, falls back to keyword matching
   // -----------------------------------------------
-  // Only suggest handoffs if not already the target agent
-  const handoffSuggestion = suggestHandoff(userText);
-  if (handoffSuggestion.suggest && handoffSuggestion.to !== currentAgent) {
-    // Get agent info using canonical ID
-    const canonicalId = legacyToCanonical(handoffSuggestion.to || '');
+  const userId = input.services?.userId || 'anonymous';
+  const currentCanonicalId = legacyToCanonical(currentAgent);
+  
+  // Try semantic detection first (catches conceptual intent)
+  const semanticHandoff = detectHandoffEnhanced(
+    userId,
+    userText,
+    currentCanonicalId as import('../../../services/coaching/handoff-intelligence.js').PersonaId
+  );
+  
+  if (semanticHandoff.shouldHandoff && semanticHandoff.candidate) {
+    const candidateId = semanticHandoff.candidate.personaId;
+    const canonicalId = legacyToCanonical(candidateId);
     const targetAgentInfo = getAgentInfo(canonicalId);
-
-    // Only suggest handoff if target is unlocked
     const targetUnlocked = isTeamMemberUnlocked(canonicalId, userProfile, tier);
+    
+    if (targetAgentInfo && targetUnlocked && candidateId !== currentAgent) {
+      const confidence = semanticHandoff.candidate.confidence;
+      const warmIntro = semanticHandoff.candidate.warmIntro;
+      
+      // High confidence = stronger suggestion
+      if (confidence >= 0.7) {
+        injections.push(
+          createHintInjection(
+            'handoff_suggestion',
+            `[🎯 STRONG HANDOFF MATCH: ${targetAgentInfo.name}]
+The user's message strongly indicates ${targetAgentInfo.name}'s specialty.
+Reason: ${semanticHandoff.candidate.reason}
+Confidence: ${Math.round(confidence * 100)}%
 
-    if (targetAgentInfo && targetUnlocked) {
-      injections.push(
-        createHintInjection(
-          'handoff_suggestion',
-          `[HANDOFF SUGGESTION: User's request about "${handoffSuggestion.reason}" matches ${targetAgentInfo.name}'s specialty (${targetAgentInfo.specialty}).
+Suggest naturally: "${warmIntro}"
+Tool: ${targetAgentInfo.tool}`
+          )
+        );
+      } else if (confidence >= 0.4) {
+        injections.push(
+          createHintInjection(
+            'handoff_suggestion',
+            `[HANDOFF OPPORTUNITY: ${targetAgentInfo.name}]
+This might be a good fit for ${targetAgentInfo.name} (${targetAgentInfo.specialty}).
+Reason: ${semanticHandoff.candidate.reason}
+Consider mentioning: "${warmIntro}"`
+          )
+        );
+      }
+    }
+  } else {
+    // Fall back to original keyword-based suggestion
+    const handoffSuggestion = suggestHandoff(userText);
+    if (handoffSuggestion.suggest && handoffSuggestion.to !== currentAgent) {
+      const canonicalId = legacyToCanonical(handoffSuggestion.to || '');
+      const targetAgentInfo = getAgentInfo(canonicalId);
+      const targetUnlocked = isTeamMemberUnlocked(canonicalId, userProfile, tier);
+
+      if (targetAgentInfo && targetUnlocked) {
+        injections.push(
+          createHintInjection(
+            'handoff_suggestion',
+            `[HANDOFF SUGGESTION: User's request about "${handoffSuggestion.reason}" matches ${targetAgentInfo.name}'s specialty (${targetAgentInfo.specialty}).
 Consider using the ${targetAgentInfo.tool} tool to bring them in.
 Example: "That sounds like something ${targetAgentInfo.name} could help with better. Want me to bring them in?"]`
-        )
-      );
+          )
+        );
+      }
     }
-    // If not unlocked, don't inject anything - let role-boundaries.ts handle it with vague language
   }
 
   // -----------------------------------------------
