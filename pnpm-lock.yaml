@@ -112,6 +112,9 @@ importers:
       pino:
         specifier: 10.1.0
         version: 10.1.0
+      semver:
+        specifier: 7.7.3
+        version: 7.7.3
       stripe:
         specifier: ^20.0.0
         version: 20.1.0(@types/node@20.19.27)
@@ -161,6 +164,9 @@ importers:
       '@types/semver':
         specifier: 7.7.1
         version: 7.7.1
+      '@types/sharp':
+        specifier: 0.32.0
+        version: 0.32.0
       '@types/uuid':
         specifier: 11.0.0
         version: 11.0.0
@@ -203,6 +209,9 @@ importers:
       prettier:
         specifier: ^3.7.2
         version: 3.7.4
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       tsx:
         specifier: 4.21.0
         version: 4.21.0
@@ -2926,6 +2935,10 @@ packages:
 
   '@types/serve-static@2.2.0':
     resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
+
+  '@types/sharp@0.32.0':
+    resolution: {integrity: sha512-OOi3kL+FZDnPhVzsfD37J88FNeZh6gQsGcLc95NbeURRGvmSjeXiDcyWzF2o3yh/gQAUn2uhh/e+CPCa5nwAxw==}
+    deprecated: This is a stub types definition. sharp provides its own type definitions, so you do not need this installed.
 
   '@types/shimmer@1.2.0':
     resolution: {integrity: sha512-UE7oxhQLLd9gub6JKIAhDq06T0F6FnztwMNRvYgjeQSBeMc1ZG/tA47EwfduvkuQS8apbkM/lpLpWsaCeYsXVg==}
@@ -9255,6 +9268,10 @@ snapshots:
     dependencies:
       '@types/http-errors': 2.0.5
       '@types/node': 20.19.27
+
+  '@types/sharp@0.32.0':
+    dependencies:
+      sharp: 0.34.5
 
   '@types/shimmer@1.2.0': {}
 
