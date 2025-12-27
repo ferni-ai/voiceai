@@ -155,6 +155,9 @@ ${colors.cyan}╚═════════════════════
       treeShaking: true,
       external: CONFIG.external,
       logLevel: 'warning',
+      
+      // Handle JSON imports (for seed-data.json etc.)
+      loader: { '.json': 'json' },
 
       // Add banner to identify this as a bundle
       banner: {

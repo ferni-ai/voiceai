@@ -116,6 +116,38 @@ function copyStaticFiles(): void {
     });
     log.success('Copied persona bundles');
   }
+
+  // Copy tool JSON files (config, seed data, etc.)
+  const toolsDir = join(CONFIG.srcDir, 'tools');
+  const toolsOutDir = join(CONFIG.outDir, 'tools');
+
+  if (existsSync(toolsDir)) {
+    copyJsonFiles(toolsDir, toolsOutDir);
+    log.success('Copied tool JSON files');
+  }
+}
+
+/**
+ * Recursively copy JSON files from src to dest, preserving directory structure
+ */
+function copyJsonFiles(srcDir: string, destDir: string): void {
+  const entries = readdirSync(srcDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = join(srcDir, entry.name);
+    const destPath = join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recurse into subdirectories
+      copyJsonFiles(srcPath, destPath);
+    } else if (entry.isFile() && entry.name.endsWith('.json')) {
+      // Copy JSON file
+      if (!existsSync(dirname(destPath))) {
+        mkdirSync(dirname(destPath), { recursive: true });
+      }
+      cpSync(srcPath, destPath);
+    }
+  }
 }
 
 // ============================================================================
