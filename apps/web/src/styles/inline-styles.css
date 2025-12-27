@@ -3550,14 +3550,7 @@ body {
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.avatar-lid-overlay .brow-left,
-.avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #1a1612);
-  transform-origin: center;
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
+/* NOTE: .brow-left, .brow-right removed - they caused visual artifacts (dark oval above eyes) */
 
 .avatar-lid-overlay .delight-sparkles {
   position: absolute;
@@ -3960,6 +3953,740 @@ body {
   color: white;
   letter-spacing: var(--tracking-tight);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ========================================================================
+   AVATAR EYES (Ferni) - Life-like eyes instead of text initials
+   Default: Show eyes for Ferni, hide text
+   For other personas: coach.ui.ts toggles visibility
+   ======================================================================== */
+.avatar-eyes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ========================================================================
+   PIXAR-STYLE EYE ANIMATION SYSTEM
+   Based on Ferni EQ Framework (BETTER-THAN-HUMAN.md)
+
+   Core principles:
+   - NO OPACITY changes on eyes (feels ghostly)
+   - Squash/stretch transforms (Pixar signature)
+   - Position shifts for "looking" behaviors
+   - Micro-expressions: 40-150ms (subliminal)
+   - Secondary action: sparkles follow eyes
+   ======================================================================== */
+
+/* Eye base setup - transform-based only, NO opacity */
+.avatar-eyes .eye-main {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center 60%; /* Slightly low origin for natural squash */
+  will-change: transform;
+}
+
+.avatar-eyes .sparkle {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center center;
+  /* Sparkles stay fully opaque - movement only */
+}
+
+/* Show eyes, hide text - applies to ALL personas */
+.avatar-eyes {
+  display: block;
+}
+
+/* Hide avatar text when eyes are present - use !important to override all media queries */
+#coachAvatar #avatarText,
+#avatarText {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Eye expressions - blink */
+@keyframes avatar-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+.avatar-eyes.blinking .eye-main {
+  animation: avatar-blink 3s ease-in-out infinite;
+}
+
+/* ========================================================================
+   EMOTION EXPRESSIONS - Pixar Squash & Stretch
+   Each emotion uses transform-only (NO opacity)
+   Sparkles follow eye movement as secondary action
+   ======================================================================== */
+
+/* CURIOUS - eyes widen with slight upward lean */
+.avatar-container[data-emotion="curious"] .avatar-eyes .eye-main,
+#coach[data-emotion="curious"] .avatar-eyes .eye-main {
+  transform: scaleY(1.15) scaleX(1.02) translateY(-1px);
+}
+.avatar-container[data-emotion="curious"] .avatar-eyes .sparkle,
+#coach[data-emotion="curious"] .avatar-eyes .sparkle {
+  transform: translateY(-1px) scale(1.1);
+}
+
+/* HAPPY - eyes squint into happy crescents (Pixar smile) */
+.avatar-container[data-emotion="happy"] .avatar-eyes .eye-main,
+#coach[data-emotion="happy"] .avatar-eyes .eye-main {
+  transform: scaleY(0.65) scaleX(1.08) translateY(1px);
+}
+.avatar-container[data-emotion="happy"] .avatar-eyes .sparkle,
+#coach[data-emotion="happy"] .avatar-eyes .sparkle {
+  transform: translateY(2px) scale(1.15);
+}
+
+/* SAD - eyes droop with subtle inward tilt */
+.avatar-container[data-emotion="sad"] .avatar-eyes .eye-main,
+#coach[data-emotion="sad"] .avatar-eyes .eye-main {
+  transform: scaleY(0.8) translateY(3px);
+}
+.avatar-container[data-emotion="sad"] .avatar-eyes .eye-left,
+#coach[data-emotion="sad"] .avatar-eyes .eye-left {
+  transform: scaleY(0.8) translateY(3px) rotate(3deg);
+}
+.avatar-container[data-emotion="sad"] .avatar-eyes .eye-right,
+#coach[data-emotion="sad"] .avatar-eyes .eye-right {
+  transform: scaleY(0.8) translateY(3px) rotate(-3deg);
+}
+.avatar-container[data-emotion="sad"] .avatar-eyes .sparkle,
+#coach[data-emotion="sad"] .avatar-eyes .sparkle {
+  transform: translateY(3px) scale(0.85);
+}
+
+/* SURPRISED - eyes widen dramatically (Pixar stretch) */
+.avatar-container[data-emotion="surprised"] .avatar-eyes .eye-main,
+#coach[data-emotion="surprised"] .avatar-eyes .eye-main {
+  transform: scaleY(1.25) scaleX(1.1) translateY(-2px);
+}
+.avatar-container[data-emotion="surprised"] .avatar-eyes .sparkle,
+#coach[data-emotion="surprised"] .avatar-eyes .sparkle {
+  transform: translateY(-3px) scale(1.2);
+}
+
+/* THINKING - eyes look up-right (cognitive processing) */
+.avatar-container[data-emotion="thinking"] .avatar-eyes .eye-main,
+#coach[data-emotion="thinking"] .avatar-eyes .eye-main {
+  transform: translateX(2px) translateY(-2px);
+}
+.avatar-container[data-emotion="thinking"] .avatar-eyes .sparkle,
+#coach[data-emotion="thinking"] .avatar-eyes .sparkle {
+  transform: translateX(2px) translateY(-3px);
+}
+
+/* CONCERNED - slight furrow, eyes narrow with care */
+.avatar-container[data-emotion="concerned"] .avatar-eyes .eye-main,
+#coach[data-emotion="concerned"] .avatar-eyes .eye-main {
+  transform: scaleY(0.9) scaleX(0.95);
+}
+.avatar-container[data-emotion="concerned"] .avatar-eyes .eye-left,
+#coach[data-emotion="concerned"] .avatar-eyes .eye-left {
+  transform: scaleY(0.9) rotate(-2deg);
+}
+.avatar-container[data-emotion="concerned"] .avatar-eyes .eye-right,
+#coach[data-emotion="concerned"] .avatar-eyes .eye-right {
+  transform: scaleY(0.9) rotate(2deg);
+}
+
+/* EMPATHETIC - soft, slightly widened, tilted inward */
+.avatar-container[data-emotion="empathetic"] .avatar-eyes .eye-main,
+#coach[data-emotion="empathetic"] .avatar-eyes .eye-main {
+  transform: scaleY(1.05);
+}
+.avatar-container[data-emotion="empathetic"] .avatar-eyes .eye-left,
+#coach[data-emotion="empathetic"] .avatar-eyes .eye-left {
+  transform: scaleY(1.05) rotate(2deg);
+}
+.avatar-container[data-emotion="empathetic"] .avatar-eyes .eye-right,
+#coach[data-emotion="empathetic"] .avatar-eyes .eye-right {
+  transform: scaleY(1.05) rotate(-2deg);
+}
+
+/* PLAYFUL - asymmetric wink-ready, one eye slightly squinted */
+.avatar-container[data-emotion="playful"] .avatar-eyes .eye-left,
+#coach[data-emotion="playful"] .avatar-eyes .eye-left {
+  transform: scaleY(0.75) scaleX(1.05);
+}
+.avatar-container[data-emotion="playful"] .avatar-eyes .eye-right,
+#coach[data-emotion="playful"] .avatar-eyes .eye-right {
+  transform: scaleY(1.1) scaleX(1.02);
+}
+
+/* EXCITED - wide eyes with slight bounce */
+.avatar-container[data-emotion="excited"] .avatar-eyes .eye-main,
+#coach[data-emotion="excited"] .avatar-eyes .eye-main {
+  transform: scaleY(1.2) scaleX(1.05) translateY(-1px);
+}
+.avatar-container[data-emotion="excited"] .avatar-eyes .sparkle,
+#coach[data-emotion="excited"] .avatar-eyes .sparkle {
+  transform: translateY(-2px) scale(1.25);
+}
+
+/* CALM - relaxed, slightly narrowed, serene */
+.avatar-container[data-emotion="calm"] .avatar-eyes .eye-main,
+#coach[data-emotion="calm"] .avatar-eyes .eye-main {
+  transform: scaleY(0.92) scaleX(1.02);
+}
+
+/* TIRED - heavy lids, drooping */
+.avatar-container[data-emotion="tired"] .avatar-eyes .eye-main,
+#coach[data-emotion="tired"] .avatar-eyes .eye-main {
+  transform: scaleY(0.7) translateY(2px);
+}
+
+/* RECOGNITION - quick widening flash (micro-expression ready) */
+.avatar-container[data-emotion="recognition"] .avatar-eyes .eye-main,
+#coach[data-emotion="recognition"] .avatar-eyes .eye-main {
+  transform: scaleY(1.18) scaleX(1.08);
+}
+
+/* WARMTH - soft, inviting, slight squint like genuine smile */
+.avatar-container[data-emotion="warmth"] .avatar-eyes .eye-main,
+#coach[data-emotion="warmth"] .avatar-eyes .eye-main {
+  transform: scaleY(0.85) scaleX(1.04) translateY(0.5px);
+}
+
+/* DELIGHT - bright, wide, joyful (stronger than happy) */
+.avatar-container[data-emotion="delight"] .avatar-eyes .eye-main,
+#coach[data-emotion="delight"] .avatar-eyes .eye-main {
+  transform: scaleY(0.55) scaleX(1.12) translateY(1px);
+}
+.avatar-container[data-emotion="delight"] .avatar-eyes .sparkle,
+#coach[data-emotion="delight"] .avatar-eyes .sparkle {
+  transform: translateY(2px) scale(1.3);
+}
+
+/* ========================================================================
+   VOICE AGENT STATES - Pixar-Style Reactions
+   Eyes react to voice agent states with squash/stretch (NO opacity)
+   ======================================================================== */
+
+/* SPEAKING - Pixar-style "talking" squash with rhythm */
+@keyframes speaking-squash {
+  0%, 100% {
+    transform: scaleY(0.78) scaleX(1.06);
+  }
+  25% {
+    transform: scaleY(0.88) scaleX(1.02);
+  }
+  50% {
+    transform: scaleY(0.72) scaleX(1.08);
+  }
+  75% {
+    transform: scaleY(0.85) scaleX(1.04);
+  }
+}
+
+@keyframes speaking-sparkle-bounce {
+  0%, 100% { transform: translateY(2px) scale(1.1); }
+  50% { transform: translateY(1px) scale(1.15); }
+}
+
+#coach.is-speaking .avatar-eyes .eye-main {
+  animation: speaking-squash 0.4s ease-in-out infinite;
+}
+
+#coach.is-speaking .avatar-eyes .sparkle {
+  animation: speaking-sparkle-bounce 0.4s ease-in-out infinite;
+}
+
+/* ========================================================================
+   NAYAN - Wise, serene eyes (NO dancing, NO pupils/sparkles)
+   Nayan's character is calm and contemplative - eyes should be still
+   The simple white eyes without sparkles give a more meditative appearance
+   ======================================================================== */
+
+/* Nayan: Hide sparkles (they can look like pupils) - pure white eyes only */
+[data-persona='nayan-patel'] .avatar-eyes .sparkle {
+  display: none !important;
+}
+
+/* Nayan: No dancing eyes when speaking - serene stillness */
+[data-persona='nayan-patel'] #coach.is-speaking .avatar-eyes .eye-main {
+  animation: none !important;
+  transform: scaleY(0.9) scaleX(1.02); /* Gentle squint, but static */
+}
+
+/* Nayan: Serene listening - minimal movement */
+[data-persona='nayan-patel'] #coach.is-listening .avatar-eyes .eye-main {
+  animation: none !important;
+  transform: scaleY(1.05) scaleX(1.02); /* Slightly open, attentive but still */
+}
+
+/* Nayan: Thinking - still eyes that look upward slightly */
+[data-persona='nayan-patel'] #coach.is-thinking .avatar-eyes .eye-main {
+  animation: none !important;
+  transform: translateX(1px) translateY(-1px); /* Static thoughtful position */
+}
+
+[data-persona='nayan-patel'] #coach.is-thinking .avatar-eyes .sparkle {
+  animation: none !important;
+  transform: translateX(1px) translateY(-1px);
+}
+
+/* Nayan: Connected idle - very slow, subtle breathing only */
+[data-persona='nayan-patel'] #coach.is-connected:not(.is-speaking):not(.is-listening):not(.is-thinking) .avatar-eyes .eye-main {
+  animation: nayan-serene-breathe 6s ease-in-out infinite; /* Slower, calmer */
+}
+
+@keyframes nayan-serene-breathe {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  50% { transform: scaleY(1.02) scaleX(1.01); } /* Very subtle */
+}
+
+/* LISTENING - Attentive wide eyes with subtle "leaning in" */
+@keyframes listening-attentive {
+  0%, 100% {
+    transform: scaleY(1.12) scaleX(1.02) translateY(-0.5px);
+  }
+  50% {
+    transform: scaleY(1.15) scaleX(1.04) translateY(-1px);
+  }
+}
+
+#coach.is-listening .avatar-eyes .eye-main {
+  animation: listening-attentive 2s ease-in-out infinite;
+}
+
+#coach.is-listening .avatar-eyes .sparkle {
+  transform: translateY(-1px) scale(1.12);
+}
+
+/* THINKING - Eyes look up-right with gentle drift (cognitive processing) */
+@keyframes thinking-drift {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  30% {
+    transform: translateX(2px) translateY(-2px);
+  }
+  60% {
+    transform: translateX(1.5px) translateY(-1.5px);
+  }
+}
+
+@keyframes thinking-sparkle-drift {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  30% { transform: translateX(2.5px) translateY(-3px); }
+  60% { transform: translateX(2px) translateY(-2px); }
+}
+
+#coach.is-thinking .avatar-eyes .eye-main {
+  animation: thinking-drift 3s ease-in-out infinite;
+}
+
+#coach.is-thinking .avatar-eyes .sparkle {
+  animation: thinking-sparkle-drift 3s ease-in-out infinite;
+}
+
+/* IDLE/CONNECTED - Gentle breathing + natural blink */
+@keyframes idle-breathe {
+  0%, 100% {
+    transform: scaleY(1) scaleX(1);
+  }
+  50% {
+    transform: scaleY(1.02) scaleX(0.99);
+  }
+}
+
+@keyframes natural-blink {
+  0%, 94%, 100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.15); /* Squash for blink */
+  }
+  98% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* Breathing when connected but not actively speaking/listening */
+#coach.is-connected:not(.is-speaking):not(.is-listening):not(.is-thinking) .avatar-eyes .eye-main {
+  animation: idle-breathe 4s ease-in-out infinite, natural-blink 5s ease-in-out infinite;
+  animation-delay: 0s, 2s; /* Stagger blink so not immediate */
+}
+
+/* ========================================================================
+   MICRO-EXPRESSIONS - Subliminal 40-150ms flashes
+   Based on Ferni EQ Framework (BETTER-THAN-HUMAN.md)
+   These are too fast to consciously notice but build trust
+   ======================================================================== */
+
+/* MICRO: Recognition flash - "I see you" moment */
+@keyframes micro-recognition {
+  0% { transform: scaleY(1) scaleX(1); }
+  40% { transform: scaleY(1.2) scaleX(1.1); }
+  100% { transform: scaleY(1) scaleX(1); }
+}
+
+.avatar-eyes.micro-recognition .eye-main {
+  animation: micro-recognition 80ms ease-out forwards;
+}
+
+/* MICRO: Concern flash - empathetic response */
+@keyframes micro-concern {
+  0% { transform: scaleY(1); }
+  50% { transform: scaleY(0.88) rotate(1deg); }
+  100% { transform: scaleY(1) rotate(0); }
+}
+
+.avatar-eyes.micro-concern .eye-main {
+  animation: micro-concern 100ms ease-out forwards;
+}
+
+/* MICRO: Delight flash - genuine joy spark */
+@keyframes micro-delight {
+  0% { transform: scaleY(1); }
+  30% { transform: scaleY(0.6) scaleX(1.15); }
+  100% { transform: scaleY(1) scaleX(1); }
+}
+
+.avatar-eyes.micro-delight .eye-main {
+  animation: micro-delight 120ms ease-out forwards;
+}
+
+/* MICRO: Warmth pulse - caring moment */
+@keyframes micro-warmth {
+  0% { transform: scaleY(1); }
+  50% { transform: scaleY(0.9) scaleX(1.05); }
+  100% { transform: scaleY(1) scaleX(1); }
+}
+
+.avatar-eyes.micro-warmth .eye-main {
+  animation: micro-warmth 100ms ease-out forwards;
+}
+
+/* MICRO: Interest flash - engaged attention */
+@keyframes micro-interest {
+  0% { transform: scaleY(1) translateY(0); }
+  50% { transform: scaleY(1.12) translateY(-1px); }
+  100% { transform: scaleY(1) translateY(0); }
+}
+
+.avatar-eyes.micro-interest .eye-main {
+  animation: micro-interest 90ms ease-out forwards;
+}
+
+/* MICRO: Surprise spike - quick startle */
+@keyframes micro-surprise {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.avatar-eyes.micro-surprise .eye-main {
+  animation: micro-surprise 150ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ========================================================================
+   ACTIVE LISTENING - Subtle nods and presence cues
+   ======================================================================== */
+
+/* Micro-nod during user speech (applied to container) */
+@keyframes listening-nod {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1px); }
+}
+
+#coach.active-listening .avatar-eyes {
+  animation: listening-nod 0.6s ease-in-out;
+}
+
+/* Contemplative pause - slight upward drift */
+@keyframes contemplative-pause {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.5px); }
+}
+
+#coach.contemplative .avatar-eyes .eye-main {
+  animation: contemplative-pause 1.5s ease-in-out infinite;
+}
+
+/* ========================================================================
+   ANTICIPATORY EXPRESSIONS - Show emotion before user finishes
+   ======================================================================== */
+
+/* Anticipate concern - slight narrowing before they finish sad statement */
+#coach.anticipate-concern .avatar-eyes .eye-main {
+  transform: scaleY(0.92);
+  transition: transform 0.3s ease-out;
+}
+
+/* Anticipate joy - slight widening before good news */
+#coach.anticipate-joy .avatar-eyes .eye-main {
+  transform: scaleY(1.08);
+  transition: transform 0.3s ease-out;
+}
+
+/* ========================================================================
+   MUSIC & DANCING - Eyes groove to the beat!
+   Pixar-style bouncy, joyful movement
+   ======================================================================== */
+
+/* Dancing eyes - bouncy rhythm synced to music */
+@keyframes eyes-dance-bounce {
+  0%, 100% {
+    transform: scaleY(0.75) scaleX(1.08) translateY(0);
+  }
+  25% {
+    transform: scaleY(0.85) scaleX(1.02) translateY(-2px);
+  }
+  50% {
+    transform: scaleY(0.65) scaleX(1.12) translateY(1px);
+  }
+  75% {
+    transform: scaleY(0.8) scaleX(1.05) translateY(-1px);
+  }
+}
+
+@keyframes eyes-dance-sway {
+  0%, 100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-1px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(1px) rotate(2deg);
+  }
+}
+
+@keyframes sparkle-dance {
+  0%, 100% {
+    transform: translateY(1px) scale(1.2);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.35);
+  }
+}
+
+/* Music playing - eyes dance! */
+#coach.music-dancing .avatar-eyes .eye-main {
+  animation: eyes-dance-bounce 0.5s ease-in-out infinite;
+}
+
+#coach.music-dancing .avatar-eyes {
+  animation: eyes-dance-sway 1s ease-in-out infinite;
+}
+
+#coach.music-dancing .avatar-eyes .sparkle {
+  animation: sparkle-dance 0.5s ease-in-out infinite;
+}
+
+/* Slow jam / chill music - gentler sway */
+@keyframes eyes-chill-sway {
+  0%, 100% {
+    transform: scaleY(0.85) translateY(0);
+  }
+  50% {
+    transform: scaleY(0.8) translateY(0.5px);
+  }
+}
+
+#coach.music-chill .avatar-eyes .eye-main {
+  animation: eyes-chill-sway 1.5s ease-in-out infinite;
+}
+
+/* Intense/energetic music - faster bounce */
+@keyframes eyes-intense-bounce {
+  0%, 100% {
+    transform: scaleY(0.7) scaleX(1.1) translateY(0);
+  }
+  50% {
+    transform: scaleY(0.6) scaleX(1.15) translateY(-2px);
+  }
+}
+
+#coach.music-intense .avatar-eyes .eye-main {
+  animation: eyes-intense-bounce 0.25s ease-in-out infinite;
+}
+
+/* ========================================================================
+   GAMES - Playful, competitive, excited expressions
+   ======================================================================== */
+
+/* Game mode - alert, focused, playful */
+@keyframes game-focus {
+  0%, 100% {
+    transform: scaleY(1.1) scaleX(1.02);
+  }
+  50% {
+    transform: scaleY(1.15) scaleX(1.05);
+  }
+}
+
+#coach.game-active .avatar-eyes .eye-main {
+  animation: game-focus 1.5s ease-in-out infinite;
+}
+
+/* Waiting for answer - anticipation */
+@keyframes game-anticipate {
+  0%, 100% {
+    transform: scaleY(1.08) translateY(0);
+  }
+  30% {
+    transform: scaleY(1.12) translateY(-1px);
+  }
+  60% {
+    transform: scaleY(1.1) translateY(0);
+  }
+}
+
+#coach.game-waiting .avatar-eyes .eye-main {
+  animation: game-anticipate 2s ease-in-out infinite;
+}
+
+/* Correct answer - celebration bounce! */
+@keyframes game-correct {
+  0% {
+    transform: scaleY(1) scaleX(1);
+  }
+  20% {
+    transform: scaleY(0.5) scaleX(1.2);
+  }
+  40% {
+    transform: scaleY(1.3) scaleX(0.9) translateY(-3px);
+  }
+  60% {
+    transform: scaleY(0.6) scaleX(1.15);
+  }
+  80% {
+    transform: scaleY(1.1) scaleX(1.02);
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+  }
+}
+
+#coach.game-correct .avatar-eyes .eye-main {
+  animation: game-correct 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Wrong answer - sympathetic squint */
+@keyframes game-wrong {
+  0% {
+    transform: scaleY(1);
+  }
+  30% {
+    transform: scaleY(0.7) rotate(2deg);
+  }
+  60% {
+    transform: scaleY(0.75) rotate(-1deg);
+  }
+  100% {
+    transform: scaleY(0.85);
+  }
+}
+
+#coach.game-wrong .avatar-eyes .eye-main {
+  animation: game-wrong 0.5s ease-out forwards;
+}
+
+/* Streak/combo - excited bouncing */
+@keyframes game-streak {
+  0%, 100% {
+    transform: scaleY(0.55) scaleX(1.15) translateY(0);
+  }
+  25% {
+    transform: scaleY(0.6) scaleX(1.1) translateY(-2px);
+  }
+  50% {
+    transform: scaleY(0.5) scaleX(1.18) translateY(0);
+  }
+  75% {
+    transform: scaleY(0.58) scaleX(1.12) translateY(-1px);
+  }
+}
+
+#coach.game-streak .avatar-eyes .eye-main {
+  animation: game-streak 0.3s ease-in-out infinite;
+}
+
+#coach.game-streak .avatar-eyes .sparkle {
+  animation: sparkle-dance 0.3s ease-in-out infinite;
+}
+
+/* ========================================================================
+   REDUCED MOTION - Accessibility
+   ======================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-eyes .eye-main,
+  .avatar-eyes .sparkle {
+    transition: transform 0.3s ease-out !important;
+    animation: none !important;
+  }
+
+  /* Still allow basic expressions via transform, just no animation */
+  #coach.is-speaking .avatar-eyes .eye-main {
+    transform: scaleY(0.85);
+    animation: none !important;
+  }
+
+  #coach.is-listening .avatar-eyes .eye-main {
+    transform: scaleY(1.1);
+    animation: none !important;
+  }
+
+  #coach.is-thinking .avatar-eyes .eye-main {
+    transform: translateX(1px) translateY(-1px);
+    animation: none !important;
+  }
+
+  /* Disable all micro-expression animations */
+  .avatar-eyes.micro-recognition .eye-main,
+  .avatar-eyes.micro-concern .eye-main,
+  .avatar-eyes.micro-delight .eye-main,
+  .avatar-eyes.micro-warmth .eye-main,
+  .avatar-eyes.micro-interest .eye-main,
+  .avatar-eyes.micro-surprise .eye-main {
+    animation: none !important;
+  }
+
+  /* Disable music dancing animations - show happy static state instead */
+  #coach.music-dancing .avatar-eyes .eye-main,
+  #coach.music-chill .avatar-eyes .eye-main,
+  #coach.music-intense .avatar-eyes .eye-main {
+    transform: scaleY(0.75) scaleX(1.08);
+    animation: none !important;
+  }
+
+  #coach.music-dancing .avatar-eyes,
+  #coach.music-chill .avatar-eyes,
+  #coach.music-intense .avatar-eyes {
+    animation: none !important;
+  }
+
+  /* Disable game animations - show static states instead */
+  #coach.game-active .avatar-eyes .eye-main {
+    transform: scaleY(1.1);
+    animation: none !important;
+  }
+
+  #coach.game-waiting .avatar-eyes .eye-main {
+    transform: scaleY(1.08);
+    animation: none !important;
+  }
+
+  #coach.game-correct .avatar-eyes .eye-main {
+    transform: scaleY(0.6) scaleX(1.15);
+    animation: none !important;
+  }
+
+  #coach.game-wrong .avatar-eyes .eye-main {
+    transform: scaleY(0.85);
+    animation: none !important;
+  }
+
+  #coach.game-streak .avatar-eyes .eye-main,
+  #coach.game-streak .avatar-eyes .sparkle {
+    animation: none !important;
+  }
 }
 
 /* DEPRECATED: #statusIndicator is replaced by .connection-heart
@@ -5701,6 +6428,23 @@ body {
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
+/* ========================================================================
+   TEAM ROSTER - Avatar Eyes SVG
+   All personas show eyes in roster avatar instead of initials
+   ======================================================================== */
+.team-avatar-eyes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Hide initials text for ALL personas in roster (eyes only) */
+.team-member .team-avatar {
+  font-size: 0;
+  color: transparent;
+}
+
 /* 🎬 PIXAR HOVER - Enhanced hover from magnetic pull animation (JS adds this class) */
 .team-member.pixar-hover {
   z-index: var(--z-docked); /* Float above siblings during hover */
@@ -5832,6 +6576,11 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--color-text-dimmed, #b8ad9f) !important;
+}
+
+/* Override the .team-member .team-avatar { color: transparent } rule that hides initials.
+   The marketplace "More" button needs white color for the + icon SVG (stroke="currentColor") */
+.team-member--marketplace .marketplace-avatar {
   color: white;
 }
 
