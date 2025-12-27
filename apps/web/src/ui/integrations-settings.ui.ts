@@ -99,8 +99,8 @@ const ICONS = {
 // BIOMETRICS PLATFORMS
 // ============================================================================
 
-// Platforms with full backend API support
-const IMPLEMENTED_BIOMETRICS = ['apple_health', 'oura', 'eight_sleep'];
+// Platforms with full backend API support (reserved for future filtering)
+const _IMPLEMENTED_BIOMETRICS = ['apple_health', 'oura', 'eight_sleep'];
 
 const BIOMETRICS_PLATFORMS = [
   { id: 'apple_health', name: 'Apple Health', icon: ICONS.heart },
