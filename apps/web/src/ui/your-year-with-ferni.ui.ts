@@ -377,7 +377,7 @@ export class YourYearWithFerni {
       <div class="timeline-item">
         <div class="timeline-dot" style="background: var(--color-ferni)"></div>
         <div class="timeline-content">
-          <div class="timeline-date">${moment.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+          <div class="timeline-date">${new Date(moment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
           <div class="timeline-emotion">${moment.emotion}</div>
           ${moment.context ? `<div class="timeline-context">${moment.context}</div>` : ''}
         </div>
@@ -396,7 +396,7 @@ export class YourYearWithFerni {
       <div class="team-member">
         <div class="team-avatar" style="background: ${member.primaryColor}">${member.personaName.charAt(0)}</div>
         <div class="team-name">${member.personaName}</div>
-        <div class="team-unlocked">Unlocked ${member.unlockedAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+        <div class="team-unlocked">Unlocked ${new Date(member.unlockedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
       </div>
     `
       )
