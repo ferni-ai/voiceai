@@ -125,6 +125,9 @@ export function createLifeSeasonsElement(seasons: SeasonData[]): HTMLElement {
   const container = document.createElement('div');
   container.className = 'life-seasons';
 
+  // Defensive check for array
+  const seasonsArray = Array.isArray(seasons) ? seasons : [];
+
   // Title
   const title = document.createElement('h3');
   title.className = 'life-seasons__title';
@@ -142,7 +145,7 @@ export function createLifeSeasonsElement(seasons: SeasonData[]): HTMLElement {
     winter: 'var(--color-alex, #5a6b8a)',
   };
 
-  seasons.forEach((season, index) => {
+  seasonsArray.forEach((season, index) => {
     const segment = document.createElement('div');
     segment.className = `life-seasons__segment life-seasons__segment--${season.season}`;
     segment.style.setProperty('--segment-index', String(index));
@@ -199,6 +202,9 @@ export function createConversationRiverElement(topics: ConversationTopic[]): HTM
   const container = document.createElement('div');
   container.className = 'conversation-river';
 
+  // Defensive check for array
+  const topicsArray = Array.isArray(topics) ? topics : [];
+
   const title = document.createElement('h3');
   title.className = 'conversation-river__title';
   title.textContent = 'Your Conversation Currents';
@@ -210,7 +216,7 @@ export function createConversationRiverElement(topics: ConversationTopic[]): HTM
   riverSvg.setAttribute('class', 'conversation-river__svg');
 
   // Sort by frequency
-  const sortedTopics = [...topics].sort((a, b) => b.frequency - a.frequency).slice(0, 5);
+  const sortedTopics = [...topicsArray].sort((a, b) => b.frequency - a.frequency).slice(0, 5);
 
   // Draw river streams
   sortedTopics.forEach((topic, index) => {
@@ -277,6 +283,9 @@ export function createMirrorElement(insights: MirrorInsight[]): HTMLElement {
   const container = document.createElement('div');
   container.className = 'the-mirror';
 
+  // Defensive check for array
+  const insightsArray = Array.isArray(insights) ? insights : [];
+
   const title = document.createElement('h3');
   title.className = 'the-mirror__title';
   title.textContent = 'The Mirror';
@@ -287,7 +296,7 @@ export function createMirrorElement(insights: MirrorInsight[]): HTMLElement {
   subtitle.textContent = 'What you say... and what I notice';
   container.appendChild(subtitle);
 
-  insights.forEach(insight => {
+  insightsArray.forEach(insight => {
     const card = document.createElement('div');
     card.className = 'the-mirror__card';
 
@@ -359,6 +368,10 @@ export function createEnergyFlowElement(nodes: EnergyNode[], flows: EnergyFlow[]
   const container = document.createElement('div');
   container.className = 'energy-flow';
 
+  // Defensive checks for arrays
+  const nodesArray = Array.isArray(nodes) ? nodes : [];
+  const flowsArray = Array.isArray(flows) ? flows : [];
+
   const title = document.createElement('h3');
   title.className = 'energy-flow__title';
   title.textContent = 'Your Energy Flow';
@@ -369,9 +382,9 @@ export function createEnergyFlowElement(nodes: EnergyNode[], flows: EnergyFlow[]
   svg.setAttribute('class', 'energy-flow__svg');
 
   // Position nodes in columns
-  const sources = nodes.filter(n => n.type === 'source');
-  const transforms = nodes.filter(n => n.type === 'transform');
-  const sinks = nodes.filter(n => n.type === 'sink');
+  const sources = nodesArray.filter(n => n.type === 'source');
+  const transforms = nodesArray.filter(n => n.type === 'transform');
+  const sinks = nodesArray.filter(n => n.type === 'sink');
 
   const nodePositions: Record<string, { x: number; y: number; height: number }> = {};
 
@@ -400,7 +413,7 @@ export function createEnergyFlowElement(nodes: EnergyNode[], flows: EnergyFlow[]
   });
 
   // Draw flows
-  flows.forEach(flow => {
+  flowsArray.forEach(flow => {
     const from = nodePositions[flow.from];
     const to = nodePositions[flow.to];
     if (from && to) {
@@ -465,6 +478,9 @@ export function createUnsaidElement(topics: UnsaidTopic[]): HTMLElement {
   const container = document.createElement('div');
   container.className = 'the-unsaid';
 
+  // Defensive check for array
+  const topicsArray = Array.isArray(topics) ? topics : [];
+
   const title = document.createElement('h3');
   title.className = 'the-unsaid__title';
   title.textContent = 'The Unsaid';
@@ -475,7 +491,7 @@ export function createUnsaidElement(topics: UnsaidTopic[]): HTMLElement {
   subtitle.textContent = 'Things that might be on your mind...';
   container.appendChild(subtitle);
 
-  if (topics.length === 0) {
+  if (topicsArray.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'the-unsaid__empty';
     empty.textContent = 'I\'m still learning your patterns. Keep talking.';
@@ -483,7 +499,7 @@ export function createUnsaidElement(topics: UnsaidTopic[]): HTMLElement {
     return container;
   }
 
-  topics.forEach(topic => {
+  topicsArray.forEach(topic => {
     const card = document.createElement('div');
     card.className = 'the-unsaid__card';
     card.style.setProperty('--confidence', String(topic.confidence));
@@ -536,6 +552,9 @@ export function createGrowthRingsElement(rings: GrowthRing[]): HTMLElement {
   const container = document.createElement('div');
   container.className = 'growth-rings';
 
+  // Defensive check for array
+  const ringsArray = Array.isArray(rings) ? rings : [];
+
   const title = document.createElement('h3');
   title.className = 'growth-rings__title';
   title.textContent = 'Your Growth Rings';
@@ -554,7 +573,7 @@ export function createGrowthRingsElement(rings: GrowthRing[]): HTMLElement {
   const centerY = 150;
   let currentRadius = 20;
 
-  rings.forEach((ring, index) => {
+  ringsArray.forEach((ring, index) => {
     const thickness = Math.max(8, ring.growth / 5);
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -618,6 +637,9 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   const container = document.createElement('div');
   container.className = 'values-alignment';
 
+  // Defensive check for array
+  const valuesArray = Array.isArray(values) ? values : [];
+
   const title = document.createElement('h3');
   title.className = 'values-alignment__title';
   title.textContent = 'Values Alignment';
@@ -635,7 +657,7 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   const centerX = 150;
   const centerY = 150;
   const maxRadius = 100;
-  const angleStep = (2 * Math.PI) / values.length;
+  const angleStep = valuesArray.length > 0 ? (2 * Math.PI) / valuesArray.length : 0;
 
   // Draw grid circles
   [25, 50, 75, 100].forEach(percent => {
@@ -648,7 +670,7 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   });
 
   // Draw axis lines and labels
-  values.forEach((value, i) => {
+  valuesArray.forEach((value, i) => {
     const angle = i * angleStep - Math.PI / 2;
     const x = centerX + Math.cos(angle) * maxRadius;
     const y = centerY + Math.sin(angle) * maxRadius;
@@ -675,7 +697,7 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   });
 
   // Draw stated values polygon
-  const statedPoints = values.map((value, i) => {
+  const statedPoints = valuesArray.map((value, i) => {
     const angle = i * angleStep - Math.PI / 2;
     const r = (value.stated / 100) * maxRadius;
     return `${centerX + Math.cos(angle) * r},${centerY + Math.sin(angle) * r}`;
@@ -687,7 +709,7 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   svg.appendChild(statedPolygon);
 
   // Draw lived values polygon
-  const livedPoints = values.map((value, i) => {
+  const livedPoints = valuesArray.map((value, i) => {
     const angle = i * angleStep - Math.PI / 2;
     const r = (value.lived / 100) * maxRadius;
     return `${centerX + Math.cos(angle) * r},${centerY + Math.sin(angle) * r}`;
@@ -717,7 +739,7 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
   container.appendChild(legend);
 
   // Insights for gaps
-  const gaps = values.filter(v => Math.abs(v.gap) > 20);
+  const gaps = valuesArray.filter(v => Math.abs(v.gap) > 20);
   if (gaps.length > 0) {
     const insights = document.createElement('div');
     insights.className = 'values-alignment__insights';
@@ -746,6 +768,9 @@ export function createUnfinishedStoriesElement(stories: UnfinishedStory[]): HTML
   const container = document.createElement('div');
   container.className = 'unfinished-stories';
 
+  // Defensive check for array
+  const storiesArray = Array.isArray(stories) ? stories : [];
+
   const title = document.createElement('h3');
   title.className = 'unfinished-stories__title';
   title.textContent = 'Unfinished Stories';
@@ -756,7 +781,7 @@ export function createUnfinishedStoriesElement(stories: UnfinishedStory[]): HTML
   subtitle.textContent = 'Threads waiting to be woven...';
   container.appendChild(subtitle);
 
-  if (stories.length === 0) {
+  if (storiesArray.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'unfinished-stories__empty';
     empty.textContent = 'No open loops detected. You\'re present in the moment.';
@@ -765,7 +790,7 @@ export function createUnfinishedStoriesElement(stories: UnfinishedStory[]): HTML
   }
 
   // Sort by emotional significance
-  const sortedStories = [...stories].sort((a, b) => b.emotionalSignificance - a.emotionalSignificance);
+  const sortedStories = [...storiesArray].sort((a, b) => b.emotionalSignificance - a.emotionalSignificance);
 
   sortedStories.forEach(story => {
     const card = document.createElement('div');
