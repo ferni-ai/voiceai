@@ -1,4 +1,0 @@
-module LKObjCHelpers {
-    umbrella header "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LKObjCHelpers/include/LKObjCHelpers.h"
-    export *
-}
