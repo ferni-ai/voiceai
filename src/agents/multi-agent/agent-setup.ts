@@ -704,6 +704,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
         const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
 
+        // Initialize dynamic loader with essential domains (telephony, communication, etc.)
+        // This MUST happen before first user message to prevent race conditions
+        await dynamicToolLoader.initialize({
+          userId: userId || 'anonymous',
+          agentId: persona.id,
+          agentDisplayName: persona.displayName || persona.id,
+          sessionId,
+          services: services as unknown as import('../../tools/registry/types.js').ServiceRegistry,
+        });
+
         const transcriptHandler = createTranscriptHandler({
           room,
           session,

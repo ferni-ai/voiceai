@@ -1929,6 +1929,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const { patternAnalyzer } = await import('../tools/optimization/pattern-analyzer.js');
     const { feedbackCollector } = await import('../tools/optimization/feedback-collector.js');
     const { dynamicToolLoader } = await import('../tools/dynamic-loader.js');
+
+    // Initialize dynamic loader with essential domains (telephony, communication, etc.)
+    // This MUST happen before first user message to prevent race conditions
+    await dynamicToolLoader.initialize({
+      userId: userId || 'anonymous',
+      agentId: sessionPersona.id,
+      agentDisplayName: sessionPersona.displayName || sessionPersona.id,
+      sessionId,
+      services: services as unknown as import('../tools/registry/types.js').ServiceRegistry,
+    });
+
     const transcriptHandler = createTranscriptHandler({
       room: ctx.room,
       session,

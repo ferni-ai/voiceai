@@ -50,9 +50,63 @@ const onboardingStateStore = new Map<string, OnboardingState>();
 // ============================================================================
 
 /**
+ * Check if the message indicates the phone number belongs to a third party
+ * (not the user's own contact info)
+ *
+ * Examples of third-party references:
+ * - "call my mom at 555-123-4567" → third party (mom)
+ * - "call John at 555-123-4567" → third party (John)
+ * - "her number is 555-123-4567" → third party
+ * - "his phone is 555-123-4567" → third party
+ *
+ * Examples of self-references (user's own contact):
+ * - "my number is 555-123-4567" → self
+ * - "text me at 555-123-4567" → self
+ * - "reach me at 555-123-4567" → self
+ */
+function isThirdPartyPhoneReference(text: string): boolean {
+  const lower = text.toLowerCase();
+
+  // Patterns that indicate a THIRD-PARTY phone number (not the user's own)
+  const thirdPartyPatterns = [
+    // "call my [person]" patterns
+    /call\s+(my\s+)?(mom|mother|dad|father|parent|brother|sister|friend|wife|husband|spouse|boss|doctor|dentist|therapist|coworker|colleague|partner|girlfriend|boyfriend|aunt|uncle|grandma|grandpa|grandmother|grandfather)/i,
+    // "call [name]" patterns (proper nouns before "at" + number)
+    /call\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s+(at|on)/i,
+    // "her/his number/phone"
+    /\b(her|his|their)\s+(number|phone|cell|mobile)/i,
+    // "[person]'s number"
+    /(mom|mother|dad|father|friend|wife|husband|boss|doctor)'?s?\s+(number|phone|cell)/i,
+    // "reach [person]" or "contact [person]"
+    /(reach|contact|get\s+a\s+hold\s+of|get\s+in\s+touch\s+with)\s+(my\s+)?(mom|mother|dad|father|friend|wife|husband)/i,
+    // "phone my [person]"
+    /phone\s+(my\s+)?(mom|mother|dad|father|friend)/i,
+  ];
+
+  for (const pattern of thirdPartyPatterns) {
+    if (pattern.test(lower)) {
+      getLogger().debug({ text: lower.substring(0, 50) }, '📱 Third-party phone reference detected, skipping contact onboarding');
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Auto-detect phone numbers and emails in user messages
+ *
+ * IMPORTANT: This function only detects the USER's own contact info.
+ * It will return null if the phone number appears to belong to a third party
+ * (e.g., "call my mom at 555-123-4567" - that's mom's number, not the user's).
  */
 export function detectContactInfo(text: string): ContactDetectionResult | null {
+  // First, check if this is a third-party phone reference
+  // If so, we should NOT treat it as the user's contact info
+  if (isThirdPartyPhoneReference(text)) {
+    return null;
+  }
+
   const results: ContactDetectionResult = {
     confidence: 0,
     extractedFrom: text,
