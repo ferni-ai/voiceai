@@ -36,12 +36,14 @@ vi.mock('../firestore-utils.js', () => ({
 import {
   detectCommitment,
   buildCommitmentContext,
-  type CommitmentIntent,
+  type CommitmentType,
+  type CommitmentDetectionResult,
 } from '../commitment-keeper.js';
 import {
   detectCrisis,
-  buildCrisisContext,
+  buildFirstAidContext,
   type CrisisSignal,
+  type CrisisLevel,
 } from '../emotional-first-aid.js';
 import {
   detectOvercommitment,
@@ -54,8 +56,8 @@ import { detectContradiction, areCommonlyCoexisting } from '../contradiction-com
 import { analyzeVoiceBiomarkers, type VoiceAnalysisInput } from '../voice-biomarkers.js';
 import { detectMoodPatterns, predictMood, type MoodEntry } from '../mood-calendar.js';
 import { analyzeConflictPattern } from '../conflict-resolution-memory.js';
-import { analyzeEnergyPatterns, type EnergyInteraction } from '../energy-wave-mapping.js';
-import { checkBoundaries, type TopicBoundary } from '../protective-silence.js';
+import { analyzeEnergyPatterns, type ConversationInteraction } from '../energy-wave-mapping.js';
+import { checkBoundaries, type ProtectiveBoundary } from '../protective-silence.js';
 import { detectReceptivity, isGoodTimeFor } from '../perfect-timing.js';
 
 // ============================================================================
@@ -279,37 +281,40 @@ function generateMoodHistory(pattern: 'stable' | 'declining' | 'cycling' | 'reco
 /**
  * Generates synthetic energy interactions.
  */
-function generateEnergyInteractions(): EnergyInteraction[] {
+function generateEnergyInteractions(): ConversationInteraction[] {
   const now = Date.now();
   const hour = 60 * 60 * 1000;
 
   return [
     {
+      userId: 'test-user',
       timestamp: now - 24 * hour,
-      type: 'conversation',
-      duration: 30,
+      type: 'deep_emotional' as const,
       dayOfWeek: 1,
       hourOfDay: 14,
-      energyBefore: 0.7,
-      energyAfter: 0.5,
+      engagement: 0.7,
+      depth: 0.6,
+      outcome: 'positive' as const,
     },
     {
+      userId: 'test-user',
       timestamp: now - 48 * hour,
-      type: 'meeting',
-      duration: 60,
+      type: 'practical_planning' as const,
       dayOfWeek: 0,
       hourOfDay: 10,
-      energyBefore: 0.8,
-      energyAfter: 0.4,
+      engagement: 0.8,
+      depth: 0.5,
+      outcome: 'neutral' as const,
     },
     {
+      userId: 'test-user',
       timestamp: now - 72 * hour,
-      type: 'conversation',
-      duration: 15,
+      type: 'light_chat' as const,
       dayOfWeek: 6,
       hourOfDay: 18,
-      energyBefore: 0.6,
-      energyAfter: 0.7, // Gained energy
+      engagement: 0.6,
+      depth: 0.3,
+      outcome: 'positive' as const,
     },
   ];
 }
@@ -420,7 +425,7 @@ describe('Synthetic Scenario Tests', () => {
       let falsePositives = 0;
       for (const transcript of ambiguousTranscripts) {
         const signal = detectCrisis(transcript);
-        if (signal && signal.severity === 'severe') {
+        if (signal && signal.severity === 'safety') {
           falsePositives++;
         }
       }
@@ -434,11 +439,11 @@ describe('Synthetic Scenario Tests', () => {
   describe('Commitment Detection Scenarios', () => {
     it('should extract commitments with varying confidence levels', () => {
       const transcripts = generateSyntheticTranscripts('commitment_variations');
-      const commitments: CommitmentIntent[] = [];
+      const commitments: CommitmentDetectionResult[] = [];
 
       for (const transcript of transcripts) {
-        const detected = detectCommitment(transcript);
-        if (detected) {
+        const detected = detectCommitment(transcript, 'test-user');
+        if (detected.detected) {
           commitments.push(detected);
         }
       }
@@ -471,13 +476,13 @@ describe('Synthetic Scenario Tests', () => {
       let tentativeConfidenceSum = 0;
 
       for (const text of firmCommitments) {
-        const c = detectCommitment(text);
-        if (c) firmConfidenceSum += c.confidence;
+        const c = detectCommitment(text, 'test-user');
+        if (c.detected) firmConfidenceSum += c.confidence;
       }
 
       for (const text of tentativeIntentions) {
-        const c = detectCommitment(text);
-        if (c) tentativeConfidenceSum += c.confidence;
+        const c = detectCommitment(text, 'test-user');
+        if (c.detected) tentativeConfidenceSum += c.confidence;
       }
 
       // Firm commitments should have higher average confidence
@@ -534,7 +539,7 @@ describe('Synthetic Scenario Tests', () => {
         if (vague.length > 0) {
           detectedCount++;
           // If detected, try to get suggestions
-          const suggestions = suggestPreciseEmotions(vague[0].vagueWord, 'general');
+          const suggestions = suggestPreciseEmotions(vague[0].vagueWord as import('../emotional-vocabulary.js').EmotionCategory, 'medium');
           // May or may not have suggestions depending on the word
         }
       }
@@ -618,9 +623,8 @@ describe('Synthetic Scenario Tests', () => {
             precedingUserMessage: 'She passed away last month.',
             voiceMarkersBefore: {
               breathPattern: 'held' as const,
-              speechRate: 0.8,
               energyJustBefore: 0.3,
-              microSounds: [],
+              microSounds: [] as import('../silence-interpreter.js').MicroSound[],
             },
             conversationPhase: 'deep' as const,
             recentHeavyTopics: ['death', 'grief'],
@@ -635,9 +639,8 @@ describe('Synthetic Scenario Tests', () => {
             precedingUserMessage: 'What should I do about the job offer?',
             voiceMarkersBefore: {
               breathPattern: 'normal' as const,
-              speechRate: 1.0,
               energyJustBefore: 0.6,
-              microSounds: ['hmm'],
+              microSounds: ['hmm'] as import('../silence-interpreter.js').MicroSound[],
             },
             conversationPhase: 'middle' as const,
             recentHeavyTopics: [],
@@ -674,7 +677,7 @@ describe('Synthetic Scenario Tests', () => {
 
   describe('Protective Boundaries', () => {
     it('should protect multiple boundary categories', () => {
-      const boundaries: TopicBoundary[] = [
+      const boundaries: ProtectiveBoundary[] = [
         {
           userId: 'test-user',
           topic: 'divorce',
@@ -687,8 +690,8 @@ describe('Synthetic Scenario Tests', () => {
         {
           userId: 'test-user',
           topic: 'work trauma',
-          severity: 'gentle',
-          category: 'career',
+          severity: 'gentle_only',
+          category: 'work',
           triggerKeywords: ['fired', 'layoff', 'terminated'],
           createdAt: Date.now(),
           source: 'user_stated',
@@ -725,7 +728,7 @@ describe('Synthetic Scenario Tests', () => {
       const lowReceptivity = detectReceptivity({
         energy: 0.3,
         stressLevel: 0.8,
-        greetingTone: 'flat',
+        greetingTone: 'tired',
       });
 
       expect(highReceptivity.score).toBeGreaterThan(lowReceptivity.score);
@@ -735,8 +738,8 @@ describe('Synthetic Scenario Tests', () => {
       const userId = 'test-user';
 
       // Check various conversation types
-      const deepResult = isGoodTimeFor(userId, 'deep_reflection');
-      const lightResult = isGoodTimeFor(userId, 'casual_chat');
+      const deepResult = isGoodTimeFor(userId, 'deep');
+      const lightResult = isGoodTimeFor(userId, 'gentle');
 
       // Both should return valid timing assessments
       expect(deepResult).toHaveProperty('isGood');
@@ -773,7 +776,7 @@ describe('Cross-Service Integration Scenarios', () => {
     const complexStatement = "I'm so relieved the project is done but I feel guilty about not being there for my family";
 
     // Should detect commitment implications
-    const commitment = detectCommitment(complexStatement);
+    const commitment = detectCommitment(complexStatement, 'test-user');
 
     // Should detect emotional contradiction
     const contradiction = detectContradiction(complexStatement, []);
@@ -783,6 +786,6 @@ describe('Cross-Service Integration Scenarios', () => {
 
     // The statement contains implicit family commitment
     // and relieved/guilty contradiction
-    expect(contradiction !== null || vagueEmotions.length > 0 || commitment !== null).toBe(true);
+    expect(contradiction !== null || vagueEmotions.length > 0 || commitment.detected).toBe(true);
   });
 });

@@ -47,7 +47,7 @@ import {
   detectOvercommitment,
 } from '../capacity-guardian.js';
 import { detectVagueEmotions, suggestPreciseEmotions } from '../emotional-vocabulary.js';
-import { analyzeSilence, shouldAnalyzeSilence, type SilenceAnalysis, type SilenceContext } from '../silence-interpreter.js';
+import { analyzeSilence, shouldAnalyzeSilence, type SilenceAnalysis } from '../silence-interpreter.js';
 import { detectContradiction, areCommonlyCoexisting, type ContradictionDetection } from '../contradiction-comfort.js';
 import { analyzeVoiceBiomarkers, type VoiceAnalysisInput } from '../voice-biomarkers.js';
 import { checkBoundaries, type ProtectiveBoundary } from '../protective-silence.js';
@@ -427,8 +427,12 @@ function calculateVoiceEscalation(turns: ConversationTurn[]): {
   const firstHalf = strainValues.slice(0, Math.floor(strainValues.length / 2));
   const secondHalf = strainValues.slice(Math.floor(strainValues.length / 2));
 
-  const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-  const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+  const firstAvg = firstHalf.length > 0
+    ? firstHalf.reduce((a: number, b) => a + (b ?? 0), 0) / firstHalf.length
+    : 0;
+  const secondAvg = secondHalf.length > 0
+    ? secondHalf.reduce((a: number, b) => a + (b ?? 0), 0) / secondHalf.length
+    : 0;
 
   let strainTrend: 'increasing' | 'decreasing' | 'stable' = 'stable';
   if (secondAvg > firstAvg + 0.1) strainTrend = 'increasing';
@@ -527,17 +531,16 @@ describe('Multi-Turn Conversation Scenarios', () => {
       expect(griefSilence).toBeDefined();
 
       if (griefSilence) {
-        const silenceContext: SilenceContext = {
+        const silenceContext = {
           precedingTopic: 'loss',
           precedingEmotion: 'sad',
           precedingUserMessage: griefSilence.text,
           voiceMarkersBefore: {
-            breathPattern: 'held',
-            speechRate: 0.8,
+            breathPattern: 'held' as const,
             energyJustBefore: 0.3,
-            microSounds: [],
+            microSounds: [] as import('../silence-interpreter.js').MicroSound[],
           },
-          conversationPhase: 'deep',
+          conversationPhase: 'deep' as const,
           recentHeavyTopics: ['death', 'grief', 'loss'],
         };
 
@@ -552,11 +555,12 @@ describe('Multi-Turn Conversation Scenarios', () => {
         {
           userId: TEST_USER_ID,
           topic: 'grief',
-          severity: 'moderate',
+          severity: 'gentle_only',
           category: 'loss',
           reason: 'Recent loss mentioned',
           triggerKeywords: ['death', 'loss', 'grief'],
           createdAt: Date.now(),
+          source: 'inferred' as const,
         },
       ];
 
@@ -642,11 +646,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
 
   describe('Silence Patterns Across Turns', () => {
     it('should analyze silences with different contexts', () => {
-      const contexts: Array<{
-        duration: number;
-        context: SilenceContext;
-        expectedType: string;
-      }> = [
+      const contexts = [
         {
           // Long pause after heavy topic
           duration: 4000,
@@ -655,12 +655,11 @@ describe('Multi-Turn Conversation Scenarios', () => {
             precedingEmotion: 'sad',
             precedingUserMessage: 'She passed away.',
             voiceMarkersBefore: {
-              breathPattern: 'held',
-              speechRate: 0.7,
+              breathPattern: 'held' as const,
               energyJustBefore: 0.3,
-              microSounds: ['sigh'],
+              microSounds: ['sigh'] as import('../silence-interpreter.js').MicroSound[],
             },
-            conversationPhase: 'deep',
+            conversationPhase: 'deep' as const,
             recentHeavyTopics: ['grief', 'death'],
           },
           expectedType: 'emotional',
@@ -673,12 +672,11 @@ describe('Multi-Turn Conversation Scenarios', () => {
             precedingEmotion: 'neutral',
             precedingUserMessage: 'Let me think about that...',
             voiceMarkersBefore: {
-              breathPattern: 'normal',
-              speechRate: 1.0,
+              breathPattern: 'normal' as const,
               energyJustBefore: 0.5,
-              microSounds: [],
+              microSounds: [] as import('../silence-interpreter.js').MicroSound[],
             },
-            conversationPhase: 'middle',
+            conversationPhase: 'middle' as const,
             recentHeavyTopics: [],
           },
           expectedType: 'processing',
@@ -780,8 +778,10 @@ describe('Service Integration Patterns', () => {
 
     const vagueEmotions = detectVagueEmotions(vagueText);
 
-    if (vagueEmotions.length > 0) {
-      const suggestions = suggestPreciseEmotions(vagueEmotions[0].vagueWord, 'general');
+    if (vagueEmotions.length > 0 && vagueEmotions[0].possibleMeanings.length > 0) {
+      // suggestPreciseEmotions takes (category: EmotionCategory, intensityHint?)
+      const category = vagueEmotions[0].possibleMeanings[0].category;
+      const suggestions = suggestPreciseEmotions(category, 'medium');
       expect(Array.isArray(suggestions)).toBe(true);
     }
   });

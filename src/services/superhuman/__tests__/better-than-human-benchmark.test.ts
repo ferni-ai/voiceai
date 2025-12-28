@@ -201,7 +201,7 @@ describe('Better Than Human Benchmark', () => {
         ];
 
         for (const { text, expected } of commitments) {
-          const result = detectCommitment(text);
+          const result = detectCommitment(text, TEST_USER);
           const hasCommitment = result !== null;
           if (hasCommitment !== expected) {
             console.log(`  Commitment detection mismatch: "${text}" - got ${hasCommitment}`);
@@ -441,7 +441,6 @@ describe('Better Than Human Benchmark', () => {
           precedingUserMessage: 'I need to think about that.',
           voiceMarkersBefore: {
             breathPattern: 'normal',
-            speechRate: 1.0,
             energyJustBefore: 0.5,
             microSounds: [],
           },
@@ -518,7 +517,7 @@ describe('Better Than Human Benchmark', () => {
 
       it('should determine if time is good for topics', () => {
         // isGoodTimeFor takes (userId, conversationType) and returns an object
-        const result = isGoodTimeFor(TEST_USER, 'deep_reflection');
+        const result = isGoodTimeFor(TEST_USER, 'deep');
         expect(result).toHaveProperty('isGood');
         expect(typeof result.isGood).toBe('boolean');
       });
@@ -551,12 +550,22 @@ describe('Better Than Human Benchmark', () => {
         const contextWithLetter = buildFutureSelfContext({
           id: 'test-letter-id',
           userId: TEST_USER,
-          content: 'Dear future self...',
-          timeframe: 'year',
-          createdAt: Date.now(),
-          themes: ['growth', 'hope'],
+          timeframe: '1_year',
+          optimisticPath: {
+            letter: 'Dear future self, you have grown so much...',
+            assumptions: ['You stayed consistent', 'You prioritized health'],
+          },
+          cautionaryPath: {
+            letter: 'Dear future self, remember your struggles...',
+            warningSignals: ['Overwork patterns', 'Neglecting relationships'],
+          },
           keyInsights: ['You are capable of change', 'Trust the process'],
-          emotionalTone: 'hopeful',
+          basedOn: {
+            positivePatterns: [],
+            concerningPatterns: [],
+          },
+          generatedAt: new Date(),
+          expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
         });
         expect(contextWithLetter.length).toBeGreaterThan(0);
       });
@@ -642,7 +651,22 @@ describe('Better Than Human Benchmark', () => {
       });
 
       it('should calculate battery level', () => {
-        const level = calculateBatteryLevel([], { introvertScore: 0.5 });
+        const level = calculateBatteryLevel([], {
+          eventCosts: {
+            large_gathering: 30,
+            small_group: 15,
+            one_on_one: 10,
+            family: 5,
+            work_meeting: 20,
+            deep_conversation: 25,
+            casual_chat: 5,
+            conflict: 40,
+            alone_time: -20, // Recharges
+          },
+          maxCapacity: 100,
+          recoveryMultiplier: 1.0,
+          peakSocialHours: [10, 14, 18],
+        });
         expect(level).toBeGreaterThanOrEqual(0);
         expect(level).toBeLessThanOrEqual(100);
       });
@@ -681,7 +705,7 @@ describe('Better Than Human Benchmark', () => {
       });
 
       it('should get conflict recommendations', async () => {
-        const recs = await getConflictRecommendations(TEST_USER, 'partner', 'communication');
+        const recs = await getConflictRecommendations(TEST_USER, 'partner');
         // Returns recommendations object or empty - check for valid response
         expect(recs !== undefined).toBe(true);
       });
@@ -712,17 +736,19 @@ describe('Better Than Human Benchmark', () => {
 
     describe('21. Calendar Prep Coaching', () => {
       it('should classify events', () => {
+        const now = Date.now();
         const events = [
-          { title: 'Team standup', duration: 15, expected: 'light' },
-          { title: 'Performance review', duration: 60, expected: 'challenging' },
-          { title: 'Client presentation', duration: 90, expected: 'demanding' },
+          { title: 'Team standup', durationMinutes: 15, expected: 'light' },
+          { title: 'Performance review', durationMinutes: 60, expected: 'challenging' },
+          { title: 'Client presentation', durationMinutes: 90, expected: 'demanding' },
         ];
 
-        for (const { title, duration } of events) {
+        for (const { title, durationMinutes } of events) {
           const result = classifyEvent({
+            id: `event-${title.replace(/\s/g, '-')}`,
             title,
-            duration,
-            startTime: new Date(),
+            startTime: now,
+            endTime: now + durationMinutes * 60 * 1000,
             attendees: [],
           });
           expect(result).toHaveProperty('difficulty');
@@ -731,10 +757,12 @@ describe('Better Than Human Benchmark', () => {
       });
 
       it('should get prep recommendations', async () => {
+        const now = Date.now();
         const recs = await getPrepRecommendations(TEST_USER, {
+          id: 'test-meeting-1',
           title: 'Important meeting',
-          duration: 60,
-          startTime: new Date(),
+          startTime: now,
+          endTime: now + 60 * 60 * 1000, // 60 minutes
           attendees: ['boss', 'team'],
         });
         // Returns recommendations object or array
@@ -779,7 +807,7 @@ describe('Better Than Human Benchmark', () => {
       });
 
       it('should suggest precise emotions', () => {
-        const suggestions = suggestPreciseEmotions('bad', 'relationship');
+        const suggestions = suggestPreciseEmotions('sadness', 'medium');
         expect(Array.isArray(suggestions)).toBe(true);
       });
 
@@ -807,7 +835,7 @@ describe('Better Than Human Benchmark', () => {
 
     describe('25. Inside Joke Memory', () => {
       it('should detect potential shared moments', () => {
-        const moment = detectPotentialMoment("That's so funny!", 'laughter');
+        const moment = detectPotentialMoment("That's so funny!", 'user');
         // Returns null or SharedMoment info
         expect(moment === null || typeof moment === 'object').toBe(true);
       });
@@ -818,14 +846,19 @@ describe('Better Than Human Benchmark', () => {
           moment: {
             id: 'test-moment',
             userId: TEST_USER,
-            type: 'joke',
-            content: 'That joke about the cat',
-            referenceCount: 3,
+            type: 'inside_joke',
+            essence: 'That joke about the cat',
+            context: 'We laughed about the cat',
+            triggerKeywords: ['cat', 'funny'],
+            callbackPhrase: 'Remember that cat thing?',
+            timesReferenced: 3,
             createdAt: Date.now() - 86400000,
-            lastReferenced: Date.now() - 3600000,
+            lastReferencedAt: Date.now() - 3600000,
+            resonance: 0.8,
           },
-          relevanceScore: 0.8,
-          triggerContext: 'celebration',
+          triggerMatch: 'cat',
+          naturalCallback: 'Remember when we laughed about the cat?',
+          appropriateness: 0.8,
         });
         // Note: Returns null when no moments stored
       });
