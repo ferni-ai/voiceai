@@ -605,11 +605,80 @@ button {
   z-index: 2;
 }
 
+/* Legacy text style (kept for backwards compatibility) */
 .hero-ferni__text {
   color: white;
   font-family: var(--font-display);
   font-weight: var(--font-weight-bold);
   font-size: 1.5rem;
+}
+
+/* ============================================
+   FERNI EYES SVG - Friendly presence design
+   ============================================ */
+
+/* Base eyes SVG styling - fits within orb containers */
+.ferni-eyes-svg,
+.hero-ferni__eyes {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Eyes have subtle animation on orb hover */
+.hero-ferni__orb:hover .hero-ferni__eyes ellipse,
+.hero-ferni__orb:hover .ferni-eyes-svg ellipse {
+  transform: scale(1.05);
+  transform-origin: center;
+  transition: transform 0.2s ease-out;
+}
+
+/* Sparkle animation */
+.ferni-sparkle,
+.ferni-eyes-svg circle[fill="white"] {
+  opacity: 0.9;
+}
+
+/* Memory demo avatar eyes */
+.memory-demo__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memory-demo__avatar .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Journey stage avatar eyes */
+.journey__avatar .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Proof table icon eyes */
+.proof-table__icon .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Two-am avatar orb eyes */
+.two-am__avatar-orb .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Final CTA avatar orb eyes */
+.final-cta__avatar-orb .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Persona avatar eyes */
+.persona-avatar__orb .ferni-eyes-svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Rings and glow hidden - cleaner circular orb look */

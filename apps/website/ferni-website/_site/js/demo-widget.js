@@ -271,7 +271,7 @@
         <div class="demo-widget__avatar">
           <div class="demo-widget__avatar-glow"></div>
           <div class="demo-widget__avatar-orb">
-            <span>FE</span>
+            <svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
           </div>
         </div>
         <div class="demo-widget__peek">
@@ -283,7 +283,7 @@
         <div class="demo-widget__header">
           <div class="demo-widget__header-avatar">
             <div class="demo-widget__mini-orb">
-              <span>FE</span>
+              <svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
               <div class="demo-widget__mini-orb-glow"></div>
             </div>
             <div class="demo-widget__header-info">

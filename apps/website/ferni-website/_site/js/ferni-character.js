@@ -401,7 +401,7 @@
       reward.className = 'konami-reward';
       reward.innerHTML = `
         <div class="konami-reward__inner">
-          <div class="konami-reward__orb">FE</div>
+          <div class="konami-reward__orb"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <p class="konami-reward__message">You found me! Here's a secret: I really am listening, even when you're just scrolling.</p>
         </div>
       `;
@@ -488,7 +488,7 @@
       toast.className = 'ferni-toast';
       toast.innerHTML = `
         <div class="ferni-toast__inner">
-          <span class="ferni-toast__orb">FE</span>
+          <span class="ferni-toast__orb"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></span>
           <span class="ferni-toast__message">${message}</span>
         </div>
       `;

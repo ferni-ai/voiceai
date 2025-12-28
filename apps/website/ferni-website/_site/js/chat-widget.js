@@ -45,12 +45,12 @@
     widget.className = 'ferni-chat-widget';
     widget.innerHTML = `
       <div class="ferni-chat-bubble" role="button" aria-label="Chat with Ferni">
-        <div class="ferni-chat-bubble__avatar">FE</div>
+        <div class="ferni-chat-bubble__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
         <div class="ferni-chat-bubble__greeting"></div>
       </div>
       <div class="ferni-chat-panel" role="dialog" aria-label="Chat with Ferni">
         <div class="ferni-chat-panel__header">
-          <div class="ferni-chat-panel__avatar">FE</div>
+          <div class="ferni-chat-panel__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <div class="ferni-chat-panel__title">
             <span class="ferni-chat-panel__name">Ferni</span>
             <span class="ferni-chat-panel__status">Online</span>

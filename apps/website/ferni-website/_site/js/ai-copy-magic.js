@@ -435,7 +435,7 @@
       container.className = 'social-proof-dynamic ai-social-proof';
       container.innerHTML = `
         <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar">FE</div>
+          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <p class="social-proof-dynamic__text"></p>
         </div>
       `;
@@ -877,7 +877,7 @@
     hoverTooltip = document.createElement('div');
     hoverTooltip.className = 'ai-hover-insight';
     hoverTooltip.innerHTML = `
-      <div class="ai-hover-insight__avatar">FE</div>
+      <div class="ai-hover-insight__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
       <span class="ai-hover-insight__text"></span>
     `;
     document.body.appendChild(hoverTooltip);
