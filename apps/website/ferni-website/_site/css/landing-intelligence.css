@@ -949,14 +949,15 @@
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #c9c4bc; /* Warm light gray - 6:1+ contrast */
+  color: #f0ebe4; /* Brighter warm white - improved contrast */
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin-bottom: var(--space-4);
   padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* User Message Cards - Glass morphism with better contrast */
@@ -987,9 +988,10 @@
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: 0.875rem;
   font-weight: 700;
-  color: #f0ece6; /* Near white - 9:1+ contrast */
+  color: #ffffff; /* Pure white for maximum contrast */
   margin-bottom: var(--space-3);
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Message Text - High contrast, readable */
@@ -997,9 +999,10 @@
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(1.0625rem, 2vw, 1.1875rem);
   line-height: 1.7;
-  color: #f5f3f0; /* Very light cream - 10:1+ contrast */
+  color: #ffffff; /* Pure white for readability on glass cards */
   margin: 0;
   font-style: italic;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 /* Remembered indicator - Accent color for visibility */
@@ -1011,12 +1014,14 @@
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: 0.875rem;
   font-weight: 600;
-  color: #a8c49c; /* Soft sage - accent color */
+  color: #b8d4ac; /* Brighter sage green - improved contrast */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .memory-demo__indicator svg {
-  opacity: 0.9;
-  color: #8cb87c; /* Ferni green */
+  opacity: 1;
+  color: #a8d498; /* Brighter Ferni green */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 /* Emotion Tags - More visible */
